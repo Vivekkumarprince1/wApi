@@ -1181,6 +1181,21 @@ export const esbStart = async () => {
   return response.json();
 };
 
+// Process ESB callback (code + state)
+export const esbProcessCallback = async (code: string, state: string) => {
+  const response = await fetch(`${API_URL}/onboarding/esb/process-callback`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ code, state })
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to process ESB callback');
+  }
+  return response.json();
+};
+
 // Get ESB status
 export const esbStatus = async () => {
   const response = await fetch(`${API_URL}/onboarding/esb/status`, {
