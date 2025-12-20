@@ -3,28 +3,20 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { 
-  loginUser, 
-  registerUser, 
+import Link from 'next/link'
+import {  
   getCurrentUser, 
   logoutUser,
   sendSignupOTP,
   sendLoginOTP,
-  verifySignupOTP,
-  verifyLoginOTP
 } from '@/lib/api'
-import GoogleLogin from '@/components/GoogleLogin'
-import GoogleOTP from '@/components/GoogleOTP'
 import { 
   ChevronRight, 
-  CheckCircle, 
-  Star,
   MessageCircle,
   Zap,
   Shield,
   Users,
   TrendingUp,
-  ArrowRight,
   Files,
   CircuitBoard,
   BarChart3,
@@ -37,8 +29,6 @@ import HeroSection from '@/components/HeroSection'
 import FeatureBar from '@/components/FeatureBar'
 import ContactsSection from '@/components/ContactsSection'
 import DashboardLayout from '@/components/DashboardLayout'
-import SignupOTP from '@/components/SignupOTP'
-import LoginOTP from '@/components/LoginOTP'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
 const industrySlides = [
@@ -115,7 +105,6 @@ export default function HomePage() {
   const [slide, setSlide] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [activeButton, setActiveButton] = useState<string | null>(null);
-  const [showLogin, setShowLogin] = useState(false);
   const [currentSection, setCurrentSection] = useState('home');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
@@ -1076,23 +1065,31 @@ export default function HomePage() {
           <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-white mb-6 sm:mb-8 max-w-2xl mx-auto">
             Join thousands of businesses already using Interakt to grow their customer engagement and drive conversions.
           </p>
-          <button 
-            onClick={() => {
-              setActiveButton('bottom');
-              document.getElementById('signup-form')?.scrollIntoView({ 
-                behavior: 'smooth',
-                block: 'center'
-              });
-              setTimeout(() => setActiveButton(null), 1000);
-            }}
-            className={`font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg shadow-lg transition-all duration-500 transform ${
-              activeButton === 'bottom'
-                ? 'bg-[#CCFF00] text-black scale-105 shadow-2xl'
-                : 'bg-[#CCFF00] text-black hover:bg-[#BFFF00] hover:shadow-2xl hover:scale-110 hover:-translate-y-1'
-            }`}
-          >
-            Get Started With Free Trial
-          </button>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+            <button 
+              onClick={() => {
+                setActiveButton('bottom');
+                document.getElementById('signup-form')?.scrollIntoView({ 
+                  behavior: 'smooth',
+                  block: 'center'
+                });
+                setTimeout(() => setActiveButton(null), 1000);
+              }}
+              className={`font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg shadow-lg transition-all duration-500 transform ${
+                activeButton === 'bottom'
+                  ? 'bg-[#CCFF00] text-black scale-105 shadow-2xl'
+                  : 'bg-[#CCFF00] text-black hover:bg-[#BFFF00] hover:shadow-2xl hover:scale-110 hover:-translate-y-1'
+              }`}
+            >
+              Get Started With Free Trial
+            </button>
+            <Link
+              href="/privacy"
+              className="px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg font-semibold border border-gray-300 text-gray-800 dark:text-white bg-white/80 dark:bg-gray-900/60 hover:border-gray-400 hover:shadow-md transition-all duration-300"
+            >
+              View Privacy Policy
+            </Link>
+          </div>
         </div>
       </section>
       
