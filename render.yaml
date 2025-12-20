@@ -2,7 +2,7 @@ services:
   - type: web
     name: waapi-frontend
     env: node
-    rootDir: .
+    rootDir: client
     plan: free
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run start
