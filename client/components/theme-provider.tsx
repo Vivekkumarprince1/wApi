@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
-import { type ThemeProviderProps } from "next-themes/dist/types"
 import { Sun, Moon } from "lucide-react"
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+type NextThemesProps = React.ComponentProps<typeof NextThemesProvider>
+
+export function ThemeProvider({ children, ...props }: NextThemesProps) {
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>
 }
 

@@ -1,7 +1,8 @@
 "use client";
+export const dynamic = 'force-dynamic';
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import {
   esbStart,
   esbStatus,
@@ -44,7 +45,6 @@ function mapStatusToStep(status?: string) {
 
 export default function EsbPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [step, setStep] = useState<string>("start");
   const [loading, setLoading] = useState(false);
@@ -57,25 +57,30 @@ export default function EsbPage() {
   const [signup, setSignup] = useState({ name: "", email: "" });
   const [signupDone, setSignupDone] = useState(false);
 
-  const code = searchParams.get("code");
-  const state = searchParams.get("state");
-  const callbackError = searchParams.get("error");
-
   useEffect(() => {
     const token = getToken();
     setIsAuthed(!!token);
     loadStatus();
-  }, []);
 
-  useEffect(() => {
-    if (callbackError) {
-      setError(`Meta returned an error: ${callbackError}`);
-      return;
+    // parse URL for callback params if present
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const state = params.get("state");
+      const callbackError = params.get("error");
+
+      if (callbackError) {
+        setError(`Meta returned an error: ${callbackError}`);
+        return;
+      }
+      if (code && state) {
+        // fire-and-forget; handleProcessCallback manages its own loading state
+        handleProcessCallback(code, state);
+      }
+    } catch (_e) {
+      // ignore when not running in browser
     }
-    if (code && state) {
-      handleProcessCallback(code, state);
-    }
-  }, [code, state, callbackError]);
+  }, []);
 
   const activeStepIndex = useMemo(() => STEP_ORDER.indexOf(step), [step]);
 
