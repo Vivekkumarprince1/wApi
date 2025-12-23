@@ -15,14 +15,18 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
     const token = localStorage.getItem('token');
     setShowHeader(!!token);
     
-    // Listen for storage changes to update header visibility
-    const handleStorage = () => {
+    // Listen for storage changes and custom auth changes to update header visibility
+    const handleAuthChange = () => {
       const token = localStorage.getItem('token');
       setShowHeader(!!token);
     };
     
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener('storage', handleAuthChange);
+    window.addEventListener('authChange', handleAuthChange);
+    return () => {
+      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('authChange', handleAuthChange);
+    };
   }, []);
 
   // Prevent body scroll when sidebar is open on mobile

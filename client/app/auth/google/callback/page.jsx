@@ -11,6 +11,7 @@ export default function GoogleCallbackPage() {
     const token = params.get('token');
     if (token) {
       localStorage.setItem('token', token);
+      window.dispatchEvent(new Event('authChange'));
       // Clean up URL without token
       const cleanUrl = window.location.origin + '/auth/google/callback';
       window.history.replaceState({}, document.title, cleanUrl);

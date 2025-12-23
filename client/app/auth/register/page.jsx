@@ -43,6 +43,7 @@ export default function RegisterPage() {
       const data = await registerUser(formData);
       if (data?.token) {
         localStorage.setItem('token', data.token);
+        window.dispatchEvent(new Event('authChange'));
       }
       router.push('/onboarding/verify-email'); // Redirect to email verification after registration
     } catch (err) {
@@ -55,6 +56,7 @@ export default function RegisterPage() {
   const handleSocialSuccess = (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
+      window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
     router.push('/dashboard');
@@ -63,6 +65,7 @@ export default function RegisterPage() {
   const handleFacebookSuccess = (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
+      window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
     router.push('/esb');

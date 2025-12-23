@@ -77,6 +77,8 @@ const Header = () => {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('workspace');
+    // Dispatch custom event to notify other components of logout
+    window.dispatchEvent(new Event('authChange'));
     router.push('/auth/login');
   };
 

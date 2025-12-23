@@ -32,6 +32,7 @@ export default function LoginPage() {
       const data = await loginUser({ email, password });
       if (data?.token) {
         localStorage.setItem('token', data.token);
+        window.dispatchEvent(new Event('authChange'));
       }
       router.push('/dashboard');
     } catch (err) {
@@ -44,6 +45,7 @@ export default function LoginPage() {
   const handleSocialSuccess = (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
+      window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
     router.push('/esb');
@@ -52,6 +54,7 @@ export default function LoginPage() {
   const handleFacebookSuccess = (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
+      window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
     router.push('/esb');

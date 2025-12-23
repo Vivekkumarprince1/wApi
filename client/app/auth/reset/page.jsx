@@ -42,6 +42,7 @@ export default function ResetPasswordPage() {
       const result = await verifyLoginOTP({ email, otp });
       if (result.token) {
         localStorage.setItem('token', result.token);
+        window.dispatchEvent(new Event('authChange'));
         setStatus({
           type: "success",
           message: "Password reset successful! Redirecting to dashboard...",
