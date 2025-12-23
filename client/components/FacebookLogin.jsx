@@ -49,17 +49,19 @@ const FacebookLogin = ({ onError, onSuccess, autoRedirect = true }) => {
     }
 
     window.FB.login(
-      async (response) => {
+      (response) => {
         if (response.authResponse?.accessToken) {
-          try {
-            const result = await facebookLogin(response.authResponse.accessToken);
-            const callbackResult = onSuccess?.(result);
-            if (autoRedirect && callbackResult !== false) {
-              router.push('/dashboard');
+          (async () => {
+            try {
+              const result = await facebookLogin(response.authResponse.accessToken);
+              const callbackResult = onSuccess?.(result);
+              if (autoRedirect && callbackResult !== false) {
+                router.push('/dashboard');
+              }
+            } catch (error) {
+              onError?.(error.message);
             }
-          } catch (error) {
-            onError?.(error.message);
-          }
+          })();
         } else {
           onError?.('Facebook authentication was cancelled');
         }
