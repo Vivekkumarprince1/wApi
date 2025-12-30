@@ -82,6 +82,26 @@ const Header = () => {
     router.push('/auth/login');
   };
 
+  const handleDeleteAccount = async () => {
+    const ok = confirm('Are you sure you want to permanently delete your account and all workspace data? This action cannot be undone.');
+    if (!ok) return;
+    try {
+      setLoading(true);
+      await api.deleteAccount();
+      // Clear local session and redirect to public landing
+      localStorage.removeItem('token');
+      localStorage.removeItem('workspace');
+      window.dispatchEvent(new Event('authChange'));
+      alert('Your account and workspace data have been deleted.');
+      router.push('/');
+    } catch (err) {
+      console.error('Failed to delete account:', err);
+      alert('Failed to delete account. Please contact support.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSettingsClick = (path) => {
     setShowSettings(false);
     router.push(path);
@@ -165,7 +185,7 @@ const Header = () => {
         <div className="w-8 h-8 bg-teal-600 rounded flex items-center justify-center">
           <FaWhatsapp className="text-white text-lg" />
         </div>
-        <span className="font-bold text-lg text-gray-900 dark:text-white">Interakt</span>
+        <span className="font-bold text-lg text-gray-900 dark:text-white">{process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</span>
       </div>
 
       {/* Right - Actions */}
@@ -537,13 +557,23 @@ const Header = () => {
                 </div>
 
                 {/* Log Out */}
-                <button 
-                  onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-4 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                >
-                  <FaSignOutAlt />
-                  <span className="font-medium">Log Out</span>
-                </button>
+                <div className="space-y-2">
+                  <button 
+                    onClick={handleDeleteAccount}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-red-700 dark:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  >
+                    <FaExclamationCircle />
+                    <span className="font-medium">Delete Account</span>
+                  </button>
+
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-2 px-4 py-2.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                  >
+                    <FaSignOutAlt />
+                    <span className="font-medium">Log Out</span>
+                  </button>
+                </div>
 
                 {/* Footer Links */}
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-center space-y-1">

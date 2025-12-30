@@ -117,7 +117,7 @@ const CreateContactPanel = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Shopify</h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          By installing our Shopify marketing app, all customers placing orders & abandoning checkouts in your Shopify store will be added automatically to your Interakt account.
+                          By installing our Shopify marketing app, all customers placing orders & abandoning checkouts in your Shopify store will be added automatically to your {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} account.
                         </p>
                       </div>
                     </div>
@@ -137,7 +137,7 @@ const CreateContactPanel = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Mobile App</h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          Effortlessly sync your mobile contacts to Interakt using our Mobile App
+                          Effortlessly sync your mobile contacts to {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} using our Mobile App
                         </p>
                       </div>
                     </div>
@@ -157,7 +157,7 @@ const CreateContactPanel = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">API</h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          Use Interakt's APIs to automatically add and modify contacts
+                          Use {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}'s APIs to automatically add and modify contacts
                         </p>
                       </div>
                     </div>
@@ -177,7 +177,7 @@ const CreateContactPanel = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">WooCommerce</h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          By installing our Woocommerce plugin, all customers placing orders & abandoning checkouts in your Woocommerce store will be added automatically to your Interakt account.
+                          By installing our Woocommerce plugin, all customers placing orders & abandoning checkouts in your Woocommerce store will be added automatically to your {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} account.
                         </p>
                       </div>
                     </div>
@@ -197,7 +197,7 @@ const CreateContactPanel = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Google Sheets</h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          Contacts added in rows in your Google Sheet can be auto-added to your Interakt account, by using our Google Sheet Add-On
+                          Contacts added in rows in your Google Sheet can be auto-added to your {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} account, by using our Google Sheet Add-On
                         </p>
                       </div>
                     </div>
@@ -217,7 +217,7 @@ const CreateContactPanel = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">FB Leads Integration</h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          Leads filling up your FB Lead Forms can be auto-added to your Interakt account, by using our FB Leads integration.
+                          Leads filling up your FB Lead Forms can be auto-added to your {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} account, by using our FB Leads integration.
                         </p>
                       </div>
                     </div>
@@ -237,7 +237,7 @@ const CreateContactPanel = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Pabbly</h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          Leads filling up your FB Lead Forms can be auto-added to your Interakt account, by using our FB Leads integration.
+                          Leads filling up your FB Lead Forms can be auto-added to your {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} account, by using our FB Leads integration.
                         </p>
                       </div>
                     </div>
@@ -257,7 +257,7 @@ const CreateContactPanel = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Instamojo</h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          By installing our Instamojo app, all customers placing orders & abandoning checkouts in your Instamojo store will be added automatically to your Interakt account.
+                          By installing our Instamojo app, all customers placing orders & abandoning checkouts in your Instamojo store will be added automatically to your {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} account.
                         </p>
                       </div>
                     </div>
@@ -277,7 +277,7 @@ const CreateContactPanel = ({ isOpen, onClose }) => {
                       <div className="flex-1">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Zapier</h3>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
-                          Connect Interakt with thousands of apps through Zapier to automatically add contacts
+                          Connect {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} with thousands of apps through Zapier to automatically add contacts
                         </p>
                       </div>
                     </div>

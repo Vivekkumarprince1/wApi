@@ -67,7 +67,7 @@ const ConnectInstagramModal = ({ isOpen, onClose }) => {
             </div>
             <div>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                Log in with Instagram and set your permissions. Once that's done, you're all set to connect to Interakt!
+                Log in with Instagram and set your permissions. Once that's done, you're all set to connect to {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}!
               </p>
             </div>
           </div>

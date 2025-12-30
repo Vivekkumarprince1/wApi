@@ -98,7 +98,7 @@ const ConnectNumberModal = ({ isOpen, onClose }) => {
                 </svg>
               </div>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                View and reply to chats from both WhatsApp Business App and Interakt.
+                View and reply to chats from both WhatsApp Business App and {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}.
               </p>
             </div>
 
@@ -134,7 +134,7 @@ const ConnectNumberModal = ({ isOpen, onClose }) => {
                 </svg>
               </div>
               <p className="text-sm text-gray-700 dark:text-gray-300">
-                You won't be able to sync your Interakt or Shopify Catalog into your WhatsApp profile. You can manage the Catalog from the Business App directly
+                You won't be able to sync your {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} or Shopify Catalog into your WhatsApp profile. You can manage the Catalog from the Business App directly
               </p>
             </div>
           </div>

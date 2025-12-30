@@ -67,7 +67,7 @@ const HomeSection = ({ onOpenConnectModal, onOpenInstagramModal, onOpenCreateCon
       <div className="max-w-7xl mx-auto">
         {/* Welcome Banner with Trial Info */}
         <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg p-4 mb-6 shadow-md">
-          <h1 className="text-xl font-semibold !text-white">Hello, Vivek. Welcome to Interakt! Only 7 days left in your trial</h1>
+          <h1 className="text-xl font-semibold !text-white">Hello, Vivek. Welcome to {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}! Only 7 days left in your trial</h1>
         </div>
 
         {/* Onboarding Progress Bar */}
@@ -289,7 +289,7 @@ const HomeSection = ({ onOpenConnectModal, onOpenInstagramModal, onOpenCreateCon
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-400">☐</span>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">Add your customers to Interakt</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Add your customers to {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</span>
                   </div>
                   <button 
                     onClick={onOpenCreateContact}

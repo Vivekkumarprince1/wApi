@@ -7,7 +7,7 @@ import { SocketProvider } from '@/lib/SocketContext'
 import LayoutWrapper from '@/components/LayoutWrapper'
 
 export const metadata: Metadata = {
-  title: 'Interakt - WhatsApp Marketing Platform',
+  title: `${process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} - WhatsApp Marketing Platform`,
   description: 'Create engaging WhatsApp ads that drive clicks and conversions. The ultimate WhatsApp marketing platform for businesses.',
 }
 

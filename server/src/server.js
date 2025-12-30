@@ -132,6 +132,7 @@ const productRoutes = require('./routes/productRoutes');
 const checkoutBotRoutes = require('./routes/checkoutBotRoutes');
 const integrationsRoutes = require('./routes/integrationsRoutes');
 const widgetRoutes = require('./routes/widgetRoutes');
+const dataDeletionRoutes = require('./routes/dataDeletionRoutes');
 
 app.use('/api/v1/campaigns', campaignRoutes);
 app.use('/api/v1/ads', adsRoutes);
@@ -155,6 +156,7 @@ app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/checkout-bot', checkoutBotRoutes);
 app.use('/api/v1/integrations', integrationsRoutes);
 app.use('/api/v1/widget', widgetRoutes);
+app.use('/api/v1/privacy', dataDeletionRoutes);
 
 // Root - redirect to health for a friendly default
 app.get('/', (req, res) => res.redirect('/api/v1/health'));

@@ -464,7 +464,7 @@ export default function HomePage() {
       name: "Sarah Johnson",
       role: "Marketing Director",
       company: "TechCorp",
-      content: "Interakt transformed our lead generation. We saw a 300% increase in qualified leads within the first month.",
+      content: "{process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} transformed our lead generation. We saw a 300% increase in qualified leads within the first month.",
       rating: 5
     },
     {
@@ -741,7 +741,7 @@ export default function HomePage() {
                 className="text-xl font-bold mb-4 transition-colors duration-300"
                 style={{ color: isDark ? '#ffffff' : '#000000' }}
               >
-                Save your time with Interakt
+                Save your time with {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}
               </h3>
               <p 
                 className="mb-6 flex-1 transition-colors duration-300"
@@ -815,7 +815,7 @@ export default function HomePage() {
             Built for any <span style={{ color: '#3ed17b' }}>Industry</span>
           </h2>
           <p className="text-lg sm:text-xl md:text-2xl text-center max-w-2xl px-4 mb-8 sm:mb-12" style={{ color: '#23291f', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
-            Discover how Interakt transforms businesses across diverse industries with tailored WhatsApp solutions
+            Discover how {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} transforms businesses across diverse industries with tailored WhatsApp solutions
           </p>
         
         {/* Auto-changing Grid Layout */}
@@ -973,7 +973,7 @@ export default function HomePage() {
             </svg>
             <div className="relative z-10">
               <p className="text-2xl md:text-3xl font-medium italic text-gray-800 dark:text-white leading-snug">
-                We were able to increase our revenue from the first Diwali to the second Diwali to approximately 4× of what we did and we couldn't have done this without the help of Interakt.
+                We were able to increase our revenue from the first Diwali to the second Diwali to approximately 4× of what we did and we couldn't have done this without the help of {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}.
               </p>
               <div className="mt-4">
                 <span className="text-[#13C18D] font-bold text-4xl">Yash Banage</span><br />
@@ -998,7 +998,7 @@ export default function HomePage() {
           </div>
           <div className="flex-1 min-w-[250px] sm:min-w-[300px] h-[140px] sm:h-[170px] bg-white border-2 border-[#ffe6b3] rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col items-center text-center shadow-sm justify-center" style={{ backgroundColor: cardBg }}>
             <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#0e3c2c] mb-2">4X</span>
-            <span className="text-sm sm:text-base md:text-xl text-gray-700 text-center">increase in revenue since onboarding with Interakt</span>
+            <span className="text-sm sm:text-base md:text-xl text-gray-700 text-center">increase in revenue since onboarding with {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</span>
           </div>
         </div>
       </section>
@@ -1010,7 +1010,7 @@ export default function HomePage() {
         <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-gradient-to-br from-[#13C18D]/8 to-[#CCFF00]/5 rounded-full blur-2xl animate-pulse" style={{animationDuration: '3s'}}></div>
         <div className="absolute bottom-1/3 right-1/4 w-20 h-20 bg-gradient-to-br from-[#CCFF00]/10 to-[#13C18D]/8 rounded-full blur-2xl animate-bounce" style={{animationDuration: '3.5s', animationDelay: '1s'}}></div>
         
-        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-2 sm:mb-3 text-gray-900 dark:text-white px-4 relative z-10" style={{fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif', letterSpacing: '-0.02em'}}>More reasons to <span className="text-[#13C18D]">choose</span> Interakt</h2>
+        <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-2 sm:mb-3 text-gray-900 dark:text-white px-4 relative z-10" style={{fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif', letterSpacing: '-0.02em'}}>More reasons to <span className="text-[#13C18D]">choose</span> {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</h2>
         <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-white mb-8 sm:mb-10 md:mb-12 font-medium tracking-wide px-4 relative z-10" style={{fontFamily: 'Inter, system-ui, -apple-system, sans-serif'}}>Why businesses love us</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 w-full max-w-6xl px-4 sm:px-6 md:px-0 relative z-10">
           {reasons.map((reason, idx) => (
@@ -1063,7 +1063,7 @@ export default function HomePage() {
             Ready to <span className="text-[#13C18D]">Transform</span> Your Business?
           </h2>
           <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-white mb-6 sm:mb-8 max-w-2xl mx-auto">
-            Join thousands of businesses already using Interakt to grow their customer engagement and drive conversions.
+            Join thousands of businesses already using {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} to grow their customer engagement and drive conversions.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <button 
@@ -1110,7 +1110,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="w-full border-t border-gray-200 bg-[#f5f5dc] dark:bg-black py-4 text-center text-gray-700 dark:text-white text-sm font-medium" style={{fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif'}}>
-        @2025 Interakt. All rights reserved.
+        @2025 {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}. All rights reserved.
       </footer>
     </div>
           )}

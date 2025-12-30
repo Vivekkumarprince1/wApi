@@ -125,6 +125,11 @@ export const del = async (endpoint: string) => {
   return response.json();
 };
 
+// Convenience wrapper for account deletion
+export const deleteAccount = async () => {
+  return del('/privacy/delete-account');
+};
+
 // Export helper functions
 export { getToken, isAuthenticated };
 

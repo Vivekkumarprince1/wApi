@@ -67,7 +67,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             </div>
             {isHovered && (
               <h1 className="text-xl font-bold text-gray-800 dark:text-white whitespace-nowrap">
-                Interakt
+                {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}
               </h1>
             )}
           </div>
@@ -263,7 +263,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
                   <span className="text-sm whitespace-nowrap">WhatsApp Forms</span>
                 </div>
                 <div className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${isActive('/automation/interaktive-list') ? 'bg-teal-700 dark:bg-teal-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`} onClick={()=>navigate('/automation/interaktive-list')}>
-                  <span className="text-sm whitespace-nowrap">Interaktive List</span>
+                  <span className="text-sm whitespace-nowrap">Interactive List</span>
                 </div>
                 <div className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${isActive('/automation/answerbot') ? 'bg-teal-700 dark:bg-teal-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`} onClick={()=>navigate('/automation/answerbot')}>
                   <span className="text-sm whitespace-nowrap">Answerbot</span>
@@ -391,7 +391,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
       <div className="flex justify-between items-center p-4 border-b border-gray-200">
         <div className="flex items-center gap-2">
           <FaShoppingBag className="text-green-500 text-xl" />
-          <h1 className="text-xl font-bold text-gray-800">Interakt</h1>
+          <h1 className="text-xl font-bold text-gray-800">{process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</h1>
         </div>
         <button onClick={onClose} className="text-gray-600 hover:text-gray-800">
           <FaTimes />
