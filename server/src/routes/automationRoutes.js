@@ -11,7 +11,7 @@ const {
   getAnalytics
 } = require('../controllers/automationController');
 
-const answerBotRoutes = require('./answerBotRoutes');
+const answerBotRoutes = require('./answerbotRoutes');
 
 const router = express.Router();
 router.use(auth);
