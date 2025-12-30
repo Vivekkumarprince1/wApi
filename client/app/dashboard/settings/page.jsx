@@ -157,6 +157,7 @@ export default function SettingsPage() {
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Other Settings</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
+            { href: '/dashboard/settings/commerce', label: 'Commerce Settings', highlight: true },
             { href: '/dashboard/settings/whatsapp-profile', label: 'WhatsApp Profile' },
             { href: '/dashboard/settings/developer', label: 'Developer' },
             { href: '/dashboard/settings/agents', label: 'Agents' },
@@ -169,7 +170,15 @@ export default function SettingsPage() {
             { href: '/dashboard/settings/channels', label: 'Channels' },
             { href: '/dashboard/settings/contacts', label: 'Contacts' },
           ].map(link => (
-            <a key={link.href} href={link.href} className="block p-3 border border-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-50">
+            <a 
+              key={link.href} 
+              href={link.href} 
+              className={`block p-3 border rounded-lg text-sm ${
+                link.highlight
+                  ? 'border-green-300 bg-green-50 text-green-700 hover:bg-green-100 font-medium'
+                  : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
               {link.label}
             </a>
           ))}

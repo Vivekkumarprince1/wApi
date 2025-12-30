@@ -5,17 +5,17 @@ const metaService = require('../services/metaService');
 // Create a new template (local draft)
 async function createTemplate(req, res, next) {
   try {
-    const workspace = req.user.workspace;
+    const workspaceId = req.user.workspace;
     const { name, language, category, components, variables } = req.body;
     
     // Check if template with same name exists
-    const existing = await Template.findOne({ workspace, name });
+    const existing = await Template.findOne({ workspace: workspaceId, name });
     if (existing) {
       return res.status(400).json({ message: 'Template with this name already exists' });
     }
     
     const template = await Template.create({
-      workspace,
+      workspace: workspaceId,
       name,
       language: language || 'en',
       category: category || 'MARKETING',
@@ -24,6 +24,13 @@ async function createTemplate(req, res, next) {
       status: 'DRAFT',
       createdBy: req.user._id
     });
+    
+    // Increment workspace usage
+    const workspace = await Workspace.findById(workspaceId);
+    if (workspace) {
+      workspace.usage.templates = (workspace.usage.templates || 0) + 1;
+      await workspace.save();
+    }
     
     res.status(201).json({ template });
   } catch (err) {
@@ -324,351 +331,6 @@ async function getTemplateCategories(req, res, next) {
   }
 }
 
-// Get template library statistics
-async function getTemplateLibraryStats(req, res, next) {
-  try {
-    const workspace = req.user.workspace;
-    
-    // Get counts by status
-    const statusStats = await Template.aggregate([
-      { $match: { workspace: workspace } },
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
-    
-    // Get counts by category
-    const categoryStats = await Template.aggregate([
-      { $match: { workspace: workspace } },
-      { $group: { _id: '$category', count: { $sum: 1 } } }
-    ]);
-    
-    // Get counts by source
-    const sourceStats = await Template.aggregate([
-      { $match: { workspace: workspace } },
-      { $group: { _id: '$source', count: { $sum: 1 } } }
-    ]);
-    
-    // Total count
-    const totalCount = await Template.countDocuments({ workspace });
-    
-    // Last sync time
-    const lastSynced = await Template.findOne({ workspace, source: 'META' })
-      .sort({ lastSyncedAt: -1 })
-      .select('lastSyncedAt');
-    
-    // Count library templates
-    const libraryCount = await Template.countDocuments({ workspace, source: 'META_LIBRARY' });
-    
-    res.json({
-      total: totalCount,
-      libraryCount,
-      byStatus: statusStats.reduce((acc, s) => ({ ...acc, [s._id]: s.count }), {}),
-      byCategory: categoryStats.reduce((acc, c) => ({ ...acc, [c._id]: c.count }), {}),
-      bySource: sourceStats.reduce((acc, s) => ({ ...acc, [s._id || 'LOCAL']: s.count }), {}),
-      lastSyncedAt: lastSynced?.lastSyncedAt || null
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-// Sync templates from Meta's Template Library (pre-made templates by Meta)
-async function syncTemplateLibrary(req, res, next) {
-  try {
-    const workspace = req.user.workspace;
-    const { category, language = 'en_US' } = req.query;
-    const workspaceDoc = await Workspace.findById(workspace);
-    
-    if (!workspaceDoc.whatsappAccessToken || !workspaceDoc.wabaId) {
-      return res.status(400).json({ 
-        message: 'WABA credentials not configured',
-        requiresSetup: true
-      });
-    }
-    
-    console.log('Fetching Template Library from Meta for WABA:', workspaceDoc.wabaId);
-    
-    // Fetch from Meta's Template Library
-    const result = await metaService.fetchTemplateLibrary(
-      workspaceDoc.whatsappAccessToken,
-      workspaceDoc.wabaId,
-      category,
-      language
-    );
-    
-    if (!result.success) {
-      return res.status(400).json({
-        success: false,
-        message: result.message || 'Failed to fetch Template Library'
-      });
-    }
-    
-    if (result.source === 'NOT_AVAILABLE') {
-      return res.json({
-        success: true,
-        message: 'Template Library API not available. Showing manual template library.',
-        templates: [],
-        source: 'NOT_AVAILABLE',
-        alternativeMessage: 'You can browse Meta Template Library at: https://business.facebook.com/latest/whatsapp_manager/template_library'
-      });
-    }
-    
-    let syncedCount = 0;
-    let newCount = 0;
-    
-    for (const metaTemplate of result.templates) {
-      // Extract preview content from components
-      const headerComponent = metaTemplate.components?.find(c => c.type === 'HEADER');
-      const bodyComponent = metaTemplate.components?.find(c => c.type === 'BODY');
-      const footerComponent = metaTemplate.components?.find(c => c.type === 'FOOTER');
-      const buttonComponents = metaTemplate.components?.filter(c => c.type === 'BUTTONS');
-      
-      const headerText = headerComponent?.text || headerComponent?.format || '';
-      const bodyText = bodyComponent?.text || '';
-      const footerText = footerComponent?.text || '';
-      const buttonLabels = buttonComponents?.flatMap(bc => 
-        bc.buttons?.map(b => b.text) || []
-      ) || [];
-      
-      // Check if already exists
-      let localTemplate = await Template.findOne({ 
-        workspace, 
-        name: metaTemplate.name,
-        language: metaTemplate.language,
-        source: 'META_LIBRARY'
-      });
-      
-      if (!localTemplate) {
-        localTemplate = new Template({
-          workspace,
-          name: metaTemplate.name,
-          language: metaTemplate.language || language,
-          category: metaTemplate.category,
-          components: metaTemplate.components,
-          source: 'META_LIBRARY',
-          status: 'LIBRARY',
-          createdBy: req.user._id,
-          headerText,
-          bodyText,
-          footerText,
-          buttonLabels,
-          isLibraryTemplate: true,
-          lastSyncedAt: new Date()
-        });
-        
-        await localTemplate.save();
-        newCount++;
-      }
-      
-      syncedCount++;
-    }
-    
-    res.json({
-      success: true,
-      message: `Synced ${newCount} new templates from Meta Template Library`,
-      syncedCount,
-      newCount,
-      totalFromMeta: result.templates.length,
-      source: result.source,
-      libraryUrl: 'https://business.facebook.com/latest/whatsapp_manager/template_library'
-    });
-  } catch (err) {
-    console.error('Error syncing Template Library:', err);
-    next(err);
-  }
-}
-
-// Copy a template from Meta's Template Library to your account
-async function copyFromLibrary(req, res, next) {
-  try {
-    const workspace = req.user.workspace;
-    const { libraryTemplateName, customName, language = 'en_US', category = 'UTILITY', templateData } = req.body;
-    
-    if (!libraryTemplateName) {
-      return res.status(400).json({ message: 'Library template name is required' });
-    }
-    
-    const workspaceDoc = await Workspace.findById(workspace);
-    
-    if (!workspaceDoc.whatsappAccessToken || !workspaceDoc.wabaId) {
-      return res.status(400).json({ 
-        message: 'WABA credentials not configured'
-      });
-    }
-    
-    // Generate a unique template name if customName not provided
-    let templateName = customName || libraryTemplateName;
-    
-    // Check if template with this name already exists locally
-    const existingLocal = await Template.findOne({ 
-      workspace, 
-      name: templateName 
-    });
-    
-    if (existingLocal) {
-      // Template exists locally, return it
-      return res.json({
-        success: true,
-        message: 'Template already exists in your workspace',
-        template: existingLocal,
-        alreadyExists: true
-      });
-    }
-    
-    // Try to copy from Meta's Template Library (with fallback to direct creation)
-    let result;
-    try {
-      result = await metaService.copyFromTemplateLibrary(
-        workspaceDoc.whatsappAccessToken,
-        workspaceDoc.wabaId,
-        libraryTemplateName,
-        templateName,
-        language,
-        category,
-        templateData  // Pass template data for fallback creation
-      );
-    } catch (metaError) {
-      // Check if error is "template already exists in Meta"
-      const errorMsg = metaError.message || '';
-      if (errorMsg.includes('already') || errorMsg.includes('Content in this language')) {
-        // Template exists in Meta but not locally, try to fetch and sync it
-        console.log('Template exists in Meta, attempting to sync...');
-        
-        // Fetch all templates from Meta and find the matching one
-        const templates = await metaService.fetchTemplates(
-          workspaceDoc.whatsappAccessToken,
-          workspaceDoc.wabaId
-        );
-        
-        const matchingTemplate = templates.find(t => t.name === templateName);
-        
-        if (matchingTemplate) {
-          // Create local record from the existing Meta template
-          const template = new Template({
-            workspace,
-            name: matchingTemplate.name,
-            language: matchingTemplate.language,
-            category: matchingTemplate.category,
-            source: 'META',
-            status: matchingTemplate.status,
-            providerId: matchingTemplate.id,
-            components: matchingTemplate.components,
-            createdBy: req.user._id,
-            lastSyncedAt: new Date()
-          });
-          await template.save();
-          
-          return res.json({
-            success: true,
-            message: 'Template already exists in Meta, synced to your workspace',
-            template,
-            alreadyExistsInMeta: true
-          });
-        }
-        
-        // If not found, try with a unique suffix
-        templateName = `${templateName}_${Date.now().toString().slice(-6)}`;
-        console.log(`Retrying with unique name: ${templateName}`);
-        
-        result = await metaService.copyFromTemplateLibrary(
-          workspaceDoc.whatsappAccessToken,
-          workspaceDoc.wabaId,
-          libraryTemplateName,
-          templateName,
-          language,
-          category,
-          templateData
-        );
-      } else {
-        throw metaError;
-      }
-    }
-    
-    if (result.success) {
-      // Create local record with template content
-      const templateRecord = {
-        workspace,
-        name: templateName,  // Use the potentially modified unique name
-        language: language,
-        category: category,
-        source: 'META_LIBRARY_COPY',  // All library copies use this source
-        status: result.status || 'PENDING',
-        providerId: result.templateId,
-        createdBy: req.user._id,
-        copiedFrom: libraryTemplateName,
-        isLibraryTemplate: false  // It's a copy, not a library template
-      };
-      
-      // Add template content if available
-      if (templateData) {
-        templateRecord.headerText = templateData.headerText;
-        templateRecord.bodyText = templateData.bodyText || templateData.body;
-        templateRecord.footerText = templateData.footerText;
-        templateRecord.buttonLabels = templateData.buttonLabels;
-        templateRecord.variables = templateData.variables;
-      }
-      
-      const template = new Template(templateRecord);
-      await template.save();
-      
-      res.json({
-        success: true,
-        message: `Template created from ${result.source === 'META_LIBRARY' ? 'Meta Library' : 'built-in templates'} and submitted for approval`,
-        template,
-        metaResponse: result.data,
-        source: result.source
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Failed to copy template from library'
-      });
-    }
-  } catch (err) {
-    console.error('Error copying from library:', err);
-    next(err);
-  }
-}
-
-// Get list of predefined template library templates
-async function getHardcodedLibraryTemplates(req, res, next) {
-  try {
-    const { category } = req.query;
-    const workspace = req.user.workspace;
-    const workspaceDoc = await Workspace.findById(workspace);
-    
-    // Try to fetch from Meta API first, fallback to built-in templates
-    let result;
-    if (workspaceDoc?.whatsappAccessToken && workspaceDoc?.wabaId) {
-      result = await metaService.fetchTemplateLibrary(
-        workspaceDoc.whatsappAccessToken,
-        workspaceDoc.wabaId,
-        category,
-        'en_US'
-      );
-    } else {
-      // Use built-in templates if no credentials
-      result = metaService.getBuiltInTemplateLibrary 
-        ? metaService.getBuiltInTemplateLibrary(category, 'en_US')
-        : { success: true, templates: [], categories: {} };
-    }
-    
-    res.json({
-      success: true,
-      templates: result.templates || [],
-      total: result.total || result.templates?.length || 0,
-      categories: result.categories || {
-        UTILITY: 0,
-        AUTHENTICATION: 0,
-        MARKETING: 0
-      },
-      source: result.source || 'BUILT_IN'
-    });
-  } catch (err) {
-    console.error('Error fetching template library:', err);
-    next(err);
-  }
-}
-
 module.exports = {
   createTemplate,
   listTemplates,
@@ -677,9 +339,5 @@ module.exports = {
   deleteTemplate,
   submitTemplate,
   syncTemplates,
-  syncTemplateLibrary,
-  copyFromLibrary,
-  getHardcodedLibraryTemplates,
-  getTemplateCategories,
-  getTemplateLibraryStats
+  getTemplateCategories
 };

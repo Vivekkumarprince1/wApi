@@ -7,6 +7,7 @@ import {
   startCampaign,
   getContactStats 
 } from '../lib/api';
+import QuotaWarning from './QuotaWarning';
 
 const BulkMessageSender = () => {
   const [contacts, setContacts] = useState([]);
@@ -21,6 +22,7 @@ const BulkMessageSender = () => {
   const [allContacts, setAllContacts] = useState([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   // Load templates and contact stats on component mount
   useEffect(() => {
@@ -140,6 +142,12 @@ const BulkMessageSender = () => {
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Bulk Message Sender</h2>
         <p className="text-gray-600">Send personalized messages to multiple contacts using WhatsApp Business API</p>
       </div>
+
+      {/* Quota Warning */}
+      <QuotaWarning 
+        resourceType="messages" 
+        onLimitExceeded={() => setQuotaExceeded(true)}
+      />
 
       {/* Campaign Setup */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -336,7 +344,7 @@ const BulkMessageSender = () => {
         </div>
         <button
           onClick={handleSendBulkMessages}
-          disabled={contacts.length === 0 || !message.trim() || isLoading}
+          disabled={contacts.length === 0 || !message.trim() || isLoading || quotaExceeded}
           className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center"
         >
           {isLoading ? (
@@ -347,7 +355,7 @@ const BulkMessageSender = () => {
           ) : (
             <>
               <FaPlay className="mr-2" />
-              Send Bulk Messages
+              {quotaExceeded ? 'Quota Exceeded' : 'Send Bulk Messages'}
             </>
           )}
         </button>

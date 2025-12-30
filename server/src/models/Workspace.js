@@ -102,7 +102,20 @@ const WorkspaceSchema = new mongoose.Schema({
     failureReason: { type: String },
     // Admin tracking
     createdBy: { type: String }, // User email who initiated
-    notes: { type: String }
+    notes: { type: String },
+    // ✅ Account status tracking
+    metaAccountStatus: { type: String }, // ACTIVE, DISABLED, PENDING_REVIEW
+    metaAccountStatusUpdatedAt: { type: Date },
+    accountBlocked: { type: Boolean, default: false },
+    accountBlockedReason: { type: String },
+    // ✅ Capability tracking
+    metaCapabilities: { type: mongoose.Schema.Types.Mixed }, // Track capabilities per type
+    capabilityBlocked: { type: Boolean, default: false },
+    capabilityBlockedReason: { type: String },
+    metaDecisionStatus: { type: String },
+    // ✅ Token refresh tracking
+    lastTokenRefreshAttempt: { type: Date },
+    lastTokenRefreshError: { type: String }
   },
 
   // WhatsApp setup request with OTP verification (kept for backwards compatibility)
@@ -147,9 +160,14 @@ const WorkspaceSchema = new mongoose.Schema({
   usage: {
     contacts: { type: Number, default: 0 },
     messages: { type: Number, default: 0 },
+    messagesDaily: { type: Number, default: 0 },
+    messagesThisMonth: { type: Number, default: 0 },
     templates: { type: Number, default: 0 },
     campaigns: { type: Number, default: 0 },
-    automations: { type: Number, default: 0 }
+    automations: { type: Number, default: 0 },
+    products: { type: Number, default: 0 },
+    lastResetDate: { type: Date, default: Date.now },
+    lastMonthlyResetDate: { type: Date, default: Date.now }
   },
   whatsappConfig: {
     phoneNumberId: { type: String },

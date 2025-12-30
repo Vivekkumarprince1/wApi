@@ -144,9 +144,12 @@ const Header = () => {
   };
 
   const getVerificationBadge = () => {
-    const status = workspaceData?.verification?.status;
+    if (!workspaceData?.verification) return null;
     
-    if (status === 'verified') {
+    const isVerified = workspaceData.verification.isVerified;
+    const status = workspaceData.verification.status;
+    
+    if (isVerified) {
       return { icon: FaCheckCircle, color: 'text-green-500', label: 'Verified' };
     }
     if (status === 'pending' || status === 'in_review') {

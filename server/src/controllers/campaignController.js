@@ -1,14 +1,61 @@
 const Campaign = require('../models/Campaign');
+const CampaignMessage = require('../models/CampaignMessage');
+const Message = require('../models/Message');
+const Workspace = require('../models/Workspace');
+const Template = require('../models/Template');
+const Contact = require('../models/Contact');
 const { createQueue } = require('../services/queue');
+const { validateCampaignCreation, validateCampaignStart, checkShouldPauseCampaign } = require('../services/campaignValidationService');
+
 const sendQueue = createQueue('whatsapp-sends');
 
+// ✅ Create campaign with full validation (Interakt-style)
 async function createCampaign(req, res, next) {
   try {
-    const workspace = req.user.workspace;
-    const payload = { workspace, ...req.body };
+    const workspaceId = req.user.workspace;
+    const workspace = await Workspace.findById(workspaceId);
+    
+    // ✅ Validate campaign BEFORE creation
+    await validateCampaignCreation(workspace, req.body);
+    
+    const payload = {
+      workspace: workspaceId,
+      ...req.body,
+      createdBy: req.user._id,
+      status: 'draft' // Start as draft
+    };
+    
     const campaign = await Campaign.create(payload);
-    res.status(201).json({ campaign });
-  } catch (err) { next(err); }
+    
+    // Populate template and contacts
+    const campaignData = await Campaign.findById(campaign._id)
+      .populate('template', 'name variables status')
+      .populate('contacts', 'phone name');
+    
+    res.status(201).json({ 
+      campaign: campaignData,
+      message: 'Campaign created successfully. Ready to send.'
+    });
+  } catch (err) {
+    // Return validation error with proper message
+    const errorMessage = err.message;
+    if (errorMessage.includes('TEMPLATE_NOT_APPROVED')) {
+      return res.status(400).json({ code: 'TEMPLATE_NOT_APPROVED', message: 'Template must be APPROVED by Meta before use' });
+    }
+    if (errorMessage.includes('ACCOUNT_BLOCKED')) {
+      return res.status(403).json({ code: 'ACCOUNT_BLOCKED', message: 'Your WhatsApp account is blocked' });
+    }
+    if (errorMessage.includes('TOKEN_EXPIRED')) {
+      return res.status(403).json({ code: 'TOKEN_EXPIRED', message: 'WhatsApp connection expired. Please reconnect.' });
+    }
+    if (errorMessage.includes('DAILY_LIMIT_EXCEEDED')) {
+      return res.status(429).json({ code: 'DAILY_LIMIT_EXCEEDED', message: errorMessage });
+    }
+    if (errorMessage.includes('MONTHLY_LIMIT_EXCEEDED')) {
+      return res.status(429).json({ code: 'MONTHLY_LIMIT_EXCEEDED', message: errorMessage });
+    }
+    next(err);
+  }
 }
 
 async function listCampaigns(req, res, next) {
@@ -78,12 +125,16 @@ async function deleteCampaign(req, res, next) {
       return res.status(404).json({ message: 'Campaign not found' });
     }
     
-    // Only allow deletion of draft or completed campaigns
-    if (campaign.status === 'running') {
+    // ✅ Only allow deletion of draft or completed campaigns
+    if (['queued', 'sending'].includes(campaign.status)) {
       return res.status(400).json({ 
-        message: 'Cannot delete running campaign. Please pause it first.' 
+        message: 'Cannot delete running campaign. Please pause it first.',
+        code: 'CAMPAIGN_RUNNING'
       });
     }
+    
+    // Delete associated campaign messages
+    await CampaignMessage.deleteMany({ campaign: campaign._id });
     
     await Campaign.deleteOne({ _id: req.params.id });
     res.json({ success: true, message: 'Campaign deleted' });
@@ -95,9 +146,10 @@ async function getCampaignStats(req, res, next) {
     const workspace = req.user.workspace;
     
     const totalCampaigns = await Campaign.countDocuments({ workspace });
-    const runningCampaigns = await Campaign.countDocuments({ workspace, status: 'running' });
+    const sendingCampaigns = await Campaign.countDocuments({ workspace, status: 'sending' });
     const completedCampaigns = await Campaign.countDocuments({ workspace, status: 'completed' });
     const draftCampaigns = await Campaign.countDocuments({ workspace, status: 'draft' });
+    const pausedCampaigns = await Campaign.countDocuments({ workspace, status: 'paused' });
     
     // Calculate success rate
     const campaigns = await Campaign.find({ workspace, status: 'completed' });
@@ -113,53 +165,201 @@ async function getCampaignStats(req, res, next) {
     
     res.json({
       totalCampaigns,
-      runningCampaigns,
+      sendingCampaigns,
       completedCampaigns,
+      pausedCampaigns,
       draftCampaigns,
-      successRate
+      successRate,
+      totalMessages: totalSent,
+      successfulMessages: totalSuccess
     });
   } catch (err) { next(err); }
 }
 
+// ✅ Start campaign execution (queues messages via BullMQ worker)
 async function enqueueCampaign(req, res, next) {
   try {
-    const campaign = await Campaign.findById(req.params.id).populate('contacts');
-    if (!campaign) return res.status(404).json({ message: 'Not found' });
+    const workspaceId = req.user.workspace;
+    const campaign = await Campaign.findOne({ _id: req.params.id, workspace: workspaceId })
+      .populate('template contacts');
     
-    // Enqueue messages for each contact
-    const contactIds = campaign.contacts.map(c => c._id);
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
     
-    for (const contactId of contactIds) {
-      await sendQueue.add(
-        'send', 
+    // ✅ Re-validate before starting
+    const validation = await validateCampaignStart(campaign);
+    if (!validation.valid) {
+      return res.status(400).json({
+        code: validation.reason,
+        message: validation.message
+      });
+    }
+    
+    // ✅ Update campaign status to queued
+    campaign.status = 'queued';
+    campaign.totalContacts = campaign.contacts.length;
+    campaign.startedAt = new Date();
+    await campaign.save();
+    
+    // ✅ Get workspace for usage updates
+    const workspace = await Workspace.findById(workspaceId);
+    
+    // ✅ Enqueue messages for each contact (BullMQ for batch processing)
+    const jobPromises = [];
+    for (const contact of campaign.contacts) {
+      // Create CampaignMessage record for idempotency
+      const campaignMessage = await CampaignMessage.findOneAndUpdate(
+        { campaign: campaign._id, contact: contact._id },
         { 
-          campaignId: campaign._id, 
-          contactId,
-          templateName: req.body.templateName,
-          templateParams: req.body.templateParams
+          workspace: workspaceId,
+          campaign: campaign._id,
+          contact: contact._id,
+          status: 'queued'
+        },
+        { upsert: true, new: true }
+      );
+      
+      // Queue the job
+      const job = sendQueue.add(
+        'send',
+        {
+          campaignId: campaign._id,
+          contactId: contact._id,
+          campaignMessageId: campaignMessage._id,
+          templateId: campaign.template._id,
+          variableMapping: campaign.variableMapping || {}
         },
         {
-          jobId: `campaign:${campaign._id}:contact:${contactId}`,
+          jobId: `campaign:${campaign._id}:contact:${contact._id}`,
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 2000 },
+          removeOnComplete: true,
+          removeOnFail: false
+        }
+      );
+      jobPromises.push(job);
+    }
+    
+    await Promise.all(jobPromises);
+    
+    // ✅ Update campaign to "sending"
+    campaign.status = 'sending';
+    await campaign.save();
+    
+    res.json({
+      success: true,
+      campaignId: campaign._id,
+      message: `Campaign queued: ${campaign.contacts.length} messages will be sent`,
+      enqueuedCount: campaign.contacts.length,
+      status: 'sending'
+    });
+  } catch (err) { next(err); }
+}
+
+// ✅ Pause campaign (e.g., due to limits or auto-pause)
+async function pauseCampaign(req, res, next) {
+  try {
+    const workspaceId = req.user.workspace;
+    const { reason, pauseReason } = req.body; // Support both keys
+    
+    const campaign = await Campaign.findOne({ _id: req.params.id, workspace: workspaceId });
+    
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+    
+    if (campaign.status === 'paused') {
+      return res.status(400).json({ message: 'Campaign is already paused' });
+    }
+    
+    campaign.status = 'paused';
+    campaign.pausedReason = reason || pauseReason || 'USER_PAUSED';
+    campaign.pausedAt = new Date();
+    await campaign.save();
+    
+    res.json({
+      success: true,
+      message: 'Campaign paused',
+      campaign
+    });
+  } catch (err) { next(err); }
+}
+
+// ✅ Resume campaign
+async function resumeCampaign(req, res, next) {
+  try {
+    const workspaceId = req.user.workspace;
+    const campaign = await Campaign.findOne({ _id: req.params.id, workspace: workspaceId })
+      .populate('template contacts');
+    
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+    
+    if (campaign.status !== 'paused') {
+      return res.status(400).json({ message: 'Only paused campaigns can be resumed' });
+    }
+    
+    // ✅ Validate before resume
+    const validation = await validateCampaignStart(campaign);
+    if (!validation.valid) {
+      return res.status(400).json({
+        code: validation.reason,
+        message: validation.message
+      });
+    }
+    
+    // Get unsentmessages
+    const unsentMessages = await CampaignMessage.find({
+      campaign: campaign._id,
+      status: 'queued'
+    });
+    
+    if (unsentMessages.length === 0) {
+      return res.status(400).json({ message: 'All messages have been sent' });
+    }
+    
+    // Re-enqueue unsent messages
+    for (const msg of unsentMessages) {
+      await sendQueue.add(
+        'send',
+        {
+          campaignId: campaign._id,
+          contactId: msg.contact,
+          campaignMessageId: msg._id,
+          templateId: campaign.template._id,
+          variableMapping: campaign.variableMapping || {}
+        },
+        {
+          jobId: `campaign:${campaign._id}:contact:${msg.contact}`,
           attempts: 5,
           backoff: { type: 'exponential', delay: 2000 }
         }
       );
     }
     
-    campaign.status = 'running';
-    campaign.totalContacts = contactIds.length;
+    campaign.status = 'sending';
+    campaign.pausedReason = null;
+    campaign.pausedAt = null;
     await campaign.save();
     
-    res.json({ success: true, enqueuedCount: contactIds.length });
+    res.json({
+      success: true,
+      message: `Campaign resumed: ${unsentMessages.length} unsent messages re-queued`,
+      campaign
+    });
   } catch (err) { next(err); }
 }
 
-module.exports = { 
-  createCampaign, 
+module.exports = {
+  createCampaign,
   listCampaigns,
   getCampaign,
   updateCampaign,
   deleteCampaign,
   getCampaignStats,
-  enqueueCampaign 
+  enqueueCampaign,
+  pauseCampaign,
+  resumeCampaign
 };

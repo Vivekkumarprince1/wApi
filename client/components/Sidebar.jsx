@@ -183,10 +183,14 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
                   <span className="whitespace-nowrap text-sm">Custom Campaign ...</span>
                 </div>
                 <div
-                  className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer text-gray-700 dark:text-gray-300 transition-colors"
-                  onClick={() => navigate('/campaign/meta-ads')}
+                  className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                    isActive('/dashboard/ads')
+                      ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  }`}
+                  onClick={() => navigate('/dashboard/ads')}
                 >
-                  <span className="whitespace-nowrap text-sm">Meta Ads</span>
+                  <span className="whitespace-nowrap text-sm">🎯 Ads</span>
                 </div>
               </div>
             )}

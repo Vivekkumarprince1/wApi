@@ -105,8 +105,10 @@ async function sendTemplateMessage(req, res, next) {
       message.sentAt = new Date();
       await message.save();
 
-      // Increment workspace usage
+      // Increment workspace usage (total + daily + monthly)
       workspace.usage.messages = (workspace.usage.messages || 0) + 1;
+      workspace.usage.messagesDaily = (workspace.usage.messagesDaily || 0) + 1;
+      workspace.usage.messagesThisMonth = (workspace.usage.messagesThisMonth || 0) + 1;
       await workspace.save();
 
       return res.status(200).json({ 
@@ -243,8 +245,10 @@ async function sendBulkTemplateMessage(req, res, next) {
       }
     }
 
-    // Update workspace usage
+    // Update workspace usage (total + daily + monthly)
     workspace.usage.messages = (workspace.usage.messages || 0) + results.sent;
+    workspace.usage.messagesDaily = (workspace.usage.messagesDaily || 0) + results.sent;
+    workspace.usage.messagesThisMonth = (workspace.usage.messagesThisMonth || 0) + results.sent;
     await workspace.save();
 
     return res.status(200).json({

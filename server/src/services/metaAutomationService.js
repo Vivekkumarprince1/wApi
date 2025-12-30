@@ -1,10 +1,26 @@
 const axios = require('axios');
 const crypto = require('crypto');
 const { metaAppId, metaAppSecret, metaBusinessId, metaConfigId } = require('../config');
+const { decrypt, isEncrypted } = require('../utils/encryption');
 
 const META_API_VERSION = 'v21.0';
 const META_BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`;
 const GRAPH_INSTALL_URL = 'https://www.instagram.com/oauth/authorize'; // For ESB redirect
+
+/**
+ * Helper: Decrypt token if encrypted
+ * @param {string} token - Potentially encrypted token
+ * @param {string} workspaceId - Workspace ID for decryption
+ * @returns {string} - Decrypted token
+ */
+function decryptToken(token, workspaceId) {
+  if (!token) return null;
+  if (isEncrypted(token)) {
+    return decrypt(token, workspaceId);
+  }
+  return token; // Already plaintext (backward compatibility)
+}
+
 
 /**
  * ================================================================
@@ -113,11 +129,27 @@ async function exchangeCodeForToken(code, redirectUri) {
 
     const response = await axios.get(url, { params });
 
+    // ✅ GAP 1: Check for explicit Meta error responses
+    if (response.data.error) {
+      throw new Error(`Meta error: ${response.data.error.message || response.data.error}`);
+    }
+
+    // ✅ GAP 2: Validate required fields exist
     if (!response.data.access_token) {
-      throw new Error('No access token in response');
+      throw new Error('No access token in response from Meta');
+    }
+
+    // ✅ GAP 3: Validate expiresIn is a number
+    if (response.data.expires_in && typeof response.data.expires_in !== 'number') {
+      throw new Error('Invalid expires_in format from Meta');
     }
 
     const accessToken = response.data.access_token;
+    const expiresIn = response.data.expires_in || 5184000; // Default 60 days if not provided
+
+    if (typeof accessToken !== 'string' || accessToken.length === 0) {
+      throw new Error('Invalid access_token format from Meta');
+    }
 
     console.log('[ESB] Access token obtained, length:', accessToken.length);
 
@@ -128,9 +160,10 @@ async function exchangeCodeForToken(code, redirectUri) {
       success: true,
       accessToken: accessToken,
       tokenType: response.data.token_type || 'Bearer',
-      expiresIn: response.data.expires_in,
+      expiresIn: expiresIn,
       userInfo: userInfo,
-      userId: userInfo.id
+      userId: userInfo.id,
+      hasRefreshToken: !!response.data.refresh_token
     };
   } catch (error) {
     console.error('Error exchanging code for token:', error.response?.data || error.message);
@@ -158,13 +191,29 @@ async function getTokenUserInfo(accessToken) {
       }
     });
 
+    // ✅ GAP 2: Validate required fields exist and have correct types
+    if (!response.data.id || typeof response.data.id !== 'string') {
+      throw new Error('Invalid user ID from Meta');
+    }
+
     // Get more detailed business info
     const businessInfo = await getBusinessAccountsInfo(accessToken);
 
+    // ✅ GAP 2: Validate business info is not empty
+    if (!businessInfo.businessAccounts || businessInfo.businessAccounts.length === 0) {
+      throw new Error('No business accounts found. Please create a business account in Meta first.');
+    }
+    if (!businessInfo.wabaAccounts || businessInfo.wabaAccounts.length === 0) {
+      throw new Error('No WhatsApp Business Accounts found. Please create one in Meta first.');
+    }
+    if (!businessInfo.phoneNumbers || businessInfo.phoneNumbers.length === 0) {
+      throw new Error('No phone numbers found. Please register a phone number in your WABA first.');
+    }
+
     return {
       id: response.data.id,
-      name: response.data.name,
-      email: response.data.email,
+      name: response.data.name || 'Unknown',
+      email: response.data.email || '',
       businessAccounts: businessInfo.businessAccounts,
       wabaAccounts: businessInfo.wabaAccounts,
       phoneNumbers: businessInfo.phoneNumbers
@@ -820,6 +869,88 @@ async function completeAutomatedOnboarding(authCode, redirectUri, businessData, 
   }
 }
 
+/**
+ * Get System User Token Created by Meta ESB
+ * Meta's ESB automatically creates a system user and generates a token
+ * This function retrieves that token
+ * 
+ * @param {string} accessToken - User's access token from ESB
+ * @param {string} businessAccountId - Business account ID
+ * @returns {object} - System user token and metadata
+ */
+async function getSystemUserToken(accessToken, businessAccountId) {
+  try {
+    // Get all system users under this business
+    const url = `${META_BASE_URL}/${businessAccountId}/system_users`;
+
+    const response = await axios.get(url, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    // ✅ GAP 5: Validate response data type and structure
+    const systemUsers = response.data?.data || [];
+
+    if (!Array.isArray(systemUsers)) {
+      throw new Error('Invalid system users response format from Meta');
+    }
+
+    if (systemUsers.length === 0) {
+      throw new Error('No system user found. ESB may not have completed successfully.');
+    }
+
+    // Use the first system user (usually the one just created by ESB)
+    const systemUser = systemUsers[0];
+    const systemUserId = systemUser.id;
+
+    // Validate system user ID format
+    if (!systemUserId || typeof systemUserId !== 'string') {
+      throw new Error('Invalid system user ID from Meta');
+    }
+
+    // Now get the access token for this system user
+    const tokenUrl = `${META_BASE_URL}/${systemUserId}/system_user_access_tokens`;
+
+    const tokenResponse = await axios.post(tokenUrl, 
+      { access_token_expiration_days: 60 },  // 60 days = Meta max
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      }
+    );
+
+    // ✅ GAP 1 & 5: Check for error in response and validate token format
+    if (tokenResponse.data.error) {
+      throw new Error(`Meta error: ${tokenResponse.data.error.message || tokenResponse.data.error}`);
+    }
+
+    if (!tokenResponse.data.access_token || typeof tokenResponse.data.access_token !== 'string') {
+      throw new Error('Invalid system user token format from Meta');
+    }
+
+    // ✅ GAP 3: Validate expiration days is number
+    const expirationDays = tokenResponse.data.access_token_expiration_days || 60;
+    if (typeof expirationDays !== 'number' || expirationDays <= 0) {
+      throw new Error('Invalid token expiration format from Meta');
+    }
+
+    console.log('[ESB] Retrieved system user token');
+
+    return {
+      success: true,
+      userId: systemUserId,
+      token: tokenResponse.data.access_token,
+      expiresIn: expirationDays * 24 * 3600,
+      message: 'System user token retrieved successfully'
+    };
+  } catch (error) {
+    console.error('Error getting system user token:', error.response?.data || error.message);
+    throw new Error(`Failed to get system user token: ${error.message}`);
+  }
+}
+
 module.exports = {
   // ESB Flow
   generateEmbeddedSignupURL,
@@ -841,6 +972,7 @@ module.exports = {
   createSystemUser,
   generateSystemUserToken,
   refreshUserToken,
+  getSystemUserToken,
 
   // WABA Management
   updateWABASettings,

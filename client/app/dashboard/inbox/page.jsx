@@ -5,7 +5,11 @@ import {
   fetchConversations, 
   fetchMessageThread, 
   fetchConversationByContact,
-  markConversationAsRead 
+  markConversationAsRead,
+  getDealsByContact,
+  moveDealStage,
+  addDealNote,
+  getPipelines
 } from '@/lib/api';
 import { useSocket, useSocketEvent } from '@/lib/SocketContext';
 import { 
@@ -15,7 +19,10 @@ import {
   FaUser, 
   FaSpinner,
   FaCheckCircle,
-  FaCheck
+  FaCheck,
+  FaChevronDown,
+  FaPlus,
+  FaTrash
 } from 'react-icons/fa';
 
 export default function InboxPage() {
@@ -27,6 +34,14 @@ export default function InboxPage() {
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const messagesEndRef = useRef(null);
+  
+  // CRM State
+  const [activeDeal, setActiveDeal] = useState(null);
+  const [crmLoading, setCrmLoading] = useState(false);
+  const [updatingStage, setUpdatingStage] = useState(false);
+  const [newNote, setNewNote] = useState('');
+  const [addingNote, setAddingNote] = useState(false);
+  const [pipelines, setPipelines] = useState([]);
   
   const { socket, connected } = useSocket();
 
@@ -103,6 +118,54 @@ export default function InboxPage() {
   const handleSelectContact = async (conversation) => {
     setSelectedContact(conversation.contact);
     await loadMessages(conversation.contact._id);
+    // Load CRM data
+    await loadCRMData(conversation.contact._id);
+  };
+
+  const loadCRMData = async (contactId) => {
+    try {
+      setCrmLoading(true);
+      const deals = await getDealsByContact(contactId);
+      // Get the active deal (most recent non-completed deal)
+      const active = deals.length > 0 ? deals[0] : null;
+      setActiveDeal(active);
+    } catch (error) {
+      console.error('Error loading CRM data:', error);
+      setActiveDeal(null);
+    } finally {
+      setCrmLoading(false);
+    }
+  };
+
+  const handleMoveStage = async (newStage) => {
+    if (!activeDeal) return;
+    try {
+      setUpdatingStage(true);
+      const updated = await moveDealStage(activeDeal._id, newStage);
+      setActiveDeal(updated);
+    } catch (error) {
+      console.error('Error updating stage:', error);
+      alert('Failed to update stage');
+    } finally {
+      setUpdatingStage(false);
+    }
+  };
+
+  const handleAddNote = async (e) => {
+    e.preventDefault();
+    if (!newNote.trim() || !activeDeal) return;
+    
+    try {
+      setAddingNote(true);
+      const updated = await addDealNote(activeDeal._id, newNote);
+      setActiveDeal(updated);
+      setNewNote('');
+    } catch (error) {
+      console.error('Error adding note:', error);
+      alert('Failed to add note');
+    } finally {
+      setAddingNote(false);
+    }
   };
 
   const handleSendMessage = async (e) => {
@@ -290,6 +353,91 @@ export default function InboxPage() {
                 </div>
               </div>
             </div>
+
+            {/* CRM Section */}
+            {crmLoading ? (
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                <FaSpinner className="animate-spin text-green-500 text-sm" />
+                <span className="text-sm text-gray-600">Loading CRM data...</span>
+              </div>
+            ) : activeDeal ? (
+              <div className="px-4 py-4 bg-blue-50 border-b border-blue-200">
+                <div className="text-sm">
+                  <h3 className="font-semibold text-gray-900 mb-2">Sales Pipeline</h3>
+                  
+                  {/* Pipeline & Stage */}
+                  <div className="mb-3">
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Pipeline</label>
+                    <p className="text-sm font-medium text-gray-900">{activeDeal.pipelineName || 'Unknown'}</p>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label className="text-xs font-medium text-gray-600 block mb-1">Stage</label>
+                    <select
+                      value={activeDeal.stage || ''}
+                      onChange={(e) => handleMoveStage(e.target.value)}
+                      disabled={updatingStage}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm bg-white"
+                    >
+                      <option value="">Select stage...</option>
+                      {activeDeal.pipelineStages && activeDeal.pipelineStages.map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  {/* Deal Value & Agent */}
+                  {activeDeal.value && (
+                    <div className="mb-2 text-sm">
+                      <span className="text-gray-600">Deal Value: </span>
+                      <span className="font-semibold">${activeDeal.value}</span>
+                    </div>
+                  )}
+                  
+                  {activeDeal.assignedAgent && (
+                    <div className="text-sm text-gray-600 mb-3">
+                      <span>Agent: {activeDeal.assignedAgent}</span>
+                    </div>
+                  )}
+                  
+                  {/* Quick Note Add */}
+                  <form onSubmit={handleAddNote} className="mt-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Add a note..."
+                        value={newNote}
+                        onChange={(e) => setNewNote(e.target.value)}
+                        disabled={addingNote}
+                        className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded"
+                      />
+                      <button
+                        type="submit"
+                        disabled={addingNote || !newNote.trim()}
+                        className="px-2 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 disabled:opacity-50"
+                      >
+                        <FaPlus />
+                      </button>
+                    </div>
+                  </form>
+                  
+                  {/* Notes List */}
+                  {activeDeal.notes && activeDeal.notes.length > 0 && (
+                    <div className="mt-3 max-h-32 overflow-y-auto">
+                      <p className="text-xs font-medium text-gray-600 mb-2">Notes:</p>
+                      {activeDeal.notes.map((note, idx) => (
+                        <div key={idx} className="text-xs bg-white p-2 rounded mb-1 border border-gray-200">
+                          <p className="text-gray-900">{note.text}</p>
+                          <p className="text-gray-500 text-xs mt-1">
+                            {new Date(note.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">

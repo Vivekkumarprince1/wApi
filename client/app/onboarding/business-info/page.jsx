@@ -7,7 +7,7 @@ export default function BusinessInfoPage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/esb");
+    router.replace("/onboarding/esb");
   }, [router]);
 
   return (

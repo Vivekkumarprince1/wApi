@@ -1181,7 +1181,7 @@ export const esbStart = async () => {
   return response.json();
 };
 
-// Process ESB callback (code + state)
+// Process ESB callback (code + state) - Legacy method
 export const esbProcessCallback = async (code: string, state: string) => {
   const response = await fetch(`${API_URL}/onboarding/esb/process-callback`, {
     method: 'POST',
@@ -1192,6 +1192,20 @@ export const esbProcessCallback = async (code: string, state: string) => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to process ESB callback');
+  }
+  return response.json();
+};
+
+// Process stored callback (new method - triggered after redirect)
+export const esbProcessStoredCallback = async () => {
+  const response = await fetch(`${API_URL}/onboarding/esb/process-stored-callback`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to process stored callback');
   }
   return response.json();
 };
@@ -1209,65 +1223,6 @@ export const esbStatus = async () => {
   return response.json();
 };
 
-// Register phone + send OTP (ESB)
-export const esbRegisterPhone = async (phoneNumber) => {
-  const response = await fetch(`${API_URL}/onboarding/esb/register-phone`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify({ phoneNumber })
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to register phone');
-  }
-  return response.json();
-};
-
-// Verify phone OTP (ESB)
-export const esbVerifyOTP = async (otpCode) => {
-  const response = await fetch(`${API_URL}/onboarding/esb/verify-otp`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify({ otpCode })
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to verify OTP');
-  }
-  return response.json();
-};
-
-// Create system user and token (ESB)
-export const esbCreateSystemUser = async () => {
-  const response = await fetch(`${API_URL}/onboarding/esb/create-system-user`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to create system user');
-  }
-  return response.json();
-};
-
-// Activate WABA (ESB)
-export const esbActivateWABA = async (payload = {}) => {
-  const response = await fetch(`${API_URL}/onboarding/esb/activate-waba`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify(payload)
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to activate WABA');
-  }
-  return response.json();
-};
-
 // Process ESB callback (exchange code for token)
 export const processEsbCallback = async (payload) => {
   const response = await fetch(`${API_URL}/onboarding/esb/process-callback`, {
@@ -1279,6 +1234,792 @@ export const processEsbCallback = async (payload) => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to process callback');
+  }
+  return response.json();
+};
+
+// ============================================================
+// ✅ WHATSAPP ADS API (Click-to-Chat)
+// ============================================================
+
+/**
+ * Check if workspace can create ads (prerequisites & plan)
+ */
+export const checkAdsEligibility = async () => {
+  return get('/ads/check-eligibility');
+};
+
+/**
+ * Create new ad campaign
+ */
+export const createAd = async (adData: any) => {
+  return post('/ads', adData);
+};
+
+/**
+ * List all ads for workspace
+ */
+export const listAds = async (status?: string, page = 1, limit = 20) => {
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  params.append('page', page.toString());
+  params.append('limit', limit.toString());
+  
+  return get(`/ads?${params.toString()}`);
+};
+
+/**
+ * Get single ad details
+ */
+export const getAd = async (adId: string) => {
+  return get(`/ads/${adId}`);
+};
+
+/**
+ * Update ad (only draft status)
+ */
+export const updateAd = async (adId: string, updates: any) => {
+  return put(`/ads/${adId}`, updates);
+};
+
+/**
+ * Pause ad
+ */
+export const pauseAd = async (adId: string, reason?: string) => {
+  return post(`/ads/${adId}/pause`, { reason });
+};
+
+/**
+ * Resume paused ad
+ */
+export const resumeAd = async (adId: string) => {
+  return post(`/ads/${adId}/resume`, {});
+};
+
+/**
+ * Delete ad
+ */
+export const deleteAd = async (adId: string) => {
+  return fetch(`${API_URL}/ads/${adId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  }).then(async (response) => {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete ad');
+    }
+    return response.json();
+  });
+};
+
+/**
+ * Get ad analytics/performance
+ */
+export const getAdAnalytics = async (adId: string) => {
+  return get(`/ads/${adId}/analytics`);
+};
+
+// ========================
+// WORKFLOW AUTOMATION APIs
+// ========================
+
+/**
+ * Get all workflows
+ */
+export const getWorkflows = async (filters?: any) => {
+  let endpoint = '/automation';
+  if (filters) {
+    const params = new URLSearchParams();
+    if (filters.enabled !== undefined) params.append('enabled', filters.enabled);
+    if (filters.trigger) params.append('trigger', filters.trigger);
+    if (filters.search) params.append('search', filters.search);
+    const queryString = params.toString();
+    endpoint = queryString ? `/automation?${queryString}` : '/automation';
+  }
+  return get(endpoint);
+};
+
+/**
+ * Get single workflow by ID
+ */
+export const getWorkflow = async (workflowId: string) => {
+  return get(`/automation/${workflowId}`);
+};
+
+/**
+ * Create new workflow
+ */
+export const createWorkflow = async (workflowData: any) => {
+  return post('/automation', workflowData);
+};
+
+/**
+ * Update existing workflow
+ */
+export const updateWorkflow = async (workflowId: string, workflowData: any) => {
+  return put(`/automation/${workflowId}`, workflowData);
+};
+
+/**
+ * Toggle workflow enabled/disabled status
+ */
+export const toggleWorkflow = async (workflowId: string) => {
+  return post(`/automation/${workflowId}/toggle`, {});
+};
+
+/**
+ * Delete workflow
+ */
+export const deleteWorkflow = async (workflowId: string) => {
+  return fetch(`${API_URL}/automation/${workflowId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  }).then(async (response) => {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete workflow');
+    }
+    return response.json();
+  });
+};
+
+/**
+ * Get workflow executions/history
+ */
+export const getWorkflowExecutions = async (workflowId: string, filters?: any) => {
+  let endpoint = `/automation/${workflowId}/executions`;
+  if (filters) {
+    const params = new URLSearchParams();
+    if (filters.status) params.append('status', filters.status);
+    if (filters.limit) params.append('limit', filters.limit);
+    if (filters.offset) params.append('offset', filters.offset);
+    const queryString = params.toString();
+    endpoint = queryString ? `${endpoint}?${queryString}` : endpoint;
+  }
+  return get(endpoint);
+};
+
+/**
+ * Get workflow analytics/stats
+ */
+export const getWorkflowAnalytics = async (dateRange?: any) => {
+  let endpoint = '/automation/analytics';
+  if (dateRange) {
+    const params = new URLSearchParams();
+    if (dateRange.startDate) params.append('startDate', dateRange.startDate);
+    if (dateRange.endDate) params.append('endDate', dateRange.endDate);
+    const queryString = params.toString();
+    endpoint = queryString ? `${endpoint}?${queryString}` : endpoint;
+  }
+  return get(endpoint);
+};
+
+// ============================================================================
+// Auto-Replies API Functions
+// ============================================================================
+
+/**
+ * Get all auto-replies with optional filters
+ */
+export const getAutoReplies = async (filters?: any) => {
+  let endpoint = '/auto-replies';
+  if (filters) {
+    const params = new URLSearchParams();
+    if (filters.enabled !== undefined && filters.enabled !== 'all') {
+      params.append('enabled', filters.enabled);
+    }
+    if (filters.template) params.append('template', filters.template);
+    if (filters.search) params.append('search', filters.search);
+    const queryString = params.toString();
+    endpoint = queryString ? `${endpoint}?${queryString}` : endpoint;
+  }
+  return get(endpoint);
+};
+
+/**
+ * Get single auto-reply by ID
+ */
+export const getAutoReply = async (autoReplyId: string) => {
+  return get(`/auto-replies/${autoReplyId}`);
+};
+
+/**
+ * Create new auto-reply
+ */
+export const createAutoReply = async (autoReplyData: any) => {
+  return post('/auto-replies', autoReplyData);
+};
+
+/**
+ * Update existing auto-reply
+ */
+export const updateAutoReply = async (autoReplyId: string, autoReplyData: any) => {
+  return put(`/auto-replies/${autoReplyId}`, autoReplyData);
+};
+
+/**
+ * Toggle auto-reply enabled/disabled status
+ */
+export const toggleAutoReply = async (autoReplyId: string) => {
+  return post(`/auto-replies/${autoReplyId}/toggle`, {});
+};
+
+/**
+ * Delete auto-reply
+ */
+export const deleteAutoReply = async (autoReplyId: string) => {
+  return fetch(`${API_URL}/auto-replies/${autoReplyId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  }).then(async (response) => {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete auto-reply');
+    }
+    return response.json();
+  });
+};
+
+/**
+ * Get all Instagram quickflows with filters
+ */
+export const getInstagramQuickflows = async (filters?: any) => {
+  const params = new URLSearchParams();
+  if (filters) {
+    if (filters.enabled) params.append('enabled', filters.enabled);
+    if (filters.type) params.append('type', filters.type);
+    if (filters.triggerType) params.append('triggerType', filters.triggerType);
+  }
+  const query = params.toString();
+  return get(`/instagram-quickflows${query ? '?' + query : ''}`);
+};
+
+/**
+ * Get preset Instagram quickflows
+ */
+export const getPresetInstagramQuickflows = async () => {
+  return get('/instagram-quickflows/presets');
+};
+
+/**
+ * Get single Instagram quickflow by ID
+ */
+export const getInstagramQuickflow = async (quickflowId: string) => {
+  return get(`/instagram-quickflows/${quickflowId}`);
+};
+
+/**
+ * Create new Instagram quickflow
+ */
+export const createInstagramQuickflow = async (quickflowData: any) => {
+  return post('/instagram-quickflows', quickflowData);
+};
+
+/**
+ * Create Instagram quickflow from preset
+ */
+export const createInstagramQuickflowFromPreset = async (presetName: string, customization?: any) => {
+  return post('/instagram-quickflows/preset/create', {
+    preset: presetName,
+    customization: customization || {}
+  });
+};
+
+/**
+ * Update existing Instagram quickflow
+ */
+export const updateInstagramQuickflow = async (quickflowId: string, quickflowData: any) => {
+  return put(`/instagram-quickflows/${quickflowId}`, quickflowData);
+};
+
+/**
+ * Toggle Instagram quickflow enabled/disabled status
+ */
+export const toggleInstagramQuickflow = async (quickflowId: string) => {
+  return post(`/instagram-quickflows/${quickflowId}/toggle`, {});
+};
+
+/**
+ * Get Instagram quickflow statistics
+ */
+export const getInstagramQuickflowStats = async (quickflowId: string) => {
+  return get(`/instagram-quickflows/${quickflowId}/stats`);
+};
+
+/**
+ * Delete Instagram quickflow
+ */
+export const deleteInstagramQuickflow = async (quickflowId: string) => {
+  return fetch(`${API_URL}/instagram-quickflows/${quickflowId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  }).then(async (response) => {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete Instagram quickflow');
+    }
+    return response.json();
+  });
+};
+
+// ==================== WhatsApp Forms API ====================
+
+/**
+ * Get all WhatsApp forms with optional filters
+ */
+export const getWhatsAppForms = async (filters?: { status?: string; search?: string }) => {
+  const params = new URLSearchParams();
+  if (filters?.status) params.append('status', filters.status);
+  if (filters?.search) params.append('search', filters.search);
+  return get(`/whatsapp-forms${params.toString() ? '?' + params.toString() : ''}`);
+};
+
+/**
+ * Get single WhatsApp form by ID
+ */
+export const getWhatsAppForm = async (formId: string) => {
+  return get(`/whatsapp-forms/${formId}`);
+};
+
+/**
+ * Create new WhatsApp form
+ */
+export const createWhatsAppForm = async (formData: any) => {
+  return post('/whatsapp-forms', formData);
+};
+
+/**
+ * Update existing WhatsApp form
+ */
+export const updateWhatsAppForm = async (formId: string, formData: any) => {
+  return put(`/whatsapp-forms/${formId}`, formData);
+};
+
+/**
+ * Publish WhatsApp form
+ */
+export const publishWhatsAppForm = async (formId: string) => {
+  return post(`/whatsapp-forms/${formId}/publish`, {});
+};
+
+/**
+ * Unpublish WhatsApp form
+ */
+export const unpublishWhatsAppForm = async (formId: string) => {
+  return post(`/whatsapp-forms/${formId}/unpublish`, {});
+};
+
+/**
+ * Delete WhatsApp form
+ */
+export const deleteWhatsAppForm = async (formId: string) => {
+  return fetch(`${API_URL}/whatsapp-forms/${formId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  }).then(async (response) => {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete WhatsApp form');
+    }
+    return response.json();
+  });
+};
+
+/**
+ * Get WhatsApp form responses
+ */
+export const getWhatsAppFormResponses = async (formId: string, filters?: { status?: string; limit?: number; page?: number }) => {
+  const params = new URLSearchParams();
+  if (filters?.status) params.append('status', filters.status);
+  if (filters?.limit) params.append('limit', filters.limit.toString());
+  if (filters?.page) params.append('page', filters.page.toString());
+  return get(`/whatsapp-forms/${formId}/responses${params.toString() ? '?' + params.toString() : ''}`);
+};
+
+/**
+ * Get WhatsApp form statistics
+ */
+export const getWhatsAppFormStats = async (formId: string) => {
+  return get(`/whatsapp-forms/${formId}/stats`);
+};
+
+/**
+ * Sync and recalculate WhatsApp form data
+ */
+export const syncWhatsAppFormData = async (formId: string) => {
+  return post(`/whatsapp-forms/${formId}/sync`, {});
+};
+
+/**
+ * Start new WhatsApp form response session
+ */
+export const startWhatsAppFormSession = async (formId: string, userPhone: string) => {
+  return post('/whatsapp-forms/start', {
+    formId,
+    userPhone
+  });
+};
+
+/**
+ * Submit answer to WhatsApp form question
+ */
+export const submitWhatsAppFormAnswer = async (responseId: string, questionId: string, answer: string) => {
+  return post('/whatsapp-forms/answer', {
+    responseId,
+    questionId,
+    answer
+  });
+};
+
+/**
+ * AnswerBot API Functions
+ */
+
+/**
+ * Generate FAQs from website URL
+ */
+export const generateAnswerBotFAQs = async (workspaceId: string, websiteUrl: string) => {
+  return post(`/automation/answerbot/${workspaceId}/generate`, {
+    websiteUrl
+  });
+};
+
+/**
+ * Get all FAQs for workspace
+ */
+export const getAnswerBotFAQs = async (workspaceId: string, filters?: { status?: string; source?: string; limit?: number; skip?: number }) => {
+  const params = new URLSearchParams();
+  if (filters?.status) params.append('status', filters.status);
+  if (filters?.source) params.append('source', filters.source);
+  if (filters?.limit) params.append('limit', filters.limit.toString());
+  if (filters?.skip) params.append('skip', filters.skip.toString());
+  return get(`/automation/answerbot/${workspaceId}/faqs${params.toString() ? '?' + params.toString() : ''}`);
+};
+
+/**
+ * Approve FAQs for use in auto-replies
+ */
+export const approveAnswerBotFAQs = async (workspaceId: string, faqIds: string[]) => {
+  return post(`/automation/answerbot/${workspaceId}/approve`, {
+    faqIds
+  });
+};
+
+/**
+ * Delete a FAQ
+ */
+export const deleteAnswerBotFAQ = async (workspaceId: string, faqId: string) => {
+  return fetch(`${API_URL}/automation/answerbot/${workspaceId}/faqs/${faqId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  }).then(async (response) => {
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete FAQ');
+    }
+    return response.json();
+  });
+};
+
+/**
+ * Get AnswerBot sources (crawled websites)
+ */
+export const getAnswerBotSources = async (workspaceId: string) => {
+  return get(`/automation/answerbot/${workspaceId}/sources`);
+};
+
+// ============================================================
+// SALES CRM - PIPELINE ENDPOINTS
+// ============================================================
+
+/**
+ * Create a new sales pipeline
+ */
+export const createPipeline = async (data: {
+  name: string;
+  description?: string;
+  stages: Array<{ id: string; title: string; isFinal?: boolean; color?: string }>;
+  isDefault?: boolean;
+}) => {
+  return post(`/sales/pipelines`, data);
+};
+
+/**
+ * Get all pipelines for workspace
+ */
+export const getPipelines = async () => {
+  return get(`/sales/pipelines`);
+};
+
+/**
+ * Get default pipeline (auto-creates if not exists)
+ */
+export const getDefaultPipeline = async () => {
+  return get(`/sales/pipelines/default/pipeline`);
+};
+
+/**
+ * Get single pipeline
+ */
+export const getPipeline = async (pipelineId: string) => {
+  return get(`/sales/pipelines/${pipelineId}`);
+};
+
+/**
+ * Update pipeline
+ */
+export const updatePipeline = async (pipelineId: string, data: any) => {
+  return put(`/sales/pipelines/${pipelineId}`, data);
+};
+
+/**
+ * Delete pipeline
+ */
+export const deletePipeline = async (pipelineId: string) => {
+  return del(`/sales/pipelines/${pipelineId}`);
+};
+
+// ============================================================
+// SALES CRM - DEAL ENDPOINTS
+// ============================================================
+
+/**
+ * Create a new deal (add contact to pipeline)
+ */
+export const createDeal = async (data: {
+  contactId: string;
+  pipelineId: string;
+  title: string;
+  description?: string;
+  value?: number;
+  currency?: string;
+}) => {
+  return post(`/sales/deals`, data);
+};
+
+/**
+ * Get all deals with optional filtering
+ */
+export const listDeals = async (filters?: {
+  page?: number;
+  limit?: number;
+  stage?: string;
+  pipelineId?: string;
+  status?: string;
+  assignedAgent?: string;
+  search?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.page) params.append('page', filters.page.toString());
+  if (filters?.limit) params.append('limit', filters.limit.toString());
+  if (filters?.stage) params.append('stage', filters.stage);
+  if (filters?.pipelineId) params.append('pipelineId', filters.pipelineId);
+  if (filters?.status) params.append('status', filters.status);
+  if (filters?.assignedAgent) params.append('assignedAgent', filters.assignedAgent);
+  if (filters?.search) params.append('search', filters.search);
+  
+  return get(`/sales/deals${params.toString() ? '?' + params.toString() : ''}`);
+};
+
+/**
+ * Get single deal
+ */
+export const getDeal = async (dealId: string) => {
+  return get(`/sales/deals/${dealId}`);
+};
+
+/**
+ * Get deals for a contact
+ */
+export const getDealsByContact = async (contactId: string) => {
+  return get(`/sales/deals/contact/${contactId}`);
+};
+
+/**
+ * Get deals grouped by stage for a pipeline
+ */
+export const getDealsByStage = async (pipelineId: string) => {
+  return get(`/sales/deals/pipeline/${pipelineId}/stages`);
+};
+
+/**
+ * Move deal to different stage
+ */
+export const moveDealStage = async (dealId: string, stageId: string) => {
+  return post(`/sales/deals/${dealId}/move`, { stageId });
+};
+
+/**
+ * Update deal details
+ */
+export const updateDeal = async (dealId: string, data: {
+  title?: string;
+  description?: string;
+  value?: number;
+  currency?: string;
+  assignedAgent?: string;
+}) => {
+  return put(`/sales/deals/${dealId}`, data);
+};
+
+/**
+ * Add note to deal
+ */
+export const addDealNote = async (dealId: string, text: string) => {
+  return post(`/sales/deals/${dealId}/notes`, { text });
+};
+
+/**
+ * Delete deal
+ */
+export const deleteDeal = async (dealId: string) => {
+  return del(`/sales/deals/${dealId}`);
+};
+// ==================== SALES REPORTS ====================
+
+/**
+ * Get pipeline performance report
+ * @param filters - { pipelineId?, startDate?, endDate? }
+ */
+export const getPipelinePerformanceReport = async (filters?: {
+  pipelineId?: string;
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.pipelineId) params.append('pipelineId', filters.pipelineId);
+  if (filters?.startDate) params.append('startDate', filters.startDate);
+  if (filters?.endDate) params.append('endDate', filters.endDate);
+  
+  const queryString = params.toString();
+  return get(`/sales/reports/pipeline-performance${queryString ? `?${queryString}` : ''}`);
+};
+
+/**
+ * Get funnel report for a specific pipeline
+ * @param pipelineId - Required
+ * @param filters - { startDate?, endDate? }
+ */
+export const getFunnelReport = async (pipelineId: string, filters?: {
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const params = new URLSearchParams({ pipelineId });
+  if (filters?.startDate) params.append('startDate', filters.startDate);
+  if (filters?.endDate) params.append('endDate', filters.endDate);
+  
+  return get(`/sales/reports/funnel?${params.toString()}`);
+};
+
+/**
+ * Get agent performance report
+ * @param filters - { agentId?, startDate?, endDate? }
+ */
+export const getAgentPerformanceReport = async (filters?: {
+  agentId?: string;
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.agentId) params.append('agentId', filters.agentId);
+  if (filters?.startDate) params.append('startDate', filters.startDate);
+  if (filters?.endDate) params.append('endDate', filters.endDate);
+  
+  const queryString = params.toString();
+  return get(`/sales/reports/agent-performance${queryString ? `?${queryString}` : ''}`);
+};
+
+/**
+ * Get deal velocity report (time to close)
+ * @param filters - { pipelineId?, startDate?, endDate? }
+ */
+export const getDealVelocityReport = async (filters?: {
+  pipelineId?: string;
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.pipelineId) params.append('pipelineId', filters.pipelineId);
+  if (filters?.startDate) params.append('startDate', filters.startDate);
+  if (filters?.endDate) params.append('endDate', filters.endDate);
+  
+  const queryString = params.toString();
+  return get(`/sales/reports/deal-velocity${queryString ? `?${queryString}` : ''}`);
+};
+
+/**
+ * Get stage duration report (time spent per stage)
+ * @param pipelineId - Required
+ * @param filters - { startDate?, endDate? }
+ */
+export const getStageDurationReport = async (pipelineId: string, filters?: {
+  startDate?: string;
+  endDate?: string;
+}) => {
+  const params = new URLSearchParams({ pipelineId });
+  if (filters?.startDate) params.append('startDate', filters.startDate);
+  if (filters?.endDate) params.append('endDate', filters.endDate);
+  
+  return get(`/sales/reports/stage-duration?${params.toString()}`);
+};
+
+// ===== COMMERCE SETTINGS API =====
+
+/**
+ * Get Commerce Settings for current workspace
+ * Returns all commerce configuration including payment methods, shipping, taxes
+ */
+export const getCommerceSettings = async () => {
+  const response = await fetch(`${API_URL}/settings/commerce`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch commerce settings');
+  }
+  return response.json();
+};
+
+/**
+ * Update Commerce Settings for current workspace
+ * Requires plan permission (premium or enterprise)
+ */
+export const updateCommerceSettings = async (settings) => {
+  const response = await fetch(`${API_URL}/settings/commerce`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(settings),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update commerce settings');
+  }
+  return response.json();
+};
+
+/**
+ * Validate Commerce Configuration
+ * Checks if all required fields are properly configured
+ * Returns validation report and issues
+ */
+export const validateCommerceConfig = async () => {
+  const response = await fetch(`${API_URL}/settings/commerce/validate`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to validate commerce config');
   }
   return response.json();
 };

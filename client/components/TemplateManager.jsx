@@ -346,6 +346,11 @@ const TemplateManager = () => {
                     <span className="px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded">
                       {template.category}
                     </span>
+                    {template.isSystemGenerated && (
+                      <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs rounded font-medium">
+                        System Generated
+                      </span>
+                    )}
                     <span className="text-xs text-gray-500">{template.language}</span>
                   </div>
                   

@@ -19,15 +19,12 @@ const {
   startEmbeddedSignupFlow,
   handleEsbCallback,
   processEsbCallback,
-  verifyBusinessAndWABA,
-  registerPhoneAndSendOTP,
-  verifyPhoneOTP,
-  createSystemUserAndToken,
-  activateWABA,
+  processStoredCallback,
   getESBStatus
 } = require('../controllers/onboardingController');
 const validate = require('../middlewares/validate');
 const auth = require('../middlewares/auth');
+const { esbCallbackLimiter, esbProcessLimiter } = require('../middlewares/esbRateLimit');
 
 const router = express.Router();
 
@@ -59,38 +56,22 @@ router.get('/feature-access', auth, checkFeatureAccess);
 // All steps require authentication except the callback
 
 // Step 1: Start ESB Flow
-router.post('/esb/start', auth, startEmbeddedSignupFlow);
+router.post('/esb/start', auth, esbProcessLimiter, startEmbeddedSignupFlow);
 
 // Step 2: Handle OAuth Callback from Meta (No auth needed for redirect)
-router.get('/esb/callback', handleEsbCallback);
+// Rate limited to prevent brute force attempts
+router.get('/esb/callback', esbCallbackLimiter, handleEsbCallback);
 
-// Step 2.5: Process callback from frontend (after redirect)
-router.post('/esb/process-callback', auth, [
+// Step 2.5: Process stored callback (authenticated - triggered by frontend)
+// Rate limited per workspace
+router.post('/esb/process-stored-callback', auth, esbProcessLimiter, processStoredCallback);
+
+// Step 2.5 (Legacy): Process callback from frontend (after redirect)
+// Rate limited per workspace
+router.post('/esb/process-callback', auth, esbProcessLimiter, [
   body('code').notEmpty(),
   body('state').notEmpty()
 ], validate, processEsbCallback);
-
-// Step 3: Verify Business Account
-router.post('/esb/verify-business', auth, [
-  body('businessAccountId').notEmpty(),
-  body('businessData').notEmpty()
-], validate, verifyBusinessAndWABA);
-
-// Step 4: Register Phone Number and Send OTP
-router.post('/esb/register-phone', auth, [
-  body('phoneNumber').notEmpty()
-], validate, registerPhoneAndSendOTP);
-
-// Step 5: Verify Phone OTP
-router.post('/esb/verify-otp', auth, [
-  body('otpCode').notEmpty().isLength({ min: 6, max: 6 })
-], validate, verifyPhoneOTP);
-
-// Step 6: Create System User
-router.post('/esb/create-system-user', auth, createSystemUserAndToken);
-
-// Step 7: Activate WABA
-router.post('/esb/activate-waba', auth, activateWABA);
 
 // Get ESB Status
 router.get('/esb/status', auth, getESBStatus);

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { FaAddressBook, FaDownload, FaPlus, FaSearch, FaFilter } from 'react-icons/fa';
 import CreateContactModal from './CreateContactModal';
+import ContactDetailModal from './ContactDetailModal';
+import AddToPipelineModal from './AddToPipelineModal';
 import { fetchContacts } from '../lib/api';
 
 const ContactsSection = () => {
@@ -9,6 +11,11 @@ const ContactsSection = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all'); // all, withEmail, withoutEmail
+
+  // Detail & CRM modals
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isAddToPipelineModalOpen, setIsAddToPipelineModalOpen] = useState(false);
 
   // Fetch contacts from backend
   const loadContacts = async () => {
@@ -38,6 +45,23 @@ const ContactsSection = () => {
     } catch (err) {
       alert(err.message || 'Failed to fetch profile');
     }
+  };
+
+  const handleOpenDetailModal = (contact) => {
+    setSelectedContact(contact);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleOpenAddToPipelineModal = (contact) => {
+    setSelectedContact(contact);
+    setIsDetailModalOpen(false);
+    setIsAddToPipelineModalOpen(true);
+  };
+
+  const handleAddToPipelineSuccess = (deal) => {
+    // Refresh contacts to update any CRM data
+    loadContacts();
+    setIsAddToPipelineModalOpen(false);
   };
 
   useEffect(() => {
@@ -214,14 +238,17 @@ const ContactsSection = () => {
                   filteredContacts.slice(0, 20).map((c, idx) => (
                     <tr key={c.id || idx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center">
+                        <button
+                          onClick={() => handleOpenDetailModal(c)}
+                          className="w-full text-left flex items-center hover:opacity-80 transition-opacity"
+                        >
+                          <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
                             <span className="text-white font-medium">{(c.firstName || c.lastName) ? `${(c.firstName||'')[0] || ''}${(c.lastName||'')[0] || ''}`.toUpperCase() : c.phone[0]}</span>
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900 dark:text-white">{c.firstName || '-'} {c.lastName || ''}</div>
                           </div>
-                        </div>
+                        </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         <button onClick={() => openWhatsAppProfile(c.phone, c._id)} className="text-left text-blue-600 hover:underline">{c.phone}</button>
@@ -242,6 +269,45 @@ const ContactsSection = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
       />
+      
+      {/* Contact Detail Modal */}
+      {selectedContact && (
+        <ContactDetailModal
+          isOpen={isDetailModalOpen}
+          onClose={() => {
+            setIsDetailModalOpen(false);
+            setSelectedContact(null);
+          }}
+          contact={selectedContact}
+          onAddToPipeline={() => {
+            setIsDetailModalOpen(false);
+            handleOpenAddToPipelineModal(selectedContact);
+          }}
+          onSuccess={() => {
+            setIsDetailModalOpen(false);
+            setSelectedContact(null);
+            // Refresh contacts list by re-fetching
+            window.location.reload();
+          }}
+        />
+      )}
+      
+      {/* Add to Pipeline Modal */}
+      {selectedContact && (
+        <AddToPipelineModal
+          isOpen={isAddToPipelineModalOpen}
+          onClose={() => {
+            setIsAddToPipelineModalOpen(false);
+            setSelectedContact(null);
+          }}
+          contact={selectedContact}
+          onSuccess={(deal) => {
+            setIsAddToPipelineModalOpen(false);
+            setSelectedContact(null);
+            handleAddToPipelineSuccess(deal);
+          }}
+        />
+      )}
     </div>
   );
 };

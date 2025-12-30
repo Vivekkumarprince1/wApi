@@ -111,7 +111,11 @@ app.use('/api/v1/webhook', webhookRoutes);
 
 // Additional modules
 const campaignRoutes = require('./routes/campaignRoutes');
+const adsRoutes = require('./routes/adsRoutes');
 const automationRoutes = require('./routes/automationRoutes');
+const autoReplyRoutes = require('./routes/autoReplyRoutes');
+const instagramQuickflowRoutes = require('./routes/instagramQuickflowRoutes');
+const whatsappFormRoutes = require('./routes/whatsappFormRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
@@ -120,9 +124,21 @@ const conversationRoutes = require('./routes/conversationRoutes');
 const metricsRoutes = require('./routes/metricsRoutes');
 const onboardingRoutes = require('./routes/onboardingRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const usageRoutes = require('./routes/usageRoutes');
+const dealRoutes = require('./routes/dealRoutes');
+const pipelineRoutes = require('./routes/pipelineRoutes');
+const reportsRoutes = require('./routes/reportsRoutes');
+const productRoutes = require('./routes/productRoutes');
+const checkoutBotRoutes = require('./routes/checkoutBotRoutes');
+const integrationsRoutes = require('./routes/integrationsRoutes');
+const widgetRoutes = require('./routes/widgetRoutes');
 
 app.use('/api/v1/campaigns', campaignRoutes);
+app.use('/api/v1/ads', adsRoutes);
 app.use('/api/v1/automation', automationRoutes);
+app.use('/api/v1/auto-replies', autoReplyRoutes);
+app.use('/api/v1/instagram-quickflows', instagramQuickflowRoutes);
+app.use('/api/v1/whatsapp-forms', whatsappFormRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/settings', settingsRoutes);
@@ -131,6 +147,14 @@ app.use('/api/v1/conversations', conversationRoutes);
 app.use('/api/v1/metrics', metricsRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/usage', usageRoutes);
+app.use('/api/v1/sales/deals', dealRoutes);
+app.use('/api/v1/sales/pipelines', pipelineRoutes);
+app.use('/api/v1/sales/reports', reportsRoutes);
+app.use('/api/v1/products', productRoutes);
+app.use('/api/v1/checkout-bot', checkoutBotRoutes);
+app.use('/api/v1/integrations', integrationsRoutes);
+app.use('/api/v1/widget', widgetRoutes);
 
 // Root - redirect to health for a friendly default
 app.get('/', (req, res) => res.redirect('/api/v1/health'));
@@ -149,8 +173,13 @@ server.listen(serverPort, () => console.log(`Server running on port http://local
 
 // Optionally start the worker from the same process during development (recommended to run separately in prod)
 if (process.env.START_WORKER === 'true') {
-  const { runWorker } = require('./services/queueWorker');
+  const { runWorker, scheduleCartExpiryCleanup } = require('./services/queueWorker');
   runWorker().catch((err) => console.error('Worker failed:', err));
+  scheduleCartExpiryCleanup().catch((err) => console.error('Cart expiry scheduler failed:', err));
+  
+  // ✅ Initialize workflow worker
+  const { initWorkflowWorker } = require('./services/workflowExecutionService');
+  initWorkflowWorker();
 }
 
 // Simple analytics cron (daily) - can be expanded to a separate worker/cron service
@@ -160,6 +189,74 @@ if (process.env.START_ANALYTICS_CRON === 'true') {
   cron.schedule('0 0 * * *', () => {
     aggregateDailyStats().catch((e) => console.error('Analytics cron failed', e));
   });
+}
+
+// Token refresh cron (daily) - refreshes ESB tokens before 60-day expiry
+if (process.env.START_TOKEN_REFRESH_CRON === 'true') {
+  const cron = require('node-cron');
+  const metaAutomationService = require('./services/metaAutomationService');
+  const { decrypt, encrypt, isEncrypted } = require('./utils/encryption');
+  
+  cron.schedule('0 2 * * *', async () => { // 2 AM UTC daily
+    try {
+      const Workspace = require('./models/Workspace');
+      
+      // Find workspaces with tokens expiring within 7 days
+      const workspaces = await Workspace.find({
+        'esbFlow.tokenExpiry': { 
+          $lt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Within 7 days
+          $gt: new Date() // But still valid
+        },
+        'esbFlow.userRefreshToken': { $exists: true, $ne: null },
+        'esbFlow.status': 'completed'
+      });
+      
+      console.log(`[Token Refresh] Found ${workspaces.length} workspaces with tokens expiring within 7 days`);
+      
+      for (const workspace of workspaces) {
+        try {
+          const workspaceId = workspace._id.toString();
+          
+          // Decrypt refresh token
+          let refreshToken = workspace.esbFlow.userRefreshToken;
+          if (isEncrypted(refreshToken)) {
+            refreshToken = decrypt(refreshToken, workspaceId);
+          }
+          
+          if (!refreshToken) {
+            console.warn(`[Token Refresh] No refresh token for workspace ${workspaceId}`);
+            continue;
+          }
+          
+          // Refresh the token
+          const newToken = await metaAutomationService.refreshUserToken(refreshToken);
+          
+          // Update with encrypted tokens
+          workspace.esbFlow.userAccessToken = encrypt(newToken.accessToken, workspaceId);
+          workspace.esbFlow.userRefreshToken = encrypt(newToken.refreshToken || refreshToken, workspaceId);
+          workspace.esbFlow.tokenExpiry = new Date(Date.now() + newToken.expiresIn * 1000);
+          
+          await workspace.save();
+          console.log(`[Token Refresh] ✅ Token refreshed for workspace ${workspaceId}`);
+        } catch (err) {
+          console.error(`[Token Refresh] ❌ Failed to refresh token for workspace ${workspace._id}:`, err.message);
+          
+          // Mark workspace with refresh failure for admin alerts
+          try {
+            workspace.esbFlow.lastTokenRefreshError = err.message;
+            workspace.esbFlow.lastTokenRefreshAttempt = new Date();
+            await workspace.save();
+          } catch (saveErr) {
+            console.error('Failed to save refresh error:', saveErr.message);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Token Refresh] Cron job error:', err.message);
+    }
+  });
+  
+  console.log('[Server] ✅ Token refresh cron enabled (runs daily at 2 AM UTC)');
 }
 
 module.exports = server;

@@ -75,13 +75,16 @@ async function processSendJob(job) {
   }
 }
 
-// Process campaign message job
+// ✅ Process campaign message job with limit checks and idempotency
 async function processCampaignMessage(job) {
-  const { campaignId, contactId, templateName, templateParams } = job.data;
+  const { campaignId, contactId, campaignMessageId, templateId, variableMapping } = job.data;
   const Campaign = require('../models/Campaign');
   const Contact = require('../models/Contact');
+  const CampaignMessage = require('../models/CampaignMessage');
+  const Template = require('../models/Template');
+  const { checkShouldPauseCampaign } = require('./campaignValidationService');
   
-  const campaign = await Campaign.findById(campaignId).populate('workspace');
+  const campaign = await Campaign.findById(campaignId).populate('workspace template');
   if (!campaign) throw new Error('Campaign not found');
   
   const contact = await Contact.findById(contactId);
@@ -89,6 +92,19 @@ async function processCampaignMessage(job) {
   
   const workspace = await Workspace.findById(campaign.workspace);
   if (!workspace) throw new Error('Workspace not found');
+  
+  const template = await Template.findById(templateId);
+  if (!template) throw new Error('Template not found');
+  
+  // ✅ Check if campaign should auto-pause
+  const { shouldPause, reason } = await checkShouldPauseCampaign(campaign);
+  if (shouldPause) {
+    campaign.status = 'paused';
+    campaign.pausedReason = reason;
+    campaign.pausedAt = new Date();
+    await campaign.save();
+    throw new Error(`CAMPAIGN_AUTO_PAUSED: ${reason}`);
+  }
   
   // Get credentials
   const accessToken = workspace.whatsappAccessToken;
@@ -98,61 +114,133 @@ async function processCampaignMessage(job) {
     throw new Error('WABA credentials not configured');
   }
   
-  // Create message record
-  const message = await Message.create({
+  // ✅ Get or create message record (idempotency)
+  let message = await Message.findOne({ 
     workspace: workspace._id,
     contact: contactId,
-    direction: 'outbound',
-    type: templateName ? 'template' : 'text',
-    body: campaign.message,
-    status: 'queued',
-    meta: { campaignId }
+    meta: { campaignId: campaign._id }
   });
   
+  if (!message) {
+    message = await Message.create({
+      workspace: workspace._id,
+      contact: contactId,
+      direction: 'outbound',
+      type: 'template',
+      body: template.bodyText || template.name,
+      status: 'queued',
+      meta: { 
+        campaignId: campaign._id,
+        campaignMessageId: campaignMessageId,
+        templateId: templateId
+      }
+    });
+  }
+  
   try {
-    let result;
-    if (templateName) {
-      result = await metaService.sendTemplateMessage(
-        accessToken, 
-        phoneNumberId, 
-        contact.phone, 
-        templateName,
-        'en',
-        templateParams || []
-      );
-    } else {
-      // Replace variables in campaign message
-      let personalizedMessage = campaign.message;
-      personalizedMessage = personalizedMessage.replace(/\{\{name\}\}/g, contact.name || '');
-      personalizedMessage = personalizedMessage.replace(/\{\{phone\}\}/g, contact.phone || '');
-      personalizedMessage = personalizedMessage.replace(/\{\{email\}\}/g, contact.email || '');
-      
-      result = await metaService.sendTextMessage(accessToken, phoneNumberId, contact.phone, personalizedMessage);
+    // ✅ Build template parameters using variable mapping
+    let templateParams = [];
+    if (variableMapping && Object.keys(variableMapping).length > 0) {
+      templateParams = template.variables?.map(variable => {
+        const contactField = variableMapping[variable];
+        const value = contact[contactField] || contact.metadata?.[contactField] || '';
+        return { type: 'text', text: String(value) };
+      }) || [];
     }
     
+    // ✅ Send template message via Meta API
+    const result = await metaService.sendTemplateMessage(
+      accessToken,
+      phoneNumberId,
+      contact.phone,
+      template.name,
+      'en',
+      templateParams.length > 0 ? [{ type: 'body', parameters: templateParams }] : []
+    );
+    
+    // ✅ Update Message
     message.status = 'sent';
+    message.sentAt = new Date();
     message.meta.whatsappId = result.messageId;
     message.meta.whatsappResponses = [result];
     await message.save();
     
-    // Update campaign stats
-    campaign.sentCount = (campaign.sentCount || 0) + 1;
-    await campaign.save();
+    // ✅ Update CampaignMessage (idempotency record)
+    await CampaignMessage.findByIdAndUpdate(
+      campaignMessageId,
+      {
+        status: 'sent',
+        sentAt: new Date(),
+        whatsappMessageId: result.messageId,
+        message: message._id
+      }
+    );
     
-    // Increment usage
-    workspace.usage.messagesSent += 1;
+    // ✅ Update Campaign stats atomically
+    await Campaign.findByIdAndUpdate(
+      campaignId,
+      {
+        $inc: { sentCount: 1 },
+        $set: { updatedAt: new Date() }
+      }
+    );
+    
+    // ✅ Increment workspace usage atomically
+    workspace.usage.messages = (workspace.usage.messages || 0) + 1;
+    workspace.usage.messagesDaily = (workspace.usage.messagesDaily || 0) + 1;
+    workspace.usage.messagesThisMonth = (workspace.usage.messagesThisMonth || 0) + 1;
     await workspace.save();
     
     return result;
   } catch (err) {
+    // ✅ Handle specific Meta errors
+    const errorMessage = err.message || '';
+    
+    // Check for token expiry
+    if (errorMessage.includes('TOKEN_EXPIRED') || errorMessage.includes('401')) {
+      campaign.status = 'paused';
+      campaign.pausedReason = 'TOKEN_EXPIRED';
+      campaign.pausedAt = new Date();
+      await campaign.save();
+      throw new Error('TOKEN_EXPIRED');
+    }
+    
+    // Check for blocked account
+    if (errorMessage.includes('ACCOUNT_BLOCKED') || errorMessage.includes('DISABLED')) {
+      campaign.status = 'paused';
+      campaign.pausedReason = 'ACCOUNT_BLOCKED';
+      campaign.pausedAt = new Date();
+      await campaign.save();
+      throw new Error('ACCOUNT_BLOCKED');
+    }
+    
+    // Update Message status
     message.status = 'failed';
-    message.meta.errors = [err.message];
+    message.meta.errors = message.meta.errors || [];
+    message.meta.errors.push(errorMessage);
     await message.save();
     
-    campaign.failedCount = (campaign.failedCount || 0) + 1;
-    await campaign.save();
+    // ✅ Update CampaignMessage status
+    await CampaignMessage.findByIdAndUpdate(
+      campaignMessageId,
+      {
+        status: 'failed',
+        failedAt: new Date(),
+        lastError: errorMessage,
+        attempts: (await CampaignMessage.findById(campaignMessageId))?.attempts + 1
+      }
+    );
     
-    throw err;
+    // ✅ Update Campaign stats
+    await Campaign.findByIdAndUpdate(
+      campaignId,
+      {
+        $inc: { failedCount: 1 },
+        $set: { updatedAt: new Date() }
+      }
+    );
+    
+    throw err; // Let BullMQ handle retries
   }
 }
 

@@ -21,16 +21,13 @@ const TemplateSchema = new mongoose.Schema({
     default: 'MARKETING' 
   },
   
-  // Subcategory for library templates (e.g., "Account updates", "Order management")
-  subcategory: { type: String },
-  
   // Template components (header, body, footer, buttons)
   components: { type: Array, default: [] },
   
   // Status from Meta
   status: { 
     type: String, 
-    enum: ['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'PAUSED', 'DISABLED', 'IN_APPEAL', 'PENDING_DELETION', 'DELETED', 'LIMIT_EXCEEDED', 'LIBRARY'], 
+    enum: ['DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'PAUSED', 'DISABLED', 'IN_APPEAL', 'PENDING_DELETION', 'DELETED', 'LIMIT_EXCEEDED'], 
     default: 'DRAFT' 
   },
   
@@ -52,15 +49,9 @@ const TemplateSchema = new mongoose.Schema({
   // Source of the template
   source: { 
     type: String, 
-    enum: ['META', 'LOCAL', 'META_LIBRARY', 'META_LIBRARY_COPY'], 
+    enum: ['META', 'LOCAL'], 
     default: 'LOCAL' 
   },
-  
-  // Flag for library templates
-  isLibraryTemplate: { type: Boolean, default: false },
-  
-  // If copied from library, the original name
-  copiedFrom: { type: String },
   
   // Preview content for quick display
   headerText: { type: String },
@@ -68,6 +59,12 @@ const TemplateSchema = new mongoose.Schema({
   footerText: { type: String },
   buttonLabels: [String],
   preview: { type: String }, // Short description of what the template does
+  
+  // Auto-generation tracking
+  isSystemGenerated: { type: Boolean, default: false },
+  generationSource: { type: String, enum: ['onboarding', 'scheduled', 'manual'], default: null },
+  generatedForWorkspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
+  generatedAt: { type: Date },
   
   // Metadata
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -83,7 +80,6 @@ const TemplateSchema = new mongoose.Schema({
 TemplateSchema.index({ workspace: 1, name: 1 });
 TemplateSchema.index({ workspace: 1, status: 1 });
 TemplateSchema.index({ workspace: 1, source: 1 });
-TemplateSchema.index({ workspace: 1, isLibraryTemplate: 1 });
 
 // Update timestamp on save
 TemplateSchema.pre('save', function(next) {

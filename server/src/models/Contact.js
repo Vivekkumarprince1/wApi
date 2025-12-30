@@ -12,6 +12,17 @@ const ContactSchema = new mongoose.Schema({
     lastName: String,
     email: String
   },
+  
+  // Sales CRM - Read-only reference to current active deal
+  // (actual deal data lives in Deal model)
+  activeDealId: { type: mongoose.Schema.Types.ObjectId, ref: 'Deal' },
+  activePipelineId: { type: mongoose.Schema.Types.ObjectId, ref: 'Pipeline' },
+  assignedAgentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  
+  // Activity timestamps for inbox
+  lastInboundAt: { type: Date },
+  lastOutboundAt: { type: Date },
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
