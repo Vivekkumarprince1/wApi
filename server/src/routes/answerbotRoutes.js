@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
-const answerBotController = require('../controllers/answerBotController');
+const answerBotController = require('../controllers/answerbotController');
 
 /**
  * AnswerBot Routes
