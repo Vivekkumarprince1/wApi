@@ -8,7 +8,7 @@ const { getIO } = require('../utils/socket');
 const metaService = require('../services/metaService');
 const { triggerWorkflows } = require('../services/workflowExecutionService');
 const { checkAutoReply, sendAutoReply } = require('../services/autoReplyService');
-const { matchFAQ } = require('../services/answerBotService');
+const { matchFAQ } = require('../services/answerbotService');
 
 // Verify webhook (GET)
 function verify(req, res) {

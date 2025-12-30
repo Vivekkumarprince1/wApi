@@ -1,17 +1,5 @@
 services:
   - type: web
-    name: waapi-frontend
-    env: node
-    rootDir: client
-    plan: free
-    buildCommand: npm ci --include=dev && npm run build
-    startCommand: npm run start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NODE_VERSION
-        value: 22
-  - type: web
     name: waapi-backend
     env: node
     rootDir: server

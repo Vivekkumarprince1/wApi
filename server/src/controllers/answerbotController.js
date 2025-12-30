@@ -1,4 +1,4 @@
-const answerBotService = require('../services/answerBotService');
+const answerBotService = require('../services/answerbotService');
 const FAQ = require('../models/FAQ');
 
 /**

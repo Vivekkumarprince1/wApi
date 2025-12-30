@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "npx nodemon server.js",
+    "dev": "nodemon server.js",
     "dev:local": "cross-env PORT=5001 USE_IN_MEMORY_DB=true SKIP_REDIS=true npx nodemon server.js",
     "worker": "node src/services/queueWorker.js",
     "test": "jest",
