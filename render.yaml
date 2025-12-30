@@ -10,4 +10,18 @@ services:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
-        value: 20.18.0
+        value: 22
+  - type: web
+    name: waapi-backend
+    env: node
+    rootDir: server
+    plan: free
+    buildCommand: npm ci
+    startCommand: node src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22
+      - key: PORT
+        value: 5001
