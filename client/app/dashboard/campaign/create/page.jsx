@@ -529,7 +529,7 @@ export default function CreateCampaignPage() {
                   🏪
                 </div>
                 <div className="flex-1">
-                  <div className="font-medium text-sm">{process.env.NEXT_PUBLIC_APP_DOMAIN || 'interakt.shop'} Sandbox</div>
+                  <div className="font-medium text-sm">{process.env.NEXT_PUBLIC_APP_DOMAIN } Sandbox</div>
                 </div>
               </div>
 

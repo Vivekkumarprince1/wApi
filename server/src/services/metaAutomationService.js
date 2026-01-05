@@ -51,36 +51,49 @@ async function generateEmbeddedSignupURL(userId, callbackUrl) {
       throw new Error('META_CONFIG_ID not configured in environment');
     }
 
+    if (!metaAppId) {
+      throw new Error('META_APP_ID not configured in environment');
+    }
+
+    // Validate config values are not placeholders
+    if (metaConfigId.includes('YOUR_') || metaAppId.includes('YOUR_')) {
+      throw new Error('META_CONFIG_ID or META_APP_ID contains placeholder values. Please set valid values in .env');
+    }
+
     // Create state for CSRF protection
     const state = crypto.randomBytes(32).toString('hex');
     
-    // Build ESB Flow URL using Meta's Embedded Signup endpoint for WhatsApp
-    // Use Business Manager's embedded signup so users complete WhatsApp onboarding
-    const esbUrl = 'https://business.facebook.com/embedded_signup';
+    // Build ESB Flow URL using Meta's v3 Embedded Signup endpoint for WhatsApp
+    // This endpoint allows users to create WABA under your partnership
+    const esbUrl = 'https://business.facebook.com/messaging/whatsapp/onboard/';
     
-    const params = new URLSearchParams({
-      client_id: metaAppId,
-      redirect_uri: callbackUrl,
-      scope: 'whatsapp_business_management,instagram_business_management',
-      state: state,
-      config_id: metaConfigId, // Meta's Embedded Signup Config ID
-      display: 'popup'
-    });
-
-    const fullUrl = `${esbUrl}?${params.toString()}`;
+    // Build extras JSON - no spaces or extra encoding
+    const extrasJson = '{"sessionInfoVersion":"3","version":"v3"}';
+    
+    // Manually construct URL to avoid double encoding
+    const fullUrl = `${esbUrl}?app_id=${metaAppId}&config_id=${metaConfigId}&extras=${encodeURIComponent(extrasJson)}`;
 
     console.log(`[ESB] Generated signup URL for user: ${userId}`);
+    console.log(`[ESB] App ID: ${metaAppId}`);
     console.log(`[ESB] Config ID: ${metaConfigId}`);
+    console.log(`[ESB] ✅ URL constructed successfully`);
+    console.log(`[ESB] Full URL: ${fullUrl}`);
 
     return {
       success: true,
       url: fullUrl,
-      state: state, // Store this in session/cache for validation
+      state: state,
       configId: metaConfigId,
-      expiresIn: 3600 // 1 hour
+      appId: metaAppId,
+      expiresIn: 3600
     };
   } catch (error) {
-    console.error('Error generating ESB URL:', error.message);
+    console.error('[ESB] ❌ Error generating ESB URL:', error.message);
+    console.error('[ESB] Debug Info:', {
+      metaAppId: metaAppId ? '✓ Set' : '✗ Missing',
+      metaConfigId: metaConfigId ? '✓ Set' : '✗ Missing',
+      error: error.message
+    });
     throw new Error(`ESB URL generation failed: ${error.message}`);
   }
 }

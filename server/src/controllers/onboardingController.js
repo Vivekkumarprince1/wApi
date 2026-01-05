@@ -1346,14 +1346,30 @@ async function handleEsbCallback(req, res, next) {
     const { code, state, error, error_description } = req.query;
 
     if (error) {
-      console.error('[ESB] Callback error:', error, error_description);
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(error_description || error)}`;
+      console.error('[ESB] ❌ Callback error from Meta:', {
+        error: error,
+        error_description: error_description,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Map Meta errors to user-friendly messages
+      const errorMap = {
+        'invalid_scope': 'The app does not have required permissions. Check App Review status.',
+        'invalid_client': 'App ID is invalid. Check META_APP_ID in .env',
+        'access_denied': 'User denied the request or does not have permission.',
+        'server_error': 'Meta server error. Try again later.',
+        'temporarily_unavailable': 'Meta services temporarily unavailable. Try again later.'
+      };
+      
+      const userMessage = errorMap[error] || error_description || error;
+      
+      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/onboarding/esb?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(userMessage)}`;
       return res.redirect(frontendUrl);
     }
 
     if (!code || !state) {
-      console.error('[ESB] Missing code or state in callback');
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=missing_params`;
+      console.error('[ESB] ❌ Missing code or state in callback', { code: !!code, state: !!state });
+      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/onboarding/esb?error=missing_params&error_description=Invalid callback from Meta`;
       return res.redirect(frontendUrl);
     }
 
@@ -1364,16 +1380,16 @@ async function handleEsbCallback(req, res, next) {
     });
 
     if (!workspace) {
-      console.error('[ESB] Invalid state - no matching workspace found:', state);
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=invalid_state`;
+      console.error('[ESB] ❌ Invalid state - no matching workspace found:', state);
+      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/onboarding/esb?error=invalid_state&error_description=Security validation failed`;
       return res.redirect(frontendUrl);
     }
 
     // Verify state for CSRF protection
     const metaAutomationService = require('../services/metaAutomationService');
     if (!metaAutomationService.verifyCallbackState(state, workspace.esbFlow.callbackState)) {
-      console.error('[ESB] State verification failed for workspace:', workspace._id);
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=state_verification_failed`;
+      console.error('[ESB] ❌ State verification failed for workspace:', workspace._id);
+      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/onboarding/esb?error=state_verification_failed`;
       return res.redirect(frontendUrl);
     }
 
@@ -1385,14 +1401,18 @@ async function handleEsbCallback(req, res, next) {
     workspace.esbFlow.callbackReceivedAt = new Date();
     await workspace.save();
 
-    console.log(`[ESB] Code received and stored for workspace ${workspace._id}`);
+    console.log(`[ESB] ✅ Code received and stored for workspace ${workspace._id}`);
 
     // Redirect to frontend with success (code will be processed via authenticated endpoint)
-    const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?callback_received=true&state=${encodeURIComponent(state)}`;
+    const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/onboarding/esb?callback_received=true&state=${encodeURIComponent(state)}`;
     res.redirect(frontendUrl);
   } catch (err) {
-    console.error('[ESB] Callback processing error:', err.message);
-    const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=processing_error`;
+    console.error('[ESB] ❌ Callback processing error:', {
+      message: err.message,
+      stack: err.stack,
+      timestamp: new Date().toISOString()
+    });
+    const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/onboarding/esb?error=processing_error&error_description=${encodeURIComponent(err.message)}`;
     res.redirect(frontendUrl);
   }
 }

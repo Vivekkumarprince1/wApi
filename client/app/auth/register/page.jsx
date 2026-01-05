@@ -77,10 +77,10 @@ export default function RegisterPage() {
         <div className="flex items-center justify-between max-w-5xl mx-auto px-6 py-4">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="h-10 w-10 relative">
-              <Image src="/interact-logo.png" alt={process.env.NEXT_PUBLIC_APP_DOMAIN || 'interakt.shop'} fill sizes="40px" className="object-contain" />
+              <Image src="/interact-logo.png" alt={process.env.NEXT_PUBLIC_APP_DOMAIN} fill sizes="40px" className="object-contain" />
             </div>
             <span className="font-extrabold text-lg tracking-tight text-gray-900 uppercase group-hover:text-green-700 transition-colors">
-              {process.env.NEXT_PUBLIC_APP_DOMAIN || 'interakt.shop'}
+              {process.env.NEXT_PUBLIC_APP_DOMAIN}
             </span>
           </Link>
           <div className="text-sm text-gray-700">

@@ -163,9 +163,10 @@ export default function EsbPage() {
       if (resp.url) {
         // ✅ Reset poll timer for new flow
         pollStartTimeRef.current = Date.now();
-        // Use same-window redirect instead of popup to avoid losing callback
-        // The callback will redirect back to this page with callback_received=true
-        window.location.href = resp.url;
+        // Open WhatsApp setup in a new window
+        window.open(resp.url, '_blank');
+        setStep("waiting_callback");
+        setInfo("WhatsApp setup window opened. Complete the setup in the new window and it will redirect back here automatically.");
       } else {
         setError('Failed to start signup flow. No redirect URL provided by server.');
         setLoading(false);
