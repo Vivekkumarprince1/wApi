@@ -1228,6 +1228,21 @@ export const esbStatus = async () => {
   return response.json();
 };
 
+// Process PARTNER_ADDED webhook event (Steps 4-6 of Meta ESB flow)
+// This retrieves business token and customer phone number after webhook is received
+export const esbProcessPartnerAdded = async () => {
+  const response = await fetch(`${API_URL}/onboarding/esb/process-partner-added`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to process PARTNER_ADDED event');
+  }
+  return response.json();
+};
+
 // Process ESB callback (exchange code for token)
 export const processEsbCallback = async (payload) => {
   const response = await fetch(`${API_URL}/onboarding/esb/process-callback`, {
@@ -2026,5 +2041,401 @@ export const validateCommerceConfig = async () => {
     const error = await response.json();
     throw new Error(error.message || 'Failed to validate commerce config');
   }
+  return response.json();
+};
+
+// ============================================================
+// INTEGRATIONS API
+// ============================================================
+
+/**
+ * Get all integrations for workspace
+ */
+export const getIntegrations = async (filters?: { type?: string; status?: string }) => {
+  const params = new URLSearchParams();
+  if (filters?.type) params.append('type', filters.type);
+  if (filters?.status) params.append('status', filters.status);
+
+  const response = await fetch(`${API_URL}/integrations${params.toString() ? '?' + params.toString() : ''}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch integrations');
+  }
+
+  return response.json();
+};
+
+/**
+ * Get single integration details
+ */
+export const getIntegration = async (integrationId: string) => {
+  const response = await fetch(`${API_URL}/integrations/${integrationId}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch integration');
+  }
+
+  return response.json();
+};
+
+/**
+ * Create new integration
+ */
+export const createIntegration = async (integrationData: any) => {
+  const response = await fetch(`${API_URL}/integrations`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(integrationData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create integration');
+  }
+
+  return response.json();
+};
+
+/**
+ * Update integration
+ */
+export const updateIntegration = async (integrationId: string, updates: any) => {
+  const response = await fetch(`${API_URL}/integrations/${integrationId}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update integration');
+  }
+
+  return response.json();
+};
+
+/**
+ * Delete integration
+ */
+export const deleteIntegration = async (integrationId: string) => {
+  const response = await fetch(`${API_URL}/integrations/${integrationId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to delete integration');
+  }
+
+  return response.json();
+};
+
+// ============================================================
+// WIDGET API
+// ============================================================
+
+/**
+ * Get widget configuration
+ */
+export const getWidgetConfig = async () => {
+  const response = await fetch(`${API_URL}/widget/config`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch widget config');
+  }
+
+  return response.json();
+};
+
+/**
+ * Update widget configuration
+ */
+export const updateWidgetConfig = async (config: any) => {
+  const response = await fetch(`${API_URL}/widget/config`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(config),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update widget config');
+  }
+
+  return response.json();
+};
+
+/**
+ * Enable widget
+ */
+export const enableWidget = async () => {
+  const response = await fetch(`${API_URL}/widget/enable`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to enable widget');
+  }
+
+  return response.json();
+};
+
+/**
+ * Disable widget
+ */
+export const disableWidget = async () => {
+  const response = await fetch(`${API_URL}/widget/disable`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to disable widget');
+  }
+
+  return response.json();
+};
+
+/**
+ * Get widget analytics
+ */
+export const getWidgetAnalytics = async (filters?: { days?: number; startDate?: string; endDate?: string }) => {
+  const params = new URLSearchParams();
+  if (filters?.days) params.append('days', filters.days.toString());
+  if (filters?.startDate) params.append('startDate', filters.startDate);
+  if (filters?.endDate) params.append('endDate', filters.endDate);
+
+  const response = await fetch(`${API_URL}/widget/analytics${params.toString() ? '?' + params.toString() : ''}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch widget analytics');
+  }
+
+  return response.json();
+};
+
+// ============================================================
+// ADMIN DASHBOARD API
+// ============================================================
+
+/**
+ * Get all workspaces/tenants with pagination
+ */
+export const getAllWorkspaces = async (filters?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  plan?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.page) params.append('page', filters.page.toString());
+  if (filters?.limit) params.append('limit', filters.limit.toString());
+  if (filters?.search) params.append('search', filters.search);
+  if (filters?.status) params.append('status', filters.status);
+  if (filters?.plan) params.append('plan', filters.plan);
+
+  const response = await fetch(`${API_URL}/admin/workspaces${params.toString() ? '?' + params.toString() : ''}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch workspaces');
+  }
+
+  return response.json();
+};
+
+/**
+ * Get workspace details with full information
+ */
+export const getWorkspaceDetails = async (workspaceId: string) => {
+  const response = await fetch(`${API_URL}/admin/workspaces/${workspaceId}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch workspace details');
+  }
+
+  return response.json();
+};
+
+/**
+ * Suspend workspace
+ */
+export const suspendWorkspace = async (workspaceId: string, reason: string) => {
+  const response = await fetch(`${API_URL}/admin/workspaces/${workspaceId}/suspend`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to suspend workspace');
+  }
+
+  return response.json();
+};
+
+/**
+ * Resume suspended workspace
+ */
+export const resumeWorkspace = async (workspaceId: string) => {
+  const response = await fetch(`${API_URL}/admin/workspaces/${workspaceId}/resume`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to resume workspace');
+  }
+
+  return response.json();
+};
+
+/**
+ * Get WABA health status for all workspaces
+ */
+export const getWABAHealth = async (filters?: { status?: string }) => {
+  const params = new URLSearchParams();
+  if (filters?.status) params.append('status', filters.status);
+
+  const response = await fetch(`${API_URL}/admin/waba-health${params.toString() ? '?' + params.toString() : ''}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch WABA health');
+  }
+
+  return response.json();
+};
+
+/**
+ * Get admin analytics (overview, usage, spending)
+ */
+export const getAdminAnalytics = async (filters?: {
+  startDate?: string;
+  endDate?: string;
+  metric?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.startDate) params.append('startDate', filters.startDate);
+  if (filters?.endDate) params.append('endDate', filters.endDate);
+  if (filters?.metric) params.append('metric', filters.metric);
+
+  const response = await fetch(`${API_URL}/admin/analytics${params.toString() ? '?' + params.toString() : ''}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch analytics');
+  }
+
+  return response.json();
+};
+
+/**
+ * Get templates pending approval
+ */
+export const getTemplatesForApproval = async (filters?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.page) params.append('page', filters.page.toString());
+  if (filters?.limit) params.append('limit', filters.limit.toString());
+  if (filters?.status) params.append('status', filters.status);
+
+  const response = await fetch(`${API_URL}/admin/templates/approval${params.toString() ? '?' + params.toString() : ''}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch templates');
+  }
+
+  return response.json();
+};
+
+/**
+ * Update template approval status
+ */
+export const updateTemplateApprovalStatus = async (
+  templateId: string,
+  status: 'approved' | 'rejected',
+  rejectionReason?: string
+) => {
+  const response = await fetch(`${API_URL}/admin/templates/${templateId}/status`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ status, rejectionReason }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update template status');
+  }
+
+  return response.json();
+};
+
+/**
+ * Get campaign analytics for all workspaces
+ */
+export const getCampaignAnalytics = async () => {
+  const response = await fetch(`${API_URL}/admin/campaigns/analytics`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch campaign analytics');
+  }
+
   return response.json();
 };

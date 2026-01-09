@@ -6,28 +6,72 @@ const {
   reinitializeAllWABA,
   getVerificationRequests,
   updateVerificationStatus,
-  manuallyActivateWhatsApp
+  manuallyActivateWhatsApp,
+  // New endpoints
+  getAllWorkspaces,
+  getWorkspaceDetails,
+  suspendWorkspace,
+  resumeWorkspace,
+  getWABAHealth,
+  getAnalytics,
+  getTemplatesForApproval,
+  updateTemplateStatus,
+  getCampaignAnalytics
 } = require('../controllers/adminController');
 const validate = require('../middlewares/validate');
 const auth = require('../middlewares/auth');
 
 const router = express.Router();
 
+// Admin role check middleware
+const adminOnly = (req, res, next) => {
+  if (req.user.role !== 'admin' && req.user.role !== 'super_admin' && !req.user.isSuperAdmin) {
+    return res.status(403).json({ success: false, message: 'Admin access required' });
+  }
+  next();
+};
+
 // All admin routes require authentication
-// TODO: Add admin role middleware
+router.use(auth, adminOnly);
 
-// WhatsApp setup management
-router.get('/whatsapp-setup-requests', auth, getWhatsAppSetupRequests);
-router.put('/whatsapp-setup-requests/:workspaceId', auth, updateWhatsAppSetupStatus);
+// ==================
+// WORKSPACE MANAGEMENT
+// ==================
+router.get('/workspaces', getAllWorkspaces);
+router.get('/workspaces/:workspaceId', getWorkspaceDetails);
+router.post('/workspaces/:workspaceId/suspend', 
+  body('reason').optional().isString(),
+  validate,
+  suspendWorkspace
+);
+router.post('/workspaces/:workspaceId/resume', resumeWorkspace);
 
-// Business verification management
-router.get('/verification-requests', auth, getVerificationRequests);
-router.put('/verification-requests/:workspaceId', auth, updateVerificationStatus);
+// ==================
+// WABA & VERIFICATION
+// ==================
+router.get('/whatsapp-setup-requests', getWhatsAppSetupRequests);
+router.put('/whatsapp-setup-requests/:workspaceId', updateWhatsAppSetupStatus);
+router.get('/verification-requests', getVerificationRequests);
+router.put('/verification-requests/:workspaceId', updateVerificationStatus);
+router.post('/workspaces/:workspaceId/activate-whatsapp', manuallyActivateWhatsApp);
+router.post('/reinitialize-waba', reinitializeAllWABA);
 
-// Manual activation (admin override)
-router.post('/workspaces/:workspaceId/activate-whatsapp', auth, manuallyActivateWhatsApp);
+// ==================
+// HEALTH & ANALYTICS
+// ==================
+router.get('/waba-health', getWABAHealth);
+router.get('/analytics', getAnalytics);
+router.get('/campaigns/analytics', getCampaignAnalytics);
 
-// Force reinitialize all workspaces with WABA credentials from environment
-router.post('/reinitialize-waba', auth, reinitializeAllWABA);
+// ==================
+// TEMPLATE MANAGEMENT
+// ==================
+router.get('/templates/approval', getTemplatesForApproval);
+router.put('/templates/:templateId/status',
+  body('status').isIn(['approved', 'rejected']),
+  body('rejectionReason').optional().isString(),
+  validate,
+  updateTemplateStatus
+);
 
 module.exports = router;

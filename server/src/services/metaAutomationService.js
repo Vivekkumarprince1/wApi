@@ -18,7 +18,7 @@ function decryptToken(token, workspaceId) {
   if (isEncrypted(token)) {
     return decrypt(token, workspaceId);
   }
-  return token; // Already plaintext (backward compatibility)
+  return token; 
 }
 
 
@@ -55,16 +55,13 @@ async function generateEmbeddedSignupURL(userId, callbackUrl) {
       throw new Error('META_APP_ID not configured in environment');
     }
 
-    // Validate config values are not placeholders
-    if (metaConfigId.includes('YOUR_') || metaAppId.includes('YOUR_')) {
-      throw new Error('META_CONFIG_ID or META_APP_ID contains placeholder values. Please set valid values in .env');
-    }
-
     // Create state for CSRF protection
     const state = crypto.randomBytes(32).toString('hex');
     
     // Build ESB Flow URL using Meta's v3 Embedded Signup endpoint for WhatsApp
     // This endpoint allows users to create WABA under your partnership
+    // ⚠️ IMPORTANT: Config must be set up in Meta Business Manager to allow 
+    // third-party businesses to onboard (not restricted to admin account only)
     const esbUrl = 'https://business.facebook.com/messaging/whatsapp/onboard/';
     
     // Build extras JSON - no spaces or extra encoding
@@ -76,7 +73,7 @@ async function generateEmbeddedSignupURL(userId, callbackUrl) {
     console.log(`[ESB] Generated signup URL for user: ${userId}`);
     console.log(`[ESB] App ID: ${metaAppId}`);
     console.log(`[ESB] Config ID: ${metaConfigId}`);
-    console.log(`[ESB] ✅ URL constructed successfully`);
+    console.log(`[ESB] Note: If users get "This isn't working at the moment" error, config may be restricted to admin account. Visit Meta Business Manager > WhatsApp > Configuration to allow third-party onboarding.`);
     console.log(`[ESB] Full URL: ${fullUrl}`);
 
     return {
@@ -88,12 +85,7 @@ async function generateEmbeddedSignupURL(userId, callbackUrl) {
       expiresIn: 3600
     };
   } catch (error) {
-    console.error('[ESB] ❌ Error generating ESB URL:', error.message);
-    console.error('[ESB] Debug Info:', {
-      metaAppId: metaAppId ? '✓ Set' : '✗ Missing',
-      metaConfigId: metaConfigId ? '✓ Set' : '✗ Missing',
-      error: error.message
-    });
+    console.error('Error generating ESB URL:', error.message);
     throw new Error(`ESB URL generation failed: ${error.message}`);
   }
 }

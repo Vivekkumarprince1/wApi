@@ -526,6 +526,7 @@ async function processTemplateStatusUpdate(templateUpdate, workspace) {
 }
 
 // ✅ Handle Meta account-level updates
+// Per Meta ESB documentation, this webhook captures PARTNER_ADDED event with customer's WABA and portfolio IDs
 async function handleAccountUpdate(accountUpdate, workspace) {
   if (!workspace) {
     console.warn('[Webhook] Account update received but no workspace mapped');
@@ -541,7 +542,25 @@ async function handleAccountUpdate(accountUpdate, workspace) {
       return;
     }
     
-    const { account_status, decision_status } = accountUpdate;
+    // ✅ STEP 3 (Per Meta ESB docs): Capture customer asset IDs from PARTNER_ADDED webhook
+    // This webhook contains the customer's WABA ID and business portfolio ID
+    const { event, whatsapp_business_account_id, business_portfolio_id, account_status, decision_status } = accountUpdate;
+    
+    // Handle PARTNER_ADDED event - customer has completed ESB flow
+    if (event === 'PARTNER_ADDED' && whatsapp_business_account_id && business_portfolio_id) {
+      console.log('[Webhook] 📋 PARTNER_ADDED event received - ESB flow completed for workspace:', workspace);
+      console.log('[Webhook] Customer WABA ID:', whatsapp_business_account_id);
+      console.log('[Webhook] Customer Business Portfolio ID:', business_portfolio_id);
+      
+      // Store customer's asset IDs for later use in steps 4-6
+      if (!wsDoc.esbFlow) wsDoc.esbFlow = {};
+      wsDoc.esbFlow.customerWabaId = whatsapp_business_account_id;
+      wsDoc.esbFlow.customerBusinessPortfolioId = business_portfolio_id;
+      wsDoc.esbFlow.partnerAddedAt = new Date();
+      wsDoc.esbFlow.partnerAddedWebhookReceived = true;
+      
+      console.log('[Webhook] ✅ Stored customer asset IDs for subsequent processing');
+    }
     
     if (account_status) {
       // ✅ GAP 6: Validate account_status is a valid enum value

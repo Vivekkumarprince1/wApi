@@ -27,8 +27,9 @@ import {
   FaBoxOpen,
   FaListAlt,
 } from "react-icons/fa";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getCurrentUser } from "@/lib/api";
 
 const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
   const router = useRouter();
@@ -38,6 +39,24 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
   const [openSalesCRM, setOpenSalesCRM] = useState(false);
   const [openWhatsAppCommerce, setOpenWhatsAppCommerce] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [loadingRole, setLoadingRole] = useState(true);
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const user = await getCurrentUser();
+        setUserRole(user?.role || null);
+      } catch (err) {
+        console.error('Failed to fetch user role:', err);
+        setUserRole(null);
+      } finally {
+        setLoadingRole(false);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
 
   const navigate = (path) => {
     router.push(path);
@@ -352,16 +371,52 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             )}
 
             {/* Integrations */}
-            <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors" title="Integrations">
-              <FaPuzzlePiece className="text-teal-600 dark:text-teal-400 flex-shrink-0" />
-              {isHovered && <span className="text-gray-800 dark:text-gray-200 whitespace-nowrap">Integrations</span>}
+            <div
+              className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+                isActive('/integrations')
+                  ? 'bg-teal-700 dark:bg-teal-600 text-white'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              onClick={() => navigate('/integrations')}
+              title="Integrations"
+            >
+              <FaPuzzlePiece className={`flex-shrink-0 ${
+                isActive('/integrations') ? 'text-white' : 'text-teal-600 dark:text-teal-400'
+              }`} />
+              {isHovered && <span className={isActive('/integrations') ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>Integrations</span>}
             </div>
 
             {/* Widget */}
-            <div className="flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer transition-colors" title="Widget">
-              <FaThLarge className="text-teal-600 dark:text-teal-400 flex-shrink-0" />
-              {isHovered && <span className="text-gray-800 dark:text-gray-200 whitespace-nowrap">Widget</span>}
+            <div
+              className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+                isActive('/widget')
+                  ? 'bg-teal-700 dark:bg-teal-600 text-white'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+              onClick={() => navigate('/widget')}
+              title="Widget"
+            >
+              <FaThLarge className={`flex-shrink-0 ${
+                isActive('/widget') ? 'text-white' : 'text-teal-600 dark:text-teal-400'
+              }`} />
+              {isHovered && <span className={isActive('/widget') ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>Widget</span>}
             </div>
+
+            {/* Admin Dashboard - Only for admins */}
+            {!loadingRole && userRole === 'admin' && (
+              <div
+                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+                  isActive('/admin')
+                    ? 'bg-teal-700 dark:bg-teal-600 text-white'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+                onClick={() => navigate('/admin')}
+                title="Admin Dashboard"
+              >
+                <span className="flex-shrink-0 text-lg">⚙️</span>
+                {isHovered && <span className={isActive('/admin') ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>Admin</span>}
+              </div>
+            )}
           </div>
         </div>
 
@@ -498,16 +553,33 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
           </div>
 
           {/* Integrations */}
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+          <div 
+            className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+            onClick={() => navigate('/integrations')}
+          >
             <FaPuzzlePiece className="text-green-500" />
             <span className="text-gray-800">Integrations</span>
           </div>
 
           {/* Widget */}
-          <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+          <div 
+            className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+            onClick={() => navigate('/widget')}
+          >
             <FaThLarge className="text-green-500" />
             <span className="text-gray-800">Widget</span>
           </div>
+
+          {/* Admin Dashboard - Only for admins */}
+          {!loadingRole && userRole === 'admin' && (
+            <div 
+              className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+              onClick={() => navigate('/admin')}
+            >
+              <span className="text-lg">⚙️</span>
+              <span className="text-gray-800">Admin Dashboard</span>
+            </div>
+          )}
 
           {/* Settings */}
           <div 
