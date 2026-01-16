@@ -1141,33 +1141,62 @@ async function processEsbCallback(req, res, next) {
       });
     }
 
-    // Encrypt and save all tokens
-    const { encrypt } = require('../utils/encryption');
+    // Encrypt and save all tokens using secure vault
+    const { storeToken } = require('../services/secretsManager');
     const workspaceId = workspace._id.toString();
     
     workspace.esbFlow.status = targetState; // Use validated state
     workspace.esbFlow.authCode = code; // No need to encrypt code, it's single-use
     
-    // Encrypt tokens before storage
-    workspace.esbFlow.adminAccessToken = whatsappToken ? encrypt(whatsappToken, workspaceId) : encrypt(tokenResult.accessToken, workspaceId);
-    workspace.esbFlow.userAccessToken = encrypt(tokenResult.accessToken, workspaceId);
-    
-    // ✅ GAP 4: Handle missing refresh tokens gracefully
-    if (tokenResult.refreshToken) {
-      workspace.esbFlow.userRefreshToken = encrypt(tokenResult.refreshToken, workspaceId);
-      workspace.esbFlow.hasRefreshToken = true;
-    } else {
-      workspace.esbFlow.userRefreshToken = null;
-      workspace.esbFlow.hasRefreshToken = false;
-      console.warn(`[ESB] ⚠️ No refresh token provided by Meta for workspace ${workspace._id}. Token refresh may require manual intervention after 60 days.`);
+    // Store tokens securely (AWS Secrets Manager or encrypted local storage)
+    try {
+      const userTokenResult = await storeToken(workspaceId, 'userAccessToken', tokenResult.accessToken);
+      workspace.esbFlow.userAccessToken = userTokenResult.location === 'aws' 
+        ? userTokenResult.secretId 
+        : userTokenResult.encryptedValue;
+      
+      const adminTokenResult = whatsappToken 
+        ? await storeToken(workspaceId, 'adminAccessToken', whatsappToken)
+        : await storeToken(workspaceId, 'adminAccessToken', tokenResult.accessToken);
+      workspace.esbFlow.adminAccessToken = adminTokenResult.location === 'aws'
+        ? adminTokenResult.secretId
+        : adminTokenResult.encryptedValue;
+      
+      // ✅ GAP 4: Handle missing refresh tokens gracefully
+      if (tokenResult.refreshToken) {
+        const refreshTokenResult = await storeToken(workspaceId, 'userRefreshToken', tokenResult.refreshToken);
+        workspace.esbFlow.userRefreshToken = refreshTokenResult.location === 'aws'
+          ? refreshTokenResult.secretId
+          : refreshTokenResult.encryptedValue;
+        workspace.esbFlow.hasRefreshToken = true;
+      } else {
+        workspace.esbFlow.userRefreshToken = null;
+        workspace.esbFlow.hasRefreshToken = false;
+        console.warn(`[ESB] ⚠️ No refresh token provided by Meta for workspace ${workspace._id}. Token refresh may require manual intervention after 60 days.`);
+      }
+      
+      workspace.esbFlow.tokenExpiry = userTokenResult.expiresAt || new Date(Date.now() + (tokenResult.expiresIn * 1000));
+      
+      // ✅ KEY: Save the encrypted system user token
+      const systemUserTokenResult = await storeToken(workspaceId, 'systemUserToken', systemUserToken.token);
+      workspace.esbFlow.systemUserToken = systemUserTokenResult.location === 'aws'
+        ? systemUserTokenResult.secretId
+        : systemUserTokenResult.encryptedValue;
+      workspace.esbFlow.systemUserTokenExpiry = systemUserTokenResult.expiresAt || new Date(Date.now() + (systemUserToken.expiresIn * 1000));
+      workspace.esbFlow.systemUserId = systemUserToken.userId;
+      
+      console.log(`[ESB] ✅ Tokens securely stored for workspace ${workspace._id}`);
+    } catch (tokenStorageErr) {
+      console.error('[ESB] ❌ Failed to store tokens securely:', tokenStorageErr.message);
+      workspace.esbFlow.status = 'failed';
+      workspace.esbFlow.failureReason = 'Token storage failed: ' + tokenStorageErr.message;
+      await workspace.save();
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to securely store tokens',
+        code: 'TOKEN_STORAGE_FAILED'
+      });
     }
-    
-    workspace.esbFlow.tokenExpiry = new Date(Date.now() + (tokenResult.expiresIn * 1000));
-
-    // ✅ KEY: Save the encrypted system user token
-    workspace.esbFlow.systemUserToken = encrypt(systemUserToken.token, workspaceId);
-    workspace.esbFlow.systemUserTokenExpiry = new Date(Date.now() + (systemUserToken.expiresIn * 1000));
-    workspace.esbFlow.systemUserId = systemUserToken.userId;
     
     // ✅ VALIDATE STATE TRANSITION: token_exchanged → completed
     const completionState = 'completed';
@@ -1242,12 +1271,47 @@ async function processEsbCallback(req, res, next) {
     workspace.esbFlow.completedAt = new Date();
     workspace.connectedAt = new Date();
 
-    // Update legacy fields for backward compatibility (also encrypted)
-    workspace.whatsappAccessToken = encrypt(systemUserToken.token, workspaceId);
+    // Update legacy fields for backward compatibility
+    try {
+      const { retrieveToken } = require('../services/secretsManager');
+      const systemUserTokenValue = await retrieveToken(workspaceId, 'systemUserToken', workspace.esbFlow.systemUserToken);
+      workspace.whatsappAccessToken = workspace.esbFlow.systemUserToken; // Store reference, not plain token
+    } catch (err) {
+      console.error('[ESB] Failed to retrieve token for legacy field:', err.message);
+      workspace.whatsappAccessToken = workspace.esbFlow.systemUserToken;
+    }
 
     // Persist configured Meta identifiers for downstream automation
     workspace.esbFlow.metaBusinessId = businessAccountId;
     workspace.esbFlow.parentWabaId = workspace.wabaId;
+
+    // ✅ NEW: Subscribe app to WABA for webhooks (CRITICAL - must do before save)
+    try {
+      const { subscribeAppToWABA, registerPhoneForMessaging } = require('../services/metaAutomationService');
+      const { retrieveToken } = require('../services/secretsManager');
+      
+      // Get system user token for subscriptions
+      const systemUserTokenValue = await retrieveToken(workspaceId, 'systemUserToken', workspace.esbFlow.systemUserToken);
+      
+      // Subscribe app to WABA webhooks
+      await subscribeAppToWABA(systemUserTokenValue, wabaId);
+      console.log(`[ESB] ✅ App subscribed to webhooks for WABA ${wabaId}`);
+      
+      // Register phone for messaging
+      await registerPhoneForMessaging(systemUserTokenValue, phoneData.id);
+      console.log(`[ESB] ✅ Phone ${phoneData.id} registered for messaging`);
+      
+      workspace.esbFlow.webhooksSubscribed = true;
+      workspace.esbFlow.webhooksSubscribedAt = new Date();
+      workspace.esbFlow.phoneRegistered = true;
+      workspace.esbFlow.phoneRegisteredAt = new Date();
+    } catch (subscriptionErr) {
+      console.warn('[ESB] ⚠️ Failed to subscribe/register (non-blocking):', subscriptionErr.message);
+      // Don't fail ESB flow - these can be retried
+      workspace.esbFlow.webhooksSubscribed = false;
+      workspace.esbFlow.webhooksSubscriptionError = subscriptionErr.message;
+    }
+
 
     await workspace.save();
 

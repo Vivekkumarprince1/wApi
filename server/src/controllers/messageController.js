@@ -4,6 +4,7 @@ const Template = require('../models/Template');
 const Workspace = require('../models/Workspace');
 const whatsappService = require('../services/whatsappService');
 const metaService = require('../services/metaService');
+const { enqueueRetry } = require('../services/messageRetryQueue'); // Week 2 addition
 
 // Send a message (queues it for sending)
 async function sendMessage(req, res, next) {
@@ -121,12 +122,33 @@ async function sendTemplateMessage(req, res, next) {
       message.status = 'failed';
       message.meta.errors = [err.message];
       await message.save();
-      
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Failed to send template message',
-        error: err.message 
-      });
+
+      // Week 2: Enqueue for retry instead of immediate failure
+      try {
+        await enqueueRetry({
+          _id: message._id,
+          workspaceId,
+          recipientPhone: contact.phone,
+          templateId: template._id,
+          messageBody: renderTemplatePreview(template, variables),
+          timestamp: new Date(),
+        }, err.message, 0);
+
+        return res.status(202).json({
+          success: false,
+          message: 'Message send failed, queued for retry',
+          id: message._id,
+          error: err.message,
+          status: 'retry_queued',
+        });
+      } catch (retryErr) {
+        console.error('[MessageController] Failed to enqueue retry:', retryErr.message);
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Failed to send template message',
+          error: err.message 
+        });
+      }
     }
   } catch (err) {
     next(err);

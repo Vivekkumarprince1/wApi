@@ -98,7 +98,46 @@ async function startDB() {
 startDB().catch((e) => console.error('DB start failed', e));
 
 // Connect to Redis (for queues and caching)
-connectRedis().catch((err) => console.warn('Redis connection failed', err));
+let redisConnection = null;
+connectRedis().then(conn => {
+  redisConnection = conn;
+  console.log('[Server] Redis connected - initializing queues');
+  
+  // Initialize webhook queue
+  try {
+    const { initializeWebhookQueue, startWebhookWorker } = require('./services/webhookQueue');
+    initializeWebhookQueue(redisConnection);
+    
+    if (process.env.START_WEBHOOK_WORKER === 'true') {
+      startWebhookWorker(redisConnection);
+      console.log('[Server] ✅ Webhook worker started');
+    }
+  } catch (err) {
+    console.error('[Server] Failed to initialize webhook queue:', err.message);
+  }
+
+  // Initialize message retry queue (Week 2 addition)
+  try {
+    const { initializeMessageRetryQueue, startMessageRetryWorker } = require('./services/messageRetryQueue');
+    initializeMessageRetryQueue(redisConnection);
+    
+    if (process.env.START_MESSAGE_RETRY_WORKER === 'true') {
+      startMessageRetryWorker(redisConnection);
+      console.log('[Server] ✅ Message retry worker started');
+    }
+  } catch (err) {
+    console.error('[Server] Failed to initialize message retry queue:', err.message);
+  }
+}).catch((err) => console.warn('Redis connection failed, queues unavailable:', err));
+
+// Start token refresh cron (Week 2 addition)
+try {
+  const tokenRefreshCron = require('./services/tokenRefreshCron');
+  tokenRefreshCron.start();
+  console.log('[Server] ✅ Token refresh cron started (every 6 hours)');
+} catch (err) {
+  console.error('[Server] Failed to start token refresh cron:', err.message);
+}
 
 // Initialize socket.io
 initSocket(server);
@@ -119,6 +158,7 @@ const whatsappFormRoutes = require('./routes/whatsappFormRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const billingRoutes = require('./routes/billingRoutes'); // Week 2 addition
 const templateRoutes = require('./routes/templateRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const metricsRoutes = require('./routes/metricsRoutes');
@@ -143,6 +183,7 @@ app.use('/api/v1/whatsapp-forms', whatsappFormRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/billing', billingRoutes); // Week 2 addition
 app.use('/api/v1/templates', templateRoutes);
 app.use('/api/v1/conversations', conversationRoutes);
 app.use('/api/v1/metrics', metricsRoutes);

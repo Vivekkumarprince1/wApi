@@ -956,6 +956,101 @@ async function getSystemUserToken(accessToken, businessAccountId) {
   }
 }
 
+/**
+ * Subscribe App to WABA Webhooks (NEW - CRITICAL)
+ * Without this, the app won't receive webhooks for messages/statuses
+ * Required after WABA is assigned to system user
+ *
+ * @param {string} accessToken - System user token or business token
+ * @param {string} wabaId - WABA ID
+ * @returns {object} - Subscription status
+ */
+async function subscribeAppToWABA(accessToken, wabaId) {
+  try {
+    const url = `${META_BASE_URL}/${wabaId}/subscribed_apps`;
+
+    const response = await axios.post(url, {}, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log(`[ESB] ✅ App subscribed to WABA ${wabaId} for webhooks`);
+
+    return {
+      success: true,
+      wabaId: wabaId,
+      message: 'App subscribed to WABA webhooks'
+    };
+  } catch (error) {
+    console.error('[ESB] Failed to subscribe app to WABA:', error.response?.data || error.message);
+    
+    // 400/403 might mean already subscribed - that's OK
+    if (error.response?.status === 400 || error.response?.status === 403) {
+      console.log('[ESB] WABA subscription already exists or permission issue');
+      return {
+        success: true,
+        wabaId: wabaId,
+        alreadySubscribed: true,
+        message: 'WABA subscription confirmed'
+      };
+    }
+
+    throw new Error(`Failed to subscribe app to WABA: ${error.response?.data?.error?.message || error.message}`);
+  }
+}
+
+/**
+ * Register Phone Number for Messaging (NEW - CRITICAL)
+ * Phone numbers must be registered before they can send messages
+ * Required for Cloud API messaging
+ *
+ * @param {string} accessToken - System user token
+ * @param {string} phoneNumberId - Phone number ID
+ * @param {string} pin - 6-digit PIN (optional)
+ * @returns {object} - Registration status
+ */
+async function registerPhoneForMessaging(accessToken, phoneNumberId, pin = '123456') {
+  try {
+    const url = `${META_BASE_URL}/${phoneNumberId}/register`;
+
+    const response = await axios.post(url, {
+      messaging_product: 'whatsapp',
+      pin: pin
+    }, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    console.log(`[ESB] ✅ Phone ${phoneNumberId} registered for messaging`);
+
+    return {
+      success: true,
+      phoneNumberId: phoneNumberId,
+      message: 'Phone registered for messaging'
+    };
+  } catch (error) {
+    console.error('[ESB] Failed to register phone:', error.response?.data || error.message);
+
+    // 10 = already registered (OK)
+    // 403 = permission/already registered (OK)
+    if (error.response?.status === 403 || error.response?.data?.error?.code === 10) {
+      console.log('[ESB] Phone already registered for messaging');
+      return {
+        success: true,
+        phoneNumberId: phoneNumberId,
+        alreadyRegistered: true,
+        message: 'Phone registration confirmed'
+      };
+    }
+
+    throw error;
+  }
+}
+
 module.exports = {
   // ESB Flow
   generateEmbeddedSignupURL,
@@ -983,6 +1078,8 @@ module.exports = {
   updateWABASettings,
   getWABAPhoneNumbers,
   getOnboardingStatus,
+  subscribeAppToWABA,
+  registerPhoneForMessaging,
 
   // Complete Flow
   completeAutomatedOnboarding

@@ -23,6 +23,14 @@ const ContactSchema = new mongoose.Schema({
   lastInboundAt: { type: Date },
   lastOutboundAt: { type: Date },
   
+  // Opt-out / Compliance
+  optOut: {
+    status: { type: Boolean, default: false },
+    optedOutAt: { type: Date },
+    optedOutVia: { type: String, enum: ['keyword', 'manual', 'webhook'], default: null },
+    optedBackInAt: { type: Date }
+  },
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

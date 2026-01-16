@@ -54,12 +54,22 @@ async function handler(req, res) {
       }
     }
     
-    // Respond quickly to Meta
+    // Respond quickly to Meta (< 50ms required)
     res.sendStatus(200);
     
-    // Process webhook asynchronously
+    // Queue for async processing
     if (body.object === 'whatsapp_business_account') {
-      await processWhatsAppWebhook(body, signatureHeader);
+      try {
+        const { enqueueWebhook } = require('../services/webhookQueue');
+        await enqueueWebhook(body, signatureHeader);
+        console.log('[Webhook] ✅ Queued for async processing');
+      } catch (queueErr) {
+        console.error('[Webhook] Queue failed, falling back to sync:', queueErr.message);
+        // Fallback to sync processing if queue unavailable
+        processWhatsAppWebhook(body, signatureHeader).catch(err => {
+          console.error('[Webhook] Sync processing failed:', err.message);
+        });
+      }
     }
   } catch (err) {
     console.error('Webhook processing error:', err);
@@ -178,6 +188,9 @@ async function processWhatsAppWebhook(body, signatureHeader) {
 
 // Process inbound messages
 async function processInboundMessages(messages, workspace, contactsInfo = []) {
+  const { checkAndHandleOptOut } = require('../services/optOutService');
+  const { log } = require('../services/auditService');
+
   for (const msg of messages) {
     try {
       const from = msg.from; // phone number
@@ -192,6 +205,53 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
           name: contactInfo?.profile?.name || msg.profile?.name || 'Unknown',
           workspace: workspace || null
         });
+      }
+      
+      // ✅ NEW: Check for opt-out keywords
+      let messageBody = '';
+      
+      if (msg.text) {
+        messageBody = msg.text.body;
+      } else if (msg.image) {
+        messageBody = msg.image.caption || '[Image]';
+      } else if (msg.video) {
+        messageBody = msg.video.caption || '[Video]';
+      } else if (msg.document) {
+        messageBody = msg.document.filename || '[Document]';
+      } else if (msg.audio) {
+        messageBody = '[Audio]';
+      } else if (msg.voice) {
+        messageBody = '[Voice]';
+      }
+      
+      // Handle opt-out/opt-in keywords
+      const workspaceDoc = workspace ? await Workspace.findById(workspace).select('whatsappAccessToken whatsappPhoneNumberId').lean() : null;
+      if (workspaceDoc && messageBody) {
+        const optOutResult = await checkAndHandleOptOut(contact, messageBody, workspaceDoc, workspace);
+        if (optOutResult.optedOut || optOutResult.optedIn) {
+          // Log the action
+          await log(workspace, null, optOutResult.optedOut ? 'contact.opted_out' : 'contact.opted_in', {
+            type: 'contact',
+            id: contact._id,
+            phone: contact.phone,
+            via: 'inbound_message'
+          }, null, null);
+          
+          // Still store the message but mark it specially
+          const message = await Message.create({
+            workspace: workspace || null,
+            contact: contact._id,
+            direction: 'inbound',
+            type: 'system',
+            body: optOutResult.optedOut ? 'Contact opted out' : 'Contact opted back in',
+            status: 'received',
+            meta: {
+              isOptOutMessage: true,
+              optOutAction: optOutResult.optedOut ? 'out' : 'in'
+            }
+          });
+          continue; // Skip other processing for opt-out messages
+        }
       }
       
       // Get or create conversation
@@ -210,30 +270,15 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
         
         // Update conversation
         conversation.lastMessageAt = new Date();
-        conversation.lastMessagePreview = msg.text?.body || `[${msg.type}]`;
+        conversation.lastMessagePreview = messageBody;
         conversation.lastMessageDirection = 'inbound';
         conversation.lastActivityAt = new Date();
         conversation.unreadCount += 1;
         await conversation.save();
       }
       
-      // Determine message type and body
+      // Determine message type
       let messageType = msg.type || 'text';
-      let messageBody = '';
-      
-      if (msg.text) {
-        messageBody = msg.text.body;
-      } else if (msg.image) {
-        messageBody = msg.image.caption || '[Image]';
-      } else if (msg.video) {
-        messageBody = msg.video.caption || '[Video]';
-      } else if (msg.document) {
-        messageBody = msg.document.filename || '[Document]';
-      } else if (msg.audio) {
-        messageBody = '[Audio]';
-      } else if (msg.voice) {
-        messageBody = '[Voice]';
-      }
       
       // Store message
       const message = await Message.create({
