@@ -688,6 +688,40 @@ export const getTemplateCategories = async () => {
   return await response.json();
 };
 
+// Duplicate a template
+export const duplicateTemplate = async (templateId: string, newName?: string) => {
+  const response = await fetch(`${API_URL}/templates/${templateId}/duplicate`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ newName })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to duplicate template');
+  }
+
+  return await response.json();
+};
+
+// Validate template (preview validation without saving)
+export const validateTemplate = async (templateData: any) => {
+  const response = await fetch(`${API_URL}/templates/validate`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(templateData)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to validate template');
+  }
+
+  return await response.json();
+};
+
 // Get template library statistics
 export const getTemplateLibraryStats = async () => {
   const response = await fetch(`${API_URL}/templates/stats`, {

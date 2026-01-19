@@ -147,9 +147,145 @@ const WorkspaceSchema = new mongoose.Schema({
   whatsappPhoneNumberId: { type: String },
   whatsappPhoneNumber: { type: String }, // Actual phone number like +919876543210
   wabaId: { type: String },
+  businessId: { type: String }, // Meta Business ID
   businessAccountId: { type: String },
   whatsappVerifyToken: { type: String },
   connectedAt: { type: Date },
+  whatsappConnected: { type: Boolean, default: false }, // Quick check if WhatsApp is connected
+  
+  // Phone metadata (BSP model - synced from Meta)
+  phoneNumberId: { type: String }, // Same as whatsappPhoneNumberId, for clarity
+  verifiedName: { type: String }, // Display name verified by Meta
+  qualityRating: { type: String, enum: ['GREEN', 'YELLOW', 'RED', 'UNKNOWN'], default: 'UNKNOWN' },
+  messagingLimitTier: { type: String }, // TIER_1K, TIER_10K, etc.
+  codeVerificationStatus: { type: String }, // VERIFIED, NOT_VERIFIED
+  nameStatus: { type: String }, // APPROVED, PENDING, REJECTED
+  isOfficialAccount: { type: Boolean, default: false },
+  
+  // Token storage (BSP model)
+  accessToken: { type: String }, // User's access token (encrypt in production)
+  tokenExpiresAt: { type: Date },
+  
+  // ═══════════════════════════════════════════════════════════════════
+  // BSP MULTI-TENANT CONFIGURATION
+  // ═══════════════════════════════════════════════════════════════════
+  
+  /**
+   * BSP Managed flag - TRUE for all tenants under your parent WABA
+   * When true, all Meta API calls use the centralized BSP system token
+   * Per-workspace tokens are ignored when this is true
+   */
+  bspManaged: { type: Boolean, default: true },
+  
+  /**
+   * Parent WABA ID - Reference to your BSP's WABA
+   * All tenants share this WABA but have different phone_number_ids
+   */
+  bspWabaId: { type: String },
+  
+  /**
+   * The phone_number_id assigned to this tenant/workspace
+   * This is the PRIMARY KEY for multi-tenant routing
+   * Each workspace MUST have a unique phone_number_id
+   */
+  bspPhoneNumberId: { type: String, unique: true, sparse: true },
+  
+  /**
+   * Display phone number for this workspace (e.g., +919876543210)
+   */
+  bspDisplayPhoneNumber: { type: String },
+  
+  /**
+   * Verified business name for this phone number (from Meta)
+   */
+  bspVerifiedName: { type: String },
+  
+  /**
+   * Phone number status from Meta
+   */
+  bspPhoneStatus: { 
+    type: String, 
+    enum: ['PENDING', 'CONNECTED', 'DISCONNECTED', 'BANNED', 'FLAGGED', 'RATE_LIMITED'],
+    default: 'PENDING'
+  },
+  
+  /**
+   * Quality rating from Meta for this phone number
+   */
+  bspQualityRating: { 
+    type: String, 
+    enum: ['GREEN', 'YELLOW', 'RED', 'UNKNOWN'],
+    default: 'UNKNOWN'
+  },
+  
+  /**
+   * Messaging limit tier from Meta (TIER_1K, TIER_10K, TIER_100K, TIER_UNLIMITED)
+   */
+  bspMessagingTier: { type: String, default: 'TIER_1K' },
+  
+  /**
+   * When this workspace was onboarded to BSP
+   */
+  bspOnboardedAt: { type: Date },
+  
+  /**
+   * BSP-specific rate limiting overrides (optional)
+   * If set, overrides plan-based limits
+   */
+  bspRateLimits: {
+    messagesPerSecond: { type: Number },
+    dailyMessageLimit: { type: Number },
+    monthlyMessageLimit: { type: Number },
+    templateSubmissionsPerDay: { type: Number }
+  },
+  
+  /**
+   * BSP usage tracking (separate from general usage)
+   */
+  bspUsage: {
+    messagesThisSecond: { type: Number, default: 0 },
+    lastMessageTimestamp: { type: Date },
+    messagesToday: { type: Number, default: 0 },
+    messagesThisMonth: { type: Number, default: 0 },
+    templateSubmissionsToday: { type: Number, default: 0 },
+    lastUsageReset: { type: Date, default: Date.now },
+    lastMonthlyReset: { type: Date, default: Date.now }
+  },
+  
+  /**
+   * Audit trail for BSP actions
+   */
+  bspAudit: {
+    phoneAssignedAt: { type: Date },
+    phoneAssignedBy: { type: String },
+    lastStatusCheck: { type: Date },
+    lastQualityUpdate: { type: Date },
+    warnings: [{
+      type: { type: String },
+      message: { type: String },
+      createdAt: { type: Date, default: Date.now }
+    }]
+  },
+  
+  // Business profile from Meta
+  businessProfile: {
+    about: { type: String },
+    address: { type: String },
+    description: { type: String },
+    email: { type: String },
+    profilePictureUrl: { type: String },
+    websites: [{ type: String }],
+    vertical: { type: String }
+  },
+  
+  // All phone numbers for this WABA (for multi-phone support)
+  phoneNumbers: [{
+    id: { type: String },
+    displayPhoneNumber: { type: String },
+    verifiedName: { type: String },
+    qualityRating: { type: String }
+  }],
+  
   planLimits: {
     maxContacts: { type: Number, default: 100 },
     maxMessages: { type: Number, default: 1000 },
@@ -220,9 +356,40 @@ const WorkspaceSchema = new mongoose.Schema({
 
 WorkspaceSchema.index({ createdAt: 1 });
 
+// ═══════════════════════════════════════════════════════════════════
+// BSP MULTI-TENANT INDEXES
+// ═══════════════════════════════════════════════════════════════════
+
+// Index for finding all workspaces under a BSP WABA
+WorkspaceSchema.index({ bspWabaId: 1, bspManaged: 1 });
+
+// Index for quality/status monitoring
+WorkspaceSchema.index({ bspManaged: 1, bspPhoneStatus: 1 });
+WorkspaceSchema.index({ bspManaged: 1, bspQualityRating: 1 });
+
 // Update the updatedAt timestamp on save
 WorkspaceSchema.pre('save', function(next) {
   this.updatedAt = new Date();
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BSP FIELD SYNCHRONIZATION
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // If BSP managed, sync bspPhoneNumberId with legacy whatsappPhoneNumberId
+  if (this.bspManaged) {
+    if (this.bspPhoneNumberId && !this.whatsappPhoneNumberId) {
+      this.whatsappPhoneNumberId = this.bspPhoneNumberId;
+    }
+    if (this.bspDisplayPhoneNumber && !this.whatsappPhoneNumber) {
+      this.whatsappPhoneNumber = this.bspDisplayPhoneNumber;
+    }
+    // Clear any per-workspace tokens when BSP managed (security)
+    // All API calls should use the centralized BSP token
+    if (this.whatsappAccessToken && this.isModified('bspManaged')) {
+      console.log(`[BSP] Clearing per-workspace token for workspace ${this._id} - now BSP managed`);
+      this.whatsappAccessToken = null;
+    }
+  }
 
   // Sync top-level WABA fields with nested `whatsappConfig` for backwards compatibility
   try {
@@ -263,6 +430,110 @@ WorkspaceSchema.methods.incrementUsage = function(resource, amount = 1) {
 WorkspaceSchema.methods.decrementUsage = function(resource, amount = 1) {
   this.usage[resource] = Math.max(0, (this.usage[resource] || 0) - amount);
   return this.save();
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// BSP HELPER METHODS
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Check if workspace is BSP managed and connected
+ */
+WorkspaceSchema.methods.isBspConnected = function() {
+  return this.bspManaged && 
+         this.bspPhoneNumberId && 
+         this.bspPhoneStatus === 'CONNECTED';
+};
+
+/**
+ * Get the phone_number_id for this workspace
+ * BSP managed workspaces use bspPhoneNumberId, others use legacy field
+ */
+WorkspaceSchema.methods.getPhoneNumberId = function() {
+  if (this.bspManaged) {
+    return this.bspPhoneNumberId;
+  }
+  return this.whatsappPhoneNumberId;
+};
+
+/**
+ * Check if workspace can send messages (BSP rate limits)
+ */
+WorkspaceSchema.methods.canSendMessage = function() {
+  if (!this.bspManaged) return true;
+  
+  if (this.bspPhoneStatus === 'BANNED' || this.bspPhoneStatus === 'RATE_LIMITED') {
+    return false;
+  }
+  
+  return true;
+};
+
+/**
+ * Increment BSP message usage atomically
+ */
+WorkspaceSchema.methods.incrementBspMessageUsage = async function() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  
+  // Check if we need to reset daily counter
+  const lastReset = this.bspUsage?.lastUsageReset || new Date(0);
+  const shouldResetDaily = lastReset < today;
+  
+  // Check if we need to reset monthly counter
+  const lastMonthlyReset = this.bspUsage?.lastMonthlyReset || new Date(0);
+  const shouldResetMonthly = lastMonthlyReset < thisMonth;
+  
+  const updateOps = {
+    $inc: { 
+      'bspUsage.messagesToday': shouldResetDaily ? 1 : 1,
+      'bspUsage.messagesThisMonth': shouldResetMonthly ? 1 : 1
+    },
+    $set: {
+      'bspUsage.lastMessageTimestamp': now
+    }
+  };
+  
+  if (shouldResetDaily) {
+    updateOps.$set['bspUsage.messagesToday'] = 1;
+    updateOps.$set['bspUsage.lastUsageReset'] = today;
+    delete updateOps.$inc['bspUsage.messagesToday'];
+  }
+  
+  if (shouldResetMonthly) {
+    updateOps.$set['bspUsage.messagesThisMonth'] = 1;
+    updateOps.$set['bspUsage.lastMonthlyReset'] = thisMonth;
+    delete updateOps.$inc['bspUsage.messagesThisMonth'];
+  }
+  
+  return await this.constructor.findByIdAndUpdate(this._id, updateOps, { new: true });
+};
+
+/**
+ * Static method to find workspace by phone_number_id (for webhook routing)
+ */
+WorkspaceSchema.statics.findByPhoneNumberId = async function(phoneNumberId) {
+  // First try BSP phone number ID (new model)
+  let workspace = await this.findOne({ bspPhoneNumberId: phoneNumberId });
+  
+  // Fallback to legacy field for backwards compatibility
+  if (!workspace) {
+    workspace = await this.findOne({ whatsappPhoneNumberId: phoneNumberId });
+  }
+  
+  return workspace;
+};
+
+/**
+ * Static method to get all BSP managed workspaces
+ */
+WorkspaceSchema.statics.findBspManagedWorkspaces = function(wabaId) {
+  const query = { bspManaged: true };
+  if (wabaId) {
+    query.bspWabaId = wabaId;
+  }
+  return this.find(query);
 };
 
 module.exports = mongoose.model('Workspace', WorkspaceSchema);

@@ -1,5 +1,5 @@
 const { createWorker, createQueue } = require('./queue');
-const { processSendJob } = require('./whatsappService');
+const { processSendJob, processCampaignBatch } = require('./whatsappService');
 const CheckoutBotService = require('./checkoutBotService');
 
 // Queues
@@ -11,6 +11,9 @@ async function runWorker() {
   
   // Worker for WhatsApp messages
   const sendWorker = await createWorker('whatsapp-sends', async (job) => {
+    if (job.name === 'campaign-batch') {
+      return processCampaignBatch(job);
+    }
     return processSendJob(job);
   });
   sendWorker.on('completed', (job) => console.log('Send job completed', job.id));

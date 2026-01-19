@@ -56,8 +56,10 @@ async function validateCampaignCreation(workspace, campaignData) {
     throw new Error('ACCOUNT_BLOCKED: ' + (workspace.esbFlow?.accountBlockedReason || 'Unknown reason'));
   }
 
-  if (workspace.esbFlow?.metaAccountStatus !== 'ACTIVE') {
-    throw new Error('ACCOUNT_NOT_ACTIVE: Account status is ' + workspace.esbFlow?.metaAccountStatus);
+  // Allow undefined status to pass as ACTIVE (legacy workspaces)
+  const accountStatus = workspace.esbFlow?.metaAccountStatus || 'ACTIVE';
+  if (accountStatus !== 'ACTIVE') {
+    throw new Error('ACCOUNT_NOT_ACTIVE: Account status is ' + accountStatus);
   }
 
   // 3️⃣ Check token expiry
@@ -171,8 +173,9 @@ async function validateCampaignCreation(workspace, campaignData) {
     }
   }
 
-  // 9️⃣ Check ESB flow is completed
-  if (!workspace.esbFlow || workspace.esbFlow.status !== 'completed') {
+  // 9️⃣ Check ESB flow or WABA credentials
+  const isConnected = (workspace.esbFlow?.status === 'completed') || (workspace.whatsappAccessToken && workspace.whatsappPhoneNumberId);
+  if (!isConnected) {
     throw new Error('WHATSAPP_NOT_CONNECTED: Complete WhatsApp setup first');
   }
 
@@ -204,11 +207,12 @@ async function validateCampaignStart(campaign) {
     };
   }
 
-  if (workspace.esbFlow?.metaAccountStatus !== 'ACTIVE') {
+  const accountStatus = workspace.esbFlow?.metaAccountStatus || 'ACTIVE';
+  if (accountStatus !== 'ACTIVE') {
     return {
       valid: false,
       reason: 'ACCOUNT_NOT_ACTIVE',
-      message: 'Account status is not active'
+      message: `Account status is ${accountStatus}`
     };
   }
 
@@ -263,7 +267,8 @@ async function checkShouldPauseCampaign(campaign) {
     return { shouldPause: true, reason: 'ACCOUNT_BLOCKED' };
   }
 
-  if (workspace.esbFlow?.metaAccountStatus !== 'ACTIVE') {
+  const accountStatus = workspace.esbFlow?.metaAccountStatus || 'ACTIVE';
+  if (accountStatus !== 'ACTIVE') {
     return { shouldPause: true, reason: 'ACCOUNT_NOT_ACTIVE' };
   }
 

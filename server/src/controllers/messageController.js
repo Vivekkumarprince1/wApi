@@ -4,7 +4,18 @@ const Template = require('../models/Template');
 const Workspace = require('../models/Workspace');
 const whatsappService = require('../services/whatsappService');
 const metaService = require('../services/metaService');
-const { enqueueRetry } = require('../services/messageRetryQueue'); // Week 2 addition
+const bspMessagingService = require('../services/bspMessagingService');
+const bspConfig = require('../config/bspConfig');
+const { enqueueRetry } = require('../services/messageRetryQueue');
+
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * BSP MESSAGE CONTROLLER
+ * 
+ * All outbound messaging goes through the centralized BSP service.
+ * No per-workspace tokens - everything uses the parent WABA system token.
+ * ═══════════════════════════════════════════════════════════════════
+ */
 
 // Send a message (queues it for sending)
 async function sendMessage(req, res, next) {
@@ -40,7 +51,7 @@ async function webhookHandler(req, res, next) {
 
 module.exports = { sendMessage, webhookHandler };
 
-// Send a WhatsApp template message immediately
+// Send a WhatsApp template message immediately (BSP Model)
 async function sendTemplateMessage(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
@@ -63,14 +74,29 @@ async function sendTemplateMessage(req, res, next) {
     const workspace = await Workspace.findById(workspaceId);
     if (!workspace) return res.status(404).json({ message: 'Workspace not found' });
 
-    const accessToken = workspace.whatsappAccessToken;
-    const phoneNumberId = workspace.whatsappPhoneNumberId;
-    if (!accessToken || !phoneNumberId) {
-      return res.status(400).json({ message: 'WABA credentials not configured' });
+    // ═══════════════════════════════════════════════════════════════════
+    // BSP VALIDATION
+    // ═══════════════════════════════════════════════════════════════════
+    
+    if (!workspace.bspManaged) {
+      return res.status(400).json({ 
+        message: 'Workspace is not configured for WhatsApp. Please complete onboarding.',
+        code: 'BSP_NOT_CONFIGURED'
+      });
+    }
+    
+    if (!workspace.bspPhoneNumberId) {
+      return res.status(400).json({ 
+        message: 'No WhatsApp phone number assigned to this workspace',
+        code: 'BSP_PHONE_NOT_ASSIGNED'
+      });
     }
 
     // Build components array for Meta API
     const components = buildTemplateComponents(template, variables);
+    
+    // Use the namespaced template name for Meta API
+    const metaTemplateName = template.metaTemplateName || template.name;
 
     // Create a queued message record for tracking
     const message = await Message.create({
@@ -83,20 +109,25 @@ async function sendTemplateMessage(req, res, next) {
       meta: {
         templateId: template._id,
         templateName: template.name,
+        metaTemplateName: metaTemplateName,
         variables,
-        language
+        language,
+        bspSent: true
       }
     });
 
     try {
-      // Send via Meta Cloud API
-      const result = await metaService.sendTemplateMessage(
-        accessToken,
-        phoneNumberId,
+      // ═══════════════════════════════════════════════════════════════════
+      // SEND VIA BSP MESSAGING SERVICE (Centralized)
+      // ═══════════════════════════════════════════════════════════════════
+      
+      const result = await bspMessagingService.sendTemplateMessage(
+        workspaceId,
         contact.phone,
-        template.name,
+        metaTemplateName,
         language,
-        components
+        components,
+        { contactId: contact._id }
       );
 
       // Update message status
@@ -105,12 +136,6 @@ async function sendTemplateMessage(req, res, next) {
       message.meta.whatsappResponses = [result];
       message.sentAt = new Date();
       await message.save();
-
-      // Increment workspace usage (total + daily + monthly)
-      workspace.usage.messages = (workspace.usage.messages || 0) + 1;
-      workspace.usage.messagesDaily = (workspace.usage.messagesDaily || 0) + 1;
-      workspace.usage.messagesThisMonth = (workspace.usage.messagesThisMonth || 0) + 1;
-      await workspace.save();
 
       return res.status(200).json({ 
         success: true, 
@@ -123,7 +148,37 @@ async function sendTemplateMessage(req, res, next) {
       message.meta.errors = [err.message];
       await message.save();
 
-      // Week 2: Enqueue for retry instead of immediate failure
+      // Handle specific BSP errors
+      if (err.message.includes('BSP_RATE_LIMIT_EXCEEDED')) {
+        return res.status(429).json({
+          success: false,
+          message: 'Rate limit exceeded. Please slow down.',
+          code: 'RATE_LIMIT_EXCEEDED',
+          id: message._id
+        });
+      }
+      
+      if (err.message.includes('BSP_DAILY_LIMIT_EXCEEDED')) {
+        return res.status(429).json({
+          success: false,
+          message: 'Daily message limit reached for your plan.',
+          code: 'DAILY_LIMIT_EXCEEDED',
+          id: message._id
+        });
+      }
+      
+      // Handle WABA access issues
+      if (err.message.includes('does not exist') || 
+          err.message.includes('cannot be loaded due to missing permissions')) {
+        return res.status(503).json({
+          success: false,
+          message: 'WhatsApp Business Account is not properly configured.',
+          code: 'BSP_WABA_ACCESS_ERROR',
+          id: message._id
+        });
+      }
+
+      // Enqueue for retry
       try {
         await enqueueRetry({
           _id: message._id,
@@ -155,7 +210,7 @@ async function sendTemplateMessage(req, res, next) {
   }
 }
 
-// Send bulk template messages to multiple contacts
+// Send bulk template messages to multiple contacts (BSP Model)
 async function sendBulkTemplateMessage(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
@@ -179,10 +234,52 @@ async function sendBulkTemplateMessage(req, res, next) {
     const workspace = await Workspace.findById(workspaceId);
     if (!workspace) return res.status(404).json({ message: 'Workspace not found' });
 
-    const accessToken = workspace.whatsappAccessToken;
-    const phoneNumberId = workspace.whatsappPhoneNumberId;
-    if (!accessToken || !phoneNumberId) {
-      return res.status(400).json({ message: 'WABA credentials not configured' });
+    // ═══════════════════════════════════════════════════════════════════
+    // BSP VALIDATION
+    // ═══════════════════════════════════════════════════════════════════
+    
+    if (!workspace.bspManaged) {
+      return res.status(400).json({ 
+        message: 'Workspace is not configured for WhatsApp',
+        code: 'BSP_NOT_CONFIGURED'
+      });
+    }
+    
+    if (!workspace.bspPhoneNumberId) {
+      return res.status(400).json({ 
+        message: 'No WhatsApp phone number assigned',
+        code: 'BSP_PHONE_NOT_ASSIGNED'
+      });
+    }
+    
+    // Pre-check daily/monthly limits
+    const plan = workspace.plan || 'free';
+    const dailyLimit = workspace.bspRateLimits?.dailyMessageLimit || 
+      bspConfig.getRateLimit(plan, 'dailyMessageLimit');
+    const monthlyLimit = workspace.bspRateLimits?.monthlyMessageLimit || 
+      bspConfig.getRateLimit(plan, 'monthlyMessageLimit');
+    
+    const currentDaily = workspace.bspUsage?.messagesToday || 0;
+    const currentMonthly = workspace.bspUsage?.messagesThisMonth || 0;
+    
+    if (currentDaily + contactIds.length > dailyLimit) {
+      return res.status(429).json({
+        message: `Bulk send would exceed daily limit (${dailyLimit}). Current: ${currentDaily}, Requested: ${contactIds.length}`,
+        code: 'DAILY_LIMIT_EXCEEDED',
+        limit: dailyLimit,
+        current: currentDaily,
+        requested: contactIds.length
+      });
+    }
+    
+    if (currentMonthly + contactIds.length > monthlyLimit) {
+      return res.status(429).json({
+        message: `Bulk send would exceed monthly limit (${monthlyLimit})`,
+        code: 'MONTHLY_LIMIT_EXCEEDED',
+        limit: monthlyLimit,
+        current: currentMonthly,
+        requested: contactIds.length
+      });
     }
 
     // Fetch all contacts
@@ -194,6 +291,9 @@ async function sendBulkTemplateMessage(req, res, next) {
     if (contacts.length === 0) {
       return res.status(404).json({ message: 'No valid contacts found' });
     }
+    
+    // Use namespaced template name
+    const metaTemplateName = template.metaTemplateName || template.name;
 
     const results = {
       total: contacts.length,
@@ -202,10 +302,10 @@ async function sendBulkTemplateMessage(req, res, next) {
       details: []
     };
 
-    // Send to each contact
+    // Send to each contact via BSP service
     for (const contact of contacts) {
       try {
-        // Get variables for this contact (or use default)
+        // Get variables for this contact
         const variables = variablesMap[contact._id.toString()] || variablesMap.default || [];
         
         // Build components
@@ -222,20 +322,25 @@ async function sendBulkTemplateMessage(req, res, next) {
           meta: {
             templateId: template._id,
             templateName: template.name,
+            metaTemplateName: metaTemplateName,
             variables,
             language,
-            bulk: true
+            bulk: true,
+            bspSent: true
           }
         });
 
-        // Send via Meta API
-        const result = await metaService.sendTemplateMessage(
-          accessToken,
-          phoneNumberId,
+        // ═══════════════════════════════════════════════════════════════════
+        // SEND VIA BSP MESSAGING SERVICE
+        // ═══════════════════════════════════════════════════════════════════
+        
+        const result = await bspMessagingService.sendTemplateMessage(
+          workspaceId,
           contact.phone,
-          template.name,
+          metaTemplateName,
           language,
-          components
+          components,
+          { contactId: contact._id }
         );
 
         // Update message status
@@ -253,8 +358,8 @@ async function sendBulkTemplateMessage(req, res, next) {
           whatsappId: result.messageId
         });
 
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Small delay to avoid rate limiting (BSP service handles this too)
+        await new Promise(resolve => setTimeout(resolve, 50));
 
       } catch (error) {
         results.failed++;
@@ -264,14 +369,18 @@ async function sendBulkTemplateMessage(req, res, next) {
           status: 'failed',
           error: error.message
         });
+        
+        // If rate limited, stop bulk send
+        if (error.message.includes('BSP_RATE_LIMIT') || error.message.includes('DAILY_LIMIT') || error.message.includes('MONTHLY_LIMIT')) {
+          results.details.push({
+            status: 'stopped',
+            reason: error.message,
+            remainingContacts: contacts.length - results.sent - results.failed
+          });
+          break;
+        }
       }
     }
-
-    // Update workspace usage (total + daily + monthly)
-    workspace.usage.messages = (workspace.usage.messages || 0) + results.sent;
-    workspace.usage.messagesDaily = (workspace.usage.messagesDaily || 0) + results.sent;
-    workspace.usage.messagesThisMonth = (workspace.usage.messagesThisMonth || 0) + results.sent;
-    await workspace.save();
 
     return res.status(200).json({
       success: true,

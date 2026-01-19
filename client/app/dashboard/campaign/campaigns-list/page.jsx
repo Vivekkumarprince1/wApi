@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaPlay, FaPause, FaTrash, FaEye, FaPlus } from 'react-icons/fa';
-import { get as apiGet } from '../../../../lib/api';
+import * as api from '../../../../lib/api';
 
 export default function CampaignListPage() {
   const router = useRouter();
@@ -18,8 +18,9 @@ export default function CampaignListPage() {
   const loadCampaigns = async () => {
     try {
       setLoading(true);
-      const response = await apiGet('/campaigns');
-      setCampaigns(response.data.campaigns || []);
+      const response = await api.get('/campaigns');
+      // Backend returns { campaigns: [...] } directly
+      setCampaigns(response.campaigns || []);
     } catch (err) {
       console.error('Error loading campaigns:', err);
       setError(err.message || 'Failed to load campaigns');
@@ -30,7 +31,7 @@ export default function CampaignListPage() {
 
   const handleStart = async (campaignId) => {
     try {
-      await api.post(`/campaigns/${campaignId}/start`);
+      await api.post(`/campaigns/${campaignId}/enqueue`, {}); // Changed from /start to /enqueue to match controller
       loadCampaigns();
     } catch (err) {
       alert(err.message || 'Failed to start campaign');
@@ -39,7 +40,7 @@ export default function CampaignListPage() {
 
   const handlePause = async (campaignId) => {
     try {
-      await api.post(`/campaigns/${campaignId}/pause`);
+      await api.post(`/campaigns/${campaignId}/pause`, {});
       loadCampaigns();
     } catch (err) {
       alert(err.message || 'Failed to pause campaign');
@@ -48,7 +49,7 @@ export default function CampaignListPage() {
 
   const handleResume = async (campaignId) => {
     try {
-      await api.post(`/campaigns/${campaignId}/resume`);
+      await api.post(`/campaigns/${campaignId}/resume`, {});
       loadCampaigns();
     } catch (err) {
       alert(err.message || 'Failed to resume campaign');
@@ -59,7 +60,7 @@ export default function CampaignListPage() {
     if (!confirm('Are you sure you want to delete this campaign?')) return;
     
     try {
-      await api.delete(`/campaigns/${campaignId}`);
+      await api.del(`/campaigns/${campaignId}`);
       loadCampaigns();
     } catch (err) {
       alert(err.message || 'Failed to delete campaign');

@@ -160,10 +160,13 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const billingRoutes = require('./routes/billingRoutes'); // Week 2 addition
 const templateRoutes = require('./routes/templateRoutes');
+const messagingRoutes = require('./routes/messagingRoutes'); // Template sending (Interakt-style)
 const conversationRoutes = require('./routes/conversationRoutes');
 const metricsRoutes = require('./routes/metricsRoutes');
 const onboardingRoutes = require('./routes/onboardingRoutes');
+const bspOnboardingRoutes = require('./routes/bspOnboardingRoutes'); // BSP Interakt model
 const adminRoutes = require('./routes/adminRoutes');
+const bspAdminRoutes = require('./routes/bspAdminRoutes'); // BSP multi-tenant admin
 const usageRoutes = require('./routes/usageRoutes');
 const dealRoutes = require('./routes/dealRoutes');
 const pipelineRoutes = require('./routes/pipelineRoutes');
@@ -185,10 +188,13 @@ app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/billing', billingRoutes); // Week 2 addition
 app.use('/api/v1/templates', templateRoutes);
+app.use('/api/v1/messages', messagingRoutes); // Template sending (Interakt-style)
 app.use('/api/v1/conversations', conversationRoutes);
 app.use('/api/v1/metrics', metricsRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);
+app.use('/api/v1/onboarding/bsp', bspOnboardingRoutes); // BSP Interakt model
 app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/admin/bsp', bspAdminRoutes); // BSP multi-tenant admin
 app.use('/api/v1/usage', usageRoutes);
 app.use('/api/v1/sales/deals', dealRoutes);
 app.use('/api/v1/sales/pipelines', pipelineRoutes);

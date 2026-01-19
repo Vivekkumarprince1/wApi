@@ -6,25 +6,37 @@ const WebhookLog = require('../models/WebhookLog');
 const Template = require('../models/Template');
 const { getIO } = require('../utils/socket');
 const metaService = require('../services/metaService');
+const bspMessagingService = require('../services/bspMessagingService');
+const bspConfig = require('../config/bspConfig');
+const { getWorkspaceByPhoneId, extractPhoneNumberId, routeTemplateWebhook } = require('../middlewares/bspTenantRouter');
 const { triggerWorkflows } = require('../services/workflowExecutionService');
 const { checkAutoReply, sendAutoReply } = require('../services/autoReplyService');
 const { matchFAQ } = require('../services/answerbotService');
 
-// Verify webhook (GET)
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * BSP WEBHOOK HANDLER
+ * 
+ * Single webhook endpoint for all tenants.
+ * Routes incoming webhooks to the correct workspace by phone_number_id.
+ * ═══════════════════════════════════════════════════════════════════
+ */
+
+// Verify webhook (GET) - Single verification for all tenants
 function verify(req, res) {
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
   
-  // Use global verify token from env (or could check per workspace)
-  const verifyToken = process.env.META_VERIFY_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN;
+  // Use BSP config verify token (centralized)
+  const verifyToken = bspConfig.webhookVerifyToken || process.env.META_VERIFY_TOKEN;
   
   if (mode && token === verifyToken) {
-    console.log('Webhook verified');
+    console.log('[BSP Webhook] ✅ Webhook verified');
     return res.status(200).send(challenge);
   }
   
-  console.log('Webhook verification failed');
+  console.log('[BSP Webhook] ❌ Webhook verification failed');
   return res.sendStatus(403);
 }
 
@@ -34,46 +46,51 @@ async function handler(req, res) {
   const signatureHeader = req.headers['x-hub-signature-256'];
   
   try {
-    // Verify signature if app secret is configured
-    const appSecret = process.env.META_APP_SECRET;
-    if (appSecret && signatureHeader) {
+    // ═══════════════════════════════════════════════════════════════════
+    // SIGNATURE VERIFICATION (Centralized BSP validation)
+    // ═══════════════════════════════════════════════════════════════════
+    
+    if (bspConfig.appSecret && signatureHeader) {
       const rawBody = JSON.stringify(body);
-      const isValid = metaService.verifyWebhookSignature(rawBody, signatureHeader, appSecret);
+      const isValid = bspMessagingService.verifyWebhookSignature(rawBody, signatureHeader);
       
       if (!isValid) {
-        console.error('Webhook signature verification failed');
-        // ✅ FIX: Only log failed signature as unverified, don't mark processed
+        console.error('[BSP Webhook] ❌ Signature verification failed');
         await WebhookLog.create({
           payload: body,
           verified: false,
           signatureHeader,
           error: 'Signature verification failed',
-          processed: false // ✅ Mark as not processed for failed validation
+          processed: false,
+          bspRouted: false
         });
         return res.sendStatus(403);
       }
     }
     
-    // Respond quickly to Meta (< 50ms required)
+    // ═══════════════════════════════════════════════════════════════════
+    // RESPOND QUICKLY TO META (< 50ms required)
+    // ═══════════════════════════════════════════════════════════════════
     res.sendStatus(200);
     
-    // Queue for async processing
+    // ═══════════════════════════════════════════════════════════════════
+    // ROUTE TO CORRECT TENANT & PROCESS
+    // ═══════════════════════════════════════════════════════════════════
+    
     if (body.object === 'whatsapp_business_account') {
       try {
         const { enqueueWebhook } = require('../services/webhookQueue');
         await enqueueWebhook(body, signatureHeader);
-        console.log('[Webhook] ✅ Queued for async processing');
+        console.log('[BSP Webhook] ✅ Queued for async processing');
       } catch (queueErr) {
-        console.error('[Webhook] Queue failed, falling back to sync:', queueErr.message);
-        // Fallback to sync processing if queue unavailable
+        console.error('[BSP Webhook] Queue failed, falling back to sync:', queueErr.message);
         processWhatsAppWebhook(body, signatureHeader).catch(err => {
-          console.error('[Webhook] Sync processing failed:', err.message);
+          console.error('[BSP Webhook] Sync processing failed:', err.message);
         });
       }
     }
   } catch (err) {
-    console.error('Webhook processing error:', err);
-    // Still return 200 to Meta to avoid retries on our bugs
+    console.error('[BSP Webhook] Processing error:', err);
     if (!res.headersSent) {
       res.sendStatus(200);
     }
@@ -90,25 +107,39 @@ async function processWhatsAppWebhook(body, signatureHeader) {
     for (const change of entry.changes) {
       const value = change.value;
       
-      // Get phone_number_id to map to workspace
-      const phoneNumberId = value.metadata?.phone_number_id;
+      // ═══════════════════════════════════════════════════════════════════
+      // BSP TENANT ROUTING - Route by phone_number_id
+      // ═══════════════════════════════════════════════════════════════════
       
-      // Find workspace by phone_number_id
+      const phoneNumberId = extractPhoneNumberId(body);
+      
+      // Get workspace for this phone_number_id (BSP model)
       let workspace = null;
+      let workspaceDoc = null;
+      
       if (phoneNumberId) {
-        const workspaceDoc = await Workspace.findOne({ whatsappPhoneNumberId: phoneNumberId });
+        workspaceDoc = await getWorkspaceByPhoneId(phoneNumberId);
         workspace = workspaceDoc?._id || null;
+        
+        if (workspaceDoc) {
+          console.log(`[BSP Webhook] 📍 Routed to workspace: ${workspaceDoc.name} (phone: ${phoneNumberId})`);
+        } else {
+          console.warn(`[BSP Webhook] ⚠️ No workspace for phone_number_id: ${phoneNumberId}`);
+        }
       }
       
-      // Log webhook
+      // Determine event type
       let eventType = 'unknown';
       if (value.messages) eventType = 'message';
       else if (value.statuses) eventType = 'status';
-      else if (value.template) eventType = 'template_status';
+      else if (value.message_template_status_update) eventType = 'template_status';
       else if (value.account_update) eventType = 'account_update';
       else if (value.business_capability_update) eventType = 'business_capability_update';
       
-      // ✅ IDEMPOTENCY: Check if webhook already processed using x-hub-delivery header
+      // ═══════════════════════════════════════════════════════════════════
+      // IDEMPOTENCY CHECK
+      // ═══════════════════════════════════════════════════════════════════
+      
       const deliveryId = body.entry?.[0]?.id || signatureHeader;
       if (deliveryId) {
         const existingLog = await WebhookLog.findOne({ 
@@ -117,66 +148,68 @@ async function processWhatsAppWebhook(body, signatureHeader) {
         });
         
         if (existingLog) {
-          console.log(`[Webhook] ⏭️ Skipping duplicate webhook (delivery: ${deliveryId}, type: ${eventType})`);
-          continue; // Skip if already processed
+          console.log(`[BSP Webhook] ⏭️ Skipping duplicate (delivery: ${deliveryId}, type: ${eventType})`);
+          continue;
         }
       }
       
-      // ✅ FIX: Create log and process, then mark as processed only if successful
+      // Create webhook log
       let webhookLog = null;
       try {
         webhookLog = await WebhookLog.create({
-          deliveryId: deliveryId, // ✅ Store delivery ID for idempotency
+          deliveryId: deliveryId,
           workspace,
+          phoneNumberId, // BSP: Log the phone_number_id for tracking
           payload: body,
           verified: true,
           signatureHeader,
           eventType,
-          processed: false
+          processed: false,
+          bspRouted: !!workspaceDoc // Track if BSP routing was successful
         });
       } catch (logErr) {
-        console.error(`[Webhook] Error creating log for ${eventType}:`, logErr.message);
+        console.error(`[BSP Webhook] Error creating log: ${logErr.message}`);
       }
       
       try {
-        // Process messages
+        // Process messages (routed to specific workspace)
         if (value.messages) {
-          await processInboundMessages(value.messages, workspace, value.contacts);
+          await processInboundMessages(value.messages, workspace, value.contacts, workspaceDoc);
         }
         
         // Process status updates
         if (value.statuses) {
-          await processStatusUpdates(value.statuses, workspace);
+          await processStatusUpdates(value.statuses, workspace, workspaceDoc);
         }
         
-        // ✅ Handle critical account events
+        // Handle account-level events (BSP-wide)
         if (value.account_update) {
-          await handleAccountUpdate(value.account_update, workspace);
+          await handleAccountUpdate(value.account_update, workspace, workspaceDoc);
         }
         
-        // ✅ Handle business capability changes
+        // Handle capability changes
         if (value.business_capability_update) {
-          await handleBusinessCapabilityUpdate(value.business_capability_update, workspace);
+          await handleBusinessCapabilityUpdate(value.business_capability_update, workspace, workspaceDoc);
         }
         
-        // Process template status updates
+        // Process template status (route by template name prefix)
         if (value.message_template_status_update) {
-          await processTemplateStatusUpdate(value.message_template_status_update, workspace);
+          await processTemplateStatusUpdate(value.message_template_status_update, workspace, workspaceDoc);
         }
         
-        // ✅ Handle ads webhooks
+        // Handle ads webhooks
         if (value.ad_review || value.ad_status_update || value.account_disabled) {
           await handleAdWebhook(value, workspace);
         }
 
-        // ✅ Mark as processed only after successful processing
+        // Mark as processed
         if (webhookLog) {
           webhookLog.processed = true;
           webhookLog.processedAt = new Date();
           await webhookLog.save();
         }
       } catch (processErr) {
-        console.error(`[Webhook] Error processing ${eventType}:`, processErr.message);
+        console.error(`[BSP Webhook] Error processing ${eventType}:`, processErr.message);
         if (webhookLog) {
           webhookLog.error = processErr.message;
           await webhookLog.save();
@@ -187,7 +220,7 @@ async function processWhatsAppWebhook(body, signatureHeader) {
 }
 
 // Process inbound messages
-async function processInboundMessages(messages, workspace, contactsInfo = []) {
+async function processInboundMessages(messages, workspace, contactsInfo = [], workspaceDoc = null) {
   const { checkAndHandleOptOut } = require('../services/optOutService');
   const { log } = require('../services/auditService');
 
@@ -195,7 +228,7 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
     try {
       const from = msg.from; // phone number
       
-      // Get or create contact
+      // Get or create contact (scoped to workspace for tenant isolation)
       let contact = await Contact.findOne({ phone: from, workspace });
       
       if (!contact) {
@@ -207,7 +240,7 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
         });
       }
       
-      // ✅ NEW: Check for opt-out keywords
+      // Extract message body
       let messageBody = '';
       
       if (msg.text) {
@@ -224,12 +257,10 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
         messageBody = '[Voice]';
       }
       
-      // Handle opt-out/opt-in keywords
-      const workspaceDoc = workspace ? await Workspace.findById(workspace).select('whatsappAccessToken whatsappPhoneNumberId').lean() : null;
-      if (workspaceDoc && messageBody) {
+      // Handle opt-out/opt-in keywords (BSP model - use centralized service)
+      if (workspaceDoc && workspaceDoc.isBspConnected() && messageBody) {
         const optOutResult = await checkAndHandleOptOut(contact, messageBody, workspaceDoc, workspace);
         if (optOutResult.optedOut || optOutResult.optedIn) {
-          // Log the action
           await log(workspace, null, optOutResult.optedOut ? 'contact.opted_out' : 'contact.opted_in', {
             type: 'contact',
             id: contact._id,
@@ -237,7 +268,6 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
             via: 'inbound_message'
           }, null, null);
           
-          // Still store the message but mark it specially
           const message = await Message.create({
             workspace: workspace || null,
             contact: contact._id,
@@ -247,10 +277,11 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
             status: 'received',
             meta: {
               isOptOutMessage: true,
-              optOutAction: optOutResult.optedOut ? 'out' : 'in'
+              optOutAction: optOutResult.optedOut ? 'out' : 'in',
+              bspProcessed: true
             }
           });
-          continue; // Skip other processing for opt-out messages
+          continue;
         }
       }
       
@@ -345,7 +376,7 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
           if (faqMatch && faqMatch.answer) {
             console.log(`[AnswerBot] ✅ Found matching FAQ for message`);
             
-            // Build and send FAQ answer as text message
+            // Build and send FAQ answer using BSP messaging service
             const faqMessage = await Message.create({
               workspace,
               contact: contact._id,
@@ -356,11 +387,12 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
             });
             
             try {
-              const sendResult = await metaService.sendTextMessage(
-                (await Workspace.findById(workspace)).whatsappAccessToken,
-                (await Workspace.findById(workspace)).whatsappPhoneNumberId,
+              // Use BSP messaging service for centralized sending
+              const sendResult = await bspMessagingService.sendTextMessage(
+                workspace,
                 contact.phone,
-                faqMatch.answer
+                faqMatch.answer,
+                { contactId: contact._id }
               );
               
               faqMessage.status = 'sent';
@@ -368,7 +400,8 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
               faqMessage.meta = {
                 whatsappId: sendResult.messageId,
                 faqId: faqMatch._id,
-                answerBotReply: true
+                answerBotReply: true,
+                bspSent: true
               };
               await faqMessage.save();
               
@@ -393,6 +426,9 @@ async function processInboundMessages(messages, workspace, contactsInfo = []) {
               return;
             } catch (sendErr) {
               console.error('[AnswerBot] Error sending FAQ reply:', sendErr.message);
+              faqMessage.status = 'failed';
+              faqMessage.meta = { error: sendErr.message };
+              await faqMessage.save();
               // Continue to workflows if FAQ send fails
             }
           }
@@ -534,39 +570,139 @@ async function processStatusUpdates(statuses, workspace) {
   }
 }
 
-// Process template status updates
-async function processTemplateStatusUpdate(templateUpdate, workspace) {
+// Process template status updates (BSP model - route by template name prefix)
+async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceDoc = null) {
   try {
-    const { event, message_template_name, message_template_language, reason } = templateUpdate;
+    const { 
+      event, 
+      message_template_id,
+      message_template_name, 
+      message_template_language, 
+      reason 
+    } = templateUpdate;
     
+    // ═══════════════════════════════════════════════════════════════════
+    // BSP TEMPLATE ROUTING
+    // Templates are namespaced: {workspaceIdSuffix}_{templateName}
+    // We need to route to the correct workspace
+    // ═══════════════════════════════════════════════════════════════════
+    
+    let targetWorkspace = workspace;
+    
+    // If no workspace from phone_number_id, try to route by template name
+    if (!targetWorkspace && message_template_name) {
+      const routedWorkspace = await routeTemplateWebhook(message_template_name);
+      if (routedWorkspace) {
+        targetWorkspace = routedWorkspace._id;
+        console.log(`[BSP Webhook] 📍 Routed template update to workspace: ${routedWorkspace.name}`);
+      }
+    }
+    
+    // Extract original template name (remove namespace prefix)
+    let originalTemplateName = message_template_name;
+    if (message_template_name && message_template_name.includes('_')) {
+      const parts = message_template_name.split('_');
+      originalTemplateName = parts.slice(1).join('_'); // Remove the workspace prefix
+    }
+    
+    // Build query to find the template
     const query = {
-      name: message_template_name,
       language: message_template_language
     };
-    if (workspace) query.workspace = workspace;
+    
+    // Search by Meta ID, namespaced name, or original name
+    if (targetWorkspace) {
+      query.workspace = targetWorkspace;
+      query.$or = [
+        { metaTemplateId: message_template_id },
+        { metaTemplateName: message_template_name },
+        { name: originalTemplateName }
+      ];
+    } else {
+      query.$or = [
+        { metaTemplateId: message_template_id },
+        { metaTemplateName: message_template_name },
+        { name: message_template_name }
+      ];
+    }
     
     const template = await Template.findOne(query);
     
     if (template) {
-      // Map event to status
-      let newStatus = template.status;
-      if (event === 'APPROVED') newStatus = 'APPROVED';
-      else if (event === 'REJECTED') newStatus = 'REJECTED';
-      else if (event === 'PENDING') newStatus = 'PENDING';
-      else if (event === 'PAUSED') newStatus = 'PAUSED';
-      else if (event === 'DISABLED') newStatus = 'DISABLED';
+      // Store previous status for history
+      const previousStatus = template.status;
       
+      // Map event to status
+      const statusMap = {
+        'APPROVED': 'APPROVED',
+        'REJECTED': 'REJECTED',
+        'PENDING': 'PENDING',
+        'PENDING_DELETION': 'PENDING',
+        'DELETED': 'DELETED',
+        'DISABLED': 'DISABLED',
+        'REINSTATED': 'APPROVED',
+        'FLAGGED': 'DISABLED',
+        'PAUSED': 'PAUSED'
+      };
+      
+      const newStatus = statusMap[event] || event;
+      
+      // Update template fields
       template.status = newStatus;
-      if (reason) template.rejectionReason = reason;
+      template.metaTemplateId = message_template_id || template.metaTemplateId;
+      template.metaTemplateName = message_template_name;
+      template.lastWebhookUpdate = new Date();
+      
+      if (reason) {
+        template.rejectionReason = reason;
+      }
+      
+      // Add to approval history if status changed
+      if (previousStatus !== newStatus) {
+        template.approvalHistory = template.approvalHistory || [];
+        template.approvalHistory.push({
+          status: newStatus,
+          timestamp: new Date(),
+          reason: reason,
+          source: 'WEBHOOK'
+        });
+      }
+      
+      // Set approved timestamp
       if (newStatus === 'APPROVED' && !template.approvedAt) {
         template.approvedAt = new Date();
       }
+      
       await template.save();
       
-      console.log(`Template ${message_template_name} status updated to ${newStatus}`);
+      console.log(`[BSP Webhook] Template ${message_template_name} status: ${previousStatus} → ${newStatus}`);
+      
+      // Emit socket event to workspace
+      const emitWorkspace = targetWorkspace || template.workspace;
+      if (emitWorkspace) {
+        try {
+          getIO().to(`workspace:${emitWorkspace}`).emit('template.status', {
+            templateId: template._id,
+            metaTemplateId: message_template_id,
+            templateName: originalTemplateName,
+            status: newStatus,
+            previousStatus,
+            reason,
+            timestamp: new Date()
+          });
+        } catch (socketErr) {
+          console.error('Socket emit error:', socketErr.message);
+        }
+      }
+      
+      return { success: true, templateId: template._id, newStatus };
+    } else {
+      console.warn(`[BSP Webhook] Template not found: ${message_template_name} (ID: ${message_template_id})`);
+      return { success: false, reason: 'Template not found' };
     }
   } catch (templateErr) {
-    console.error('Error processing template update:', templateErr);
+    console.error('[BSP Webhook] Error processing template update:', templateErr);
+    return { success: false, error: templateErr.message };
   }
 }
 

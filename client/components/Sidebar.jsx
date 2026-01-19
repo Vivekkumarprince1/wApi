@@ -184,6 +184,16 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
               <div className="ml-8 mt-1 space-y-1">
                 <div
                   className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                    isActive('/dashboard/messaging')
+                      ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  }`}
+                  onClick={() => navigate("/dashboard/messaging")}
+                >
+                  <span className="whitespace-nowrap text-sm">💬 Send Messages</span>
+                </div>
+                <div
+                  className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
                     isActive('/dashboard/templates')
                       ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
