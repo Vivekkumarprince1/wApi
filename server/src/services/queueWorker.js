@@ -1,15 +1,26 @@
 const { createWorker, createQueue } = require('./queue');
 const { processSendJob, processCampaignBatch } = require('./whatsappService');
 const CheckoutBotService = require('./checkoutBotService');
+const { startCampaignWorker } = require('./campaignWorkerService');
 
 // Queues
 const sendQueue = createQueue('whatsapp-sends');
 const checkoutQueue = createQueue('checkout-expiry');
 
 async function runWorker() {
-  console.log('BullMQ worker starting for whatsapp-sends and checkout-expiry');
+  console.log('BullMQ worker starting for whatsapp-sends, checkout-expiry, and campaign-engine');
   
-  // Worker for WhatsApp messages
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Stage 3: Start Campaign Worker
+  // ═══════════════════════════════════════════════════════════════════════════════
+  try {
+    startCampaignWorker();
+    console.log('[QueueWorker] Campaign worker started');
+  } catch (err) {
+    console.error('[QueueWorker] Failed to start campaign worker:', err.message);
+  }
+  
+  // Worker for WhatsApp messages (legacy - also handles some campaign batches)
   const sendWorker = await createWorker('whatsapp-sends', async (job) => {
     if (job.name === 'campaign-batch') {
       return processCampaignBatch(job);

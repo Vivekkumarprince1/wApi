@@ -12,6 +12,7 @@ const {
   updateContact, 
   deleteContact 
 } = require('../controllers/contactController');
+const tagsController = require('../controllers/tagsController');
 
 const router = express.Router();
 
@@ -24,5 +25,9 @@ router.get('/stats', getContactStats);
 router.get('/:id', getContact);
 router.put('/:id', updateContact);
 router.delete('/:id', deleteContact);
+
+// Stage 5: CRM Tagging
+router.post('/:contactId/tags', tagsController.addTagsToContact);
+router.delete('/:contactId/tags', tagsController.removeTagsFromContact);
 
 module.exports = router;

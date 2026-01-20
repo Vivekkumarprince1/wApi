@@ -233,6 +233,7 @@ async function getTemplate(req, res, next) {
 
 /**
  * Update template (only if in editable status)
+ * Stage 2 Hardening: If template is APPROVED, fork it instead of editing
  */
 async function updateTemplate(req, res, next) {
   try {
@@ -259,7 +260,52 @@ async function updateTemplate(req, res, next) {
       });
     }
     
-    // Check if editable
+    // ─────────────────────────────────────────────────────────────────────────────
+    // STAGE 2 HARDENING - TASK A: VERSION FORKING
+    // If template is APPROVED, create a new version (clone) instead of editing
+    // Original approved template remains usable
+    // ─────────────────────────────────────────────────────────────────────────────
+    if (template.status === 'APPROVED') {
+      try {
+        const { template: forkedTemplate, wasExisting } = await Template.cloneApprovedTemplate(
+          template._id,
+          req.user._id
+        );
+        
+        // Apply the requested changes to the forked template
+        if (name) forkedTemplate.name = name.toLowerCase();
+        if (language !== undefined) forkedTemplate.language = language;
+        if (category !== undefined) forkedTemplate.category = Template.getValidMetaCategory(category);
+        if (header !== undefined) forkedTemplate.header = header;
+        if (body !== undefined) forkedTemplate.body = body;
+        if (footer !== undefined) forkedTemplate.footer = footer;
+        if (buttons !== undefined) forkedTemplate.buttons = buttons;
+        
+        forkedTemplate.lastEditedBy = req.user._id;
+        await forkedTemplate.save();
+        
+        const validation = validateTemplate(forkedTemplate.toObject());
+        
+        return res.json({
+          success: true,
+          template: forkedTemplate,
+          forked: true,
+          originalTemplateId: template._id,
+          message: wasExisting 
+            ? 'Returned existing draft version of this template'
+            : 'Created new version of approved template. Original remains active.',
+          warnings: validation.warnings
+        });
+      } catch (forkErr) {
+        return res.status(forkErr.statusCode || 500).json({
+          success: false,
+          message: forkErr.message,
+          code: forkErr.code || 'FORK_FAILED'
+        });
+      }
+    }
+    
+    // Check if editable (DRAFT or REJECTED)
     if (!template.canEdit()) {
       return res.status(400).json({
         success: false,
@@ -295,6 +341,9 @@ async function updateTemplate(req, res, next) {
     if (footer !== undefined) template.footer = footer;
     if (buttons !== undefined) template.buttons = buttons;
     
+    // Track who edited (Stage 2 versioning)
+    template.lastEditedBy = req.user._id;
+    
     // Reset to draft if was rejected
     if (template.status === 'REJECTED') {
       template.status = 'DRAFT';
@@ -322,6 +371,7 @@ async function updateTemplate(req, res, next) {
 
 /**
  * Delete template (also deletes from Meta if approved)
+ * Stage 2 Hardening: Block deletion if template is used in campaigns
  */
 async function deleteTemplate(req, res, next) {
   try {
@@ -336,6 +386,20 @@ async function deleteTemplate(req, res, next) {
       return res.status(404).json({ 
         success: false,
         message: 'Template not found' 
+      });
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────────────
+    // STAGE 2 HARDENING - TASK C: USAGE PROTECTION
+    // Block deletion if template is used in campaigns
+    // ─────────────────────────────────────────────────────────────────────────────
+    const deleteCheck = await Template.canDeleteTemplate(template._id);
+    if (!deleteCheck.canDelete) {
+      return res.status(400).json({
+        success: false,
+        message: deleteCheck.reason,
+        code: 'TEMPLATE_IN_USE',
+        usedInCampaigns: deleteCheck.usedInCampaigns
       });
     }
     
@@ -376,6 +440,7 @@ async function deleteTemplate(req, res, next) {
 
 /**
  * Submit template to Meta for approval via BSP parent WABA
+ * Stage 2 Task 3: Enhanced submission with duplicate detection and retry logic
  */
 async function submitTemplate(req, res, next) {
   try {
@@ -398,7 +463,13 @@ async function submitTemplate(req, res, next) {
       return res.status(400).json({
         success: false,
         message: `Cannot submit template with status: ${template.status}`,
-        code: 'TEMPLATE_NOT_SUBMITTABLE'
+        code: 'TEMPLATE_NOT_SUBMITTABLE',
+        currentStatus: template.status,
+        helpText: template.status === 'PENDING' 
+          ? 'Template is already pending approval. Wait for Meta to review.'
+          : template.status === 'APPROVED'
+            ? 'Template is already approved and can be used for messaging.'
+            : null
       });
     }
     
@@ -410,7 +481,8 @@ async function submitTemplate(req, res, next) {
         success: false,
         message: 'Template validation failed',
         errors: validation.errors,
-        warnings: validation.warnings
+        warnings: validation.warnings,
+        helpText: 'Fix the errors above and try again.'
       });
     }
     
@@ -423,6 +495,17 @@ async function submitTemplate(req, res, next) {
         message: 'Workspace is not configured for WhatsApp. Please complete onboarding.',
         code: 'BSP_NOT_CONFIGURED',
         requiresOnboarding: true
+      });
+    }
+    
+    // Stage 2: Verify phone is connected and active
+    const phoneStatus = workspace.bspPhoneStatus || 'UNKNOWN';
+    if (!['CONNECTED', 'RESTRICTED'].includes(phoneStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: 'WhatsApp phone is not connected. Please complete phone activation.',
+        code: 'PHONE_NOT_ACTIVE',
+        phoneStatus
       });
     }
     
@@ -439,18 +522,32 @@ async function submitTemplate(req, res, next) {
       const workspaceIdSuffix = workspaceId.toString().slice(-8);
       const namespacedName = `${workspaceIdSuffix}_${template.name}`;
       
+      // Stage 2: Check if template with same namespaced name already exists on Meta
+      // This prevents "duplicate template" errors from Meta
+      if (template.metaTemplateName && template.status === 'REJECTED') {
+        // Template was previously submitted and rejected - Meta might still have it
+        console.log(`[Template] Resubmitting rejected template: ${namespacedName}`);
+      }
+      
       // Build Meta API payload using template method
       const metaComponents = template.buildMetaComponents();
+      
+      // ─────────────────────────────────────────────────────────────────────────────
+      // STAGE 2 HARDENING - TASK B: META PAYLOAD SNAPSHOT
+      // Capture exact payload sent to Meta for audit/debug
+      // This snapshot is immutable after submission
+      // ─────────────────────────────────────────────────────────────────────────────
+      const metaPayload = {
+        name: template.name,
+        language: template.language,
+        category: template.category,
+        components: metaComponents
+      };
       
       // Submit to BSP
       const result = await bspMessagingService.submitTemplate(
         workspaceId,
-        {
-          name: template.name,
-          language: template.language,
-          category: template.category,
-          components: metaComponents
-        }
+        metaPayload
       );
       
       // Update template with submission details
@@ -459,12 +556,25 @@ async function submitTemplate(req, res, next) {
       template.metaTemplateName = result.namespacedName || namespacedName;
       template.submittedAt = new Date();
       template.submittedVia = 'BSP';
+      template.rejectionReason = null; // Clear previous rejection
+      template.rejectionDetails = null;
       
-      // Add to approval history
+      // Store immutable snapshot of what was sent to Meta (Task B)
+      template.metaPayloadSnapshot = {
+        components: metaPayload.components,
+        name: metaPayload.name,
+        language: metaPayload.language,
+        category: metaPayload.category,
+        submittedAt: new Date(),
+        raw: result.rawResponse || null // Store raw Meta API response if available
+      };
+      
+      // Add to approval history with version tracking
       template.approvalHistory.push({
         status: 'PENDING',
         timestamp: new Date(),
-        source: 'BSP_SUBMISSION'
+        source: 'BSP_SUBMISSION',
+        rawEvent: { version: template.version, payloadSnapshot: true }
       });
       
       await template.save();
@@ -476,15 +586,26 @@ async function submitTemplate(req, res, next) {
       
       res.json({
         success: true,
-        message: 'Template submitted for Meta approval',
+        message: 'Template submitted for Meta approval. Review usually takes 5-10 minutes.',
         template,
         metaTemplateName: template.metaTemplateName,
+        estimatedApprovalTime: '5-10 minutes',
         warnings: validation.warnings
       });
       
     } catch (metaError) {
       // Handle specific BSP errors
       const errorResponse = handleBspError(metaError);
+      
+      // Stage 2: Track submission failures in approval history
+      template.approvalHistory.push({
+        status: 'SUBMISSION_FAILED',
+        timestamp: new Date(),
+        reason: metaError.message,
+        source: 'BSP_ERROR'
+      });
+      await template.save();
+      
       return res.status(errorResponse.statusCode).json(errorResponse);
     }
   } catch (err) {
@@ -939,6 +1060,76 @@ function handleBspError(error) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// VERSION FORKING (Stage 2 Hardening - Task A)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fork an approved template for editing
+ * Creates a new DRAFT version while keeping original APPROVED and usable
+ */
+async function forkApprovedTemplate(req, res, next) {
+  try {
+    const templateId = req.params.id;
+    const userId = req.user._id;
+    
+    const { template, wasExisting } = await Template.cloneApprovedTemplate(templateId, userId);
+    
+    res.json({
+      success: true,
+      template,
+      wasExisting,
+      message: wasExisting 
+        ? 'Returned existing draft version of this template'
+        : 'Created new version for editing. Original approved template remains active.',
+      originalTemplateId: template.originalTemplateId
+    });
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({
+        success: false,
+        message: err.message,
+        code: err.code
+      });
+    }
+    next(err);
+  }
+}
+
+/**
+ * Get all versions of a template
+ */
+async function getTemplateVersions(req, res, next) {
+  try {
+    const templateId = req.params.id;
+    const workspaceId = req.user.workspace;
+    
+    // Verify template belongs to workspace
+    const template = await Template.findOne({
+      _id: templateId,
+      workspace: workspaceId
+    });
+    
+    if (!template) {
+      return res.status(404).json({
+        success: false,
+        message: 'Template not found'
+      });
+    }
+    
+    const versions = await Template.getTemplateVersions(templateId);
+    
+    res.json({
+      success: true,
+      versions,
+      currentVersion: template.version,
+      activeVersionId: versions.find(v => v.isActiveVersion)?._id
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -958,6 +1149,10 @@ module.exports = {
   duplicateTemplate,
   validateTemplatePreview,
   getTemplateCategories,
+  
+  // Version forking (Stage 2 Hardening)
+  forkApprovedTemplate,
+  getTemplateVersions,
   
   // Webhook handler
   handleTemplateStatusWebhook

@@ -1,6 +1,6 @@
 /**
  * =============================================================================
- * BSP ONBOARDING CONTROLLER - INTERAKT PARENTAL MODEL
+ * BSP ONBOARDING CONTROLLER - INTERAKT PARENTAL MODEL (HARDENED)
  * =============================================================================
  * 
  * Handles all BSP onboarding endpoints:
@@ -9,17 +9,26 @@
  * - POST /complete - Process callback and create workspace
  * - GET /status - Get onboarding status
  * - POST /disconnect - Disconnect WhatsApp
+ * - GET /stage1-status - Get Stage 1 completion status
+ * 
+ * HARDENED:
+ * - Uses V2 onboarding service with full validation
+ * - Tokens encrypted at rest
+ * - Parent WABA ownership validation
+ * - Phone status tracking
  */
 
 const User = require('../models/User');
 const Workspace = require('../models/Workspace');
 const { logger } = require('../utils/logger');
 const { log: auditLog } = require('../services/auditService');
+const { encryptToken, isEncrypted } = require('../utils/tokenEncryption');
+const { getStage1Status } = require('../middlewares/phoneActivation');
 const {
   getBspConfig,
   generateBspSignupUrl,
   completeBspOnboarding
-} = require('../services/bspOnboardingService');
+} = require('../services/bspOnboardingServiceV2'); // Use V2 hardened service
 
 // In-memory state store (use Redis in production)
 const stateStore = new Map();
@@ -204,7 +213,14 @@ async function completeOnboarding(req, res) {
     }
 
     // Complete BSP onboarding (exchange code, fetch WABA, etc)
-    const result = await completeBspOnboarding(code);
+    // Pass workspace ID for token encryption context
+    const workspaceId = stateData.workspaceId || 'new-workspace';
+    const result = await completeBspOnboarding(code, workspaceId);
+    
+    // Validate onboarding completion
+    if (!result.onboardingComplete) {
+      throw new Error('Onboarding validation failed: Stage 1 incomplete');
+    }
 
     // Create or update workspace
     let workspace;
@@ -220,27 +236,36 @@ async function completeOnboarding(req, res) {
           
           // Phone details
           phoneNumberId: result.phoneNumberId,
+          bspPhoneNumberId: result.phoneNumberId,
           whatsappPhoneNumber: result.displayPhoneNumber,
+          bspDisplayPhoneNumber: result.displayPhoneNumber,
           verifiedName: result.verifiedName,
+          bspVerifiedName: result.verifiedName,
+          
+          // Phone status (CRITICAL for Stage 1)
+          bspPhoneStatus: result.phoneStatus,
           
           // Status
-          whatsappConnected: true,
+          whatsappConnected: result.phoneStatus === 'CONNECTED',
           connectedAt: result.connectedAt,
           
           // Phone metadata
           qualityRating: result.qualityRating,
+          bspQualityRating: result.qualityRating,
           messagingLimitTier: result.messagingLimit,
+          bspMessagingTier: result.messagingLimit,
           codeVerificationStatus: result.codeVerificationStatus,
           nameStatus: result.nameStatus,
           isOfficialAccount: result.isOfficialAccount,
           
-          // Token (encrypt in production)
-          accessToken: result.accessToken,
+          // Token (ENCRYPTED)
+          accessToken: result.accessToken, // Already encrypted by V2 service
           tokenExpiresAt: result.tokenExpiresAt,
           
           // BSP context
           bspManaged: true,
           bspWabaId: result.bspWabaId,
+          bspOnboardedAt: new Date(),
           
           // Business profile
           businessProfile: result.businessProfile,
@@ -249,8 +274,12 @@ async function completeOnboarding(req, res) {
           phoneNumbers: result.allPhones,
           
           // ESB flow tracking
-          'esbFlow.status': 'completed',
-          'esbFlow.completedAt': new Date()
+          'esbFlow.status': result.phoneStatus === 'CONNECTED' ? 'completed' : 'phone_pending',
+          'esbFlow.completedAt': result.phoneStatus === 'CONNECTED' ? new Date() : null,
+          
+          // Onboarding progress
+          'onboarding.wabaConnectionCompleted': true,
+          'onboarding.wabaConnectionCompletedAt': new Date()
         },
         { new: true }
       );
@@ -266,27 +295,36 @@ async function completeOnboarding(req, res) {
         
         // Phone details
         phoneNumberId: result.phoneNumberId,
+        bspPhoneNumberId: result.phoneNumberId,
         whatsappPhoneNumber: result.displayPhoneNumber,
+        bspDisplayPhoneNumber: result.displayPhoneNumber,
         verifiedName: result.verifiedName,
+        bspVerifiedName: result.verifiedName,
+        
+        // Phone status (CRITICAL for Stage 1)
+        bspPhoneStatus: result.phoneStatus,
         
         // Status
-        whatsappConnected: true,
+        whatsappConnected: result.phoneStatus === 'CONNECTED',
         connectedAt: result.connectedAt,
         
         // Phone metadata
         qualityRating: result.qualityRating,
+        bspQualityRating: result.qualityRating,
         messagingLimitTier: result.messagingLimit,
+        bspMessagingTier: result.messagingLimit,
         codeVerificationStatus: result.codeVerificationStatus,
         nameStatus: result.nameStatus,
         isOfficialAccount: result.isOfficialAccount,
         
-        // Token (encrypt in production)
-        accessToken: result.accessToken,
+        // Token (ENCRYPTED)
+        accessToken: result.accessToken, // Already encrypted by V2 service
         tokenExpiresAt: result.tokenExpiresAt,
         
         // BSP context
         bspManaged: true,
         bspWabaId: result.bspWabaId,
+        bspOnboardedAt: new Date(),
         
         // Business profile
         businessProfile: result.businessProfile,
@@ -296,8 +334,14 @@ async function completeOnboarding(req, res) {
         
         // ESB flow tracking
         esbFlow: {
-          status: 'completed',
-          completedAt: new Date()
+          status: result.phoneStatus === 'CONNECTED' ? 'completed' : 'phone_pending',
+          completedAt: result.phoneStatus === 'CONNECTED' ? new Date() : null
+        },
+        
+        // Onboarding progress
+        onboarding: {
+          wabaConnectionCompleted: true,
+          wabaConnectionCompletedAt: new Date()
         }
       });
 
@@ -328,7 +372,9 @@ async function completeOnboarding(req, res) {
 
     res.json({
       success: true,
-      message: 'WhatsApp connected successfully',
+      message: result.phoneStatus === 'CONNECTED' 
+        ? 'WhatsApp connected successfully' 
+        : 'WhatsApp setup in progress - phone activation pending',
       workspace: {
         id: workspace._id,
         name: workspace.name,
@@ -338,17 +384,32 @@ async function completeOnboarding(req, res) {
         verifiedName: workspace.verifiedName,
         qualityRating: workspace.qualityRating,
         messagingLimit: workspace.messagingLimitTier,
-        connectedAt: workspace.connectedAt
+        connectedAt: workspace.connectedAt,
+        phoneStatus: result.phoneStatus
+      },
+      stage1: {
+        complete: result.phoneStatus === 'CONNECTED',
+        wabaIdFetched: !!result.wabaId,
+        phoneNumberIdFetched: !!result.phoneNumberId,
+        phoneStatus: result.phoneStatus,
+        onboardingProgress: result.onboardingProgress
       }
     });
   } catch (error) {
     logger.error('[BSP] Complete onboarding error:', error.message);
     
-    res.status(400).json({
+    // Include progress info in error response
+    const errorResponse = {
       success: false,
       message: error.message,
       code: 'COMPLETE_FAILED'
-    });
+    };
+    
+    if (error.onboardingProgress) {
+      errorResponse.onboardingProgress = error.onboardingProgress;
+    }
+    
+    res.status(400).json(errorResponse);
   }
 }
 
@@ -497,6 +558,107 @@ async function getConfig(req, res) {
 }
 
 // =============================================================================
+// GET STAGE 1 STATUS
+// =============================================================================
+
+/**
+ * Get Stage 1 completion status
+ * Used by client to determine if messaging/templates/campaigns are allowed
+ * 
+ * GET /api/v1/onboarding/bsp/stage1-status
+ */
+async function getStage1StatusEndpoint(req, res) {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).populate('workspace');
+
+    if (!user?.workspace) {
+      return res.json({
+        success: true,
+        stage1: {
+          complete: false,
+          error: 'No workspace found',
+          checklist: {
+            businessIdFetched: false,
+            wabaIdFetched: false,
+            phoneNumberIdFetched: false,
+            phoneConnected: false,
+            webhooksSubscribed: false
+          },
+          blockedFeatures: [
+            'template_submission',
+            'message_sending',
+            'campaign_creation',
+            'bulk_messaging'
+          ]
+        }
+      });
+    }
+
+    const status = await getStage1Status(user.workspace._id);
+
+    res.json({
+      success: true,
+      stage1: status
+    });
+  } catch (error) {
+    logger.error('[BSP] Get Stage 1 status error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get Stage 1 status',
+      code: 'STAGE1_STATUS_ERROR'
+    });
+  }
+}
+
+// =============================================================================
+// TRIGGER MANUAL SYNC
+// =============================================================================
+
+/**
+ * Trigger manual WABA sync for a workspace
+ * Useful when phone activation is pending
+ * 
+ * POST /api/v1/onboarding/bsp/sync
+ */
+async function triggerSync(req, res) {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).populate('workspace');
+
+    if (!user?.workspace) {
+      return res.status(404).json({
+        success: false,
+        message: 'No workspace found',
+        code: 'NO_WORKSPACE'
+      });
+    }
+
+    // Import sync service
+    const { triggerWorkspaceSync } = require('../services/wabaAutosyncService');
+    
+    const result = await triggerWorkspaceSync(user.workspace._id);
+
+    // Get updated stage 1 status
+    const stage1Status = await getStage1Status(user.workspace._id);
+
+    res.json({
+      success: true,
+      message: 'Sync triggered',
+      syncResult: result,
+      stage1: stage1Status
+    });
+  } catch (error) {
+    logger.error('[BSP] Manual sync error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to trigger sync',
+      code: 'SYNC_ERROR'
+    });
+  }
+}
+
+// =============================================================================
 // EXPORTS
 // =============================================================================
 
@@ -506,5 +668,7 @@ module.exports = {
   completeOnboarding,
   getStatus,
   disconnect,
-  getConfig
+  getConfig,
+  getStage1StatusEndpoint,
+  triggerSync
 };

@@ -68,6 +68,13 @@ const PermissionSchema = new mongoose.Schema({
   // Active/Inactive
   isActive: { type: Boolean, default: true },
   
+  // ====== STAGE 4 HARDENING: Agent availability ======
+  isAvailable: { type: Boolean, default: true },  // Can receive auto-assignments
+  isOnline: { type: Boolean, default: false },    // Currently connected via socket
+  lastSeenAt: { type: Date },
+  maxConcurrentChats: { type: Number, default: 10 }, // Max conversations for auto-assign
+  // ====== END STAGE 4 HARDENING ======
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

@@ -2,6 +2,11 @@
  * Webhook Queue Service
  * Async processing of Meta webhooks via BullMQ
  * Ensures fast response to Meta + reliable processing
+ * 
+ * TASK C: Webhook Idempotency
+ * - Store processed webhook IDs (message_id, status_id)
+ * - Ignore duplicates safely
+ * - Runs inside async worker, not request thread
  */
 
 let Queue, Worker;
@@ -14,6 +19,91 @@ try {
 
 let webhookQueue = null;
 let webhookWorker = null;
+let redisClient = null; // For idempotency checks
+
+// =============================================================================
+// TASK C: IDEMPOTENCY TRACKING
+// =============================================================================
+
+// TTL for processed webhook IDs (24 hours)
+const IDEMPOTENCY_TTL = 24 * 60 * 60;
+
+/**
+ * Generate idempotency key from webhook payload
+ * Extracts message_id or status_id for deduplication
+ * @param {Object} payload - Webhook payload
+ * @returns {string|null} - Idempotency key or null
+ */
+function extractIdempotencyKey(payload) {
+  try {
+    const entry = payload?.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value = changes?.value;
+    
+    if (!value) return null;
+    
+    // Extract message_id for incoming messages
+    if (value.messages && value.messages.length > 0) {
+      const messageId = value.messages[0].id;
+      if (messageId) return `msg:${messageId}`;
+    }
+    
+    // Extract status_id for message status updates
+    if (value.statuses && value.statuses.length > 0) {
+      const status = value.statuses[0];
+      const statusKey = `${status.id}:${status.status}`;
+      if (status.id) return `status:${statusKey}`;
+    }
+    
+    // For other webhook types, use a hash of the payload
+    const crypto = require('crypto');
+    const payloadHash = crypto.createHash('sha256')
+      .update(JSON.stringify(payload))
+      .digest('hex')
+      .substring(0, 16);
+    return `hash:${payloadHash}`;
+    
+  } catch (err) {
+    console.warn('[WebhookQueue] Could not extract idempotency key:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Check if webhook has already been processed
+ * @param {string} idempotencyKey - Unique webhook identifier
+ * @returns {Promise<boolean>} - True if already processed
+ */
+async function isWebhookProcessed(idempotencyKey) {
+  if (!redisClient || !idempotencyKey) return false;
+  
+  try {
+    const exists = await redisClient.exists(`webhook:processed:${idempotencyKey}`);
+    return exists === 1;
+  } catch (err) {
+    console.warn('[WebhookQueue] Idempotency check failed:', err.message);
+    return false; // Allow processing on error
+  }
+}
+
+/**
+ * Mark webhook as processed
+ * @param {string} idempotencyKey - Unique webhook identifier
+ */
+async function markWebhookProcessed(idempotencyKey) {
+  if (!redisClient || !idempotencyKey) return;
+  
+  try {
+    await redisClient.set(
+      `webhook:processed:${idempotencyKey}`,
+      Date.now().toString(),
+      'EX',
+      IDEMPOTENCY_TTL
+    );
+  } catch (err) {
+    console.warn('[WebhookQueue] Failed to mark webhook processed:', err.message);
+  }
+}
 
 /**
  * Initialize webhook queue
@@ -27,7 +117,11 @@ async function initializeWebhookQueue(redisConnection) {
 
   try {
     webhookQueue = new Queue('webhooks', { connection: redisConnection });
-    console.log('[WebhookQueue] ✅ Queue initialized');
+    
+    // Store redis client for idempotency checks (Task C)
+    redisClient = redisConnection;
+    
+    console.log('[WebhookQueue] ✅ Queue initialized with idempotency support');
     return webhookQueue;
   } catch (err) {
     console.error('[WebhookQueue] Failed to initialize:', err.message);
@@ -81,11 +175,17 @@ async function enqueueWebhook(payload, signature, priority = 'normal') {
 /**
  * Start webhook worker
  * Processes queued webhooks with concurrency control
+ * TASK C: Includes idempotency checks inside worker
  */
 function startWebhookWorker(redisConnection) {
   if (!Queue || !Worker) {
     console.error('[WebhookQueue] BullMQ not available - cannot start worker');
     return null;
+  }
+
+  // Store redis client for idempotency if not already set
+  if (!redisClient) {
+    redisClient = redisConnection;
   }
 
   try {
@@ -94,9 +194,26 @@ function startWebhookWorker(redisConnection) {
 
       console.log(`[WebhookQueue] ⚙️  Processing job ${job.id} (attempt ${job.attemptsMade + 1}/5)`);
 
+      // TASK C: Idempotency check - skip if already processed
+      const idempotencyKey = extractIdempotencyKey(job.data.payload);
+      if (idempotencyKey) {
+        const alreadyProcessed = await isWebhookProcessed(idempotencyKey);
+        if (alreadyProcessed) {
+          console.log(`[WebhookQueue] ⏭️  Skipping duplicate webhook ${idempotencyKey}`);
+          return { skipped: true, reason: 'duplicate', idempotencyKey };
+        }
+      }
+
       try {
         await processWhatsAppWebhook(job.data.payload, job.data.signature);
+        
+        // TASK C: Mark as processed after successful processing
+        if (idempotencyKey) {
+          await markWebhookProcessed(idempotencyKey);
+        }
+        
         console.log(`[WebhookQueue] ✅ Job ${job.id} completed`);
+        return { success: true, idempotencyKey };
       } catch (err) {
         console.error(`[WebhookQueue] ❌ Job ${job.id} failed:`, err.message);
         throw err; // Will trigger retry
@@ -172,5 +289,9 @@ module.exports = {
   enqueueWebhook,
   startWebhookWorker,
   getQueueStats,
-  stopWebhookWorker
+  stopWebhookWorker,
+  // TASK C: Idempotency helpers (for external use if needed)
+  extractIdempotencyKey,
+  isWebhookProcessed,
+  markWebhookProcessed
 };

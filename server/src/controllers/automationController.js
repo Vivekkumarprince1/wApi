@@ -1,323 +1,603 @@
+/**
+ * Automation Controller - Stage 6
+ * 
+ * API endpoints for automation rule management and monitoring:
+ * - Rule CRUD
+ * - Enable/disable rules
+ * - View execution logs
+ * - Test rules (dry-run)
+ * - Kill-switch control
+ */
+
 const AutomationRule = require('../models/AutomationRule');
-const WorkflowExecution = require('../models/WorkflowExecution');
-const Workspace = require('../models/Workspace');
+const AutomationExecution = require('../models/AutomationExecution');
+const AutomationAuditLog = require('../models/AutomationAuditLog');
+const automationEngine = require('../services/automationEngine');
+const { logger } = require('../utils/logger');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RULE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * ================================================================
- * AUTOMATION/WORKFLOW CONTROLLER
- * ================================================================
- * Full CRUD operations with plan limit enforcement
+ * GET /api/v1/automation/rules
+ * Get all automation rules for workspace
  */
-
-/**
- * Create workflow
- * POST /api/v1/automations
- */
-async function createRule(req, res, next) {
+exports.getRules = async (req, res) => {
   try {
-    const workspace = req.user.workspace;
-    const { name, description, trigger, condition, actions, dailyExecutionLimit } = req.body;
-    
-    // ✅ Validate required fields
-    if (!name || !trigger || !actions || actions.length === 0) {
-      return res.status(400).json({ 
-        error: 'Missing required fields: name, trigger, actions' 
-      });
-    }
-    
-    // ✅ Check plan limits - max number of workflows
-    const workspaceDoc = await Workspace.findById(workspace);
-    if (!workspaceDoc) {
-      return res.status(404).json({ error: 'Workspace not found' });
-    }
-    
-    const maxAutomations = workspaceDoc.limits?.maxAutomations || 3;
-    const currentCount = await AutomationRule.countDocuments({ workspace, enabled: true });
-    
-    if (currentCount >= maxAutomations) {
-      return res.status(403).json({ 
-        error: `Plan limit exceeded. Maximum ${maxAutomations} workflows allowed.`,
-        limit: maxAutomations,
-        current: currentCount
-      });
-    }
-    
-    // Create workflow
-    const rule = await AutomationRule.create({ 
-      workspace, 
-      name,
-      description,
-      trigger,
-      condition: condition || {},
-      actions,
-      dailyExecutionLimit,
-      createdBy: req.user._id
-    });
-    
-    // Update workspace usage
-    if (workspaceDoc.usage) {
-      workspaceDoc.usage.automations = (workspaceDoc.usage.automations || 0) + 1;
-      await workspaceDoc.save();
-    }
-    
-    res.status(201).json(rule);
-  } catch (err) { 
-    next(err); 
-  }
-}
+    const workspaceId = req.user.workspace;
+    const { enabled, trigger, page = 1, limit = 50 } = req.query;
 
-/**
- * List workflows
- * GET /api/v1/automations
- */
-async function listRules(req, res, next) {
-  try {
-    const workspace = req.user.workspace;
-    const { enabled, trigger } = req.query;
-    
-    const filter = { workspace };
-    if (enabled !== undefined) filter.enabled = enabled === 'true';
-    if (trigger) filter.trigger = trigger;
-    
-    const rules = await AutomationRule.find(filter)
+    let query = { workspaceId };
+
+    if (enabled !== undefined) {
+      query.enabled = enabled === 'true';
+    }
+
+    if (trigger) {
+      query['trigger.type'] = trigger;
+    }
+
+    const total = await AutomationRule.countDocuments(query);
+    const rules = await AutomationRule
+      .find(query)
       .sort({ createdAt: -1 })
-      .populate('createdBy', 'name email');
-    
-    res.json(rules);
-  } catch (err) { 
-    next(err); 
-  }
-}
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
 
-/**
- * Get single workflow
- * GET /api/v1/automations/:id
- */
-async function getRule(req, res, next) {
-  try {
-    const workspace = req.user.workspace;
-    const { id } = req.params;
-    
-    const rule = await AutomationRule.findOne({ _id: id, workspace })
-      .populate('createdBy', 'name email');
-    
-    if (!rule) {
-      return res.status(404).json({ error: 'Workflow not found' });
-    }
-    
-    // Get execution stats
-    const totalExecutions = await WorkflowExecution.countDocuments({ workflow: id });
-    const successfulExecutions = await WorkflowExecution.countDocuments({ 
-      workflow: id, 
-      status: 'completed' 
-    });
-    const failedExecutions = await WorkflowExecution.countDocuments({ 
-      workflow: id, 
-      status: 'failed' 
-    });
-    
     res.json({
-      ...rule.toObject(),
-      stats: {
-        totalExecutions,
-        successfulExecutions,
-        failedExecutions
+      success: true,
+      data: {
+        rules,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / limit)
+        }
       }
     });
-  } catch (err) { 
-    next(err); 
+  } catch (error) {
+    logger.error('[Automation] getRules failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get rules',
+      code: 'AUTOMATION_ERROR'
+    });
   }
-}
+};
 
 /**
- * Update workflow
- * PUT /api/v1/automations/:id
+ * GET /api/v1/automation/rules/:ruleId
+ * Get single rule with execution history
  */
-async function updateRule(req, res, next) {
+exports.getRule = async (req, res) => {
   try {
-    const workspace = req.user.workspace;
-    const { id } = req.params;
+    const workspaceId = req.user.workspace;
+    const { ruleId } = req.params;
+
+    const rule = await AutomationRule.findOne({
+      _id: ruleId,
+      workspaceId
+    });
+
+    if (!rule) {
+      return res.status(404).json({
+        success: false,
+        error: 'Rule not found',
+        code: 'RULE_NOT_FOUND'
+      });
+    }
+
+    // Get recent executions
+    const recentExecutions = await AutomationExecution
+      .find({ ruleId })
+      .sort({ executedAt: -1 })
+      .limit(10)
+      .lean();
+
+    res.json({
+      success: true,
+      data: {
+        rule,
+        recentExecutions
+      }
+    });
+  } catch (error) {
+    logger.error('[Automation] getRule failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get rule',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+/**
+ * POST /api/v1/automation/rules
+ * Create new automation rule
+ */
+exports.createRule = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const userId = req.user._id;
+    const { name, trigger, conditions, actions, rateLimit, enabled } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Rule name is required',
+        code: 'MISSING_NAME'
+      });
+    }
+
+    if (!trigger || !trigger.type) {
+      return res.status(400).json({
+        success: false,
+        error: 'Trigger type is required',
+        code: 'MISSING_TRIGGER'
+      });
+    }
+
+    if (!Array.isArray(actions) || actions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'At least one action is required',
+        code: 'MISSING_ACTIONS'
+      });
+    }
+
+    const rule = new AutomationRule({
+      workspaceId,
+      name,
+      trigger,
+      conditions: conditions || [],
+      actions,
+      rateLimit: rateLimit || { perHour: 100, perContact: 10 },
+      enabled: enabled !== false,
+      createdBy: userId
+    });
+
+    await rule.save();
+
+    res.status(201).json({
+      success: true,
+      data: rule
+    });
+  } catch (error) {
+    logger.error('[Automation] createRule failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create rule',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+/**
+ * PUT /api/v1/automation/rules/:ruleId
+ * Update automation rule
+ */
+exports.updateRule = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { ruleId } = req.params;
     const updates = req.body;
-    
-    // Don't allow changing workspace
-    delete updates.workspace;
-    delete updates.createdBy;
-    delete updates.executionCount;
-    delete updates.successCount;
-    delete updates.failureCount;
-    
+
     const rule = await AutomationRule.findOneAndUpdate(
-      { _id: id, workspace },
+      { _id: ruleId, workspaceId },
       updates,
       { new: true, runValidators: true }
     );
-    
-    if (!rule) {
-      return res.status(404).json({ error: 'Workflow not found' });
-    }
-    
-    res.json(rule);
-  } catch (err) { 
-    next(err); 
-  }
-}
 
-/**
- * Delete workflow
- * DELETE /api/v1/automations/:id
- */
-async function deleteRule(req, res, next) {
-  try {
-    const workspace = req.user.workspace;
-    const { id } = req.params;
-    
-    const rule = await AutomationRule.findOneAndDelete({ _id: id, workspace });
-    
     if (!rule) {
-      return res.status(404).json({ error: 'Workflow not found' });
+      return res.status(404).json({
+        success: false,
+        error: 'Rule not found',
+        code: 'RULE_NOT_FOUND'
+      });
     }
-    
-    // Update workspace usage
-    const workspaceDoc = await Workspace.findById(workspace);
-    if (workspaceDoc && workspaceDoc.usage) {
-      workspaceDoc.usage.automations = Math.max(0, (workspaceDoc.usage.automations || 1) - 1);
-      await workspaceDoc.save();
-    }
-    
-    res.json({ success: true, message: 'Workflow deleted' });
-  } catch (err) { 
-    next(err); 
-  }
-}
 
-/**
- * Toggle workflow enabled/disabled
- * POST /api/v1/automations/:id/toggle
- */
-async function toggleRule(req, res, next) {
-  try {
-    const workspace = req.user.workspace;
-    const { id } = req.params;
-    
-    const rule = await AutomationRule.findOne({ _id: id, workspace });
-    
-    if (!rule) {
-      return res.status(404).json({ error: 'Workflow not found' });
-    }
-    
-    rule.enabled = !rule.enabled;
-    await rule.save();
-    
-    res.json(rule);
-  } catch (err) { 
-    next(err); 
-  }
-}
-
-/**
- * Get workflow execution history
- * GET /api/v1/automations/:id/executions
- */
-async function getExecutions(req, res, next) {
-  try {
-    const workspace = req.user.workspace;
-    const { id } = req.params;
-    const { limit = 50, skip = 0, status } = req.query;
-    
-    // Verify workflow belongs to workspace
-    const rule = await AutomationRule.findOne({ _id: id, workspace });
-    if (!rule) {
-      return res.status(404).json({ error: 'Workflow not found' });
-    }
-    
-    const filter = { workflow: id };
-    if (status) filter.status = status;
-    
-    const executions = await WorkflowExecution.find(filter)
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip(parseInt(skip))
-      .populate('triggerEvent.contactId', 'name phone')
-      .populate('triggerEvent.messageId', 'body type');
-    
-    const total = await WorkflowExecution.countDocuments(filter);
-    
     res.json({
-      executions,
-      total,
-      limit: parseInt(limit),
-      skip: parseInt(skip)
+      success: true,
+      data: rule
     });
-  } catch (err) { 
-    next(err); 
+  } catch (error) {
+    logger.error('[Automation] updateRule failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update rule',
+      code: 'AUTOMATION_ERROR'
+    });
   }
-}
+};
 
 /**
- * Get workflow analytics
- * GET /api/v1/automations/analytics
+ * DELETE /api/v1/automation/rules/:ruleId
+ * Delete automation rule
  */
-async function getAnalytics(req, res, next) {
+exports.deleteRule = async (req, res) => {
   try {
-    const workspace = req.user.workspace;
-    const { startDate, endDate } = req.query;
-    
-    const dateFilter = {};
-    if (startDate) dateFilter.$gte = new Date(startDate);
-    if (endDate) dateFilter.$lte = new Date(endDate);
-    
-    const filter = { workspace };
-    if (Object.keys(dateFilter).length > 0) {
-      filter.createdAt = dateFilter;
-    }
-    
-    // Total workflows
-    const totalWorkflows = await AutomationRule.countDocuments(filter);
-    const enabledWorkflows = await AutomationRule.countDocuments({ ...filter, enabled: true });
-    
-    // Execution stats
-    const execFilter = { workspace };
-    if (Object.keys(dateFilter).length > 0) {
-      execFilter.createdAt = dateFilter;
-    }
-    
-    const totalExecutions = await WorkflowExecution.countDocuments(execFilter);
-    const successfulExecutions = await WorkflowExecution.countDocuments({ 
-      ...execFilter, 
-      status: 'completed' 
-    });
-    const failedExecutions = await WorkflowExecution.countDocuments({ 
-      ...execFilter, 
-      status: 'failed' 
-    });
-    
-    // Top workflows by execution count
-    const topWorkflows = await AutomationRule.find(filter)
-      .sort({ executionCount: -1 })
-      .limit(10)
-      .select('name executionCount successCount failureCount lastExecutedAt');
-    
-    res.json({
-      totalWorkflows,
-      enabledWorkflows,
-      totalExecutions,
-      successfulExecutions,
-      failedExecutions,
-      successRate: totalExecutions > 0 ? (successfulExecutions / totalExecutions * 100).toFixed(2) : 0,
-      topWorkflows
-    });
-  } catch (err) { 
-    next(err); 
-  }
-}
+    const workspaceId = req.user.workspace;
+    const { ruleId } = req.params;
 
-module.exports = { 
-  createRule, 
-  listRules, 
-  getRule, 
-  updateRule, 
-  deleteRule, 
-  toggleRule,
-  getExecutions,
-  getAnalytics
+    const rule = await AutomationRule.findOneAndDelete({
+      _id: ruleId,
+      workspaceId
+    });
+
+    if (!rule) {
+      return res.status(404).json({
+        success: false,
+        error: 'Rule not found',
+        code: 'RULE_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Rule deleted successfully'
+    });
+  } catch (error) {
+    logger.error('[Automation] deleteRule failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete rule',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+/**
+ * PATCH /api/v1/automation/rules/:ruleId/enable
+ * Enable/disable a rule
+ */
+exports.toggleRuleEnabled = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { ruleId } = req.params;
+    const { enabled } = req.body;
+
+    if (enabled === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'enabled property is required',
+        code: 'MISSING_FIELD'
+      });
+    }
+
+    const rule = await AutomationRule.findOneAndUpdate(
+      { _id: ruleId, workspaceId },
+      { enabled },
+      { new: true }
+    );
+
+    if (!rule) {
+      return res.status(404).json({
+        success: false,
+        error: 'Rule not found',
+        code: 'RULE_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: rule,
+      message: `Rule ${enabled ? 'enabled' : 'disabled'} successfully`
+    });
+  } catch (error) {
+    logger.error('[Automation] toggleRuleEnabled failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to toggle rule',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXECUTION LOGS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/v1/automation/logs
+ * Get automation execution logs
+ */
+exports.getLogs = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { ruleId, conversationId, status, triggerType, page = 1, limit = 50 } = req.query;
+
+    const options = {
+      ruleId,
+      conversationId,
+      status,
+      triggerType,
+      page: parseInt(page),
+      limit: parseInt(limit)
+    };
+
+    const result = await AutomationAuditLog.getLogs(workspaceId, options);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    logger.error('[Automation] getLogs failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get logs',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+/**
+ * GET /api/v1/automation/logs/:logId
+ * Get single execution log
+ */
+exports.getLog = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { logId } = req.params;
+
+    const log = await AutomationAuditLog.findOne({
+      _id: logId,
+      workspaceId
+    });
+
+    if (!log) {
+      return res.status(404).json({
+        success: false,
+        error: 'Log not found',
+        code: 'LOG_NOT_FOUND'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: log
+    });
+  } catch (error) {
+    logger.error('[Automation] getLog failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get log',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+/**
+ * GET /api/v1/automation/stats
+ * Get automation execution statistics
+ */
+exports.getStats = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { ruleId, days = 7 } = req.query;
+
+    const stats = await AutomationAuditLog.getExecutionStats(workspaceId, {
+      ruleId,
+      days: parseInt(days)
+    });
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    logger.error('[Automation] getStats failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get stats',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+/**
+ * GET /api/v1/automation/failures
+ * Get failure analysis
+ */
+exports.getFailures = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { ruleId, days = 7 } = req.query;
+
+    const analysis = await AutomationAuditLog.getFailureAnalysis(workspaceId, {
+      ruleId,
+      days: parseInt(days)
+    });
+
+    res.json({
+      success: true,
+      data: analysis
+    });
+  } catch (error) {
+    logger.error('[Automation] getFailures failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get failure analysis',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TESTING
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * POST /api/v1/automation/test
+ * Test rule execution (dry-run on specific conversation)
+ */
+exports.testRule = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { ruleId, conversationId, dryRun = true } = req.body;
+
+    if (!ruleId) {
+      return res.status(400).json({
+        success: false,
+        error: 'ruleId is required',
+        code: 'MISSING_RULE_ID'
+      });
+    }
+
+    if (!conversationId) {
+      return res.status(400).json({
+        success: false,
+        error: 'conversationId is required',
+        code: 'MISSING_CONVERSATION_ID'
+      });
+    }
+
+    const rule = await AutomationRule.findOne({
+      _id: ruleId,
+      workspaceId
+    });
+
+    if (!rule) {
+      return res.status(404).json({
+        success: false,
+        error: 'Rule not found',
+        code: 'RULE_NOT_FOUND'
+      });
+    }
+
+    // Test the rule
+    const result = await automationEngine.testRule(rule, conversationId, dryRun);
+
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    logger.error('[Automation] testRule failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to test rule',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KILL-SWITCH & CONTROLS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/v1/automation/status
+ * Get automation engine status
+ */
+exports.getStatus = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+
+    const status = {
+      workspaceId,
+      isEnabled: automationEngine.isWorkspaceEnabled(workspaceId),
+      globalKillSwitch: automationEngine.getGlobalKillSwitchStatus(),
+      enabledRulesCount: await AutomationRule.countDocuments({
+        workspaceId,
+        enabled: true
+      }),
+      totalRulesCount: await AutomationRule.countDocuments({ workspaceId }),
+      todayExecutions: await AutomationExecution.countDocuments({
+        workspaceId,
+        executedAt: {
+          $gte: new Date(new Date().setHours(0, 0, 0, 0))
+        }
+      })
+    };
+
+    res.json({
+      success: true,
+      data: status
+    });
+  } catch (error) {
+    logger.error('[Automation] getStatus failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get status',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+/**
+ * PATCH /api/v1/automation/workspace/enable
+ * Enable/disable automation for entire workspace
+ */
+exports.toggleWorkspaceAutomation = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { enabled } = req.body;
+
+    if (enabled === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'enabled property is required',
+        code: 'MISSING_FIELD'
+      });
+    }
+
+    automationEngine.setWorkspaceEnabled(workspaceId, enabled);
+
+    res.json({
+      success: true,
+      message: `Automation ${enabled ? 'enabled' : 'disabled'} for workspace`
+    });
+  } catch (error) {
+    logger.error('[Automation] toggleWorkspaceAutomation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to toggle automation',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
+};
+
+/**
+ * PATCH /api/v1/automation/kill-switch
+ * Global kill-switch (admin only)
+ */
+exports.toggleGlobalKillSwitch = async (req, res) => {
+  try {
+    // Check admin permission
+    if (!req.user.role || !['admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Only admins can toggle global kill-switch',
+        code: 'FORBIDDEN'
+      });
+    }
+
+    const { enabled } = req.body;
+
+    if (enabled === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'enabled property is required',
+        code: 'MISSING_FIELD'
+      });
+    }
+
+    automationEngine.setGlobalKillSwitch(!enabled); // Invert: enabled=false means kill-switch is ON
+
+    res.json({
+      success: true,
+      message: `Global kill-switch ${enabled ? 'disabled' : 'enabled'}`
+    });
+  } catch (error) {
+    logger.error('[Automation] toggleGlobalKillSwitch failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to toggle kill-switch',
+      code: 'AUTOMATION_ERROR'
+    });
+  }
 };

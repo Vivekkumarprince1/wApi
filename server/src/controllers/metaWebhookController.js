@@ -13,6 +13,13 @@ const { triggerWorkflows } = require('../services/workflowExecutionService');
 const { checkAutoReply, sendAutoReply } = require('../services/autoReplyService');
 const { matchFAQ } = require('../services/answerbotService');
 
+// Stage 4: Import inbox socket service for real-time updates
+const inboxSocketService = require('../services/inboxSocketService');
+
+// Stage 4 Hardening: Import SLA and auto-assignment services
+const slaService = require('../services/slaService');
+const autoAssignmentService = require('../services/autoAssignmentService');
+
 /**
  * ═══════════════════════════════════════════════════════════════════
  * BSP WEBHOOK HANDLER
@@ -287,6 +294,7 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
       
       // Get or create conversation
       let conversation = null;
+      let isNewConversation = false;
       if (workspace) {
         conversation = await Conversation.findOne({ workspace, contact: contact._id });
         
@@ -295,16 +303,55 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
             workspace,
             contact: contact._id,
             status: 'open',
-            lastActivityAt: new Date()
+            lastActivityAt: new Date(),
+            lastCustomerMessageAt: new Date(), // Stage 4: Track for 24h window
+            conversationType: 'customer_initiated', // Stage 4: Billing tracking
+            conversationStartedAt: new Date()
           });
+          isNewConversation = true;
+          
+          // HARDENING: Set SLA deadline for new conversations
+          try {
+            await slaService.setSlaDeadline(conversation._id, workspace);
+          } catch (slaErr) {
+            console.error('[Webhook] Error setting SLA deadline:', slaErr.message);
+          }
+          
+          // HARDENING: Auto-assign if enabled
+          try {
+            await autoAssignmentService.autoAssignConversation(conversation._id, workspace);
+          } catch (assignErr) {
+            console.error('[Webhook] Error auto-assigning:', assignErr.message);
+          }
         }
         
-        // Update conversation
+        // Update conversation with Stage 4 fields
         conversation.lastMessageAt = new Date();
         conversation.lastMessagePreview = messageBody;
         conversation.lastMessageDirection = 'inbound';
+        conversation.lastMessageType = msg.type || 'text'; // Stage 4
         conversation.lastActivityAt = new Date();
-        conversation.unreadCount += 1;
+        conversation.lastCustomerMessageAt = new Date(); // Stage 4: Track for 24h window
+        
+        // Stage 4: Use model method for per-agent unread tracking
+        conversation.incrementUnreadForAllAgents();
+        
+        // Reopen if closed (customer sent new message)
+        if (conversation.status === 'closed' || conversation.status === 'resolved') {
+          conversation.status = 'open';
+          conversation.statusChangedAt = new Date();
+          // Reset 24h window
+          conversation.conversationType = 'customer_initiated';
+          conversation.conversationStartedAt = new Date();
+          
+          // HARDENING: Reset SLA deadline when conversation reopened
+          try {
+            await slaService.setSlaDeadline(conversation._id, workspace);
+          } catch (slaErr) {
+            console.error('[Webhook] Error resetting SLA deadline:', slaErr.message);
+          }
+        }
+        
         await conversation.save();
       }
       
@@ -348,9 +395,13 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
               message.meta.autoReplySent = true;
               await message.save();
               
-              // Emit socket event
+              // Stage 4: Emit inbox socket events
               try {
-                getIO().to(`workspace:${workspace}`).emit('message.received', {
+                // Emit new message event (using Stage 4 inbox socket service)
+                await inboxSocketService.emitNewMessage(workspace, conversation, message, contact);
+                
+                // Also emit legacy event for backward compatibility
+                getIO()?.to(`workspace:${workspace}`).emit('message.received', {
                   message,
                   contact,
                   conversation,
@@ -452,10 +503,19 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
         }
       }
       
-      // Emit socket event
+      // Stage 4: Emit inbox socket events for real-time updates
       try {
-        if (workspace) {
-          getIO().to(`workspace:${workspace}`).emit('message.received', {
+        if (workspace && conversation) {
+          // Emit new message to inbox
+          await inboxSocketService.emitNewMessage(workspace, conversation, message, contact);
+          
+          // If new conversation, emit that too
+          if (isNewConversation) {
+            await inboxSocketService.emitNewConversation(workspace, conversation, contact, message);
+          }
+          
+          // Also emit legacy event for backward compatibility
+          getIO()?.to(`workspace:${workspace}`).emit('message.received', {
             message,
             contact,
             conversation
@@ -470,23 +530,53 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
   }
 }
 
-// ✅ Process status updates + update campaign stats
+// ✅ Process status updates + update campaign stats (Stage 3 Enhanced)
 async function processStatusUpdates(statuses, workspace) {
   const CampaignMessage = require('../models/CampaignMessage');
   const Campaign = require('../models/Campaign');
+  const { processCampaignStatusUpdate } = require('../services/campaignWebhookService');
   
   for (const status of statuses) {
     try {
       const messageId = status.id;
       const newStatus = status.status; // 'sent', 'delivered', 'read', 'failed'
+      const statusTimestamp = status.timestamp ? new Date(status.timestamp * 1000) : new Date();
       
-      const query = { 'meta.whatsappId': messageId };
+      // ═══════════════════════════════════════════════════════════════════
+      // STAGE 3: Campaign Status Rollup via dedicated service
+      // ═══════════════════════════════════════════════════════════════════
+      try {
+        const campaignResult = await processCampaignStatusUpdate(
+          messageId,
+          newStatus,
+          statusTimestamp,
+          status
+        );
+        
+        if (campaignResult.processed) {
+          console.log(`[Webhook] Campaign status rolled up: ${campaignResult.campaignId} - ${newStatus}`);
+        }
+      } catch (campaignErr) {
+        console.error('[Webhook] Campaign status rollup error:', campaignErr.message);
+      }
+      
+      // ═══════════════════════════════════════════════════════════════════
+      // Standard message status update (also handles non-campaign messages)
+      // ═══════════════════════════════════════════════════════════════════
+      
+      const query = { 
+        $or: [
+          { 'meta.whatsappId': messageId },
+          { whatsappMessageId: messageId }
+        ]
+      };
       if (workspace) query.workspace = workspace;
       
       const message = await Message.findOne(query);
       
       if (message) {
         message.status = newStatus;
+        if (!message.meta) message.meta = {};
         if (!message.meta.statusUpdates) message.meta.statusUpdates = [];
         message.meta.statusUpdates.push({
           status: newStatus,
@@ -496,32 +586,38 @@ async function processStatusUpdates(statuses, workspace) {
         
         // ✅ Update timestamp fields
         if (newStatus === 'sent' && !message.sentAt) {
-          message.sentAt = new Date(status.timestamp * 1000);
+          message.sentAt = statusTimestamp;
         }
         if (newStatus === 'delivered' && !message.deliveredAt) {
-          message.deliveredAt = new Date(status.timestamp * 1000);
+          message.deliveredAt = statusTimestamp;
         }
         if (newStatus === 'read' && !message.readAt) {
-          message.readAt = new Date(status.timestamp * 1000);
+          message.readAt = statusTimestamp;
+        }
+        if (newStatus === 'failed' && !message.failedAt) {
+          message.failedAt = statusTimestamp;
+          message.failureReason = status.errors?.[0]?.message || 'Unknown error';
         }
         
         await message.save();
         
-        // ✅ Update CampaignMessage if this is a campaign message
+        // ✅ Legacy CampaignMessage update (for backwards compatibility)
         if (message.meta?.campaignMessageId) {
           const campaignMessage = await CampaignMessage.findByIdAndUpdate(
             message.meta.campaignMessageId,
             {
               status: newStatus,
-              sentAt: newStatus === 'sent' ? new Date(status.timestamp * 1000) : undefined,
-              deliveredAt: newStatus === 'delivered' ? new Date(status.timestamp * 1000) : undefined,
-              readAt: newStatus === 'read' ? new Date(status.timestamp * 1000) : undefined,
+              sentAt: newStatus === 'sent' ? statusTimestamp : undefined,
+              deliveredAt: newStatus === 'delivered' ? statusTimestamp : undefined,
+              readAt: newStatus === 'read' ? statusTimestamp : undefined,
+              failedAt: newStatus === 'failed' ? statusTimestamp : undefined,
+              failureReason: newStatus === 'failed' ? (status.errors?.[0]?.message || 'Unknown') : undefined,
               updatedAt: new Date()
             },
             { new: true }
           ).populate('campaign');
           
-          // ✅ Update Campaign stats atomically
+          // ✅ Update Campaign stats atomically (legacy path)
           if (campaignMessage && campaignMessage.campaign) {
             const campaign = campaignMessage.campaign;
             const updateOps = { updatedAt: new Date() };
@@ -552,10 +648,21 @@ async function processStatusUpdates(statuses, workspace) {
           }
         }
         
-        // Emit socket event
+        // Stage 4: Emit inbox message status event
         try {
+          if (workspace && message.conversation) {
+            await inboxSocketService.emitMessageStatus(
+              workspace, 
+              message.conversation, 
+              message._id, 
+              newStatus, 
+              statusTimestamp
+            );
+          }
+          
+          // Also emit legacy event for backward compatibility
           if (workspace) {
-            getIO().to(`workspace:${workspace}`).emit('message.status', {
+            getIO()?.to(`workspace:${workspace}`).emit('message.status', {
               messageId: message._id,
               status: newStatus
             });
@@ -629,6 +736,28 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
     const template = await Template.findOne(query);
     
     if (template) {
+      // ─────────────────────────────────────────────────────────────────────────────
+      // STAGE 2 HARDENING - TASK D: WEBHOOK STATE AUTHORITY
+      // Webhook updates are authoritative - always overwrite local status
+      // Implement idempotency to prevent duplicate processing
+      // ─────────────────────────────────────────────────────────────────────────────
+      
+      // Generate unique event ID for idempotency
+      const webhookEventId = `${message_template_id}_${event}_${Date.now()}`;
+      
+      // Check for duplicate webhook (same event within 5 seconds)
+      if (template.lastWebhookEventId && template.lastWebhookUpdate) {
+        const lastEventParts = template.lastWebhookEventId.split('_');
+        const lastEventType = lastEventParts[1];
+        const timeSinceLastUpdate = Date.now() - new Date(template.lastWebhookUpdate).getTime();
+        
+        // Skip if same event type received within 5 seconds (duplicate)
+        if (lastEventType === event && timeSinceLastUpdate < 5000) {
+          console.log(`[BSP Webhook] ⏭️ Skipping duplicate template event: ${event} for ${message_template_name}`);
+          return { success: true, skipped: true, reason: 'duplicate_event' };
+        }
+      }
+      
       // Store previous status for history
       const previousStatus = template.status;
       
@@ -647,14 +776,36 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
       
       const newStatus = statusMap[event] || event;
       
-      // Update template fields
+      // ─────────────────────────────────────────────────────────────────────────────
+      // AUTHORITATIVE UPDATE: Webhook status always wins
+      // This prevents race conditions between local submission and webhook
+      // ─────────────────────────────────────────────────────────────────────────────
       template.status = newStatus;
       template.metaTemplateId = message_template_id || template.metaTemplateId;
       template.metaTemplateName = message_template_name;
       template.lastWebhookUpdate = new Date();
+      template.lastWebhookEventId = webhookEventId; // Store for idempotency
       
+      // Stage 2 Enhancement: Parse and store detailed rejection info
       if (reason) {
         template.rejectionReason = reason;
+        template.rejectionDetails = parseRejectionReason(reason);
+      }
+      
+      // Stage 2 Enhancement: Clear rejection on approval
+      if (newStatus === 'APPROVED') {
+        template.rejectionReason = null;
+        template.rejectionDetails = null;
+        
+        // If this is a forked version that got approved, mark it as active
+        // and deactivate the original
+        if (template.originalTemplateId) {
+          template.isActiveVersion = true;
+          await Template.findByIdAndUpdate(template.originalTemplateId, {
+            isActiveVersion: false
+          });
+          console.log(`[BSP Webhook] Forked template approved - activated new version, deactivated original`);
+        }
       }
       
       // Add to approval history if status changed
@@ -664,18 +815,23 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
           status: newStatus,
           timestamp: new Date(),
           reason: reason,
-          source: 'WEBHOOK'
+          source: 'WEBHOOK',
+          metaEventId: message_template_id,
+          authoritative: true // Mark as authoritative webhook update
         });
       }
       
-      // Set approved timestamp
+      // Set approved/rejected timestamps
       if (newStatus === 'APPROVED' && !template.approvedAt) {
         template.approvedAt = new Date();
+      }
+      if (newStatus === 'REJECTED') {
+        template.rejectedAt = new Date();
       }
       
       await template.save();
       
-      console.log(`[BSP Webhook] Template ${message_template_name} status: ${previousStatus} → ${newStatus}`);
+      console.log(`[BSP Webhook] Template ${message_template_name} status: ${previousStatus} → ${newStatus} (authoritative)`);
       
       // Emit socket event to workspace
       const emitWorkspace = targetWorkspace || template.workspace;
@@ -688,14 +844,16 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
             status: newStatus,
             previousStatus,
             reason,
-            timestamp: new Date()
+            rejectionDetails: template.rejectionDetails,
+            timestamp: new Date(),
+            authoritative: true // Inform client this is authoritative
           });
         } catch (socketErr) {
           console.error('Socket emit error:', socketErr.message);
         }
       }
       
-      return { success: true, templateId: template._id, newStatus };
+      return { success: true, templateId: template._id, newStatus, authoritative: true };
     } else {
       console.warn(`[BSP Webhook] Template not found: ${message_template_name} (ID: ${message_template_id})`);
       return { success: false, reason: 'Template not found' };
@@ -704,6 +862,62 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
     console.error('[BSP Webhook] Error processing template update:', templateErr);
     return { success: false, error: templateErr.message };
   }
+}
+
+/**
+ * Stage 2: Parse Meta rejection reason into structured format
+ */
+function parseRejectionReason(reason) {
+  if (!reason) return null;
+  
+  const rejectionPatterns = {
+    SCAM: /scam|fraud|phishing/i,
+    PROMOTIONAL_CONTENT: /promotional|marketing.*utility|wrong.*category/i,
+    ABUSIVE_CONTENT: /abusive|offensive|violent|hate/i,
+    INVALID_FORMAT: /format|variable|parameter|syntax/i,
+    MISSING_EXAMPLE: /example|sample/i,
+    INVALID_URL: /url|link/i,
+    INVALID_MEDIA: /media|image|video|document/i,
+    DUPLICATE: /duplicate|already.*exist/i,
+    TRADEMARK: /trademark|copyright|brand/i,
+    POLICY_VIOLATION: /policy|violat|terms/i
+  };
+  
+  let category = 'OTHER';
+  for (const [cat, pattern] of Object.entries(rejectionPatterns)) {
+    if (pattern.test(reason)) {
+      category = cat;
+      break;
+    }
+  }
+  
+  return {
+    reason,
+    category,
+    timestamp: new Date(),
+    helpText: getRejectionHelpText(category)
+  };
+}
+
+/**
+ * Get help text for rejection categories
+ */
+function getRejectionHelpText(category) {
+  const helpTexts = {
+    SCAM: 'Remove any content that could be perceived as fraudulent or misleading.',
+    PROMOTIONAL_CONTENT: 'Change category to MARKETING or remove promotional language for UTILITY templates.',
+    ABUSIVE_CONTENT: 'Remove offensive, violent, or hateful content.',
+    INVALID_FORMAT: 'Check variable format - must be {{1}}, {{2}}, etc. in sequence.',
+    MISSING_EXAMPLE: 'Add example values for all variables.',
+    INVALID_URL: 'Ensure URL is valid, uses HTTPS, and doesn\'t use URL shorteners.',
+    INVALID_MEDIA: 'Check media URL/handle is valid and accessible.',
+    DUPLICATE: 'A template with this name already exists. Use a different name.',
+    TRADEMARK: 'Remove trademarked terms or get proper authorization.',
+    POLICY_VIOLATION: 'Review WhatsApp Business Policy and remove violating content.',
+    OTHER: 'Review the rejection reason and update content accordingly.'
+  };
+  
+  return helpTexts[category] || helpTexts.OTHER;
 }
 
 // ✅ Handle Meta account-level updates

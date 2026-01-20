@@ -139,6 +139,17 @@ try {
   console.error('[Server] Failed to start token refresh cron:', err.message);
 }
 
+// Start WABA autosync service (Stage 1 hardening)
+if (process.env.START_WABA_AUTOSYNC !== 'false') {
+  try {
+    const { startAutosync } = require('./services/wabaAutosyncService');
+    startAutosync();
+    console.log('[Server] ✅ WABA autosync service started');
+  } catch (err) {
+    console.error('[Server] Failed to start WABA autosync:', err.message);
+  }
+}
+
 // Initialize socket.io
 initSocket(server);
 
@@ -162,6 +173,8 @@ const billingRoutes = require('./routes/billingRoutes'); // Week 2 addition
 const templateRoutes = require('./routes/templateRoutes');
 const messagingRoutes = require('./routes/messagingRoutes'); // Template sending (Interakt-style)
 const conversationRoutes = require('./routes/conversationRoutes');
+const inboxRoutes = require('./routes/inboxRoutes'); // Stage 4: Shared Inbox
+const internalNotesRoutes = require('./routes/internalNotesRoutes'); // Stage 4 Hardening: Internal Notes
 const metricsRoutes = require('./routes/metricsRoutes');
 const onboardingRoutes = require('./routes/onboardingRoutes');
 const bspOnboardingRoutes = require('./routes/bspOnboardingRoutes'); // BSP Interakt model
@@ -176,6 +189,10 @@ const checkoutBotRoutes = require('./routes/checkoutBotRoutes');
 const integrationsRoutes = require('./routes/integrationsRoutes');
 const widgetRoutes = require('./routes/widgetRoutes');
 const dataDeletionRoutes = require('./routes/dataDeletionRoutes');
+const billingReportsRoutes = require('./routes/billingReportsRoutes'); // Stage 5: Billing Reports
+const tagRoutes = require('./routes/tagRoutes'); // Stage 5: CRM Tags
+const analyticsDashboardRoutes = require('./routes/analyticsDashboardRoutes'); // Stage 5: Analytics Dashboard
+const automationEngineRoutes = require('./routes/automationEngineRoutes'); // Stage 6: Automation Engine
 
 app.use('/api/v1/campaigns', campaignRoutes);
 app.use('/api/v1/ads', adsRoutes);
@@ -190,6 +207,8 @@ app.use('/api/v1/billing', billingRoutes); // Week 2 addition
 app.use('/api/v1/templates', templateRoutes);
 app.use('/api/v1/messages', messagingRoutes); // Template sending (Interakt-style)
 app.use('/api/v1/conversations', conversationRoutes);
+app.use('/api/v1/inbox', inboxRoutes); // Stage 4: Shared Inbox
+app.use('/api/v1/inbox', internalNotesRoutes); // Stage 4 Hardening: Internal Notes
 app.use('/api/v1/metrics', metricsRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);
 app.use('/api/v1/onboarding/bsp', bspOnboardingRoutes); // BSP Interakt model
@@ -204,6 +223,21 @@ app.use('/api/v1/checkout-bot', checkoutBotRoutes);
 app.use('/api/v1/integrations', integrationsRoutes);
 app.use('/api/v1/widget', widgetRoutes);
 app.use('/api/v1/privacy', dataDeletionRoutes);
+app.use('/api/v1/reports', billingReportsRoutes); // Stage 5: Billing Reports
+app.use('/api/v1/tags', tagRoutes); // Stage 5: CRM Tags
+app.use('/api/v1/analytics/dashboard', analyticsDashboardRoutes); // Stage 5: Analytics Dashboard
+app.use('/api/v1/automation/engine', automationEngineRoutes); // Stage 6: Automation Engine
+
+// Start Automation Engine (Stage 6)
+if (process.env.ENABLE_AUTOMATION_ENGINE !== 'false') {
+  try {
+    const { startEngine } = require('./services/automationEngine');
+    startEngine();
+    console.log('[Server] ✅ Automation engine started');
+  } catch (err) {
+    console.error('[Server] Failed to start automation engine:', err.message);
+  }
+}
 
 // Root - redirect to health for a friendly default
 app.get('/', (req, res) => res.redirect('/api/v1/health'));
@@ -229,6 +263,20 @@ if (process.env.START_WORKER === 'true') {
   // ✅ Initialize workflow worker
   const { initWorkflowWorker } = require('./services/workflowExecutionService');
   initWorkflowWorker();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STAGE 3: Campaign Scheduler
+// Checks for scheduled campaigns and starts them at the specified time
+// ═══════════════════════════════════════════════════════════════════════════════
+if (process.env.START_CAMPAIGN_SCHEDULER !== 'false') {
+  try {
+    const { startScheduler } = require('./services/campaignSchedulerService');
+    startScheduler();
+    console.log('[Server] ✅ Campaign scheduler started');
+  } catch (err) {
+    console.error('[Server] Failed to start campaign scheduler:', err.message);
+  }
 }
 
 // Simple analytics cron (daily) - can be expanded to a separate worker/cron service

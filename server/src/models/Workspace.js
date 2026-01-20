@@ -326,6 +326,105 @@ const WorkspaceSchema = new mongoose.Schema({
       push: { type: Boolean, default: true }
     }
   },
+  
+  // ═══════════════════════════════════════════════════════════════════
+  // STAGE 4 HARDENING: INBOX SETTINGS
+  // ═══════════════════════════════════════════════════════════════════
+  inboxSettings: {
+    // Auto-assignment configuration
+    autoAssignmentEnabled: { type: Boolean, default: false },
+    assignmentStrategy: {
+      type: String,
+      enum: ['ROUND_ROBIN', 'LEAST_ASSIGNED', 'LEAST_UNREAD', 'MANUAL'],
+      default: 'MANUAL'
+    },
+    // Track last assigned agent for round-robin
+    lastAssignedAgentIndex: { type: Number, default: 0 },
+    
+    // SLA configuration
+    slaEnabled: { type: Boolean, default: false },
+    slaFirstResponseMinutes: { type: Number, default: 60 }, // Default 1 hour
+    slaResolutionMinutes: { type: Number, default: 1440 }, // Default 24 hours
+    slaBreachAutoEscalate: { type: Boolean, default: true },
+    
+    // Agent rate limiting (safety)
+    agentRateLimitEnabled: { type: Boolean, default: true },
+    agentMessagesPerMinute: { type: Number, default: 30 },
+    
+    // Soft lock settings
+    softLockEnabled: { type: Boolean, default: true },
+    softLockTimeoutSeconds: { type: Number, default: 60 }
+  },
+  
+  // ═══════════════════════════════════════════════════════════════════
+  // STAGE 5: BILLING QUOTA & USAGE TRACKING
+  // ═══════════════════════════════════════════════════════════════════
+  
+  /**
+   * Billing quota limits per month
+   * Based on plan tier
+   */
+  billingQuota: {
+    // Total monthly conversation limit
+    monthlyConversations: { type: Number, default: 1000 },
+    
+    // Per-category limits (optional - for enterprise plans)
+    marketingConversations: { type: Number },
+    utilityConversations: { type: Number },
+    authenticationConversations: { type: Number },
+    serviceConversations: { type: Number },
+    
+    // Warning and block thresholds (percentage)
+    warningThreshold: { type: Number, default: 80 },
+    blockThreshold: { type: Number, default: 100 },
+    
+    // Whether to hard block or just warn
+    hardBlock: { type: Boolean, default: false },
+    
+    // Custom override (for enterprise deals)
+    isCustom: { type: Boolean, default: false },
+    customQuotaNote: { type: String }
+  },
+  
+  /**
+   * Monthly usage counters (reset at start of billing period)
+   */
+  billingUsage: {
+    // Total conversations this month
+    monthlyConversationsUsed: { type: Number, default: 0 },
+    
+    // Breakdown by category
+    marketingUsed: { type: Number, default: 0 },
+    utilityUsed: { type: Number, default: 0 },
+    authenticationUsed: { type: Number, default: 0 },
+    serviceUsed: { type: Number, default: 0 },
+    
+    // Breakdown by initiator
+    businessInitiated: { type: Number, default: 0 },
+    userInitiated: { type: Number, default: 0 },
+    
+    // Breakdown by source
+    campaignConversations: { type: Number, default: 0 },
+    inboxConversations: { type: Number, default: 0 },
+    apiConversations: { type: Number, default: 0 },
+    automationConversations: { type: Number, default: 0 },
+    
+    // Total messages (not conversations)
+    totalMessagesSent: { type: Number, default: 0 },
+    totalMessagesReceived: { type: Number, default: 0 },
+    templateMessagesSent: { type: Number, default: 0 },
+    
+    // Reset tracking
+    lastResetAt: { type: Date, default: Date.now },
+    billingPeriodStart: { type: Date },
+    billingPeriodEnd: { type: Date },
+    
+    // Warning status
+    warningIssuedAt: { type: Date },
+    warningAcknowledgedAt: { type: Date },
+    blockIssuedAt: { type: Date }
+  },
+  
   subscription: {
     status: { 
       type: String, 
@@ -430,6 +529,133 @@ WorkspaceSchema.methods.incrementUsage = function(resource, amount = 1) {
 WorkspaceSchema.methods.decrementUsage = function(resource, amount = 1) {
   this.usage[resource] = Math.max(0, (this.usage[resource] || 0) - amount);
   return this.save();
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// STAGE 5: BILLING USAGE METHODS
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Increment conversation billing counters atomically
+ * Called when a new billable conversation starts
+ * 
+ * @param {String} category - MARKETING, UTILITY, AUTHENTICATION, SERVICE
+ * @param {String} initiatedBy - BUSINESS, USER
+ * @param {String} source - CAMPAIGN, INBOX, API, AUTOMATION
+ */
+WorkspaceSchema.methods.incrementBillingUsage = async function(category, initiatedBy, source) {
+  const categoryField = `billingUsage.${category.toLowerCase()}Used`;
+  const initiatorField = initiatedBy === 'BUSINESS' ? 
+    'billingUsage.businessInitiated' : 'billingUsage.userInitiated';
+  
+  const sourceFieldMap = {
+    'CAMPAIGN': 'billingUsage.campaignConversations',
+    'INBOX': 'billingUsage.inboxConversations',
+    'API': 'billingUsage.apiConversations',
+    'AUTOMATION': 'billingUsage.automationConversations',
+    'ANSWERBOT': 'billingUsage.automationConversations'
+  };
+  const sourceField = sourceFieldMap[source] || 'billingUsage.inboxConversations';
+  
+  const updateOps = {
+    $inc: {
+      'billingUsage.monthlyConversationsUsed': 1,
+      [categoryField]: 1,
+      [initiatorField]: 1,
+      [sourceField]: 1
+    }
+  };
+  
+  return await this.constructor.findByIdAndUpdate(this._id, updateOps, { new: true });
+};
+
+/**
+ * Check if workspace is at or over quota
+ * @returns {Object} { isWarning, isBlocked, percentage, remaining }
+ */
+WorkspaceSchema.methods.checkBillingQuota = function() {
+  const quota = this.billingQuota || {};
+  const usage = this.billingUsage || {};
+  
+  const limit = quota.monthlyConversations || 1000;
+  const used = usage.monthlyConversationsUsed || 0;
+  const percentage = (used / limit) * 100;
+  
+  const warningThreshold = quota.warningThreshold || 80;
+  const blockThreshold = quota.blockThreshold || 100;
+  const hardBlock = quota.hardBlock !== false; // Default true
+  
+  return {
+    used,
+    limit,
+    remaining: Math.max(0, limit - used),
+    percentage: Math.round(percentage * 100) / 100,
+    isWarning: percentage >= warningThreshold,
+    isBlocked: percentage >= blockThreshold && hardBlock,
+    isSoftWarning: percentage >= blockThreshold && !hardBlock,
+    warningThreshold,
+    blockThreshold
+  };
+};
+
+/**
+ * Reset monthly billing counters
+ * Called at the start of a new billing period
+ */
+WorkspaceSchema.methods.resetBillingUsage = async function() {
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  
+  return await this.constructor.findByIdAndUpdate(
+    this._id,
+    {
+      $set: {
+        'billingUsage.monthlyConversationsUsed': 0,
+        'billingUsage.marketingUsed': 0,
+        'billingUsage.utilityUsed': 0,
+        'billingUsage.authenticationUsed': 0,
+        'billingUsage.serviceUsed': 0,
+        'billingUsage.businessInitiated': 0,
+        'billingUsage.userInitiated': 0,
+        'billingUsage.campaignConversations': 0,
+        'billingUsage.inboxConversations': 0,
+        'billingUsage.apiConversations': 0,
+        'billingUsage.automationConversations': 0,
+        'billingUsage.totalMessagesSent': 0,
+        'billingUsage.totalMessagesReceived': 0,
+        'billingUsage.templateMessagesSent': 0,
+        'billingUsage.lastResetAt': now,
+        'billingUsage.billingPeriodStart': now,
+        'billingUsage.billingPeriodEnd': nextMonth,
+        'billingUsage.warningIssuedAt': null,
+        'billingUsage.warningAcknowledgedAt': null,
+        'billingUsage.blockIssuedAt': null
+      }
+    },
+    { new: true }
+  );
+};
+
+/**
+ * Increment message counters (not conversations)
+ * @param {String} direction - inbound or outbound
+ * @param {Boolean} isTemplate - whether it's a template message
+ */
+WorkspaceSchema.methods.incrementMessageUsage = async function(direction, isTemplate = false) {
+  const updateOps = {
+    $inc: {}
+  };
+  
+  if (direction === 'outbound') {
+    updateOps.$inc['billingUsage.totalMessagesSent'] = 1;
+    if (isTemplate) {
+      updateOps.$inc['billingUsage.templateMessagesSent'] = 1;
+    }
+  } else {
+    updateOps.$inc['billingUsage.totalMessagesReceived'] = 1;
+  }
+  
+  return await this.constructor.findByIdAndUpdate(this._id, updateOps, { new: true });
 };
 
 // ═══════════════════════════════════════════════════════════════════

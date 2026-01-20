@@ -2,16 +2,21 @@
 
 /**
  * =============================================================================
- * BSP ONBOARDING COMPONENT - INTERAKT PARENTAL MODEL
+ * BSP ONBOARDING COMPONENT - INTERAKT PARENTAL MODEL (HARDENED)
  * =============================================================================
  * 
  * Clean, simple WhatsApp onboarding via BSP Embedded Signup V2
  * - Users connect their WhatsApp under your parent WABA
  * - Fully automated like Interakt
  * - No manual configuration required
+ * 
+ * STAGE 1 FEATURES:
+ * - Shows phone activation status
+ * - Auto-syncs until phone is CONNECTED
+ * - Blocks navigation to messaging features until Stage 1 complete
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api';
 
@@ -21,8 +26,10 @@ export default function BspOnboarding() {
   
   // State
   const [status, setStatus] = useState(null);
+  const [stage1Status, setStage1Status] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState(null);
 
   // Check for callback params
@@ -55,17 +62,36 @@ export default function BspOnboarding() {
     loadStatus();
   }, [code, state, callbackError]);
 
+  // Auto-sync for pending phone activation
+  useEffect(() => {
+    if (stage1Status && !stage1Status.complete && stage1Status.checklist?.phoneNumberIdFetched) {
+      // Phone is provisioned but not connected - poll for status
+      const interval = setInterval(() => {
+        triggerSync();
+      }, 30000); // Check every 30 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [stage1Status]);
+
   // ==========================================================================
   // API CALLS
   // ==========================================================================
 
   const loadStatus = async () => {
     try {
-      const response = await api.get('/onboarding/bsp/status');
-      setStatus(response);
+      const [statusRes, stage1Res] = await Promise.all([
+        api.get('/onboarding/bsp/status'),
+        api.get('/onboarding/bsp/stage1-status').catch(() => null)
+      ]);
       
-      // If already connected, redirect to dashboard
-      if (response.connected) {
+      setStatus(statusRes);
+      if (stage1Res) {
+        setStage1Status(stage1Res.stage1);
+      }
+      
+      // If already connected AND Stage 1 complete, redirect to dashboard
+      if (statusRes.connected && stage1Res?.stage1?.complete) {
         setTimeout(() => router.push('/dashboard'), 2000);
       }
     } catch (err) {
@@ -112,12 +138,19 @@ export default function BspOnboarding() {
         
         // Update status
         setStatus({
-          connected: true,
+          connected: response.workspace?.phoneStatus === 'CONNECTED',
           workspace: response.workspace
         });
         
-        // Redirect to dashboard after showing success
-        setTimeout(() => router.push('/dashboard'), 3000);
+        // Update Stage 1 status
+        if (response.stage1) {
+          setStage1Status(response.stage1);
+        }
+        
+        // If Stage 1 is complete, redirect to dashboard
+        if (response.stage1?.complete) {
+          setTimeout(() => router.push('/dashboard'), 3000);
+        }
       } else {
         throw new Error(response.message || 'Failed to complete signup');
       }
@@ -131,6 +164,28 @@ export default function BspOnboarding() {
     }
   };
 
+  const triggerSync = useCallback(async () => {
+    if (syncing) return;
+    
+    setSyncing(true);
+    try {
+      const response = await api.post('/onboarding/bsp/sync', {});
+      
+      if (response.stage1) {
+        setStage1Status(response.stage1);
+        
+        // If now complete, redirect
+        if (response.stage1.complete) {
+          setTimeout(() => router.push('/dashboard'), 2000);
+        }
+      }
+    } catch (err) {
+      console.error('Sync failed:', err);
+    } finally {
+      setSyncing(false);
+    }
+  }, [syncing, router]);
+
   const disconnect = async () => {
     if (!confirm('Are you sure you want to disconnect WhatsApp?')) {
       return;
@@ -139,10 +194,49 @@ export default function BspOnboarding() {
     try {
       await api.post('/onboarding/bsp/disconnect', {});
       setStatus({ connected: false });
+      setStage1Status(null);
     } catch (err) {
       console.error('Failed to disconnect:', err);
       setError(err.message);
     }
+  };
+
+  // ==========================================================================
+  // RENDER HELPERS
+  // ==========================================================================
+
+  const renderStage1Checklist = () => {
+    if (!stage1Status?.checklist) return null;
+
+    const items = [
+      { key: 'businessIdFetched', label: 'Business ID Fetched' },
+      { key: 'wabaIdFetched', label: 'WABA ID Fetched' },
+      { key: 'phoneNumberIdFetched', label: 'Phone Number Configured' },
+      { key: 'phoneConnected', label: 'Phone Activated' },
+      { key: 'webhooksSubscribed', label: 'Webhooks Connected' }
+    ];
+
+    return (
+      <div className="bg-gray-50 rounded-lg p-4 mb-6">
+        <h3 className="font-medium text-gray-900 mb-3">Setup Progress</h3>
+        <div className="space-y-2">
+          {items.map(({ key, label }) => (
+            <div key={key} className="flex items-center gap-2">
+              {stage1Status.checklist[key] ? (
+                <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <div className="w-5 h-5 rounded-full border-2 border-gray-300"></div>
+              )}
+              <span className={stage1Status.checklist[key] ? 'text-gray-900' : 'text-gray-500'}>
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   // ==========================================================================
@@ -171,8 +265,64 @@ export default function BspOnboarding() {
     );
   }
 
-  // Already connected
-  if (status?.connected) {
+  // Phone pending activation (Stage 1 incomplete)
+  if (status?.workspace && stage1Status && !stage1Status.complete) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-yellow-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Activating Phone...</h1>
+            <p className="text-gray-600 mt-2">
+              Your WhatsApp Business is being set up. This usually takes a few minutes.
+            </p>
+          </div>
+
+          {/* Stage 1 Checklist */}
+          {renderStage1Checklist()}
+
+          {/* Phone Details */}
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Phone Number</span>
+                <span className="font-medium">{stage1Status.details?.phoneNumber || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Status</span>
+                <span className={`font-medium ${
+                  stage1Status.details?.phoneStatus === 'CONNECTED' ? 'text-green-600' : 'text-yellow-600'
+                }`}>
+                  {stage1Status.details?.phoneStatus || 'PENDING'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sync Button */}
+          <button
+            onClick={triggerSync}
+            disabled={syncing}
+            className="w-full py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition disabled:opacity-50"
+          >
+            {syncing ? 'Checking status...' : 'Check Activation Status'}
+          </button>
+
+          <p className="text-xs text-gray-500 text-center mt-4">
+            Auto-checking every 30 seconds. You can also check manually.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Already connected AND Stage 1 complete
+  if (status?.connected && stage1Status?.complete) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">

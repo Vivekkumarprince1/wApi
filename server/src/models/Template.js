@@ -287,6 +287,95 @@ const TemplateSchema = new mongoose.Schema({
   preview: { type: String }, // Full preview text
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // VERSIONING (Stage 2 Enhancement)
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Template version - incremented on each edit
+   * Used for tracking changes and conflict detection
+   */
+  version: {
+    type: Number,
+    default: 1
+  },
+  
+  /**
+   * Last edit metadata
+   */
+  lastEditedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  lastEditedAt: { type: Date },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // VERSION FORKING (Stage 2 Hardening - Task A)
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Reference to original approved template (when forking)
+   * If set, this template is a fork/edit of an approved version
+   */
+  originalTemplateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Template'
+  },
+  
+  /**
+   * Whether this template is the currently active approved version
+   * Used when multiple versions exist (original + forks)
+   */
+  isActiveVersion: {
+    type: Boolean,
+    default: true
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // META PAYLOAD SNAPSHOT (Stage 2 Hardening - Task B)
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Exact payload sent to Meta API for audit/debug
+   * Immutable after submission - never mutate
+   */
+  metaPayloadSnapshot: {
+    components: { type: Array },
+    name: { type: String },
+    language: { type: String },
+    category: { type: String },
+    submittedAt: { type: Date },
+    raw: { type: mongoose.Schema.Types.Mixed }
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // USAGE TRACKING (Stage 2 Hardening - Task C)
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Number of campaigns using this template
+   * Prevents deletion if > 0
+   */
+  usedInCampaigns: {
+    type: Number,
+    default: 0
+  },
+  
+  /**
+   * Last time template was used for sending
+   */
+  lastUsedAt: { type: Date },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // WEBHOOK STATE (Stage 2 Hardening - Task D)
+  // ─────────────────────────────────────────────────────────────────────────────
+  /**
+   * Timestamp of last webhook status update
+   * Used for idempotency and race condition prevention
+   */
+  lastWebhookUpdate: { type: Date },
+  
+  /**
+   * Event ID from last webhook for deduplication
+   */
+  lastWebhookEventId: { type: String },
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // METADATA
   // ─────────────────────────────────────────────────────────────────────────────
   source: {
@@ -334,6 +423,18 @@ TemplateSchema.index({ createdAt: -1 });
 
 TemplateSchema.pre('save', function(next) {
   this.updatedAt = new Date();
+  
+  // ─────────────────────────────────────────────────────────────────────────────
+  // VERSION INCREMENT (Stage 2 Enhancement)
+  // Increment version on content changes for DRAFT/REJECTED templates
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (this.isModified('body.text') || this.isModified('header') || 
+      this.isModified('footer') || this.isModified('buttons')) {
+    if (this.status === 'DRAFT' || this.status === 'REJECTED') {
+      this.version = (this.version || 0) + 1;
+      this.lastEditedAt = new Date();
+    }
+  }
   
   // Extract variables from body
   if (this.body?.text) {
@@ -434,6 +535,313 @@ TemplateSchema.statics.findByWorkspace = async function(workspaceId, options = {
   return this.find(query)
     .sort({ createdAt: -1 })
     .populate('createdBy', 'name email');
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE USAGE GUARD METHODS (Stage 2 - Task 6)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get all APPROVED templates for a workspace
+ * Use this for template selection in campaigns, auto-replies, workflows
+ * @param {ObjectId} workspaceId - The workspace ID
+ * @param {Object} options - Filter options { category, search }
+ * @returns {Promise<Array>} Array of approved templates
+ */
+TemplateSchema.statics.getApprovedTemplates = async function(workspaceId, options = {}) {
+  const query = {
+    workspace: workspaceId,
+    status: 'APPROVED'
+  };
+  
+  if (options.category) {
+    query.category = options.category;
+  }
+  
+  if (options.language) {
+    query.language = options.language;
+  }
+  
+  if (options.search) {
+    query.$or = [
+      { name: { $regex: options.search, $options: 'i' } },
+      { displayName: { $regex: options.search, $options: 'i' } },
+      { bodyText: { $regex: options.search, $options: 'i' } }
+    ];
+  }
+  
+  return this.find(query)
+    .select('name displayName language category variableCount preview metaTemplateName qualityScore')
+    .sort({ approvedAt: -1 })
+    .lean();
+};
+
+/**
+ * Get an approved template by ID (with validation)
+ * Returns null if template is not approved - prevents accidental use of non-approved templates
+ * @param {ObjectId} templateId - The template ID
+ * @param {ObjectId} workspaceId - The workspace ID (for security)
+ * @returns {Promise<Object|null>} Template if approved, null otherwise
+ */
+TemplateSchema.statics.getApprovedTemplateById = async function(templateId, workspaceId) {
+  const template = await this.findOne({
+    _id: templateId,
+    workspace: workspaceId,
+    status: 'APPROVED'
+  });
+  
+  return template;
+};
+
+/**
+ * Validate that a template is approved for sending
+ * Throws descriptive errors for non-approved templates
+ * @param {ObjectId} templateId - The template ID
+ * @param {ObjectId} workspaceId - The workspace ID
+ * @returns {Promise<Object>} Approved template document
+ * @throws {Error} If template not found, not owned by workspace, or not approved
+ */
+TemplateSchema.statics.requireApprovedTemplate = async function(templateId, workspaceId) {
+  const template = await this.findOne({
+    _id: templateId,
+    workspace: workspaceId
+  });
+  
+  if (!template) {
+    const error = new Error('TEMPLATE_NOT_FOUND: Template does not exist or is not accessible');
+    error.code = 'TEMPLATE_NOT_FOUND';
+    error.statusCode = 404;
+    throw error;
+  }
+  
+  if (template.status !== 'APPROVED') {
+    const statusMessages = {
+      'DRAFT': 'Template has not been submitted for approval. Submit it first.',
+      'PENDING': 'Template is pending Meta approval. Please wait.',
+      'REJECTED': 'Template was rejected by Meta. Edit and resubmit.',
+      'PAUSED': 'Template is temporarily paused by Meta.',
+      'DISABLED': 'Template has been disabled by Meta.',
+      'DELETED': 'Template has been deleted.',
+      'LIMIT_EXCEEDED': 'Template quality limit exceeded.'
+    };
+    
+    const error = new Error(`TEMPLATE_NOT_APPROVED: ${statusMessages[template.status] || 'Template is not approved for sending.'}`);
+    error.code = 'TEMPLATE_NOT_APPROVED';
+    error.statusCode = 400;
+    error.templateStatus = template.status;
+    error.templateName = template.name;
+    throw error;
+  }
+  
+  return template;
+};
+
+/**
+ * Get templates by status for workspace
+ * Useful for dashboard stats and template management UI
+ * @param {ObjectId} workspaceId - The workspace ID
+ * @returns {Promise<Object>} Counts by status
+ */
+TemplateSchema.statics.getStatusCounts = async function(workspaceId) {
+  const counts = await this.aggregate([
+    { $match: { workspace: workspaceId } },
+    { $group: { _id: '$status', count: { $sum: 1 } } }
+  ]);
+  
+  return counts.reduce((acc, { _id, count }) => {
+    acc[_id] = count;
+    return acc;
+  }, {
+    DRAFT: 0,
+    PENDING: 0,
+    APPROVED: 0,
+    REJECTED: 0,
+    PAUSED: 0,
+    DISABLED: 0
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VERSION FORKING METHODS (Stage 2 Hardening - Task A)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Clone an approved template to create a new editable version
+ * The original approved template remains usable and unchanged
+ * 
+ * @param {ObjectId} templateId - The approved template to clone
+ * @param {ObjectId} userId - User creating the clone
+ * @returns {Promise<Object>} New template in DRAFT status
+ * @throws {Error} If template is not approved or not found
+ */
+TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId) {
+  const Template = this;
+  
+  const originalTemplate = await Template.findById(templateId);
+  
+  if (!originalTemplate) {
+    const error = new Error('TEMPLATE_NOT_FOUND: Template does not exist');
+    error.code = 'TEMPLATE_NOT_FOUND';
+    error.statusCode = 404;
+    throw error;
+  }
+  
+  if (originalTemplate.status !== 'APPROVED') {
+    const error = new Error('TEMPLATE_NOT_APPROVED: Only approved templates can be forked for editing');
+    error.code = 'TEMPLATE_NOT_APPROVED';
+    error.statusCode = 400;
+    error.templateStatus = originalTemplate.status;
+    throw error;
+  }
+  
+  // Generate new name with version suffix
+  const newVersion = originalTemplate.version + 1;
+  const baseName = originalTemplate.name.replace(/_v\d+$/, ''); // Remove existing version suffix
+  const newName = `${baseName}_v${newVersion}`;
+  
+  // Check if name already exists
+  const existingClone = await Template.findOne({
+    workspace: originalTemplate.workspace,
+    name: newName
+  });
+  
+  if (existingClone) {
+    // Return existing draft if available
+    if (existingClone.status === 'DRAFT') {
+      return { template: existingClone, wasExisting: true };
+    }
+    
+    // Otherwise generate unique name
+    const timestamp = Date.now().toString().slice(-4);
+    const uniqueName = `${baseName}_v${newVersion}_${timestamp}`;
+    return createClone(originalTemplate, uniqueName, newVersion, userId);
+  }
+  
+  return createClone(originalTemplate, newName, newVersion, userId);
+  
+  async function createClone(original, name, version, creatorId) {
+    const clonedTemplate = new Template({
+      workspace: original.workspace,
+      name: name,
+      displayName: original.displayName ? `${original.displayName} (v${version})` : null,
+      language: original.language,
+      category: original.category,
+      header: original.header,
+      body: original.body,
+      footer: original.footer,
+      buttons: original.buttons,
+      parameterFormat: original.parameterFormat,
+      // New version metadata
+      status: 'DRAFT',
+      version: version,
+      originalTemplateId: original._id,
+      isActiveVersion: false, // Original remains active until this is approved
+      // Ownership
+      createdBy: creatorId,
+      lastEditedBy: creatorId,
+      source: 'LOCAL',
+      generationSource: 'version_fork'
+    });
+    
+    await clonedTemplate.save();
+    
+    return { template: clonedTemplate, wasExisting: false };
+  }
+};
+
+/**
+ * Get all versions of a template (including forks)
+ * @param {ObjectId} templateId - Any version of the template
+ * @returns {Promise<Array>} All versions sorted by version number
+ */
+TemplateSchema.statics.getTemplateVersions = async function(templateId) {
+  const Template = this;
+  
+  const template = await Template.findById(templateId);
+  if (!template) return [];
+  
+  // Get the original template ID
+  const originalId = template.originalTemplateId || template._id;
+  
+  // Find all versions (original + forks)
+  const versions = await Template.find({
+    $or: [
+      { _id: originalId },
+      { originalTemplateId: originalId }
+    ]
+  })
+    .sort({ version: 1 })
+    .select('name displayName version status approvedAt createdAt isActiveVersion')
+    .lean();
+  
+  return versions;
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// USAGE TRACKING METHODS (Stage 2 Hardening - Task C)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Increment campaign usage count
+ * Call this when a campaign selects this template
+ * @param {ObjectId} templateId - Template ID
+ * @returns {Promise<Object>} Updated template
+ */
+TemplateSchema.statics.incrementUsage = async function(templateId) {
+  return this.findByIdAndUpdate(
+    templateId,
+    {
+      $inc: { usedInCampaigns: 1 },
+      $set: { lastUsedAt: new Date() }
+    },
+    { new: true }
+  );
+};
+
+/**
+ * Decrement campaign usage count
+ * Call this when a campaign removes/changes this template
+ * @param {ObjectId} templateId - Template ID
+ * @returns {Promise<Object>} Updated template
+ */
+TemplateSchema.statics.decrementUsage = async function(templateId) {
+  return this.findByIdAndUpdate(
+    templateId,
+    {
+      $inc: { usedInCampaigns: -1 }
+    },
+    { new: true }
+  ).then(template => {
+    // Ensure count doesn't go negative
+    if (template && template.usedInCampaigns < 0) {
+      template.usedInCampaigns = 0;
+      return template.save();
+    }
+    return template;
+  });
+};
+
+/**
+ * Check if template can be safely deleted
+ * @param {ObjectId} templateId - Template ID
+ * @returns {Promise<Object>} { canDelete: boolean, reason?: string, usedInCampaigns?: number }
+ */
+TemplateSchema.statics.canDeleteTemplate = async function(templateId) {
+  const template = await this.findById(templateId);
+  
+  if (!template) {
+    return { canDelete: false, reason: 'Template not found' };
+  }
+  
+  if (template.usedInCampaigns > 0) {
+    return {
+      canDelete: false,
+      reason: `Template is used in ${template.usedInCampaigns} campaign(s). Remove it from campaigns first.`,
+      usedInCampaigns: template.usedInCampaigns
+    };
+  }
+  
+  return { canDelete: true };
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
