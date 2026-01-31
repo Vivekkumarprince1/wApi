@@ -1,5 +1,29 @@
 const User = require('../models/User');
 const Workspace = require('../models/Workspace');
+const crypto = require('crypto');
+const { getRedis, setJson, getJson } = require('../config/redis');
+
+// BSP-only hardening: disable legacy ESB + direct token flows
+const BSP_ONLY = process.env.BSP_ONLY !== 'false';
+
+function rejectLegacyEsb(res) {
+  return res.status(410).json({
+    success: false,
+    message: 'Legacy ESB flow disabled. Use /api/v1/onboarding/bsp instead.',
+    code: 'LEGACY_ESB_DISABLED'
+  });
+}
+
+function ensureVerifiedEmail(user, res) {
+  if (!user?.emailVerified) {
+    res.status(403).json({ message: 'Email not verified' });
+    return false;
+  }
+  return true;
+}
+
+// ESB callback idempotency must be durable across instances (Meta/Interakt requirement)
+const ESB_IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60; // 24 hours
 
 /**
  * ✅ ESB State Machine Validation
@@ -64,6 +88,10 @@ async function saveBusinessInfo(req, res, next) {
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!ensureVerifiedEmail(user, res)) {
+      return;
     }
 
     // Update workspace with business information
@@ -195,6 +223,10 @@ async function getOnboardingStatus(req, res, next) {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    if (!ensureVerifiedEmail(user, res)) {
+      return;
+    }
+
     const workspace = await Workspace.findById(user.workspace);
     
     if (!workspace) {
@@ -239,6 +271,10 @@ async function updateOnboardingStep(req, res, next) {
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!ensureVerifiedEmail(user, res)) {
+      return;
     }
 
     const workspace = await Workspace.findById(user.workspace);
@@ -831,6 +867,9 @@ async function getMetaConfig(req, res, next) {
 // Handle Embedded Signup - Exchange token for WABA info
 async function handleEmbeddedSignup(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      return rejectLegacyEsb(res);
+    }
     const { accessToken } = req.body;
     
     if (!accessToken) {
@@ -969,6 +1008,9 @@ async function handleEmbeddedSignup(req, res, next) {
 // Step 1: Start Embedded Signup - Generate ESB URL
 async function startEmbeddedSignupFlow(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      return rejectLegacyEsb(res);
+    }
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -1024,6 +1066,9 @@ async function startEmbeddedSignupFlow(req, res, next) {
 // Step 2: Handle OAuth Callback from Meta
 async function processEsbCallback(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      return rejectLegacyEsb(res);
+    }
     const { code, state } = req.body;
 
     if (!code || !state) {
@@ -1047,10 +1092,13 @@ async function processEsbCallback(req, res, next) {
     }
 
     // Idempotency check - return cached result if already processed
-    const { generateIdempotencyKey, checkIdempotency, storeIdempotencyResult } = require('../utils/idempotency');
-    const idempotencyKey = generateIdempotencyKey('esb_callback', { workspaceId: workspace._id.toString(), code, state });
+    // Durable idempotency using Redis (prevents duplicate processing across nodes)
+    getRedis();
+    const idempotencyKey = `idempotency:esb_callback:${crypto.createHash('sha256')
+      .update(JSON.stringify({ workspaceId: workspace._id.toString(), code, state }))
+      .digest('hex')}`;
     
-    const cachedResult = checkIdempotency(idempotencyKey);
+    const cachedResult = await getJson(idempotencyKey);
     if (cachedResult) {
       console.log(`[ESB] Returning cached result for workspace ${workspace._id}`);
       return res.json(cachedResult);
@@ -1069,7 +1117,7 @@ async function processEsbCallback(req, res, next) {
           status: 'completed'
         }
       };
-      storeIdempotencyResult(idempotencyKey, result);
+      await setJson(idempotencyKey, result, ESB_IDEMPOTENCY_TTL_SECONDS);
       return res.json(result);
     }
 
@@ -1407,6 +1455,9 @@ async function processEsbCallback(req, res, next) {
 
 async function handleEsbCallback(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      return rejectLegacyEsb(res);
+    }
     const { code, state, error, error_description } = req.query;
 
     if (error) {
@@ -1516,6 +1567,9 @@ async function getESBStatus(req, res, next) {
 // Process stored callback code (triggered by frontend after redirect)
 async function processStoredCallback(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      return rejectLegacyEsb(res);
+    }
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -1583,6 +1637,9 @@ async function processStoredCallback(req, res, next) {
 // Complete Embedded Signup - Save phone number and WABA details
 async function completeEmbeddedSignup(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      return rejectLegacyEsb(res);
+    }
     const { phoneNumberId, wabaId } = req.body;
     
     if (!phoneNumberId || !wabaId) {

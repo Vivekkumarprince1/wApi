@@ -250,6 +250,10 @@ async function processCampaignMessage(job) {
 
 // ✅ Process batch of campaign contacts
 async function processCampaignBatch(job) {
+  // LEGACY PATH DISABLED
+  // WHY: Campaign execution must use V2 engine (campaignWorkerService + campaignRateLimiter)
+  throw new Error('LEGACY_CAMPAIGN_ENGINE_DISABLED');
+
   const { campaignId, contactIds, templateId, variableMapping, batchIndex } = job.data;
   const Campaign = require('../models/Campaign');
   const Contact = require('../models/Contact');

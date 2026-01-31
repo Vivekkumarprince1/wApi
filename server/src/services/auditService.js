@@ -5,6 +5,35 @@
 
 const AuditLog = require('../models/AuditLog');
 
+function maskPhone(value) {
+  const digits = (value || '').toString();
+  if (digits.length <= 4) return '****';
+  return `****${digits.slice(-4)}`;
+}
+
+function redactPII(value) {
+  if (Array.isArray(value)) {
+    return value.map(redactPII);
+  }
+  if (value && typeof value === 'object') {
+    const redacted = {};
+    for (const [key, val] of Object.entries(value)) {
+      const lowerKey = key.toLowerCase();
+      if (['email', 'phone', 'wa_id', 'recipient_id'].includes(lowerKey)) {
+        redacted[key] = lowerKey === 'email' ? '[REDACTED]' : maskPhone(val);
+        continue;
+      }
+      if (lowerKey === 'name' || lowerKey === 'profile') {
+        redacted[key] = '[REDACTED]';
+        continue;
+      }
+      redacted[key] = redactPII(val);
+    }
+    return redacted;
+  }
+  return value;
+}
+
 /**
  * Log an action
  * Non-blocking - never fails main flow
@@ -31,6 +60,20 @@ async function log(workspaceId, userId, action, resource = null, details = null,
     AuditLog.create(auditEntry).catch(err => {
       console.error('[Audit] Failed to create log:', err.message);
     });
+
+    const isAdminFailure = /onboarding|token/i.test(action) &&
+      (action.includes('fail') || action.includes('error') || details?.error);
+    if (isAdminFailure) {
+      const adminEntry = {
+        ...auditEntry,
+        action: `admin.${action}`,
+        resource: { type: 'admin', id: workspaceId },
+        details: redactPII(details || {})
+      };
+      AuditLog.create(adminEntry).catch(err => {
+        console.error('[Audit] Failed to create admin log:', err.message);
+      });
+    }
 
   } catch (err) {
     console.error('[Audit] Unexpected error:', err.message);
@@ -90,10 +133,16 @@ async function exportLogs(workspaceId, format = 'json') {
       .sort({ createdAt: -1 })
       .lean();
 
+    const sanitizedLogs = logs.map(log => ({
+      ...log,
+      details: redactPII(log.details || {}),
+      resource: redactPII(log.resource || {})
+    }));
+
     if (format === 'csv') {
       // Convert to CSV
       const headers = ['Timestamp', 'User', 'Action', 'Resource', 'IP', 'Details'];
-      const rows = logs.map(log => [
+      const rows = sanitizedLogs.map(log => [
         log.createdAt.toISOString(),
         log.user || 'system',
         log.action,
@@ -109,7 +158,7 @@ async function exportLogs(workspaceId, format = 'json') {
       return { format: 'csv', content: csvContent };
     }
 
-    return { format: 'json', content: logs };
+    return { format: 'json', content: sanitizedLogs };
   } catch (err) {
     console.error('[Audit] Export failed:', err.message);
     throw err;

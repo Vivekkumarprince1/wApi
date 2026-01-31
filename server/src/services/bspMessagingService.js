@@ -16,9 +16,36 @@ const crypto = require('crypto');
 const bspConfig = require('../config/bspConfig');
 const Workspace = require('../models/Workspace');
 const Message = require('../models/Message');
+const { markTokenInvalid } = require('./bspHealthService');
+const { isOptedOutByPhone, isOptedOut } = require('./optOutService');
+const { storeToken, retrieveToken } = require('./secretsManager');
 
 // In-memory rate limiter (use Redis in production for distributed systems)
 const rateLimiters = new Map();
+
+// Single token authority (vault-backed)
+let systemTokenCache = null;
+let systemTokenRef = null;
+
+async function getSystemUserToken() {
+  if (systemTokenCache) return systemTokenCache;
+
+  if (!systemTokenRef) {
+    if (!bspConfig.systemUserToken) {
+      throw new Error('BSP_TOKEN_NOT_CONFIGURED');
+    }
+
+    const stored = await storeToken('bsp-system', 'systemUserToken', bspConfig.systemUserToken);
+    systemTokenRef = stored.location === 'local' ? stored.encryptedValue : null;
+  }
+
+  systemTokenCache = await retrieveToken('bsp-system', 'systemUserToken', systemTokenRef);
+  if (!systemTokenCache) {
+    throw new Error('BSP_TOKEN_NOT_CONFIGURED');
+  }
+
+  return systemTokenCache;
+}
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -37,6 +64,16 @@ const rateLimiters = new Map();
 async function sendTextMessage(workspaceId, to, text, options = {}) {
   // Get workspace and validate BSP configuration
   const workspace = await getWorkspaceForMessaging(workspaceId);
+
+  // Compliance: enforce opt-out across all outbound sends
+  // WHY: Meta policy requires honoring STOP universally
+  if (options.contactId) {
+    const optedOut = await isOptedOut(options.contactId);
+    if (optedOut) throw new Error('BSP_USER_OPTED_OUT');
+  } else {
+    const optedOut = await isOptedOutByPhone(workspaceId, to);
+    if (optedOut) throw new Error('BSP_USER_OPTED_OUT');
+  }
   
   // Check rate limits
   await checkRateLimit(workspace);
@@ -106,6 +143,15 @@ async function sendTextMessage(workspaceId, to, text, options = {}) {
  */
 async function sendTemplateMessage(workspaceId, to, templateName, languageCode = 'en', components = [], options = {}) {
   const workspace = await getWorkspaceForMessaging(workspaceId);
+
+  // Compliance: enforce opt-out across all outbound sends
+  if (options.contactId) {
+    const optedOut = await isOptedOut(options.contactId);
+    if (optedOut) throw new Error('BSP_USER_OPTED_OUT');
+  } else {
+    const optedOut = await isOptedOutByPhone(workspaceId, to);
+    if (optedOut) throw new Error('BSP_USER_OPTED_OUT');
+  }
   
   await checkRateLimit(workspace);
   
@@ -174,6 +220,15 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
  */
 async function sendMediaMessage(workspaceId, to, mediaType, media, caption = '', options = {}) {
   const workspace = await getWorkspaceForMessaging(workspaceId);
+
+  // Compliance: enforce opt-out across all outbound sends
+  if (options.contactId) {
+    const optedOut = await isOptedOut(options.contactId);
+    if (optedOut) throw new Error('BSP_USER_OPTED_OUT');
+  } else {
+    const optedOut = await isOptedOutByPhone(workspaceId, to);
+    if (optedOut) throw new Error('BSP_USER_OPTED_OUT');
+  }
   
   await checkRateLimit(workspace);
   
@@ -241,6 +296,15 @@ async function sendMediaMessage(workspaceId, to, mediaType, media, caption = '',
  */
 async function sendInteractiveMessage(workspaceId, to, interactive, options = {}) {
   const workspace = await getWorkspaceForMessaging(workspaceId);
+
+  // Compliance: enforce opt-out across all outbound sends
+  if (options.contactId) {
+    const optedOut = await isOptedOut(options.contactId);
+    if (optedOut) throw new Error('BSP_USER_OPTED_OUT');
+  } else {
+    const optedOut = await isOptedOutByPhone(workspaceId, to);
+    if (optedOut) throw new Error('BSP_USER_OPTED_OUT');
+  }
   
   await checkRateLimit(workspace);
   
@@ -506,10 +570,11 @@ async function uploadMedia(workspaceId, file, mimeType) {
   formData.append('type', mimeType);
   
   try {
+    const systemToken = await getSystemUserToken();
     const response = await axios.post(url, formData, {
       headers: {
         ...formData.getHeaders(),
-        'Authorization': `Bearer ${bspConfig.systemUserToken}`
+        'Authorization': `Bearer ${systemToken}`
       }
     });
     
@@ -592,15 +657,13 @@ function verifyWebhookSignature(requestBody, signatureHeader) {
  * Make an authenticated Meta API call using the BSP system token
  */
 async function makeMetaApiCall(method, url, data = null, params = null) {
-  if (!bspConfig.systemUserToken) {
-    throw new Error('BSP_TOKEN_NOT_CONFIGURED');
-  }
+  const systemToken = await getSystemUserToken();
   
   const config = {
     method,
     url,
     headers: {
-      'Authorization': `Bearer ${bspConfig.systemUserToken}`,
+      'Authorization': `Bearer ${systemToken}`,
       'Content-Type': 'application/json'
     }
   };
@@ -622,6 +685,8 @@ async function makeMetaApiCall(method, url, data = null, params = null) {
     // Handle specific Meta errors
     if (error.response?.status === 401 || metaError?.code === 190) {
       console.error('[BSP] ⚠️ System user token expired or invalid!');
+      // Update BSP health snapshot (no token exposure)
+      markTokenInvalid(metaError?.message || 'System token invalid').catch(() => null);
       throw new Error('BSP_TOKEN_EXPIRED');
     }
     
@@ -735,6 +800,8 @@ async function logMessage(workspaceId, messageData) {
     const message = await Message.create({
       workspace: workspaceId,
       contact: messageData.contactId,
+      conversation: messageData.conversationId || undefined,
+      sentBy: messageData.sentBy || undefined,
       direction: messageData.direction,
       type: messageData.type,
       body: messageData.body,

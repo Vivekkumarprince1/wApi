@@ -57,7 +57,6 @@ const TemplateMetricSchema = new mongoose.Schema(
     createdAt: {
       type: Date,
       default: Date.now,
-      index: true,
     },
     approvedAt: {
       type: Date,

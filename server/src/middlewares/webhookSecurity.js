@@ -181,7 +181,11 @@ async function verifyWebhookSignature(req, res, next) {
   }
 
   // Get raw body for verification
-  const rawBody = req.rawBody || JSON.stringify(req.body);
+  const rawBody = req.rawBody;
+  if (!rawBody) {
+    console.error('[WebhookSecurity] ❌ Missing raw body for signature verification');
+    return res.status(400).json({ error: 'Missing raw body' });
+  }
 
   // Verify signature
   const isValid = verifySignature(rawBody, signatureHeader, appSecret);
@@ -226,48 +230,51 @@ async function verifyWebhookSignature(req, res, next) {
 // REPLAY PROTECTION (OPTIONAL)
 // =============================================================================
 
-// Cache for recent delivery IDs to prevent replay attacks
-const recentDeliveries = new Map();
-const DELIVERY_CACHE_CLEANUP_INTERVAL = 60 * 1000; // 1 minute
+const { getRedis } = require('../config/redis');
 
-// Cleanup old entries periodically
-setInterval(() => {
-  const cutoff = Date.now() - MAX_WEBHOOK_AGE_MS;
-  for (const [id, timestamp] of recentDeliveries) {
-    if (timestamp < cutoff) {
-      recentDeliveries.delete(id);
-    }
-  }
-}, DELIVERY_CACHE_CLEANUP_INTERVAL);
+// TTL for replay protection (Meta delivery IDs)
+const REPLAY_TTL_SECONDS = 300; // 5 minutes
 
 /**
  * Check for replay attacks using delivery ID
  * @param {string} deliveryId - X-Delivery-ID header
  * @returns {boolean} - True if this is a replay
  */
-function isReplayAttack(deliveryId) {
+async function isReplayAttack(deliveryId) {
   if (!deliveryId) return false;
-  
-  if (recentDeliveries.has(deliveryId)) {
-    console.warn('[WebhookSecurity] ⚠️ Potential replay attack:', deliveryId);
-    return true;
+
+  try {
+    const redis = getRedis();
+    const key = `webhook:delivery:${deliveryId}`;
+    const result = await redis.set(key, Date.now().toString(), {
+      NX: true,
+      EX: REPLAY_TTL_SECONDS
+    });
+
+    if (result !== 'OK') {
+      console.warn('[WebhookSecurity] ⚠️ Potential replay attack:', deliveryId);
+      return true;
+    }
+
+    return false;
+  } catch (err) {
+    // Fail open if Redis is unavailable, but log for visibility
+    console.warn('[WebhookSecurity] Replay protection unavailable:', err.message);
+    return false;
   }
-  
-  recentDeliveries.set(deliveryId, Date.now());
-  return false;
 }
 
 /**
  * Middleware to check for replay attacks
  */
-function replayProtection(req, res, next) {
+async function replayProtection(req, res, next) {
   const deliveryId = req.headers['x-delivery-id'];
-  
-  if (deliveryId && isReplayAttack(deliveryId)) {
+
+  if (deliveryId && await isReplayAttack(deliveryId)) {
     console.error('[WebhookSecurity] ❌ Replay attack detected:', deliveryId);
     return res.status(403).json({ error: 'Duplicate delivery' });
   }
-  
+
   next();
 }
 

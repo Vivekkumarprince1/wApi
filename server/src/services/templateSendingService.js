@@ -24,6 +24,8 @@ const Template = require('../models/Template');
 const Workspace = require('../models/Workspace');
 const Message = require('../models/Message');
 const Contact = require('../models/Contact');
+const bspMessagingService = require('./bspMessagingService');
+const { isOptedOutByPhone, isOptedOut } = require('./optOutService');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -100,6 +102,20 @@ async function sendTemplate(params) {
     throw createError(ERROR_CODES.WORKSPACE_NOT_CONFIGURED, 'Workspace not found');
   }
 
+  // Compliance: enforce opt-out BEFORE any outbound send (Interakt requirement)
+  // WHY: Meta policy requires honoring STOP across all outbound channels
+  if (contactId) {
+    const optedOut = await isOptedOut(contactId);
+    if (optedOut) {
+      throw createError(ERROR_CODES.INVALID_RECIPIENT, 'Recipient has opted out');
+    }
+  } else {
+    const optedOut = await isOptedOutByPhone(workspaceId, normalizedPhone);
+    if (optedOut) {
+      throw createError(ERROR_CODES.INVALID_RECIPIENT, 'Recipient has opted out');
+    }
+  }
+
   const phoneNumberId = workspace.bspPhoneNumberId || workspace.whatsappPhoneNumberId;
   if (!phoneNumberId) {
     throw createError(ERROR_CODES.PHONE_NOT_CONFIGURED, 'WhatsApp phone number not configured for this workspace');
@@ -129,7 +145,8 @@ async function sendTemplate(params) {
   
   let response;
   try {
-    response = await makeMetaApiCall('POST', url, payload);
+    // Use BSP service for all outbound Meta API calls (centralized token + safety)
+    response = await bspMessagingService.makeMetaApiCall('POST', url, payload);
   } catch (apiError) {
     // Log failed attempt
     await logTemplateSend({
@@ -518,6 +535,8 @@ async function logTemplateSend(params) {
   const message = new Message({
     workspace: workspaceId,
     contact: contact?._id,
+    conversation: meta.conversationId || undefined,
+    sentBy: meta.sentBy || undefined,
     direction: 'outbound',
     type: 'template',
     body: template.body?.text,
@@ -541,7 +560,7 @@ async function logTemplateSend(params) {
     },
     
     // Conversation billing fields
-    conversation: {
+    conversationBilling: {
       category: CONVERSATION_CATEGORIES[template.category] || 'utility_conversation',
       isNewConversation: false // Will be updated by webhook if needed
     },

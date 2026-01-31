@@ -1,4 +1,6 @@
 const Campaign = require('../models/Campaign');
+// LEGACY CONTROLLER (disabled): use V2 engine for all routes
+const campaignControllerV2 = require('./campaignControllerV2');
 const CampaignMessage = require('../models/CampaignMessage');
 const Message = require('../models/Message');
 const Workspace = require('../models/Workspace');
@@ -349,13 +351,6 @@ async function resumeCampaign(req, res, next) {
 }
 
 module.exports = {
-  createCampaign,
-  listCampaigns,
-  getCampaign,
-  updateCampaign,
-  deleteCampaign,
-  getCampaignStats,
-  enqueueCampaign,
-  pauseCampaign,
-  resumeCampaign
+  // Delegate all route handlers to V2 (Interakt-style engine)
+  ...campaignControllerV2
 };

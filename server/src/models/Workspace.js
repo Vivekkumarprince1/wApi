@@ -53,12 +53,16 @@ const WorkspaceSchema = new mongoose.Schema({
   },
   // Onboarding tracking
   onboarding: {
+    step: { type: String, default: 'business-info' },
+    status: { type: String, enum: ['not-started', 'in-progress', 'completed'], default: 'not-started' },
     businessInfoCompleted: { type: Boolean, default: false },
     businessInfoCompletedAt: { type: Date },
     wabaConnectionInitiated: { type: Boolean, default: false },
     wabaConnectionInitiatedAt: { type: Date },
     wabaConnectionCompleted: { type: Boolean, default: false },
     wabaConnectionCompletedAt: { type: Date },
+    whatsappSetupCompleted: { type: Boolean, default: false },
+    templateSetupCompleted: { type: Boolean, default: false },
     completed: { type: Boolean, default: false },
     completedAt: { type: Date }
   },
@@ -687,6 +691,17 @@ WorkspaceSchema.methods.getPhoneNumberId = function() {
  */
 WorkspaceSchema.methods.canSendMessage = function() {
   if (!this.bspManaged) return true;
+
+  // Meta enforcement checks (Interakt-grade safety)
+  if (this.esbFlow?.accountBlocked || this.esbFlow?.capabilityBlocked) {
+    return false;
+  }
+
+  // Quality rating protection (avoid suspension risk)
+  const quality = this.bspQualityRating || this.qualityRating;
+  if (quality === 'RED') {
+    return false;
+  }
   
   if (this.bspPhoneStatus === 'BANNED' || this.bspPhoneStatus === 'RATE_LIMITED') {
     return false;

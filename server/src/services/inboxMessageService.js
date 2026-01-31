@@ -19,7 +19,9 @@ const Message = require('../models/Message');
 const Contact = require('../models/Contact');
 const Workspace = require('../models/Workspace');
 const Permission = require('../models/Permission');
-const metaService = require('./metaService');
+const bspMessagingService = require('./bspMessagingService');
+const templateSendingService = require('./templateSendingService');
+const { isOptedOut } = require('./optOutService');
 const { getIO } = require('../utils/socket');
 
 // Hardening services
@@ -122,14 +124,8 @@ async function sendTextMessage(options) {
     throw new Error(`RATE_LIMITED: ${rateLimitCheck.message}`);
   }
 
-  // 2. Get workspace credentials
-  const workspace = await Workspace.findById(workspaceId)
-    .select('accessToken phoneNumberId')
-    .lean();
-
-  if (!workspace?.accessToken || !workspace?.phoneNumberId) {
-    throw new Error('Workspace not configured for WhatsApp');
-  }
+  // 2. Get workspace (BSP service enforces centralized token usage)
+  const workspace = await Workspace.findById(workspaceId).lean();
 
   // 3. Get conversation and contact
   const conversation = await Conversation.findById(conversationId);
@@ -145,34 +141,51 @@ async function sendTextMessage(options) {
     throw new Error('Contact phone not found');
   }
 
+  // 3.5 Compliance: block outbound if contact opted out
+  const optedOut = await isOptedOut(contact._id);
+  if (optedOut) {
+    throw new Error('PERMISSION_DENIED: Contact has opted out');
+  }
+
   // 4. Check 24-hour window
   const isInWindow = await isWithin24HourWindow(conversationId);
   
-  // 5. Send via Meta API
-  const result = await metaService.sendTextMessage(
-    workspace.accessToken,
-    workspace.phoneNumberId,
+  // 5. Send via BSP service (centralized token + safety)
+  const result = await bspMessagingService.sendTextMessage(
+    workspaceId,
     contact.phone,
-    text
+    text,
+    {
+      contactId: contact._id,
+      conversationId: conversationId,
+      sentBy: agentId
+    }
   );
 
   if (!result.success) {
     throw new Error(result.error || 'Failed to send message');
   }
 
-  // 6. Save message to database
-  const message = await Message.create({
+  // 6. Fetch logged message (created by BSP service)
+  let message = await Message.findOne({
     workspace: workspaceId,
-    conversation: conversationId,
-    contact: contact._id,
-    direction: 'outbound',
-    type: 'text',
-    text: { body: text },
-    whatsappMessageId: result.messageId,
-    status: 'sent',
-    sentBy: agentId,
-    sentAt: new Date()
+    whatsappMessageId: result.messageId
   });
+  if (!message) {
+    // Fallback if BSP logging failed
+    message = await Message.create({
+      workspace: workspaceId,
+      conversation: conversationId,
+      contact: contact._id,
+      direction: 'outbound',
+      type: 'text',
+      body: text,
+      whatsappMessageId: result.messageId,
+      status: 'sent',
+      sentBy: agentId,
+      sentAt: new Date()
+    });
+  }
 
   // 7. Update conversation
   const now = new Date();
@@ -274,14 +287,8 @@ async function sendTemplateMessage(options) {
     throw new Error(`RATE_LIMITED: ${rateLimitCheck.message}`);
   }
 
-  // 2. Get workspace credentials
-  const workspace = await Workspace.findById(workspaceId)
-    .select('accessToken phoneNumberId')
-    .lean();
-
-  if (!workspace?.accessToken || !workspace?.phoneNumberId) {
-    throw new Error('Workspace not configured for WhatsApp');
-  }
+  // 2. Get workspace (BSP service enforces centralized token usage)
+  const workspace = await Workspace.findById(workspaceId).lean();
 
   // 3. Get conversation and contact
   const conversation = await Conversation.findById(conversationId);
@@ -297,37 +304,58 @@ async function sendTemplateMessage(options) {
     throw new Error('Contact phone not found');
   }
 
-  // 4. Send via Meta API
-  const result = await metaService.sendTemplateMessage(
-    workspace.accessToken,
-    workspace.phoneNumberId,
-    contact.phone,
-    templateName,
-    templateLanguage,
-    components
-  );
-
-  if (!result.success) {
-    throw new Error(result.error || 'Failed to send template message');
+  // 3.5 Compliance: block outbound if contact opted out
+  const optedOut = await isOptedOut(contact._id);
+  if (optedOut) {
+    throw new Error('PERMISSION_DENIED: Contact has opted out');
   }
 
-  // 5. Save message to database
-  const message = await Message.create({
-    workspace: workspaceId,
-    conversation: conversationId,
-    contact: contact._id,
-    direction: 'outbound',
-    type: 'template',
-    template: {
-      name: templateName,
-      language: templateLanguage,
-      components
-    },
-    whatsappMessageId: result.messageId,
-    status: 'sent',
-    sentBy: agentId,
-    sentAt: new Date()
+  // 4. Convert components → variables for canonical template sending
+  const variables = { header: [], body: [], buttons: [] };
+  if (Array.isArray(components)) {
+    for (const component of components) {
+      if (component.type === 'header' && Array.isArray(component.parameters)) {
+        variables.header = component.parameters.map(p => p.text || p.code || '');
+      }
+      if (component.type === 'body' && Array.isArray(component.parameters)) {
+        variables.body = component.parameters.map(p => p.text || p.code || '');
+      }
+      if (component.type === 'button' && Array.isArray(component.parameters)) {
+        variables.buttons.push(...component.parameters.map(p => p.text || p.code || ''));
+      }
+    }
+  }
+
+  // 5. Send via template service (approval + ownership enforced)
+  const result = await templateSendingService.sendTemplate({
+    workspaceId,
+    templateName,
+    to: contact.phone,
+    variables,
+    contactId: contact._id,
+    meta: { conversationId, sentBy: agentId, source: 'inbox' }
   });
+
+  // 6. Fetch logged message (created by template service)
+  let message = await Message.findOne({
+    workspace: workspaceId,
+    whatsappMessageId: result.messageId
+  });
+  if (!message) {
+    // Fallback if template log failed
+    message = await Message.create({
+      workspace: workspaceId,
+      conversation: conversationId,
+      contact: contact._id,
+      direction: 'outbound',
+      type: 'template',
+      body: `[Template: ${templateName}]`,
+      whatsappMessageId: result.messageId,
+      status: 'sent',
+      sentBy: agentId,
+      sentAt: new Date()
+    });
+  }
 
   // 6. Update conversation
   const now = new Date();
@@ -423,14 +451,8 @@ async function sendMediaMessage(options) {
     throw new Error(`RATE_LIMITED: ${rateLimitCheck.message}`);
   }
 
-  // 2. Get workspace credentials
-  const workspace = await Workspace.findById(workspaceId)
-    .select('accessToken phoneNumberId')
-    .lean();
-
-  if (!workspace?.accessToken || !workspace?.phoneNumberId) {
-    throw new Error('Workspace not configured for WhatsApp');
-  }
+  // 2. Get workspace (BSP service enforces centralized token usage)
+  const workspace = await Workspace.findById(workspaceId).lean();
 
   // 3. Get conversation and contact
   const conversation = await Conversation.findById(conversationId);
@@ -446,44 +468,61 @@ async function sendMediaMessage(options) {
     throw new Error('Contact phone not found');
   }
 
+  // 3.5 Compliance: block outbound if contact opted out
+  const optedOut = await isOptedOut(contact._id);
+  if (optedOut) {
+    throw new Error('PERMISSION_DENIED: Contact has opted out');
+  }
+
   // 4. Check 24-hour window
   const isInWindow = await isWithin24HourWindow(conversationId);
   if (!isInWindow) {
     throw new Error('24-hour window expired. Please use a template message.');
   }
 
-  // 5. Send via Meta API
-  const result = await metaService.sendMediaMessage(
-    workspace.accessToken,
-    workspace.phoneNumberId,
+  // 5. Send via BSP service (centralized token + safety)
+  const mediaPayload = {
+    link: mediaUrl,
+    ...(filename ? { filename } : {})
+  };
+
+  const result = await bspMessagingService.sendMediaMessage(
+    workspaceId,
     contact.phone,
     mediaType,
-    mediaUrl,
+    mediaPayload,
     caption,
-    filename
+    {
+      contactId: contact._id,
+      conversationId: conversationId,
+      sentBy: agentId
+    }
   );
 
   if (!result.success) {
     throw new Error(result.error || 'Failed to send media message');
   }
 
-  // 6. Save message to database
-  const message = await Message.create({
+  // 6. Fetch logged message (created by BSP service)
+  let message = await Message.findOne({
     workspace: workspaceId,
-    conversation: conversationId,
-    contact: contact._id,
-    direction: 'outbound',
-    type: mediaType,
-    [mediaType]: {
-      link: mediaUrl,
-      caption,
-      filename
-    },
-    whatsappMessageId: result.messageId,
-    status: 'sent',
-    sentBy: agentId,
-    sentAt: new Date()
+    whatsappMessageId: result.messageId
   });
+  if (!message) {
+    // Fallback if BSP logging failed
+    message = await Message.create({
+      workspace: workspaceId,
+      conversation: conversationId,
+      contact: contact._id,
+      direction: 'outbound',
+      type: mediaType,
+      body: caption || `[${mediaType}]`,
+      whatsappMessageId: result.messageId,
+      status: 'sent',
+      sentBy: agentId,
+      sentAt: new Date()
+    });
+  }
 
   // 7. Update conversation
   const now = new Date();

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Contact = require('./Contact');
 
 /**
  * Conversation Schema - Stage 4 Enhanced
@@ -331,6 +332,26 @@ ConversationSchema.statics.getUnassigned = async function(workspaceId, options =
     .limit(limit)
     .lean();
 };
+
+// Enforce tenant scoping between contact and conversation
+ConversationSchema.pre('save', async function(next) {
+  try {
+    if (!this.workspace || !this.contact) {
+      return next(new Error('CONVERSATION_MISSING_TENANT')); 
+    }
+
+    if (this.isModified('contact') || this.isNew) {
+      const contact = await Contact.findById(this.contact).select('workspace').lean();
+      if (!contact || contact.workspace.toString() !== this.workspace.toString()) {
+        return next(new Error('CONTACT_WORKSPACE_MISMATCH'));
+      }
+    }
+
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Update timestamp on save
 ConversationSchema.pre('save', function(next) {

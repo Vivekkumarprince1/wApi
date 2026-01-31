@@ -253,4 +253,16 @@ PermissionSchema.statics.getDefaultPermissions = function(role) {
   return defaults[role] || defaults.viewer;
 };
 
+/**
+ * Seed owner permissions for a workspace user
+ */
+PermissionSchema.statics.seedOwnerPermissions = function(workspaceId, userId) {
+  return this.create({
+    workspace: workspaceId,
+    user: userId,
+    role: 'owner',
+    permissions: this.getDefaultPermissions('owner')
+  });
+};
+
 module.exports = mongoose.model('Permission', PermissionSchema);

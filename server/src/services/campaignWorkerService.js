@@ -9,7 +9,7 @@ const {
   trackCampaignSuccess,
   handleMetaError
 } = require('./campaignRateLimiter');
-const metaService = require('./metaService');
+const templateSendingService = require('./templateSendingService');
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -88,8 +88,11 @@ async function processCampaignStart(job) {
     throw new Error('Template is not approved');
   }
   
-  // Validate workspace connection
-  if (!workspace.whatsappAccessToken || !workspace.whatsappPhoneNumberId) {
+  // Validate workspace connection (BSP-aware)
+  const isBspConnected = typeof workspace.isBspConnected === 'function'
+    ? workspace.isBspConnected()
+    : false;
+  if (!isBspConnected) {
     campaign.status = 'FAILED';
     campaign.pausedReason = 'PHONE_DISCONNECTED';
     campaign.completedAt = new Date();
@@ -235,13 +238,19 @@ async function processBatch(job) {
   
   // Load workspace
   const workspace = await Workspace.findById(workspaceId);
-  if (!workspace || !workspace.whatsappAccessToken) {
-    await pauseCampaignWithReason(campaign, 'TOKEN_EXPIRED');
-    throw new Error('Workspace credentials invalid');
+  const isBspConnected = workspace && typeof workspace.isBspConnected === 'function'
+    ? workspace.isBspConnected()
+    : false;
+  if (!workspace || !isBspConnected) {
+    await pauseCampaignWithReason(campaign, 'PHONE_DISCONNECTED');
+    throw new Error('Workspace is not BSP-connected');
   }
   
-  const accessToken = workspace.whatsappAccessToken;
-  const phoneNumberId = workspace.whatsappPhoneNumberId;
+  const phoneNumberId = workspace.getPhoneNumberId?.();
+  if (!phoneNumberId) {
+    await pauseCampaignWithReason(campaign, 'PHONE_DISCONNECTED');
+    throw new Error('WhatsApp phone not configured');
+  }
   
   // Load template
   const template = await Template.findById(batch.templateId);
@@ -316,17 +325,21 @@ async function processBatch(job) {
       }
       
       // Build template parameters
-      const templateParams = buildTemplateParams(template, batch.variableMapping, contact);
+      const templateVars = buildTemplateParams(template, batch.variableMapping, contact);
       
-      // Send message via Meta API
-      const result = await metaService.sendTemplateMessage(
-        accessToken,
-        phoneNumberId,
-        contact.phone,
-        template.name,
-        template.language || 'en',
-        templateParams
-      );
+      // Send message via template service (BSP centralized token + approval checks)
+      const result = await templateSendingService.sendTemplate({
+        workspaceId,
+        templateId: template._id,
+        to: contact.phone,
+        variables: templateVars,
+        contactId: recipient.contactId,
+        meta: {
+          campaignId,
+          batchId: batch._id,
+          batchIndex: batch.batchIndex
+        }
+      });
       
       // Update recipient status
       recipient.status = 'sent';
@@ -351,27 +364,7 @@ async function processBatch(job) {
         { upsert: true, new: true }
       );
       
-      // Create Message record for conversation history
-      await Message.create({
-        workspace: workspaceId,
-        contact: recipient.contactId,
-        direction: 'outbound',
-        type: 'template',
-        body: template.name,
-        status: 'sent',
-        sentAt: new Date(),
-        whatsappMessageId: result.messageId,
-        template: {
-          id: template._id,
-          name: template.name,
-          category: template.category
-        },
-        meta: {
-          campaignId,
-          campaignMessageId: batch._id,
-          batchIndex: batch.batchIndex
-        }
-      });
+      // Message record already logged by template service
       
       // Update campaign totals atomically
       await Campaign.findByIdAndUpdate(campaignId, {
@@ -566,7 +559,7 @@ async function checkCampaignCompletion(campaignId) {
  */
 function buildTemplateParams(template, variableMapping, contact) {
   if (!template.variables || template.variables.length === 0) {
-    return [];
+    return { body: [] };
   }
   
   const bodyParams = template.variables.map(variable => {
@@ -589,19 +582,10 @@ function buildTemplateParams(template, variableMapping, contact) {
       }
     }
     
-    return { type: 'text', text: String(value || '') };
+    return String(value || '');
   });
   
-  const components = [];
-  
-  if (bodyParams.length > 0) {
-    components.push({
-      type: 'body',
-      parameters: bodyParams
-    });
-  }
-  
-  return components;
+  return { body: bodyParams };
 }
 
 /**

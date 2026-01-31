@@ -45,4 +45,19 @@ ContactSchema.pre('save', function(next) {
   next();
 });
 
+/**
+ * Remove contacts by identifiers for privacy deletion
+ */
+ContactSchema.statics.deleteByIdentifiers = async function({ workspaceId, phone, email }) {
+  const query = {};
+  if (workspaceId) query.workspace = workspaceId;
+  if (phone) query.phone = phone;
+  if (email) query['metadata.email'] = email;
+
+  if (Object.keys(query).length === 0) return { deletedCount: 0 };
+
+  const res = await this.deleteMany(query);
+  return { deletedCount: res.deletedCount || 0 };
+};
+
 module.exports = mongoose.model('Contact', ContactSchema);

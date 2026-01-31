@@ -54,7 +54,7 @@ const CampaignMessageSchema = new mongoose.Schema({
   errorCode: { type: String },
   
   // WhatsApp tracking
-  whatsappMessageId: { type: String, index: true }, // wamid.xxx from Meta
+  whatsappMessageId: { type: String }, // wamid.xxx from Meta
   
   // Webhook updates (timestamps for each status)
   queuedAt: { type: Date },

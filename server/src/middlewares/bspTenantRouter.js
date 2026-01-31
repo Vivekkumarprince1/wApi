@@ -162,8 +162,9 @@ function enforceTenantIsolation(req, res, next) {
     
     // Check if request includes a workspace parameter that doesn't match
     const requestedWorkspaceId = req.params.workspaceId || 
-                                  req.body.workspaceId || 
-                                  req.query.workspaceId;
+                    req.body.workspaceId || 
+                    req.body.workspace ||
+                    req.query.workspaceId;
     
     if (requestedWorkspaceId && requestedWorkspaceId !== userWorkspaceId) {
       console.warn(`[BSP Isolation] ⚠️ Cross-tenant access attempt! User workspace: ${userWorkspaceId}, Requested: ${requestedWorkspaceId}`);

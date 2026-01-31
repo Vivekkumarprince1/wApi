@@ -4,14 +4,7 @@
  * Supports AWS Secrets Manager + local AES-256-GCM fallback
  */
 
-const crypto = require('crypto');
-
-// For local dev fallback - use AES-256-GCM with env-based master key
-const MASTER_KEY = process.env.TOKEN_MASTER_KEY 
-  ? Buffer.from(process.env.TOKEN_MASTER_KEY, 'hex')
-  : crypto.randomBytes(32); // 32 bytes = 256 bits
-
-const ALGORITHM = 'aes-256-gcm';
+const { encryptToken, decryptToken } = require('../utils/tokenEncryption');
 
 /**
  * Store token securely
@@ -80,22 +73,14 @@ async function storeInAWS(workspaceId, tokenType, tokenValue) {
  */
 function storeLocallyEncrypted(workspaceId, tokenType, tokenValue) {
   try {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipheriv(ALGORITHM, MASTER_KEY, iv);
-    
-    let encrypted = cipher.update(tokenValue, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    
-    const authTag = cipher.getAuthTag();
-    
-    const encryptedData = `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
-    
+    const encryptedValue = encryptToken(tokenValue, workspaceId);
+
     console.log(`[Secrets] 🔐 Stored ${tokenType} locally (encrypted) for workspace ${workspaceId}`);
     
     return {
       stored: true,
       location: 'local',
-      encryptedValue: encryptedData,
+      encryptedValue,
       expiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)
     };
   } catch (err) {
@@ -116,7 +101,7 @@ async function retrieveToken(workspaceId, tokenType, encryptedValue = null) {
     throw new Error('Encrypted value required for local retrieval');
   }
 
-  return retrieveLocallyEncrypted(encryptedValue);
+  return retrieveLocallyEncrypted(encryptedValue, workspaceId);
 }
 
 /**
@@ -146,26 +131,9 @@ async function retrieveFromAWS(workspaceId, tokenType) {
 /**
  * Retrieve locally encrypted token
  */
-function retrieveLocallyEncrypted(encryptedValue) {
+function retrieveLocallyEncrypted(encryptedValue, workspaceId) {
   try {
-    const [ivHex, authTagHex, encrypted] = encryptedValue.split(':');
-    
-    if (!ivHex || !authTagHex || !encrypted) {
-      throw new Error('Invalid encrypted token format');
-    }
-    
-    const decipher = crypto.createDecipheriv(
-      ALGORITHM,
-      MASTER_KEY,
-      Buffer.from(ivHex, 'hex')
-    );
-    
-    decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
-    
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    
-    return decrypted;
+    return decryptToken(encryptedValue, workspaceId);
   } catch (err) {
     console.error('[Secrets] Decryption failed:', err.message);
     throw err;
@@ -215,6 +183,5 @@ module.exports = {
   retrieveToken,
   deleteToken,
   storeRefreshToken,
-  retrieveRefreshToken,
-  ALGORITHM
+  retrieveRefreshToken
 };

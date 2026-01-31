@@ -45,8 +45,10 @@ const ENCRYPTION_KEYS = {
     : null
 };
 
-// Master encryption key - MUST be set in production (uses current version)
-const MASTER_KEY = ENCRYPTION_KEYS[CURRENT_KEY_VERSION];
+// Canonical master key (shared with secretsManager when set)
+const MASTER_KEY = process.env.TOKEN_MASTER_KEY
+  ? Buffer.from(process.env.TOKEN_MASTER_KEY, 'hex')
+  : ENCRYPTION_KEYS[CURRENT_KEY_VERSION];
 
 // Fallback for development (generates ephemeral key - tokens won't persist across restarts)
 let DEV_KEY = null;
@@ -59,6 +61,7 @@ function getDevKey() {
 }
 
 function getEncryptionKey(version = CURRENT_KEY_VERSION) {
+  if (MASTER_KEY) return MASTER_KEY;
   // Get key for specific version (for decryption of old tokens)
   const versionedKey = ENCRYPTION_KEYS[version];
   if (versionedKey) return versionedKey;

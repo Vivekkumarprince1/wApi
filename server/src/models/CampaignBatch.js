@@ -37,7 +37,7 @@ const CampaignBatchSchema = new mongoose.Schema({
   // ─────────────────────────────────────────────────────────────────────────────
   batchIndex: { type: Number, required: true },
   totalBatches: { type: Number, required: true },
-  jobId: { type: String, index: true }, // BullMQ job ID for idempotency
+  jobId: { type: String }, // BullMQ job ID for idempotency
   
   // ─────────────────────────────────────────────────────────────────────────────
   // RECIPIENTS IN THIS BATCH

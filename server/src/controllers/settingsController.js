@@ -1,4 +1,5 @@
 const Workspace = require('../models/Workspace');
+const { encryptToken, isEncrypted } = require('../utils/tokenEncryption');
 
 // Initialize WABA settings from environment variables (for development)
 async function initializeWABAFromEnv(req, res, next) {
@@ -33,7 +34,10 @@ async function initializeWABAFromEnv(req, res, next) {
     }
     
     // Update workspace
-    workspace.whatsappAccessToken = accessToken;
+    // WHY: Tokens must be encrypted at rest (Meta/BSP compliance)
+    workspace.whatsappAccessToken = isEncrypted(accessToken)
+      ? accessToken
+      : encryptToken(accessToken, workspace._id.toString());
     workspace.wabaId = wabaId;
     workspace.whatsappPhoneNumberId = phoneNumberId;
     workspace.whatsappVerifyToken = verifyToken || workspace.whatsappVerifyToken;
@@ -130,7 +134,10 @@ async function updateWABASettings(req, res, next) {
     
     // Update fields if provided
     if (whatsappAccessToken !== undefined) {
-      workspace.whatsappAccessToken = whatsappAccessToken;
+      // WHY: Tokens must be encrypted at rest (Meta/BSP compliance)
+      workspace.whatsappAccessToken = isEncrypted(whatsappAccessToken)
+        ? whatsappAccessToken
+        : encryptToken(whatsappAccessToken, workspace._id.toString());
     }
     if (whatsappPhoneNumberId !== undefined) {
       workspace.whatsappPhoneNumberId = whatsappPhoneNumberId;

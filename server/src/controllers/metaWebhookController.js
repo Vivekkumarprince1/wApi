@@ -1,7 +1,12 @@
 const Message = require('../models/Message');
+const axios = require('axios');
+const path = require('path');
+const fs = require('fs/promises');
 const Contact = require('../models/Contact');
 const Conversation = require('../models/Conversation');
 const Workspace = require('../models/Workspace');
+const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 const WebhookLog = require('../models/WebhookLog');
 const Template = require('../models/Template');
 const { getIO } = require('../utils/socket');
@@ -19,6 +24,55 @@ const inboxSocketService = require('../services/inboxSocketService');
 // Stage 4 Hardening: Import SLA and auto-assignment services
 const slaService = require('../services/slaService');
 const autoAssignmentService = require('../services/autoAssignmentService');
+
+const MEDIA_STORAGE_ROOT = path.resolve(__dirname, '..', '..', 'uploads', 'workspaces');
+
+function getMediaExtension(mimeType = '') {
+  const normalized = mimeType.toLowerCase();
+  if (normalized.includes('image/jpeg')) return 'jpg';
+  if (normalized.includes('image/png')) return 'png';
+  if (normalized.includes('image/webp')) return 'webp';
+  if (normalized.includes('video/mp4')) return 'mp4';
+  if (normalized.includes('video/3gpp')) return '3gp';
+  if (normalized.includes('audio/mpeg')) return 'mp3';
+  if (normalized.includes('audio/ogg')) return 'ogg';
+  if (normalized.includes('audio/wav')) return 'wav';
+  if (normalized.includes('application/pdf')) return 'pdf';
+  return 'bin';
+}
+
+async function storeMediaForTenant({ workspaceId, mediaInfo, media }) {
+  if (!mediaInfo?.url || !workspaceId) return null;
+
+  const ext = getMediaExtension(mediaInfo.mimeType || media?.mimeType);
+  const fileName = `${media.id}.${ext}`;
+  const tenantDir = path.join(MEDIA_STORAGE_ROOT, workspaceId.toString(), 'media');
+  const filePath = path.join(tenantDir, fileName);
+  const publicPath = `/uploads/workspaces/${workspaceId}/media/${fileName}`;
+
+  try {
+    await fs.mkdir(tenantDir, { recursive: true });
+    await fs.access(filePath);
+    return { path: publicPath, size: mediaInfo.fileSize || null };
+  } catch {
+    // File does not exist yet; download below
+  }
+
+  const systemToken = bspConfig.systemUserToken || process.env.META_ACCESS_TOKEN;
+  const headers = systemToken ? { Authorization: `Bearer ${systemToken}` } : undefined;
+
+  const response = await axios.get(mediaInfo.url, {
+    responseType: 'arraybuffer',
+    headers
+  });
+
+  await fs.writeFile(filePath, response.data);
+
+  return {
+    path: publicPath,
+    size: mediaInfo.fileSize || response.data?.length || null
+  };
+}
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -53,26 +107,9 @@ async function handler(req, res) {
   const signatureHeader = req.headers['x-hub-signature-256'];
   
   try {
-    // ═══════════════════════════════════════════════════════════════════
-    // SIGNATURE VERIFICATION (Centralized BSP validation)
-    // ═══════════════════════════════════════════════════════════════════
-    
-    if (bspConfig.appSecret && signatureHeader) {
-      const rawBody = JSON.stringify(body);
-      const isValid = bspMessagingService.verifyWebhookSignature(rawBody, signatureHeader);
-      
-      if (!isValid) {
-        console.error('[BSP Webhook] ❌ Signature verification failed');
-        await WebhookLog.create({
-          payload: body,
-          verified: false,
-          signatureHeader,
-          error: 'Signature verification failed',
-          processed: false,
-          bspRouted: false
-        });
-        return res.sendStatus(403);
-      }
+    // Signature verification is handled once in middleware (webhookSecurity)
+    if (!req.webhookVerified) {
+      return res.sendStatus(403);
     }
     
     // ═══════════════════════════════════════════════════════════════════
@@ -167,7 +204,8 @@ async function processWhatsAppWebhook(body, signatureHeader) {
           deliveryId: deliveryId,
           workspace,
           phoneNumberId, // BSP: Log the phone_number_id for tracking
-          payload: body,
+            // Store redacted payload to avoid PII persistence
+            payload: redactWebhookPayload(body),
           verified: true,
           signatureHeader,
           eventType,
@@ -231,6 +269,11 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
   const { checkAndHandleOptOut } = require('../services/optOutService');
   const { log } = require('../services/auditService');
 
+  if (!workspace || !workspaceDoc) {
+    console.warn('[BSP Webhook] Skipping inbound messages - workspace not resolved');
+    return;
+  }
+
   for (const msg of messages) {
     try {
       const from = msg.from; // phone number
@@ -243,7 +286,7 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
         contact = await Contact.create({
           phone: from,
           name: contactInfo?.profile?.name || msg.profile?.name || 'Unknown',
-          workspace: workspace || null
+          workspace: workspace
         });
       }
       
@@ -276,7 +319,7 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
           }, null, null);
           
           const message = await Message.create({
-            workspace: workspace || null,
+            workspace: workspace,
             contact: contact._id,
             direction: 'inbound',
             type: 'system',
@@ -357,22 +400,95 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
       
       // Determine message type
       let messageType = msg.type || 'text';
+
+      // Extract inbound media metadata (if present)
+      let media = null;
+      if (msg.image) {
+        media = {
+          id: msg.image.id,
+          mimeType: msg.image.mime_type,
+          sha256: msg.image.sha256,
+          caption: msg.image.caption
+        };
+      } else if (msg.video) {
+        media = {
+          id: msg.video.id,
+          mimeType: msg.video.mime_type,
+          sha256: msg.video.sha256,
+          caption: msg.video.caption
+        };
+      } else if (msg.document) {
+        media = {
+          id: msg.document.id,
+          mimeType: msg.document.mime_type,
+          sha256: msg.document.sha256,
+          filename: msg.document.filename
+        };
+      } else if (msg.audio) {
+        media = {
+          id: msg.audio.id,
+          mimeType: msg.audio.mime_type,
+          sha256: msg.audio.sha256
+        };
+      } else if (msg.voice) {
+        media = {
+          id: msg.voice.id,
+          mimeType: msg.voice.mime_type,
+          sha256: msg.voice.sha256
+        };
+      } else if (msg.sticker) {
+        media = {
+          id: msg.sticker.id,
+          mimeType: msg.sticker.mime_type,
+          sha256: msg.sticker.sha256
+        };
+      }
+
+      // Resolve media URL via BSP API when possible (on-demand download)
+      if (media?.id && workspaceDoc?.isBspConnected?.()) {
+        try {
+          const mediaInfo = await bspMessagingService.getMediaUrl(media.id);
+          if (mediaInfo?.url) {
+            media.url = mediaInfo.url;
+            media.fileSize = mediaInfo.fileSize || media.fileSize;
+
+            // Download and store per-tenant
+            try {
+              const stored = await storeMediaForTenant({
+                workspaceId: workspace,
+                mediaInfo,
+                media
+              });
+              if (stored?.path) {
+                media.url = stored.path;
+                media.fileSize = stored.size || media.fileSize;
+              }
+            } catch (downloadErr) {
+              console.error('[Webhook] Media download failed:', downloadErr.message);
+            }
+          }
+        } catch (mediaErr) {
+          console.error('[Webhook] Media URL resolve failed:', mediaErr.message);
+        }
+      }
       
       // Store message
       const message = await Message.create({
-        workspace: workspace || null,
+        workspace: workspace,
+        conversation: conversation?._id || null,
         contact: contact._id,
         direction: 'inbound',
         type: messageType,
         body: messageBody,
         status: 'received',
+        media: media || undefined,
         meta: {
           whatsappId: msg.id,
           timestamp: msg.timestamp,
           raw: msg
         }
       });
-      
+
       // ✅ CHECK AUTO-REPLIES FIRST (before workflows)
       // Auto-replies are evaluated before workflows and stop workflow execution if sent
       if (workspace && messageType === 'text' && messageBody) {
@@ -680,6 +796,14 @@ async function processStatusUpdates(statuses, workspace) {
 // Process template status updates (BSP model - route by template name prefix)
 async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceDoc = null) {
   try {
+    if (Array.isArray(templateUpdate)) {
+      const results = [];
+      for (const update of templateUpdate) {
+        results.push(await processTemplateStatusUpdate(update, workspace, workspaceDoc));
+      }
+      return { success: true, results };
+    }
+
     const { 
       event, 
       message_template_id,
@@ -687,6 +811,12 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
       message_template_language, 
       reason 
     } = templateUpdate;
+
+    const rawEvent = (event || templateUpdate.status || templateUpdate.message_template_status || '').toString().toUpperCase();
+    if (!rawEvent) {
+      console.warn('[BSP Webhook] Template update missing event/status');
+      return { success: false, reason: 'missing_event' };
+    }
     
     // ═══════════════════════════════════════════════════════════════════
     // BSP TEMPLATE ROUTING
@@ -695,6 +825,19 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
     // ═══════════════════════════════════════════════════════════════════
     
     let targetWorkspace = workspace;
+
+    // If we can resolve by template ID/name, prefer authoritative mapping
+    if (!targetWorkspace && (message_template_id || message_template_name)) {
+      const existingTemplate = await Template.findOne({
+        $or: [
+          { metaTemplateId: message_template_id },
+          { metaTemplateName: message_template_name }
+        ]
+      }).select('workspace');
+      if (existingTemplate?.workspace) {
+        targetWorkspace = existingTemplate.workspace;
+      }
+    }
     
     // If no workspace from phone_number_id, try to route by template name
     if (!targetWorkspace && message_template_name) {
@@ -709,8 +852,18 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
     let originalTemplateName = message_template_name;
     if (message_template_name && message_template_name.includes('_')) {
       const parts = message_template_name.split('_');
-      originalTemplateName = parts.slice(1).join('_'); // Remove the workspace prefix
+      const prefix = parts[0];
+      if (prefix.length === 8) {
+        originalTemplateName = parts.slice(1).join('_'); // Remove the workspace prefix
+      }
     }
+
+    const nameCandidates = [
+      originalTemplateName,
+      originalTemplateName?.toLowerCase(),
+      message_template_name,
+      message_template_name?.toLowerCase()
+    ].filter(Boolean);
     
     // Build query to find the template
     const query = {
@@ -722,14 +875,14 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
       query.workspace = targetWorkspace;
       query.$or = [
         { metaTemplateId: message_template_id },
-        { metaTemplateName: message_template_name },
-        { name: originalTemplateName }
+        { metaTemplateName: { $in: nameCandidates } },
+        { name: { $in: nameCandidates } }
       ];
     } else {
       query.$or = [
         { metaTemplateId: message_template_id },
-        { metaTemplateName: message_template_name },
-        { name: message_template_name }
+        { metaTemplateName: { $in: nameCandidates } },
+        { name: { $in: nameCandidates } }
       ];
     }
     
@@ -743,7 +896,7 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
       // ─────────────────────────────────────────────────────────────────────────────
       
       // Generate unique event ID for idempotency
-      const webhookEventId = `${message_template_id}_${event}_${Date.now()}`;
+      const webhookEventId = `${message_template_id}_${rawEvent}_${Date.now()}`;
       
       // Check for duplicate webhook (same event within 5 seconds)
       if (template.lastWebhookEventId && template.lastWebhookUpdate) {
@@ -752,8 +905,8 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
         const timeSinceLastUpdate = Date.now() - new Date(template.lastWebhookUpdate).getTime();
         
         // Skip if same event type received within 5 seconds (duplicate)
-        if (lastEventType === event && timeSinceLastUpdate < 5000) {
-          console.log(`[BSP Webhook] ⏭️ Skipping duplicate template event: ${event} for ${message_template_name}`);
+        if (lastEventType === rawEvent && timeSinceLastUpdate < 5000) {
+          console.log(`[BSP Webhook] ⏭️ Skipping duplicate template event: ${rawEvent} for ${message_template_name}`);
           return { success: true, skipped: true, reason: 'duplicate_event' };
         }
       }
@@ -771,10 +924,15 @@ async function processTemplateStatusUpdate(templateUpdate, workspace, workspaceD
         'DISABLED': 'DISABLED',
         'REINSTATED': 'APPROVED',
         'FLAGGED': 'DISABLED',
-        'PAUSED': 'PAUSED'
+        'FLAGGED_FOR_REVIEW': 'DISABLED',
+        'IN_APPEAL': 'PENDING',
+        'QUALITY_PENDING': 'PENDING',
+        'PAUSED': 'PAUSED',
+        'AUTO_DISABLED': 'DISABLED',
+        'BLOCKED': 'DISABLED'
       };
       
-      const newStatus = statusMap[event] || event;
+      const newStatus = statusMap[rawEvent] || rawEvent;
       
       // ─────────────────────────────────────────────────────────────────────────────
       // AUTHORITATIVE UPDATE: Webhook status always wins
@@ -940,6 +1098,64 @@ async function handleAccountUpdate(accountUpdate, workspace) {
     // ✅ STEP 3 (Per Meta ESB docs): Capture customer asset IDs from PARTNER_ADDED webhook
     // This webhook contains the customer's WABA ID and business portfolio ID
     const { event, whatsapp_business_account_id, business_portfolio_id, account_status, decision_status } = accountUpdate;
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // PHONE STATUS MONITORING (Interakt-grade safety)
+    // Meta may emit phone status changes via account_update.
+    // We persist last known status and alert owner if DISABLED/SUSPENDED.
+    // ─────────────────────────────────────────────────────────────────────────
+    const rawPhoneStatus = accountUpdate.phone_status || accountUpdate.phone_number_status || accountUpdate.status;
+    if (rawPhoneStatus) {
+      const normalizedStatus = rawPhoneStatus.toString().toUpperCase();
+      const previousStatus = wsDoc.bspPhoneStatus || null;
+
+      if (normalizedStatus !== previousStatus) {
+        if (!wsDoc.bspAudit) wsDoc.bspAudit = {};
+        wsDoc.bspPhoneStatus = normalizedStatus;
+        wsDoc.bspAudit.lastStatusCheck = new Date();
+
+        // Alert on DISABLED/SUSPENDED (Meta enforcement states)
+        const ALERT_STATUSES = ['DISABLED', 'SUSPENDED', 'BANNED'];
+        const shouldAlert = ALERT_STATUSES.includes(normalizedStatus);
+
+        if (shouldAlert) {
+          if (!wsDoc.bspAudit.warnings) wsDoc.bspAudit.warnings = [];
+          wsDoc.bspAudit.warnings.push({
+            type: 'PHONE_STATUS',
+            message: `Phone status changed to ${normalizedStatus}`
+          });
+        }
+
+        await wsDoc.save();
+
+        // Create audit log for internal visibility (acts as owner alert)
+        try {
+          const owner = await User.findOne({ workspace: wsDoc._id, role: 'owner' }).select('_id email');
+          const action = shouldAlert ? 'waba.disabled' : 'settings.updated';
+          await AuditLog.create({
+            workspace: wsDoc._id,
+            user: owner?._id || null,
+            action,
+            resource: {
+              type: 'whatsapp_phone',
+              name: wsDoc.bspDisplayPhoneNumber || wsDoc.whatsappPhoneNumber || null
+            },
+            details: {
+              from: previousStatus,
+              to: normalizedStatus,
+              phoneNumberId: wsDoc.bspPhoneNumberId || wsDoc.phoneNumberId || null,
+              ownerEmail: owner?.email || null
+            }
+          });
+        } catch (logErr) {
+          console.error('[Webhook] Failed to write phone status audit log:', logErr.message);
+        }
+
+        if (shouldAlert) {
+          console.warn(`[Webhook] ⚠️ Phone status is ${normalizedStatus} for workspace ${workspace}`);
+        }
+      }
+    }
     
     // Handle PARTNER_ADDED event - customer has completed ESB flow
     if (event === 'PARTNER_ADDED' && whatsapp_business_account_id && business_portfolio_id) {
@@ -959,7 +1175,7 @@ async function handleAccountUpdate(accountUpdate, workspace) {
     
     if (account_status) {
       // ✅ GAP 6: Validate account_status is a valid enum value
-      const VALID_ACCOUNT_STATUSES = ['ACTIVE', 'DISABLED', 'PENDING_REVIEW'];
+      const VALID_ACCOUNT_STATUSES = ['ACTIVE', 'DISABLED', 'PENDING_REVIEW', 'SUSPENDED'];
       if (!VALID_ACCOUNT_STATUSES.includes(account_status)) {
         console.warn(`[Webhook] Invalid account_status from Meta: ${account_status}. Expected one of: ${VALID_ACCOUNT_STATUSES.join(', ')}`);
         return;
@@ -973,7 +1189,7 @@ async function handleAccountUpdate(accountUpdate, workspace) {
       wsDoc.esbFlow.metaAccountStatusUpdatedAt = new Date();
       
       // If account disabled, block messaging
-      if (account_status === 'DISABLED' || account_status === 'PENDING_REVIEW') {
+      if (account_status === 'DISABLED' || account_status === 'PENDING_REVIEW' || account_status === 'SUSPENDED') {
         wsDoc.esbFlow.accountBlocked = true;
         wsDoc.esbFlow.accountBlockedReason = account_status;
         console.warn(`[Webhook] ⚠️ Account ${account_status} - blocking messaging for workspace ${workspace}`);
@@ -1129,6 +1345,65 @@ async function handleAdWebhook(value, workspace) {
   } catch (err) {
     console.error('[Webhook] Error handling ad webhook:', err.message);
   }
+}
+
+/**
+ * Redact PII from webhook payload before persistence
+ * WHY: Meta compliance and data minimization
+ */
+function redactWebhookPayload(payload) {
+  try {
+    const cloned = JSON.parse(JSON.stringify(payload));
+
+    if (!cloned?.entry) return cloned;
+
+    for (const entry of cloned.entry) {
+      for (const change of entry.changes || []) {
+        const value = change.value || {};
+
+        // Redact contacts
+        if (Array.isArray(value.contacts)) {
+          value.contacts = value.contacts.map(c => ({
+            ...c,
+            wa_id: c.wa_id ? maskPhone(c.wa_id) : c.wa_id,
+            profile: c.profile ? { name: '[REDACTED]' } : c.profile
+          }));
+        }
+
+        // Redact message bodies and phone numbers
+        if (Array.isArray(value.messages)) {
+          value.messages = value.messages.map(m => ({
+            ...m,
+            from: m.from ? maskPhone(m.from) : m.from,
+            text: m.text ? { body: '[REDACTED]' } : m.text,
+            button: m.button ? { text: '[REDACTED]' } : m.button,
+            interactive: m.interactive ? { ...m.interactive, body: '[REDACTED]' } : m.interactive
+          }));
+        }
+
+        // Redact status recipient ids
+        if (Array.isArray(value.statuses)) {
+          value.statuses = value.statuses.map(s => ({
+            ...s,
+            recipient_id: s.recipient_id ? maskPhone(s.recipient_id) : s.recipient_id
+          }));
+        }
+
+        change.value = value;
+      }
+    }
+
+    return cloned;
+  } catch (err) {
+    console.error('[Webhook] Redaction failed:', err.message);
+    return { error: 'redaction_failed' };
+  }
+}
+
+function maskPhone(value) {
+  const digits = (value || '').toString();
+  if (digits.length <= 4) return '****';
+  return `****${digits.slice(-4)}`;
 }
 
 module.exports = { verify, handler };

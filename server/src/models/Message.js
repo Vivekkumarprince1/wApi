@@ -27,10 +27,21 @@ const MessageSchema = new mongoose.Schema({
     ref: 'Contact',
     index: true
   },
+  // Conversation reference (inbox threading)
+  conversation: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Conversation',
+    index: true
+  },
   
   // ─────────────────────────────────────────────────────────────────────────────
   // MESSAGE PROPERTIES
   // ─────────────────────────────────────────────────────────────────────────────
+  // Agent/system sender (for outbound from inbox)
+  sentBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
   direction: { 
     type: String, 
     enum: ['inbound', 'outbound'], 
@@ -88,7 +99,7 @@ const MessageSchema = new mongoose.Schema({
   // ─────────────────────────────────────────────────────────────────────────────
   // CONVERSATION BILLING (INTERAKT-STYLE)
   // ─────────────────────────────────────────────────────────────────────────────
-  conversation: {
+  conversationBilling: {
     category: {
       type: String,
       enum: [
@@ -195,8 +206,8 @@ MessageSchema.methods.updateStatus = async function(newStatus, timestamp) {
  * Check if message is within conversation window
  */
 MessageSchema.methods.isInConversationWindow = function() {
-  if (!this.conversation?.windowEnd) return false;
-  return new Date() < this.conversation.windowEnd;
+  if (!this.conversationBilling?.windowEnd) return false;
+  return new Date() < this.conversationBilling.windowEnd;
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

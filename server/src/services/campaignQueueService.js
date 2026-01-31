@@ -88,6 +88,15 @@ const JOB_TYPES = {
  */
 async function enqueueCampaign(campaignId, workspaceId, options = {}) {
   const { priority = 1, delay = 0 } = options;
+
+  const Workspace = require('../models/Workspace');
+  const workspace = await Workspace.findById(workspaceId);
+  const isBspConnected = workspace && typeof workspace.isBspConnected === 'function'
+    ? workspace.isBspConnected()
+    : false;
+  if (!isBspConnected) {
+    throw new Error('Workspace is not BSP-connected');
+  }
   
   const jobId = `campaign:${campaignId}:start`;
   

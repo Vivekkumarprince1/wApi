@@ -1,6 +1,6 @@
 const Template = require('../models/Template');
-const metaService = require('./metaService');
-const { encrypt } = require('../utils/encryption');
+const bspMessagingService = require('./bspMessagingService');
+const bspConfig = require('../config/bspConfig');
 
 /**
  * Auto-Template Generation Service
@@ -231,28 +231,43 @@ async function generateAndSubmitTemplates(workspace) {
       };
     }
 
-    // ✅ Validation 3: WABA is active
-    if (!workspace.wabaId) {
-      return {
-        success: false,
-        reason: 'WABA not configured. Cannot generate templates.'
-      };
-    }
+    // ✅ Validation 3-5: BSP-managed or legacy WABA checks
+    // WHY: Interakt submits via BSP parent WABA when bspManaged is true
+    if (workspace.bspManaged) {
+      if (!bspConfig.isEnabled()) {
+        return {
+          success: false,
+          reason: 'BSP service not configured. Cannot submit templates.'
+        };
+      }
+      if (!workspace.bspPhoneNumberId) {
+        return {
+          success: false,
+          reason: 'BSP phone number not registered. Cannot generate templates.'
+        };
+      }
+    } else {
+      // Legacy direct WABA checks (fallback only)
+      if (!workspace.wabaId) {
+        return {
+          success: false,
+          reason: 'WABA not configured. Cannot generate templates.'
+        };
+      }
 
-    // ✅ Validation 4: Phone number is registered
-    if (!workspace.whatsappPhoneNumberId) {
-      return {
-        success: false,
-        reason: 'Phone number not registered. Cannot generate templates.'
-      };
-    }
+      if (!workspace.whatsappPhoneNumberId) {
+        return {
+          success: false,
+          reason: 'Phone number not registered. Cannot generate templates.'
+        };
+      }
 
-    // ✅ Validation 5: Access token available
-    if (!workspace.whatsappAccessToken) {
-      return {
-        success: false,
-        reason: 'Access token not available. Cannot submit to Meta.'
-      };
+      if (!workspace.whatsappAccessToken) {
+        return {
+          success: false,
+          reason: 'Access token not available. Cannot submit to Meta.'
+        };
+      }
     }
 
     // ✅ Validation 6: Check plan limits
@@ -300,14 +315,21 @@ async function generateAndSubmitTemplates(workspace) {
           workspace.description || ''
         );
 
-        // Create template document as DRAFT
-        // User must explicitly click "Submit" to send to Meta
+        // Create template document using canonical structured schema (Interakt-style)
+        // WHY: Enforce one schema and avoid raw component drift
         const template = await Template.create({
           workspace: workspace._id,
           name: templateName,
           language: 'en',
           category: templateDef.category,
-          components: personalizedComponents,
+          header: { enabled: false, format: 'NONE' },
+          body: {
+            text: personalizedBody,
+            examples: templateDef.components?.[0]?.example?.body_text?.[0] || []
+          },
+          footer: { enabled: false, text: '' },
+          buttons: { enabled: false, items: [] },
+          components: [],
           status: 'DRAFT',
           source: 'LOCAL',
           isSystemGenerated: true,
@@ -321,6 +343,55 @@ async function generateAndSubmitTemplates(workspace) {
         });
 
         console.log(`[Templates] ✅ Created template (DRAFT): ${templateName}`);
+
+        // Auto-submit via BSP parent WABA (Interakt requirement)
+        // WHY: All template submissions must go through centralized BSP service
+        if (bspConfig.isEnabled() && workspace.bspManaged && workspace.bspPhoneNumberId) {
+          try {
+            const metaComponents = template.buildMetaComponents();
+            const result = await bspMessagingService.submitTemplate(
+              workspace._id,
+              {
+                name: template.name,
+                language: template.language,
+                category: template.category,
+                components: metaComponents
+              }
+            );
+
+            template.status = 'PENDING';
+            template.metaTemplateId = result.templateId;
+            template.metaTemplateName = result.namespacedName;
+            template.submittedAt = new Date();
+            template.submittedVia = 'BSP';
+            template.metaPayloadSnapshot = {
+              components: metaComponents,
+              name: template.name,
+              language: template.language,
+              category: template.category,
+              submittedAt: new Date(),
+              raw: result.data || null
+            };
+            template.approvalHistory.push({
+              status: 'PENDING',
+              timestamp: new Date(),
+              source: 'BSP_SUBMISSION',
+              reason: 'Auto-generated onboarding template'
+            });
+
+            await template.save();
+            console.log(`[Templates] 📤 Auto-submitted template via BSP: ${template.metaTemplateName}`);
+          } catch (submitErr) {
+            template.approvalHistory.push({
+              status: 'SUBMISSION_FAILED',
+              timestamp: new Date(),
+              source: 'BSP_ERROR',
+              reason: submitErr.message
+            });
+            await template.save();
+            console.error(`[Templates] ❌ Auto-submit failed for ${templateName}:`, submitErr.message);
+          }
+        }
         generatedTemplates.push(template);
       } catch (templateError) {
         console.error(`[Templates] ❌ Failed to create template:`, templateError.message);

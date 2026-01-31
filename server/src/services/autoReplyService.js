@@ -1,10 +1,9 @@
 const AutoReply = require('../models/AutoReply');
 const AutoReplyLog = require('../models/AutoReplyLog');
-const Message = require('../models/Message');
 const Template = require('../models/Template');
 const Contact = require('../models/Contact');
 const Workspace = require('../models/Workspace');
-const metaService = require('./metaService');
+const templateSendingService = require('./templateSendingService');
 
 /**
  * Check if auto-reply should be sent for inbound message
@@ -91,13 +90,6 @@ async function sendAutoReply(autoReply, contact, workspace, triggeringMessage) {
       throw new Error('Workspace not found');
     }
 
-    const accessToken = workspaceDoc.whatsappAccessToken;
-    const phoneNumberId = workspaceDoc.whatsappPhoneNumberId;
-    
-    if (!accessToken || !phoneNumberId) {
-      throw new Error('WhatsApp credentials not configured');
-    }
-
     // Get template with full details
     const template = await Template.findById(autoReply.template);
     if (!template) {
@@ -109,41 +101,19 @@ async function sendAutoReply(autoReply, contact, workspace, triggeringMessage) {
       throw new Error('Template is not approved');
     }
 
-    // Build components for Meta API
-    const components = buildTemplateComponents(template);
-
-    // Create message record BEFORE sending
-    const message = await Message.create({
-      workspace,
-      contact: contact._id,
-      direction: 'outbound',
-      type: 'template',
-      body: `[Auto-reply] ${template.name}`,
-      status: 'sending',
+    // Send via BSP template pipeline (single outbound path)
+    const result = await templateSendingService.sendTemplate({
+      workspaceId: workspace,
+      templateId: template._id,
+      to: contact.phone,
+      variables: {},
+      contactId: contact._id,
       meta: {
-        templateId: template._id,
-        templateName: template.name,
         autoReplyId: autoReply._id,
         triggeredByMessage: triggeringMessage._id,
         isAutoReply: true
       }
     });
-
-    // Send via Meta Cloud API
-    const result = await metaService.sendTemplateMessage(
-      accessToken,
-      phoneNumberId,
-      contact.phone,
-      template.name,
-      'en', // Default language
-      components
-    );
-
-    // Update message with sent status
-    message.status = 'sent';
-    message.sentAt = new Date();
-    message.meta.whatsappId = result.messageId;
-    await message.save();
 
     // Log the auto-reply for 24-hour window tracking
     await AutoReplyLog.create({
@@ -163,18 +133,11 @@ async function sendAutoReply(autoReply, contact, workspace, triggeringMessage) {
       }
     );
 
-    // Increment workspace usage
-    workspaceDoc.usage.messages = (workspaceDoc.usage.messages || 0) + 1;
-    workspaceDoc.usage.messagesDaily = (workspaceDoc.usage.messagesDaily || 0) + 1;
-    workspaceDoc.usage.messagesThisMonth = (workspaceDoc.usage.messagesThisMonth || 0) + 1;
-    await workspaceDoc.save();
-
     console.log(`[AutoReply] ✅ Sent to ${contact.phone} (${template.name})`);
 
     return {
       success: true,
-      messageId: message._id,
-      whatsappId: result.messageId
+      messageId: result.messageId
     };
   } catch (err) {
     console.error(`[AutoReply] ❌ Error sending auto-reply:`, err.message);

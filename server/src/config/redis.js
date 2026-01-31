@@ -25,4 +25,33 @@ function getRedis() {
   return client;
 }
 
-module.exports = { connectRedis, getRedis };
+// Helper: store JSON with TTL (required for OTP/state durability across instances)
+async function setJson(key, value, ttlSeconds) {
+  const redis = getRedis();
+  const payload = JSON.stringify(value);
+  if (ttlSeconds && Number.isFinite(ttlSeconds)) {
+    await redis.set(key, payload, { EX: ttlSeconds });
+  } else {
+    await redis.set(key, payload);
+  }
+}
+
+// Helper: read JSON safely
+async function getJson(key) {
+  const redis = getRedis();
+  const raw = await redis.get(key);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch (err) {
+    return null;
+  }
+}
+
+// Helper: delete key
+async function deleteKey(key) {
+  const redis = getRedis();
+  await redis.del(key);
+}
+
+module.exports = { connectRedis, getRedis, setJson, getJson, deleteKey };

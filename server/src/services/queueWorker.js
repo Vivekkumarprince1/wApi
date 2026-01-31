@@ -1,5 +1,5 @@
 const { createWorker, createQueue } = require('./queue');
-const { processSendJob, processCampaignBatch } = require('./whatsappService');
+const { processSendJob } = require('./whatsappService');
 const CheckoutBotService = require('./checkoutBotService');
 const { startCampaignWorker } = require('./campaignWorkerService');
 
@@ -20,13 +20,14 @@ async function runWorker() {
     console.error('[QueueWorker] Failed to start campaign worker:', err.message);
   }
   
-  // Worker for WhatsApp messages (legacy - also handles some campaign batches)
-  const sendWorker = await createWorker('whatsapp-sends', async (job) => {
-    if (job.name === 'campaign-batch') {
-      return processCampaignBatch(job);
-    }
-    return processSendJob(job);
-  });
+  // Worker for WhatsApp messages (legacy sends only)
+    const sendWorker = await createWorker('whatsapp-sends', async (job) => {
+      // LEGACY CAMPAIGN PATH DISABLED - use campaignWorkerService only
+      if (job.name === 'campaign-batch') {
+        throw new Error('LEGACY_CAMPAIGN_ENGINE_DISABLED');
+      }
+      return processSendJob(job);
+    });
   sendWorker.on('completed', (job) => console.log('Send job completed', job.id));
   sendWorker.on('failed', (job, err) => console.error('Send job failed', job.id, err));
   

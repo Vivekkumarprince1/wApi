@@ -62,12 +62,12 @@ async function checkAndHandleOptOut(contact, messageBody, workspace, workspaceId
 
     // Send confirmation message (required by Meta)
     try {
-      const metaService = require('./metaService');
-      await metaService.sendTextMessage(
-        workspace.whatsappAccessToken,
-        workspace.whatsappPhoneNumberId,
+      const bspMessagingService = require('./bspMessagingService');
+      await bspMessagingService.sendTextMessage(
+        workspaceId,
         contact.phone,
-        '✓ You have been unsubscribed from our messages. Reply START to subscribe again.'
+        '✓ You have been unsubscribed from our messages. Reply START to subscribe again.',
+        { contactId: contact._id }
       );
     } catch (err) {
       console.error('[OptOut] Failed to send confirmation:', err.message);
@@ -100,12 +100,12 @@ async function checkAndHandleOptOut(contact, messageBody, workspace, workspaceId
 
     // Send confirmation
     try {
-      const metaService = require('./metaService');
-      await metaService.sendTextMessage(
-        workspace.whatsappAccessToken,
-        workspace.whatsappPhoneNumberId,
+      const bspMessagingService = require('./bspMessagingService');
+      await bspMessagingService.sendTextMessage(
+        workspaceId,
         contact.phone,
-        '✓ You have been resubscribed. We\'ll continue sending you updates.'
+        '✓ You have been resubscribed. We\'ll continue sending you updates.',
+        { contactId: contact._id }
       );
     } catch (err) {
       console.error('[OptOut] Failed to send opt-in confirmation:', err.message);
@@ -139,6 +139,24 @@ async function isOptedOut(contactId) {
   } catch (err) {
     console.error('[OptOut] Check failed:', err.message);
     return false; // Default to allowing send if check fails
+  }
+}
+
+/**
+ * Check if contact is opted out by phone number (workspace scoped)
+ * Used for outbound sends where contactId is not available
+ */
+async function isOptedOutByPhone(workspaceId, phone) {
+  try {
+    if (!workspaceId || !phone) return false;
+    const contact = await Contact.findOne({
+      workspace: workspaceId,
+      phone: phone
+    }).select('optOut.status').lean();
+    return contact?.optOut?.status === true;
+  } catch (err) {
+    console.error('[OptOut] Phone check failed:', err.message);
+    return false;
   }
 }
 
@@ -200,6 +218,7 @@ async function manualOptIn(contactId, workspaceId) {
 module.exports = {
   checkAndHandleOptOut,
   isOptedOut,
+  isOptedOutByPhone,
   manualOptOut,
   manualOptIn,
   STOP_KEYWORDS,

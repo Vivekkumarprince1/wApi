@@ -31,10 +31,14 @@ const crypto = require('crypto');
 const config = require('../config');
 const bspConfig = require('../config/bspConfig');
 const { logger } = require('../utils/logger');
-const { encryptToken, isEncrypted, hashForLog } = require('../utils/tokenEncryption');
+const { hashForLog } = require('../utils/tokenEncryption');
+const { storeToken } = require('./secretsManager');
 
 const META_API_VERSION = process.env.META_API_VERSION || 'v21.0';
 const META_GRAPH_URL = `https://graph.facebook.com/${META_API_VERSION}`;
+
+// Phone must be ACTIVE/CONNECTED before onboarding is marked complete (Meta compliance)
+const ACTIVE_PHONE_STATUSES = new Set(['CONNECTED', 'ACTIVE']);
 
 // =============================================================================
 // BSP CONFIGURATION
@@ -217,6 +221,14 @@ async function debugToken(accessToken) {
     const wabaIds = wabaScope?.target_ids || [];
     const businessIds = businessScope?.target_ids || [];
 
+    if (!data.is_valid) {
+      throw new Error('Token debug failed: token is not valid');
+    }
+
+    if (data.app_id && data.app_id !== bsp.appId) {
+      throw new Error('Token debug failed: token app_id mismatch');
+    }
+
     logger.info('[BSP] Token debug:', {
       wabaIds,
       businessIds,
@@ -334,6 +346,43 @@ function validateWabaOwnership(wabaId, ownedWabas) {
     isCustomerOwned: true,
     waba
   };
+}
+
+// =============================================================================
+// STEP 5.5: FETCH WABA STATUS (ACTIVE/CONNECTED REQUIRED)
+// =============================================================================
+
+/**
+ * Fetch WABA status details and return a normalized state
+ *
+ * @param {string} wabaId - WABA ID
+ * @param {string} accessToken - Access token
+ * @returns {object} - { rawStatus, derivedStatus }
+ */
+async function fetchWabaStatus(wabaId, accessToken) {
+  try {
+    const response = await axios.get(`${META_GRAPH_URL}/${wabaId}`, {
+      params: {
+        access_token: accessToken,
+        fields: 'id,name,account_status,status,account_review_status'
+      },
+      timeout: 15000
+    });
+
+    const rawStatus = (
+      response.data.account_status ||
+      response.data.status ||
+      response.data.account_review_status ||
+      ''
+    ).toString().toUpperCase();
+
+    const derivedStatus = rawStatus === 'APPROVED' ? 'ACTIVE' : rawStatus;
+
+    return { rawStatus, derivedStatus };
+  } catch (error) {
+    logger.error('[BSP] Fetch WABA status failed:', error.response?.data || error.message);
+    throw new Error(`Failed to fetch WABA status: ${error.response?.data?.error?.message || error.message}`);
+  }
 }
 
 // =============================================================================
@@ -666,19 +715,22 @@ async function completeBspOnboarding(code, workspaceId = 'default') {
     const tokenInfo = await debugToken(accessToken);
     progress.tokenDebug = true;
 
-    // CRITICAL: Ensure we have business_id
+    // CRITICAL: Ensure token is valid and has business_id
+    if (!tokenInfo.isValid) {
+      throw new Error('Token is invalid. Please re-run Embedded Signup.');
+    }
+
     if (!tokenInfo.businessId) {
       throw new Error('No business_id found in token. User may not have completed business verification.');
     }
 
     // STEP 3: Fetch owned WABAs
     logger.info('[BSP] Step 3: Fetching owned WABAs...');
-    let ownedWabas = [];
-    try {
-      ownedWabas = await fetchOwnedWABAs(tokenInfo.businessId, accessToken);
-      progress.wabaFetch = true;
-    } catch (err) {
-      logger.warn('[BSP] Could not fetch owned WABAs, using token WABA:', err.message);
+    const ownedWabas = await fetchOwnedWABAs(tokenInfo.businessId, accessToken);
+    progress.wabaFetch = true;
+
+    if (!ownedWabas || ownedWabas.length === 0) {
+      throw new Error('No owned WABAs found for business. Embedded Signup incomplete or business not linked.');
     }
 
     // Determine which WABA to use
@@ -692,8 +744,13 @@ async function completeBspOnboarding(code, workspaceId = 'default') {
       wabaValidation = validateWabaOwnership(wabaId, ownedWabas);
       progress.wabaValidation = true;
 
+      // Interakt parental model: only parent or BSP-managed WABAs are allowed
       if (!wabaValidation.valid) {
-        logger.warn('[BSP] WABA validation failed, but continuing...');
+        throw new Error('WABA ownership validation failed. WABA not linked to BSP business.');
+      }
+
+      if (wabaValidation.isCustomerOwned) {
+        throw new Error('Customer-owned WABA is not allowed in BSP parental model.');
       }
 
       isTrueBspModel = wabaValidation.isBspParent === true;
@@ -724,6 +781,15 @@ async function completeBspOnboarding(code, workspaceId = 'default') {
       );
       error.code = 'WABA_APP_ACCESS_DENIED';
       error.details = appAccessValidation;
+      throw error;
+    }
+
+    // STEP 4.6: Validate WABA status is ACTIVE/CONNECTED
+    logger.info('[BSP] Step 4.6: Validating WABA status...');
+    const { derivedStatus } = await fetchWabaStatus(wabaId, accessToken);
+    if (!ACTIVE_PHONE_STATUSES.has(derivedStatus)) {
+      const error = new Error('WABA is not ACTIVE/CONNECTED. Complete WABA activation before continuing.');
+      error.code = 'WABA_NOT_ACTIVE';
       throw error;
     }
 
@@ -765,6 +831,18 @@ async function completeBspOnboarding(code, workspaceId = 'default') {
     const businessProfile = await fetchBusinessProfile(primaryPhone.id, accessToken);
     progress.profileFetch = true;
 
+    // SAFETY: Do not mark onboarding complete unless phone is ACTIVE/CONNECTED
+    const rawPhoneStatus = (primaryPhone.status || primaryPhone.account_status || primaryPhone.account_mode || '').toString().toUpperCase();
+    const isPhoneActive = ACTIVE_PHONE_STATUSES.has(rawPhoneStatus) ||
+      primaryPhone.account_mode === 'LIVE' ||
+      primaryPhone.code_verification_status === 'VERIFIED';
+
+    if (!isPhoneActive) {
+      const error = new Error('Phone number is not ACTIVE yet. Please complete phone activation before continuing.');
+      error.code = 'PHONE_NOT_ACTIVE';
+      throw error;
+    }
+
     // ==========================================================================
     // FINAL VALIDATION: Mark COMPLETE only if waba_id + phone_number_id exist
     // ==========================================================================
@@ -784,11 +862,11 @@ async function completeBspOnboarding(code, workspaceId = 'default') {
     }
 
     // ==========================================================================
-    // ENCRYPT TOKENS BEFORE STORAGE
+    // STORE TOKEN IN VAULT (SINGLE TOKEN AUTHORITY)
     // ==========================================================================
     
-    const encryptedAccessToken = encryptToken(accessToken, workspaceId);
-    logger.info(`[BSP] Token encrypted for storage (hash: ${hashForLog(accessToken)})`);
+    await storeToken(workspaceId, 'bspUserAccessToken', accessToken);
+    logger.info(`[BSP] Token stored in vault (hash: ${hashForLog(accessToken)})`);
 
     // Build complete result
     const result = {
@@ -814,9 +892,8 @@ async function completeBspOnboarding(code, workspaceId = 'default') {
       isOfficialAccount: primaryPhone.is_official_business_account || false,
       accountMode: primaryPhone.account_mode,
       
-      // Token info (ENCRYPTED)
-      accessToken: encryptedAccessToken,
-      accessTokenRaw: null, // Never expose raw token
+      // Token info (vault-only)
+      tokenStoredInVault: true,
       tokenExpiresAt: new Date(Date.now() + expiresIn * 1000),
       
       // Business profile

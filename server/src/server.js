@@ -10,6 +10,9 @@ const { initSocket } = require('./utils/socket');
 const { connectRedis } = require('./config/redis');
 const { mongoUri, port, env } = require('./config');
 const errorHandler = require('./middlewares/errorHandler');
+const { enforceTenantIsolation } = require('./middlewares/bspTenantRouter');
+
+const BSP_ONLY = process.env.BSP_ONLY !== 'false';
 
 // Routes
 const authRoutes = require('./routes/authRoutes');
@@ -154,6 +157,7 @@ if (process.env.START_WABA_AUTOSYNC !== 'false') {
 initSocket(server);
 
 // Mount core routes
+app.use('/api/v1', enforceTenantIsolation);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/contacts', contactRoutes);
 app.use('/api/v1/messages', messageRoutes);
@@ -180,6 +184,7 @@ const onboardingRoutes = require('./routes/onboardingRoutes');
 const bspOnboardingRoutes = require('./routes/bspOnboardingRoutes'); // BSP Interakt model
 const adminRoutes = require('./routes/adminRoutes');
 const bspAdminRoutes = require('./routes/bspAdminRoutes'); // BSP multi-tenant admin
+const internalRoutes = require('./routes/internalRoutes'); // Internal BSP health
 const usageRoutes = require('./routes/usageRoutes');
 const dealRoutes = require('./routes/dealRoutes');
 const pipelineRoutes = require('./routes/pipelineRoutes');
@@ -214,6 +219,7 @@ app.use('/api/v1/onboarding', onboardingRoutes);
 app.use('/api/v1/onboarding/bsp', bspOnboardingRoutes); // BSP Interakt model
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/admin/bsp', bspAdminRoutes); // BSP multi-tenant admin
+app.use('/internal', internalRoutes);
 app.use('/api/v1/usage', usageRoutes);
 app.use('/api/v1/sales/deals', dealRoutes);
 app.use('/api/v1/sales/pipelines', pipelineRoutes);
@@ -289,7 +295,7 @@ if (process.env.START_ANALYTICS_CRON === 'true') {
 }
 
 // Token refresh cron (daily) - refreshes ESB tokens before 60-day expiry
-if (process.env.START_TOKEN_REFRESH_CRON === 'true') {
+if (!BSP_ONLY && process.env.START_TOKEN_REFRESH_CRON === 'true') {
   const cron = require('node-cron');
   const metaAutomationService = require('./services/metaAutomationService');
   const { decrypt, encrypt, isEncrypted } = require('./utils/encryption');
@@ -354,6 +360,17 @@ if (process.env.START_TOKEN_REFRESH_CRON === 'true') {
   });
   
   console.log('[Server] ✅ Token refresh cron enabled (runs daily at 2 AM UTC)');
+}
+
+// BSP system token health monitor (Interakt-grade operational hardening)
+if (process.env.START_BSP_HEALTH_MONITOR !== 'false') {
+  try {
+    const { startBspHealthMonitor } = require('./services/bspHealthService');
+    startBspHealthMonitor();
+    console.log('[Server] ✅ BSP health monitor started');
+  } catch (err) {
+    console.error('[Server] Failed to start BSP health monitor:', err.message);
+  }
 }
 
 module.exports = server;

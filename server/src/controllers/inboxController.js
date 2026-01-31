@@ -26,6 +26,43 @@ const softLockService = require('../services/softLockService');
 const slaService = require('../services/slaService');
 const agentRateLimitService = require('../services/agentRateLimitService');
 
+async function ensurePermissions(req) {
+  if (req.permissions) return req.permissions;
+
+  const userId = req.user?._id;
+  const workspaceId = req.user?.workspace;
+
+  if (!userId || !workspaceId) return null;
+
+  let permission = await Permission.findOne({
+    workspace: workspaceId,
+    user: userId
+  }).lean();
+
+  if (!permission) {
+    const user = await User.findById(userId).select('role').lean();
+    const role = user?.role || 'viewer';
+    const defaultPermissions = Permission.getDefaultPermissions(role);
+
+    permission = {
+      role,
+      permissions: defaultPermissions,
+      isActive: true
+    };
+
+    Permission.create({
+      workspace: workspaceId,
+      user: userId,
+      role,
+      permissions: defaultPermissions,
+      isActive: true
+    }).catch(err => console.error('[INBOX] Failed to seed permissions:', err.message));
+  }
+
+  req.permissions = permission;
+  return permission;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ASSIGNMENT OPERATIONS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -326,7 +363,14 @@ exports.closeConversation = async (req, res) => {
     }
 
     // Check if agent can close this conversation
-    const permission = req.permissions;
+    const permission = await ensurePermissions(req);
+    if (!permission) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permissions found',
+        code: 'NO_PERMISSIONS'
+      });
+    }
     if (permission.role === 'agent' && 
         conversation.assignedTo?.toString() !== closedById.toString()) {
       return res.status(403).json({
@@ -670,7 +714,14 @@ exports.getInbox = async (req, res) => {
   try {
     const workspaceId = req.user.workspace;
     const agentId = req.user._id;
-    const permission = req.permissions;
+    const permission = await ensurePermissions(req);
+    if (!permission) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permissions found',
+        code: 'NO_PERMISSIONS'
+      });
+    }
 
     const {
       view = 'mine',
@@ -780,7 +831,14 @@ exports.getInboxStats = async (req, res) => {
   try {
     const workspaceId = req.user.workspace;
     const agentId = req.user._id;
-    const permission = req.permissions;
+    const permission = await ensurePermissions(req);
+    if (!permission) {
+      return res.status(403).json({
+        success: false,
+        message: 'No permissions found',
+        code: 'NO_PERMISSIONS'
+      });
+    }
 
     const isManagerOrOwner = permission.role === 'owner' || permission.role === 'manager';
 

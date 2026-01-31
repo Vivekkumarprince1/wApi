@@ -16,7 +16,9 @@ const {
   googleOAuthCallback,
   facebookOAuthLogin,
   sendEmailVerification,
-  verifyEmail
+  verifyEmail,
+  requestPasswordReset,
+  resetPassword
 } = require('../controllers/authController');
 const validate = require('../middlewares/validate');
 const auth = require('../middlewares/auth');
@@ -46,5 +48,9 @@ router.put('/update-profile', auth, updateProfile);
 // Email verification routes
 router.post('/send-email-verification', auth, sendEmailVerification);
 router.post('/verify-email', auth, [body('otp').notEmpty()], validate, verifyEmail);
+
+// Password reset (token-based, expiring)
+router.post('/request-password-reset', [body('email').isEmail()], validate, requestPasswordReset);
+router.post('/reset-password', [body('token').notEmpty(), body('newPassword').isLength({ min: 6 })], validate, resetPassword);
 
 module.exports = router;

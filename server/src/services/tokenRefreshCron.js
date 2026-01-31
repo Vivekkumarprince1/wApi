@@ -5,6 +5,8 @@ const metaAutomationService = require('./metaAutomationService');
 const AuditLog = require('../models/AuditLog');
 const { logger } = require('../utils/logger');
 
+const BSP_ONLY = process.env.BSP_ONLY !== 'false';
+
 /**
  * TOKEN REFRESH CRON SERVICE
  * 
@@ -67,6 +69,15 @@ class TokenRefreshCron {
     try {
       logger.info('[TokenRefreshCron] Starting token refresh cycle');
 
+      if (BSP_ONLY) {
+        const systemResult = await this._refreshSystemToken();
+        if (!systemResult?.success) {
+          await this._alertFailures([systemResult]);
+        }
+        this.failureCount = systemResult?.success ? 0 : 1;
+        return;
+      }
+
       // Find workspaces with tokens expiring in next 7 days
       const workspacesToRefresh = await this._findWorkspacesNeedingRefresh();
       logger.info(`[TokenRefreshCron] Found ${workspacesToRefresh.length} workspaces to refresh`);
@@ -117,12 +128,14 @@ class TokenRefreshCron {
       sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
 
       const workspaces = await Workspace.find({
-        // Has refresh token
-        'esbFlow.hasRefreshToken': true,
+        // Skip BSP-managed workspaces (system token only)
+        $or: [{ bspManaged: { $exists: false } }, { bspManaged: false }],
+        // Has refresh token (legacy ESB only)
+        'esbFlow.userRefreshToken': { $exists: true, $ne: null },
         // Token expiration is within 7 days OR no expiration tracked (refresh anyway)
         $or: [
-          { 'esbFlow.tokenExpiresAt': { $lte: sevenDaysFromNow } },
-          { 'esbFlow.tokenExpiresAt': null },
+          { 'esbFlow.tokenExpiry': { $lte: sevenDaysFromNow } },
+          { 'esbFlow.tokenExpiry': null },
         ],
         // Not already in failure state
         'esbFlow.tokenRefreshFailureCount': { $lt: 3 },
@@ -168,18 +181,20 @@ class TokenRefreshCron {
 
         // Call Meta OAuth endpoint
         const newAccessToken = await this._callMetaTokenRefresh(
-          refreshToken,
-          workspace.phoneNumbers[0]?.phone_number_id
+          refreshToken
         );
 
         // Store new token in vault
-        await secretsManager.storeToken(workspaceId.toString(), newAccessToken);
+        await secretsManager.storeToken(workspaceId.toString(), 'userAccessToken', newAccessToken.accessToken);
+        if (newAccessToken.refreshToken) {
+          await secretsManager.storeRefreshToken(workspaceId.toString(), newAccessToken.refreshToken);
+        }
 
         // Update workspace metadata
         await Workspace.findByIdAndUpdate(workspaceId, {
           $set: {
             'esbFlow.lastTokenRefresh': new Date(),
-            'esbFlow.tokenExpiresAt': new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days
+            'esbFlow.tokenExpiry': new Date(Date.now() + (newAccessToken.expiresIn || 5184000) * 1000),
             'esbFlow.tokenRefreshFailureCount': 0,
           },
         });
@@ -258,31 +273,58 @@ class TokenRefreshCron {
    */
   async _callMetaTokenRefresh(refreshToken, phoneNumberId) {
     try {
-      const appId = process.env.FACEBOOK_APP_ID;
-      const appSecret = process.env.FACEBOOK_APP_SECRET;
-
-      if (!appId || !appSecret) {
-        throw new Error('Missing FACEBOOK_APP_ID or FACEBOOK_APP_SECRET');
-      }
-
-      const response = await require('axios').post(
-        'https://graph.instagram.com/oauth/access_token',
-        {
-          grant_type: 'refresh_token',
-          client_id: appId,
-          client_secret: appSecret,
-          access_token: refreshToken,
-        }
-      );
-
-      if (!response.data || !response.data.access_token) {
+      const result = await metaAutomationService.refreshUserToken(refreshToken);
+      if (!result?.accessToken) {
         throw new Error('Invalid token refresh response from Meta');
       }
 
-      return response.data.access_token;
+      return result;
     } catch (error) {
       logger.error('[TokenRefreshCron] _callMetaTokenRefresh failed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Refresh BSP system token only (BSP-only mode)
+   */
+  async _refreshSystemToken() {
+    try {
+      const refreshToken = await secretsManager.retrieveRefreshToken('bsp-system');
+      if (!refreshToken) {
+        logger.warn('[TokenRefreshCron] No system refresh token found');
+        return { success: false, error: 'NO_SYSTEM_REFRESH_TOKEN' };
+      }
+
+      const refreshed = await metaAutomationService.refreshUserToken(refreshToken);
+
+      await secretsManager.storeToken('bsp-system', 'systemUserToken', refreshed.accessToken);
+      if (refreshed.refreshToken) {
+        await secretsManager.storeRefreshToken('bsp-system', refreshed.refreshToken);
+      }
+
+      await AuditLog.create({
+        workspaceId: null,
+        entityType: 'token',
+        entityId: 'systemUserToken',
+        action: 'refresh_success',
+        details: { scope: 'bsp-system' },
+        status: 'success',
+      });
+
+      logger.info('[TokenRefreshCron] System token refreshed successfully');
+      return { success: true };
+    } catch (error) {
+      logger.warn('[TokenRefreshCron] System token refresh failed:', error.message);
+      await AuditLog.create({
+        workspaceId: null,
+        entityType: 'token',
+        entityId: 'systemUserToken',
+        action: 'refresh_failed',
+        details: { scope: 'bsp-system', error: error.message },
+        status: 'critical',
+      });
+      return { success: false, error: error.message };
     }
   }
 

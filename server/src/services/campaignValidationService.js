@@ -174,7 +174,7 @@ async function validateCampaignCreation(workspace, campaignData) {
   }
 
   // 9️⃣ Check ESB flow or WABA credentials
-  const isConnected = (workspace.esbFlow?.status === 'completed') || (workspace.whatsappAccessToken && workspace.whatsappPhoneNumberId);
+  const isConnected = (workspace.esbFlow?.status === 'completed') || (workspace.bspManaged && workspace.isBspConnected?.());
   if (!isConnected) {
     throw new Error('WHATSAPP_NOT_CONNECTED: Complete WhatsApp setup first');
   }

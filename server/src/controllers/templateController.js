@@ -29,15 +29,27 @@ const { validateTemplate, buildMetaPayload, LIMITS } = require('../middlewares/t
 async function createTemplate(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
-    const { 
-      name, 
-      language = 'en', 
+    // Interakt-style canonical schema: normalize raw Meta components if provided
+    let {
+      name,
+      language = 'en',
       category = 'MARKETING',
       header,
       body,
       footer,
-      buttons 
+      buttons,
+      components
     } = req.body;
+
+    // If raw Meta components are sent, convert to structured format
+    // WHY: Enforce single canonical schema while preserving backward compatibility
+    if (components && (!header || !body)) {
+      const parsed = parseMetaComponents(components);
+      header = parsed.header;
+      body = parsed.body;
+      footer = parsed.footer;
+      buttons = parsed.buttons;
+    }
     
     // Check for duplicate name in workspace
     const existing = await Template.findOne({ 
@@ -238,15 +250,27 @@ async function getTemplate(req, res, next) {
 async function updateTemplate(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
-    const { 
-      name, 
-      language, 
-      category, 
-      header, 
-      body, 
-      footer, 
-      buttons 
+    // Interakt-style canonical schema: normalize raw Meta components if provided
+    let {
+      name,
+      language,
+      category,
+      header,
+      body,
+      footer,
+      buttons,
+      components
     } = req.body;
+
+    // If raw Meta components are sent, convert to structured format
+    // WHY: Enforce single canonical schema while preserving backward compatibility
+    if (components && (!header || !body)) {
+      const parsed = parseMetaComponents(components);
+      header = parsed.header;
+      body = parsed.body;
+      footer = parsed.footer;
+      buttons = parsed.buttons;
+    }
     
     const template = await Template.findOne({ 
       _id: req.params.id, 
@@ -878,12 +902,35 @@ async function handleTemplateStatusWebhook(webhookData) {
       event,
       reason 
     } = webhookData;
+
+    const rawEvent = (event || webhookData.status || webhookData.message_template_status || '').toString().toUpperCase();
+    if (!rawEvent) {
+      return { handled: false, reason: 'missing_event' };
+    }
+
+    // Extract original template name (remove workspace prefix if present)
+    let originalTemplateName = message_template_name;
+    if (message_template_name && message_template_name.includes('_')) {
+      const parts = message_template_name.split('_');
+      const prefix = parts[0];
+      if (prefix.length === 8) {
+        originalTemplateName = parts.slice(1).join('_');
+      }
+    }
+
+    const nameCandidates = [
+      originalTemplateName,
+      originalTemplateName?.toLowerCase(),
+      message_template_name,
+      message_template_name?.toLowerCase()
+    ].filter(Boolean);
     
     // Find template by Meta ID or namespaced name
     const template = await Template.findOne({
       $or: [
         { metaTemplateId: message_template_id },
-        { metaTemplateName: message_template_name }
+        { metaTemplateName: { $in: nameCandidates } },
+        { name: { $in: nameCandidates } }
       ]
     });
     
@@ -902,10 +949,15 @@ async function handleTemplateStatusWebhook(webhookData) {
       'DISABLED': 'DISABLED',
       'REINSTATED': 'APPROVED',
       'FLAGGED': 'DISABLED',
-      'PAUSED': 'PAUSED'
+      'FLAGGED_FOR_REVIEW': 'DISABLED',
+      'IN_APPEAL': 'PENDING',
+      'QUALITY_PENDING': 'PENDING',
+      'PAUSED': 'PAUSED',
+      'AUTO_DISABLED': 'DISABLED',
+      'BLOCKED': 'DISABLED'
     };
     
-    const newStatus = statusMap[event] || event;
+    const newStatus = statusMap[rawEvent] || rawEvent;
     const previousStatus = template.status;
     
     // Update template

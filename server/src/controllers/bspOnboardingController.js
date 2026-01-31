@@ -22,16 +22,36 @@ const User = require('../models/User');
 const Workspace = require('../models/Workspace');
 const { logger } = require('../utils/logger');
 const { log: auditLog } = require('../services/auditService');
-const { encryptToken, isEncrypted } = require('../utils/tokenEncryption');
 const { getStage1Status } = require('../middlewares/phoneActivation');
+const { getRedis, setJson, getJson, deleteKey } = require('../config/redis');
 const {
   getBspConfig,
   generateBspSignupUrl,
   completeBspOnboarding
 } = require('../services/bspOnboardingServiceV2'); // Use V2 hardened service
 
-// In-memory state store (use Redis in production)
-const stateStore = new Map();
+// ESB state must survive restarts and multi-instance routing (Meta/Interakt requirement)
+const ESB_STATE_TTL_SECONDS = 35 * 60; // 35 minutes
+
+function getRedisClient() {
+  return getRedis();
+}
+
+async function setEsbState(state, data) {
+  const redis = getRedisClient();
+  await setJson(`esb:state:${state}`, data, ESB_STATE_TTL_SECONDS);
+  return redis;
+}
+
+async function getEsbState(state) {
+  getRedisClient();
+  return getJson(`esb:state:${state}`);
+}
+
+async function deleteEsbState(state) {
+  getRedisClient();
+  return deleteKey(`esb:state:${state}`);
+}
 
 // =============================================================================
 // START BSP ONBOARDING
@@ -69,18 +89,13 @@ async function startBspOnboarding(req, res) {
       phone: req.body.phone
     });
 
-    // Store state for callback verification
-    stateStore.set(result.state, {
+    // Store state for callback verification (Redis-backed)
+    await setEsbState(result.state, {
       userId,
       workspaceId: user?.workspace?._id?.toString(),
-      createdAt: new Date(),
-      expiresAt: new Date(result.expiresAt)
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(result.expiresAt).toISOString()
     });
-
-    // Auto-cleanup expired states after 35 minutes
-    setTimeout(() => {
-      stateStore.delete(result.state);
-    }, 35 * 60 * 1000);
 
     logger.info(`[BSP] Onboarding started for user ${userId}`);
 
@@ -134,7 +149,7 @@ async function handleCallback(req, res) {
   }
 
   // Validate state exists
-  if (!state || !stateStore.has(state)) {
+  if (!state || !(await getEsbState(state))) {
     logger.error('[BSP] Invalid or expired state:', state);
     return res.redirect(
       `${frontendUrl}/onboarding/esb?error=invalid_state&message=${encodeURIComponent('Session expired. Please try again.')}`
@@ -183,7 +198,7 @@ async function completeOnboarding(req, res) {
     }
 
     // Validate state
-    const stateData = stateStore.get(state);
+    const stateData = await getEsbState(state);
     if (!stateData) {
       return res.status(400).json({
         success: false,
@@ -204,7 +219,7 @@ async function completeOnboarding(req, res) {
 
     // Check state expiry
     if (new Date() > new Date(stateData.expiresAt)) {
-      stateStore.delete(state);
+      await deleteEsbState(state);
       return res.status(400).json({
         success: false,
         message: 'Session expired. Please start again.',
@@ -258,8 +273,7 @@ async function completeOnboarding(req, res) {
           nameStatus: result.nameStatus,
           isOfficialAccount: result.isOfficialAccount,
           
-          // Token (ENCRYPTED)
-          accessToken: result.accessToken, // Already encrypted by V2 service
+          // Token is stored in vault only (no workspace token storage)
           tokenExpiresAt: result.tokenExpiresAt,
           
           // BSP context
@@ -317,8 +331,7 @@ async function completeOnboarding(req, res) {
         nameStatus: result.nameStatus,
         isOfficialAccount: result.isOfficialAccount,
         
-        // Token (ENCRYPTED)
-        accessToken: result.accessToken, // Already encrypted by V2 service
+        // Token is stored in vault only (no workspace token storage)
         tokenExpiresAt: result.tokenExpiresAt,
         
         // BSP context
@@ -350,7 +363,7 @@ async function completeOnboarding(req, res) {
     }
 
     // Clean up state
-    stateStore.delete(state);
+    await deleteEsbState(state);
 
     // Audit log
     await auditLog(
