@@ -1,50 +1,27 @@
 const Workspace = require('../models/Workspace');
+const { ensureParentWaba } = require('./parentWabaService');
 
 /**
- * Initialize default workspace with WABA credentials from environment variables.
- * This runs once when the server starts to ensure the workspace is ready to use.
+ * Initialize Parent WABA credentials from environment variables.
+ * Interakt-style: platform controls a SINGLE Parent WABA (no per-tenant tokens).
  */
 async function initializeDefaultWABA() {
-  const accessToken = process.env.META_ACCESS_TOKEN;
-  const wabaId = process.env.META_WABA_ID;
-  const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
-  const verifyToken = process.env.META_VERIFY_TOKEN;
-
-  if (!accessToken || !wabaId || !phoneNumberId) {
-    console.log('⚠️  WABA credentials not found in environment variables. Skipping auto-initialization.');
-    console.log('   Set META_ACCESS_TOKEN, META_WABA_ID, and META_PHONE_NUMBER_ID in .env file.');
-    return;
-  }
-
   try {
-    // Find all workspaces that don't have WABA configured
-    const workspaces = await Workspace.find({
+    await ensureParentWaba();
+    console.log('✅ Parent WABA initialized');
+
+    // Backfill parent/child references if any legacy workspace exists
+    const legacyWorkspaces = await Workspace.find({
+      bspManaged: true,
       $or: [
-        { whatsappAccessToken: { $exists: false } },
-        { whatsappAccessToken: null },
-        { whatsappAccessToken: '' }
+        { parentWaba: { $exists: false } },
+        { childBusiness: { $exists: false } }
       ]
-    });
+    }).select('_id');
 
-    if (workspaces.length === 0) {
-      console.log('✅ All workspaces already have WABA credentials configured.');
-      return;
+    if (legacyWorkspaces.length > 0) {
+      console.log(`🔧 Found ${legacyWorkspaces.length} BSP workspaces without child links. Backfill deferred to runtime.`);
     }
-
-    console.log(`🔧 Found ${workspaces.length} workspace(s) without WABA credentials. Initializing...`);
-
-    for (const workspace of workspaces) {
-      workspace.whatsappAccessToken = accessToken;
-      workspace.wabaId = wabaId;
-      workspace.whatsappPhoneNumberId = phoneNumberId;
-      workspace.whatsappVerifyToken = verifyToken || 'default-verify-token';
-      workspace.connectedAt = new Date();
-      
-      await workspace.save();
-      console.log(`   ✅ Initialized WABA for workspace: ${workspace.name} (${workspace._id})`);
-    }
-
-    console.log('✅ WABA auto-initialization complete!');
   } catch (error) {
     console.error('❌ Error during WABA auto-initialization:', error.message);
   }
@@ -55,32 +32,8 @@ async function initializeDefaultWABA() {
  * Call this to force-update all workspaces with the latest env credentials.
  */
 async function updateAllWorkspacesWABA() {
-  const accessToken = process.env.META_ACCESS_TOKEN;
-  const wabaId = process.env.META_WABA_ID;
-  const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
-  const verifyToken = process.env.META_VERIFY_TOKEN;
-
-  if (!accessToken || !wabaId || !phoneNumberId) {
-    throw new Error('Missing required META environment variables');
-  }
-
-  const result = await Workspace.updateMany(
-    {},
-    {
-      $set: {
-        whatsappAccessToken: accessToken,
-        wabaId: wabaId,
-        whatsappPhoneNumberId: phoneNumberId,
-        whatsappVerifyToken: verifyToken || 'default-verify-token',
-        connectedAt: new Date()
-      }
-    }
-  );
-
-  return {
-    modifiedCount: result.modifiedCount,
-    matchedCount: result.matchedCount
-  };
+  await ensureParentWaba();
+  return { modifiedCount: 0, matchedCount: 0 };
 }
 
 module.exports = {

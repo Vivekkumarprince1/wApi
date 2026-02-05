@@ -17,6 +17,7 @@ const Workspace = require('../models/Workspace');
 const bspMessagingService = require('../services/bspMessagingService');
 const bspConfig = require('../config/bspConfig');
 const { validateTemplate, buildMetaPayload, LIMITS } = require('../middlewares/templateValidation');
+const { getParentWaba } = require('../services/parentWabaService');
 const usageLedgerService = require('../services/usageLedgerService');
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -66,9 +67,13 @@ async function createTemplate(req, res, next) {
       });
     }
     
+    const parentWaba = await getParentWaba();
+
     // Create template with structured components
     const template = await Template.create({
       workspace: workspaceId,
+      parentWaba: parentWaba?._id,
+      parentWabaId: parentWaba?.wabaId,
       name: name.toLowerCase(),
       language,
       category: Template.getValidMetaCategory(category),

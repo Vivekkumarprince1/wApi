@@ -23,8 +23,17 @@ export interface WorkspaceStatus {
   
   // Stage 1 completion (phone connected)
   stage1Complete: boolean;
-  phoneStatus: 'NOT_CONNECTED' | 'PENDING' | 'CONNECTED';
+  phoneStatus: 'NOT_CONNECTED' | 'pending' | 'verified' | 'display_name_approved' | 'active' | 'restricted' | 'disabled';
   phoneNumber?: string;
+  qualityRating?: 'GREEN' | 'YELLOW' | 'RED' | 'UNKNOWN';
+  messagingTier?: string;
+  degradation?: {
+    level: string;
+    degraded: boolean;
+    canSend: boolean;
+    canRead: boolean;
+    message?: string | null;
+  };
   
   // Workspace info
   workspace: {
@@ -84,6 +93,7 @@ export function useWorkspace(): UseWorkspaceReturn {
       }
 
       const stage1 = stage1Data?.stage1 || {};
+      const details = stage1.details || {};
       
       setStatus({
         user: {
@@ -95,8 +105,11 @@ export function useWorkspace(): UseWorkspaceReturn {
           trialEndsAt: userData.trialEndsAt,
         },
         stage1Complete: stage1.complete || false,
-        phoneStatus: stage1.phoneStatus || 'NOT_CONNECTED',
-        phoneNumber: stage1.phoneNumber,
+        phoneStatus: details.phoneStatus || stage1.phoneStatus || 'NOT_CONNECTED',
+        phoneNumber: details.phoneNumber || stage1.phoneNumber,
+        qualityRating: details.qualityRating || 'UNKNOWN',
+        messagingTier: details.messagingTier || 'TIER_NOT_SET',
+        degradation: stage1.degradation,
         workspace: userData.workspace ? {
           id: userData.workspace._id || userData.workspace,
           name: userData.workspace.name || 'My Workspace',
@@ -138,9 +151,10 @@ export function useWorkspace(): UseWorkspaceReturn {
   // Permission helpers based on role and workspace status
   const role = status.user?.role || 'viewer';
   
+  const canSendBasedOnHealth = status.stage1Complete && (status.degradation?.canSend ?? true) && status.qualityRating !== 'RED';
   const canCreateTemplates = status.stage1Complete && ['owner', 'manager'].includes(role);
-  const canCreateCampaigns = status.stage1Complete && ['owner', 'manager'].includes(role);
-  const canSendMessages = status.stage1Complete && ['owner', 'manager', 'agent'].includes(role);
+  const canCreateCampaigns = status.stage1Complete && ['owner', 'manager'].includes(role) && canSendBasedOnHealth;
+  const canSendMessages = canSendBasedOnHealth && ['owner', 'manager', 'agent'].includes(role);
   const canManageTeam = ['owner', 'manager'].includes(role);
   const canViewBilling = ['owner'].includes(role);
   const canAccessAdmin = ['owner'].includes(role);

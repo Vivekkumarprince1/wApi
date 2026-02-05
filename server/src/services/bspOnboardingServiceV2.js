@@ -4,7 +4,7 @@
  * =============================================================================
  * 
  * Business Solution Provider (BSP) onboarding where:
- * - Users onboard via Meta Embedded Signup V2
+ * - Users onboard via Meta Embedded Signup v3 (sessionInfoVersion 3)
  * - Their business attaches under YOUR parent WABA
  * - You (BSP) own the WABA, users get phone numbers under it
  * - Fully automated like Interakt
@@ -80,7 +80,7 @@ function getBspConfig() {
 // =============================================================================
 
 /**
- * Generate Meta Embedded Signup V2 URL for BSP model
+ * Generate Meta Embedded Signup v3 URL for BSP model
  * 
  * @param {string} userId - User initiating signup
  * @param {object} options - Pre-fill options

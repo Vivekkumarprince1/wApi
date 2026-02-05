@@ -2,6 +2,8 @@ const Template = require('../models/Template');
 const Contact = require('../models/Contact');
 const Workspace = require('../models/Workspace');
 const Campaign = require('../models/Campaign');
+const { getParentWaba } = require('./parentWabaService');
+const { getChildBusinessForWorkspace } = require('./childBusinessService');
 
 // ✅ Plan limits - source of truth for enforcement
 const PLAN_LIMITS = {
@@ -62,10 +64,11 @@ async function validateCampaignCreation(workspace, campaignData) {
     throw new Error('ACCOUNT_NOT_ACTIVE: Account status is ' + accountStatus);
   }
 
-  // 3️⃣ Check token expiry
-  if (workspace.esbFlow?.systemUserTokenExpiry) {
+  // 3️⃣ Check Parent WABA token expiry (platform-owned)
+  const parent = await getParentWaba();
+  if (parent?.systemUserTokenExpiry) {
     const now = new Date();
-    const tokenExpiry = new Date(workspace.esbFlow.systemUserTokenExpiry);
+    const tokenExpiry = new Date(parent.systemUserTokenExpiry);
     if (now > tokenExpiry) {
       throw new Error('TOKEN_EXPIRED');
     }
@@ -173,10 +176,10 @@ async function validateCampaignCreation(workspace, campaignData) {
     }
   }
 
-  // 9️⃣ Check ESB flow or WABA credentials
-  const isConnected = (workspace.esbFlow?.status === 'completed') || (workspace.bspManaged && workspace.isBspConnected?.());
-  if (!isConnected) {
-    throw new Error('WHATSAPP_NOT_CONNECTED: Complete WhatsApp setup first');
+  // 9️⃣ Check child phone lifecycle status
+  const childBusiness = await getChildBusinessForWorkspace(workspace._id).catch(() => null);
+  if (!childBusiness || childBusiness.phoneStatus !== 'active') {
+    throw new Error('PHONE_NOT_ACTIVE: Complete phone activation first');
   }
 
   return { valid: true, message: 'Campaign is valid' };
@@ -216,10 +219,11 @@ async function validateCampaignStart(campaign) {
     };
   }
 
-  // Check token
-  if (workspace.esbFlow?.systemUserTokenExpiry) {
+  // Check token (Parent WABA)
+  const parent = await getParentWaba();
+  if (parent?.systemUserTokenExpiry) {
     const now = new Date();
-    const tokenExpiry = new Date(workspace.esbFlow.systemUserTokenExpiry);
+    const tokenExpiry = new Date(parent.systemUserTokenExpiry);
     if (now > tokenExpiry) {
       return {
         valid: false,
@@ -272,10 +276,11 @@ async function checkShouldPauseCampaign(campaign) {
     return { shouldPause: true, reason: 'ACCOUNT_NOT_ACTIVE' };
   }
 
-  // Token expired
-  if (workspace.esbFlow?.systemUserTokenExpiry) {
+  // Token expired (Parent WABA)
+  const parent = await getParentWaba();
+  if (parent?.systemUserTokenExpiry) {
     const now = new Date();
-    const tokenExpiry = new Date(workspace.esbFlow.systemUserTokenExpiry);
+    const tokenExpiry = new Date(parent.systemUserTokenExpiry);
     if (now > tokenExpiry) {
       return { shouldPause: true, reason: 'TOKEN_EXPIRED' };
     }

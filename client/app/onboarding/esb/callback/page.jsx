@@ -10,7 +10,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaSpinner, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
-import { bspComplete } from '@/lib/api';
+import { esbComplete } from '@/lib/api';
 
 function ESBCallbackContent() {
   const router = useRouter();
@@ -31,15 +31,20 @@ function ESBCallbackContent() {
         }
 
         // Call BSP complete endpoint
-        const response = await bspComplete({ code, state });
+        const response = await esbComplete({ code, state });
 
         if (response?.success) {
           setStatus('success');
-          setMessage('WhatsApp connected successfully!');
+          const phoneStatus = response?.workspace?.phoneStatus || response?.stage1?.phoneStatus;
+          if (phoneStatus && phoneStatus !== 'active' && phoneStatus !== 'CONNECTED') {
+            setMessage('WhatsApp setup is in progress. Phone activation is pending.');
+          } else {
+            setMessage('WhatsApp connected successfully!');
+          }
 
           // Redirect to dashboard after 2 seconds
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push('/dashboard/whatsapp-assets');
           }, 2000);
         } else {
           setStatus('error');

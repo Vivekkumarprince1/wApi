@@ -15,7 +15,21 @@ function resolveApiUrl() {
   return 'http://localhost:5001/api/v1';
 }
 
+function resolveApiRoot() {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (envUrl && envUrl.length) {
+    return envUrl.replace(/\/api\/v1\/?$/, '');
+  }
+
+  if (typeof window !== 'undefined' && window.location) {
+    return window.location.origin;
+  }
+
+  return 'http://localhost:5001';
+}
+
 const API_URL = resolveApiUrl();
+const API_ROOT = resolveApiRoot();
 console.log('🔗 Backend API connected to:', API_URL);
 
 // Helper function to get token from localStorage
@@ -123,6 +137,61 @@ export const del = async (endpoint: string) => {
   }
 
   return response.json();
+};
+
+// ============================================================
+// EMBEDDED SIGNUP (ESB v3) API
+// ============================================================
+
+export const esbStart = async (params?: { businessName?: string; phone?: string }) => {
+  const qs = new URLSearchParams();
+  if (params?.businessName) qs.append('businessName', params.businessName);
+  if (params?.phone) qs.append('phone', params.phone);
+
+  const response = await fetch(`${API_ROOT}/api/onboarding/esb/start${qs.toString() ? `?${qs.toString()}` : ''}` , {
+    method: 'GET',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      throw new Error('Unauthorized');
+    }
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to start Embedded Signup');
+  }
+
+  return response.json();
+};
+
+export const esbComplete = async (payload: { code: string; state: string }) => {
+  const response = await fetch(`${API_ROOT}/api/onboarding/esb/complete`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      throw new Error('Unauthorized');
+    }
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to complete Embedded Signup');
+  }
+
+  return response.json();
+};
+
+export const getEsbStatus = async () => {
+  return get('/onboarding/esb/status');
+};
+
+export const getWhatsAppAssetStatus = async () => {
+  return get('/onboarding/bsp/stage1-status');
 };
 
 // Convenience wrapper for account deletion

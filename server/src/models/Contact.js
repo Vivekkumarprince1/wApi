@@ -30,6 +30,13 @@ const ContactSchema = new mongoose.Schema({
     optedOutVia: { type: String, enum: ['keyword', 'manual', 'webhook'], default: null },
     optedBackInAt: { type: Date }
   },
+
+  // Opt-in tracking (explicit compliance trail)
+  optIn: {
+    status: { type: Boolean, default: false },
+    optedInAt: { type: Date },
+    optedInVia: { type: String, enum: ['inbound_message', 'import', 'api', 'manual'], default: null }
+  },
   
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

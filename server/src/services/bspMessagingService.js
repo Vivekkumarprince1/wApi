@@ -18,7 +18,9 @@ const Workspace = require('../models/Workspace');
 const Message = require('../models/Message');
 const { markTokenInvalid } = require('./bspHealthService');
 const { isOptedOutByPhone, isOptedOut } = require('./optOutService');
-const { storeToken, retrieveToken } = require('./secretsManager');
+// Token retrieval is centralized in Parent WABA service
+const { getSystemUserToken, getParentWaba } = require('./parentWabaService');
+const { getActiveChildBusinessForWorkspace, createOrUpdateChildBusinessFromWorkspace } = require('./childBusinessService');
 const { enforceWorkspaceBilling } = require('./billingEnforcementService');
 const auditService = require('./auditService');
 
@@ -27,25 +29,10 @@ const rateLimiters = new Map();
 
 // Single token authority (vault-backed)
 let systemTokenCache = null;
-let systemTokenRef = null;
 
-async function getSystemUserToken() {
+async function getSystemToken() {
   if (systemTokenCache) return systemTokenCache;
-
-  if (!systemTokenRef) {
-    if (!bspConfig.systemUserToken) {
-      throw new Error('BSP_TOKEN_NOT_CONFIGURED');
-    }
-
-    const stored = await storeToken('bsp-system', 'systemUserToken', bspConfig.systemUserToken);
-    systemTokenRef = stored.location === 'local' ? stored.encryptedValue : null;
-  }
-
-  systemTokenCache = await retrieveToken('bsp-system', 'systemUserToken', systemTokenRef);
-  if (!systemTokenCache) {
-    throw new Error('BSP_TOKEN_NOT_CONFIGURED');
-  }
-
+  systemTokenCache = await getSystemUserToken();
   return systemTokenCache;
 }
 
@@ -572,7 +559,7 @@ async function uploadMedia(workspaceId, file, mimeType) {
   formData.append('type', mimeType);
   
   try {
-    const systemToken = await getSystemUserToken();
+    const systemToken = await getSystemToken();
     const response = await axios.post(url, formData, {
       headers: {
         ...formData.getHeaders(),
@@ -659,7 +646,7 @@ function verifyWebhookSignature(requestBody, signatureHeader) {
  * Make an authenticated Meta API call using the BSP system token
  */
 async function makeMetaApiCall(method, url, data = null, params = null) {
-  const systemToken = await getSystemUserToken();
+  const systemToken = await getSystemToken();
   
   const config = {
     method,
@@ -721,6 +708,22 @@ async function getWorkspaceForMessaging(workspaceId) {
   if (!workspace.bspManaged) {
     throw new Error('WORKSPACE_NOT_BSP_MANAGED');
   }
+
+  // Enforce Parent WABA ownership + child asset attachment
+  let childBusiness = await getActiveChildBusinessForWorkspace(workspaceId).catch(async (err) => {
+    // Attempt a one-time backfill for legacy workspaces
+    const migrated = await createOrUpdateChildBusinessFromWorkspace(workspace);
+    if (migrated && migrated.phoneStatus === 'active') return migrated;
+    throw err;
+  });
+
+  const parent = await getParentWaba();
+  if (!parent || childBusiness.parentWabaId !== parent.wabaId) {
+    throw new Error('PARENT_WABA_MISMATCH');
+  }
+
+  // Attach child business for downstream access
+  workspace._childBusiness = childBusiness;
   
   if (!workspace.canSendMessage()) {
     throw new Error('BSP_MESSAGING_BLOCKED');
@@ -741,14 +744,23 @@ async function getWorkspaceForMessaging(workspaceId) {
 async function checkRateLimit(workspace) {
   const plan = workspace.plan || 'free';
   const workspaceId = workspace._id.toString();
+
+  const qualityRating = workspace._childBusiness?.qualityRating || workspace.bspQualityRating || workspace.qualityRating;
+  const qualityThrottle = qualityRating === 'YELLOW' ? 0.5 : 1;
+
+  // Interakt-style safety: throttle on low quality to avoid enforcement
+  const throttled = (limit) => Math.max(1, Math.floor(limit * qualityThrottle));
   
   // Get configured limits
-  const maxMessagesPerSecond = workspace.bspRateLimits?.messagesPerSecond || 
-    bspConfig.getRateLimit(plan, 'messagesPerSecond');
-  const maxDailyMessages = workspace.bspRateLimits?.dailyMessageLimit || 
-    bspConfig.getRateLimit(plan, 'dailyMessageLimit');
-  const maxMonthlyMessages = workspace.bspRateLimits?.monthlyMessageLimit || 
-    bspConfig.getRateLimit(plan, 'monthlyMessageLimit');
+  const maxMessagesPerSecond = throttled(
+    workspace.bspRateLimits?.messagesPerSecond || bspConfig.getRateLimit(plan, 'messagesPerSecond')
+  );
+  const maxDailyMessages = throttled(
+    workspace.bspRateLimits?.dailyMessageLimit || bspConfig.getRateLimit(plan, 'dailyMessageLimit')
+  );
+  const maxMonthlyMessages = throttled(
+    workspace.bspRateLimits?.monthlyMessageLimit || bspConfig.getRateLimit(plan, 'monthlyMessageLimit')
+  );
   
   // Check per-second rate limit (sliding window)
   const now = Date.now();

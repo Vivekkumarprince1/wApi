@@ -52,7 +52,10 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
           get('/onboarding/bsp/stage1-status').catch(() => ({ stage1: { complete: false } }))
         ]);
         setUserRole(user?.role || null);
-        setStage1Complete(stage1Data?.stage1?.complete || false);
+        const stage1 = stage1Data?.stage1 || {};
+        const canSend = stage1.degradation?.canSend ?? true;
+        const quality = stage1.details?.qualityRating;
+        setStage1Complete(!!stage1.complete && canSend && quality !== 'RED');
       } catch (err) {
         console.error('Failed to fetch user data:', err);
         setUserRole(null);
@@ -168,6 +171,26 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
               <FaInbox className={`${isActive('/dashboard/inbox') ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
             </div>
             {isHovered && <span className={`font-medium text-sm ${isActive('/dashboard/inbox') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Inbox</span>}
+          </div>
+
+          {/* WhatsApp Assets */}
+          <div
+            className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer mb-2 transition-all duration-200 ${
+              isActive('/dashboard/whatsapp-assets')
+                ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+            }`}
+            onClick={() => navigate("/dashboard/whatsapp-assets")}
+            title="WhatsApp Assets"
+          >
+            <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
+              isActive('/dashboard/whatsapp-assets')
+                ? 'bg-white/20'
+                : 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/10'
+            }`}>
+              <FaWhatsapp className={`${isActive('/dashboard/whatsapp-assets') ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
+            </div>
+            {isHovered && <span className={`font-medium text-sm ${isActive('/dashboard/whatsapp-assets') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>WhatsApp Assets</span>}
           </div>
 
           {/* Main Menu Items */}

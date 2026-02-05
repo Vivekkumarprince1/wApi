@@ -18,6 +18,7 @@ const { triggerWorkflows } = require('../services/workflowExecutionService');
 const { checkAutoReply, sendAutoReply } = require('../services/autoReplyService');
 const { matchFAQ } = require('../services/answerbotService');
 const billingLedgerService = require('../services/billingLedgerService');
+const { updateChildBusinessByPhoneNumberId } = require('../services/childBusinessService');
 
 // Stage 4: Import inbox socket service for real-time updates
 const inboxSocketService = require('../services/inboxSocketService');
@@ -289,6 +290,16 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
           name: contactInfo?.profile?.name || msg.profile?.name || 'Unknown',
           workspace: workspace
         });
+      }
+
+      // Opt-in tracking (Interakt-style compliance)
+      if (!contact.optIn?.status) {
+        contact.optIn = {
+          status: true,
+          optedInAt: new Date(),
+          optedInVia: 'inbound_message'
+        };
+        await contact.save();
       }
       
       // Extract message body
@@ -1143,6 +1154,12 @@ async function handleAccountUpdate(accountUpdate, workspace) {
 
         await wsDoc.save();
 
+        // Sync ChildBusiness lifecycle state
+        await updateChildBusinessByPhoneNumberId(
+          wsDoc.bspPhoneNumberId || wsDoc.phoneNumberId || wsDoc.whatsappPhoneNumberId,
+          { phoneStatusRaw: normalizedStatus }
+        ).catch(() => null);
+
         // Create audit log for internal visibility (acts as owner alert)
         try {
           const owner = await User.findOne({ workspace: wsDoc._id, role: 'owner' }).select('_id email');
@@ -1227,6 +1244,21 @@ async function handleAccountUpdate(accountUpdate, workspace) {
       console.log(`[Webhook] Account decision status: ${decision_status} for workspace ${workspace}`);
       wsDoc.esbFlow.metaDecisionStatus = decision_status;
       await wsDoc.save();
+    }
+
+    // Quality score monitoring hook (if provided by Meta)
+    const qualityRating = accountUpdate.quality_rating || accountUpdate.quality_score || accountUpdate.quality_rating_status;
+    if (qualityRating) {
+      const normalizedQuality = qualityRating.toString().toUpperCase();
+      wsDoc.bspQualityRating = normalizedQuality;
+      wsDoc.bspAudit = wsDoc.bspAudit || {};
+      wsDoc.bspAudit.lastQualityUpdate = new Date();
+      await wsDoc.save();
+
+      await updateChildBusinessByPhoneNumberId(
+        wsDoc.bspPhoneNumberId || wsDoc.phoneNumberId || wsDoc.whatsappPhoneNumberId,
+        { qualityRating: normalizedQuality }
+      ).catch(() => null);
     }
   } catch (err) {
     console.error(`[Webhook] Error handling account update for workspace ${workspace}:`, err.message);

@@ -21,7 +21,8 @@ const axios = require('axios');
 const Workspace = require('../models/Workspace');
 const bspConfig = require('../config/bspConfig');
 const { logger } = require('../utils/logger');
-const { safeDecrypt } = require('../utils/tokenEncryption');
+const { getSystemUserToken } = require('./parentWabaService');
+const { updateChildBusinessByPhoneNumberId } = require('./childBusinessService');
 
 // =============================================================================
 // CONFIGURATION
@@ -355,13 +356,8 @@ async function syncWorkspace(workspace) {
   }
 
   try {
-    // Get access token (try multiple sources)
-    let accessToken = bspConfig.systemUserToken; // Primary: BSP system token
-    
-    // If workspace has its own token (ESB flow), use it for their specific WABA
-    if (workspace.accessToken) {
-      accessToken = safeDecrypt(workspace.accessToken, workspaceId) || accessToken;
-    }
+    // Get access token (Interakt-style: Parent WABA system token only)
+    const accessToken = await getSystemUserToken();
 
     if (!accessToken) {
       logger.error(`[WABASync] No access token for workspace ${workspaceId}`);
@@ -416,6 +412,17 @@ async function syncWorkspace(workspace) {
           updates.nameStatus = ourPhone.name_status || ourPhone.new_name_status;
           updates.isOfficialAccount = ourPhone.is_official_business_account || false;
           updates.codeVerificationStatus = ourPhone.code_verification_status;
+
+          // Sync ChildBusiness lifecycle/quality (authoritative phone asset)
+          await updateChildBusinessByPhoneNumberId(ourPhone.id, {
+            phoneStatusRaw: phoneStatus,
+            qualityRating: ourPhone.quality_rating || 'UNKNOWN',
+            messagingLimitTier: ourPhone.messaging_limit_tier,
+            displayPhoneNumber: ourPhone.display_phone_number,
+            verifiedName: ourPhone.verified_name,
+            codeVerificationStatus: ourPhone.code_verification_status,
+            nameStatus: ourPhone.name_status || ourPhone.new_name_status
+          }).catch(() => null);
 
           // If phone is now CONNECTED, mark as fully onboarded
           if (phoneStatus === 'CONNECTED') {

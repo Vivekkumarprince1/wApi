@@ -81,6 +81,12 @@ const TemplateSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  parentWaba: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ParentWABA',
+    index: true
+  },
+  parentWabaId: { type: String, index: true },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

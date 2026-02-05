@@ -41,6 +41,7 @@ const bspConfig = {
    */
   appId: process.env.META_APP_ID,
   appSecret: process.env.META_APP_SECRET,
+  configId: process.env.META_CONFIG_ID,
   
   /**
    * Webhook verification token (shared across all webhooks)

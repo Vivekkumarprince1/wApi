@@ -24,6 +24,8 @@ const { logger } = require('../utils/logger');
 const { log: auditLog } = require('../services/auditService');
 const { getStage1Status } = require('../middlewares/phoneActivation');
 const { getRedis, setJson, getJson, deleteKey } = require('../config/redis');
+const { ensureParentWaba } = require('../services/parentWabaService');
+const { createOrUpdateFromOnboarding } = require('../services/childBusinessService');
 const {
   getBspConfig,
   generateBspSignupUrl,
@@ -83,10 +85,10 @@ async function startBspOnboarding(req, res) {
       });
     }
 
-    // Generate ESB URL
+    // Generate ESB URL (accept query or body)
     const result = await generateBspSignupUrl(userId, {
-      businessName: req.body.businessName,
-      phone: req.body.phone
+      businessName: req.body?.businessName || req.query?.businessName,
+      phone: req.body?.phone || req.query?.phone
     });
 
     // Store state for callback verification (Redis-backed)
@@ -227,6 +229,9 @@ async function completeOnboarding(req, res) {
       });
     }
 
+    // Ensure Parent WABA authority exists (singleton)
+    await ensureParentWaba();
+
     // Complete BSP onboarding (exchange code, fetch WABA, etc)
     // Pass workspace ID for token encryption context
     const workspaceId = stateData.workspaceId || 'new-workspace';
@@ -247,7 +252,9 @@ async function completeOnboarding(req, res) {
         {
           // Business identifiers
           businessId: result.businessId,
+          metaBusinessId: result.businessId,
           wabaId: result.wabaId,
+          childWabaId: result.wabaId,
           
           // Phone details
           phoneNumberId: result.phoneNumberId,
@@ -257,7 +264,7 @@ async function completeOnboarding(req, res) {
           verifiedName: result.verifiedName,
           bspVerifiedName: result.verifiedName,
           
-          // Phone status (CRITICAL for Stage 1)
+          // Phone status (legacy mirror)
           bspPhoneStatus: result.phoneStatus,
           
           // Status
@@ -303,9 +310,11 @@ async function completeOnboarding(req, res) {
         name: result.verifiedName || result.displayPhoneNumber,
         owner: userId,
         
-        // Business identifiers
-        businessId: result.businessId,
-        wabaId: result.wabaId,
+          // Business identifiers
+          businessId: result.businessId,
+          metaBusinessId: result.businessId,
+          wabaId: result.wabaId,
+          childWabaId: result.wabaId,
         
         // Phone details
         phoneNumberId: result.phoneNumberId,
@@ -315,7 +324,7 @@ async function completeOnboarding(req, res) {
         verifiedName: result.verifiedName,
         bspVerifiedName: result.verifiedName,
         
-        // Phone status (CRITICAL for Stage 1)
+        // Phone status (legacy mirror)
         bspPhoneStatus: result.phoneStatus,
         
         // Status
@@ -362,6 +371,22 @@ async function completeOnboarding(req, res) {
       await User.findByIdAndUpdate(userId, { workspace: workspace._id });
     }
 
+    // Create/Update ChildBusiness asset (Parent WABA owns phone)
+    const childBusiness = await createOrUpdateFromOnboarding({
+      workspaceId: workspace._id,
+      businessId: result.businessId,
+      wabaId: result.wabaId,
+      phoneNumberId: result.phoneNumberId,
+      displayPhoneNumber: result.displayPhoneNumber,
+      verifiedName: result.verifiedName,
+      qualityRating: result.qualityRating,
+      messagingLimitTier: result.messagingLimit,
+      codeVerificationStatus: result.codeVerificationStatus,
+      nameStatus: result.nameStatus,
+      accountMode: result.accountMode,
+      phoneStatusRaw: result.phoneStatus
+    });
+
     // Clean up state
     await deleteEsbState(state);
 
@@ -398,13 +423,13 @@ async function completeOnboarding(req, res) {
         qualityRating: workspace.qualityRating,
         messagingLimit: workspace.messagingLimitTier,
         connectedAt: workspace.connectedAt,
-        phoneStatus: result.phoneStatus
+        phoneStatus: childBusiness?.phoneStatus || result.phoneStatus
       },
       stage1: {
-        complete: result.phoneStatus === 'CONNECTED',
+        complete: (childBusiness?.phoneStatus || result.phoneStatus) === 'active' || result.phoneStatus === 'CONNECTED',
         wabaIdFetched: !!result.wabaId,
         phoneNumberIdFetched: !!result.phoneNumberId,
-        phoneStatus: result.phoneStatus,
+        phoneStatus: childBusiness?.phoneStatus || result.phoneStatus,
         onboardingProgress: result.onboardingProgress
       }
     });

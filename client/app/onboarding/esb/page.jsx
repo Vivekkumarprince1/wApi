@@ -9,9 +9,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaWhatsapp, FaCheckCircle, FaExclamationCircle, FaSpinner, FaShieldAlt } from 'react-icons/fa';
-import { getCurrentUser } from '@/lib/api';
-import { bspStart } from '@/lib/api';
+import { FaWhatsapp, FaCheckCircle, FaExclamationCircle, FaSpinner, FaShieldAlt, FaExternalLinkAlt } from 'react-icons/fa';
+import { getCurrentUser, esbStart, getEsbStatus } from '@/lib/api';
 
 export default function ESBOnboardingPage() {
   const router = useRouter();
@@ -19,6 +18,9 @@ export default function ESBOnboardingPage() {
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [signupUrl, setSignupUrl] = useState('');
+  const [showIframe, setShowIframe] = useState(false);
+  const [onboardingStatus, setOnboardingStatus] = useState(null);
 
   useEffect(() => {
     // CRITICAL: Email verification gate
@@ -59,21 +61,41 @@ export default function ESBOnboardingPage() {
       setError('');
 
       // Call BSP start endpoint
-      const response = await bspStart();
-      const signupUrl = response?.esbUrl || response?.url;
+      const response = await esbStart();
+      const url = response?.esbUrl || response?.url;
 
-      if (!signupUrl) {
+      if (!url) {
         throw new Error(response?.message || 'Failed to generate Meta signup URL');
       }
 
-      // Redirect to Meta ESB
-      window.location.href = signupUrl;
+      // Open ESB inside embedded iframe (Meta ESB v3)
+      setSignupUrl(url);
+      setShowIframe(true);
     } catch (err) {
       console.error('ESB start failed:', err);
       setError(err.message || 'Failed to start WhatsApp connection');
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user) return;
+    let interval = null;
+
+    const fetchStatus = async () => {
+      try {
+        const status = await getEsbStatus();
+        setOnboardingStatus(status?.status || status?.workspace || status);
+      } catch (statusErr) {
+        // Silent failure (non-blocking)
+      }
+    };
+
+    fetchStatus();
+    interval = setInterval(fetchStatus, 10000);
+
+    return () => interval && clearInterval(interval);
+  }, [user]);
 
   if (checkingAuth) {
     return (
@@ -108,8 +130,8 @@ export default function ESBOnboardingPage() {
             Connect WhatsApp Business
           </h1>
           <p className="text-gray-600 text-center max-w-md">
-            Connect your WhatsApp Business account using Meta's secure authentication. 
-            You'll be redirected to Meta to complete the setup.
+            Connect your WhatsApp Business phone number using Meta Embedded Signup (ESB v3). 
+            The platform owns the Parent WABA and manages all tokens, templates, and webhooks.
           </p>
         </div>
 
@@ -142,13 +164,20 @@ export default function ESBOnboardingPage() {
             What happens next?
           </h3>
           <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
-            <li>You'll be redirected to Meta's secure platform</li>
+            <li>Embedded Signup opens securely inside Meta's iframe</li>
             <li>Sign in with your Facebook Business account</li>
             <li>Select your WhatsApp Business account</li>
             <li>Grant permissions to manage messaging</li>
             <li>Return here to complete setup</li>
           </ol>
         </div>
+
+        {onboardingStatus && (
+          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
+            <div className="font-semibold">Onboarding status</div>
+            <div className="mt-1">{onboardingStatus?.status || onboardingStatus?.phoneStatus || 'In progress'}</div>
+          </div>
+        )}
 
         {/* CTA Button */}
         <button
@@ -171,9 +200,42 @@ export default function ESBOnboardingPage() {
 
         {/* Security notice */}
         <p className="mt-4 text-xs text-center text-gray-500">
-          Your credentials are never shared with us. Authentication is handled directly by Meta.
+          Tokens and Meta credentials are never exposed to customers. The platform manages all access.
         </p>
       </div>
+
+      {showIframe && signupUrl && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <div className="text-sm font-semibold text-gray-700">Meta Embedded Signup</div>
+              <div className="flex items-center gap-3">
+                <a
+                  href={signupUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-green-700 flex items-center gap-1"
+                >
+                  Open in new tab <FaExternalLinkAlt />
+                </a>
+                <button
+                  onClick={() => setShowIframe(false)}
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <iframe
+              title="Meta Embedded Signup"
+              src={signupUrl}
+              className="w-full h-full"
+              allow="clipboard-write; encrypted-media"
+              sandbox="allow-forms allow-scripts allow-same-origin allow-popups"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

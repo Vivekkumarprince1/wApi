@@ -30,15 +30,17 @@ import {
   FaPaperclip,
   FaChevronDown,
   FaPlus,
-  FaTrash
+  FaTrash,
+  FaClock
 } from 'react-icons/fa';
 import { useWorkspace } from '@/lib/useWorkspace';
 
 export default function InboxPage() {
   const workspace = useWorkspace();
-  const bspReady = workspace.stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus);
+  const bspReady = workspace.canSendMessages;
   const [conversations, setConversations] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -128,10 +130,18 @@ export default function InboxPage() {
 
   const handleSelectContact = async (conversation) => {
     setSelectedContact(conversation.contact);
+    setSelectedConversation(conversation);
     await loadMessages(conversation.contact._id);
     // Load CRM data
     await loadCRMData(conversation.contact._id);
   };
+
+  const isSessionOpen = (() => {
+    const lastCustomerMessageAt = selectedConversation?.lastCustomerMessageAt;
+    if (!lastCustomerMessageAt) return false;
+    const windowMs = 24 * 60 * 60 * 1000;
+    return Date.now() - new Date(lastCustomerMessageAt).getTime() < windowMs;
+  })();
 
   const loadCRMData = async (contactId) => {
     try {
@@ -185,6 +195,11 @@ export default function InboxPage() {
     if (!newMessage.trim() || !selectedContact) return;
     if (!bspReady) {
       toast?.error?.('Connect WhatsApp to send messages') || alert('Connect WhatsApp to send messages');
+      return;
+    }
+    if (!isSessionOpen) {
+      toast?.error?.('24-hour session expired. Use an approved template to re-open the session.') ||
+        alert('24-hour session expired. Use an approved template to re-open the session.');
       return;
     }
     
@@ -526,6 +541,21 @@ export default function InboxPage() {
               <div ref={messagesEndRef} />
             </div>
 
+            {/* Session + Safety Banner */}
+            <div className="px-6 pt-4 pb-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className={`text-xs font-medium rounded-lg px-3 py-2 inline-flex items-center gap-2 ${
+                isSessionOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+              }`}>
+                <FaClock />
+                {isSessionOpen ? 'Session open (24-hour window active)' : 'Session expired — templates required'}
+              </div>
+              {workspace.degradation?.degraded && (
+                <div className="mt-2 text-xs text-red-600">
+                  {workspace.degradation.message || 'Messaging is restricted due to account health.'}
+                </div>
+              )}
+            </div>
+
             {/* Message Input */}
             <form onSubmit={handleSendMessage} className="p-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="flex items-center gap-3">
@@ -547,11 +577,11 @@ export default function InboxPage() {
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
                   className="flex-1 px-5 py-3 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl focus:ring-2 focus:ring-[#13C18D] text-gray-900 dark:text-white placeholder-gray-500"
-                  disabled={sending}
+                  disabled={sending || !bspReady || !isSessionOpen}
                 />
                 <button
                   type="submit"
-                  disabled={!bspReady || sending || !newMessage.trim()}
+                  disabled={!bspReady || !isSessionOpen || sending || !newMessage.trim()}
                   className="px-6 py-3 bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-semibold transition-all transform hover:scale-105"
                 >
                   {sending ? (

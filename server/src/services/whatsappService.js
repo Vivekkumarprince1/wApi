@@ -1,7 +1,7 @@
 const axios = require('axios');
 const Message = require('../models/Message');
 const Workspace = require('../models/Workspace');
-const metaService = require('./metaService');
+const bspMessagingService = require('./bspMessagingService');
 const { createQueue } = require('./queue');
 
 // create a BullMQ queue for WhatsApp sends
@@ -44,16 +44,11 @@ async function processSendJob(job) {
   const to = message.meta?.to || (message.contact && message.contact.phone);
   if (!to) throw new Error('No recipient phone');
   
-  // Get credentials from workspace
-  const accessToken = workspace.whatsappAccessToken;
-  const phoneNumberId = workspace.whatsappPhoneNumberId;
-  
-  if (!accessToken || !phoneNumberId) {
-    throw new Error('WABA credentials not configured for workspace');
-  }
-
   try {
-    const result = await metaService.sendTextMessage(accessToken, phoneNumberId, to, message.body);
+    // Interakt-style: all sends go through centralized BSP service
+    const result = await bspMessagingService.sendTextMessage(workspace._id, to, message.body, {
+      contactId: message.contact?._id
+    });
     
     await Message.findByIdAndUpdate(messageId, { 
       status: 'sent', 
@@ -110,13 +105,7 @@ async function processCampaignMessage(job) {
     throw new Error(`CAMPAIGN_AUTO_PAUSED: ${reason}`);
   }
   
-  // Get credentials
-  const accessToken = workspace.whatsappAccessToken;
-  const phoneNumberId = workspace.whatsappPhoneNumberId;
-  
-  if (!accessToken || !phoneNumberId) {
-    throw new Error('WABA credentials not configured');
-  }
+  // Interakt-style: no per-tenant tokens allowed
   
   // ✅ Get or create message record (idempotency)
   let message = await Message.findOne({ 
@@ -153,13 +142,13 @@ async function processCampaignMessage(job) {
     }
     
     // ✅ Send template message via Meta API
-    const result = await metaService.sendTemplateMessage(
-      accessToken,
-      phoneNumberId,
+    const result = await bspMessagingService.sendTemplateMessage(
+      workspace._id,
       contact.phone,
-      template.name,
+      template.metaTemplateName || template.name,
       'en',
-      templateParams.length > 0 ? [{ type: 'body', parameters: templateParams }] : []
+      templateParams.length > 0 ? [{ type: 'body', parameters: templateParams }] : [],
+      { contactId: contact._id, campaignId }
     );
     
     // ✅ Update Message

@@ -154,6 +154,9 @@ async function sendTextMessage(options) {
 
   // 4. Check 24-hour window
   const isInWindow = await isWithin24HourWindow(conversationId);
+  if (!isInWindow) {
+    throw new Error('SESSION_WINDOW_EXPIRED: Use an approved template to re-open the session');
+  }
   
   // 5. Send via BSP service (centralized token + safety)
   const result = await bspMessagingService.sendTextMessage(

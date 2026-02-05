@@ -389,6 +389,18 @@ async function sendEmailVerification(req, res, next) {
       return res.status(400).json({ message: 'Email already verified' });
     }
 
+    // Prevent duplicate sends within TTL window (idempotent + rate limit)
+    const existing = await getJson(`email-verify:${user._id}`);
+    if (existing?.expiresAt && Date.now() < existing.expiresAt) {
+      const remainingMs = existing.expiresAt - Date.now();
+      const remainingMin = Math.ceil(remainingMs / 60000);
+      return res.status(429).json({
+        success: false,
+        message: `Verification already sent. Try again in ${remainingMin} minute(s).`,
+        code: 'EMAIL_VERIFICATION_ALREADY_SENT'
+      });
+    }
+
     // Token-based verification (more secure than OTP, required for production)
     const token = generateSecureToken();
     const expiresAt = Date.now() + EMAIL_VERIFY_TTL_SECONDS * 1000;

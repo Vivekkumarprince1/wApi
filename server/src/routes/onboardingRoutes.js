@@ -79,7 +79,8 @@ router.get('/feature-access', auth, checkFeatureAccess);
 // This is the new automated onboarding flow for WhatsApp Business
 // All steps require authentication except the callback
 
-// Step 1: Start ESB Flow
+// Step 1: Start ESB Flow (GET required by ESB v3, POST kept for compatibility)
+router.get('/esb/start', auth, esbProcessLimiter, startBspOnboarding);
 router.post('/esb/start', auth, esbProcessLimiter, startBspOnboarding);
 
 // Step 2: Handle OAuth Callback from Meta (No auth needed for redirect)
@@ -95,6 +96,12 @@ router.post('/esb/process-stored-callback', auth, esbProcessLimiter, (req, res) 
     code: 'LEGACY_ESB_DISABLED'
   });
 });
+
+// Step 2.5: Complete ESB (required endpoint)
+router.post('/esb/complete', auth, esbProcessLimiter, [
+  body('code').notEmpty(),
+  body('state').notEmpty()
+], validate, completeBspOnboarding);
 
 // Step 2.5 (Legacy): Process callback from frontend (after redirect)
 // Rate limited per workspace

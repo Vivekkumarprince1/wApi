@@ -243,6 +243,8 @@ app.use('/api/v1/inbox', inboxRoutes); // Stage 4: Shared Inbox
 app.use('/api/v1/inbox', internalNotesRoutes); // Stage 4 Hardening: Internal Notes
 app.use('/api/v1/metrics', metricsRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);
+// Alias (no version prefix) for Embedded Signup start/callback
+app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/v1/onboarding/bsp', bspOnboardingRoutes); // BSP Interakt model
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/admin/bsp', bspAdminRoutes); // BSP multi-tenant admin

@@ -7,7 +7,7 @@ const Template = require('../models/Template');
 const Conversation = require('../models/Conversation');
 const User = require('../models/User');
 const { createQueue, createWorker } = require('./queue');
-const metaService = require('./metaService');
+const templateSendingService = require('./templateSendingService');
 const crypto = require('crypto');
 
 // Create workflow execution queue
@@ -376,19 +376,19 @@ async function executeAction(action, eventData, workspaceId) {
     }
     
     const workspace = await Workspace.findById(workspaceId);
-    if (!workspace || !workspace.whatsappConfig?.accessToken) {
-      throw new Error('Workspace WhatsApp not configured');
+    if (!workspace) {
+      throw new Error('Workspace not found');
     }
-    
-    // Send template via Meta API
-    const result = await metaService.sendTemplateMessage(
-      workspace.whatsappConfig.accessToken,
-      workspace.whatsappConfig.phoneNumberId,
-      contact.phone,
-      template.name,
-      template.language || 'en',
-      params || {}
-    );
+
+    // Send template via BSP template sending service (centralized token)
+    const result = await templateSendingService.sendTemplate({
+      workspaceId,
+      templateId: template._id,
+      to: contact.phone,
+      variables: params || {},
+      contactId: contact._id,
+      meta: { workflowTriggered: true }
+    });
     
     // Store message
     await Message.create({

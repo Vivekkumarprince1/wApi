@@ -103,10 +103,7 @@ async function sendTemplate(params) {
   // ─────────────────────────────────────────────────────────────────────────────
   // STEP 2: Get workspace and validate BSP configuration
   // ─────────────────────────────────────────────────────────────────────────────
-  const workspace = await Workspace.findById(workspaceId);
-  if (!workspace) {
-    throw createError(ERROR_CODES.WORKSPACE_NOT_CONFIGURED, 'Workspace not found');
-  }
+  const workspace = await bspMessagingService.getWorkspaceForMessaging(workspaceId);
 
     await enforceWorkspaceBilling(workspaceId);
 

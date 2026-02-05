@@ -168,7 +168,9 @@ const WorkspaceSchema = new mongoose.Schema({
   whatsappPhoneNumberId: { type: String },
   whatsappPhoneNumber: { type: String }, // Actual phone number like +919876543210
   wabaId: { type: String },
+  childWabaId: { type: String }, // Child WABA ID under Parent WABA (ESB v3)
   businessId: { type: String }, // Meta Business ID
+  metaBusinessId: { type: String }, // Explicit alias for Meta business ID (audit-safe)
   businessAccountId: { type: String },
   whatsappVerifyToken: { type: String },
   connectedAt: { type: Date },
@@ -202,6 +204,17 @@ const WorkspaceSchema = new mongoose.Schema({
    * Per-workspace tokens are ignored when this is true
    */
   bspManaged: { type: Boolean, default: true },
+
+  /**
+   * Parent WABA reference (singleton authority)
+   * Interakt-style: platform owns ONE Parent WABA
+   */
+  parentWaba: { type: mongoose.Schema.Types.ObjectId, ref: 'ParentWABA' },
+
+  /**
+   * ChildBusiness reference (per-tenant phone asset)
+   */
+  childBusiness: { type: mongoose.Schema.Types.ObjectId, ref: 'ChildBusiness' },
   
   /**
    * Parent WABA ID - Reference to your BSP's WABA
