@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { get } from '@/lib/api';
 
 interface QuotaWarningProps {
   resourceType: 'messages' | 'templates' | 'campaigns' | 'contacts' | 'automations';
@@ -18,19 +19,7 @@ export default function QuotaWarning({ resourceType, onLimitExceeded }: QuotaWar
 
   const checkQuota = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/usage`, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch usage data');
-      }
-
-      const data = await res.json();
+      const data = await get('/usage');
       const { usage, limits, percentages, warnings } = data;
 
       // For messages, check daily limit

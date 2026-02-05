@@ -3,10 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as api from '@/lib/api';
-import { FaPlay, FaPause, FaTrash, FaEye, FaSearch, FaFilter, FaChartBar, FaCalendarAlt, FaUser, FaPlus } from 'react-icons/fa';
+import { useQuota } from '@/lib/useQuota';
+import { toast } from 'react-toastify';
+import { FaPlay, FaPause, FaTrash, FaEye, FaSearch, FaFilter, FaChartBar, FaCalendarAlt, FaUser, FaPlus, FaExclamationTriangle } from 'react-icons/fa';
 
 export default function CampaignsPage() {
   const router = useRouter();
+  const { usageData, isApproachingLimit, getRemainingQuota } = useQuota();
   const [activeTab, setActiveTab] = useState('one-time');
   const [channel, setChannel] = useState('WhatsApp');
   const [status, setStatus] = useState('ANY');
@@ -17,6 +20,10 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [campaigns, setCampaigns] = useState([]);
+
+  // Quota state
+  const showQuotaWarning = isApproachingLimit('campaigns', 80);
+  const remainingCampaigns = getRemainingQuota('campaigns');
 
   useEffect(() => {
     loadCampaigns();
@@ -50,9 +57,10 @@ export default function CampaignsPage() {
   const handleAction = async (id, action) => {
     try {
        await api.post(`/campaigns/${id}/${action}`, {});
+       toast.success(`Campaign ${action} successful`);
        loadCampaigns();
     } catch (e) {
-       alert(e.message || `Failed to ${action} campaign`);
+       toast.error(e.message || `Failed to ${action} campaign`);
     }
   };
 
@@ -60,9 +68,10 @@ export default function CampaignsPage() {
     if (!confirm('Are you sure you want to delete this campaign?')) return;
     try {
        await api.del(`/campaigns/${id}`);
+       toast.success('Campaign deleted successfully');
        loadCampaigns();
     } catch (e) {
-       alert(e.message || 'Failed to delete campaign');
+       toast.error(e.message || 'Failed to delete campaign');
     }
   };
 
@@ -97,6 +106,24 @@ export default function CampaignsPage() {
 
   return (
     <div className="min-h-screen bg-[#F0F2F5] dark:bg-gray-950">
+      {/* Quota Warning Banner */}
+      {showQuotaWarning && (
+        <div className="bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-8 py-3">
+          <div className="max-w-[1600px] mx-auto flex items-center gap-3">
+            <FaExclamationTriangle className="text-amber-600 dark:text-amber-400" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              You're approaching your campaign limit. <strong>{remainingCampaigns}</strong> campaign{remainingCampaigns !== 1 ? 's' : ''} remaining.{' '}
+              <button 
+                onClick={() => router.push('/dashboard/settings/billing')}
+                className="underline font-medium hover:text-amber-900"
+              >
+                Upgrade now
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-8 py-5">
         <div className="flex items-center justify-between max-w-[1600px] mx-auto">

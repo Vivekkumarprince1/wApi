@@ -9,9 +9,11 @@ import {
   getDealsByContact,
   moveDealStage,
   addDealNote,
-  getPipelines
+  getPipelines,
+  post
 } from '@/lib/api';
 import { useSocket, useSocketEvent } from '@/lib/SocketContext';
+import { toast } from 'react-toastify';
 import { 
   FaPaperPlane, 
   FaSearch, 
@@ -20,12 +22,21 @@ import {
   FaSpinner,
   FaCheckCircle,
   FaCheck,
+  FaFilter,
+  FaEllipsisV,
+  FaPhoneAlt,
+  FaVideo,
+  FaSmile,
+  FaPaperclip,
   FaChevronDown,
   FaPlus,
   FaTrash
 } from 'react-icons/fa';
+import { useWorkspace } from '@/lib/useWorkspace';
 
 export default function InboxPage() {
+  const workspace = useWorkspace();
+  const bspReady = workspace.stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus);
   const [conversations, setConversations] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -172,27 +183,19 @@ export default function InboxPage() {
     e.preventDefault();
     
     if (!newMessage.trim() || !selectedContact) return;
+    if (!bspReady) {
+      toast?.error?.('Connect WhatsApp to send messages') || alert('Connect WhatsApp to send messages');
+      return;
+    }
     
     try {
       setSending(true);
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'}/messages/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          contactId: selectedContact._id,
-          body: newMessage
-        })
+      // Use centralized API helper with proper auth
+      const data = await post('/messages/send', {
+        contactId: selectedContact._id,
+        body: newMessage
       });
-      
-      if (!response.ok) {
-        throw new Error('Failed to send message');
-      }
-      
-      const data = await response.json();
       
       // Optimistically add message to UI
       const optimisticMessage = {
@@ -210,9 +213,10 @@ export default function InboxPage() {
       
       // Reload conversation to update preview
       loadConversations();
+      toast?.success?.('Message sent!');
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Failed to send message');
+      toast?.error?.(error.message || 'Failed to send message') || alert('Failed to send message');
     } finally {
       setSending(false);
     }
@@ -245,30 +249,35 @@ export default function InboxPage() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Conversation List Sidebar */}
-      <div className="w-1/3 bg-white border-r border-gray-200 flex flex-col">
+      <div className="w-96 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col shadow-xl">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <h1 className="text-2xl font-bold mb-4">Inbox</h1>
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-[#13C18D] to-[#0e8c6c]">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl font-bold text-white">Inbox</h1>
+            <button className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+              <FaFilter className="text-white" />
+            </button>
+          </div>
           
           {/* Socket Connection Status */}
-          <div className="flex items-center gap-2 mb-4 text-sm">
-            <FaCircle className={connected ? 'text-green-500' : 'text-red-500'} style={{ fontSize: '8px' }} />
-            <span className={connected ? 'text-green-600' : 'text-red-600'}>
-              {connected ? 'Connected' : 'Disconnected'}
+          <div className="flex items-center gap-2 mb-4 text-sm bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
+            <FaCircle className={connected ? 'text-green-400' : 'text-red-400'} style={{ fontSize: '8px' }} />
+            <span className="text-white font-medium">
+              {connected ? 'Live' : 'Reconnecting...'}
             </span>
           </div>
           
           {/* Search */}
           <div className="relative">
-            <FaSearch className="absolute left-3 top-3 text-gray-400" />
+            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Search conversations..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-700 border-0 rounded-xl focus:ring-2 focus:ring-white shadow-lg text-gray-900 dark:text-white placeholder-gray-500"
             />
           </div>
         </div>
@@ -277,55 +286,63 @@ export default function InboxPage() {
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center h-full">
-              <FaSpinner className="animate-spin text-2xl text-gray-400" />
+              <FaSpinner className="animate-spin text-3xl text-[#13C18D]" />
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <p>No conversations yet</p>
-              <p className="text-sm">Messages will appear here</p>
+            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-6">
+              <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                <FaUser className="text-3xl text-gray-400" />
+              </div>
+              <p className="font-semibold text-lg">No conversations yet</p>
+              <p className="text-sm text-center mt-2">Your messages will appear here when customers reach out</p>
             </div>
           ) : (
             filteredConversations.map((conversation) => (
               <div
                 key={conversation._id}
                 onClick={() => handleSelectContact(conversation)}
-                className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  selectedContact?._id === conversation.contact._id ? 'bg-green-50' : ''
+                className={`p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer transition-all hover:shadow-md ${
+                  selectedContact?._id === conversation.contact._id 
+                    ? 'bg-gradient-to-r from-[#13C18D]/10 to-[#0e8c6c]/10 border-l-4 border-l-[#13C18D]' 
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <FaUser className="text-green-600" />
+                  <div className="relative">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                      <FaUser className="text-white text-lg" />
+                    </div>
+                    {conversation.unreadCount > 0 && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        {conversation.unreadCount}
+                      </div>
+                    )}
                   </div>
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-semibold text-gray-900 truncate">
+                      <h3 className="font-semibold text-gray-900 dark:text-white truncate">
                         {conversation.contact?.name || conversation.contact?.phone}
                       </h3>
                       {conversation.lastMessageAt && (
-                        <span className="text-xs text-gray-500 flex-shrink-0">
-                          {new Date(conversation.lastMessageAt).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
+                        <span className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                          {new Date(conversation.lastMessageAt).toLocaleTimeString('en-US', { 
+                            hour: 'numeric', 
+                            minute: '2-digit',
+                            hour12: true 
                           })}
                         </span>
                       )}
                     </div>
                     
-                    <p className="text-sm text-gray-600 truncate">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 truncate mb-1">
                       {conversation.lastMessagePreview || 'No messages yet'}
                     </p>
                     
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 dark:text-gray-500">
                         {conversation.contact?.phone}
                       </span>
-                      {conversation.unreadCount > 0 && (
-                        <span className="bg-green-500 text-white text-xs px-2 py-0.5 rounded-full">
-                          {conversation.unreadCount}
-                        </span>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -336,20 +353,49 @@ export default function InboxPage() {
       </div>
 
       {/* Message Thread */}
-      <div className="flex-1 flex flex-col bg-white">
+      <div className="flex-1 flex flex-col bg-white dark:bg-gray-800">
+        {!workspace.loading && !bspReady && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-6 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">WhatsApp not connected</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">Connect your WhatsApp account to send messages.</p>
+            </div>
+            <button
+              onClick={() => (window.location.href = '/onboarding/esb')}
+              className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              Connect Now
+            </button>
+          </div>
+        )}
         {selectedContact ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-gray-200 bg-white">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <FaUser className="text-green-600" />
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] rounded-full flex items-center justify-center shadow-lg">
+                    <FaUser className="text-white text-lg" />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-lg text-gray-900 dark:text-white">
+                      {selectedContact.name || selectedContact.phone}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{selectedContact.phone}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="font-semibold text-gray-900">
-                    {selectedContact.name || selectedContact.phone}
-                  </h2>
-                  <p className="text-sm text-gray-500">{selectedContact.phone}</p>
+                
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2">
+                  <button className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <FaPhoneAlt className="text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <button className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <FaVideo className="text-gray-600 dark:text-gray-400" />
+                  </button>
+                  <button className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <FaEllipsisV className="text-gray-600 dark:text-gray-400" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -440,27 +486,34 @@ export default function InboxPage() {
             ) : null}
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+            <div 
+              className="flex-1 overflow-y-auto p-6 space-y-4"
+              style={{
+                backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%2313c18d\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+                backgroundColor: '#f8faf9'
+              }}
+            >
               {messages.map((message) => (
                 <div
                   key={message._id}
                   className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    className={`max-w-md px-4 py-3 rounded-2xl shadow-md ${
                       message.direction === 'outbound'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-white text-gray-900 border border-gray-200'
+                        ? 'bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white'
+                        : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white'
                     }`}
                   >
-                    <p className="break-words">{message.body}</p>
-                    <div className={`flex items-center gap-1 justify-end mt-1 text-xs ${
-                      message.direction === 'outbound' ? 'text-green-100' : 'text-gray-500'
+                    <p className="break-words leading-relaxed">{message.body}</p>
+                    <div className={`flex items-center gap-2 justify-end mt-2 text-xs ${
+                      message.direction === 'outbound' ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'
                     }`}>
                       <span>
-                        {new Date(message.createdAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit'
+                        {new Date(message.createdAt).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
                         })}
                       </span>
                       {message.direction === 'outbound' && (
@@ -474,20 +527,32 @@ export default function InboxPage() {
             </div>
 
             {/* Message Input */}
-            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 bg-white">
-              <div className="flex gap-2">
+            <form onSubmit={handleSendMessage} className="p-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <FaSmile className="text-gray-600 dark:text-gray-400 text-xl" />
+                </button>
+                <button
+                  type="button"
+                  className="p-3 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <FaPaperclip className="text-gray-600 dark:text-gray-400 text-xl" />
+                </button>
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="Type a message..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="flex-1 px-5 py-3 bg-gray-100 dark:bg-gray-700 border-0 rounded-xl focus:ring-2 focus:ring-[#13C18D] text-gray-900 dark:text-white placeholder-gray-500"
                   disabled={sending}
                 />
                 <button
                   type="submit"
-                  disabled={sending || !newMessage.trim()}
-                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                  disabled={!bspReady || sending || !newMessage.trim()}
+                  className="px-6 py-3 bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-semibold transition-all transform hover:scale-105"
                 >
                   {sending ? (
                     <FaSpinner className="animate-spin" />
@@ -500,9 +565,16 @@ export default function InboxPage() {
             </form>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-            <FaUser className="text-6xl mb-4" />
-            <p className="text-lg">Select a conversation to start messaging</p>
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+            <div className="w-32 h-32 bg-gradient-to-br from-[#13C18D]/20 to-[#0e8c6c]/20 rounded-full flex items-center justify-center mb-6">
+              <FaUser className="text-6xl text-[#13C18D]" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              Welcome to Inbox
+            </h3>
+            <p className="text-lg text-gray-600 dark:text-gray-400 text-center max-w-md">
+              Select a conversation from the left to view messages and start chatting with your customers
+            </p>
           </div>
         )}
       </div>

@@ -61,6 +61,19 @@ router.patch('/tenants/:workspaceId/limits', bspAdminController.updateTenantLimi
 // Sync phone status from Meta
 router.post('/sync-status/:workspaceId', bspAdminController.syncPhoneStatus);
 
+// BSP instant revoke / resume
+router.post('/tenants/:workspaceId/suspend', bspAdminController.suspendTenant);
+router.post('/tenants/:workspaceId/resume', bspAdminController.resumeTenant);
+
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * BILLING RECONCILIATION
+ * ═══════════════════════════════════════════════════════════════════
+ */
+
+router.post('/billing/reconcile', bspAdminController.reconcileBilling);
+router.get('/billing/ledger/:workspaceId/:period', bspAdminController.getUsageLedger);
+
 /**
  * ═══════════════════════════════════════════════════════════════════
  * PLATFORM OVERVIEW

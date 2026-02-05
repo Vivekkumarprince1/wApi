@@ -9,11 +9,13 @@ async function authMiddleware(req, res, next) {
   try {
     const payload = jwt.verify(token, jwtSecret);
     const user = await User.findById(payload.id);
-    if (!user) return res.status(401).json({ message: 'Invalid token' });
+    if (!user || user.status === 'disabled') {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
     req.user = user;
     next();
   } catch (err) {
-    next(err);
+    return res.status(401).json({ message: 'Invalid token' });
   }
 }
 

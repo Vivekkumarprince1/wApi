@@ -1,89 +1,138 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { FaSpinner, FaCheckCircle, FaExclamationCircle } from "react-icons/fa";
-import { processEsbCallback } from "@/lib/api";
+/**
+ * ═══════════════════════════════════════════════════════════════════════════════
+ * META ESB CALLBACK HANDLER
+ * Processes OAuth code + state from Meta redirect
+ * ═══════════════════════════════════════════════════════════════════════════════
+ */
 
-export default function ESBCallbackPage() {
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { FaSpinner, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import { bspComplete } from '@/lib/api';
+
+function ESBCallbackContent() {
   const router = useRouter();
-  const [status, setStatus] = useState("processing");
-  const [message, setMessage] = useState("Processing your WhatsApp Business setup...");
+  const searchParams = useSearchParams();
+  const [status, setStatus] = useState('processing'); // processing | success | error
+  const [message, setMessage] = useState('Processing your WhatsApp connection...');
 
   useEffect(() => {
-    const handleCallback = async () => {
+    const processCallback = async () => {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get("code");
-        const state = params.get("state");
-        const error = params.get("error");
-        const errorDescription = params.get("error_description");
-
-        if (error) {
-          setStatus("error");
-          setMessage(`Setup failed: ${errorDescription || error}`);
-          setTimeout(() => router.push("/onboarding/connect-whatsapp"), 3000);
-          return;
-        }
+        const code = searchParams.get('code');
+        const state = searchParams.get('state');
 
         if (!code || !state) {
-          setStatus("error");
-          setMessage("Missing authorization code. Please try again.");
-          setTimeout(() => router.push("/onboarding/connect-whatsapp"), 3000);
+          setStatus('error');
+          setMessage('Invalid callback parameters. Please try connecting again.');
           return;
         }
 
-        // Call the backend to process the callback
-        const result = await processEsbCallback({ code, state });
+        // Call BSP complete endpoint
+        const response = await bspComplete({ code, state });
 
-        if (result.success) {
-          setStatus("success");
-          setMessage("Authorization successful! Redirecting...");
-          setTimeout(() => router.push("/onboarding/connect-whatsapp"), 2000);
+        if (response?.success) {
+          setStatus('success');
+          setMessage('WhatsApp connected successfully!');
+
+          // Redirect to dashboard after 2 seconds
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 2000);
         } else {
-          setStatus("error");
-          setMessage(result.message || "Authorization failed");
-          setTimeout(() => router.push("/onboarding/connect-whatsapp"), 3000);
+          setStatus('error');
+          setMessage(response?.message || 'Failed to complete WhatsApp connection');
         }
       } catch (err) {
-        setStatus("error");
-        setMessage("An error occurred. Please try again.");
-        setTimeout(() => router.push("/onboarding/connect-whatsapp"), 3000);
+        console.error('Callback processing failed:', err);
+        setStatus('error');
+        setMessage(err.message || 'An error occurred while connecting WhatsApp');
       }
     };
 
-    handleCallback();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    processCallback();
+  }, [searchParams, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
-        {status === "processing" && (
+    <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+      <div className="flex flex-col items-center">
+        {status === 'processing' && (
           <>
-            <FaSpinner className="animate-spin text-4xl text-blue-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Setting up WhatsApp Business</h1>
-            <p className="text-gray-600">{message}</p>
+            <FaSpinner className="text-6xl text-green-600 animate-spin mb-6" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Setting up WhatsApp
+            </h1>
+            <p className="text-gray-600 text-center">
+              {message}
+            </p>
+            <div className="mt-6 w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div className="bg-green-600 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+            </div>
           </>
         )}
 
-        {status === "success" && (
+        {status === 'success' && (
           <>
-            <FaCheckCircle className="text-4xl text-green-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Authorization Successful!</h1>
-            <p className="text-gray-600">{message}</p>
+            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+              <FaCheckCircle className="text-5xl text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              All Set!
+            </h1>
+            <p className="text-gray-600 text-center mb-4">
+              {message}
+            </p>
+            <p className="text-sm text-gray-500">
+              Redirecting to dashboard...
+            </p>
           </>
         )}
 
-        {status === "error" && (
+        {status === 'error' && (
           <>
-            <FaExclamationCircle className="text-4xl text-red-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Setup Failed</h1>
-            <p className="text-gray-600">{message}</p>
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6">
+              <FaExclamationTriangle className="text-5xl text-red-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Connection Failed
+            </h1>
+            <p className="text-gray-600 text-center mb-6">
+              {message}
+            </p>
+            <button
+              onClick={() => router.push('/onboarding/esb')}
+              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+            >
+              Try Again
+            </button>
           </>
         )}
       </div>
     </div>
   );
 }
-// prerender disabled by using client component and runtime dynamic flag in parent
+
+function LoadingFallback() {
+  return (
+    <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+      <div className="flex flex-col items-center">
+        <FaSpinner className="text-6xl text-green-600 animate-spin mb-6" />
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          Loading...
+        </h1>
+      </div>
+    </div>
+  );
+}
+
+export default function ESBCallbackPage() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
+      <Suspense fallback={<LoadingFallback />}>
+        <ESBCallbackContent />
+      </Suspense>
+    </div>
+  );
+}

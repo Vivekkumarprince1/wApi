@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GoogleLogin from '@/components/GoogleLogin';
 import FacebookLogin from '@/components/FacebookLogin';
-import { registerUser } from '@/lib/api';
+import { registerUser, getCurrentUser } from '@/lib/api';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -45,7 +45,8 @@ export default function RegisterPage() {
         localStorage.setItem('token', data.token);
         window.dispatchEvent(new Event('authChange'));
       }
-      router.push('/onboarding/verify-email'); // Redirect to email verification after registration
+      // Always redirect to email verification after registration
+      router.push('/onboarding/verify-email');
     } catch (err) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -53,22 +54,36 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSocialSuccess = (result) => {
+  const handleSocialSuccess = async (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
       window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
-    router.push('/dashboard');
+
+    // Check email verification status
+    const user = await getCurrentUser();
+    if (!user.emailVerified) {
+      router.push('/onboarding/verify-email');
+    } else {
+      router.push('/onboarding/esb');
+    }
   };
 
-  const handleFacebookSuccess = (result) => {
+  const handleFacebookSuccess = async (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
       window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
-    router.push('/onboarding/esb');
+
+    // Check email verification status
+    const user = await getCurrentUser();
+    if (!user.emailVerified) {
+      router.push('/onboarding/verify-email');
+    } else {
+      router.push('/onboarding/esb');
+    }
   };
 
   return (
@@ -77,7 +92,7 @@ export default function RegisterPage() {
         <div className="flex items-center justify-between max-w-5xl mx-auto px-6 py-4">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="h-10 w-10 relative">
-              <Image src="/interact-logo.png" alt={process.env.NEXT_PUBLIC_APP_DOMAIN} fill sizes="40px" className="object-contain" />
+              <Image src="/my_logo.png" alt={process.env.NEXT_PUBLIC_APP_DOMAIN} fill sizes="40px" className="object-contain" />
             </div>
             <span className="font-extrabold text-lg tracking-tight text-gray-900 uppercase group-hover:text-green-700 transition-colors">
               {process.env.NEXT_PUBLIC_APP_DOMAIN}
@@ -95,9 +110,8 @@ export default function RegisterPage() {
       <main className="flex-1 flex items-start md:items-center justify-center px-4 py-12 bg-white">
         <div className="w-full max-w-lg">
           <div
-            className={`bg-white border border-gray-200 rounded-[40px] shadow-[0_25px_60px_rgba(15,23,42,0.08)] px-6 sm:px-12 py-14 text-center transition-all duration-500 ${
-              showCard ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}
+            className={`bg-white border border-gray-200 rounded-[40px] shadow-[0_25px_60px_rgba(15,23,42,0.08)] px-6 sm:px-12 py-14 text-center transition-all duration-500 ${showCard ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+              }`}
           >
             <h1 className="text-3xl font-semibold tracking-[0.3rem] text-gray-900 uppercase mb-10">Sign Up</h1>
 
@@ -201,12 +215,12 @@ export default function RegisterPage() {
             <div className="mt-4 text-center">
               <p className="text-gray-600 dark:text-gray-400">
                 Already have an account?{' '}
-                <a 
-                  href="/auth/login" 
+                <Link
+                  href="/auth/login"
                   className="text-blue-500 hover:text-blue-700 font-semibold"
                 >
                   Login here
-                </a>
+                </Link>
               </p>
             </div>
           </div>

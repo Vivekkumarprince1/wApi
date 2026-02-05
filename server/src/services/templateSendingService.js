@@ -24,8 +24,11 @@ const Template = require('../models/Template');
 const Workspace = require('../models/Workspace');
 const Message = require('../models/Message');
 const Contact = require('../models/Contact');
+const Conversation = require('../models/Conversation');
 const bspMessagingService = require('./bspMessagingService');
 const { isOptedOutByPhone, isOptedOut } = require('./optOutService');
+const billingLedgerService = require('./billingLedgerService');
+const { enforceWorkspaceBilling } = require('./billingEnforcementService');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -49,7 +52,10 @@ const ERROR_CODES = {
   WORKSPACE_NOT_CONFIGURED: 'WORKSPACE_NOT_CONFIGURED',
   PHONE_NOT_CONFIGURED: 'PHONE_NOT_CONFIGURED',
   META_API_ERROR: 'META_API_ERROR',
-  INVALID_RECIPIENT: 'INVALID_RECIPIENT'
+  INVALID_RECIPIENT: 'INVALID_RECIPIENT',
+  BILLING_TRIAL_NO_SEND: 'BILLING_TRIAL_NO_SEND',
+  BILLING_PAST_DUE: 'BILLING_PAST_DUE',
+  BILLING_SUSPENDED: 'BILLING_SUSPENDED'
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -102,6 +108,8 @@ async function sendTemplate(params) {
     throw createError(ERROR_CODES.WORKSPACE_NOT_CONFIGURED, 'Workspace not found');
   }
 
+    await enforceWorkspaceBilling(workspaceId);
+
   // Compliance: enforce opt-out BEFORE any outbound send (Interakt requirement)
   // WHY: Meta policy requires honoring STOP across all outbound channels
   if (contactId) {
@@ -119,6 +127,13 @@ async function sendTemplate(params) {
   const phoneNumberId = workspace.bspPhoneNumberId || workspace.whatsappPhoneNumberId;
   if (!phoneNumberId) {
     throw createError(ERROR_CODES.PHONE_NOT_CONFIGURED, 'WhatsApp phone number not configured for this workspace');
+  }
+
+  // BSP billing enforcement (hard gate)
+  try {
+    await enforceWorkspaceBilling(workspaceId);
+  } catch (billingError) {
+    throw createError(billingError.code || 'BILLING_BLOCKED', billingError.message || 'Billing blocked');
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -165,6 +180,9 @@ async function sendTemplate(params) {
   // ─────────────────────────────────────────────────────────────────────────────
   // STEP 6: Log successful send
   // ─────────────────────────────────────────────────────────────────────────────
+  const contact = await resolveContactForSend(workspaceId, contactId, normalizedPhone);
+  const conversation = await getOrCreateConversation(workspaceId, contact?._id, template, meta);
+
   const messageLog = await logTemplateSend({
     workspaceId,
     template,
@@ -172,8 +190,51 @@ async function sendTemplate(params) {
     contactId,
     status: 'sent',
     whatsappMessageId: response.messages?.[0]?.id,
-    meta
+    meta: {
+      ...meta,
+      conversationId: conversation?._id
+    }
   });
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // STEP 8: Usage ledger for conversation billing
+    // ─────────────────────────────────────────────────────────────────────────────
+    try {
+      await billingLedgerService.startBusinessConversation({
+        workspaceId,
+        conversationId: conversation?._id || null,
+        contactId: contact?._id,
+        phoneNumber: normalizedPhone,
+        templateId: template._id,
+        templateName: template.name,
+        templateCategory: template.category,
+        source: meta?.campaignId ? 'CAMPAIGN' : 'INBOX',
+        messageId: messageLog?._id,
+        whatsappMessageId: response.messages?.[0]?.id,
+        isBillable: true
+      });
+    } catch (ledgerErr) {
+      console.error('[TemplateSending] Billing ledger update failed:', ledgerErr.message);
+    }
+
+  if (conversation && contact) {
+    await billingLedgerService.startBusinessConversation({
+      workspaceId,
+      conversationId: conversation._id,
+      contactId: contact._id,
+      phoneNumber: normalizedPhone,
+      templateId: template._id,
+      templateName: template.name,
+      templateCategory: template.category,
+      source: meta.source || 'API',
+      campaignId: meta.campaignId,
+      campaignName: meta.campaignName,
+      userId: meta.sentBy,
+      messageId: messageLog._id,
+      whatsappMessageId: response.messages?.[0]?.id,
+      isBillable: true
+    });
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // STEP 7: Update workspace usage
@@ -601,6 +662,48 @@ async function updateWorkspaceUsage(workspace, category) {
       'bspUsage.lastMessageAt': new Date()
     }
   });
+}
+
+// Resolve contact for outbound template send
+async function resolveContactForSend(workspaceId, contactId, recipientPhone) {
+  if (contactId) {
+    return Contact.findById(contactId);
+  }
+
+  let contact = await Contact.findOne({ workspace: workspaceId, phone: recipientPhone });
+  if (!contact) {
+    contact = await Contact.create({
+      workspace: workspaceId,
+      phone: recipientPhone,
+      name: 'Unknown'
+    });
+  }
+
+  return contact;
+}
+
+// Create or reuse a conversation for outbound template sends
+async function getOrCreateConversation(workspaceId, contactId, template, meta = {}) {
+  if (!contactId) return null;
+
+  let conversation = await Conversation.findOne({ workspace: workspaceId, contact: contactId });
+
+  if (!conversation) {
+    conversation = await Conversation.create({
+      workspace: workspaceId,
+      contact: contactId,
+      status: 'open',
+      conversationType: 'business_initiated',
+      conversationStartedAt: new Date(),
+      lastActivityAt: new Date(),
+      lastMessageAt: new Date(),
+      lastMessageType: 'template',
+      lastMessageDirection: 'outbound',
+      lastMessagePreview: template?.body?.text || template?.bodyText || template?.name
+    });
+  }
+
+  return conversation;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

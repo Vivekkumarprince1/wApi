@@ -451,7 +451,7 @@ export const fetchContacts = async (page = 1, limit = 50, search = '') => {
     limit: limit.toString(),
     ...(search && { search })
   });
-  
+
   const response = await fetch(`${API_URL}/contacts?${params}`, {
     headers: getAuthHeaders(),
     credentials: 'include',
@@ -609,7 +609,7 @@ export const syncTemplatesFromMeta = async () => {
 export const getTemplateLibrary = async (category?: string) => {
   const params = new URLSearchParams();
   if (category) params.append('category', category);
-  
+
   const response = await fetch(`${API_URL}/templates/library?${params}`, {
     headers: getAuthHeaders(),
     credentials: 'include'
@@ -628,7 +628,7 @@ export const syncTemplateLibrary = async (category?: string, language: string = 
   const params = new URLSearchParams();
   if (category) params.append('category', category);
   params.append('language', language);
-  
+
   const response = await fetch(`${API_URL}/templates/library/sync?${params}`, {
     method: 'GET',
     headers: getAuthHeaders(),
@@ -645,7 +645,7 @@ export const syncTemplateLibrary = async (category?: string, language: string = 
 
 // Copy a template from Meta's Template Library
 export const copyFromTemplateLibrary = async (
-  libraryTemplateName: string, 
+  libraryTemplateName: string,
   customName?: string,
   language: string = 'en_US',
   category: string = 'UTILITY',
@@ -722,8 +722,17 @@ export const validateTemplate = async (templateData: any) => {
   return await response.json();
 };
 
-// Get template library statistics
+// Get template library statistics (cached for 5 minutes to avoid duplicate calls)
+let _templateStatsCache: any = null;
+let _templateStatsFetchedAt = 0;
+const TEMPLATE_STATS_TTL = 5 * 60 * 1000; // 5 minutes
+
 export const getTemplateLibraryStats = async () => {
+  const now = Date.now();
+  if (_templateStatsCache && (now - _templateStatsFetchedAt) < TEMPLATE_STATS_TTL) {
+    return _templateStatsCache;
+  }
+
   const response = await fetch(`${API_URL}/templates/stats`, {
     headers: getAuthHeaders(),
     credentials: 'include'
@@ -734,7 +743,10 @@ export const getTemplateLibraryStats = async () => {
     throw new Error(error.message || 'Failed to fetch template stats');
   }
 
-  return await response.json();
+  const data = await response.json();
+  _templateStatsCache = data;
+  _templateStatsFetchedAt = Date.now();
+  return data;
 };
 
 // Send template message
@@ -782,6 +794,50 @@ export const getWABASettings = async () => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to fetch WABA settings');
+  }
+  return response.json();
+};
+
+// Get BSP quota / Meta-aligned usage for current workspace
+export const getQuotaReport = async () => {
+  const response = await fetch(`${API_URL}/reports/quota`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch quota report');
+  }
+  return response.json();
+};
+
+// Get conversation billing metrics for current month
+export const getCurrentMonthBilling = async () => {
+  const response = await fetch(`${API_URL}/billing/conversations/current-month`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch billing metrics');
+  }
+  return response.json();
+};
+
+// Get billing preview (Meta-aligned) from analytics dashboard
+export const getBillingPreview = async (params?: { startDate?: string; endDate?: string }) => {
+  const searchParams = new URLSearchParams();
+  if (params?.startDate) searchParams.append('startDate', params.startDate);
+  if (params?.endDate) searchParams.append('endDate', params.endDate);
+  const query = searchParams.toString();
+
+  const response = await fetch(`${API_URL}/analytics/dashboard/billing${query ? `?${query}` : ''}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch billing preview');
   }
   return response.json();
 };
@@ -852,7 +908,7 @@ export const fetchConversations = async (params: any = {}) => {
   if (params.assignedTo) queryParams.append('assignedTo', params.assignedTo);
   if (params.limit) queryParams.append('limit', params.limit);
   if (params.offset) queryParams.append('offset', params.offset);
-  
+
   const response = await fetch(`${API_URL}/conversations?${queryParams}`, {
     headers: getAuthHeaders(),
     credentials: 'include',
@@ -882,7 +938,7 @@ export const fetchMessageThread = async (contactId, params: any = {}) => {
   const queryParams = new URLSearchParams();
   if (params.limit) queryParams.append('limit', params.limit);
   if (params.offset) queryParams.append('offset', params.offset);
-  
+
   const response = await fetch(`${API_URL}/conversations/${contactId}/messages?${queryParams}`, {
     headers: getAuthHeaders(),
     credentials: 'include',
@@ -975,7 +1031,7 @@ export const fetchCampaigns = async (status = '', page = 1, limit = 10) => {
     limit: limit.toString(),
     ...(status && { status })
   });
-  
+
   const response = await fetch(`${API_URL}/campaigns?${params}`, {
     headers: getAuthHeaders(),
     credentials: 'include',
@@ -1187,7 +1243,7 @@ export const saveBusinessInfo = async (businessInfo) => {
 export const connectWhatsApp = async (data) => {
   // Manual connect is deprecated. Use ESB embedded signup instead.
   // Forward the call to ESB start endpoint.
-  return await esbStart();
+  return await bspStart();
 };
 
 // Complete onboarding
@@ -1204,82 +1260,35 @@ export const completeOnboarding = async () => {
   return response.json();
 };
 
-// ===== ESB (Embedded Signup) API =====
+// ═══════════════════════════════════════════════════════════════════════════════
+// BSP ONBOARDING API (STRICT PARENT WABA ONLY)
+// ═══════════════════════════════════════════════════════════════════════════════
 
-// Start ESB flow (returns ESB URL and state)
-export const esbStart = async () => {
-  const response = await fetch(`${API_URL}/onboarding/esb/start`, {
+/**
+ * Start BSP onboarding flow - generates Meta ESB URL
+ * REQUIRES: emailVerified === true (enforced on frontend)
+ * RETURNS: { esbUrl: string, state: string }
+ */
+export const bspStart = async () => {
+  const response = await fetch(`${API_URL}/onboarding/bsp/start`, {
     method: 'POST',
     headers: getAuthHeaders(),
     credentials: 'include'
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || 'Failed to start ESB flow');
+    throw new Error(error.message || 'Failed to start BSP onboarding');
   }
   return response.json();
 };
 
-// Process ESB callback (code + state) - Legacy method
-export const esbProcessCallback = async (code: string, state: string) => {
-  const response = await fetch(`${API_URL}/onboarding/esb/process-callback`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify({ code, state })
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to process ESB callback');
-  }
-  return response.json();
-};
-
-// Process stored callback (new method - triggered after redirect)
-export const esbProcessStoredCallback = async () => {
-  const response = await fetch(`${API_URL}/onboarding/esb/process-stored-callback`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to process stored callback');
-  }
-  return response.json();
-};
-
-// Get ESB status
-export const esbStatus = async () => {
-  const response = await fetch(`${API_URL}/onboarding/esb/status`, {
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to fetch ESB status');
-  }
-  return response.json();
-};
-
-// Process PARTNER_ADDED webhook event (Steps 4-6 of Meta ESB flow)
-// This retrieves business token and customer phone number after webhook is received
-export const esbProcessPartnerAdded = async () => {
-  const response = await fetch(`${API_URL}/onboarding/esb/process-partner-added`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to process PARTNER_ADDED event');
-  }
-  return response.json();
-};
-
-// Process ESB callback (exchange code for token)
-export const processEsbCallback = async (payload) => {
-  const response = await fetch(`${API_URL}/onboarding/esb/process-callback`, {
+/**
+ * Complete BSP onboarding - processes OAuth callback from Meta
+ * REQUIRES: code and state from Meta redirect
+ * PERFORMS: Token exchange, WABA validation, workspace setup
+ */
+export const bspComplete = async (payload: { code: string; state: string }) => {
+  const response = await fetch(`${API_URL}/onboarding/bsp/complete`, {
     method: 'POST',
     headers: getAuthHeaders(),
     credentials: 'include',
@@ -1287,7 +1296,55 @@ export const processEsbCallback = async (payload) => {
   });
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || 'Failed to process callback');
+    throw new Error(error.message || 'Failed to complete BSP onboarding');
+  }
+  return response.json();
+};
+
+/**
+ * Get BSP onboarding status
+ * RETURNS: { workspace: {...}, stage1Complete: boolean }
+ */
+export const bspStatus = async () => {
+  const response = await fetch(`${API_URL}/onboarding/bsp/status`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch BSP status');
+  }
+  return response.json();
+};
+
+/**
+ * Get stage 1 completion status
+ * RETURNS: { stage1: { complete: boolean, phoneStatus: string, phoneNumber?: string } }
+ */
+export const bspStage1Status = async () => {
+  const response = await fetch(`${API_URL}/onboarding/bsp/stage1-status`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch stage1 status');
+  }
+  return response.json();
+};
+
+/**
+ * Sync BSP workspace data with Meta
+ */
+export const bspSync = async () => {
+  const response = await fetch(`${API_URL}/onboarding/bsp/sync`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to sync BSP workspace');
   }
   return response.json();
 };
@@ -1318,7 +1375,7 @@ export const listAds = async (status?: string, page = 1, limit = 20) => {
   if (status) params.append('status', status);
   params.append('page', page.toString());
   params.append('limit', limit.toString());
-  
+
   return get(`/ads?${params.toString()}`);
 };
 
@@ -1877,7 +1934,7 @@ export const listDeals = async (filters?: {
   if (filters?.status) params.append('status', filters.status);
   if (filters?.assignedAgent) params.append('assignedAgent', filters.assignedAgent);
   if (filters?.search) params.append('search', filters.search);
-  
+
   return get(`/sales/deals${params.toString() ? '?' + params.toString() : ''}`);
 };
 
@@ -1950,7 +2007,7 @@ export const getPipelinePerformanceReport = async (filters?: {
   if (filters?.pipelineId) params.append('pipelineId', filters.pipelineId);
   if (filters?.startDate) params.append('startDate', filters.startDate);
   if (filters?.endDate) params.append('endDate', filters.endDate);
-  
+
   const queryString = params.toString();
   return get(`/sales/reports/pipeline-performance${queryString ? `?${queryString}` : ''}`);
 };
@@ -1967,7 +2024,7 @@ export const getFunnelReport = async (pipelineId: string, filters?: {
   const params = new URLSearchParams({ pipelineId });
   if (filters?.startDate) params.append('startDate', filters.startDate);
   if (filters?.endDate) params.append('endDate', filters.endDate);
-  
+
   return get(`/sales/reports/funnel?${params.toString()}`);
 };
 
@@ -1984,7 +2041,7 @@ export const getAgentPerformanceReport = async (filters?: {
   if (filters?.agentId) params.append('agentId', filters.agentId);
   if (filters?.startDate) params.append('startDate', filters.startDate);
   if (filters?.endDate) params.append('endDate', filters.endDate);
-  
+
   const queryString = params.toString();
   return get(`/sales/reports/agent-performance${queryString ? `?${queryString}` : ''}`);
 };
@@ -2002,7 +2059,7 @@ export const getDealVelocityReport = async (filters?: {
   if (filters?.pipelineId) params.append('pipelineId', filters.pipelineId);
   if (filters?.startDate) params.append('startDate', filters.startDate);
   if (filters?.endDate) params.append('endDate', filters.endDate);
-  
+
   const queryString = params.toString();
   return get(`/sales/reports/deal-velocity${queryString ? `?${queryString}` : ''}`);
 };
@@ -2019,7 +2076,7 @@ export const getStageDurationReport = async (pipelineId: string, filters?: {
   const params = new URLSearchParams({ pipelineId });
   if (filters?.startDate) params.append('startDate', filters.startDate);
   if (filters?.endDate) params.append('endDate', filters.endDate);
-  
+
   return get(`/sales/reports/stage-duration?${params.toString()}`);
 };
 
@@ -2408,6 +2465,39 @@ export const getAdminAnalytics = async (filters?: {
   return response.json();
 };
 
+// ============================================================
+// AUDIT LOGS API
+// ============================================================
+
+export const getAuditLogs = async (filters?: {
+  action?: string;
+  userId?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+  offset?: number;
+}) => {
+  const params = new URLSearchParams();
+  if (filters?.action) params.append('action', filters.action);
+  if (filters?.userId) params.append('userId', filters.userId);
+  if (filters?.startDate) params.append('startDate', filters.startDate);
+  if (filters?.endDate) params.append('endDate', filters.endDate);
+  if (filters?.limit !== undefined) params.append('limit', String(filters.limit));
+  if (filters?.offset !== undefined) params.append('offset', String(filters.offset));
+
+  const response = await fetch(`${API_URL}/audit-logs${params.toString() ? `?${params.toString()}` : ''}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch audit logs');
+  }
+
+  return response.json();
+};
+
 /**
  * Get templates pending approval
  */
@@ -2472,4 +2562,45 @@ export const getCampaignAnalytics = async () => {
   }
 
   return response.json();
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INTERNAL NOTES API - Stage 4 Feature
+// Agent-only internal notes for conversations
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get internal notes for a conversation
+ */
+export const getConversationNotes = async (conversationId: string) => {
+  return get(`/conversations/${conversationId}/notes`);
+};
+
+/**
+ * Create a new internal note
+ */
+export const createConversationNote = async (conversationId: string, content: string) => {
+  return post(`/conversations/${conversationId}/notes`, { content });
+};
+
+/**
+ * Update an internal note
+ */
+export const updateConversationNote = async (conversationId: string, noteId: string, content: string) => {
+  return put(`/conversations/${conversationId}/notes/${noteId}`, { content });
+};
+
+/**
+ * Delete an internal note
+ */
+export const deleteConversationNote = async (conversationId: string, noteId: string) => {
+  return del(`/conversations/${conversationId}/notes/${noteId}`);
+};
+
+/**
+ * Search notes across conversations
+ */
+export const searchConversationNotes = async (query: string) => {
+  const params = new URLSearchParams({ q: query });
+  return get(`/conversations/notes/search?${params.toString()}`);
 };

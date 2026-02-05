@@ -17,6 +17,7 @@ const { getWorkspaceByPhoneId, extractPhoneNumberId, routeTemplateWebhook } = re
 const { triggerWorkflows } = require('../services/workflowExecutionService');
 const { checkAutoReply, sendAutoReply } = require('../services/autoReplyService');
 const { matchFAQ } = require('../services/answerbotService');
+const billingLedgerService = require('../services/billingLedgerService');
 
 // Stage 4: Import inbox socket service for real-time updates
 const inboxSocketService = require('../services/inboxSocketService');
@@ -488,6 +489,20 @@ async function processInboundMessages(messages, workspace, contactsInfo = [], wo
           raw: msg
         }
       });
+
+      // Billing ledger + usage tracking (Meta-aligned)
+      try {
+        await billingLedgerService.recordMessage({
+          workspaceId: workspace,
+          conversationId: conversation?._id || null,
+          contactId: contact._id,
+          direction: 'inbound',
+          messageId: message._id,
+          whatsappMessageId: msg.id
+        });
+      } catch (ledgerErr) {
+        console.error('[Webhook] Billing ledger update failed:', ledgerErr.message);
+      }
 
       // ✅ CHECK AUTO-REPLIES FIRST (before workflows)
       // Auto-replies are evaluated before workflows and stop workflow execution if sent

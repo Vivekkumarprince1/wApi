@@ -8,7 +8,7 @@ const LoadingSpinner = () => {
           {/* Logo with spinning animation */}
           <div className="w-20 h-20 mx-auto relative">
             <Image
-              src="/interact-logo.png"
+              src="/my_logo.png"
               alt={`${process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} Logo`}
               width={80}
               height={80}

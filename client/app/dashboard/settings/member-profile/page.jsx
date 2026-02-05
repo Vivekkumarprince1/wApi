@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getCurrentUser, updateProfile } from '@/lib/api';
+import { toast } from 'react-toastify';
 import { FaUser, FaSave } from 'react-icons/fa';
 
 export default function MemberProfileSettingsPage() {
@@ -28,9 +29,9 @@ export default function MemberProfileSettingsPage() {
     try {
       setSaving(true);
       await updateProfile(form);
-      alert('Profile updated');
+      toast.success('Profile updated');
     } catch (e) {
-      alert(e.message || 'Failed to update');
+      toast.error(e.message || 'Failed to update');
     } finally {
       setSaving(false);
     }

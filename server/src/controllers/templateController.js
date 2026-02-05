@@ -17,6 +17,7 @@ const Workspace = require('../models/Workspace');
 const bspMessagingService = require('../services/bspMessagingService');
 const bspConfig = require('../config/bspConfig');
 const { validateTemplate, buildMetaPayload, LIMITS } = require('../middlewares/templateValidation');
+const usageLedgerService = require('../services/usageLedgerService');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CREATE TEMPLATE (DRAFT)
@@ -201,6 +202,53 @@ async function listTemplates(req, res, next) {
     next(err);
   }
 }
+
+/**
+ * Get library statistics
+ * GET /api/v1/templates/stats
+ */
+async function getTemplateLibraryStats(req, res, next) {
+  try {
+    const workspaceId = req.user.workspace;
+
+    // Total templates
+    const total = await Template.countDocuments({ workspace: workspaceId });
+
+    // By category
+    const byCategoryAgg = await Template.aggregate([
+      { $match: { workspace: workspaceId } },
+      { $group: { _id: '$category', count: { $sum: 1 } } }
+    ]);
+
+    const byCategory = byCategoryAgg.reduce((acc, item) => {
+      acc[item._id || 'unknown'] = item.count;
+      return acc;
+    }, {});
+
+    // By status
+    const byStatusAgg = await Template.aggregate([
+      { $match: { workspace: workspaceId } },
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+
+    const byStatus = byStatusAgg.reduce((acc, item) => {
+      acc[item._id.toLowerCase()] = item.count;
+      return acc;
+    }, {});
+
+    res.json({
+      success: true,
+      stats: {
+        total,
+        byCategory,
+        byStatus
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // GET SINGLE TEMPLATE
@@ -521,6 +569,17 @@ async function submitTemplate(req, res, next) {
         requiresOnboarding: true
       });
     }
+
+    // Enforce template submission limits (abuse/spam mitigation)
+    try {
+      await bspMessagingService.checkTemplateSubmissionLimit(workspace);
+    } catch (limitErr) {
+      return res.status(429).json({
+        success: false,
+        message: limitErr.message,
+        code: 'TEMPLATE_SUBMISSION_LIMIT'
+      });
+    }
     
     // Stage 2: Verify phone is connected and active
     const phoneStatus = workspace.bspPhoneStatus || 'UNKNOWN';
@@ -607,6 +666,13 @@ async function submitTemplate(req, res, next) {
       await Workspace.findByIdAndUpdate(workspaceId, {
         $inc: { 'usage.templatesSubmitted': 1 }
       });
+
+      // BSP billing: template submission count
+      try {
+        await usageLedgerService.incrementTemplateSubmissions(workspaceId, 1);
+      } catch (usageErr) {
+        console.error('[Template] Usage ledger update failed:', usageErr.message);
+      }
       
       res.json({
         success: true,
@@ -1201,6 +1267,7 @@ module.exports = {
   duplicateTemplate,
   validateTemplatePreview,
   getTemplateCategories,
+  getTemplateLibraryStats,
   
   // Version forking (Stage 2 Hardening)
   forkApprovedTemplate,

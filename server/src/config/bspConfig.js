@@ -21,12 +21,12 @@ const bspConfig = {
    * Your parent WABA ID - all tenants operate under this single WABA
    * This is your BSP's WhatsApp Business Account ID
    */
-  parentWabaId: process.env.BSP_WABA_ID || process.env.META_WABA_ID,
+  parentWabaId: process.env.META_WABA_ID,
   
   /**
    * Your Meta Business ID - the business that owns the parent WABA
    */
-  parentBusinessId: process.env.BSP_BUSINESS_ID || process.env.META_BUSINESS_ID,
+  parentBusinessId: process.env.META_BUSINESS_ID,
   
   /**
    * System User Access Token - PERMANENT token for server-to-server API calls
@@ -34,7 +34,7 @@ const bspConfig = {
    * Generate from: Business Settings > System Users > Generate Token
    * Required scopes: whatsapp_business_management, whatsapp_business_messaging
    */
-  systemUserToken: process.env.BSP_SYSTEM_USER_TOKEN || process.env.META_SYSTEM_USER_TOKEN,
+  systemUserToken: process.env.META_ACCESS_TOKEN,
   
   /**
    * Meta App credentials for webhook verification
@@ -45,7 +45,7 @@ const bspConfig = {
   /**
    * Webhook verification token (shared across all webhooks)
    */
-  webhookVerifyToken: process.env.META_VERIFY_TOKEN || process.env.BSP_WEBHOOK_VERIFY_TOKEN,
+  webhookVerifyToken: process.env.META_VERIFY_TOKEN,
   
   // ═══════════════════════════════════════════════════════════════════
   // API CONFIGURATION
@@ -156,11 +156,11 @@ const bspConfig = {
     const errors = [];
     
     if (!this.parentWabaId) {
-      errors.push('BSP_WABA_ID or META_WABA_ID is required');
+      errors.push('META_WABA_ID is required');
     }
     
     if (!this.systemUserToken) {
-      errors.push('BSP_SYSTEM_USER_TOKEN or META_SYSTEM_USER_TOKEN is required');
+      errors.push('META_ACCESS_TOKEN is required');
     }
     
     if (!this.appSecret) {

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaEye, FaChevronDown } from 'react-icons/fa';
 import Link from 'next/link';
+import { get, post, del } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 export default function AutoRepliesPage() {
   const router = useRouter();
@@ -23,30 +25,21 @@ export default function AutoRepliesPage() {
   const loadAutoReplies = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
       if (filters.enabled !== 'all') params.append('enabled', filters.enabled);
 
-      const response = await fetch(`/api/v1/auto-replies?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      let data = await get(`/auto-replies${params.toString() ? '?' + params : ''}`);
 
-      if (response.ok) {
-        let data = await response.json();
-        
-        // Filter by search term
-        if (filters.search) {
-          data = data.filter(ar =>
-            ar.keywords.some(k => k.includes(filters.search.toLowerCase())) ||
-            ar.templateName?.toLowerCase().includes(filters.search.toLowerCase())
-          );
-        }
-
-        setAutoReplies(data);
-        setError('');
-      } else {
-        setError('Failed to load auto-replies');
+      // Filter by search term
+      if (filters.search) {
+        data = (data || []).filter(ar =>
+          ar.keywords?.some(k => k.includes(filters.search.toLowerCase())) ||
+          ar.templateName?.toLowerCase().includes(filters.search.toLowerCase())
+        );
       }
+
+      setAutoReplies(data || []);
+      setError('');
     } catch (err) {
       setError('Error: ' + err.message);
       console.error(err);
@@ -57,18 +50,12 @@ export default function AutoRepliesPage() {
 
   const handleToggle = async (id, enabled) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/auto-replies/${id}/toggle`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const updated = await response.json();
-        setAutoReplies(autoReplies.map(ar => ar._id === id ? updated : ar));
-      }
+      const updated = await post(`/auto-replies/${id}/toggle`);
+      setAutoReplies(autoReplies.map(ar => ar._id === id ? updated : ar));
+      toast?.success?.(updated.enabled ? 'Auto-reply enabled' : 'Auto-reply disabled');
     } catch (err) {
       console.error('Error toggling auto-reply:', err);
+      toast?.error?.('Failed to toggle auto-reply');
     }
   };
 
@@ -76,17 +63,12 @@ export default function AutoRepliesPage() {
     if (!confirm('Delete this auto-reply?')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/auto-replies/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        setAutoReplies(autoReplies.filter(ar => ar._id !== id));
-      }
+      await del(`/auto-replies/${id}`);
+      setAutoReplies(autoReplies.filter(ar => ar._id !== id));
+      toast?.success?.('Auto-reply deleted');
     } catch (err) {
       console.error('Error deleting auto-reply:', err);
+      toast?.error?.('Failed to delete auto-reply');
     }
   };
 

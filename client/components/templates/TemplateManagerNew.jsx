@@ -13,6 +13,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   FaArrowLeft, 
   FaCheckCircle, 
@@ -24,6 +25,7 @@ import TemplateList from './TemplateList';
 import TemplateBuilder from './TemplateBuilder';
 import WhatsAppPreview from './WhatsAppPreview';
 import { get, post, put, del } from '../../lib/api';
+import { useWorkspace } from '../../lib/useWorkspace';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TOAST NOTIFICATION
@@ -103,9 +105,9 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Confirm', onConfi
 // TEMPLATE DETAIL VIEW
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const TemplateDetailView = ({ template, onBack, onEdit, onSubmit, onDelete, onDuplicate }) => {
+const TemplateDetailView = ({ template, canSubmitTemplates, onBack, onEdit, onSubmit, onDelete, onDuplicate }) => {
   const canEdit = ['DRAFT', 'REJECTED'].includes(template.status);
-  const canSubmit = ['DRAFT', 'REJECTED'].includes(template.status);
+  const canSubmit = canSubmitTemplates && ['DRAFT', 'REJECTED'].includes(template.status);
   
   // Format date
   const formatDate = (date) => {
@@ -261,6 +263,9 @@ const TemplateDetailView = ({ template, onBack, onEdit, onSubmit, onDelete, onDu
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const TemplateManager = () => {
+  const router = useRouter();
+  const workspace = useWorkspace();
+  const bspReady = workspace.stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus);
   // ─────────────────────────────────────────────────────────────────────────────
   // STATE
   // ─────────────────────────────────────────────────────────────────────────────
@@ -358,6 +363,10 @@ const TemplateManager = () => {
   
   const submitTemplate = async (templateId) => {
     try {
+      if (!bspReady) {
+        showToast('Connect WhatsApp to submit templates for approval', 'warning');
+        return;
+      }
       setSubmitting(true);
       await post(`/templates/${templateId}/submit`);
       showToast('Template submitted for approval', 'success');
@@ -457,6 +466,10 @@ const TemplateManager = () => {
       }
       
       if (template?._id) {
+        if (!bspReady) {
+          showToast('Template saved as draft. Connect WhatsApp to submit for approval.', 'warning');
+          return;
+        }
         await submitTemplate(template._id);
       }
     } catch (error) {
@@ -492,6 +505,20 @@ const TemplateManager = () => {
   
   return (
     <div className="p-6 min-h-screen bg-gray-50">
+      {!workspace.loading && !bspReady && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="font-medium">WhatsApp not connected</p>
+            <p className="text-sm">Connect your WhatsApp account to submit templates for approval.</p>
+          </div>
+          <button
+            onClick={() => router.push('/onboarding/esb')}
+            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+          >
+            Connect Now
+          </button>
+        </div>
+      )}
       {/* List View */}
       {view === 'list' && (
         <TemplateList
@@ -499,6 +526,7 @@ const TemplateManager = () => {
           loading={loading}
           counts={counts}
           pagination={pagination}
+          canSubmitTemplates={bspReady}
           onCreateNew={handleCreateNew}
           onEdit={handleEdit}
           onDelete={handleDelete}
@@ -567,6 +595,7 @@ const TemplateManager = () => {
         <div className="max-w-6xl mx-auto">
           <TemplateDetailView
             template={selectedTemplate}
+            canSubmitTemplates={bspReady}
             onBack={handleBack}
             onEdit={handleEdit}
             onSubmit={handleSubmit}

@@ -4,9 +4,46 @@ const rbac = require('../middlewares/rbac');
 const conversationBillingService = require('../services/conversationBillingService');
 const Conversation = require('../models/Conversation');
 const { logger } = require('../utils/logger');
+const billingController = require('../controllers/billingController');
 
 const router = express.Router();
 router.use(auth);
+
+/**
+ * GET /api/v1/billing/usage
+ * Usage breakdown by Meta category
+ */
+router.get('/usage', rbac.requirePermission('billing.view'), billingController.getUsage);
+
+/**
+ * GET /api/v1/billing/estimate
+ * Current month estimate
+ */
+router.get('/estimate', rbac.requirePermission('billing.view'), billingController.getEstimate);
+
+/**
+ * GET /api/v1/billing/invoices
+ * List invoices
+ */
+router.get('/invoices', rbac.requirePermission('billing.view'), billingController.listInvoices);
+
+/**
+ * GET /api/v1/billing/invoices/:id
+ * Invoice detail
+ */
+router.get('/invoices/:id', rbac.requirePermission('billing.view'), billingController.getInvoice);
+
+/**
+ * POST /api/v1/billing/upgrade
+ * Upgrade plan
+ */
+router.post('/upgrade', rbac.requirePermission('billing.manage'), billingController.upgradePlan);
+
+/**
+ * POST /api/v1/billing/suspend
+ * Self-suspend workspace
+ */
+router.post('/suspend', rbac.requirePermission('billing.manage'), billingController.suspendWorkspace);
 
 /**
  * GET /api/v1/billing/conversations/current-month

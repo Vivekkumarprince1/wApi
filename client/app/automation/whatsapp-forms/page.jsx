@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaDownload, FaChevronDown, FaEye } from 'react-icons/fa';
 import Link from 'next/link';
+import { get, post, del } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 export default function WhatsAppFormsPage() {
   const router = useRouter();
@@ -24,24 +26,15 @@ export default function WhatsAppFormsPage() {
   const loadForms = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
 
       if (activeTab === 'draft') params.append('status', 'draft');
       if (activeTab === 'published') params.append('status', 'published');
       if (filters.search) params.append('search', filters.search);
 
-      const response = await fetch(`/api/v1/whatsapp-forms?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setForms(data);
-        setError('');
-      } else {
-        setError('Failed to load forms');
-      }
+      const data = await get(`/whatsapp-forms${params.toString() ? '?' + params : ''}`);
+      setForms(data || []);
+      setError('');
     } catch (err) {
       setError('Error: ' + err.message);
       console.error(err);
@@ -52,47 +45,34 @@ export default function WhatsAppFormsPage() {
 
   const handlePublish = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/whatsapp-forms/${id}/publish`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        setForms(forms.map(f => f._id === id ? { ...f, status: 'published' } : f));
-      }
+      await post(`/whatsapp-forms/${id}/publish`);
+      setForms(forms.map(f => f._id === id ? { ...f, status: 'published' } : f));
+      toast?.success?.('Form published');
     } catch (err) {
       console.error('Error publishing form:', err);
+      toast?.error?.('Failed to publish form');
     }
   };
 
   const handleUnpublish = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/whatsapp-forms/${id}/unpublish`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        setForms(forms.map(f => f._id === id ? { ...f, status: 'draft' } : f));
-      }
+      await post(`/whatsapp-forms/${id}/unpublish`);
+      setForms(forms.map(f => f._id === id ? { ...f, status: 'draft' } : f));
+      toast?.success?.('Form unpublished');
     } catch (err) {
       console.error('Error unpublishing form:', err);
+      toast?.error?.('Failed to unpublish form');
     }
   };
 
   const handleSync = async (id) => {
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`/api/v1/whatsapp-forms/${id}/sync`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      // Refresh forms
+      await post(`/whatsapp-forms/${id}/sync`);
       loadForms();
+      toast?.success?.('Form synced');
     } catch (err) {
       console.error('Error syncing form:', err);
+      toast?.error?.('Failed to sync form');
     }
   };
 
@@ -100,17 +80,12 @@ export default function WhatsAppFormsPage() {
     if (!confirm('Delete this form and all its responses?')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/whatsapp-forms/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        setForms(forms.filter(f => f._id !== id));
-      }
+      await del(`/whatsapp-forms/${id}`);
+      setForms(forms.filter(f => f._id !== id));
+      toast?.success?.('Form deleted');
     } catch (err) {
       console.error('Error deleting form:', err);
+      toast?.error?.('Failed to delete form');
     }
   };
 

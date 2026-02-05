@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaEye, FaChevronDown } from 'react-icons/fa';
+import { FaRobot, FaPlus, FaSearch, FaEllipsisV, FaWhatsapp, FaInstagram, FaCog, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaEye, FaChevronDown } from 'react-icons/fa';
 import Link from 'next/link';
 import { get, post, del } from '../../../lib/api';
 
@@ -29,18 +29,20 @@ export default function WorkflowsPage() {
       if (filters.enabled !== 'all') params.append('enabled', filters.enabled);
       if (filters.trigger !== 'all') params.append('trigger', filters.trigger);
 
-      const data = await get(`/automation?${params.toString()}`);
+      const data = await get(`/automation/rules?${params.toString()}`);
+      
+      // Ensure data is an array
+      let workflowList = Array.isArray(data) ? data : (Array.isArray(data?.rules) ? data.rules : []);
       
       // Filter by search term
-      let filteredData = data;
       if (filters.search) {
-        filteredData = data.filter(w => 
-          w.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+        workflowList = workflowList.filter(w => 
+          w.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
           w.description?.toLowerCase().includes(filters.search.toLowerCase())
         );
       }
 
-      setWorkflows(filteredData);
+      setWorkflows(workflowList);
       setError('');
     } catch (err) {
       setError('Error loading workflows');
@@ -53,7 +55,7 @@ export default function WorkflowsPage() {
   const toggleWorkflow = async (id, e) => {
     e.stopPropagation();
     try {
-      await post(`/automation/${id}/toggle`);
+      await post(`/automation/rules/${id}/enable`);
       setWorkflows(workflows.map(w => 
         w._id === id ? { ...w, enabled: !w.enabled } : w
       ));
@@ -67,7 +69,7 @@ export default function WorkflowsPage() {
     if (!confirm('Are you sure you want to delete this workflow?')) return;
 
     try {
-      await del(`/automation/${id}`);
+      await del(`/automation/rules/${id}`);
       setWorkflows(workflows.filter(w => w._id !== id));
     } catch (err) {
       console.error('Error deleting workflow:', err);

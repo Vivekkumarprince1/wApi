@@ -170,13 +170,14 @@ const TemplateCard = ({
   onSubmit, 
   onDuplicate, 
   onView,
+  canSubmitTemplates,
   showPreview = true 
 }) => {
   const [showActions, setShowActions] = useState(false);
   const [showRejection, setShowRejection] = useState(false);
   
   const canEdit = ['DRAFT', 'REJECTED'].includes(template.status);
-  const canSubmit = ['DRAFT', 'REJECTED'].includes(template.status);
+  const canSubmit = canSubmitTemplates && ['DRAFT', 'REJECTED'].includes(template.status);
   const canDelete = true;
   const isApproved = template.status === 'APPROVED';
   
@@ -410,6 +411,7 @@ const TemplateList = ({
   loading = false,
   counts = {},
   pagination = {},
+  canSubmitTemplates = true,
   onCreateNew,
   onEdit,
   onDelete,
@@ -548,6 +550,7 @@ const TemplateList = ({
               onSubmit={onSubmit}
               onDuplicate={onDuplicate}
               onView={onView}
+              canSubmitTemplates={canSubmitTemplates}
             />
           ))}
         </div>

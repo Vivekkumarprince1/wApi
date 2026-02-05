@@ -55,6 +55,12 @@ const PermissionSchema = new mongoose.Schema({
     manageWebhooks: { type: Boolean, default: false },
     viewAuditLogs: { type: Boolean, default: false },
 
+    // Billing (RBAC scopes)
+    billing: {
+      view: { type: Boolean, default: false },
+      manage: { type: Boolean, default: false }
+    },
+
     // Analytics & Reports
     viewAnalytics: { type: Boolean, default: true },
     viewReports: { type: Boolean, default: true },
@@ -133,6 +139,10 @@ PermissionSchema.statics.getDefaultPermissions = function(role) {
       manageIntegrations: true,
       manageWebhooks: true,
       viewAuditLogs: true,
+      billing: {
+        view: true,
+        manage: true
+      },
       viewAnalytics: true,
       viewReports: true,
       exportData: true
@@ -170,6 +180,10 @@ PermissionSchema.statics.getDefaultPermissions = function(role) {
       manageIntegrations: false,
       manageWebhooks: false,
       viewAuditLogs: true,
+      billing: {
+        view: true,
+        manage: false
+      },
       viewAnalytics: true,
       viewReports: true,
       exportData: true
@@ -207,6 +221,10 @@ PermissionSchema.statics.getDefaultPermissions = function(role) {
       manageIntegrations: false,
       manageWebhooks: false,
       viewAuditLogs: false,
+      billing: {
+        view: false,
+        manage: false
+      },
       viewAnalytics: false,
       viewReports: false,
       exportData: false
@@ -244,6 +262,10 @@ PermissionSchema.statics.getDefaultPermissions = function(role) {
       manageIntegrations: false,
       manageWebhooks: false,
       viewAuditLogs: false,
+      billing: {
+        view: false,
+        manage: false
+      },
       viewAnalytics: true,
       viewReports: true,
       exportData: false

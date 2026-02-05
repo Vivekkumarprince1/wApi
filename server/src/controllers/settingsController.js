@@ -1,9 +1,21 @@
 const Workspace = require('../models/Workspace');
 const { encryptToken, isEncrypted } = require('../utils/tokenEncryption');
 
+// BSP-only hardening: when enabled, tenants must NOT be able to configure
+// their own Meta / WhatsApp credentials. All Meta assets are owned and
+// managed centrally by the BSP under a single parent WABA.
+const BSP_ONLY = process.env.BSP_ONLY !== 'false';
+
 // Initialize WABA settings from environment variables (for development)
 async function initializeWABAFromEnv(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      return res.status(410).json({
+        success: false,
+        message: 'Per-workspace WABA initialization is disabled in BSP mode. WhatsApp is provisioned centrally under the BSP account.',
+        code: 'BSP_ONLY_WABA_ENV_DISABLED'
+      });
+    }
     const workspace = await Workspace.findById(req.user.workspace);
     
     if (!workspace) {
@@ -113,6 +125,16 @@ async function getWABASettings(req, res, next) {
 // Update WABA settings for current workspace
 async function updateWABASettings(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      // In BSP mode, block any attempt to mutate WABA credentials from the
+      // tenant side. Business profile updates should go through dedicated
+      // BSP endpoints and not direct token/WABA edits.
+      return res.status(410).json({
+        success: false,
+        message: 'WhatsApp connection is fully managed by the BSP. You cannot edit WABA IDs, phone_number_id, or tokens from this workspace.',
+        code: 'BSP_ONLY_WABA_MUTATION_DISABLED'
+      });
+    }
     const workspace = await Workspace.findById(req.user.workspace);
     
     if (!workspace) {
@@ -184,6 +206,13 @@ async function updateWABASettings(req, res, next) {
 // Test WABA connection
 async function testWABAConnection(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      return res.status(410).json({
+        success: false,
+        message: 'Direct WABA connection tests are disabled in BSP mode. Use BSP health dashboards instead.',
+        code: 'BSP_ONLY_WABA_TEST_DISABLED'
+      });
+    }
     const workspace = await Workspace.findById(req.user.workspace);
     
     if (!workspace) {
@@ -237,6 +266,13 @@ async function createWABASettings(req, res, next) {
 // Debug Meta API credentials and find correct WABA ID
 async function debugMetaCredentials(req, res, next) {
   try {
+    if (BSP_ONLY) {
+      return res.status(410).json({
+        success: false,
+        message: 'Per-workspace Meta credential debugging is disabled in BSP mode. Meta apps and tokens are owned by the BSP only.',
+        code: 'BSP_ONLY_META_DEBUG_DISABLED'
+      });
+    }
     const workspace = await Workspace.findById(req.user.workspace);
     
     if (!workspace) {

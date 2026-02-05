@@ -23,6 +23,8 @@ const bspMessagingService = require('./bspMessagingService');
 const templateSendingService = require('./templateSendingService');
 const { isOptedOut } = require('./optOutService');
 const { getIO } = require('../utils/socket');
+const billingLedgerService = require('./billingLedgerService');
+const { enforceWorkspaceBilling } = require('./billingEnforcementService');
 
 // Hardening services
 const agentRateLimitService = require('./agentRateLimitService');
@@ -127,6 +129,9 @@ async function sendTextMessage(options) {
   // 2. Get workspace (BSP service enforces centralized token usage)
   const workspace = await Workspace.findById(workspaceId).lean();
 
+  // BSP billing enforcement (hard gate)
+  await enforceWorkspaceBilling(workspaceId);
+
   // 3. Get conversation and contact
   const conversation = await Conversation.findById(conversationId);
   if (!conversation) {
@@ -185,6 +190,21 @@ async function sendTextMessage(options) {
       sentBy: agentId,
       sentAt: new Date()
     });
+  }
+
+  // Update billing ledger & usage counters
+  try {
+    await billingLedgerService.recordMessage({
+      workspaceId,
+      conversationId,
+      contactId: contact._id,
+      direction: 'outbound',
+      messageId: message._id,
+      whatsappMessageId: result.messageId,
+      isTemplate: false
+    });
+  } catch (ledgerErr) {
+    console.error('[InboxMessageService] Billing ledger update failed:', ledgerErr.message);
   }
 
   // 7. Update conversation

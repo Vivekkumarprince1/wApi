@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GoogleLogin from '@/components/GoogleLogin';
 import FacebookLogin from '@/components/FacebookLogin';
-import { loginUser } from '@/lib/api';
+import { loginUser, getCurrentUser } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,7 +34,14 @@ export default function LoginPage() {
         localStorage.setItem('token', data.token);
         window.dispatchEvent(new Event('authChange'));
       }
-      router.push('/dashboard');
+
+      // Check email verification status
+      const user = await getCurrentUser();
+      if (!user.emailVerified) {
+        router.push('/onboarding/verify-email');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -42,22 +49,36 @@ export default function LoginPage() {
     }
   };
 
-  const handleSocialSuccess = (result) => {
+  const handleSocialSuccess = async (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
       window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
-    router.push('/onboarding/esb');
+
+    // Check email verification status
+    const user = await getCurrentUser();
+    if (!user.emailVerified) {
+      router.push('/onboarding/verify-email');
+    } else {
+      router.push('/onboarding/esb');
+    }
   };
 
-  const handleFacebookSuccess = (result) => {
+  const handleFacebookSuccess = async (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
       window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
-    router.push('/onboarding/esb');
+
+    // Check email verification status
+    const user = await getCurrentUser();
+    if (!user.emailVerified) {
+      router.push('/onboarding/verify-email');
+    } else {
+      router.push('/onboarding/esb');
+    }
   };
 
   return (
@@ -66,10 +87,10 @@ export default function LoginPage() {
         <div className="flex items-center justify-between max-w-5xl mx-auto px-6 py-4">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="h-10 w-10 relative">
-              <Image src="/interact-logo.png" alt={process.env.NEXT_PUBLIC_APP_DOMAIN } fill sizes="40px" className="object-contain" />
+              <Image src="/my_logo.png" alt={process.env.NEXT_PUBLIC_APP_DOMAIN} fill sizes="40px" className="object-contain" />
             </div>
             <span className="font-extrabold text-lg tracking-tight text-gray-900 uppercase group-hover:text-green-700 transition-colors">
-              {process.env.NEXT_PUBLIC_APP_DOMAIN }
+              {process.env.NEXT_PUBLIC_APP_DOMAIN}
             </span>
           </Link>
           <div className="text-sm text-gray-700">
@@ -84,9 +105,8 @@ export default function LoginPage() {
       <main className="flex-1 flex items-start md:items-center justify-center px-4 py-12 bg-white">
         <div className="w-full max-w-md">
           <div
-            className={`bg-white border border-gray-200 rounded-[36px] shadow-[0_18px_45px_rgba(15,23,42,0.08)] px-6 sm:px-10 py-12 text-center transition-all duration-500 ${
-              showCard ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-            }`}
+            className={`bg-white border border-gray-200 rounded-[36px] shadow-[0_18px_45px_rgba(15,23,42,0.08)] px-6 sm:px-10 py-12 text-center transition-all duration-500 ${showCard ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+              }`}
           >
             <h1 className="text-[32px] font-semibold tracking-[0.25rem] text-gray-900 uppercase mb-10">Sign in</h1>
 
@@ -173,12 +193,12 @@ export default function LoginPage() {
             <div className="mt-4 text-center">
               <p className="text-gray-600 dark:text-gray-400">
                 Don't have an account?{' '}
-                <a 
-                  href="/auth/register" 
+                <Link
+                  href="/auth/register"
                   className="text-blue-500 hover:text-blue-700 font-semibold"
                 >
                   Register here
-                </a>
+                </Link>
               </p>
             </div>
           </div>

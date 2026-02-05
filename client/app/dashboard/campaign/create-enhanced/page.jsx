@@ -4,9 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaChevronDown, FaChevronUp, FaMobileAlt, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
 import { fetchTemplates, createCampaign, fetchContacts } from '../../../../lib/api.ts';
+import { useWorkspace } from '../../../../lib/useWorkspace';
 
 export default function CreateCampaignPageEnhanced() {
   const router = useRouter();
+  const workspace = useWorkspace();
+  const bspReady = workspace.stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus);
   
   // Basic info
   const [campaignName, setCampaignName] = useState('');
@@ -140,6 +143,10 @@ export default function CreateCampaignPageEnhanced() {
     if (!validateCampaign()) {
       return;
     }
+    if (!bspReady) {
+      setError('Connect your WhatsApp account to create campaigns.');
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -197,6 +204,22 @@ export default function CreateCampaignPageEnhanced() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {!workspace.loading && !bspReady && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800">
+          <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">WhatsApp not connected</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">Connect your WhatsApp account to create and send campaigns.</p>
+            </div>
+            <button
+              onClick={() => router.push('/onboarding/esb')}
+              className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              Connect Now
+            </button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 sticky top-0 z-10">
         <div className="flex items-center justify-between">
@@ -218,7 +241,7 @@ export default function CreateCampaignPageEnhanced() {
             </button>
             <button
               onClick={handleCreate}
-              disabled={submitting}
+              disabled={!bspReady || submitting}
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors font-medium"
             >
               {submitting ? 'Creating...' : 'Create Campaign'}

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaArrowLeft, FaPlus, FaTrash } from 'react-icons/fa';
 import Link from 'next/link';
+import { get, post } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 export default function CreateAutoReplyPage() {
   const router = useRouter();
@@ -25,15 +27,8 @@ export default function CreateAutoReplyPage() {
 
   const loadTemplates = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/templates?status=APPROVED', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setTemplates(data || []);
-      }
+      const data = await get('/templates?status=APPROVED');
+      setTemplates(data || []);
     } catch (err) {
       console.error('Error loading templates:', err);
     } finally {
@@ -82,30 +77,17 @@ export default function CreateAutoReplyPage() {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/auto-replies', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          keywords: validKeywords,
-          template: formData.template,
-          matchMode: formData.matchMode,
-          enabled: formData.enabled
-        })
+      const data = await post('/auto-replies', {
+        keywords: validKeywords,
+        template: formData.template,
+        matchMode: formData.matchMode,
+        enabled: formData.enabled
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        router.push('/automation/auto-replies');
-      } else {
-        setError(data.message || 'Failed to create auto-reply');
-      }
+      toast?.success?.('Auto-reply created successfully');
+      router.push('/automation/auto-replies');
     } catch (err) {
-      setError('Error: ' + err.message);
+      setError(err.message || 'Failed to create auto-reply');
       console.error(err);
     } finally {
       setLoading(false);

@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Trash2, Plus, CheckCircle, XCircle } from 'lucide-react';
+import { get, post, put, del } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 /**
  * RBAC Team Management Component
@@ -67,13 +69,13 @@ export function RBACTeamManagement() {
   const loadTeamMembers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/v1/admin/team/members', {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const data = await response.json();
+      setError(null);
+      const data = await get('/admin/team/members');
       setTeamMembers(data.members || []);
     } catch (err) {
+      console.error('Failed to load team members:', err);
       setError('Failed to load team members');
+      toast?.error?.('Failed to load team members');
     } finally {
       setLoading(false);
     }
@@ -83,37 +85,33 @@ export function RBACTeamManagement() {
     if (!newMemberEmail) return;
 
     try {
-      const response = await fetch('/api/v1/admin/team/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: newMemberEmail,
-          role: selectedRole,
-        }),
+      setError(null);
+      await post('/admin/team/invite', {
+        email: newMemberEmail,
+        role: selectedRole,
       });
 
-      if (!response.ok) throw new Error('Failed to invite member');
-
+      toast?.success?.('Team member invited successfully!');
       setNewMemberEmail('');
       setShowAddMember(false);
       await loadTeamMembers();
     } catch (err) {
-      setError(err.message);
+      console.error('Failed to invite member:', err);
+      setError(err.message || 'Failed to invite member');
+      toast?.error?.(err.message || 'Failed to invite member');
     }
   };
 
   const handleChangeRole = async (memberId, newRole) => {
     try {
-      const response = await fetch(`/api/v1/admin/team/members/${memberId}/role`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update role');
+      setError(null);
+      await put(`/admin/team/members/${memberId}/role`, { role: newRole });
+      toast?.success?.('Role updated successfully!');
       await loadTeamMembers();
     } catch (err) {
-      setError(err.message);
+      console.error('Failed to update role:', err);
+      setError(err.message || 'Failed to update role');
+      toast?.error?.(err.message || 'Failed to update role');
     }
   };
 
@@ -121,14 +119,14 @@ export function RBACTeamManagement() {
     if (!confirm('Remove this team member?')) return;
 
     try {
-      const response = await fetch(`/api/v1/admin/team/members/${memberId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to remove member');
+      setError(null);
+      await del(`/admin/team/members/${memberId}`);
+      toast?.success?.('Team member removed!');
       await loadTeamMembers();
     } catch (err) {
-      setError(err.message);
+      console.error('Failed to remove member:', err);
+      setError(err.message || 'Failed to remove member');
+      toast?.error?.(err.message || 'Failed to remove member');
     }
   };
 

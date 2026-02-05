@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { get } from '@/lib/api';
 
 interface UsageData {
   plan: string;
@@ -55,19 +56,7 @@ export default function UsageDashboard() {
 
   const fetchUsageData = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/usage`, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch usage data');
-      }
-
-      const data = await res.json();
+      const data = await get('/usage');
       setUsageData(data);
       setError('');
     } catch (err: any) {

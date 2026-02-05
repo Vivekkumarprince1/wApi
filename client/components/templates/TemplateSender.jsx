@@ -31,12 +31,15 @@ import {
 } from 'react-icons/fa';
 import { get, post } from '../../lib/api';
 import WhatsAppPreview from './WhatsAppPreview';
+import { useWorkspace } from '../../lib/useWorkspace';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export default function TemplateSender() {
+  const workspace = useWorkspace();
+  const bspReady = workspace.stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus);
   const [view, setView] = useState('list'); // list, send, bulk, history
   const [templates, setTemplates] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -92,6 +95,10 @@ export default function TemplateSender() {
 
   const handleSelectTemplate = async (template) => {
     try {
+      if (!bspReady) {
+        showToast('Connect WhatsApp to send template messages', 'warning');
+        return;
+      }
       setLoading(true);
       const response = await get(`/messages/template/${template.id}`);
       setSelectedTemplate(response.template);
@@ -171,6 +178,10 @@ export default function TemplateSender() {
       showToast('No template selected', 'error');
       return;
     }
+    if (!bspReady) {
+      showToast('Connect WhatsApp to send template messages', 'warning');
+      return;
+    }
 
     if (!formData.to && !formData.contactId) {
       showToast('Please enter a phone number or select a contact', 'error');
@@ -247,6 +258,10 @@ export default function TemplateSender() {
       showToast('Please add recipients', 'error');
       return;
     }
+    if (!bspReady) {
+      showToast('Connect WhatsApp to send bulk messages', 'warning');
+      return;
+    }
 
     try {
       setBulkSending(true);
@@ -288,6 +303,20 @@ export default function TemplateSender() {
   if (view === 'list') {
     return (
       <div className="p-6 min-h-screen bg-gray-50">
+        {!workspace.loading && !bspReady && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 flex items-center justify-between">
+            <div>
+              <p className="font-medium">WhatsApp not connected</p>
+              <p className="text-sm">Connect your WhatsApp account to send template messages.</p>
+            </div>
+            <button
+              onClick={() => (window.location.href = '/onboarding/esb')}
+              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+            >
+              Connect Now
+            </button>
+          </div>
+        )}
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -409,6 +438,20 @@ export default function TemplateSender() {
   if (view === 'send' && selectedTemplate) {
     return (
       <div className="p-6 min-h-screen bg-gray-50">
+        {!workspace.loading && !bspReady && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 flex items-center justify-between">
+            <div>
+              <p className="font-medium">WhatsApp not connected</p>
+              <p className="text-sm">Connect your WhatsApp account to send template messages.</p>
+            </div>
+            <button
+              onClick={() => (window.location.href = '/onboarding/esb')}
+              className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+            >
+              Connect Now
+            </button>
+          </div>
+        )}
         {/* Back Button */}
         <button
           onClick={() => {
@@ -524,7 +567,7 @@ export default function TemplateSender() {
               {/* Send Button */}
               <button
                 onClick={handleSendTemplate}
-                disabled={sending || !formData.to}
+                disabled={!bspReady || sending || !formData.to}
                 className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
               >
                 {sending ? (

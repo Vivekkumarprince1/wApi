@@ -28,13 +28,13 @@ export default function VerifyEmailPage() {
         const user = await getCurrentUser();
         if (user) {
           setEmail(user.email);
-          
-          // Check if already verified
+
+          // Check if already verified - redirect to ESB onboarding
           if (user.emailVerified) {
-            router.push('/onboarding/business-info');
+            router.push('/onboarding/esb');
             return;
           }
-          
+
           // Auto-send OTP when page loads
           if (!autoSent) {
             setAutoSent(true);
@@ -83,7 +83,7 @@ export default function VerifyEmailPage() {
     e.preventDefault();
 
     if (otp.length !== 6) {
-      setError('OTP must be 6 digits');
+      setError('Code must be 6 characters');
       return;
     }
 
@@ -93,8 +93,8 @@ export default function VerifyEmailPage() {
 
       await verifyEmailOTP(otp);
 
-      // Navigate to next step - business info
-      router.push('/onboarding/business-info');
+      // Navigate to BSP onboarding
+      router.push('/onboarding/esb');
     } catch (err) {
       setError(err.message || 'Invalid OTP');
     } finally {
@@ -112,11 +112,11 @@ export default function VerifyEmailPage() {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">Step 1 of 4</span>
+            <span className="text-sm font-medium text-gray-600">Step 1 of 2</span>
             <span className="text-sm font-medium text-green-600">Verify Email</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div className="bg-green-600 h-2 rounded-full" style={{ width: '25%' }}></div>
+            <div className="bg-green-600 h-2 rounded-full" style={{ width: '50%' }}></div>
           </div>
         </div>
 
@@ -128,7 +128,7 @@ export default function VerifyEmailPage() {
             Verify Your Email
           </h1>
           <p className="text-gray-600 text-center">
-            Enter the 6-digit code sent to your email
+            Enter the 6-character code sent to your email
           </p>
           {email && (
             <p className="text-sm text-gray-500 mt-2 font-medium">
@@ -154,8 +154,8 @@ export default function VerifyEmailPage() {
             <input
               type="text"
               value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="123456"
+              onChange={(e) => setOtp(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6))}
+              placeholder="ABC123"
               required
               maxLength={6}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-center text-2xl tracking-widest font-bold"
@@ -194,19 +194,11 @@ export default function VerifyEmailPage() {
               </>
             )}
           </button>
-
-          <button
-            type="button"
-            onClick={() => router.push('/onboarding/business-info')}
-            className="w-full text-center text-sm text-gray-600 hover:text-gray-800"
-          >
-            Skip for now →
-          </button>
         </form>
 
         <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-xs text-blue-800">
-            💡 <strong>Note:</strong> Verifying your email helps secure your account 
+            💡 <strong>Note:</strong> Verifying your email helps secure your account
             and ensures you receive important notifications about your WhatsApp Business account.
           </p>
         </div>

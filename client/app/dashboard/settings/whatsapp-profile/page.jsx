@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaWhatsapp, FaEdit, FaSave, FaImage } from 'react-icons/fa';
+import { toast } from 'react-toastify';
 import * as api from '@/lib/api';
 
 export default function WhatsAppProfilePage() {
@@ -41,10 +42,10 @@ export default function WhatsAppProfilePage() {
       setLoading(true);
       await api.updateWABASettings({ profile: profileData });
       setEditing(false);
-      alert('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
     } catch (error) {
       console.error('Failed to update profile:', error);
-      alert('Failed to update profile');
+      toast.error('Failed to update profile');
     } finally {
       setLoading(false);
     }

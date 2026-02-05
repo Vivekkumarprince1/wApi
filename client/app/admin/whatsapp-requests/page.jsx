@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaWhatsapp, FaClock, FaCheckCircle, FaSpinner, FaTimes } from 'react-icons/fa';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
+import { get, put } from '@/lib/api';
 
 export default function WhatsAppSetupRequests() {
   const [requests, setRequests] = useState([]);
@@ -19,16 +18,11 @@ export default function WhatsAppSetupRequests() {
   const loadRequests = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const url = filter === 'all' 
-        ? `${API_URL}/admin/whatsapp-setup-requests`
-        : `${API_URL}/admin/whatsapp-setup-requests?status=${filter}`;
+      const endpoint = filter === 'all' 
+        ? '/admin/whatsapp-setup-requests'
+        : `/admin/whatsapp-setup-requests?status=${filter}`;
       
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      const data = await response.json();
+      const data = await get(endpoint);
       if (data.success) {
         setRequests(data.requests);
       }
@@ -42,18 +36,8 @@ export default function WhatsAppSetupRequests() {
   const updateRequestStatus = async (workspaceId, status, notes = '') => {
     try {
       setUpdating(true);
-      const token = localStorage.getItem('token');
       
-      const response = await fetch(`${API_URL}/admin/whatsapp-setup-requests/${workspaceId}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status, notes })
-      });
-
-      const data = await response.json();
+      const data = await put(`/admin/whatsapp-setup-requests/${workspaceId}`, { status, notes });
       if (data.success) {
         await loadRequests();
         setSelectedRequest(null);

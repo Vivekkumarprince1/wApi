@@ -1,41 +1,52 @@
 import { useEffect, useState } from 'react';
-import { BadgeCheck, MessageCircle, Users, Workflow, BarChart3, Shield } from 'lucide-react';
+import { BadgeCheck, MessageCircle, Users, Workflow, BarChart3, Shield, Zap, Target } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 const features = [
   {
-    icon: BadgeCheck,
-    title: 'Get Green Tick Verfied',
-  },
-  {
     icon: MessageCircle,
-    title: 'One time & recurring Campaigns on WhatsApp',
+    title: 'WhatsApp Campaigns',
+    description: 'Send bulk messages & campaigns'
   },
   {
     icon: Users,
-    title: 'Shared Team Inbox with auto chat assignment',
+    title: 'Shared Inbox',
+    description: 'Manage all chats in one place'
   },
   {
     icon: Workflow,
-    title: 'Build your own Workflows',
+    title: 'Automation',
+    description: 'Build chatbots & workflows'
   },
   {
     icon: BarChart3,
-    title: 'Campaign & Agent Analytics',
+    title: 'Analytics',
+    description: 'Track performance & ROI'
+  },
+  {
+    icon: BadgeCheck,
+    title: 'Green Tick',
+    description: 'Get verified instantly'
   },
   {
     icon: Shield,
-    title: 'Simplicity for SMBs with Enterprise grade Scale & Security',
+    title: 'Enterprise Security',
+    description: 'Bank-grade data protection'
   },
 ];
 
 export default function FeatureBar() {
-  const [barBg, setBarBg] = useState('#fafaf0');
+  const [barBg, setBarBg] = useState('#ffffff');
+  const [isDark, setIsDark] = useState(false);
+  
   useEffect(() => {
     const updateBg = () => {
-      if (document.documentElement.classList.contains('dark')) {
-        setBarBg('#000');
+      const dark = document.documentElement.classList.contains('dark');
+      setIsDark(dark);
+      if (dark) {
+        setBarBg('#0a0a0a');
       } else {
-        setBarBg('#fafaf0');
+        setBarBg('#ffffff');
       }
     };
     updateBg();
@@ -45,18 +56,69 @@ export default function FeatureBar() {
   }, []);
 
   return (
-    <div className="w-full py-3 sm:py-4 md:py-5 transition-colors duration-300" style={{ backgroundColor: barBg }}>
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-stretch justify-between divide-y sm:divide-y-0 sm:divide-x divide-[#8ee0d0] dark:divide-gray-700 px-2 sm:px-4">
-        {features.map((feature, idx) => (
-          <div key={idx} className="flex-1 flex flex-col items-center sm:items-start px-2 sm:px-3 py-2 group">
-            <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-gray-200/50 via-gray-100/30 to-gray-50/20 dark:from-gray-800/70 dark:via-gray-700/50 dark:to-gray-900/30 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110 mb-2">
-              <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-800 dark:text-gray-200 group-hover:text-black dark:group-hover:text-white transition-colors duration-300" />
-            </div>
-            <span className="text-xs sm:text-sm md:text-base font-semibold text-[#00332a] dark:text-gray-200 text-center sm:text-left group-hover:text-gray-800 dark:group-hover:text-white transition-colors duration-300 leading-tight" style={{fontFamily: 'Montserrat, Inter, system-ui, -apple-system, sans-serif'}}>
-              {feature.title}
-            </span>
-          </div>
-        ))}
+    <div className="w-full py-16 transition-colors duration-300" style={{ backgroundColor: barBg }}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        {/* Section Title */}
+        <div className="text-center mb-12">
+          <motion.h2 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4"
+            style={{ color: isDark ? '#ffffff' : '#1a202c' }}
+          >
+            Everything you need to succeed on WhatsApp
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
+          >
+            All-in-one platform to manage customer conversations, automate marketing, and grow your business
+          </motion.p>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {features.map((feature, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: idx * 0.1 }}
+              className="group relative p-6 rounded-2xl transition-all duration-300 hover:scale-105 cursor-pointer"
+              style={{
+                backgroundColor: isDark ? '#1a1a1a' : '#f9fafb',
+                border: isDark ? '1px solid #333333' : '1px solid #e5e7eb'
+              }}
+            >
+              {/* Icon */}
+              <div className="flex items-center justify-center w-14 h-14 rounded-xl mb-4 bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] shadow-lg group-hover:shadow-xl transition-all duration-300">
+                <feature.icon className="w-7 h-7 text-white" />
+              </div>
+              
+              {/* Title */}
+              <h3 
+                className="text-xl font-bold mb-2 group-hover:text-[#13C18D] transition-colors duration-300"
+                style={{ color: isDark ? '#ffffff' : '#1a202c' }}
+              >
+                {feature.title}
+              </h3>
+              
+              {/* Description */}
+              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                {feature.description}
+              </p>
+
+              {/* Hover Effect */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#13C18D]/10 to-[#0e8c6c]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+            </motion.div>
+          ))}
+        </div>
       </div>
     </div>
   );

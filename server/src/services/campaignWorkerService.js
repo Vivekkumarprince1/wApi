@@ -10,6 +10,7 @@ const {
   handleMetaError
 } = require('./campaignRateLimiter');
 const templateSendingService = require('./templateSendingService');
+const { enforceWorkspaceBilling } = require('./billingEnforcementService');
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -76,6 +77,17 @@ async function processCampaignStart(job) {
   const workspace = await Workspace.findById(workspaceId);
   if (!workspace) {
     throw new Error(`Workspace not found: ${workspaceId}`);
+  }
+
+  // BSP billing enforcement (hard gate)
+  try {
+    await enforceWorkspaceBilling(workspaceId);
+  } catch (billingErr) {
+    campaign.status = 'FAILED';
+    campaign.pausedReason = billingErr.message;
+    campaign.completedAt = new Date();
+    await campaign.save();
+    throw billingErr;
   }
   
   // Validate template is still APPROVED
@@ -244,6 +256,13 @@ async function processBatch(job) {
   if (!workspace || !isBspConnected) {
     await pauseCampaignWithReason(campaign, 'PHONE_DISCONNECTED');
     throw new Error('Workspace is not BSP-connected');
+  }
+
+  try {
+    await enforceWorkspaceBilling(workspaceId);
+  } catch (billingErr) {
+    await pauseCampaignWithReason(campaign, billingErr.message);
+    throw billingErr;
   }
   
   const phoneNumberId = workspace.getPhoneNumberId?.();

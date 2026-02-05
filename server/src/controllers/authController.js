@@ -9,6 +9,7 @@ const Permission = require('../models/Permission');
 const { jwtSecret, googleClientId, facebookAppId, facebookAppSecret } = require('../config');
 const { googleClientSecret } = require('../config');
 const { getRedis, setJson, getJson, deleteKey } = require('../config/redis');
+const { sendVerificationEmail, sendPasswordResetEmail, sendSignupOTPEmail, sendLoginOTPEmail } = require('../services/emailService');
 
 const googleClient = googleClientId ? new OAuth2Client(googleClientId) : null;
 
@@ -36,13 +37,13 @@ async function sendSignupOTP(req, res, next) {
   try {
     const { email } = req.body;
     getRedisClient(); // Ensure Redis is available (required for durable OTP)
-    
+
     // Check if user already exists
     const existing = await User.findOne({ email });
     if (existing) {
       return res.status(400).json({ message: 'Email already registered' });
     }
-    
+
     const otp = generateOTP();
     const expiresAt = Date.now() + OTP_EXPIRY_SECONDS * 1000;
     await setJson(`otp:signup:${email}`, {
@@ -50,9 +51,17 @@ async function sendSignupOTP(req, res, next) {
       email,
       expiresAt
     }, OTP_EXPIRY_SECONDS);
-    
-    console.log(`Signup OTP for ${email}: ${otp}`);
-    
+
+    // Send OTP email
+    try {
+      await sendSignupOTPEmail(email, otp);
+      console.log(`📧 Signup OTP sent to ${email}`);
+    } catch (emailError) {
+      console.error(`Failed to send signup OTP email: ${emailError.message}`);
+      // In dev mode, log OTP to console
+      console.log(`[DEV] Signup OTP for ${email}: ${otp}`);
+    }
+
     res.json({ message: 'OTP sent successfully' });
   } catch (err) {
     next(err);
@@ -64,47 +73,47 @@ async function verifySignupOTP(req, res, next) {
   try {
     const { email, otp, name, password } = req.body;
     getRedisClient(); // Ensure Redis is available (required for durable OTP)
-    
+
     const stored = await getJson(`otp:signup:${email}`);
     if (!stored) {
       return res.status(400).json({ message: 'OTP not found or expired' });
     }
-    
+
     if (stored.expiresAt && Date.now() > stored.expiresAt) {
       await deleteKey(`otp:signup:${email}`);
       return res.status(400).json({ message: 'OTP expired' });
     }
-    
+
     if (stored.otp !== otp) {
       return res.status(400).json({ message: 'Invalid OTP' });
     }
-    
+
     // OTP verified, create user
     await deleteKey(`otp:signup:${email}`);
-    
-      const workspace = await Workspace.create({
-        name: `${name}'s workspace`,
-        onboarding: {
-          step: 'business-info',
-          status: 'not-started',
-          businessInfoCompleted: false,
-          whatsappSetupCompleted: false,
-          templateSetupCompleted: false,
-          completedAt: null
-        }
-      });
+
+    const workspace = await Workspace.create({
+      name: `${name}'s workspace`,
+      onboarding: {
+        step: 'business-info',
+        status: 'not-started',
+        businessInfoCompleted: false,
+        whatsappSetupCompleted: false,
+        templateSetupCompleted: false,
+        completedAt: null
+      }
+    });
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ 
-      name, 
-      email, 
-      passwordHash, 
-      workspace: workspace._id, 
+    const user = await User.create({
+      name,
+      email,
+      passwordHash,
+      workspace: workspace._id,
       role: 'owner',
       emailVerified: true
     });
 
-      await Permission.seedOwnerPermissions(workspace._id, user._id);
-    
+    await Permission.seedOwnerPermissions(workspace._id, user._id);
+
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
     res.json({ token, user });
   } catch (err) {
@@ -117,12 +126,12 @@ async function sendLoginOTP(req, res, next) {
   try {
     const { email } = req.body;
     getRedisClient(); // Ensure Redis is available (required for durable OTP)
-    
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
-    
+
     const otp = generateOTP();
     const expiresAt = Date.now() + OTP_EXPIRY_SECONDS * 1000;
     await setJson(`otp:login:${email}`, {
@@ -130,9 +139,17 @@ async function sendLoginOTP(req, res, next) {
       email,
       expiresAt
     }, OTP_EXPIRY_SECONDS);
-    
-    console.log(`Login OTP for ${email}: ${otp}`);
-    
+
+    // Send OTP email
+    try {
+      await sendLoginOTPEmail(email, otp, user.name);
+      console.log(`📧 Login OTP sent to ${email}`);
+    } catch (emailError) {
+      console.error(`Failed to send login OTP email: ${emailError.message}`);
+      // In dev mode, log OTP to console
+      console.log(`[DEV] Login OTP for ${email}: ${otp}`);
+    }
+
     res.json({ message: 'OTP sent successfully' });
   } catch (err) {
     next(err);
@@ -144,29 +161,29 @@ async function verifyLoginOTP(req, res, next) {
   try {
     const { email, otp } = req.body;
     getRedisClient(); // Ensure Redis is available (required for durable OTP)
-    
+
     const stored = await getJson(`otp:login:${email}`);
     if (!stored) {
       return res.status(400).json({ message: 'OTP not found or expired' });
     }
-    
+
     if (stored.expiresAt && Date.now() > stored.expiresAt) {
       await deleteKey(`otp:login:${email}`);
       return res.status(400).json({ message: 'OTP expired' });
     }
-    
+
     if (stored.otp !== otp) {
       return res.status(400).json({ message: 'Invalid OTP' });
     }
-    
+
     // OTP verified, log in user
     await deleteKey(`otp:login:${email}`);
-    
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
-    
+
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
     res.json({ token, user });
   } catch (err) {
@@ -222,14 +239,14 @@ async function me(req, res, next) {
     // User is already attached by auth middleware
     const user = await User.findById(req.user._id)
       .select('-passwordHash');
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
     // Fetch workspace with full details
     const workspace = await Workspace.findById(user.workspace);
-    
+
     // Prepare comprehensive response
     const response = {
       user: {
@@ -297,7 +314,7 @@ async function me(req, res, next) {
         createdAt: workspace.createdAt
       } : null
     };
-    
+
     res.json(response);
   } catch (err) {
     next(err);
@@ -309,9 +326,9 @@ async function logout(req, res, next) {
   try {
     // In a JWT-based system, logout is typically handled client-side
     // But we can add server-side logic here if needed (e.g., token blacklisting)
-    res.json({ 
+    res.json({
       success: true,
-      message: 'Logged out successfully' 
+      message: 'Logged out successfully'
     });
   } catch (err) {
     next(err);
@@ -322,13 +339,13 @@ async function logout(req, res, next) {
 async function updateProfile(req, res, next) {
   try {
     const { name, email, phone, company } = req.body;
-    
+
     const user = await User.findById(req.user._id);
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     // Check if email is being changed and if it's already in use
     if (email && email !== user.email) {
       const existingUser = await User.findOne({ email });
@@ -337,21 +354,21 @@ async function updateProfile(req, res, next) {
       }
       user.email = email;
     }
-    
+
     if (name) user.name = name;
     if (phone !== undefined) user.phone = phone;
     if (company !== undefined) user.company = company;
-    
+
     await user.save();
-    
+
     // Return user without password hash
     const updatedUser = await User.findById(user._id)
       .select('-passwordHash')
       .populate('workspace');
-    
-    res.json({ 
+
+    res.json({
       success: true,
-      user: updatedUser 
+      user: updatedUser
     });
   } catch (err) {
     next(err);
@@ -363,15 +380,15 @@ async function sendEmailVerification(req, res, next) {
   try {
     const user = await User.findById(req.user._id);
     getRedisClient(); // Ensure Redis is available (Meta/Interakt requirement)
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     if (user.emailVerified) {
       return res.status(400).json({ message: 'Email already verified' });
     }
-    
+
     // Token-based verification (more secure than OTP, required for production)
     const token = generateSecureToken();
     const expiresAt = Date.now() + EMAIL_VERIFY_TTL_SECONDS * 1000;
@@ -380,12 +397,22 @@ async function sendEmailVerification(req, res, next) {
       email: user.email,
       expiresAt
     }, EMAIL_VERIFY_TTL_SECONDS);
-    
-    console.log(`Email verification token for ${user.email}: ${token}`);
-    
-    res.json({ 
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(user.email, token, user.name);
+      console.log(`📧 Email verification sent to ${user.email}`);
+    } catch (emailError) {
+      console.error(`Failed to send verification email: ${emailError.message}`);
+      // In dev mode, still show success since token is logged
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ message: 'Failed to send verification email' });
+      }
+    }
+
+    res.json({
       success: true,
-      message: 'Verification code sent to your email' 
+      message: 'Verification code sent to your email'
     });
   } catch (err) {
     next(err);
@@ -398,32 +425,34 @@ async function verifyEmail(req, res, next) {
     const { otp } = req.body;
     const user = await User.findById(req.user._id);
     getRedisClient(); // Ensure Redis is available (Meta/Interakt requirement)
-    
+
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
+
     const stored = await getJson(`email-verify:${user._id}`);
     if (!stored) {
       return res.status(400).json({ message: 'OTP not found or expired' });
     }
-    
+
     if (stored.expiresAt && Date.now() > stored.expiresAt) {
       await deleteKey(`email-verify:${user._id}`);
       return res.status(400).json({ message: 'OTP expired' });
     }
-    
-    // NOTE: For backward compatibility, field name remains 'otp' but is a secure token.
-    if (stored.token !== otp) {
+
+    // NOTE: Email displays only first 6 chars of token (uppercase), so compare accordingly.
+    const storedCode = stored.token.substring(0, 6).toUpperCase();
+    const enteredCode = otp.toUpperCase();
+    if (storedCode !== enteredCode) {
       return res.status(400).json({ message: 'Invalid OTP' });
     }
-    
+
     // OTP verified, mark email as verified
     await deleteKey(`email-verify:${user._id}`);
     user.emailVerified = true;
     await user.save();
-    
-    res.json({ 
+
+    res.json({
       success: true,
       message: 'Email verified successfully',
       user: {
@@ -466,7 +495,15 @@ async function requestPasswordReset(req, res, next) {
       expiresAt
     }, PASSWORD_RESET_TTL_SECONDS);
 
-    console.log(`Password reset token for ${user.email}: ${token}`);
+    // Send password reset email
+    try {
+      await sendPasswordResetEmail(user.email, token, user.name);
+      console.log(`📧 Password reset email sent to ${user.email}`);
+    } catch (emailError) {
+      console.error(`Failed to send password reset email: ${emailError.message}`);
+      // In dev mode, log token to console
+      console.log(`[DEV] Password reset token for ${user.email}: ${token}`);
+    }
 
     res.json({
       success: true,
@@ -760,15 +797,15 @@ async function facebookOAuthLogin(req, res, next) {
   }
 }
 
-module.exports = { 
-  signup, 
-  login, 
-  me, 
+module.exports = {
+  signup,
+  login,
+  me,
   logout,
   updateProfile,
-  sendSignupOTP, 
-  verifySignupOTP, 
-  sendLoginOTP, 
+  sendSignupOTP,
+  verifySignupOTP,
+  sendLoginOTP,
   verifyLoginOTP,
   googleOAuthLogin,
   // New helper endpoints

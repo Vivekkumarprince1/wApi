@@ -14,9 +14,13 @@
 const Workspace = require('../models/Workspace');
 const WebhookLog = require('../models/WebhookLog');
 const Message = require('../models/Message');
+const Subscription = require('../models/Subscription');
+const UsageLedger = require('../models/UsageLedger');
+const Invoice = require('../models/Invoice');
 const bspConfig = require('../config/bspConfig');
 const bspMessagingService = require('../services/bspMessagingService');
 const { invalidatePhoneCache } = require('../middlewares/bspTenantRouter');
+const usageLedgerService = require('../services/usageLedgerService');
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -77,6 +81,7 @@ async function assignPhoneNumber(req, res, next) {
     workspace.bspQualityRating = phoneDetails?.quality_rating || 'UNKNOWN';
     workspace.bspMessagingTier = phoneDetails?.messaging_limit_tier || 'TIER_1K';
     workspace.bspOnboardedAt = new Date();
+    workspace.activePhoneNumberId = phoneNumberId;
     
     // Initialize BSP usage
     if (!workspace.bspUsage) {
@@ -145,6 +150,7 @@ async function unassignPhoneNumber(req, res, next) {
     workspace.bspPhoneNumberId = null;
     workspace.bspDisplayPhoneNumber = null;
     workspace.bspPhoneStatus = 'DISCONNECTED';
+    workspace.activePhoneNumberId = null;
     
     // Add audit note
     if (!workspace.bspAudit.warnings) {
@@ -522,6 +528,175 @@ async function getBspOverview(req, res, next) {
   }
 }
 
+/**
+ * ═══════════════════════════════════════════════════════════════════
+ * BILLING RECONCILIATION & TENANT CONTROL
+ * ═══════════════════════════════════════════════════════════════════
+ */
+
+// POST /api/v1/admin/bsp/billing/reconcile
+async function reconcileBilling(req, res, next) {
+  try {
+    const {
+      workspaceId,
+      billingPeriod,
+      metaInvoiceId,
+      metaAmountCents,
+      metaCurrency,
+      metaConversations
+    } = req.body;
+
+    if (!workspaceId || !billingPeriod) {
+      return res.status(400).json({
+        success: false,
+        message: 'workspaceId and billingPeriod are required'
+      });
+    }
+
+    const usageLedger = await usageLedgerService.upsertMetaUsage({
+      workspaceId,
+      billingPeriod,
+      metaInvoiceId,
+      metaAmountCents,
+      metaCurrency,
+      metaConversations
+    });
+
+    const trackedConversations =
+      (usageLedger.conversations?.marketing || 0) +
+      (usageLedger.conversations?.utility || 0) +
+      (usageLedger.conversations?.authentication || 0) +
+      (usageLedger.conversations?.service || 0);
+
+    const metaConversationTotal =
+      (metaConversations?.marketing || 0) +
+      (metaConversations?.utility || 0) +
+      (metaConversations?.authentication || 0) +
+      (metaConversations?.service || 0);
+
+    const invoice = await Invoice.findOne({ workspace: workspaceId, billingPeriod });
+    const deltaAmountCents =
+      typeof metaAmountCents === 'number' && invoice
+        ? metaAmountCents - (invoice.totalCents || 0)
+        : 0;
+
+    const deltaConversations = metaConversationTotal - trackedConversations;
+    const status = deltaAmountCents === 0 && deltaConversations === 0 ? 'matched' : 'mismatch';
+
+    await UsageLedger.findByIdAndUpdate(usageLedger._id, {
+      $set: {
+        reconciliation: {
+          status,
+          deltaAmountCents,
+          deltaConversations,
+          reconciledAt: new Date()
+        }
+      }
+    });
+
+    if (invoice) {
+      await Invoice.findByIdAndUpdate(invoice._id, {
+        $set: {
+          metaInvoiceId,
+          metaAmountCents,
+          metaDeltaCents: deltaAmountCents
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      reconciliation: {
+        status,
+        deltaAmountCents,
+        deltaConversations
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/v1/admin/bsp/billing/ledger/:workspaceId/:period
+async function getUsageLedger(req, res, next) {
+  try {
+    const { workspaceId, period } = req.params;
+
+    const ledger = await UsageLedger.findOne({
+      workspace: workspaceId,
+      billingPeriod: period
+    });
+
+    if (!ledger) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usage ledger not found'
+      });
+    }
+
+    res.json({ success: true, ledger });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/v1/admin/bsp/tenants/:workspaceId/suspend
+async function suspendTenant(req, res, next) {
+  try {
+    const { workspaceId } = req.params;
+    const { reason = 'Admin suspension' } = req.body;
+
+    const subscription = await Subscription.findOne({ workspace: workspaceId })
+      .sort({ createdAt: -1 });
+
+    if (subscription) {
+      subscription.status = 'suspended';
+      subscription.suspendedAt = new Date();
+      subscription.suspensionReason = reason;
+      await subscription.save();
+    }
+
+    await Workspace.findByIdAndUpdate(workspaceId, {
+      $set: {
+        billingStatus: 'suspended',
+        suspensionReason: reason
+      }
+    });
+
+    res.json({ success: true, status: 'suspended' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/v1/admin/bsp/tenants/:workspaceId/resume
+async function resumeTenant(req, res, next) {
+  try {
+    const { workspaceId } = req.params;
+
+    const subscription = await Subscription.findOne({ workspace: workspaceId })
+      .sort({ createdAt: -1 });
+
+    if (subscription) {
+      subscription.status = 'active';
+      subscription.suspendedAt = null;
+      subscription.suspensionReason = null;
+      await subscription.save();
+    }
+
+    await Workspace.findByIdAndUpdate(workspaceId, {
+      $set: {
+        billingStatus: 'active',
+        suspensionReason: null
+      }
+    });
+
+    res.json({ success: true, status: 'active' });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   assignPhoneNumber,
   unassignPhoneNumber,
@@ -529,5 +704,9 @@ module.exports = {
   getTenantDetails,
   updateTenantLimits,
   syncPhoneStatus,
-  getBspOverview
+  getBspOverview,
+  reconcileBilling,
+  getUsageLedger,
+  suspendTenant,
+  resumeTenant
 };

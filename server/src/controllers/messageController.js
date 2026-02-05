@@ -2,11 +2,13 @@ const Message = require('../models/Message');
 const Contact = require('../models/Contact');
 const Template = require('../models/Template');
 const Workspace = require('../models/Workspace');
+const Conversation = require('../models/Conversation');
 const whatsappService = require('../services/whatsappService');
 const metaService = require('../services/metaService');
 const bspMessagingService = require('../services/bspMessagingService');
 const bspConfig = require('../config/bspConfig');
 const { enqueueRetry } = require('../services/messageRetryQueue');
+const billingLedgerService = require('../services/billingLedgerService');
 
 /**
  * ═══════════════════════════════════════════════════════════════════
@@ -136,6 +138,26 @@ async function sendTemplateMessage(req, res, next) {
       message.meta.whatsappResponses = [result];
       message.sentAt = new Date();
       await message.save();
+
+      try {
+        const conversation = await getOrCreateConversation(workspaceId, contact._id, template);
+
+        await billingLedgerService.startBusinessConversation({
+          workspaceId,
+          conversationId: conversation?._id || null,
+          contactId: contact._id,
+          phoneNumber: contact.phone,
+          templateId: template._id,
+          templateName: template.name,
+          templateCategory: template.category,
+          source: 'API',
+          messageId: message._id,
+          whatsappMessageId: result.messageId,
+          isBillable: true
+        });
+      } catch (ledgerErr) {
+        console.error('[MessageController] Billing ledger update failed:', ledgerErr.message);
+      }
 
       return res.status(200).json({ 
         success: true, 
@@ -467,6 +489,28 @@ function renderTemplatePreview(template, variables) {
   }
 
   return preview || 'Template message';
+}
+
+async function getOrCreateConversation(workspaceId, contactId, template) {
+  if (!contactId) return null;
+
+  let conversation = await Conversation.findOne({ workspace: workspaceId, contact: contactId });
+  if (!conversation) {
+    conversation = await Conversation.create({
+      workspace: workspaceId,
+      contact: contactId,
+      status: 'open',
+      conversationType: 'business_initiated',
+      conversationStartedAt: new Date(),
+      lastActivityAt: new Date(),
+      lastMessageAt: new Date(),
+      lastMessageType: 'template',
+      lastMessageDirection: 'outbound',
+      lastMessagePreview: template?.bodyText || template?.name
+    });
+  }
+
+  return conversation;
 }
 
 module.exports.sendTemplateMessage = sendTemplateMessage;

@@ -12,6 +12,7 @@
  */
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const { handler, verify } = require('../controllers/metaWebhookController');
 const { 
   captureRawBody, 
@@ -20,6 +21,16 @@ const {
 } = require('../middlewares/webhookSecurity');
 
 const router = express.Router();
+
+// Higher limit for Meta webhooks (avoid throttling)
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+router.use(webhookLimiter);
 
 // =============================================================================
 // WEBHOOK VERIFICATION (GET)

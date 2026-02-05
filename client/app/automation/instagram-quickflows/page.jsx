@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaChevronDown, FaComments, FaInstagram, FaGift, FaHashtag } from 'react-icons/fa';
 import Link from 'next/link';
+import { get, post, del } from '@/lib/api';
+import { toast } from 'react-toastify';
 
 const PRESET_TEMPLATES = [
   {
@@ -61,33 +63,24 @@ export default function InstagramQuickflowsPage() {
   const loadQuickflows = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
       const params = new URLSearchParams();
 
       if (filters.enabled !== 'all') params.append('enabled', filters.enabled);
       if (filters.type !== 'all') params.append('type', filters.type);
       if (filters.triggerType !== 'all') params.append('triggerType', filters.triggerType);
 
-      const response = await fetch(`/api/v1/instagram-quickflows?${params.toString()}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      let data = await get(`/instagram-quickflows${params.toString() ? '?' + params : ''}`);
 
-      if (response.ok) {
-        let data = await response.json();
-
-        // Filter by search term
-        if (filters.search) {
-          data = data.filter(qf =>
-            qf.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-            qf.keywords?.some(k => k.includes(filters.search.toLowerCase()))
-          );
-        }
-
-        setQuickflows(data);
-        setError('');
-      } else {
-        setError('Failed to load quickflows');
+      // Filter by search term
+      if (filters.search) {
+        data = (data || []).filter(qf =>
+          qf.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
+          qf.keywords?.some(k => k.includes(filters.search.toLowerCase()))
+        );
       }
+
+      setQuickflows(data || []);
+      setError('');
     } catch (err) {
       setError('Error: ' + err.message);
       console.error(err);
@@ -98,18 +91,12 @@ export default function InstagramQuickflowsPage() {
 
   const handleToggle = async (id, enabled) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/instagram-quickflows/${id}/toggle`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const updated = await response.json();
-        setQuickflows(quickflows.map(qf => qf._id === id ? updated : qf));
-      }
+      const updated = await post(`/instagram-quickflows/${id}/toggle`);
+      setQuickflows(quickflows.map(qf => qf._id === id ? updated : qf));
+      toast?.success?.(updated.enabled ? 'Quickflow enabled' : 'Quickflow disabled');
     } catch (err) {
       console.error('Error toggling quickflow:', err);
+      toast?.error?.('Failed to toggle quickflow');
     }
   };
 
@@ -117,17 +104,12 @@ export default function InstagramQuickflowsPage() {
     if (!confirm('Delete this quickflow?')) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/v1/instagram-quickflows/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        setQuickflows(quickflows.filter(qf => qf._id !== id));
-      }
+      await del(`/instagram-quickflows/${id}`);
+      setQuickflows(quickflows.filter(qf => qf._id !== id));
+      toast?.success?.('Quickflow deleted');
     } catch (err) {
       console.error('Error deleting quickflow:', err);
+      toast?.error?.('Failed to delete quickflow');
     }
   };
 

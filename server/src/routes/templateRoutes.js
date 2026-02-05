@@ -21,6 +21,7 @@ const {
   duplicateTemplate,
   validateTemplatePreview,
   getTemplateCategories,
+  getTemplateLibraryStats,
   forkApprovedTemplate,
   getTemplateVersions
 } = require('../controllers/templateController');
@@ -53,6 +54,9 @@ router.get('/', listTemplates);
 
 // Get template categories with counts (read-only)
 router.get('/categories', getTemplateCategories);
+
+// Get library stats (total, by category, by status)
+router.get('/stats', getTemplateLibraryStats);
 
 // Sync templates from Meta (requires activation)
 router.get('/sync', requirePhoneActivation, syncTemplates);

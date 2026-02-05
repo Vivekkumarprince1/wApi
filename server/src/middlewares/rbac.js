@@ -83,8 +83,13 @@ function requirePermission(permissionKey) {
         return next();
       }
 
-      // Check specific permission
-      if (permission.permissions[permissionKey] !== true) {
+      // Check specific permission (supports dot notation)
+      const hasPermission = permissionKey.split('.').reduce((acc, key) => {
+        if (acc === undefined || acc === null) return undefined;
+        return acc[key];
+      }, permission.permissions);
+
+      if (hasPermission !== true) {
         return res.status(403).json({
           success: false,
           message: `Permission denied: ${permissionKey}`,

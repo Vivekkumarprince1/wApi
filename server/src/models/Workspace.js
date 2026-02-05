@@ -10,6 +10,14 @@ const WorkspaceSchema = new mongoose.Schema({
     enum: ['free', 'basic', 'premium', 'enterprise'], 
     default: 'free' 
   },
+  // BSP billing (single active phone + suspension mirror)
+  activePhoneNumberId: { type: String },
+  billingStatus: {
+    type: String,
+    enum: ['trialing', 'active', 'past_due', 'suspended', 'canceled'],
+    default: 'trialing'
+  },
+  suspensionReason: { type: String },
   // Business Information
   industry: { type: String },
   companySize: { type: String },
@@ -147,7 +155,16 @@ const WorkspaceSchema = new mongoose.Schema({
     failureReason: { type: String }
   },
   // Backwards-compatible top-level WABA fields (some controllers expect these)
+  // NOTE: In BSP-parented mode these are internal-only references and MUST NOT
+  // be configurable per-tenant via public APIs.
   whatsappAccessToken: { type: String },
+  /**
+   * Legacy phone_number_id field.
+   *
+   * For BSP-parented SaaS we MUST guarantee that a given WhatsApp
+   * phone_number_id is never reused across workspaces. Global uniqueness is
+   * enforced via a sparse unique index further below.
+   */
   whatsappPhoneNumberId: { type: String },
   whatsappPhoneNumber: { type: String }, // Actual phone number like +919876543210
   wabaId: { type: String },
@@ -158,6 +175,11 @@ const WorkspaceSchema = new mongoose.Schema({
   whatsappConnected: { type: Boolean, default: false }, // Quick check if WhatsApp is connected
   
   // Phone metadata (BSP model - synced from Meta)
+  /**
+   * Internal mirror of phone_number_id used by some legacy services.
+   * This MUST stay globally unique just like bspPhoneNumberId and
+   * whatsappPhoneNumberId to prevent phone number reuse across tenants.
+   */
   phoneNumberId: { type: String }, // Same as whatsappPhoneNumberId, for clarity
   verifiedName: { type: String }, // Display name verified by Meta
   qualityRating: { type: String, enum: ['GREEN', 'YELLOW', 'RED', 'UNKNOWN'], default: 'UNKNOWN' },
@@ -460,13 +482,26 @@ const WorkspaceSchema = new mongoose.Schema({
 WorkspaceSchema.index({ createdAt: 1 });
 
 // ═══════════════════════════════════════════════════════════════════
-// BSP MULTI-TENANT INDEXES
+// BSP MULTI-TENANT INDEXES & INVARIANTS
 // ═══════════════════════════════════════════════════════════════════
 
 // Index for finding all workspaces under a BSP WABA
 WorkspaceSchema.index({ bspWabaId: 1, bspManaged: 1 });
 
-// Index for quality/status monitoring
+// Globally unique phone_number_id invariants (no reuse across tenants)
+WorkspaceSchema.index(
+  { whatsappPhoneNumberId: 1 },
+  { unique: true, sparse: true, name: 'uniq_whatsapp_phone_number_id' }
+);
+WorkspaceSchema.index(
+  { phoneNumberId: 1 },
+  { unique: true, sparse: true, name: 'uniq_workspace_phone_number_id' }
+);
+// bspPhoneNumberId already has a unique constraint at field level, which
+// together with the indexes above guarantees that a Meta phone number is
+// never bound to more than one workspace at a time.
+
+// Indexes for quality/status monitoring
 WorkspaceSchema.index({ bspManaged: 1, bspPhoneStatus: 1 });
 WorkspaceSchema.index({ bspManaged: 1, bspQualityRating: 1 });
 

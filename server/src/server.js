@@ -27,7 +27,21 @@ app.set("trust proxy", ['loopback', 'linklocal', 'uniquelocal']);
 
 
 // Basic security and CORS
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'none'"],
+      baseUri: ["'none'"],
+      frameAncestors: ["'none'"],
+      formAction: ["'none'"],
+      connectSrc: ["'self'"],
+      imgSrc: ["'self'", 'data:'],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"]
+    }
+  },
+  crossOriginResourcePolicy: { policy: 'same-site' }
+}));
 
 // CORS configuration - allow frontend with credentials
 const allowedOrigins = [
@@ -64,7 +78,10 @@ app.options('*', cors(corsOptions)); // Enable preflight for all routes
 
 // Rate limiting (apply to API routes)
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 200 });
-app.use('/api/', limiter);
+app.use('/api/', (req, res, next) => {
+  if (req.path.startsWith('/v1/webhook')) return next();
+  return limiter(req, res, next);
+});
 
 
 // Body parsers
@@ -142,6 +159,15 @@ try {
   console.error('[Server] Failed to start token refresh cron:', err.message);
 }
 
+// Start Usage Ledger nightly snapshot (BSP billing)
+try {
+  const usageLedgerCron = require('./services/usageLedgerCron');
+  usageLedgerCron.start();
+  console.log('[Server] ✅ Usage ledger cron started (daily)');
+} catch (err) {
+  console.error('[Server] Failed to start usage ledger cron:', err.message);
+}
+
 // Start WABA autosync service (Stage 1 hardening)
 if (process.env.START_WABA_AUTOSYNC !== 'false') {
   try {
@@ -198,6 +224,7 @@ const billingReportsRoutes = require('./routes/billingReportsRoutes'); // Stage 
 const tagRoutes = require('./routes/tagRoutes'); // Stage 5: CRM Tags
 const analyticsDashboardRoutes = require('./routes/analyticsDashboardRoutes'); // Stage 5: Analytics Dashboard
 const automationEngineRoutes = require('./routes/automationEngineRoutes'); // Stage 6: Automation Engine
+const auditRoutes = require('./routes/auditRoutes'); // Stage 5: Audit Logs
 
 app.use('/api/v1/campaigns', campaignRoutes);
 app.use('/api/v1/ads', adsRoutes);
@@ -233,6 +260,7 @@ app.use('/api/v1/reports', billingReportsRoutes); // Stage 5: Billing Reports
 app.use('/api/v1/tags', tagRoutes); // Stage 5: CRM Tags
 app.use('/api/v1/analytics/dashboard', analyticsDashboardRoutes); // Stage 5: Analytics Dashboard
 app.use('/api/v1/automation/engine', automationEngineRoutes); // Stage 6: Automation Engine
+app.use('/api/v1/audit-logs', auditRoutes); // Stage 5: Audit Logs
 
 // Start Automation Engine (Stage 6)
 if (process.env.ENABLE_AUTOMATION_ENGINE !== 'false') {

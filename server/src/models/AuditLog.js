@@ -15,7 +15,8 @@ const AuditLogSchema = new mongoose.Schema({
       'settings.updated', 'team.member_added', 'team.member_removed', 'team.permissions_changed',
       'waba.connected', 'waba.disconnected', 'waba.verified', 'waba.disabled',
       'token.refreshed', 'token.expired', 'token.revoked',
-      'webhook.received', 'webhook.failed'
+      'webhook.received', 'webhook.failed',
+      'bsp_onboarding_started'
     ],
     required: true,
     index: true

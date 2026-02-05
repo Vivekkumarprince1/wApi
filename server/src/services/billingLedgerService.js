@@ -28,6 +28,7 @@ const Template = require('../models/Template');
 const Workspace = require('../models/Workspace');
 const Contact = require('../models/Contact');
 const { logger } = require('../utils/logger');
+const usageLedgerService = require('./usageLedgerService');
 
 // Import event emitter for integration events
 let integrationEventEmitter;
@@ -136,6 +137,7 @@ async function startBusinessConversation(options) {
     if (existingWindow) {
       // Window exists - record message in existing window
       await existingWindow.recordMessage('outbound');
+      await usageLedgerService.incrementMessages({ workspaceId, direction: 'outbound' });
       
       logger.info('[BillingLedger] Message recorded in existing window', {
         ledgerId: existingWindow._id,
@@ -184,6 +186,13 @@ async function startBusinessConversation(options) {
     });
     
     await ledger.save();
+
+    await usageLedgerService.incrementConversations({
+      workspaceId,
+      category,
+      initiatedBy: 'BUSINESS'
+    });
+    await usageLedgerService.incrementMessages({ workspaceId, direction: 'outbound' });
     
     logger.info('[BillingLedger] New business conversation started', {
       ledgerId: ledger._id,
@@ -248,6 +257,7 @@ async function startUserConversation(options) {
     if (existingWindow) {
       // Window exists - record message
       await existingWindow.recordMessage('inbound');
+      await usageLedgerService.incrementMessages({ workspaceId, direction: 'inbound' });
       
       logger.info('[BillingLedger] User message recorded in existing window', {
         ledgerId: existingWindow._id,
@@ -289,6 +299,13 @@ async function startUserConversation(options) {
     });
     
     await ledger.save();
+
+    await usageLedgerService.incrementConversations({
+      workspaceId,
+      category,
+      initiatedBy: 'USER'
+    });
+    await usageLedgerService.incrementMessages({ workspaceId, direction: 'inbound' });
     
     logger.info('[BillingLedger] New user conversation started', {
       ledgerId: ledger._id,
@@ -352,6 +369,7 @@ async function recordMessage(options) {
     if (activeWindow) {
       // Record in existing window
       await activeWindow.recordMessage(direction);
+      await usageLedgerService.incrementMessages({ workspaceId, direction });
       
       return {
         ledger: activeWindow,

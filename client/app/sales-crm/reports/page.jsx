@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar, Download, X } from 'lucide-react';
+import { FaChartLine, FaDollarSign, FaTrophy, FaUsers } from 'react-icons/fa';
 import {
   getPipelinePerformanceReport,
   getFunnelReport,
@@ -11,6 +12,13 @@ import {
   getPipelines,
   listDeals,
 } from '@/lib/api';
+
+const stats = [
+  { label: 'Total Revenue', value: '₹12.5L', change: '+18%', icon: FaDollarSign, color: 'from-green-500 to-green-600' },
+  { label: 'Deals Won', value: '47', change: '+12%', icon: FaTrophy, color: 'from-yellow-500 to-yellow-600' },
+  { label: 'Active Leads', value: '234', change: '+8%', icon: FaUsers, color: 'from-blue-500 to-blue-600' },
+  { label: 'Conversion Rate', value: '32.5%', change: '+5%', icon: FaChartLine, color: 'from-purple-500 to-purple-600' },
+];
 
 export default function SalesCRMReportsPage() {
   const [loading, setLoading] = useState(true);
@@ -165,6 +173,61 @@ export default function SalesCRMReportsPage() {
         </div>
       </div>
 
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {stats.map((stat, idx) => (
+            <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className={`p-3 bg-gradient-to-br ${stat.color} rounded-xl shadow-md`}>
+                  <stat.icon className="text-white text-xl" />
+                </div>
+                <span className="text-sm font-semibold text-green-500">{stat.change}</span>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">{stat.label}</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Revenue Trends</h3>
+            <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
+              <p className="text-gray-500 dark:text-gray-400">Revenue chart</p>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Pipeline Status</h3>
+            <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
+              <p className="text-gray-500 dark:text-gray-400">Pipeline chart</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Top Performers */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Top Performers</h3>
+          <div className="space-y-4">
+            {[{ name: 'Rahul Sharma', deals: 15, revenue: '₹4.2L' }, { name: 'Priya Patel', deals: 12, revenue: '₹3.8L' }, { name: 'Amit Kumar', deals: 10, revenue: '₹2.9L' }].map((performer, idx) => (
+              <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${['from-green-400 to-green-600', 'from-blue-400 to-blue-600', 'from-purple-400 to-purple-600'][idx]} flex items-center justify-center text-white font-bold`}>
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 dark:text-white">{performer.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{performer.deals} deals closed</p>
+                  </div>
+                </div>
+                <p className="text-xl font-bold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] bg-clip-text text-transparent">{performer.revenue}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center h-96">

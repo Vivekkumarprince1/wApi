@@ -2,10 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaBell, FaQuestionCircle, FaWhatsapp, FaUserCircle, FaInstagram, FaComments, FaKey, FaUsers, FaTags, FaReply, FaUser, FaCog, FaPhone, FaCalendar, FaTools, FaSignOutAlt, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { FaBell, FaQuestionCircle, FaWhatsapp, FaUserCircle, FaInstagram, FaComments, FaKey, FaUsers, FaTags, FaReply, FaUser, FaCog, FaPhone, FaCalendar, FaTools, FaSignOutAlt, FaCheckCircle, FaExclamationCircle, FaBars } from 'react-icons/fa';
 import * as api from '@/lib/api';
 
-const Header = () => {
+const Header = ({ onMenuClick }) => {
   const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAccountSummary, setShowAccountSummary] = useState(false);
@@ -179,13 +179,24 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-between sticky top-0 z-40">
-      {/* Left - Logo */}
-      <div className="flex items-center space-x-2">
-        <div className="w-8 h-8 bg-teal-600 rounded flex items-center justify-center">
-          <FaWhatsapp className="text-white text-lg" />
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-50 h-[60px]">
+      {/* Left - Hamburger Menu (Mobile) + Logo */}
+      <div className="flex items-center space-x-3">
+        {/* Hamburger Menu - Mobile Only */}
+        <button 
+          onClick={onMenuClick}
+          className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          aria-label="Toggle menu"
+        >
+          <FaBars className="text-gray-600 dark:text-gray-300 text-xl" />
+        </button>
+        
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-teal-600 rounded flex items-center justify-center">
+            <FaWhatsapp className="text-white text-lg" />
+          </div>
+          <span className="font-bold text-lg text-gray-900 dark:text-white hidden sm:block">{process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</span>
         </div>
-        <span className="font-bold text-lg text-gray-900 dark:text-white">{process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</span>
       </div>
 
       {/* Right - Actions */}
@@ -546,10 +557,10 @@ const Header = () => {
                       </div>
                       {!workspaceData.verification.isVerified && workspaceData.verification.status !== 'pending' && workspaceData.verification.status !== 'in_review' && (
                         <button 
-                          onClick={() => router.push('/onboarding/business-info')}
+                          onClick={() => router.push('/onboarding/esb')}
                           className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded text-xs font-medium hover:bg-yellow-200 transition-colors"
                         >
-                          Verify
+                          Connect WhatsApp
                         </button>
                       )}
                     </div>

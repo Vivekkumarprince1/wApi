@@ -3,7 +3,8 @@ import { FaAddressBook, FaDownload, FaPlus, FaSearch, FaFilter } from 'react-ico
 import CreateContactModal from './CreateContactModal';
 import ContactDetailModal from './ContactDetailModal';
 import AddToPipelineModal from './AddToPipelineModal';
-import { fetchContacts } from '../lib/api';
+import { fetchContacts, post, get } from '../lib/api';
+import { toast } from 'react-toastify';
 
 const ContactsSection = () => {
   const [contacts, setContacts] = useState([]);
@@ -31,19 +32,20 @@ const ContactsSection = () => {
 
   const openWhatsAppProfile = async (phone, id) => {
     try {
-      // Fetch profile from server
-      const res = await fetch(`/api/contacts/${id}/whatsapp-profile`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to fetch profile');
-      const data = await res.json();
+      // Fetch profile using centralized API
+      const data = await get(`/contacts/${id}/whatsapp-profile`);
       // Show simple alert for now — can be replaced with modal
       if (data && data.profile && data.profile.contact) {
         const info = data.profile.contact;
-        alert(`WhatsApp profile for ${phone}: \nStatus: ${info.status} \nWa ID: ${info.wa_id || info.id || 'N/A'}\nProfile: ${JSON.stringify(info.profile || info)} `);
+        toast?.info?.(`WhatsApp profile for ${phone}: Status: ${info.status}`) ||
+          alert(`WhatsApp profile for ${phone}: \nStatus: ${info.status} \nWa ID: ${info.wa_id || info.id || 'N/A'}`);
       } else {
-        alert('No WhatsApp profile found for this contact');
+        toast?.warn?.('No WhatsApp profile found for this contact') ||
+          alert('No WhatsApp profile found for this contact');
       }
     } catch (err) {
-      alert(err.message || 'Failed to fetch profile');
+      toast?.error?.(err.message || 'Failed to fetch profile') ||
+        alert(err.message || 'Failed to fetch profile');
     }
   };
 
@@ -100,62 +102,112 @@ const ContactsSection = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      {/* Header with Gradient */}
+      <div className="bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between py-6">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-3">
-                <FaAddressBook className="text-green-500 text-2xl" />
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Contacts</h1>
+                <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                  <FaAddressBook className="text-white text-2xl" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-white">Contacts</h1>
+                  <p className="text-white/90 text-sm mt-1">Manage your customer database</p>
+                </div>
               </div>
             </div>
             
-            {/* Search and Filter */}
+            {/* Action Buttons */}
             <div className="flex items-center space-x-3">
-              {/* Search */}
-              <div className="relative">
-                <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search contacts..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                />
-              </div>
-              {/* Filter Dropdown */}
-              <select
-                value={filter}
-                onChange={e => setFilter(e.target.value)}
-                className="py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="all">All</option>
-                <option value="withEmail">With Email</option>
-                <option value="withoutEmail">Without Email</option>
-              </select>
-              {/* Filter Icon (optional) */}
-              <button className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" title="Filter options">
-                <FaFilter className="text-lg" />
-              </button>
               {/* Import Contacts Button */}
               <button 
-                onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                onClick={() => {
+                  const input = document.createElement('input');
+                  input.type = 'file';
+                  input.accept = '.csv';
+                  input.onchange = (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = async (event) => {
+                        try {
+                          const text = event.target.result;
+                          const rows = text.split('\n').slice(1);
+                          let imported = 0;
+                          for (const row of rows) {
+                            if (row.trim()) {
+                              const [firstName, lastName, phone, email] = row.split(',');
+                              await post('/contacts', {
+                                firstName: firstName?.trim(),
+                                lastName: lastName?.trim(),
+                                phone: phone?.trim(),
+                                email: email?.trim()
+                              });
+                              imported++;
+                            }
+                          }
+                          toast?.success?.(`${imported} contacts imported successfully!`) ||
+                            alert(`${imported} contacts imported successfully!`);
+                          loadContacts();
+                        } catch (err) {
+                          toast?.error?.('Error importing contacts: ' + err.message) ||
+                            alert('Error importing contacts: ' + err.message);
+                        }
+                      };
+                      reader.readAsText(file);
+                    }
+                  };
+                  input.click();
+                }}
+                className="flex items-center space-x-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white px-4 py-2.5 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md border border-white/30"
               >
                 <FaDownload className="text-sm" />
-                <span className="font-medium">Import Contacts</span>
+                <span className="font-medium">Import</span>
               </button>
               
               {/* Add Contact Button */}
               <button 
                 onClick={() => setIsCreateModalOpen(true)}
-                className="flex items-center space-x-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                className="flex items-center space-x-2 bg-white text-[#13C18D] px-5 py-2.5 rounded-xl transition-all duration-200 shadow-md hover:shadow-xl font-semibold hover:scale-105"
               >
                 <FaPlus className="text-sm" />
-                <span className="font-medium">Add Contact</span>
+                <span>Add Contact</span>
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search and Filter Bar */}
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center space-x-3">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search contacts..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2.5 w-full border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent"
+              />
+            </div>
+            {/* Filter Dropdown */}
+            <select
+              value={filter}
+              onChange={e => setFilter(e.target.value)}
+              className="py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent"
+            >
+              <option value="all">All Contacts</option>
+              <option value="withEmail">With Email</option>
+              <option value="withoutEmail">Without Email</option>
+            </select>
+            {/* Filter Icon */}
+            <button className="p-3 text-gray-500 hover:text-[#13C18D] dark:text-gray-400 dark:hover:text-[#13C18D] hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors" title="Filter options">
+              <FaFilter className="text-lg" />
+            </button>
           </div>
         </div>
       </div>
@@ -164,14 +216,14 @@ const ContactsSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow">
             <div className="flex items-center">
-              <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-                <FaAddressBook className="text-green-500 text-xl" />
+              <div className="p-3 bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] rounded-xl shadow-md">
+                <FaAddressBook className="text-white text-xl" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Contacts</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalContacts}</p>
+                <p className="text-2xl font-bold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] bg-clip-text text-transparent">{totalContacts}</p>
               </div>
             </div>
           </div>

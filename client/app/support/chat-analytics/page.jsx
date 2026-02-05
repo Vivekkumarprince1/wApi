@@ -1,201 +1,103 @@
 'use client';
 
+import { FaChartBar, FaComments, FaClock, FaUserCheck, FaArrowUp, FaArrowDown, FaCalendarAlt } from 'react-icons/fa';
 import { useState } from 'react';
-import { FaChartBar, FaInfoCircle, FaFilter, FaTags, FaCalendar, FaDownload } from 'react-icons/fa';
 
-export default function ChatAnalyticsPage() {
-  const [selectedPeriod, setSelectedPeriod] = useState('Last 7 days');
-  const [selectedEvents, setSelectedEvents] = useState('All');
-  const [selectedTags, setSelectedTags] = useState('All');
+export default function ChatAnalyticsPage(){
+  const [timeRange, setTimeRange] = useState('7days');
+
+  const stats = [
+    { label: 'Total Conversations', value: '2,847', change: '+12.5%', trending: 'up', icon: FaComments, color: 'from-blue-500 to-blue-600' },
+    { label: 'Avg Response Time', value: '2.3 min', change: '-8.2%', trending: 'down', icon: FaClock, color: 'from-purple-500 to-purple-600' },
+    { label: 'Resolution Rate', value: '94.2%', change: '+3.1%', trending: 'up', icon: FaUserCheck, color: 'from-green-500 to-green-600' },
+    { label: 'Active Chats', value: '147', change: '+5.7%', trending: 'up', icon: FaChartBar, color: 'from-orange-500 to-orange-600' },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Top Banner */}
-      <div className="bg-teal-500 text-white px-6 py-3 text-sm">
-        Want to learn how leading Indian D2C brands are driving 40X engagement to win customers on WhatsApp?
-        <button className="ml-4 bg-white text-teal-600 px-4 py-1 rounded font-medium hover:bg-gray-100 transition-colors">
-          Read Now
-        </button>
+      {/* Header with Gradient */}
+      <div className="bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                <FaChartBar className="text-white text-2xl" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-white">Chat Analytics</h1>
+                <p className="text-white/90 text-sm mt-1">Track your team's performance metrics</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3">
+              <select 
+                value={timeRange} 
+                onChange={(e) => setTimeRange(e.target.value)}
+                className="px-4 py-2.5 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white font-medium focus:outline-none focus:ring-2 focus:ring-white/50"
+              >
+                <option value="24hours" className="text-gray-900">Last 24 Hours</option>
+                <option value="7days" className="text-gray-900">Last 7 Days</option>
+                <option value="30days" className="text-gray-900">Last 30 Days</option>
+                <option value="custom" className="text-gray-900">Custom Range</option>
+              </select>
+              <button className="px-5 py-2.5 bg-white text-[#13C18D] rounded-xl font-semibold hover:shadow-xl transition-all hover:scale-105">
+                <FaCalendarAlt className="inline mr-2" />Export Report
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Main Content */}
-      <div className="p-6">
-        {/* Header Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-start gap-3 mb-4">
-            <FaChartBar className="text-2xl text-gray-700 dark:text-gray-300 mt-1" />
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                Conversation Analytics
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Find out if your customers are getting timely responses & getting their issues resolved quickly!{' '}
-                <a href="#" className="text-teal-600 hover:text-teal-700 font-medium">
-                  Learn More
-                </a>
-              </p>
-              <div className="flex items-start gap-2 mt-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-3">
-                <FaInfoCircle className="text-yellow-600 dark:text-yellow-500 mt-0.5 flex-shrink-0" />
-                <p className="text-sm text-gray-700 dark:text-gray-300">
-                  To get meaningful insights, ensure that your team members close chats
-                </p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {stats.map((stat, idx) => (
+            <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow">
+              <div className="flex items-start justify-between mb-4">
+                <div className={`p-3 bg-gradient-to-br ${stat.color} rounded-xl shadow-md`}>
+                  <stat.icon className="text-white text-xl" />
+                </div>
+                <div className={`flex items-center space-x-1 text-sm font-semibold ${
+                  stat.trending === 'up' ? 'text-green-500' : 'text-red-500'
+                }`}>
+                  {stat.trending === 'up' ? <FaArrowUp /> : <FaArrowDown />}
+                  <span>{stat.change}</span>
+                </div>
               </div>
+              <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">{stat.label}</p>
+              <p className="text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
             </div>
-          </div>
+          ))}
+        </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-3 mt-4">
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <FaFilter className="text-gray-600 dark:text-gray-400" />
-              <span className="text-gray-700 dark:text-gray-300">Events</span>
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <FaTags className="text-gray-600 dark:text-gray-400" />
-              <span className="text-gray-700 dark:text-gray-300">Tags</span>
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <FaCalendar className="text-gray-600 dark:text-gray-400" />
-              <span className="text-gray-700 dark:text-gray-300">{selectedPeriod}</span>
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <FaDownload className="text-gray-600 dark:text-gray-400" />
-              <span className="text-gray-700 dark:text-gray-300">Export data</span>
-            </button>
+        {/* Chart Placeholder */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 mb-8">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Conversation Trends</h3>
+          <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
+            <p className="text-gray-500 dark:text-gray-400">Chart visualization area</p>
           </div>
         </div>
 
-        {/* Info Text */}
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-          These stats are for all conversations which were initiated by customers in the selected period
-        </p>
-
-        {/* Automation Messages Section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Automation Messages Sent
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Out of Office Message</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">0</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Welcome Message</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">0</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Delayed Message</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">0</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Workflow Conversations for WhatsApp</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">0</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Custom Auto Replies for WhatsApp</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">0</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Grid - Row 1 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          {/* Total Conversations */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Conversations
-              </h3>
-              <FaInfoCircle className="text-gray-400 dark:text-gray-500" />
-            </div>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">0</p>
-          </div>
-
-          {/* Responded */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Responded
-              </h3>
-              <FaInfoCircle className="text-gray-400 dark:text-gray-500" />
-            </div>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white">0</p>
-          </div>
-
-          {/* Resolved */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Resolved
-              </h3>
-              <FaInfoCircle className="text-gray-400 dark:text-gray-500" />
-            </div>
-            <p className="text-4xl font-bold text-gray-900 dark:text-white mb-1">0</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              0 were closed without response
-            </p>
-          </div>
-        </div>
-
-        {/* Stats Grid - Row 2 with Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Wait Time for 1st Agent Response */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Wait Time for 1st Agent Response
-              </h3>
-              <FaInfoCircle className="text-gray-400 dark:text-gray-500" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">--</p>
-            <div className="h-32 flex items-end justify-between gap-2">
-              {[0, 0, 0, 0, 0, 0, 0].map((value, index) => (
-                <div key={index} className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-t" style={{ height: '20%' }}></div>
+        {/* Additional Analytics */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Top Performing Agents</h3>
+            <div className="space-y-3">
+              {['Rahul - 245 chats', 'Priya - 198 chats', 'Amit - 167 chats'].map((agent, idx) => (
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                  <span className="text-gray-700 dark:text-gray-200">{agent}</span>
+                  <div className="w-32 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
+                    <div className="bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] h-2 rounded-full" style={{width: `${90 - idx * 15}%`}}></div>
+                  </div>
+                </div>
               ))}
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
-              Dec 02/2024
-            </p>
           </div>
-
-          {/* Average Wait Time for Agent Responses */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Average Wait Time for Agent Responses
-              </h3>
-              <FaInfoCircle className="text-gray-400 dark:text-gray-500" />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Peak Hours</h3>
+            <div className="h-48 flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
+              <p className="text-gray-500 dark:text-gray-400">Peak hours chart</p>
             </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">--</p>
-            <div className="h-32 flex items-end justify-between gap-2">
-              {[0, 0, 0, 0, 0, 0, 0].map((value, index) => (
-                <div key={index} className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-t" style={{ height: '20%' }}></div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
-              Dec 02/2024
-            </p>
-          </div>
-
-          {/* Resolution Time */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Resolution Time
-              </h3>
-              <FaInfoCircle className="text-gray-400 dark:text-gray-500" />
-            </div>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">--</p>
-            <div className="h-32 flex items-end justify-between gap-2">
-              {[0, 0, 0, 0, 0, 0, 0].map((value, index) => (
-                <div key={index} className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-t" style={{ height: '20%' }}></div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
-              Dec 02/2024
-            </p>
           </div>
         </div>
       </div>

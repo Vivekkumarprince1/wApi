@@ -8,8 +8,11 @@ import {
   getContactStats 
 } from '../lib/api';
 import QuotaWarning from './QuotaWarning';
+import { useWorkspace } from '../lib/useWorkspace';
 
 const BulkMessageSender = () => {
+  const workspace = useWorkspace();
+  const bspReady = workspace.stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus);
   const [contacts, setContacts] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [message, setMessage] = useState('');
@@ -95,6 +98,10 @@ const BulkMessageSender = () => {
 
   const handleSendBulkMessages = async () => {
     try {
+      if (!bspReady) {
+        alert('Connect WhatsApp to send bulk messages');
+        return;
+      }
       setIsLoading(true);
       
       // Create campaign
@@ -138,6 +145,20 @@ const BulkMessageSender = () => {
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-lg">
+      {!workspace.loading && !bspReady && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="font-medium">WhatsApp not connected</p>
+            <p className="text-sm">Connect your WhatsApp account to send bulk messages.</p>
+          </div>
+          <button
+            onClick={() => (window.location.href = '/onboarding/esb')}
+            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+          >
+            Connect Now
+          </button>
+        </div>
+      )}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Bulk Message Sender</h2>
         <p className="text-gray-600">Send personalized messages to multiple contacts using WhatsApp Business API</p>
@@ -344,7 +365,7 @@ const BulkMessageSender = () => {
         </div>
         <button
           onClick={handleSendBulkMessages}
-          disabled={contacts.length === 0 || !message.trim() || isLoading || quotaExceeded}
+          disabled={!bspReady || contacts.length === 0 || !message.trim() || isLoading || quotaExceeded}
           className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center"
         >
           {isLoading ? (

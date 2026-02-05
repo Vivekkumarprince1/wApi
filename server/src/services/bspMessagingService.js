@@ -19,6 +19,8 @@ const Message = require('../models/Message');
 const { markTokenInvalid } = require('./bspHealthService');
 const { isOptedOutByPhone, isOptedOut } = require('./optOutService');
 const { storeToken, retrieveToken } = require('./secretsManager');
+const { enforceWorkspaceBilling } = require('./billingEnforcementService');
+const auditService = require('./auditService');
 
 // In-memory rate limiter (use Redis in production for distributed systems)
 const rateLimiters = new Map();
@@ -723,6 +725,12 @@ async function getWorkspaceForMessaging(workspaceId) {
   if (!workspace.canSendMessage()) {
     throw new Error('BSP_MESSAGING_BLOCKED');
   }
+
+  if (process.env.BSP_GLOBAL_MESSAGING_DISABLED === 'true') {
+    throw new Error('BSP_GLOBAL_MESSAGING_DISABLED');
+  }
+
+  await enforceWorkspaceBilling(workspace._id);
   
   return workspace;
 }
@@ -816,6 +824,18 @@ async function logMessage(workspaceId, messageData) {
         ...messageData.meta
       }
     });
+
+    auditService.log(
+      workspaceId,
+      messageData.sentBy || null,
+      messageData.status === 'sent' ? 'message.outbound.sent' : 'message.outbound.failed',
+      { type: 'message', id: message._id },
+      {
+        templateName: messageData.templateName,
+        campaignId: messageData.campaignId,
+        error: messageData.error || null
+      }
+    );
     return message;
   } catch (err) {
     console.error('[BSP] Failed to log message:', err.message);
@@ -861,5 +881,6 @@ module.exports = {
   // Internal (for advanced use)
   makeMetaApiCall,
   getWorkspaceForMessaging,
-  checkRateLimit
+  checkRateLimit,
+  checkTemplateSubmissionLimit
 };
