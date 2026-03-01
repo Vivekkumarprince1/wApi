@@ -1,30 +1,13 @@
 const Workspace = require('../models/Workspace');
-const { ensureParentWaba } = require('./parentWabaService');
 
 /**
- * Initialize Parent WABA credentials from environment variables.
- * Interakt-style: platform controls a SINGLE Parent WABA (no per-tenant tokens).
+ * Initialize default workspace with WABA credentials from environment variables.
+ * This runs once when the server starts to ensure the workspace is ready to use.
  */
 async function initializeDefaultWABA() {
-  try {
-    await ensureParentWaba();
-    console.log('✅ Parent WABA initialized');
-
-    // Backfill parent/child references if any legacy workspace exists
-    const legacyWorkspaces = await Workspace.find({
-      bspManaged: true,
-      $or: [
-        { parentWaba: { $exists: false } },
-        { childBusiness: { $exists: false } }
-      ]
-    }).select('_id');
-
-    if (legacyWorkspaces.length > 0) {
-      console.log(`🔧 Found ${legacyWorkspaces.length} BSP workspaces without child links. Backfill deferred to runtime.`);
-    }
-  } catch (error) {
-    console.error('❌ Error during WABA auto-initialization:', error.message);
-  }
+  console.log('⚠️ initializeDefaultWABA is deprecated.');
+  console.log('   Workspaces MUST use isolated gupshupIdentity credentials.');
+  return;
 }
 
 /**
@@ -32,8 +15,7 @@ async function initializeDefaultWABA() {
  * Call this to force-update all workspaces with the latest env credentials.
  */
 async function updateAllWorkspacesWABA() {
-  await ensureParentWaba();
-  return { modifiedCount: 0, matchedCount: 0 };
+  throw new Error('updateAllWorkspacesWABA is deprecated. Each workspace must maintain its own isolated gupshupIdentity.');
 }
 
 module.exports = {

@@ -6,7 +6,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GoogleLogin from '@/components/GoogleLogin';
 import FacebookLogin from '@/components/FacebookLogin';
-import { loginUser, getCurrentUser } from '@/lib/api';
+import { loginUser, getOnboardingStatus } from '@/lib/api';
+import { FaWhatsapp } from 'react-icons/fa';
+import { Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +18,27 @@ export default function LoginPage() {
   const [socialError, setSocialError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCard, setShowCard] = useState(false);
+
+  const redirectAfterLogin = async (emailVerified) => {
+    if (!emailVerified) {
+      router.push('/onboarding/verify-email');
+      return;
+    }
+
+    try {
+      const onboarding = await getOnboardingStatus();
+      const businessInfoDone = onboarding?.status?.steps?.businessInfo === true;
+
+      if (!businessInfoDone) {
+        router.push('/dashboard/settings/whatsapp-profile');
+        return;
+      }
+    } catch (_error) {
+      // If status check fails, continue to dashboard as safe fallback
+    }
+
+    router.push('/dashboard');
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setShowCard(true), 150);
@@ -32,16 +55,13 @@ export default function LoginPage() {
       const data = await loginUser({ email, password });
       if (data?.token) {
         localStorage.setItem('token', data.token);
+        document.cookie = `auth_token=${data.token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
         window.dispatchEvent(new Event('authChange'));
       }
 
-      // Check email verification status
-      const user = await getCurrentUser();
-      if (!user.emailVerified) {
-        router.push('/onboarding/verify-email');
-      } else {
-        router.push('/dashboard');
-      }
+      // Use login response data
+      const user = data?.user || data;
+      await redirectAfterLogin(user?.emailVerified !== false);
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -52,158 +72,203 @@ export default function LoginPage() {
   const handleSocialSuccess = async (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
+      document.cookie = `auth_token=${result.token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
       window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
 
-    // Check email verification status
-    const user = await getCurrentUser();
-    if (!user.emailVerified) {
-      router.push('/onboarding/verify-email');
-    } else {
-      router.push('/onboarding/esb');
-    }
+    // Use result data
+    const user = result?.user || result;
+    await redirectAfterLogin(user?.emailVerified !== false);
   };
 
   const handleFacebookSuccess = async (result) => {
     if (result?.token) {
       localStorage.setItem('token', result.token);
+      document.cookie = `auth_token=${result.token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
       window.dispatchEvent(new Event('authChange'));
     }
     setSocialError('');
 
-    // Check email verification status
-    const user = await getCurrentUser();
-    if (!user.emailVerified) {
-      router.push('/onboarding/verify-email');
-    } else {
-      router.push('/onboarding/esb');
-    }
+    // Use result data
+    const user = result?.user || result;
+    await redirectAfterLogin(user?.emailVerified !== false);
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col text-gray-900">
-      <header className="w-full border-b border-gray-200 bg-white">
-        <div className="flex items-center justify-between max-w-5xl mx-auto px-6 py-4">
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="h-10 w-10 relative">
-              <Image src="/my_logo.png" alt={process.env.NEXT_PUBLIC_APP_DOMAIN} fill sizes="40px" className="object-contain" />
+    <div className="min-h-screen flex bg-background">
+      {/* Left - Gradient Illustration Panel */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-700" />
+        {/* Decorative elements */}
+        <div className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-400/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white/5 rounded-full blur-2xl" />
+
+        <div className="relative z-10 flex flex-col justify-center px-16 text-white">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+              <FaWhatsapp className="text-2xl" />
             </div>
-            <span className="font-extrabold text-lg tracking-tight text-gray-900 uppercase group-hover:text-green-700 transition-colors">
-              {process.env.NEXT_PUBLIC_APP_DOMAIN}
+            <span className="text-2xl font-bold tracking-tight">
+              {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}
             </span>
-          </Link>
-          <div className="text-sm text-gray-700">
-            <span>Not on {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}?</span>
-            <Link href="/auth/register" className="ml-2 font-semibold text-green-700 hover:text-green-800">
-              Sign Up
-            </Link>
+          </div>
+
+          <h2 className="text-4xl font-bold leading-tight mb-4">
+            Power your business<br />
+            with <span className="text-emerald-300">WhatsApp</span>
+          </h2>
+          <p className="text-lg text-white/70 max-w-md mb-8">
+            Automate conversations, manage campaigns, and grow your customer relationships — all from one platform.
+          </p>
+
+          <div className="space-y-4">
+            {[
+              'Automated messaging & campaigns',
+              'Team inbox for collaboration',
+              'CRM & contact management',
+            ].map((feature, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-6 h-6 rounded-full bg-emerald-400/20 flex items-center justify-center">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+                </div>
+                <span className="text-white/80 text-sm">{feature}</span>
+              </div>
+            ))}
           </div>
         </div>
-      </header>
+      </div>
 
-      <main className="flex-1 flex items-start md:items-center justify-center px-4 py-12 bg-white">
-        <div className="w-full max-w-md">
-          <div
-            className={`bg-white border border-gray-200 rounded-[36px] shadow-[0_18px_45px_rgba(15,23,42,0.08)] px-6 sm:px-10 py-12 text-center transition-all duration-500 ${showCard ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
-              }`}
-          >
-            <h1 className="text-[32px] font-semibold tracking-[0.25rem] text-gray-900 uppercase mb-10">Sign in</h1>
-
-            <div className="space-y-4 mb-6">
-              <GoogleLogin
-                formType="login"
-                autoRedirect={false}
-                onError={(msg) => setSocialError(msg)}
-                onSuccess={handleSocialSuccess}
-              />
-              <FacebookLogin
-                autoRedirect={false}
-                onError={(msg) => setSocialError(msg)}
-                onSuccess={handleFacebookSuccess}
-              />
-            </div>
-
-            <div className="flex items-center gap-4 text-gray-400 text-xs font-semibold tracking-[0.2rem] uppercase my-9">
-              <span className="flex-1 h-px bg-gray-200" />
-              <span>Or, sign in with email</span>
-              <span className="flex-1 h-px bg-gray-200" />
-            </div>
-
-            {socialError && (
-              <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 text-left">
-                {socialError}
+      {/* Right - Login Form */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="w-full border-b border-border/50 bg-background/80 backdrop-blur-sm">
+          <div className="flex items-center justify-between max-w-lg mx-auto px-6 py-4 w-full">
+            <Link href="/" className="flex items-center gap-2.5 group lg:hidden">
+              <div className="h-9 w-9 relative">
+                <Image src="/interact-logo.png" alt={process.env.NEXT_PUBLIC_APP_DOMAIN || ''} fill sizes="36px" className="object-contain" />
               </div>
-            )}
-
-            {error && (
-              <div className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 text-left">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-4 text-left">
-              <div>
-                <label htmlFor="email" className="sr-only">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-gray-300 bg-white px-5 py-3 text-gray-900 placeholder-gray-500 font-medium focus:border-gray-900 focus:ring-1 focus:ring-gray-900 transition"
-                  placeholder="Email Address"
-                  required
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-gray-300 bg-white px-5 py-3 text-gray-900 placeholder-gray-500 font-medium focus:border-gray-900 focus:ring-1 focus:ring-gray-900 transition"
-                  placeholder="Password"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-2xl bg-green-700 py-3 text-white font-semibold text-lg tracking-wide hover:bg-green-800 transition disabled:opacity-70"
-              >
-                {loading ? 'Signing in...' : 'Sign in'}
-              </button>
-            </form>
-
-            <div className="mt-6 text-left text-sm text-gray-600 space-y-1">
-              <p className="font-semibold text-gray-800">Forgot password?</p>
-              <p>Your password was emailed to you when the account was created.</p>
-              <Link href="/auth/reset" className="text-gray-900 font-semibold underline">
-                Click here to reset
+              <span className="font-bold text-base tracking-tight text-foreground uppercase group-hover:text-primary transition-colors">
+                {process.env.NEXT_PUBLIC_APP_DOMAIN}
+              </span>
+            </Link>
+            <div className="text-sm text-muted-foreground ml-auto">
+              <span className="hidden sm:inline">Not on {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}?</span>
+              <Link href="/auth/register" className="ml-2 font-semibold text-primary hover:text-primary/80 transition-colors">
+                Sign Up
               </Link>
             </div>
+          </div>
+        </header>
 
-            <div className="mt-4 text-center">
-              <p className="text-gray-600 dark:text-gray-400">
-                Don't have an account?{' '}
-                <Link
-                  href="/auth/register"
-                  className="text-blue-500 hover:text-blue-700 font-semibold"
+        <main className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-md">
+            <div
+              className={`bg-card border border-border/50 rounded-2xl shadow-premium px-6 sm:px-10 py-10 transition-all duration-500 ${showCard ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+                }`}
+            >
+              <div className="text-center mb-8">
+                <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back</h1>
+                <p className="text-sm text-muted-foreground">Sign in to your account to continue</p>
+              </div>
+
+              {/* Social Login */}
+              <div className="space-y-3 mb-6">
+                <GoogleLogin
+                  formType="login"
+                  autoRedirect={false}
+                  onError={(msg) => setSocialError(msg)}
+                  onSuccess={handleSocialSuccess}
+                />
+                <FacebookLogin
+                  autoRedirect={false}
+                  onError={(msg) => setSocialError(msg)}
+                  onSuccess={handleFacebookSuccess}
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-4 my-6">
+                <span className="flex-1 h-px bg-border" />
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">or</span>
+                <span className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Error Messages */}
+              {socialError && (
+                <div className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive text-left">
+                  {socialError}
+                </div>
+              )}
+              {error && (
+                <div className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive text-left">
+                  {error}
+                </div>
+              )}
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-4 text-left">
+                <div className="relative">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="input-premium pl-11"
+                    placeholder="Email Address"
+                    required
+                  />
+                </div>
+
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-premium pl-11"
+                    placeholder="Password"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-primary w-full flex items-center justify-center gap-2 group"
                 >
-                  Register here
-                </Link>
-              </p>
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Sign in</span>
+                      <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Footer Links */}
+              <div className="mt-6 space-y-2">
+                <div className="text-sm text-muted-foreground">
+                  <Link href="/auth/reset" className="font-medium text-foreground hover:text-primary transition-colors">
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Don&apos;t have an account?{' '}
+                  <Link href="/auth/register" className="font-semibold text-primary hover:text-primary/80 transition-colors">
+                    Register here
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

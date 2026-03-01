@@ -4,7 +4,6 @@ const Template = require('../models/Template');
 const Workspace = require('../models/Workspace');
 const Conversation = require('../models/Conversation');
 const whatsappService = require('../services/whatsappService');
-const metaService = require('../services/metaService');
 const bspMessagingService = require('../services/bspMessagingService');
 const bspConfig = require('../config/bspConfig');
 const { enqueueRetry } = require('../services/messageRetryQueue');
@@ -26,23 +25,6 @@ async function sendMessage(req, res, next) {
     const { contactId, body } = req.body;
     const contact = await Contact.findOne({ _id: contactId, workspace });
     if (!contact) return res.status(404).json({ message: 'Contact not found' });
-
-    // Enforce 24-hour session window (Tier-1 BSP requirement)
-    const conversation = await Conversation.findOne({ workspace, contact: contact._id });
-    const lastCustomerMessageAt = conversation?.lastCustomerMessageAt;
-    const windowMs = 24 * 60 * 60 * 1000;
-    const isSessionOpen = lastCustomerMessageAt
-      ? (Date.now() - new Date(lastCustomerMessageAt).getTime() < windowMs)
-      : false;
-
-    if (!isSessionOpen) {
-      return res.status(403).json({
-        success: false,
-        message: '24-hour session window expired. Use an approved template message.',
-        code: 'SESSION_WINDOW_EXPIRED'
-      });
-    }
-
     const message = await Message.create({ workspace, contact: contact._id, direction: 'outbound', body, status: 'queued' });
     // enqueue send job (service handles retry and queue)
     whatsappService.enqueueSend(message._id);

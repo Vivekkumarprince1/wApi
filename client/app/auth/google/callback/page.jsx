@@ -11,6 +11,7 @@ export default function GoogleCallbackPage() {
     const token = params.get('token');
     if (token) {
       localStorage.setItem('token', token);
+      document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
       window.dispatchEvent(new Event('authChange'));
       // Clean up URL without token
       const cleanUrl = window.location.origin + '/auth/google/callback';
@@ -27,7 +28,7 @@ export default function GoogleCallbackPage() {
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
         <h2 className="text-xl font-semibold">Signing you in…</h2>
-        <p className="text-sm text-gray-600 mt-2">Finishing Google sign-in, please wait...</p>
+        <p className="text-sm text-muted-foreground mt-2">Finishing Google sign-in, please wait...</p>
       </div>
     </div>
   );

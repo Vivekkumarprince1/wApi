@@ -5,7 +5,7 @@ const PermissionSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   role: {
     type: String,
-    enum: ['owner', 'manager', 'agent', 'viewer'],
+    enum: ['owner', 'admin', 'manager', 'agent', 'viewer'],
     required: true
   },
   permissions: {
@@ -107,6 +107,47 @@ PermissionSchema.pre('save', function(next) {
 PermissionSchema.statics.getDefaultPermissions = function(role) {
   const defaults = {
     owner: {
+      viewAllConversations: true,
+      assignConversations: true,
+      resolveConversations: true,
+      sendMessages: true,
+      sendTemplates: true,
+      sendCampaigns: true,
+      scheduleMessages: true,
+      viewContacts: true,
+      createContacts: true,
+      editContacts: true,
+      deleteContacts: true,
+      importContacts: true,
+      exportContacts: true,
+      viewTemplates: true,
+      createTemplates: true,
+      editTemplates: true,
+      deleteTemplates: true,
+      submitTemplates: true,
+      viewCampaigns: true,
+      createCampaigns: true,
+      editCampaigns: true,
+      launchCampaigns: true,
+      pauseCampaigns: true,
+      viewDeals: true,
+      createDeals: true,
+      editDeals: true,
+      deleteDeals: true,
+      manageTeam: true,
+      manageBilling: true,
+      manageIntegrations: true,
+      manageWebhooks: true,
+      viewAuditLogs: true,
+      billing: {
+        view: true,
+        manage: true
+      },
+      viewAnalytics: true,
+      viewReports: true,
+      exportData: true
+    },
+    admin: {
       viewAllConversations: true,
       assignConversations: true,
       resolveConversations: true,

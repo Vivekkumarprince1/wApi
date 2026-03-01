@@ -161,7 +161,7 @@ async function handleSlaBreach(conversation, workspace) {
     // Notify managers via socket
     const managers = await Permission.find({
       workspace: workspaceId,
-      role: { $in: ['owner', 'manager'] },
+      role: { $in: ['owner', 'admin', 'manager'] },
       isActive: true
     }).select('user').lean();
 

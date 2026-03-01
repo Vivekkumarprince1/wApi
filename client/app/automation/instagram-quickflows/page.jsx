@@ -132,7 +132,7 @@ export default function InstagramQuickflowsPage() {
       case 'mention':
         return <FaGift className="text-yellow-500" />;
       default:
-        return <FaComments className="text-gray-500" />;
+        return <FaComments className="text-muted-foreground" />;
     }
   };
 
@@ -148,16 +148,16 @@ export default function InstagramQuickflowsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+      <div className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Instagram Quickflows</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Automatically reply to Instagram comments, DMs, and story mentions</p>
+              <h1 className="text-3xl font-bold text-foreground">Instagram Quickflows</h1>
+              <p className="text-muted-foreground mt-1">Automatically reply to Instagram comments, DMs, and story mentions</p>
             </div>
             <button
               onClick={() => setShowPresetModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium transition-colors"
             >
               <FaPlus /> Create Quickflow
             </button>
@@ -167,7 +167,7 @@ export default function InstagramQuickflowsPage() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
             <p className="text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
@@ -175,10 +175,10 @@ export default function InstagramQuickflowsPage() {
         {/* Preset Modal */}
         {showPresetModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Choose Quickflow Type</h2>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">Start with a preset or create a custom quickflow</p>
+            <div className="bg-card rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-card border-b border-border p-6">
+                <h2 className="text-2xl font-bold text-foreground">Choose Quickflow Type</h2>
+                <p className="text-muted-foreground mt-1">Start with a preset or create a custom quickflow</p>
               </div>
 
               <div className="p-6">
@@ -186,17 +186,17 @@ export default function InstagramQuickflowsPage() {
                   {PRESET_TEMPLATES.map((preset) => (
                     <div
                       key={preset.id}
-                      className="border-2 border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-teal-500 dark:hover:border-teal-400 cursor-pointer transition-all hover:shadow-lg"
+                      className="border-2 border-border rounded-xl p-4 hover:border-teal-500 dark:hover:border-teal-400 cursor-pointer transition-all hover:shadow-premium"
                       onClick={() => handleCreateFromPreset(preset)}
                     >
                       <div className="flex items-start gap-3 mb-2">
                         <span className="text-3xl">{preset.icon}</span>
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{preset.name}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">{preset.description}</p>
+                          <h3 className="font-semibold text-foreground">{preset.name}</h3>
+                          <p className="text-sm text-muted-foreground">{preset.description}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-3">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mt-3">
                         {getTriggerTypeIcon(preset.triggerType)}
                         <span>{getTriggerTypeLabel(preset.triggerType)}</span>
                       </div>
@@ -204,20 +204,20 @@ export default function InstagramQuickflowsPage() {
                   ))}
                 </div>
 
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+                <div className="border-t border-border pt-6">
                   <button
                     onClick={() => router.push('/automation/instagram-quickflows/create')}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-medium transition-colors"
+                    className="w-full px-4 py-3 border-2 border-border text-foreground rounded-xl hover:bg-accent font-medium transition-colors"
                   >
                     + Create Custom Quickflow
                   </button>
                 </div>
               </div>
 
-              <div className="bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex justify-end">
+              <div className="bg-muted/30 border-t border-border px-6 py-4 flex justify-end">
                 <button
                   onClick={() => setShowPresetModal(false)}
-                  className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-medium"
+                  className="px-4 py-2 text-foreground hover:bg-accent dark:hover:bg-accent rounded-xl font-medium"
                 >
                   Cancel
                 </button>
@@ -227,10 +227,10 @@ export default function InstagramQuickflowsPage() {
         )}
 
         {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+        <div className="bg-card rounded-xl shadow p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Search
               </label>
               <input
@@ -238,18 +238,18 @@ export default function InstagramQuickflowsPage() {
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 placeholder="Search by name..."
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Trigger Type
               </label>
               <select
                 value={filters.triggerType}
                 onChange={(e) => setFilters({ ...filters, triggerType: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
               >
                 <option value="all">All Triggers</option>
                 <option value="comment">Comments</option>
@@ -260,13 +260,13 @@ export default function InstagramQuickflowsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Status
               </label>
               <select
                 value={filters.enabled}
                 onChange={(e) => setFilters({ ...filters, enabled: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
               >
                 <option value="all">All Status</option>
                 <option value="true">Enabled Only</option>
@@ -277,7 +277,7 @@ export default function InstagramQuickflowsPage() {
             <div className="flex items-end">
               <button
                 onClick={resetFilters}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 font-medium"
+                className="w-full px-4 py-2 border border-border text-foreground rounded-xl hover:bg-accent font-medium"
               >
                 Reset
               </button>
@@ -289,15 +289,15 @@ export default function InstagramQuickflowsPage() {
         {loading ? (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
-            <p className="mt-4 text-gray-600 dark:text-gray-400">Loading quickflows...</p>
+            <p className="mt-4 text-muted-foreground">Loading quickflows...</p>
           </div>
         ) : quickflows.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🚀</div>
-            <p className="text-gray-600 dark:text-gray-400 mb-6 text-lg">No quickflows yet</p>
+            <p className="text-muted-foreground mb-6 text-lg">No quickflows yet</p>
             <button
               onClick={() => setShowPresetModal(true)}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium"
             >
               <FaPlus /> Create Your First Quickflow
             </button>
@@ -307,47 +307,47 @@ export default function InstagramQuickflowsPage() {
             {quickflows.map((qf) => (
               <div
                 key={qf._id}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden"
+                className="bg-card rounded-xl shadow border border-border overflow-hidden"
               >
                 {/* Header */}
                 <div
                   onClick={() => setExpandedId(expandedId === qf._id ? null : qf._id)}
-                  className="p-6 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
+                  className="p-6 cursor-pointer hover:bg-accent transition-colors flex items-center justify-between"
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900 dark:text-white text-lg">{qf.name}</h3>
+                      <h3 className="font-semibold text-foreground text-lg">{qf.name}</h3>
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         qf.enabled
                           ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                          : 'bg-muted text-foreground'
                       }`}>
                         {qf.enabled ? 'Active' : 'Inactive'}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-2">
                         {getTriggerTypeIcon(qf.triggerType)}
                         {getTriggerTypeLabel(qf.triggerType)}
                       </span>
                       {qf.statistics?.totalTriggered > 0 && (
                         <span>
-                          Triggered: <span className="font-medium text-gray-900 dark:text-white">{qf.statistics.totalTriggered}</span> times
+                          Triggered: <span className="font-medium text-foreground">{qf.statistics.totalTriggered}</span> times
                         </span>
                       )}
                     </div>
                   </div>
                   <FaChevronDown
-                    className={`text-gray-400 transition-transform ${expandedId === qf._id ? 'rotate-180' : ''}`}
+                    className={`text-muted-foreground transition-transform ${expandedId === qf._id ? 'rotate-180' : ''}`}
                   />
                 </div>
 
                 {/* Expanded Details */}
                 {expandedId === qf._id && (
-                  <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                  <div className="px-6 py-4 bg-muted/30 border-t border-border space-y-4">
                     {qf.keywords && qf.keywords.length > 0 && (
                       <div>
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Keywords</p>
+                        <p className="text-sm font-medium text-foreground mb-2">Keywords</p>
                         <div className="flex flex-wrap gap-2">
                           {qf.keywords.map((keyword) => (
                             <span key={keyword} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full text-sm">
@@ -360,42 +360,42 @@ export default function InstagramQuickflowsPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Trigger Type</p>
-                        <p className="font-medium text-gray-900 dark:text-white">{getTriggerTypeLabel(qf.triggerType)}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Trigger Type</p>
+                        <p className="font-medium text-foreground">{getTriggerTypeLabel(qf.triggerType)}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Type</p>
-                        <p className="font-medium text-gray-900 dark:text-white capitalize">{qf.type?.replace('_', ' ')}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Type</p>
+                        <p className="font-medium text-foreground capitalize">{qf.type?.replace('_', ' ')}</p>
                       </div>
                     </div>
 
                     {qf.response && (
                       <div>
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Response</p>
-                        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3 text-sm text-gray-900 dark:text-gray-100">
+                        <p className="text-sm font-medium text-foreground mb-2">Response</p>
+                        <div className="bg-card border border-border rounded p-3 text-sm text-foreground">
                           {qf.response.message || qf.response.template}
                         </div>
                       </div>
                     )}
 
                     {qf.response?.redirectToWhatsApp && (
-                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 text-sm text-green-700 dark:text-green-400">
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-3 text-sm text-green-700 dark:text-green-400">
                         ✓ This quickflow redirects to WhatsApp
                       </div>
                     )}
 
                     <div className="grid grid-cols-3 gap-4">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Times Triggered</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">{qf.statistics?.totalTriggered || 0}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Times Triggered</p>
+                        <p className="text-lg font-bold text-foreground">{qf.statistics?.totalTriggered || 0}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Replies Sent</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">{qf.statistics?.totalRepliesSent || 0}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Replies Sent</p>
+                        <p className="text-lg font-bold text-foreground">{qf.statistics?.totalRepliesSent || 0}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Success Rate</p>
-                        <p className="text-lg font-bold text-gray-900 dark:text-white">
+                        <p className="text-sm text-muted-foreground mb-1">Success Rate</p>
+                        <p className="text-lg font-bold text-foreground">
                           {qf.statistics?.totalTriggered ? Math.round((qf.statistics.totalRepliesSent / qf.statistics.totalTriggered) * 100) : 0}%
                         </p>
                       </div>
@@ -404,13 +404,13 @@ export default function InstagramQuickflowsPage() {
                 )}
 
                 {/* Actions */}
-                <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/30 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <div className="px-6 py-4 bg-muted/30 border-t border-border flex justify-end gap-3">
                   <button
                     onClick={() => handleToggle(qf._id, !qf.enabled)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors ${
                       qf.enabled
-                        ? 'text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20'
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        ? 'text-primary text-primary hover:bg-teal-50 dark:hover:bg-teal-900/20'
+                        : 'text-muted-foreground hover:bg-accent'
                     }`}
                   >
                     {qf.enabled ? <FaToggleOn /> : <FaToggleOff />}
@@ -419,14 +419,14 @@ export default function InstagramQuickflowsPage() {
 
                   <Link
                     href={`/automation/instagram-quickflows/edit/${qf._id}`}
-                    className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl font-medium transition-colors"
                   >
                     <FaEdit /> Edit
                   </Link>
 
                   <button
                     onClick={() => handleDelete(qf._id)}
-                    className="flex items-center gap-2 px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg font-medium transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-medium transition-colors"
                   >
                     <FaTrash /> Delete
                   </button>

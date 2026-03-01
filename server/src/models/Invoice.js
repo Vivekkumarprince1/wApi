@@ -25,10 +25,10 @@ const InvoiceSchema = new mongoose.Schema({
   dueAt: { type: Date },
   paidAt: { type: Date },
 
-  // Meta pass-through reconciliation (optional)
-  metaInvoiceId: { type: String },
-  metaAmountCents: { type: Number },
-  metaDeltaCents: { type: Number }
+  // Provider pass-through reconciliation (optional)
+  providerInvoiceId: { type: String },
+  providerAmountCents: { type: Number },
+  providerDeltaCents: { type: Number }
 }, { timestamps: true });
 
 InvoiceSchema.index({ workspace: 1, billingPeriod: 1 });

@@ -46,16 +46,18 @@ class TemplateAbuseService {
       await metric.save();
 
       await AuditLog.create({
-        workspaceId,
-        entityType: 'template',
-        entityId: templateData.name,
-        action: 'create',
+        workspace: workspaceId,
+        action: 'template.created',
+        resource: {
+          type: 'template',
+          name: templateData.name
+        },
         details: {
           phoneNumberId,
           contentHash,
           category: templateData.category || 'MARKETING',
-        },
-        status: 'success',
+          status: 'success',
+        }
       });
 
       return { success: true, templateName: templateData.name };
@@ -91,15 +93,17 @@ class TemplateAbuseService {
 
       // Log audit trail
       await AuditLog.create({
-        workspaceId,
-        entityType: 'template',
-        entityId: templateName,
-        action: 'reject',
+        workspace: workspaceId,
+        action: 'template.rejected',
+        resource: {
+          type: 'template',
+          name: templateName
+        },
         details: {
           reason: rejectionReason,
           retryCount: metric.retryCount,
-        },
-        status: 'warning',
+          status: 'warning',
+        }
       });
 
       // Check if workspace exceeds abuse threshold
@@ -124,12 +128,13 @@ class TemplateAbuseService {
       );
 
       await AuditLog.create({
-        workspaceId,
-        entityType: 'template',
-        entityId: templateName,
-        action: 'approve',
-        details: {},
-        status: 'success',
+        workspace: workspaceId,
+        action: 'template.approved',
+        resource: {
+          type: 'template',
+          name: templateName
+        },
+        details: { status: 'success' },
       });
 
       return { success: true };
@@ -252,17 +257,19 @@ class TemplateAbuseService {
       // Threshold: 5 rejections in 24h OR >50% rejection rate in 24h
       if (rejected24h >= 5 || rejectionRate24h > 50) {
         await AuditLog.create({
-          workspaceId,
-          entityType: 'workspace',
-          entityId: workspaceId,
-          action: 'abuse_flag',
+          workspace: workspaceId,
+          action: 'workspace.abuse_flag',
+          resource: {
+            type: 'workspace',
+            id: workspaceId
+          },
           details: {
             rejections24h: rejected24h,
             total24h,
             rejectionRate: rejectionRate24h,
             threshold: 'EXCEEDED',
-          },
-          status: 'critical',
+            status: 'critical',
+          }
         });
 
         logger.error(`[TemplateAbuseService] ABUSE DETECTED:`, {

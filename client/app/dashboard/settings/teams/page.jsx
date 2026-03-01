@@ -60,42 +60,42 @@ function TeamsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className=" flex items-center justify-center">
         <FaSpinner className="animate-spin text-3xl text-purple-600" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className=" p-6">
       <div className="max-w-5xl mx-auto mb-6 flex items-center gap-3">
-        <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+        <div className="w-12 h-12 bg-purple-600 rounded-xl flex items-center justify-center">
           <FaUsersCog className="text-white text-xl" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Teams</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Organize agents into teams</p>
+          <h1 className="text-2xl font-bold text-foreground">Teams</h1>
+          <p className="text-sm text-muted-foreground">Organize agents into teams</p>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
-        <form onSubmit={createTeam} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Create Team</h2>
+        <form onSubmit={createTeam} className="bg-card rounded-xl shadow-premium p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Create Team</h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
+              <label className="block text-sm text-foreground mb-1">Team Name</label>
               <input 
                 value={name} 
                 onChange={(e) => setName(e.target.value)} 
                 required 
                 placeholder="e.g., Support Team"
-                className="w-full px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white" 
+                className="w-full px-3 py-2 rounded border border-border bg-white dark:bg-muted text-foreground" 
               />
             </div>
             <button 
               type="submit" 
               disabled={creating}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-50"
             >
               {creating ? <FaSpinner className="animate-spin" /> : <FaPlus />}
               {creating ? 'Creating...' : 'Create Team'}
@@ -103,21 +103,21 @@ function TeamsContent() {
           </div>
         </form>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Teams ({teams.length})</h2>
+        <div className="bg-card rounded-xl shadow-premium p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Teams ({teams.length})</h2>
           {teams.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-400 text-center py-8">No teams created yet</p>
+            <p className="text-muted-foreground text-center py-8">No teams created yet</p>
           ) : (
             <ul className="space-y-3">
               {teams.map(t => (
-                <li key={t._id || t.id} className="border border-gray-200 dark:border-gray-700 rounded p-4 flex items-center justify-between">
+                <li key={t._id || t.id} className="border border-border rounded p-4 flex items-center justify-between">
                   <div>
-                    <h3 className="font-medium text-gray-900 dark:text-white">{t.name}</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">{t.memberCount || t.members?.length || 0} members</p>
+                    <h3 className="font-medium text-foreground">{t.name}</h3>
+                    <p className="text-xs text-muted-foreground">{t.memberCount || t.members?.length || 0} members</p>
                   </div>
                   <button 
                     onClick={() => deleteTeam(t._id || t.id)} 
-                    className="text-red-500 hover:text-red-700"
+                    className="text-destructive hover:text-destructive/80"
                   >
                     <FaTrash />
                   </button>

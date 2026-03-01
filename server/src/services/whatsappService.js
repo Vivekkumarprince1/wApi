@@ -1,7 +1,8 @@
 const axios = require('axios');
 const Message = require('../models/Message');
 const Workspace = require('../models/Workspace');
-const bspMessagingService = require('./bspMessagingService');
+const gupshupService = require('./gupshupService');
+const bspConfig = require('../config/bspConfig');
 const { createQueue } = require('./queue');
 
 // create a BullMQ queue for WhatsApp sends
@@ -44,10 +45,16 @@ async function processSendJob(job) {
   const to = message.meta?.to || (message.contact && message.contact.phone);
   if (!to) throw new Error('No recipient phone');
   
+  const source = workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || bspConfig.gupshup.sourceNumber;
+  if (!source) {
+    throw new Error('GUPSHUP_SOURCE_NUMBER_NOT_CONFIGURED');
+  }
+
   try {
-    // Interakt-style: all sends go through centralized BSP service
-    const result = await bspMessagingService.sendTextMessage(workspace._id, to, message.body, {
-      contactId: message.contact?._id
+    const result = await gupshupService.sendText({
+      source,
+      destination: to,
+      text: message.body
     });
     
     await Message.findByIdAndUpdate(messageId, { 
@@ -105,7 +112,10 @@ async function processCampaignMessage(job) {
     throw new Error(`CAMPAIGN_AUTO_PAUSED: ${reason}`);
   }
   
-  // Interakt-style: no per-tenant tokens allowed
+  const source = workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || bspConfig.gupshup.sourceNumber;
+  if (!source) {
+    throw new Error('GUPSHUP_SOURCE_NUMBER_NOT_CONFIGURED');
+  }
   
   // ✅ Get or create message record (idempotency)
   let message = await Message.findOne({ 
@@ -141,15 +151,13 @@ async function processCampaignMessage(job) {
       }) || [];
     }
     
-    // ✅ Send template message via Meta API
-    const result = await bspMessagingService.sendTemplateMessage(
-      workspace._id,
-      contact.phone,
-      template.metaTemplateName || template.name,
-      'en',
-      templateParams.length > 0 ? [{ type: 'body', parameters: templateParams }] : [],
-      { contactId: contact._id, campaignId }
-    );
+    const result = await gupshupService.sendTemplate({
+      source,
+      destination: contact.phone,
+      templateId: template.metaTemplateId || template.name,
+      languageCode: template.language || 'en',
+      params: templateParams.map((param) => param.text)
+    });
     
     // ✅ Update Message
     message.status = 'sent';
@@ -186,7 +194,7 @@ async function processCampaignMessage(job) {
     
     return result;
   } catch (err) {
-    // ✅ Handle specific Meta errors
+    // ✅ Handle provider errors
     const errorMessage = err.message || '';
     
     // Check for token expiry
@@ -271,10 +279,9 @@ async function processCampaignBatch(job) {
   if (!template) throw new Error('Template not found');
   
   const workspace = await Workspace.findById(workspaceId);
-  const accessToken = workspace.whatsappAccessToken;
-  const phoneNumberId = workspace.whatsappPhoneNumberId;
+  const source = workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || bspConfig.gupshup.sourceNumber;
   
-  if (!accessToken || !phoneNumberId) throw new Error('WABA credentials missing');
+  if (!source) throw new Error('GUPSHUP_SOURCE_NUMBER_NOT_CONFIGURED');
 
   // Process contacts sequentially in the batch
   const results = [];
@@ -314,15 +321,13 @@ async function processCampaignBatch(job) {
         }) || [];
       }
       
-      // 3. Send Message
-      const result = await metaService.sendTemplateMessage(
-        accessToken,
-        phoneNumberId,
-        contact.phone,
-        template.name,
-        template.language || 'en', 
-        templateParams.length > 0 ? [{ type: 'body', parameters: templateParams }] : []
-      );
+      const result = await gupshupService.sendTemplate({
+        source,
+        destination: contact.phone,
+        templateId: template.metaTemplateId || template.name,
+        languageCode: template.language || 'en',
+        params: templateParams.map((param) => param.text)
+      });
       
       // 4. Update Success
       await CampaignMessage.findByIdAndUpdate(campaignMessage._id, {

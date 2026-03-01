@@ -120,14 +120,14 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center overflow-y-auto">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 my-8">
+      <div className="bg-card rounded-lg shadow-xl max-w-2xl w-full mx-4 my-8">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-bold text-foreground">
               {contact.firstName} {contact.lastName}
             </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{contact.phone}</p>
+            <p className="text-sm text-muted-foreground">{contact.phone}</p>
           </div>
           <button
             onClick={onClose}
@@ -142,27 +142,27 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
           {/* Contact Basic Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-1">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                 Email
               </label>
-              <p className="text-gray-900 dark:text-white">{contact.email || '-'}</p>
+              <p className="text-foreground">{contact.email || '-'}</p>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-1">
+              <label className="block text-xs font-semibold text-muted-foreground uppercase mb-1">
                 Tags
               </label>
-              <p className="text-gray-900 dark:text-white">
+              <p className="text-foreground">
                 {contact.tags && contact.tags.length > 0 ? contact.tags.join(', ') : '-'}
               </p>
             </div>
           </div>
 
           {/* Divider */}
-          <hr className="border-gray-200 dark:border-gray-700" />
+          <hr className="border-border" />
 
           {/* Sales CRM Section */}
           <div className="bg-gradient-to-br from-teal-50 to-blue-50 dark:from-teal-900/20 dark:to-blue-900/20 rounded-lg p-6 border border-teal-200 dark:border-teal-800">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               Sales CRM
             </h3>
 
@@ -172,7 +172,7 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
               </div>
             ) : !activeDeal ? (
               <div className="text-center py-8">
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                <p className="text-muted-foreground mb-4">
                   No active deal for this contact
                 </p>
                 <button
@@ -180,7 +180,7 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
                     onClose();
                     if (onAddToPipeline) onAddToPipeline(contact);
                   }}
-                  className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto"
+                  className="px-4 py-2 bg-teal-600 hover:bg-primary/90 text-white rounded-lg font-medium transition-colors flex items-center gap-2 mx-auto"
                 >
                   <FaPlus /> Add to Pipeline
                 </button>
@@ -190,15 +190,15 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
                 {/* Pipeline & Stage Info */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase mb-2">
                       Pipeline
                     </label>
-                    <p className="text-gray-900 dark:text-white font-medium">
+                    <p className="text-foreground font-medium">
                       {pipeline?.name || 'Loading...'}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase mb-2">
                       Current Stage
                     </label>
                     {pipeline && pipeline.stages ? (
@@ -206,7 +206,7 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
                         value={activeDeal.stage}
                         onChange={(e) => handleMoveStage(e.target.value)}
                         disabled={updatingStage}
-                        className="w-full px-3 py-2 rounded-lg border border-teal-300 dark:border-teal-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:opacity-50"
+                        className="w-full px-3 py-2 rounded-lg border border-teal-300 dark:border-teal-700 bg-white dark:bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
                       >
                         {pipeline.stages.map(stage => (
                           <option key={stage.id} value={stage.id}>
@@ -215,7 +215,7 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
                         ))}
                       </select>
                     ) : (
-                      <p className="text-gray-900 dark:text-white">{activeDeal.stage}</p>
+                      <p className="text-foreground">{activeDeal.stage}</p>
                     )}
                   </div>
                 </div>
@@ -223,18 +223,18 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
                 {/* Deal Value & Assigned Agent */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase mb-2">
                       Deal Value
                     </label>
-                    <p className="text-gray-900 dark:text-white font-medium">
+                    <p className="text-foreground font-medium">
                       {activeDeal.currency} {activeDeal.value?.toLocaleString() || '0'}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">
+                    <label className="block text-xs font-semibold text-muted-foreground uppercase mb-2">
                       Assigned Agent
                     </label>
-                    <p className="text-gray-900 dark:text-white">
+                    <p className="text-foreground">
                       {activeDeal.assignedAgent?.name || '-'}
                     </p>
                   </div>
@@ -242,7 +242,7 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
 
                 {/* Notes Section */}
                 <div className="border-t border-teal-200 dark:border-teal-800 pt-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-3">Notes</h4>
+                  <h4 className="font-semibold text-foreground mb-3">Notes</h4>
                   
                   {/* Add Note Form */}
                   <form onSubmit={handleAddNote} className="mb-4 flex gap-2">
@@ -251,12 +251,12 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
                       value={newNote}
                       onChange={(e) => setNewNote(e.target.value)}
                       placeholder="Add a note..."
-                      className="flex-1 px-3 py-2 rounded-lg border border-teal-300 dark:border-teal-700 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+                      className="flex-1 px-3 py-2 rounded-lg border border-teal-300 dark:border-teal-700 bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ring text-sm"
                       disabled={addingNote}
                     />
                     <button
                       type="submit"
-                      className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 text-sm"
+                      className="px-3 py-2 bg-teal-600 hover:bg-primary/90 text-white rounded-lg font-medium transition-colors disabled:opacity-50 text-sm"
                       disabled={addingNote || !newNote.trim()}
                     >
                       {addingNote ? <FaSpinner className="animate-spin" /> : 'Add'}
@@ -267,9 +267,9 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
                   {activeDeal.notes && activeDeal.notes.length > 0 ? (
                     <div className="space-y-2 max-h-40 overflow-y-auto">
                       {activeDeal.notes.map((note, idx) => (
-                        <div key={idx} className="p-3 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                          <p className="text-sm text-gray-900 dark:text-white">{note.text}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div key={idx} className="p-3 bg-white dark:bg-muted rounded-lg border border-gray-200 dark:border-border">
+                          <p className="text-sm text-foreground">{note.text}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
                             {note.author?.name && `by ${note.author.name}`}
                             {note.createdAt && ` • ${new Date(note.createdAt).toLocaleDateString()}`}
                           </p>
@@ -277,7 +277,7 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">No notes yet</p>
+                    <p className="text-sm text-muted-foreground italic">No notes yet</p>
                   )}
                 </div>
               </div>
@@ -305,10 +305,10 @@ export default function ContactDetailModal({ isOpen, onClose, contact, onAddToPi
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+        <div className="p-6 border-t border-border flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="px-4 py-2 rounded-lg border border-border text-foreground font-medium hover:bg-accent transition-colors"
           >
             Close
           </button>

@@ -42,6 +42,13 @@ const LIMITS = {
   URL_SUFFIX_MAX_LENGTH: 500
 };
 
+const CATEGORY_ALIASES = {
+  PROMOTIONAL: 'MARKETING',
+  TRANSACTIONAL: 'UTILITY',
+  SERVICE: 'UTILITY',
+  OTP: 'AUTHENTICATION'
+};
+
 // Regex patterns
 const PATTERNS = {
   TEMPLATE_NAME: /^[a-z0-9_]+$/,
@@ -169,7 +176,9 @@ function validateCategory(category) {
     return errors;
   }
   
-  if (!VALID_META_CATEGORIES.includes(category)) {
+  const normalizedCategory = CATEGORY_ALIASES[String(category).toUpperCase()] || category;
+
+  if (!VALID_META_CATEGORIES.includes(normalizedCategory)) {
     errors.push({ 
       field: 'category', 
       message: `Invalid category: ${category}. Must be one of: ${VALID_META_CATEGORIES.join(', ')}` 
@@ -729,6 +738,131 @@ function buildMetaPayload(template, namespacedName) {
   };
 }
 
+function normalizeTemplatePayload(payload = {}) {
+  const normalized = {
+    ...payload
+  };
+
+  if (normalized.category) {
+    const upperCategory = String(normalized.category).toUpperCase();
+    normalized.category = CATEGORY_ALIASES[upperCategory] || upperCategory;
+  }
+
+  // Legacy flat fields
+  if (typeof normalized.body === 'string') {
+    normalized.body = { text: normalized.body, examples: [] };
+  }
+
+  if (typeof normalized.footer === 'string') {
+    normalized.footer = normalized.footer
+      ? { enabled: true, text: normalized.footer }
+      : { enabled: false, text: '' };
+  }
+
+  if (Array.isArray(normalized.buttons)) {
+    normalized.buttons = {
+      enabled: normalized.buttons.length > 0,
+      items: normalized.buttons.map((button) => ({
+        ...button,
+        phoneNumber: button.phoneNumber || button.phone_number || button.phone,
+        urlSuffix: button.urlSuffix || button.url_suffix
+      }))
+    };
+  }
+
+  if (normalized.header && typeof normalized.header === 'object' && !normalized.header.format) {
+    const headerType = normalized.header.type || 'NONE';
+    normalized.header = headerType === 'NONE'
+      ? { enabled: false, format: 'NONE' }
+      : {
+          enabled: true,
+          format: headerType,
+          text: normalized.header.text || '',
+          mediaUrl: normalized.header.mediaUrl || normalized.header.media_url || '',
+          mediaHandle: normalized.header.mediaHandle || normalized.header.media_handle || '',
+          example: normalized.header.example || ''
+        };
+  }
+
+  if (
+    normalized.header &&
+    normalized.header.enabled === true &&
+    normalized.header.format === 'TEXT' &&
+    !String(normalized.header.text || '').trim()
+  ) {
+    normalized.header = { enabled: false, format: 'NONE' };
+  }
+
+  // Components format used by multiple frontend flows
+  const hasStructuredBody = normalized.body && typeof normalized.body === 'object' && normalized.body.text;
+  if (Array.isArray(normalized.components) && !hasStructuredBody) {
+    const parsed = {
+      header: { enabled: false, format: 'NONE' },
+      body: { text: '', examples: [] },
+      footer: { enabled: false, text: '' },
+      buttons: { enabled: false, items: [] }
+    };
+
+    for (const component of normalized.components) {
+      switch (component.type) {
+        case 'HEADER':
+          parsed.header = {
+            enabled: true,
+            format: component.format || component.type || 'TEXT',
+            text: component.text || '',
+            example: component.example?.header_text?.[0] || '',
+            mediaUrl: component.example?.header_url?.[0] || '',
+            mediaHandle: component.example?.header_handle?.[0] || ''
+          };
+          break;
+        case 'BODY':
+          parsed.body = {
+            text: component.text || '',
+            examples: component.example?.body_text?.[0] || []
+          };
+          break;
+        case 'FOOTER':
+          parsed.footer = {
+            enabled: true,
+            text: component.text || ''
+          };
+          break;
+        case 'BUTTONS':
+          parsed.buttons = {
+            enabled: true,
+            items: (component.buttons || []).map((button) => ({
+              type: button.type,
+              text: button.text,
+              url: button.url,
+              phoneNumber: button.phone_number || button.phoneNumber,
+              example: Array.isArray(button.example) ? button.example[0] : button.example || '',
+              urlSuffix: button.urlSuffix || button.url_suffix
+            }))
+          };
+          break;
+        default:
+          break;
+      }
+    }
+
+    normalized.header = parsed.header;
+    normalized.body = parsed.body;
+    normalized.footer = parsed.footer;
+    normalized.buttons = parsed.buttons;
+
+    if (
+      normalized.header &&
+      normalized.header.enabled === true &&
+      normalized.header.format === 'TEXT' &&
+      !String(normalized.header.text || '').trim()
+    ) {
+      normalized.header = { enabled: false, format: 'NONE' };
+    }
+  }
+
+  return normalized;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // EXPRESS MIDDLEWARE
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -737,7 +871,10 @@ function buildMetaPayload(template, namespacedName) {
  * Middleware to validate template before creation
  */
 function validateTemplateCreate(req, res, next) {
-  const { name, language, category, header, body, footer, buttons } = req.body;
+  const normalized = normalizeTemplatePayload(req.body || {});
+  req.body = { ...req.body, ...normalized };
+
+  const { name, language, category, header, body, footer, buttons } = normalized;
   
   const template = { name, language, category, header, body, footer, buttons };
   const result = validateTemplate(template);
@@ -768,7 +905,10 @@ function validateTemplateSubmit(req, res, next) {
  * Middleware to validate template update
  */
 function validateTemplateUpdate(req, res, next) {
-  const { name, language, category, header, body, footer, buttons } = req.body;
+  const normalized = normalizeTemplatePayload(req.body || {});
+  req.body = { ...req.body, ...normalized };
+
+  const { name, language, category, header, body, footer, buttons, expectedVersion, expectedStatus } = normalized;
   
   // Build template object for validation (only include provided fields)
   const template = {};
@@ -786,6 +926,40 @@ function validateTemplateUpdate(req, res, next) {
   if (template.name) errors.push(...validateName(template.name));
   if (template.language) errors.push(...validateLanguage(template.language));
   if (template.category) errors.push(...validateCategory(template.category));
+
+  if (expectedVersion !== undefined && expectedVersion !== null && expectedVersion !== '') {
+    const parsed = Number(expectedVersion);
+    if (!Number.isInteger(parsed) || parsed < 1) {
+      errors.push({
+        field: 'expectedVersion',
+        message: 'expectedVersion must be a positive integer'
+      });
+    }
+  }
+
+  if (expectedStatus !== undefined && expectedStatus !== null && expectedStatus !== '') {
+    const allowedStatuses = [
+      'DRAFT',
+      'PENDING',
+      'APPROVED',
+      'REJECTED',
+      'PAUSED',
+      'DISABLED',
+      'IN_APPEAL',
+      'PENDING_DELETION',
+      'DELETED',
+      'LIMIT_EXCEEDED'
+    ];
+    const normalizedStatus = String(expectedStatus).toUpperCase();
+    if (!allowedStatuses.includes(normalizedStatus)) {
+      errors.push({
+        field: 'expectedStatus',
+        message: `expectedStatus must be one of: ${allowedStatuses.join(', ')}`
+      });
+    } else {
+      req.body.expectedStatus = normalizedStatus;
+    }
+  }
   
   const actualErrors = errors.filter(e => e.severity !== 'warning');
   

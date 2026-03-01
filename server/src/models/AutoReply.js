@@ -10,10 +10,15 @@ const AutoReplySchema = new mongoose.Schema({
   // Keywords that trigger this auto-reply
   keywords: {
     type: [String],
-    required: true,
+    default: [],
     validate: {
-      validator: (v) => v && v.length > 0 && v.length <= 10,
-      message: 'Keywords must be between 1 and 10'
+      validator: function(v) {
+        if (this.triggerType === 'keyword') {
+          return v && v.length > 0 && v.length <= 10;
+        }
+        return true;
+      },
+      message: 'Keywords are required for keyword-based auto-replies (max 10)'
     }
   },
   
@@ -22,6 +27,19 @@ const AutoReplySchema = new mongoose.Schema({
     type: String,
     enum: ['contains', 'exact', 'starts_with'],
     default: 'contains'
+  },
+
+  // Trigger type: always, outside_business_hours, specific_time
+  triggerType: {
+    type: String,
+    enum: ['keyword', 'always', 'outside_business_hours'],
+    default: 'keyword'
+  },
+
+  // Business hours reference if needed (can use workspace defaults)
+  useWorkspaceBusinessHours: {
+    type: Boolean,
+    default: true
   },
   
   // Template to send (must be APPROVED)

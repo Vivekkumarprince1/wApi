@@ -1,6 +1,6 @@
 const Template = require('../models/Template');
 const Workspace = require('../models/Workspace');
-const metaService = require('../services/metaService');
+const gupshupService = require('../services/gupshupService');
 const bspMessagingService = require('../services/bspMessagingService');
 const bspConfig = require('../config/bspConfig');
 

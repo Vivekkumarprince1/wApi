@@ -2,15 +2,15 @@
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * META ESB CALLBACK HANDLER
- * Processes OAuth code + state from Meta redirect
+ * GUPSHUP ONBOARDING CALLBACK HANDLER
+ * Processes app/state callback from Gupshup redirect
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaSpinner, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
-import { esbComplete } from '@/lib/api';
+import { bspComplete } from '@/lib/api';
 
 function ESBCallbackContent() {
   const router = useRouter();
@@ -31,20 +31,15 @@ function ESBCallbackContent() {
         }
 
         // Call BSP complete endpoint
-        const response = await esbComplete({ code, state });
+        const response = await bspComplete({ code, state });
 
         if (response?.success) {
           setStatus('success');
-          const phoneStatus = response?.workspace?.phoneStatus || response?.stage1?.phoneStatus;
-          if (phoneStatus && phoneStatus !== 'active' && phoneStatus !== 'CONNECTED') {
-            setMessage('WhatsApp setup is in progress. Phone activation is pending.');
-          } else {
-            setMessage('WhatsApp connected successfully!');
-          }
+          setMessage('WhatsApp connected via Gupshup successfully!');
 
           // Redirect to dashboard after 2 seconds
           setTimeout(() => {
-            router.push('/dashboard/whatsapp-assets');
+            router.push('/dashboard');
           }, 2000);
         } else {
           setStatus('error');

@@ -104,19 +104,19 @@ const LoginOTP = ({
       exit={{ opacity: 0, x: -20 }}
       className="w-full max-w-md mx-auto"
     >
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 border border-gray-200 dark:border-gray-700">
+      <div className="bg-card rounded-2xl shadow-xl p-8 border border-border">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <FaEnvelope className="text-white text-2xl" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Verify Your Login
           </h2>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-muted-foreground">
             We've sent a 6-digit code to
           </p>
-          <p className="text-green-600 dark:text-green-400 font-medium">
+          <p className="text-emerald-600 dark:text-emerald-400 font-medium">
             {email}
           </p>
         </div>
@@ -124,7 +124,7 @@ const LoginOTP = ({
         {/* OTP Input */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            <label className="block text-sm font-medium text-foreground mb-3">
               Enter the 6-digit code
             </label>
             <div className="flex justify-between space-x-2">
@@ -137,7 +137,7 @@ const LoginOTP = ({
                   value={digit}
                   onChange={(e) => handleOtpChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="w-12 h-12 text-center text-lg font-semibold border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                  className="w-12 h-12 text-center text-lg font-semibold border-2 border-border rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 bg-white dark:bg-muted text-foreground transition-colors"
                   placeholder="0"
                 />
               ))}
@@ -146,7 +146,7 @@ const LoginOTP = ({
 
           {/* Timer */}
           <div className="text-center">
-            <div className="flex items-center justify-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground">
               <FaClock className="text-gray-500" />
               <span>Code expires in {formatTime(timeLeft)}</span>
             </div>
@@ -177,7 +177,7 @@ const LoginOTP = ({
 
           {/* Resend OTP */}
           <div className="text-center">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <p className="text-sm text-muted-foreground mb-2">
               Didn't receive the code?
             </p>
             <button
@@ -199,7 +199,7 @@ const LoginOTP = ({
         <div className="mt-6 text-center">
           <button
             onClick={onBack}
-            className="flex items-center justify-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            className="flex items-center justify-center space-x-2 text-muted-foreground hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
           >
             <FaArrowLeft className="text-sm" />
             <span>Back to Login</span>

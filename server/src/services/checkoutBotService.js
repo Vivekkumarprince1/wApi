@@ -4,7 +4,6 @@ const Product = require('../models/Product');
 const Workspace = require('../models/Workspace');
 const Contact = require('../models/Contact');
 const whatsappService = require('./whatsappService');
-const metaService = require('./metaService');
 
 /**
  * CHECKOUT BOT SERVICE

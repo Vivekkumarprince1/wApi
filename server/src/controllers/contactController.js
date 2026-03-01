@@ -1,11 +1,51 @@
 const Contact = require('../models/Contact');
 const Workspace = require('../models/Workspace');
-const metaService = require('../services/metaService');
+const gupshupService = require('../services/gupshupService');
+
+function normalizeContactPayload(payload = {}) {
+  const firstName = payload.firstName ?? payload.first_name;
+  const lastName = payload.lastName ?? payload.last_name;
+  const email = payload.email;
+
+  const metadata = {
+    ...(payload.metadata || {})
+  };
+
+  if (typeof firstName === 'string') metadata.firstName = firstName;
+  if (typeof lastName === 'string') metadata.lastName = lastName;
+  if (typeof email === 'string') metadata.email = email;
+
+  const normalized = {
+    phone: payload.phone || payload.phone_number,
+    name: payload.name,
+    tags: Array.isArray(payload.tags) ? payload.tags : undefined,
+    metadata
+  };
+
+  if (!normalized.name && (metadata.firstName || metadata.lastName)) {
+    normalized.name = `${metadata.firstName || ''} ${metadata.lastName || ''}`.trim();
+  }
+
+  return normalized;
+}
 
 async function createContact(req, res, next) {
   try {
     const workspace = req.user.workspace;
-    const contact = await Contact.create({ workspace, ...req.body });
+    const normalized = normalizeContactPayload(req.body);
+
+    if (!normalized.phone) {
+      return res.status(400).json({ message: 'Phone number is required' });
+    }
+
+    const contact = await Contact.create({
+      workspace,
+      phone: normalized.phone,
+      name: normalized.name,
+      tags: normalized.tags,
+      metadata: normalized.metadata
+    });
+
     res.status(201).json(contact);
   } catch (err) { next(err); }
 }
@@ -29,7 +69,7 @@ async function uploadContacts(req, res, next) {
       try {
         // Support both phone and phone_number fields
         const phone = contactData.phone || contactData.phone_number;
-        
+
         if (!phone) {
           results.failed.push({ data: contactData, error: 'Phone number is required' });
           continue;
@@ -39,8 +79,8 @@ async function uploadContacts(req, res, next) {
         const contactObj = {
           workspace,
           phone,
-          name: contactData.name || (contactData.first_name || contactData.last_name 
-            ? `${contactData.first_name || ''} ${contactData.last_name || ''}`.trim() 
+          name: contactData.name || (contactData.first_name || contactData.last_name
+            ? `${contactData.first_name || ''} ${contactData.last_name || ''}`.trim()
             : undefined),
           metadata: {}
         };
@@ -76,9 +116,9 @@ async function listContacts(req, res, next) {
   try {
     const workspace = req.user.workspace;
     const { page = 1, limit = 50, search = '' } = req.query;
-    
+
     const query = { workspace };
-    
+
     // Add search functionality
     if (search) {
       query.$or = [
@@ -89,13 +129,13 @@ async function listContacts(req, res, next) {
         { 'metadata.lastName': { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     const total = await Contact.countDocuments(query);
     const contacts = await Contact.find(query)
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
       .skip((parseInt(page) - 1) * parseInt(limit));
-    
+
     // Transform contacts to include firstName, lastName, email at root level for frontend
     const transformedContacts = contacts.map(contact => ({
       _id: contact._id,
@@ -109,9 +149,9 @@ async function listContacts(req, res, next) {
       metadata: contact.metadata,
       createdAt: contact.createdAt
     }));
-    
-    res.json({ 
-      contacts: transformedContacts, 
+
+    res.json({
+      contacts: transformedContacts,
       total,
       page: parseInt(page),
       pages: Math.ceil(total / parseInt(limit))
@@ -122,23 +162,23 @@ async function listContacts(req, res, next) {
 async function getContactStats(req, res, next) {
   try {
     const workspace = req.user.workspace;
-    
+
     const total = await Contact.countDocuments({ workspace });
-    const withEmail = await Contact.countDocuments({ 
-      workspace, 
-      'metadata.email': { $exists: true, $ne: '' } 
+    const withEmail = await Contact.countDocuments({
+      workspace,
+      'metadata.email': { $exists: true, $ne: '' }
     });
-    
+
     // Get contacts from this month
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    
+
     const newThisMonth = await Contact.countDocuments({
       workspace,
       createdAt: { $gte: startOfMonth }
     });
-    
+
     res.json({
       total,
       withEmail,
@@ -162,7 +202,21 @@ async function getContact(req, res, next) {
 async function updateContact(req, res, next) {
   try {
     const workspace = req.user.workspace;
-    const contact = await Contact.findOneAndUpdate({ _id: req.params.id, workspace }, req.body, { new: true });
+    const normalized = normalizeContactPayload(req.body);
+
+    const update = {};
+    if (normalized.phone) update.phone = normalized.phone;
+    if (typeof normalized.name === 'string') update.name = normalized.name;
+    if (Array.isArray(normalized.tags)) update.tags = normalized.tags;
+    if (normalized.metadata && Object.keys(normalized.metadata).length > 0) {
+      update.metadata = normalized.metadata;
+    }
+
+    const contact = await Contact.findOneAndUpdate(
+      { _id: req.params.id, workspace },
+      update,
+      { new: true }
+    );
     res.json(contact);
   } catch (err) { next(err); }
 }
@@ -175,15 +229,15 @@ async function deleteContact(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { 
-  createContact, 
+module.exports = {
+  createContact,
   uploadContacts,
-  listContacts, 
+  listContacts,
   getContactStats,
-  getContact, 
+  getContact,
   getContactWhatsAppProfile,
-  updateContact, 
-  deleteContact 
+  updateContact,
+  deleteContact
 };
 
 async function getContactWhatsAppProfile(req, res, next) {
@@ -195,15 +249,14 @@ async function getContactWhatsAppProfile(req, res, next) {
     const workspace = await Workspace.findById(workspaceId);
     if (!workspace) return res.status(404).json({ message: 'Workspace not found' });
 
-    const accessToken = workspace.whatsappAccessToken || process.env.META_ACCESS_TOKEN;
-    const wabaPhoneNumberId = workspace.whatsappPhoneNumberId || process.env.META_PHONE_NUMBER_ID;
+    const accessToken = workspace.gupshupIdentity?.appApiKey;
+    const wabaPhoneNumberId = workspace.gupshupIdentity?.source;
 
     if (!accessToken || !wabaPhoneNumberId) {
-      return res.status(400).json({ message: 'WABA credentials not configured for this workspace' });
+      return res.status(400).json({ message: 'CREDENTIALS_MISSING: Workspace Gupshup credentials not configured for this workspace' });
     }
 
-    // Lookup contact profile via Meta
-    const profile = await metaService.lookupContactProfile(accessToken, wabaPhoneNumberId, contact.phone);
+    const profile = await gupshupService.lookupContactProfile(accessToken, wabaPhoneNumberId, contact.phone);
 
     res.json({ success: true, contact: contact, profile });
   } catch (err) {

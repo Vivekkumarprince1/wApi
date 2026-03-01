@@ -70,6 +70,7 @@ async function saveBusinessInfo(req, res, next) {
       businessName,
       industry,
       companySize,
+      annualRevenue,
       website,
       address,
       city,
@@ -81,7 +82,8 @@ async function saveBusinessInfo(req, res, next) {
       gstNumber,
       msmeNumber,
       panNumber,
-      documentType
+      documentType,
+      certificationNumber
     } = req.body;
 
     const user = await User.findById(req.user._id);
@@ -105,6 +107,7 @@ async function saveBusinessInfo(req, res, next) {
     if (businessName) workspace.name = businessName;
     if (industry) workspace.industry = industry;
     if (companySize) workspace.companySize = companySize;
+    if (annualRevenue) workspace.annualRevenue = annualRevenue;
     if (website) workspace.website = website;
     if (address) workspace.address = address;
     if (city) workspace.city = city;
@@ -120,6 +123,7 @@ async function saveBusinessInfo(req, res, next) {
     if (gstNumber) workspace.businessDocuments.gstNumber = gstNumber;
     if (msmeNumber) workspace.businessDocuments.msmeNumber = msmeNumber;
     if (panNumber) workspace.businessDocuments.panNumber = panNumber;
+    if (certificationNumber) workspace.businessDocuments.certificationNumber = certificationNumber;
     if (documentType) workspace.businessDocuments.documentType = documentType;
     workspace.businessDocuments.submittedAt = new Date();
 
@@ -140,7 +144,7 @@ async function saveBusinessInfo(req, res, next) {
     // Attempt to submit business verification to Meta if WABA/business account is configured
     let metaResult = null;
     try {
-      const metaService = require('../services/metaService');
+      const gupshupService = require('../services/gupshupService');
       if (workspace.businessAccountId && workspace.whatsappAccessToken) {
         // Determine which document to use for verification
         const documentNumber = gstNumber || msmeNumber || panNumber;
@@ -162,7 +166,7 @@ async function saveBusinessInfo(req, res, next) {
             panNumber: panNumber
           };
 
-          metaResult = await metaService.submitBusinessVerification(
+          metaResult = await gupshupService.submitBusinessVerification(
             workspace.whatsappAccessToken, 
             workspace.businessAccountId, 
             verificationData
@@ -189,7 +193,7 @@ async function saveBusinessInfo(req, res, next) {
             industry: workspace.industry
           };
 
-          metaResult = await metaService.submitBusinessInfo(
+          metaResult = await gupshupService.submitBusinessInfo(
             workspace.whatsappAccessToken, 
             workspace.businessAccountId, 
             businessData
@@ -330,7 +334,12 @@ async function completeOnboarding(req, res, next) {
 
     res.json({
       success: true,
-      message: 'Onboarding completed successfully'
+      message: 'Onboarding completed successfully',
+      nextSteps: [
+        'Browse the Meta template library to find pre-approved templates',
+        'Create templates from the library for instant approval',
+        'Or create custom templates and submit for approval'
+      ]
     });
   } catch (err) {
     next(err);
@@ -400,10 +409,10 @@ async function connectWhatsApp(req, res, next) {
     // Try to send via WhatsApp first (if in allowed list)
     if (whatsappToken && whatsappPhoneId) {
       try {
-        const metaService = require('../services/metaService');
+        const gupshupService = require('../services/gupshupService');
         const otpMessage = `🔐 Your WhatsApp Business Activation OTP is: *${otp}*\n\nThis code is valid for 10 minutes.\n\nIf you didn't request this, please ignore this message.`;
         
-        const result = await metaService.sendTextMessage(
+        const result = await gupshupService.sendTextMessage(
           whatsappToken,
           whatsappPhoneId,
           cleanedNumber,
@@ -581,10 +590,10 @@ async function resendWhatsAppOTP(req, res, next) {
 
     if (whatsappToken && whatsappPhoneId) {
       try {
-        const metaService = require('../services/metaService');
+        const gupshupService = require('../services/gupshupService');
         const otpMessage = `🔐 Your WhatsApp Business Activation OTP is: *${otp}*\n\nThis code is valid for 10 minutes.\n\nIf you didn't request this, please ignore this message.`;
         
-        const result = await metaService.sendTextMessage(
+        const result = await gupshupService.sendTextMessage(
           whatsappToken,
           whatsappPhoneId,
           phoneNumber,
@@ -751,8 +760,8 @@ async function getVerificationStatus(req, res, next) {
     let metaStatus = null;
     if (workspace.businessAccountId && workspace.whatsappAccessToken) {
       try {
-        const metaService = require('../services/metaService');
-        metaStatus = await metaService.getBusinessVerificationStatus(
+        const gupshupService = require('../services/gupshupService');
+        metaStatus = await gupshupService.getBusinessVerificationStatus(
           workspace.whatsappAccessToken,
           workspace.businessAccountId
         );
@@ -850,151 +859,12 @@ async function checkFeatureAccess(req, res, next) {
 
 // Get Meta configuration for Embedded Signup
 async function getMetaConfig(req, res, next) {
-  try {
-    const config = require('../config');
-    
-    res.json({
-      success: true,
-      appId: config.metaAppId || config.facebookAppId || '',
-      configId: config.metaConfigId || '',
-      sdkVersion: 'v21.0'
-    });
-  } catch (err) {
-    next(err);
-  }
+  return rejectLegacyEsb(res);
 }
 
 // Handle Embedded Signup - Exchange token for WABA info
 async function handleEmbeddedSignup(req, res, next) {
-  try {
-    if (BSP_ONLY) {
-      return rejectLegacyEsb(res);
-    }
-    const { accessToken } = req.body;
-    
-    if (!accessToken) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Access token is required' 
-      });
-    }
-
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    const workspace = await Workspace.findById(user.workspace);
-    if (!workspace) {
-      return res.status(404).json({ success: false, message: 'Workspace not found' });
-    }
-
-    const metaService = require('../services/metaService');
-    const config = require('../config');
-
-    // Exchange short-lived token for long-lived token
-    let longLivedToken = accessToken;
-    try {
-      const tokenExchangeResult = await metaService.exchangeToken(
-        accessToken,
-        config.metaAppId || config.facebookAppId,
-        config.metaAppSecret || config.facebookAppSecret
-      );
-      if (tokenExchangeResult.success) {
-        longLivedToken = tokenExchangeResult.accessToken;
-        console.log('✅ Exchanged for long-lived token');
-      }
-    } catch (tokenErr) {
-      console.log('⚠️ Token exchange failed, using original token:', tokenErr.message);
-    }
-
-    // Debug token to get WABA info
-    const debugInfo = await metaService.debugTokenInfo(longLivedToken);
-    
-    if (!debugInfo.tokenValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or expired access token'
-      });
-    }
-
-    // Try to find WABA and phone number from the token
-    let wabaId = null;
-    let phoneNumberId = null;
-    let displayNumber = null;
-    let verifiedName = null;
-
-    // Check if we have WABA accounts
-    if (debugInfo.wabaAccounts && debugInfo.wabaAccounts.length > 0) {
-      wabaId = debugInfo.wabaAccounts[0].id;
-      
-      // Get phone numbers for this WABA
-      try {
-        const phoneInfo = await metaService.getWABAPhoneNumbers(longLivedToken, wabaId);
-        if (phoneInfo.phoneNumbers && phoneInfo.phoneNumbers.length > 0) {
-          const phone = phoneInfo.phoneNumbers[0];
-          phoneNumberId = phone.id;
-          displayNumber = phone.displayPhoneNumber;
-          verifiedName = phone.verifiedName;
-        }
-      } catch (phoneErr) {
-        console.log('Could not get phone numbers:', phoneErr.message);
-      }
-    }
-
-    if (!wabaId) {
-      return res.status(400).json({
-        success: false,
-        message: 'No WhatsApp Business Account found. Please complete the signup process in the Facebook dialog.',
-        debugInfo: config.env === 'development' ? debugInfo : undefined
-      });
-    }
-
-    // Save to workspace
-    workspace.whatsappAccessToken = longLivedToken;
-    workspace.wabaId = wabaId;
-    workspace.businessAccountId = debugInfo.businessAccounts?.[0]?.id || wabaId;
-    
-    if (phoneNumberId) {
-      workspace.whatsappPhoneNumberId = phoneNumberId;
-      workspace.whatsappPhoneNumber = displayNumber;
-      workspace.connectedAt = new Date();
-      
-      if (!workspace.whatsappSetup) {
-        workspace.whatsappSetup = {};
-      }
-      workspace.whatsappSetup.status = 'connected';
-      workspace.whatsappSetup.completedAt = new Date();
-    }
-
-    // Mark onboarding step
-    if (!workspace.onboarding) {
-      workspace.onboarding = {};
-    }
-    workspace.onboarding.wabaConnectionCompleted = true;
-    workspace.onboarding.wabaConnectionCompletedAt = new Date();
-
-    await workspace.save();
-
-    console.log(`✅ Embedded signup completed for workspace ${workspace._id}`);
-    console.log(`   WABA ID: ${wabaId}`);
-    console.log(`   Phone ID: ${phoneNumberId}`);
-
-    res.json({
-      success: true,
-      message: 'WhatsApp Business Account connected successfully',
-      data: {
-        wabaId: wabaId,
-        phoneNumberId: phoneNumberId,
-        displayNumber: displayNumber,
-        verifiedName: verifiedName,
-        isConnected: !!phoneNumberId
-      }
-    });
-  } catch (err) {
-    console.error('Embedded signup error:', err);
-    next(err);
-  }
+  return rejectLegacyEsb(res);
 }
 
 /**
@@ -1007,509 +877,16 @@ async function handleEmbeddedSignup(req, res, next) {
 
 // Step 1: Start Embedded Signup - Generate ESB URL
 async function startEmbeddedSignupFlow(req, res, next) {
-  try {
-    if (BSP_ONLY) {
-      return rejectLegacyEsb(res);
-    }
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    const workspace = await Workspace.findById(user.workspace);
-    if (!workspace) {
-      return res.status(404).json({ success: false, message: 'Workspace not found' });
-    }
-
-    const metaAutomationService = require('../services/metaAutomationService');
-    const callbackUrl = `${process.env.APP_URL || 'http://localhost:5000'}/api/onboarding/esb/callback`;
-
-    const esbResult = await metaAutomationService.generateEmbeddedSignupURL(
-      user._id,
-      callbackUrl
-    );
-
-    // Save state in workspace for later verification
-    if (!workspace.esbFlow) {
-      workspace.esbFlow = {};
-    }
-    workspace.esbFlow.status = 'signup_initiated';
-    workspace.esbFlow.authState = esbResult.state;
-    workspace.esbFlow.callbackState = esbResult.state;
-    workspace.esbFlow.startedAt = new Date();
-    workspace.esbFlow.createdBy = user.email;
-    await workspace.save();
-
-    console.log(`[ESB] 📋 Started for user: ${user.email}, workspace: ${workspace._id}, timestamp: ${new Date().toISOString()}`);
-
-    res.json({
-      success: true,
-      message: 'ESB flow initiated',
-      url: esbResult.url,
-      state: esbResult.state,
-      configId: esbResult.configId
-    });
-  } catch (error) {
-    console.error('[ESB] ❌ Error starting ESB flow:', {
-      error: error.message,
-      stack: error.stack,
-      userId: req.user._id,
-      timestamp: new Date().toISOString()
-    });
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
+  return rejectLegacyEsb(res);
 }
 
 // Step 2: Handle OAuth Callback from Meta
 async function processEsbCallback(req, res, next) {
-  try {
-    if (BSP_ONLY) {
-      return rejectLegacyEsb(res);
-    }
-    const { code, state } = req.body;
-
-    if (!code || !state) {
-      return res.status(400).json({
-        success: false,
-        message: 'Missing code or state parameter'
-      });
-    }
-
-    const user = await User.findById(req.user?._id);
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User session not found. Please sign in first.'
-      });
-    }
-
-    const workspace = await Workspace.findById(user.workspace);
-    if (!workspace) {
-      return res.status(404).json({ success: false, message: 'Workspace not found' });
-    }
-
-    // Idempotency check - return cached result if already processed
-    // Durable idempotency using Redis (prevents duplicate processing across nodes)
-    getRedis();
-    const idempotencyKey = `idempotency:esb_callback:${crypto.createHash('sha256')
-      .update(JSON.stringify({ workspaceId: workspace._id.toString(), code, state }))
-      .digest('hex')}`;
-    
-    const cachedResult = await getJson(idempotencyKey);
-    if (cachedResult) {
-      console.log(`[ESB] Returning cached result for workspace ${workspace._id}`);
-      return res.json(cachedResult);
-    }
-
-    // Check if already completed
-    if (workspace.esbFlow?.status === 'completed') {
-      const result = {
-        success: true,
-        message: 'WhatsApp Business already connected',
-        data: {
-          businessAccountId: workspace.businessAccountId,
-          wabaId: workspace.wabaId,
-          phoneNumber: workspace.whatsappPhoneNumber,
-          phoneNumberId: workspace.whatsappPhoneNumberId,
-          status: 'completed'
-        }
-      };
-      await setJson(idempotencyKey, result, ESB_IDEMPOTENCY_TTL_SECONDS);
-      return res.json(result);
-    }
-
-    // Verify state for CSRF protection
-    const metaAutomationService = require('../services/metaAutomationService');
-    const { whatsappToken, metaBusinessId, metaWabaId } = require('../config');
-    if (!metaAutomationService.verifyCallbackState(state, workspace.esbFlow?.callbackState)) {
-      console.error('[ESB] State verification failed for workspace:', workspace._id);
-      return res.status(400).json({
-        success: false,
-        message: 'State verification failed. This request may be fraudulent.'
-      });
-    }
-
-    // Check code expiry
-    if (workspace.esbFlow?.authCodeExpiresAt && new Date() > new Date(workspace.esbFlow.authCodeExpiresAt)) {
-      console.error('[ESB] Authorization code expired for workspace:', workspace._id);
-      
-      // ✅ VALIDATE STATE TRANSITION: any valid state → failed
-      const currentState = workspace.esbFlow.status || 'not_started';
-      if (!validateESBStateTransition(currentState, 'failed')) {
-        console.error(`[ESB State Machine] Cannot transition to failed from: ${currentState}`);
-      }
-      
-      workspace.esbFlow.status = 'failed';
-      workspace.esbFlow.failureReason = 'Authorization code expired. Code is valid for 10 minutes only.';
-      workspace.esbFlow.failedAt = new Date();
-      await workspace.save();
-      
-      // Return clear error with recovery action
-      return res.status(410).json({
-        success: false,
-        message: 'Authorization code expired',
-        code: 'CODE_EXPIRED',
-        reason: 'The authorization code is only valid for 10 minutes. Your session has expired.',
-        action: 'restart_flow',
-        actionMessage: 'Please click "Start WhatsApp Setup" again to begin a fresh signup flow.',
-        recoveryUrl: '/onboarding/esb'
-      });
-    }
-
-    // Step 1: Exchange code for access token
-    const callbackUrl = `${process.env.APP_URL || 'http://localhost:5000'}/api/onboarding/esb/callback`;
-    const tokenResult = await metaAutomationService.exchangeCodeForToken(code, callbackUrl);
-
-    // Step 2: Extract the system user token that Meta created in ESB
-    // ⚠️ CRITICAL: Meta's ESB creates a system user and token automatically
-    // We need to find this system user and extract its token
-    const businessAccountId = metaBusinessId || tokenResult.userInfo?.businessAccounts?.[0]?.id;
-    const systemUserToken = await metaAutomationService.getSystemUserToken(
-      tokenResult.accessToken,
-      businessAccountId
-    );
-
-    // Step 3: Store everything in database
-    if (!workspace.esbFlow) {
-      workspace.esbFlow = {};
-    }
-
-    // ✅ VALIDATE STATE TRANSITION: only valid transitions allowed
-    const currentState = workspace.esbFlow.status || 'not_started';
-    const targetState = 'token_exchanged';
-    if (!validateESBStateTransition(currentState, targetState)) {
-      console.error(`[ESB State Machine] Invalid transition: ${currentState} → ${targetState}`);
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid ESB flow state. Please restart the signup process.',
-        code: 'INVALID_STATE_TRANSITION'
-      });
-    }
-
-    // Encrypt and save all tokens using secure vault
-    const { storeToken } = require('../services/secretsManager');
-    const workspaceId = workspace._id.toString();
-    
-    workspace.esbFlow.status = targetState; // Use validated state
-    workspace.esbFlow.authCode = code; // No need to encrypt code, it's single-use
-    
-    // Store tokens securely (AWS Secrets Manager or encrypted local storage)
-    try {
-      const userTokenResult = await storeToken(workspaceId, 'userAccessToken', tokenResult.accessToken);
-      workspace.esbFlow.userAccessToken = userTokenResult.location === 'aws' 
-        ? userTokenResult.secretId 
-        : userTokenResult.encryptedValue;
-      
-      const adminTokenResult = whatsappToken 
-        ? await storeToken(workspaceId, 'adminAccessToken', whatsappToken)
-        : await storeToken(workspaceId, 'adminAccessToken', tokenResult.accessToken);
-      workspace.esbFlow.adminAccessToken = adminTokenResult.location === 'aws'
-        ? adminTokenResult.secretId
-        : adminTokenResult.encryptedValue;
-      
-      // ✅ GAP 4: Handle missing refresh tokens gracefully
-      if (tokenResult.refreshToken) {
-        const refreshTokenResult = await storeToken(workspaceId, 'userRefreshToken', tokenResult.refreshToken);
-        workspace.esbFlow.userRefreshToken = refreshTokenResult.location === 'aws'
-          ? refreshTokenResult.secretId
-          : refreshTokenResult.encryptedValue;
-        workspace.esbFlow.hasRefreshToken = true;
-      } else {
-        workspace.esbFlow.userRefreshToken = null;
-        workspace.esbFlow.hasRefreshToken = false;
-        console.warn(`[ESB] ⚠️ No refresh token provided by Meta for workspace ${workspace._id}. Token refresh may require manual intervention after 60 days.`);
-      }
-      
-      workspace.esbFlow.tokenExpiry = userTokenResult.expiresAt || new Date(Date.now() + (tokenResult.expiresIn * 1000));
-      
-      // ✅ KEY: Save the encrypted system user token
-      const systemUserTokenResult = await storeToken(workspaceId, 'systemUserToken', systemUserToken.token);
-      workspace.esbFlow.systemUserToken = systemUserTokenResult.location === 'aws'
-        ? systemUserTokenResult.secretId
-        : systemUserTokenResult.encryptedValue;
-      workspace.esbFlow.systemUserTokenExpiry = systemUserTokenResult.expiresAt || new Date(Date.now() + (systemUserToken.expiresIn * 1000));
-      workspace.esbFlow.systemUserId = systemUserToken.userId;
-      
-      console.log(`[ESB] ✅ Tokens securely stored for workspace ${workspace._id}`);
-    } catch (tokenStorageErr) {
-      console.error('[ESB] ❌ Failed to store tokens securely:', tokenStorageErr.message);
-      workspace.esbFlow.status = 'failed';
-      workspace.esbFlow.failureReason = 'Token storage failed: ' + tokenStorageErr.message;
-      await workspace.save();
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to securely store tokens',
-        code: 'TOKEN_STORAGE_FAILED'
-      });
-    }
-    
-    // ✅ VALIDATE STATE TRANSITION: token_exchanged → completed
-    const completionState = 'completed';
-    if (!validateESBStateTransition(targetState, completionState)) {
-      console.error(`[ESB State Machine] Invalid transition: ${targetState} → ${completionState}`);
-      workspace.esbFlow.status = 'failed';
-      workspace.esbFlow.failureReason = 'State machine validation failed';
-      await workspace.save();
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to complete ESB flow due to state validation'
-      });
-    }
-    
-    workspace.esbFlow.status = completionState; // Use validated state
-    
-    console.log(`[ESB] ✅ Tokens encrypted and stored for workspace ${workspace._id}`);
-
-    // ✅ VALIDATE WABA & PHONE OWNERSHIP
-    const wabaId = metaWabaId || tokenResult.userInfo?.wabaAccounts?.[0]?.id;
-    const phoneData = tokenResult.userInfo?.phoneNumbers?.[0];
-    
-    if (!wabaId || !phoneData) {
-      console.error('[ESB] ❌ Missing WABA or phone number in token response');
-      workspace.esbFlow.status = 'failed';
-      workspace.esbFlow.failureReason = 'Invalid WABA or phone number from Meta';
-      await workspace.save();
-      return res.status(400).json({
-        success: false,
-        message: 'Failed to retrieve valid WABA or phone number',
-        code: 'INVALID_WABA_PHONE'
-      });
-    }
-
-    // ✅ VALIDATE phone belongs to the WABA
-    if (phoneData.wabaId && phoneData.wabaId !== wabaId) {
-      console.error(`[ESB] ❌ Phone number does not belong to selected WABA. Phone WABA: ${phoneData.wabaId}, Selected WABA: ${wabaId}`);
-      workspace.esbFlow.status = 'failed';
-      workspace.esbFlow.failureReason = 'Phone number does not belong to the selected WABA';
-      await workspace.save();
-      return res.status(400).json({
-        success: false,
-        message: 'Phone number validation failed: number does not belong to your WABA',
-        code: 'PHONE_WABA_MISMATCH'
-      });
-    }
-
-    // ✅ VALIDATE phone is verified/active (if Meta provides verification status)
-    if (phoneData.verified_name && phoneData.verified_name.length === 0) {
-      console.warn(`[ESB] ⚠️ Phone number not yet verified in Meta: ${phoneData.id}`);
-      // Warn but don't fail - phone may be pending verification
-    }
-
-    // Save business and WABA info
-    workspace.businessAccountId = businessAccountId;
-    workspace.wabaId = wabaId;
-    workspace.whatsappPhoneNumberId = phoneData.id;
-    workspace.whatsappPhoneNumber = phoneData.display_phone_number;
-    
-    // Store validation metadata for auditing
-    workspace.esbFlow.phoneValidation = {
-      validatedAt: new Date(),
-      phoneId: phoneData.id,
-      wabaId: wabaId,
-      ownershipVerified: true
-    };
-
-    // Mark as completed
-    workspace.esbFlow.callbackReceived = true;
-    workspace.esbFlow.callbackReceivedAt = new Date();
-    workspace.esbFlow.callbackData = tokenResult.userInfo;
-    workspace.esbFlow.completedAt = new Date();
-    workspace.connectedAt = new Date();
-
-    // Update legacy fields for backward compatibility
-    try {
-      const { retrieveToken } = require('../services/secretsManager');
-      const systemUserTokenValue = await retrieveToken(workspaceId, 'systemUserToken', workspace.esbFlow.systemUserToken);
-      workspace.whatsappAccessToken = workspace.esbFlow.systemUserToken; // Store reference, not plain token
-    } catch (err) {
-      console.error('[ESB] Failed to retrieve token for legacy field:', err.message);
-      workspace.whatsappAccessToken = workspace.esbFlow.systemUserToken;
-    }
-
-    // Persist configured Meta identifiers for downstream automation
-    workspace.esbFlow.metaBusinessId = businessAccountId;
-    workspace.esbFlow.parentWabaId = workspace.wabaId;
-
-    // ✅ NEW: Subscribe app to WABA for webhooks (CRITICAL - must do before save)
-    try {
-      const { subscribeAppToWABA, registerPhoneForMessaging } = require('../services/metaAutomationService');
-      const { retrieveToken } = require('../services/secretsManager');
-      
-      // Get system user token for subscriptions
-      const systemUserTokenValue = await retrieveToken(workspaceId, 'systemUserToken', workspace.esbFlow.systemUserToken);
-      
-      // Subscribe app to WABA webhooks
-      await subscribeAppToWABA(systemUserTokenValue, wabaId);
-      console.log(`[ESB] ✅ App subscribed to webhooks for WABA ${wabaId}`);
-      
-      // Register phone for messaging
-      await registerPhoneForMessaging(systemUserTokenValue, phoneData.id);
-      console.log(`[ESB] ✅ Phone ${phoneData.id} registered for messaging`);
-      
-      workspace.esbFlow.webhooksSubscribed = true;
-      workspace.esbFlow.webhooksSubscribedAt = new Date();
-      workspace.esbFlow.phoneRegistered = true;
-      workspace.esbFlow.phoneRegisteredAt = new Date();
-    } catch (subscriptionErr) {
-      console.warn('[ESB] ⚠️ Failed to subscribe/register (non-blocking):', subscriptionErr.message);
-      // Don't fail ESB flow - these can be retried
-      workspace.esbFlow.webhooksSubscribed = false;
-      workspace.esbFlow.webhooksSubscriptionError = subscriptionErr.message;
-    }
-
-
-    await workspace.save();
-
-    // 🔒 Lock plan limits after ESB success
-    try {
-      const messageLimitsByPlan = {
-        free: 1000,
-        basic: 10000,
-        premium: 100000,
-        enterprise: -1 // unlimited
-      };
-
-      const templateLimitsByPlan = {
-        free: 5,
-        basic: 25,
-        premium: 100,
-        enterprise: -1 // unlimited
-      };
-
-      const planName = workspace.plan || 'free';
-      workspace.messagingLimits = {
-        daily: messageLimitsByPlan[planName] || 1000,
-        monthly: messageLimitsByPlan[planName] * 30 || 30000,
-        plan: planName,
-        appliedAt: new Date()
-      };
-
-      workspace.templateLimits = {
-        max: templateLimitsByPlan[planName] || 5,
-        plan: planName,
-        appliedAt: new Date()
-      };
-
-      await workspace.save();
-      console.log(`[ESB] 🔒 Plan limits locked for workspace: ${workspace._id}, plan: ${planName}`);
-    } catch (limitErr) {
-      console.warn('[ESB] Warning: Failed to lock plan limits:', limitErr.message);
-      // Don't fail the entire ESB flow if limits fail
-    }
-
-    console.log(`[ESB] ✅ Onboarding completed for workspace: ${workspace._id}`);
-
-    // ✅ TRIGGER: Generate personalized starter templates (non-blocking)
-    // Templates are generated asynchronously to avoid blocking the ESB callback response
-    try {
-      const templateGenerationService = require('../services/templateGenerationService');
-      
-      // Generate in background - don't await, don't block response
-      templateGenerationService.generateAndSubmitTemplates(workspace).then(result => {
-        if (result.success) {
-          console.log(`[Templates] ✅ Auto-templates generated for workspace ${workspace._id}: ${result.created} templates`);
-        } else {
-          console.warn(`[Templates] ⚠️ Failed to generate auto-templates: ${result.reason}`);
-        }
-      }).catch(err => {
-        console.error(`[Templates] ❌ Template generation error:`, err.message);
-      });
-    } catch (templateErr) {
-      // Silent fail - don't block ESB if template generation service has issues
-      console.warn(`[Templates] ⚠️ Could not trigger template generation:`, templateErr.message);
-    }
-
-    const result = {
-      success: true,
-      message: 'WhatsApp Business connected successfully!',
-      data: {
-        businessAccountId: workspace.businessAccountId,
-        wabaId: workspace.wabaId,
-        phoneNumber: workspace.whatsappPhoneNumber,
-        phoneNumberId: workspace.whatsappPhoneNumberId,
-        status: 'completed'
-      }
-    };
-    
-    // Store for idempotency
-    storeIdempotencyResult(idempotencyKey, result);
-    
-    res.json(result);
-  } catch (err) {
-    console.error('[ESB] ❌ Callback processing error:', {
-      error: err.message,
-      stack: err.stack,
-      workspaceId: req.user?.workspaceId,
-      userId: req.user?._id,
-      timestamp: new Date().toISOString()
-    });
-    res.status(500).json({
-      success: false,
-      message: 'Failed to process ESB callback: ' + err.message
-    });
-  }
+  return rejectLegacyEsb(res);
 }
 
 async function handleEsbCallback(req, res, next) {
-  try {
-    if (BSP_ONLY) {
-      return rejectLegacyEsb(res);
-    }
-    const { code, state, error, error_description } = req.query;
-
-    if (error) {
-      console.error('[ESB] Callback error:', error, error_description);
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(error_description || error)}`;
-      return res.redirect(frontendUrl);
-    }
-
-    if (!code || !state) {
-      console.error('[ESB] Missing code or state in callback');
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=missing_params`;
-      return res.redirect(frontendUrl);
-    }
-
-    // Find workspace by state to verify it's legitimate
-    const workspace = await Workspace.findOne({ 
-      'esbFlow.callbackState': state,
-      'esbFlow.status': 'signup_initiated'
-    });
-
-    if (!workspace) {
-      console.error('[ESB] Invalid state - no matching workspace found:', state);
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=invalid_state`;
-      return res.redirect(frontendUrl);
-    }
-
-    // Verify state for CSRF protection
-    const metaAutomationService = require('../services/metaAutomationService');
-    if (!metaAutomationService.verifyCallbackState(state, workspace.esbFlow.callbackState)) {
-      console.error('[ESB] State verification failed for workspace:', workspace._id);
-      const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=state_verification_failed`;
-      return res.redirect(frontendUrl);
-    }
-
-    // Store code temporarily in workspace (10 minute expiry)
-    workspace.esbFlow.authCode = code;
-    workspace.esbFlow.authCodeExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    workspace.esbFlow.status = 'code_received';
-    workspace.esbFlow.callbackReceived = true;
-    workspace.esbFlow.callbackReceivedAt = new Date();
-    await workspace.save();
-
-    console.log(`[ESB] Code received and stored for workspace ${workspace._id}`);
-
-    // Redirect to frontend with success (code will be processed via authenticated endpoint)
-    const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?callback_received=true&state=${encodeURIComponent(state)}`;
-    res.redirect(frontendUrl);
-  } catch (err) {
-    console.error('[ESB] Callback processing error:', err.message);
-    const frontendUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/esb?error=processing_error`;
-    res.redirect(frontendUrl);
-  }
+  return rejectLegacyEsb(res);
 }
 
 // Get Complete ESB Status
@@ -1566,155 +943,12 @@ async function getESBStatus(req, res, next) {
 
 // Process stored callback code (triggered by frontend after redirect)
 async function processStoredCallback(req, res, next) {
-  try {
-    if (BSP_ONLY) {
-      return rejectLegacyEsb(res);
-    }
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    const workspace = await Workspace.findById(user.workspace);
-    if (!workspace) {
-      return res.status(404).json({ success: false, message: 'Workspace not found' });
-    }
-
-    // Check if callback was received
-    if (!workspace.esbFlow?.callbackReceived || !workspace.esbFlow?.authCode) {
-      return res.status(400).json({
-        success: false,
-        message: 'No callback code available. Please restart the signup flow.',
-        code: 'NO_CALLBACK_CODE'
-      });
-    }
-
-    // Check if already processed
-    if (workspace.esbFlow.status === 'completed') {
-      return res.json({
-        success: true,
-        message: 'WhatsApp Business already connected',
-        data: {
-          businessAccountId: workspace.businessAccountId,
-          wabaId: workspace.wabaId,
-          phoneNumber: workspace.whatsappPhoneNumber,
-          phoneNumberId: workspace.whatsappPhoneNumberId,
-          status: 'completed'
-        }
-      });
-    }
-
-    // Check if currently processing
-    if (['token_exchanged'].includes(workspace.esbFlow.status)) {
-      return res.json({
-        success: true,
-        message: 'Processing in progress...',
-        status: workspace.esbFlow.status
-      });
-    }
-
-    // Use stored code and state to process
-    const code = workspace.esbFlow.authCode;
-    const state = workspace.esbFlow.callbackState;
-
-    // Process via the existing processEsbCallback logic by setting req.body
-    req.body = { code, state };
-    return processEsbCallback(req, res, next);
-
-  } catch (error) {
-    console.error('[ESB] ❌ Error processing stored callback:', {
-      error: error.message,
-      userId: req.user._id,
-      timestamp: new Date().toISOString()
-    });
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
+  return rejectLegacyEsb(res);
 }
 
 // Complete Embedded Signup - Save phone number and WABA details
 async function completeEmbeddedSignup(req, res, next) {
-  try {
-    if (BSP_ONLY) {
-      return rejectLegacyEsb(res);
-    }
-    const { phoneNumberId, wabaId } = req.body;
-    
-    if (!phoneNumberId || !wabaId) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Phone number ID and WABA ID are required' 
-      });
-    }
-
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    const workspace = await Workspace.findById(user.workspace);
-    if (!workspace) {
-      return res.status(404).json({ success: false, message: 'Workspace not found' });
-    }
-
-    // Get phone number details from Meta
-    let displayNumber = null;
-    let verifiedName = null;
-    
-    if (workspace.whatsappAccessToken) {
-      try {
-        const metaService = require('../services/metaService');
-        const phoneInfo = await metaService.getPhoneNumberInfo(
-          workspace.whatsappAccessToken,
-          phoneNumberId
-        );
-        displayNumber = phoneInfo.displayNumber;
-        verifiedName = phoneInfo.verifiedName;
-      } catch (phoneErr) {
-        console.log('Could not get phone number details:', phoneErr.message);
-      }
-    }
-
-    // Update workspace
-    workspace.wabaId = wabaId;
-    workspace.whatsappPhoneNumberId = phoneNumberId;
-    workspace.whatsappPhoneNumber = displayNumber;
-    workspace.connectedAt = new Date();
-
-    if (!workspace.whatsappSetup) {
-      workspace.whatsappSetup = {};
-    }
-    workspace.whatsappSetup.status = 'connected';
-    workspace.whatsappSetup.completedAt = new Date();
-    workspace.whatsappSetup.requestedNumber = displayNumber;
-
-    if (!workspace.onboarding) {
-      workspace.onboarding = {};
-    }
-    workspace.onboarding.wabaConnectionCompleted = true;
-    workspace.onboarding.wabaConnectionCompletedAt = new Date();
-
-    await workspace.save();
-
-    console.log(`✅ Embedded signup finalized for workspace ${workspace._id}`);
-
-    res.json({
-      success: true,
-      message: 'WhatsApp Business setup completed',
-      data: {
-        phoneNumberId: phoneNumberId,
-        wabaId: wabaId,
-        displayNumber: displayNumber,
-        verifiedName: verifiedName,
-        isConnected: true
-      }
-    });
-  } catch (err) {
-    console.error('Complete embedded signup error:', err);
-    next(err);
-  }
+  return rejectLegacyEsb(res);
 }
 
 module.exports = {

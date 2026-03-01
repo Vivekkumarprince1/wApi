@@ -119,17 +119,19 @@ class ConversationBillingService {
 
       // Log to audit trail
       await AuditLog.create({
-        workspaceId,
-        entityType: 'conversation',
-        entityId: conversationId,
-        action: 'message_recorded',
+        workspace: workspaceId,
+        action: 'conversation.message_recorded',
+        resource: {
+          type: 'conversation',
+          id: conversationId
+        },
         details: {
           contactId,
           messageType,
           isTemplate,
           totalMessages: conversation.messageCount,
-        },
-        status: 'success',
+          status: 'success',
+        }
       });
 
       return conversation;

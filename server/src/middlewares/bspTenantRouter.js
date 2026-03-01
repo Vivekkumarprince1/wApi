@@ -19,26 +19,26 @@ const phoneToWorkspaceCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 /**
- * Get workspace from cache or database by phone_number_id
+ * Get workspace from cache or database strictly by partner_app_id
  */
-async function getWorkspaceByPhoneId(phoneNumberId) {
-  if (!phoneNumberId) return null;
-  
+async function getWorkspaceByPhoneId(partnerAppId) {
+  if (!partnerAppId) return null;
+
   // Check cache first
-  const cached = phoneToWorkspaceCache.get(phoneNumberId);
+  const cached = phoneToWorkspaceCache.get(partnerAppId);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.workspace;
   }
-  
-  // Lookup in database
-  const workspace = await Workspace.findByPhoneNumberId(phoneNumberId);
-  
+
+  // Strictly use next-gen identity
+  let workspace = await Workspace.findByPartnerAppId(partnerAppId);
+
   // Cache the result (even if null to prevent repeated lookups)
-  phoneToWorkspaceCache.set(phoneNumberId, {
+  phoneToWorkspaceCache.set(partnerAppId, {
     workspace,
     timestamp: Date.now()
   });
-  
+
   return workspace;
 }
 
@@ -66,19 +66,19 @@ function extractPhoneNumberId(body) {
     if (body.entry?.[0]?.changes?.[0]?.value?.metadata?.phone_number_id) {
       return body.entry[0].changes[0].value.metadata.phone_number_id;
     }
-    
+
     // Account update webhook
     if (body.entry?.[0]?.changes?.[0]?.value?.waba_info?.phone_number_id) {
       return body.entry[0].changes[0].value.waba_info.phone_number_id;
     }
-    
+
     // Template status update
     if (body.entry?.[0]?.changes?.[0]?.value?.message_template_id) {
       // Template updates don't include phone_number_id directly
       // We'll need to lookup by template name prefix
       return null;
     }
-    
+
     // Fallback: try to find phone_number_id anywhere in the payload
     const findPhoneId = (obj) => {
       if (!obj || typeof obj !== 'object') return null;
@@ -89,7 +89,7 @@ function extractPhoneNumberId(body) {
       }
       return null;
     };
-    
+
     return findPhoneId(body);
   } catch (err) {
     console.error('[BSP Router] Error extracting phone_number_id:', err.message);
@@ -104,7 +104,7 @@ function extractPhoneNumberId(body) {
 async function webhookTenantRouter(req, res, next) {
   try {
     const phoneNumberId = extractPhoneNumberId(req.body);
-    
+
     if (!phoneNumberId) {
       // Some webhooks (like template status) may not have phone_number_id
       // Log and continue - the handler will deal with it
@@ -113,32 +113,32 @@ async function webhookTenantRouter(req, res, next) {
       req.bspPhoneNumberId = null;
       return next();
     }
-    
-    // Get workspace for this phone number
+
+    // Get workspace for this partner app ID
     const workspace = await getWorkspaceByPhoneId(phoneNumberId);
-    
+
     if (!workspace) {
-      console.warn(`[BSP Router] ⚠️ No workspace found for phone_number_id: ${phoneNumberId}`);
-      
+      console.warn(`[BSP Router] ⚠️ No workspace found for id: ${phoneNumberId}`);
+
       // Log cross-tenant/unknown attempts if configured
       if (bspConfig.logCrossTenantAttempts) {
         console.warn('[BSP Router] Potential orphaned webhook or attack attempt');
       }
-      
-      // Still allow the webhook through - it might be a new phone being onboarded
+
+      // Still allow the webhook through - it might be a new app being onboarded
       req.bspWorkspace = null;
-      req.bspPhoneNumberId = phoneNumberId;
+      req.bspPartnerAppId = phoneNumberId;
       return next();
     }
-    
+
     // Attach workspace to request for downstream handlers
     req.bspWorkspace = workspace;
     req.bspWorkspaceId = workspace._id;
-    req.bspPhoneNumberId = phoneNumberId;
-    
+    req.bspPartnerAppId = phoneNumberId;
+
     // Log for debugging
     console.log(`[BSP Router] Routed webhook to workspace: ${workspace.name} (${workspace._id})`);
-    
+
     next();
   } catch (err) {
     console.error('[BSP Router] Error routing webhook:', err.message);
@@ -157,25 +157,25 @@ function enforceTenantIsolation(req, res, next) {
     if (!req.user || !req.user.workspace) {
       return next();
     }
-    
+
     const userWorkspaceId = req.user.workspace.toString();
-    
+
     // Check if request includes a workspace parameter that doesn't match
-    const requestedWorkspaceId = req.params.workspaceId || 
-                    req.body.workspaceId || 
-                    req.body.workspace ||
-                    req.query.workspaceId;
-    
+    const requestedWorkspaceId = req.params.workspaceId ||
+      req.body.workspaceId ||
+      req.body.workspace ||
+      req.query.workspaceId;
+
     if (requestedWorkspaceId && requestedWorkspaceId !== userWorkspaceId) {
       console.warn(`[BSP Isolation] ⚠️ Cross-tenant access attempt! User workspace: ${userWorkspaceId}, Requested: ${requestedWorkspaceId}`);
-      
+
       if (bspConfig.logCrossTenantAttempts) {
         // Log audit trail
         const AuditLog = require('../models/AuditLog');
         AuditLog.create({
           workspace: userWorkspaceId,
           user: req.user._id,
-          action: 'cross_tenant_access_attempt',
+          action: 'workspace.cross_tenant_access_attempt',
           details: {
             requestedWorkspace: requestedWorkspaceId,
             endpoint: req.originalUrl,
@@ -183,17 +183,17 @@ function enforceTenantIsolation(req, res, next) {
           }
         }).catch(err => console.error('Audit log error:', err));
       }
-      
+
       return res.status(403).json({
         success: false,
         message: 'Access denied: Cannot access resources from another workspace',
         code: 'CROSS_TENANT_ACCESS_DENIED'
       });
     }
-    
+
     // Ensure workspace scope is applied
     req.workspaceScope = userWorkspaceId;
-    
+
     next();
   } catch (err) {
     console.error('[BSP Isolation] Error:', err.message);
@@ -207,7 +207,7 @@ function enforceTenantIsolation(req, res, next) {
 async function validateBspConfig(req, res, next) {
   try {
     const validation = bspConfig.validate();
-    
+
     if (!validation.valid) {
       console.error('[BSP Config] Invalid configuration:', validation.errors);
       return res.status(503).json({
@@ -217,7 +217,7 @@ async function validateBspConfig(req, res, next) {
         errors: validation.errors
       });
     }
-    
+
     next();
   } catch (err) {
     console.error('[BSP Config] Validation error:', err.message);
@@ -237,9 +237,9 @@ async function requireBspConnection(req, res, next) {
         code: 'AUTH_REQUIRED'
       });
     }
-    
+
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({
         success: false,
@@ -247,24 +247,18 @@ async function requireBspConnection(req, res, next) {
         code: 'WORKSPACE_NOT_FOUND'
       });
     }
-    
-    if (!workspace.bspManaged) {
+
+    try {
+      workspace.ensureWorkspaceBspReady();
+    } catch (err) {
       return res.status(400).json({
         success: false,
-        message: 'Workspace is not configured for WhatsApp. Please complete onboarding.',
-        code: 'BSP_NOT_CONFIGURED',
-        requiresOnboarding: true
+        message: err.message,
+        code: err.code || 'BSP_NOT_CONFIGURED',
+        requiresOnboarding: !workspace.bspManaged
       });
     }
-    
-    if (!workspace.bspPhoneNumberId) {
-      return res.status(400).json({
-        success: false,
-        message: 'No WhatsApp phone number assigned to this workspace. Please contact support.',
-        code: 'BSP_PHONE_NOT_ASSIGNED'
-      });
-    }
-    
+
     if (workspace.bspPhoneStatus === 'BANNED') {
       return res.status(403).json({
         success: false,
@@ -272,7 +266,7 @@ async function requireBspConnection(req, res, next) {
         code: 'BSP_PHONE_BANNED'
       });
     }
-    
+
     if (workspace.bspPhoneStatus === 'DISCONNECTED') {
       return res.status(400).json({
         success: false,
@@ -280,10 +274,10 @@ async function requireBspConnection(req, res, next) {
         code: 'BSP_DISCONNECTED'
       });
     }
-    
+
     // Attach BSP workspace to request
     req.bspWorkspace = workspace;
-    
+
     next();
   } catch (err) {
     console.error('[BSP Connection] Error:', err.message);
@@ -297,25 +291,25 @@ async function requireBspConnection(req, res, next) {
  */
 async function routeTemplateWebhook(templateName) {
   if (!templateName) return null;
-  
+
   // Extract workspace ID from namespaced template name
   // Format: {workspaceIdSuffix}_{templateName}
   const parts = templateName.split('_');
   if (parts.length < 2) return null;
-  
+
   const workspaceIdSuffix = parts[0];
-  
+
   // Find workspace with matching ID suffix
   const workspaces = await Workspace.find({
     bspManaged: true
   }).select('_id name');
-  
+
   for (const ws of workspaces) {
     if (ws._id.toString().slice(-8) === workspaceIdSuffix) {
       return ws;
     }
   }
-  
+
   return null;
 }
 
@@ -334,7 +328,7 @@ module.exports = {
   enforceTenantIsolation,
   validateBspConfig,
   requireBspConnection,
-  
+
   // Helpers
   getWorkspaceByPhoneId,
   extractPhoneNumberId,

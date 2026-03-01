@@ -146,7 +146,7 @@ export default function EditWorkflowPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading workflow...</p>
+          <p className="mt-4 text-muted-foreground">Loading workflow...</p>
         </div>
       </div>
     );
@@ -155,35 +155,35 @@ export default function EditWorkflowPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+      <div className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center gap-4">
             <Link
               href={`/automation/workflows/view/${workflowId}`}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground dark:hover:text-white"
             >
               <FaArrowLeft /> Back
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Edit Workflow</h1>
+            <h1 className="text-3xl font-bold text-foreground">Edit Workflow</h1>
           </div>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
             <p className="text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Info */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h2>
+          <div className="bg-card rounded-xl shadow p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Basic Information</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Workflow Name *
                 </label>
                 <input
@@ -192,12 +192,12 @@ export default function EditWorkflowPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="e.g., Support Auto-Reply"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Description
                 </label>
                 <textarea
@@ -205,19 +205,19 @@ export default function EditWorkflowPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   placeholder="What does this workflow do?"
                   rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Trigger Type *
                   </label>
                   <select
                     value={form.trigger}
                     onChange={(e) => setForm({ ...form, trigger: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
                   >
                     {triggers.map(t => (
                       <option key={t.value} value={t.value}>{t.label}</option>
@@ -226,7 +226,7 @@ export default function EditWorkflowPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Daily Execution Limit
                   </label>
                   <input
@@ -235,7 +235,7 @@ export default function EditWorkflowPage() {
                     value={form.dailyExecutionLimit || ''}
                     onChange={(e) => setForm({ ...form, dailyExecutionLimit: e.target.value ? parseInt(e.target.value) : null })}
                     placeholder="Leave empty for unlimited"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
                   />
                 </div>
               </div>
@@ -248,7 +248,7 @@ export default function EditWorkflowPage() {
                   onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
                   className="w-4 h-4"
                 />
-                <label htmlFor="enabled" className="text-sm text-gray-700 dark:text-gray-300">
+                <label htmlFor="enabled" className="text-sm text-foreground">
                   Enable this workflow
                 </label>
               </div>
@@ -256,8 +256,8 @@ export default function EditWorkflowPage() {
           </div>
 
           {/* Conditions */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Conditions (Optional)</h2>
+          <div className="bg-card rounded-xl shadow p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Conditions (Optional)</h2>
             
             <div className="space-y-4">
               <select
@@ -266,7 +266,7 @@ export default function EditWorkflowPage() {
                   setConditionType(e.target.value);
                   if (e.target.value === 'none') updateCondition();
                 }}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
               >
                 <option value="none">No Condition (Always Match)</option>
                 <option value="keyword">Keyword Matching</option>
@@ -274,7 +274,7 @@ export default function EditWorkflowPage() {
 
               {conditionType === 'keyword' && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Keywords (comma-separated)
                   </label>
                   <textarea
@@ -282,12 +282,12 @@ export default function EditWorkflowPage() {
                     onChange={(e) => setConditionKeywords(e.target.value)}
                     placeholder="e.g., help, support, urgent"
                     rows="3"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                    className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
                   />
                   <button
                     type="button"
                     onClick={updateCondition}
-                    className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                    className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
                   >
                     Update Condition
                   </button>
@@ -297,18 +297,18 @@ export default function EditWorkflowPage() {
           </div>
 
           {/* Actions */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Actions *</h2>
+          <div className="bg-card rounded-xl shadow p-6">
+            <h2 className="text-xl font-semibold text-foreground mb-4">Actions *</h2>
             
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Add Action
               </label>
               <div className="flex gap-2">
                 <select
                   value={selectedActionType}
                   onChange={(e) => setSelectedActionType(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                  className="flex-1 px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
                 >
                   <option value="">Select action type...</option>
                   {actionTypes.map(a => (
@@ -318,7 +318,7 @@ export default function EditWorkflowPage() {
                 <button
                   type="button"
                   onClick={addAction}
-                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium"
                 >
                   <FaPlus /> Add
                 </button>
@@ -328,9 +328,9 @@ export default function EditWorkflowPage() {
             {form.actions.length > 0 && (
               <div className="space-y-4">
                 {form.actions.map((action, idx) => (
-                  <div key={idx} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/30">
+                  <div key={idx} className="border border-border rounded-xl p-4 bg-muted/30">
                     <div className="flex justify-between items-start mb-3">
-                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                      <h3 className="font-semibold text-foreground">
                         Action {idx + 1}: {action.type}
                       </h3>
                       <button
@@ -348,7 +348,7 @@ export default function EditWorkflowPage() {
                         placeholder="Template ID"
                         value={action.templateId}
                         onChange={(e) => updateAction(idx, 'templateId', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white text-sm"
+                        className="w-full px-3 py-2 border border-border rounded dark:bg-muted dark:text-foreground text-sm"
                       />
                     )}
 
@@ -358,7 +358,7 @@ export default function EditWorkflowPage() {
                         placeholder="Tag name"
                         value={action.tag}
                         onChange={(e) => updateAction(idx, 'tag', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white text-sm"
+                        className="w-full px-3 py-2 border border-border rounded dark:bg-muted dark:text-foreground text-sm"
                       />
                     )}
 
@@ -368,7 +368,7 @@ export default function EditWorkflowPage() {
                         placeholder="Tag name"
                         value={action.tag}
                         onChange={(e) => updateAction(idx, 'tag', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white text-sm"
+                        className="w-full px-3 py-2 border border-border rounded dark:bg-muted dark:text-foreground text-sm"
                       />
                     )}
 
@@ -378,7 +378,7 @@ export default function EditWorkflowPage() {
                         placeholder="Duration in seconds"
                         value={action.duration}
                         onChange={(e) => updateAction(idx, 'duration', parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white text-sm"
+                        className="w-full px-3 py-2 border border-border rounded dark:bg-muted dark:text-foreground text-sm"
                       />
                     )}
 
@@ -388,7 +388,7 @@ export default function EditWorkflowPage() {
                         placeholder="Webhook URL"
                         value={action.url}
                         onChange={(e) => updateAction(idx, 'url', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-white text-sm"
+                        className="w-full px-3 py-2 border border-border rounded dark:bg-muted dark:text-foreground text-sm"
                       />
                     )}
                   </div>
@@ -402,13 +402,13 @@ export default function EditWorkflowPage() {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-6 py-3 bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400 text-white rounded-lg font-medium transition-colors"
+              className="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-xl font-medium transition-colors"
             >
               {saving ? 'Saving...' : 'Update Workflow'}
             </button>
             <Link
               href={`/automation/workflows/view/${workflowId}`}
-              className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-center"
+              className="flex-1 px-6 py-3 border border-border rounded-xl font-medium text-foreground hover:bg-accent transition-colors text-center"
             >
               Cancel
             </Link>

@@ -1,5 +1,111 @@
 const axios = require('axios');
 const crypto = require('crypto');
+const Workspace = require('../models/Workspace');
+const bspConfig = require('../config/bspConfig');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const META_API_VERSION = 'v21.0';
 const META_BASE_URL = `https://graph.facebook.com/${META_API_VERSION}`;
@@ -745,793 +851,6 @@ async function verifyPhoneCode(accessToken, phoneNumberId, code) {
 }
 
 /**
- * Fetch templates from Meta's Template Library (pre-made templates by Meta)
- * Uses the hsm_template_library endpoint which provides ready-to-use templates
- */
-async function fetchTemplateLibrary(accessToken, wabaId, category = null, language = 'en_US', limit = 200) {
-  // Try multiple endpoints to fetch Template Library
-  const endpoints = [
-    `${META_BASE_URL}/${wabaId}/hsm_templates`, // HSM templates
-    `${META_BASE_URL}/${wabaId}/upsell_message_templates`, // Upsell templates
-  ];
-  
-  for (const url of endpoints) {
-    try {
-      const params = {
-        limit: limit,
-        fields: 'name,language,category,components,status,quality_score'
-      };
-      
-      if (category && category !== 'all') {
-        params.category = category.toUpperCase();
-      }
-      
-      console.log(`Trying Template Library endpoint: ${url}`);
-      
-      const response = await axios.get(url, {
-        params,
-        headers: {
-          'Authorization': `Bearer ${accessToken}`
-        }
-      });
-      
-      if (response.data?.data?.length > 0) {
-        console.log(`Found ${response.data.data.length} templates from ${url}`);
-        
-        // Process templates to extract body text
-        const processedTemplates = response.data.data.map(t => {
-          const headerComponent = t.components?.find(c => c.type === 'HEADER');
-          const bodyComponent = t.components?.find(c => c.type === 'BODY');
-          const footerComponent = t.components?.find(c => c.type === 'FOOTER');
-          const buttonComponents = t.components?.filter(c => c.type === 'BUTTONS');
-          
-          return {
-            ...t,
-            headerText: headerComponent?.text || headerComponent?.format || '',
-            bodyText: bodyComponent?.text || '',
-            footerText: footerComponent?.text || '',
-            buttonLabels: buttonComponents?.flatMap(bc => bc.buttons?.map(b => b.text) || []) || [],
-            isLibraryTemplate: true,
-            source: 'META_LIBRARY'
-          };
-        });
-        
-        return {
-          success: true,
-          templates: processedTemplates,
-          paging: response.data.paging,
-          source: 'META_API',
-          total: processedTemplates.length
-        };
-      }
-    } catch (error) {
-      console.log(`Endpoint ${url} failed:`, error.response?.data?.error?.message || error.message);
-      continue; // Try next endpoint
-    }
-  }
-  
-  // If API endpoints don't work, return the hardcoded library templates
-  console.log('Meta Template Library API not available, using built-in templates');
-  return getBuiltInTemplateLibrary(category, language);
-}
-
-/**
- * Get built-in template library (fallback when API not available)
- * These match Meta's actual Template Library templates
- */
-function getBuiltInTemplateLibrary(category = null, language = 'en_US') {
-  const templates = [
-    // UTILITY - Account Updates (20+ templates)
-    {
-      name: 'account_creation_confirmation_3',
-      category: 'UTILITY',
-      subcategory: 'Account updates',
-      language: 'en_US',
-      headerText: 'Finalize account set-up',
-      bodyText: 'Hi {{1}},\n\nYour new account has been created successfully.\n\nPlease verify {{2}} to complete your profile.',
-      footerText: '',
-      buttonLabels: ['Verify account'],
-      variables: ['name', 'verification_item'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'address_update',
-      category: 'UTILITY',
-      subcategory: 'Account updates',
-      language: 'en_US',
-      headerText: 'Address update',
-      bodyText: 'Hi {{1}}, your delivery address has been successfully updated to {{2}}. Contact {{3}} for any inquiries.',
-      footerText: '',
-      buttonLabels: [],
-      variables: ['name', 'new_address', 'support_contact'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'appointment_cancelled',
-      category: 'UTILITY',
-      subcategory: 'Account updates',
-      language: 'en_US',
-      headerText: 'Your appointment was canceled',
-      bodyText: 'Hello {{1}},\n\nYour upcoming appointment with {{2}} on {{3}} at {{4}} has been canceled.\n\nLet us know if you have any questions or need to reschedule.',
-      footerText: '',
-      buttonLabels: [],
-      variables: ['name', 'business_name', 'date', 'time'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'appointment_booked',
-      category: 'UTILITY',
-      subcategory: 'Account updates',
-      language: 'en_US',
-      headerText: 'Your appointment is booked',
-      bodyText: 'Hello {{1}},\n\nThank you for booking with {{2}}.\n\nYour appointment for {{3}} on {{4}} at {{5}} is confirmed.',
-      footerText: '',
-      buttonLabels: [],
-      variables: ['name', 'business_name', 'service', 'date', 'time'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'appointment_reminder',
-      category: 'UTILITY',
-      subcategory: 'Account updates',
-      language: 'en_US',
-      headerText: 'Appointment reminder',
-      bodyText: 'Hi {{1}},\n\nThis is a reminder about your upcoming appointment with {{2}} on {{3}} at {{4}}.\n\nSee you soon!',
-      footerText: '',
-      buttonLabels: ['Confirm', 'Reschedule'],
-      variables: ['name', 'business_name', 'date', 'time'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'appointment_rescheduled',
-      category: 'UTILITY',
-      subcategory: 'Account updates',
-      language: 'en_US',
-      headerText: 'Appointment rescheduled',
-      bodyText: 'Hi {{1}},\n\nYour appointment has been rescheduled to {{2}} at {{3}}.\n\nPlease let us know if this works for you.',
-      footerText: '',
-      buttonLabels: ['Confirm', 'Reschedule again'],
-      variables: ['name', 'date', 'time'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'booking_confirmation',
-      category: 'UTILITY',
-      subcategory: 'Account updates',
-      language: 'en_US',
-      headerText: 'Booking confirmed',
-      bodyText: 'Hi {{1}},\n\nYour booking #{{2}} is confirmed!\n\nDate: {{3}}\nTime: {{4}}\nLocation: {{5}}\n\nWe look forward to seeing you!',
-      footerText: '',
-      buttonLabels: ['View details', 'Add to calendar'],
-      variables: ['name', 'booking_id', 'date', 'time', 'location'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'password_reset',
-      category: 'UTILITY',
-      subcategory: 'Account updates',
-      language: 'en_US',
-      headerText: 'Password reset',
-      bodyText: 'Hi {{1}},\n\nWe received a request to reset your password. Click the button below to set a new password.\n\nIf you didn\'t request this, please ignore this message.',
-      footerText: 'This link expires in 24 hours',
-      buttonLabels: ['Reset password'],
-      variables: ['name'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'account_verified',
-      category: 'UTILITY',
-      subcategory: 'Account updates',
-      language: 'en_US',
-      headerText: 'Account verified!',
-      bodyText: 'Hi {{1}},\n\nCongratulations! Your account has been successfully verified.\n\nYou now have full access to all features.',
-      footerText: '',
-      buttonLabels: ['Get started'],
-      variables: ['name'],
-      status: 'LIBRARY'
-    },
-    
-    // UTILITY - Order Management (20+ templates)
-    {
-      name: 'order_confirmation',
-      category: 'UTILITY',
-      subcategory: 'Order management',
-      language: 'en_US',
-      headerText: 'Order confirmed!',
-      bodyText: 'Hi {{1}},\n\nThank you for your order #{{2}}!\n\nTotal: {{3}}\n\nWe\'ll send you a notification when it ships.',
-      footerText: '',
-      buttonLabels: ['Track order', 'View details'],
-      variables: ['name', 'order_id', 'total'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'order_shipped',
-      category: 'UTILITY',
-      subcategory: 'Order management',
-      language: 'en_US',
-      headerText: 'Your order is on its way!',
-      bodyText: 'Hi {{1}},\n\nGreat news! Your order #{{2}} has been shipped.\n\nTracking number: {{3}}\nEstimated delivery: {{4}}',
-      footerText: '',
-      buttonLabels: ['Track shipment'],
-      variables: ['name', 'order_id', 'tracking_number', 'delivery_date'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'order_out_for_delivery',
-      category: 'UTILITY',
-      subcategory: 'Order management',
-      language: 'en_US',
-      headerText: 'Out for delivery',
-      bodyText: 'Hi {{1}},\n\nYour order #{{2}} is out for delivery and will arrive today!\n\nMake sure someone is available to receive it.',
-      footerText: '',
-      buttonLabels: ['Track live'],
-      variables: ['name', 'order_id'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'order_delivered',
-      category: 'UTILITY',
-      subcategory: 'Order management',
-      language: 'en_US',
-      headerText: 'Order delivered!',
-      bodyText: 'Hi {{1}},\n\nYour order #{{2}} has been delivered!\n\nWe hope you love it. Let us know if you have any questions.',
-      footerText: '',
-      buttonLabels: ['Rate your order', 'Need help?'],
-      variables: ['name', 'order_id'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'order_cancelled',
-      category: 'UTILITY',
-      subcategory: 'Order management',
-      language: 'en_US',
-      headerText: 'Order cancelled',
-      bodyText: 'Hi {{1}},\n\nYour order #{{2}} has been cancelled as requested.\n\nRefund of {{3}} will be processed within 5-7 business days.',
-      footerText: '',
-      buttonLabels: ['Shop again'],
-      variables: ['name', 'order_id', 'refund_amount'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'order_refunded',
-      category: 'UTILITY',
-      subcategory: 'Order management',
-      language: 'en_US',
-      headerText: 'Refund processed',
-      bodyText: 'Hi {{1}},\n\nYour refund of {{2}} for order #{{3}} has been processed.\n\nIt may take 3-5 business days to appear in your account.',
-      footerText: '',
-      buttonLabels: [],
-      variables: ['name', 'amount', 'order_id'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'order_delayed',
-      category: 'UTILITY',
-      subcategory: 'Order management',
-      language: 'en_US',
-      headerText: 'Delivery update',
-      bodyText: 'Hi {{1}},\n\nWe\'re sorry, but your order #{{2}} has been delayed.\n\nNew estimated delivery: {{3}}\n\nWe apologize for the inconvenience.',
-      footerText: '',
-      buttonLabels: ['Track order', 'Contact support'],
-      variables: ['name', 'order_id', 'new_date'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'cart_abandoned',
-      category: 'UTILITY',
-      subcategory: 'Order management',
-      language: 'en_US',
-      headerText: 'You left something behind!',
-      bodyText: 'Hi {{1}},\n\nYou have {{2}} items waiting in your cart.\n\nComplete your order before they sell out!',
-      footerText: '',
-      buttonLabels: ['Complete order'],
-      variables: ['name', 'item_count'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'back_in_stock',
-      category: 'UTILITY',
-      subcategory: 'Order management',
-      language: 'en_US',
-      headerText: 'Back in stock!',
-      bodyText: 'Hi {{1}},\n\nGood news! {{2}} is back in stock.\n\nGet it before it sells out again!',
-      footerText: '',
-      buttonLabels: ['Shop now'],
-      variables: ['name', 'product_name'],
-      status: 'LIBRARY'
-    },
-    
-    // UTILITY - Payments (15+ templates)
-    {
-      name: 'payment_received',
-      category: 'UTILITY',
-      subcategory: 'Payments',
-      language: 'en_US',
-      headerText: 'Payment received',
-      bodyText: 'Hi {{1}},\n\nWe\'ve received your payment of {{2}} for invoice #{{3}}.\n\nThank you for your business!',
-      footerText: '',
-      buttonLabels: ['View receipt'],
-      variables: ['name', 'amount', 'invoice_id'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'payment_reminder',
-      category: 'UTILITY',
-      subcategory: 'Payments',
-      language: 'en_US',
-      headerText: 'Payment reminder',
-      bodyText: 'Hi {{1}},\n\nThis is a friendly reminder that your payment of {{2}} for invoice #{{3}} is due on {{4}}.\n\nPlease make your payment to avoid any late fees.',
-      footerText: '',
-      buttonLabels: ['Pay now'],
-      variables: ['name', 'amount', 'invoice_id', 'due_date'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'payment_failed',
-      category: 'UTILITY',
-      subcategory: 'Payments',
-      language: 'en_US',
-      headerText: 'Payment failed',
-      bodyText: 'Hi {{1}},\n\nYour payment of {{2}} could not be processed.\n\nPlease update your payment method to continue your service.',
-      footerText: '',
-      buttonLabels: ['Update payment'],
-      variables: ['name', 'amount'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'invoice_sent',
-      category: 'UTILITY',
-      subcategory: 'Payments',
-      language: 'en_US',
-      headerText: 'New invoice',
-      bodyText: 'Hi {{1}},\n\nInvoice #{{2}} for {{3}} has been generated.\n\nDue date: {{4}}\n\nPlease review and complete payment.',
-      footerText: '',
-      buttonLabels: ['View invoice', 'Pay now'],
-      variables: ['name', 'invoice_id', 'amount', 'due_date'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'subscription_renewed',
-      category: 'UTILITY',
-      subcategory: 'Payments',
-      language: 'en_US',
-      headerText: 'Subscription renewed',
-      bodyText: 'Hi {{1}},\n\nYour subscription has been renewed!\n\nAmount: {{2}}\nNext billing date: {{3}}\n\nThank you for continuing with us!',
-      footerText: '',
-      buttonLabels: ['Manage subscription'],
-      variables: ['name', 'amount', 'next_date'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'subscription_expiring',
-      category: 'UTILITY',
-      subcategory: 'Payments',
-      language: 'en_US',
-      headerText: 'Subscription expiring soon',
-      bodyText: 'Hi {{1}},\n\nYour subscription will expire on {{2}}.\n\nRenew now to keep enjoying our services without interruption.',
-      footerText: '',
-      buttonLabels: ['Renew now'],
-      variables: ['name', 'expiry_date'],
-      status: 'LIBRARY'
-    },
-    
-    // UTILITY - Customer Feedback (10+ templates)
-    {
-      name: 'feedback_request',
-      category: 'UTILITY',
-      subcategory: 'Customer feedback',
-      language: 'en_US',
-      headerText: 'How was your experience?',
-      bodyText: 'Hi {{1}},\n\nWe hope you enjoyed {{2}}!\n\nYour feedback helps us improve. Would you take a moment to rate your experience?',
-      footerText: '',
-      buttonLabels: ['Rate now', 'Maybe later'],
-      variables: ['name', 'service_product'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'review_request',
-      category: 'UTILITY',
-      subcategory: 'Customer feedback',
-      language: 'en_US',
-      headerText: 'Leave a review',
-      bodyText: 'Hi {{1}},\n\nThank you for your recent purchase!\n\nIf you\'re happy with {{2}}, we\'d love for you to leave a review.',
-      footerText: '',
-      buttonLabels: ['Write review'],
-      variables: ['name', 'product_name'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'nps_survey',
-      category: 'UTILITY',
-      subcategory: 'Customer feedback',
-      language: 'en_US',
-      headerText: 'Quick question',
-      bodyText: 'Hi {{1}},\n\nOn a scale of 0-10, how likely are you to recommend us to a friend?\n\nYour feedback is valuable to us!',
-      footerText: '',
-      buttonLabels: ['0-3 Not likely', '4-6 Maybe', '7-10 Very likely'],
-      variables: ['name'],
-      status: 'LIBRARY'
-    },
-    
-    // AUTHENTICATION (18 templates)
-    {
-      name: 'otp_verification',
-      category: 'AUTHENTICATION',
-      subcategory: 'Verification',
-      language: 'en_US',
-      headerText: '',
-      bodyText: 'Your verification code is {{1}}.\n\nThis code expires in {{2}} minutes.\n\nDon\'t share this code with anyone.',
-      footerText: '',
-      buttonLabels: [],
-      variables: ['otp_code', 'expiry_minutes'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'otp_with_button',
-      category: 'AUTHENTICATION',
-      subcategory: 'Verification',
-      language: 'en_US',
-      headerText: '',
-      bodyText: 'Your verification code is {{1}}. This code expires in {{2}} minutes.',
-      footerText: '',
-      buttonLabels: ['Copy code'],
-      variables: ['otp_code', 'expiry_minutes'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'login_otp',
-      category: 'AUTHENTICATION',
-      subcategory: 'Verification',
-      language: 'en_US',
-      headerText: 'Login verification',
-      bodyText: 'Hi {{1}},\n\nYour login verification code is: {{2}}\n\nThis code will expire in 10 minutes.',
-      footerText: '',
-      buttonLabels: [],
-      variables: ['name', 'otp_code'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'signup_otp',
-      category: 'AUTHENTICATION',
-      subcategory: 'Verification',
-      language: 'en_US',
-      headerText: 'Complete your signup',
-      bodyText: 'Welcome {{1}}!\n\nYour signup verification code is: {{2}}\n\nEnter this code to complete your registration.',
-      footerText: '',
-      buttonLabels: [],
-      variables: ['name', 'otp_code'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'phone_verification',
-      category: 'AUTHENTICATION',
-      subcategory: 'Verification',
-      language: 'en_US',
-      headerText: 'Verify your phone',
-      bodyText: 'Your phone verification code is {{1}}.\n\nEnter this code in the app to verify your phone number.',
-      footerText: 'Code expires in 5 minutes',
-      buttonLabels: [],
-      variables: ['otp_code'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'email_verification',
-      category: 'AUTHENTICATION',
-      subcategory: 'Verification',
-      language: 'en_US',
-      headerText: 'Verify your email',
-      bodyText: 'Hi {{1}},\n\nYour email verification code is: {{2}}\n\nUse this code to verify your email address.',
-      footerText: '',
-      buttonLabels: [],
-      variables: ['name', 'otp_code'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'two_factor_auth',
-      category: 'AUTHENTICATION',
-      subcategory: 'Verification',
-      language: 'en_US',
-      headerText: '2FA Code',
-      bodyText: 'Your two-factor authentication code is {{1}}.\n\nIf you didn\'t request this, please secure your account immediately.',
-      footerText: '',
-      buttonLabels: [],
-      variables: ['otp_code'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'new_device_login',
-      category: 'AUTHENTICATION',
-      subcategory: 'Security',
-      language: 'en_US',
-      headerText: 'New login detected',
-      bodyText: 'Hi {{1}},\n\nA new login to your account was detected.\n\nDevice: {{2}}\nLocation: {{3}}\nTime: {{4}}\n\nIf this wasn\'t you, please secure your account.',
-      footerText: '',
-      buttonLabels: ['It was me', 'Secure account'],
-      variables: ['name', 'device', 'location', 'time'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'password_changed',
-      category: 'AUTHENTICATION',
-      subcategory: 'Security',
-      language: 'en_US',
-      headerText: 'Password changed',
-      bodyText: 'Hi {{1}},\n\nYour password was successfully changed on {{2}}.\n\nIf you didn\'t make this change, please contact support immediately.',
-      footerText: '',
-      buttonLabels: ['Contact support'],
-      variables: ['name', 'date'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'suspicious_activity',
-      category: 'AUTHENTICATION',
-      subcategory: 'Security',
-      language: 'en_US',
-      headerText: '⚠️ Security alert',
-      bodyText: 'Hi {{1}},\n\nWe detected suspicious activity on your account.\n\nPlease verify your identity to continue using your account.',
-      footerText: '',
-      buttonLabels: ['Verify now'],
-      variables: ['name'],
-      status: 'LIBRARY'
-    },
-    
-    // MARKETING (30+ templates)
-    {
-      name: 'welcome_message',
-      category: 'MARKETING',
-      subcategory: 'Onboarding',
-      language: 'en_US',
-      headerText: 'Welcome! 🎉',
-      bodyText: 'Hi {{1}},\n\nWelcome to {{2}}! We\'re excited to have you.\n\nExplore our products and let us know if you need any help.',
-      footerText: '',
-      buttonLabels: ['Start shopping', 'Learn more'],
-      variables: ['name', 'business_name'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'first_purchase_offer',
-      category: 'MARKETING',
-      subcategory: 'Onboarding',
-      language: 'en_US',
-      headerText: 'Special offer for you! 🎁',
-      bodyText: 'Hi {{1}},\n\nAs a welcome gift, enjoy {{2}}% off your first purchase!\n\nUse code: {{3}}\n\nValid for 7 days.',
-      footerText: '',
-      buttonLabels: ['Shop now'],
-      variables: ['name', 'discount', 'code'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'promotional_offer',
-      category: 'MARKETING',
-      subcategory: 'Promotions',
-      language: 'en_US',
-      headerText: 'Special offer! 🔥',
-      bodyText: 'Hi {{1}},\n\nDon\'t miss out! Get {{2}}% off on {{3}}.\n\nUse code: {{4}}\nValid until: {{5}}',
-      footerText: '',
-      buttonLabels: ['Shop now'],
-      variables: ['name', 'discount', 'products', 'code', 'expiry'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'flash_sale',
-      category: 'MARKETING',
-      subcategory: 'Promotions',
-      language: 'en_US',
-      headerText: '⚡ Flash Sale!',
-      bodyText: 'Hi {{1}},\n\n24-HOUR FLASH SALE!\n\nUp to {{2}}% off on select items.\n\nHurry, sale ends at midnight!',
-      footerText: '',
-      buttonLabels: ['Shop the sale'],
-      variables: ['name', 'discount'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'seasonal_sale',
-      category: 'MARKETING',
-      subcategory: 'Promotions',
-      language: 'en_US',
-      headerText: '🎄 Holiday Sale',
-      bodyText: 'Hi {{1}},\n\nOur biggest sale of the year is here!\n\n{{2}}% off everything.\n\nCode: {{3}}\nEnds: {{4}}',
-      footerText: '',
-      buttonLabels: ['Shop now'],
-      variables: ['name', 'discount', 'code', 'end_date'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'birthday_offer',
-      category: 'MARKETING',
-      subcategory: 'Promotions',
-      language: 'en_US',
-      headerText: '🎂 Happy Birthday!',
-      bodyText: 'Hi {{1}},\n\nHappy Birthday! 🎉\n\nCelebrate with {{2}}% off your next order.\n\nUse code: {{3}}\n\nValid this month only!',
-      footerText: '',
-      buttonLabels: ['Claim offer'],
-      variables: ['name', 'discount', 'code'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'loyalty_reward',
-      category: 'MARKETING',
-      subcategory: 'Promotions',
-      language: 'en_US',
-      headerText: '🏆 You earned a reward!',
-      bodyText: 'Hi {{1}},\n\nThank you for being a loyal customer!\n\nYou\'ve earned {{2}} points.\n\nRedeem them on your next purchase!',
-      footerText: '',
-      buttonLabels: ['Redeem now'],
-      variables: ['name', 'points'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'new_arrival',
-      category: 'MARKETING',
-      subcategory: 'Product updates',
-      language: 'en_US',
-      headerText: '✨ New arrivals!',
-      bodyText: 'Hi {{1}},\n\nCheck out our latest collection: {{2}}\n\nBe the first to get your hands on these new items!',
-      footerText: '',
-      buttonLabels: ['See new arrivals'],
-      variables: ['name', 'collection_name'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'product_launch',
-      category: 'MARKETING',
-      subcategory: 'Product updates',
-      language: 'en_US',
-      headerText: '🚀 New product launch!',
-      bodyText: 'Hi {{1}},\n\nIntroducing {{2}}!\n\n{{3}}\n\nGet yours now!',
-      footerText: '',
-      buttonLabels: ['Learn more', 'Buy now'],
-      variables: ['name', 'product_name', 'description'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'event_invitation',
-      category: 'MARKETING',
-      subcategory: 'Events',
-      language: 'en_US',
-      headerText: '🎉 You\'re invited!',
-      bodyText: 'Hi {{1}},\n\nYou\'re invited to {{2}}!\n\nDate: {{3}}\nTime: {{4}}\nLocation: {{5}}\n\nDon\'t miss out!',
-      footerText: '',
-      buttonLabels: ['RSVP', 'Learn more'],
-      variables: ['name', 'event_name', 'date', 'time', 'location'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'webinar_invitation',
-      category: 'MARKETING',
-      subcategory: 'Events',
-      language: 'en_US',
-      headerText: '📺 Free webinar',
-      bodyText: 'Hi {{1}},\n\nJoin our free webinar: {{2}}\n\nDate: {{3}}\nTime: {{4}}\n\nLearn from industry experts!',
-      footerText: '',
-      buttonLabels: ['Register now'],
-      variables: ['name', 'topic', 'date', 'time'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'newsletter',
-      category: 'MARKETING',
-      subcategory: 'Updates',
-      language: 'en_US',
-      headerText: '📧 Weekly update',
-      bodyText: 'Hi {{1}},\n\nHere\'s what\'s new this week:\n\n{{2}}\n\nStay tuned for more updates!',
-      footerText: '',
-      buttonLabels: ['Read more'],
-      variables: ['name', 'content_summary'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'win_back',
-      category: 'MARKETING',
-      subcategory: 'Re-engagement',
-      language: 'en_US',
-      headerText: 'We miss you! 💔',
-      bodyText: 'Hi {{1}},\n\nIt\'s been a while since we\'ve seen you!\n\nCome back and enjoy {{2}}% off your next order.\n\nCode: {{3}}',
-      footerText: '',
-      buttonLabels: ['Shop now'],
-      variables: ['name', 'discount', 'code'],
-      status: 'LIBRARY'
-    },
-    {
-      name: 'referral_invite',
-      category: 'MARKETING',
-      subcategory: 'Referral',
-      language: 'en_US',
-      headerText: '🎁 Share & earn',
-      bodyText: 'Hi {{1}},\n\nShare the love! Refer a friend and you both get {{2}} off.\n\nYour referral code: {{3}}',
-      footerText: '',
-      buttonLabels: ['Share now'],
-      variables: ['name', 'discount', 'referral_code'],
-      status: 'LIBRARY'
-    }
-  ];
-  
-  // Filter by category
-  let filtered = templates;
-  if (category && category !== 'all') {
-    filtered = templates.filter(t => t.category.toUpperCase() === category.toUpperCase());
-  }
-  
-  // Count by category
-  const categories = {
-    UTILITY: templates.filter(t => t.category === 'UTILITY').length,
-    AUTHENTICATION: templates.filter(t => t.category === 'AUTHENTICATION').length,
-    MARKETING: templates.filter(t => t.category === 'MARKETING').length
-  };
-  
-  return {
-    success: true,
-    templates: filtered,
-    total: filtered.length,
-    categories,
-    source: 'BUILT_IN'
-  };
-}
-
-/**
- * Alternative method to fetch Template Library using the sample_templates endpoint
- */
-async function fetchTemplateLibraryAlternative(accessToken, wabaId, category = null, language = 'en_US', limit = 100) {
-  // Return built-in templates as fallback
-  return getBuiltInTemplateLibrary(category, language);
-}
-
-/**
- * Copy a template from Meta's Template Library to your WABA
- * This creates a new template based on a library template
- * 
- * For library templates with buttons, we need to provide button inputs.
- * If library copy fails, we fall back to creating the template directly from our built-in content.
- */
-async function copyFromTemplateLibrary(accessToken, wabaId, libraryTemplateName, customName = null, language = 'en_US', category = 'UTILITY', templateData = null) {
-  const url = `${META_BASE_URL}/${wabaId}/message_templates`;
-  const templateName = customName || libraryTemplateName;
-  
-  // First, try to copy from Meta's library (for official library templates)
-  try {
-    const payload = {
-      name: templateName,
-      language: language,
-      category: category,
-      library_template_name: libraryTemplateName,
-      library_template_button_inputs: []
-    };
-    
-    const response = await axios.post(url, payload, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    return {
-      success: true,
-      templateId: response.data.id,
-      status: response.data.status,
-      data: response.data,
-      source: 'META_LIBRARY'
-    };
-  } catch (libraryError) {
-    console.log('Meta library copy failed, creating template directly:', libraryError.response?.data?.error?.message || libraryError.message);
-    
-    // If Meta library copy fails, create the template directly from our built-in template data
-    if (templateData) {
-      return createTemplateFromBuiltIn(accessToken, wabaId, templateName, language, category, templateData);
-    }
-    
-    // If no template data provided, try to find it in our built-in library
-    const builtInTemplates = getBuiltInTemplateLibrary(category, language);
-    const matchingTemplate = builtInTemplates.templates.find(t => t.name === libraryTemplateName);
-    
-    if (matchingTemplate) {
-      return createTemplateFromBuiltIn(accessToken, wabaId, templateName, language, category, matchingTemplate);
-    }
-    
-    throw new Error(libraryError.response?.data?.error?.message || libraryError.message);
-  }
-}
-
-/**
  * Remove emojis and special characters from header text
  * Meta doesn't allow emojis, newlines, formatting characters, or asterisks in headers
  */
@@ -1618,134 +937,10 @@ function sanitizeHeaderText(text) {
   return sanitized;
 }
 
-/**
- * Create a template directly from built-in template data
- * This is used as a fallback when Meta's library copy doesn't work
- */
-async function createTemplateFromBuiltIn(accessToken, wabaId, templateName, language, category, templateData) {
-  const url = `${META_BASE_URL}/${wabaId}/message_templates`;
-  
-  try {
-    // Build the components array
-    const components = [];
-    
-    // Extract variables from body text to create example values
-    const extractVariables = (text) => {
-      const regex = /\{\{(\d+)\}\}/g;
-      const matches = [];
-      let match;
-      while ((match = regex.exec(text)) !== null) {
-        if (!matches.includes(match[1])) {
-          matches.push(match[1]);
-        }
-      }
-      return matches.sort((a, b) => parseInt(a) - parseInt(b));
-    };
-    
-    // Get variable samples from templateData or generate defaults
-    const variableSamples = templateData.variableSamples || {};
-    const variables = templateData.variables || [];
-    
-    // Add HEADER if exists (sanitize to remove emojis and special chars)
-    if (templateData.headerText) {
-      const sanitizedHeader = sanitizeHeaderText(templateData.headerText);
-      if (sanitizedHeader) {
-        const headerVars = extractVariables(sanitizedHeader);
-        const headerComponent = {
-          type: 'HEADER',
-          format: 'TEXT',
-          text: sanitizedHeader
-        };
-        
-        // Add example values for header variables
-        if (headerVars.length > 0) {
-          headerComponent.example = {
-            header_text: headerVars.map((v, idx) => 
-              variableSamples[v] || variables[parseInt(v) - 1] || `Sample ${v}`
-            )
-          };
-        }
-        
-        components.push(headerComponent);
-      }
-    }
-    
-    // Add BODY (required)
-    const bodyText = templateData.bodyText || templateData.body || 'Template body';
-    const bodyVars = extractVariables(bodyText);
-    const bodyComponent = {
-      type: 'BODY',
-      text: bodyText
-    };
-    
-    // Add example values for body variables
-    if (bodyVars.length > 0) {
-      bodyComponent.example = {
-        body_text: [bodyVars.map((v, idx) => 
-          variableSamples[v] || variables[parseInt(v) - 1] || `Sample ${v}`
-        )]
-      };
-    }
-    components.push(bodyComponent);
-    
-    // Add FOOTER if exists
-    if (templateData.footerText) {
-      components.push({
-        type: 'FOOTER',
-        text: templateData.footerText
-      });
-    }
-    
-    // Add BUTTONS if exist (limit to 3 buttons max for QUICK_REPLY)
-    if (templateData.buttonLabels && templateData.buttonLabels.length > 0) {
-      const buttonLabels = templateData.buttonLabels.slice(0, 3); // Max 3 quick reply buttons
-      const buttons = buttonLabels.map(label => ({
-        type: 'QUICK_REPLY',
-        text: (label || '').substring(0, 25) // Max 25 chars for button text
-      }));
-      components.push({
-        type: 'BUTTONS',
-        buttons: buttons
-      });
-    }
-    
-    const payload = {
-      name: templateName,
-      language: language,
-      category: category,
-      components: components
-    };
-    
-    console.log('Creating template directly:', JSON.stringify(payload, null, 2));
-    
-    const response = await axios.post(url, payload, {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    return {
-      success: true,
-      templateId: response.data.id,
-      status: response.data.status || 'PENDING',
-      data: response.data,
-      source: 'BUILT_IN'
-    };
-  } catch (error) {
-    console.error('Error creating template from built-in:', error.response?.data || error.message);
-    throw new Error(error.response?.data?.error?.message || error.message);
-  }
-}
-
 module.exports = {
   sendTextMessage,
   sendTemplateMessage,
   fetchTemplates,
-  fetchTemplateLibrary,
-  getBuiltInTemplateLibrary,
-  copyFromTemplateLibrary,
-  createTemplateFromBuiltIn,
   submitTemplate,
   deleteTemplate,
   verifyWebhookSignature,

@@ -74,6 +74,17 @@ export default function BspOnboarding() {
     }
   }, [stage1Status]);
 
+  // Poll for status if not connected (useful when onboarding in a new tab)
+  useEffect(() => {
+    if (!status?.connected && !loading && !processing) {
+      const interval = setInterval(() => {
+        loadStatus();
+      }, 10000); // Check every 10 seconds
+
+      return () => clearInterval(interval);
+    }
+  }, [status, loading, processing]);
+
   // ==========================================================================
   // API CALLS
   // ==========================================================================
@@ -110,8 +121,10 @@ export default function BspOnboarding() {
       const response = await api.post('/onboarding/bsp/start', {});
 
       if (response.success && response.url) {
-        // Redirect to Meta's ESB page
-        window.location.href = response.url;
+        // Open Meta's ESB page in a new tab
+        window.open(response.url, '_blank');
+        // Stop loading so the user can click again or refresh status
+        setLoading(false);
       } else {
         throw new Error(response.message || 'Failed to start signup');
       }
@@ -217,7 +230,7 @@ export default function BspOnboarding() {
     ];
 
     return (
-      <div className="bg-gray-50 rounded-lg p-4 mb-6">
+      <div className="bg-muted rounded-lg p-4 mb-6">
         <h3 className="font-medium text-gray-900 mb-3">Setup Progress</h3>
         <div className="space-y-2">
           {items.map(({ key, label }) => (
@@ -227,9 +240,9 @@ export default function BspOnboarding() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               ) : (
-                <div className="w-5 h-5 rounded-full border-2 border-gray-300"></div>
+                <div className="w-5 h-5 rounded-full border-2 border-border"></div>
               )}
-              <span className={stage1Status.checklist[key] ? 'text-gray-900' : 'text-gray-500'}>
+              <span className={stage1Status.checklist[key] ? 'text-foreground' : 'text-gray-500'}>
                 {label}
               </span>
             </div>
@@ -246,10 +259,10 @@ export default function BspOnboarding() {
   // Processing callback
   if (processing) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-800">Completing Setup...</h2>
+          <h2 className="text-xl font-semibold text-foreground">Completing Setup...</h2>
           <p className="text-gray-600 mt-2">Connecting your WhatsApp Business</p>
         </div>
       </div>
@@ -259,7 +272,7 @@ export default function BspOnboarding() {
   // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
       </div>
     );
@@ -268,7 +281,7 @@ export default function BspOnboarding() {
   // Phone pending activation (Stage 1 incomplete)
   if (status?.workspace && stage1Status && !stage1Status.complete) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-muted flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
           {/* Header */}
           <div className="text-center mb-6">
@@ -277,7 +290,7 @@ export default function BspOnboarding() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Activating Phone...</h1>
+            <h1 className="text-2xl font-bold text-foreground">Activating Phone...</h1>
             <p className="text-gray-600 mt-2">
               Your WhatsApp Business is being set up. This usually takes a few minutes.
             </p>
@@ -287,14 +300,14 @@ export default function BspOnboarding() {
           {renderStage1Checklist()}
 
           {/* Phone Details */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <div className="bg-muted rounded-lg p-4 mb-6">
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span className="text-gray-600">Phone Number</span>
+                <span className="text-muted-foreground">Phone Number</span>
                 <span className="font-medium">{stage1Status.details?.phoneNumber || 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Status</span>
+                <span className="text-muted-foreground">Status</span>
                 <span className={`font-medium ${
                   stage1Status.details?.phoneStatus === 'CONNECTED' ? 'text-green-600' : 'text-yellow-600'
                 }`}>
@@ -308,7 +321,7 @@ export default function BspOnboarding() {
           <button
             onClick={triggerSync}
             disabled={syncing}
-            className="w-full py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition disabled:opacity-50"
+            className="w-full py-3 px-4 bg-muted text-gray-700 rounded-lg font-medium hover:bg-border transition disabled:opacity-50"
           >
             {syncing ? 'Checking status...' : 'Check Activation Status'}
           </button>
@@ -324,7 +337,7 @@ export default function BspOnboarding() {
   // Already connected AND Stage 1 complete
   if (status?.connected && stage1Status?.complete) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-muted flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
           {/* Success Header */}
           <div className="text-center mb-6">
@@ -333,23 +346,23 @@ export default function BspOnboarding() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">WhatsApp Connected!</h1>
+            <h1 className="text-2xl font-bold text-foreground">WhatsApp Connected!</h1>
             <p className="text-gray-600 mt-2">Your business is ready to message customers</p>
           </div>
 
           {/* Connection Details */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <div className="bg-muted rounded-lg p-4 mb-6">
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Phone Number</span>
+                <span className="text-muted-foreground">Phone Number</span>
                 <span className="font-medium">{status.workspace?.phoneNumber}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Display Name</span>
+                <span className="text-muted-foreground">Display Name</span>
                 <span className="font-medium">{status.workspace?.verifiedName || 'Pending'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Quality Rating</span>
+                <span className="text-muted-foreground">Quality Rating</span>
                 <span className={`font-medium ${
                   status.workspace?.qualityRating === 'GREEN' ? 'text-green-600' :
                   status.workspace?.qualityRating === 'YELLOW' ? 'text-yellow-600' : 'text-gray-600'
@@ -358,7 +371,7 @@ export default function BspOnboarding() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Messaging Limit</span>
+                <span className="text-muted-foreground">Messaging Limit</span>
                 <span className="font-medium">{status.workspace?.messagingLimit || 'Tier 1'}</span>
               </div>
             </div>
@@ -386,7 +399,7 @@ export default function BspOnboarding() {
 
   // Not connected - Show connect UI
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-muted flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -395,7 +408,7 @@ export default function BspOnboarding() {
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Connect WhatsApp</h1>
+          <h1 className="text-2xl font-bold text-foreground">Connect WhatsApp</h1>
           <p className="text-gray-600 mt-2">
             Link your WhatsApp Business to start messaging customers
           </p>
@@ -417,8 +430,8 @@ export default function BspOnboarding() {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900">Send unlimited messages</p>
-              <p className="text-sm text-gray-600">Reach customers via WhatsApp Business API</p>
+              <p className="font-medium text-foreground">Send unlimited messages</p>
+              <p className="text-sm text-muted-foreground">Reach customers via WhatsApp Business API</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -428,8 +441,8 @@ export default function BspOnboarding() {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900">Use message templates</p>
-              <p className="text-sm text-gray-600">Pre-approved templates for notifications</p>
+              <p className="font-medium text-foreground">Use message templates</p>
+              <p className="text-sm text-muted-foreground">Pre-approved templates for notifications</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
@@ -439,8 +452,8 @@ export default function BspOnboarding() {
               </svg>
             </div>
             <div>
-              <p className="font-medium text-gray-900">Automated workflows</p>
-              <p className="text-sm text-gray-600">Set up auto-replies and chatbots</p>
+              <p className="font-medium text-foreground">Automated workflows</p>
+              <p className="text-sm text-muted-foreground">Set up auto-replies and chatbots</p>
             </div>
           </div>
         </div>

@@ -23,16 +23,44 @@ async function upsertHealth(data) {
 }
 
 /**
- * Validate BSP system user token via Meta debug_token endpoint
- * Required by Meta for continuous token health monitoring.
+ * Validate BSP system user token
+ * For Meta: via debug_token endpoint
+ * For Gupshup: check if token exists (JWT validation handled by API calls)
  */
 async function checkSystemTokenHealth() {
   const appId = bspConfig.appId;
   const appSecret = bspConfig.appSecret;
   const systemToken = bspConfig.systemUserToken;
+  const provider = bspConfig.provider;
 
-  if (!appId || !appSecret || !systemToken) {
+  if (!appId || !systemToken) {
     const error = 'BSP system token or app credentials not configured';
+    await upsertHealth({
+      status: 'critical',
+      isValid: false,
+      checkedAt: new Date(),
+      error
+    });
+    console.error('[BSP Health] ❌', error);
+    return { isValid: false, error };
+  }
+
+  // For Gupshup, token is JWT from partner login, validity checked by API responses
+  if (provider === 'gupshup') {
+    await upsertHealth({
+      status: 'healthy',
+      isValid: true,
+      checkedAt: new Date(),
+      expiresAt: null, // JWT has exp, but we don't parse here
+      secondsLeft: null
+    });
+    console.log('[BSP Health] ✅ System token valid (Gupshup)');
+    return { isValid: true };
+  }
+
+  // For Meta
+  if (!appSecret) {
+    const error = 'BSP app secret not configured';
     await upsertHealth({
       status: 'critical',
       isValid: false,

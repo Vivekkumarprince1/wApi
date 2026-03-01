@@ -138,7 +138,7 @@ export function RBACTeamManagement() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Team Management</h2>
-          <p className="text-gray-600">Manage team members and their permissions</p>
+          <p className="text-muted-foreground">Manage team members and their permissions</p>
         </div>
         <Button onClick={() => setShowAddMember(true)}>
           <Plus className="w-4 h-4 mr-2" />
@@ -196,9 +196,9 @@ export function RBACTeamManagement() {
       {/* Team Members List */}
       <div className="space-y-3">
         {loading ? (
-          <p className="text-gray-500">Loading...</p>
+          <p className="text-muted-foreground">Loading...</p>
         ) : teamMembers.length === 0 ? (
-          <p className="text-gray-500">No team members yet</p>
+          <p className="text-muted-foreground">No team members yet</p>
         ) : (
           teamMembers.map((member) => {
             const roleConfig = getRoleConfig(member.role);
@@ -208,12 +208,12 @@ export function RBACTeamManagement() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-border rounded-full flex items-center justify-center">
                           {member.name?.[0]?.toUpperCase()}
                         </div>
                         <div>
                           <p className="font-semibold">{member.name || member.email}</p>
-                          <p className="text-sm text-gray-600">{member.email}</p>
+                          <p className="text-sm text-muted-foreground">{member.email}</p>
                         </div>
                       </div>
                     </div>
@@ -270,7 +270,7 @@ export function RBACTeamManagement() {
                 <div className="flex items-start justify-between mb-2">
                   <div>
                     <h4 className="font-semibold">{role.name}</h4>
-                    <p className="text-sm text-gray-600">{role.description}</p>
+                    <p className="text-sm text-muted-foreground">{role.description}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">

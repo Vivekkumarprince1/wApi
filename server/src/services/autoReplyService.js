@@ -4,6 +4,7 @@ const Template = require('../models/Template');
 const Contact = require('../models/Contact');
 const Workspace = require('../models/Workspace');
 const templateSendingService = require('./templateSendingService');
+const { isWithinBusinessHours } = require('./automationSafetyGuards');
 
 /**
  * Check if auto-reply should be sent for inbound message
@@ -16,9 +17,24 @@ async function checkAutoReply(messageBody, contact, workspace) {
     enabled: true
   }).populate('template');
 
-  for (const autoReply of autoReplies) {
-    // Check keyword match
-    const matches = matchKeywords(messageBody, autoReply.keywords, autoReply.matchMode);
+  // Sort: keyword matches first, then outside_business_hours, then always
+  const sortedReplies = autoReplies.sort((a, b) => {
+    const priority = { 'keyword': 1, 'outside_business_hours': 2, 'always': 3 };
+    return priority[a.triggerType] - priority[b.triggerType];
+  });
+
+  const workspaceDoc = await Workspace.findById(workspace).select('settings').lean();
+
+  for (const autoReply of sortedReplies) {
+    let matches = false;
+
+    if (autoReply.triggerType === 'keyword') {
+      matches = matchKeywords(messageBody, autoReply.keywords, autoReply.matchMode);
+    } else if (autoReply.triggerType === 'outside_business_hours') {
+      matches = !isWithinBusinessHours(workspaceDoc?.settings);
+    } else if (autoReply.triggerType === 'always') {
+      matches = true;
+    }
     
     if (!matches) continue;
 

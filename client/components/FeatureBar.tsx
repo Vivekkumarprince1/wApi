@@ -75,7 +75,7 @@ export default function FeatureBar() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
+            className="text-lg text-gray-600 dark:text-muted-foreground max-w-2xl mx-auto"
           >
             All-in-one platform to manage customer conversations, automate marketing, and grow your business
           </motion.p>
@@ -97,25 +97,25 @@ export default function FeatureBar() {
               }}
             >
               {/* Icon */}
-              <div className="flex items-center justify-center w-14 h-14 rounded-xl mb-4 bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] shadow-lg group-hover:shadow-xl transition-all duration-300">
+              <div className="flex items-center justify-center w-14 h-14 rounded-xl mb-4 bg-gradient-to-br from-primary to-primary/80 shadow-lg group-hover:shadow-xl transition-all duration-300">
                 <feature.icon className="w-7 h-7 text-white" />
               </div>
               
               {/* Title */}
               <h3 
-                className="text-xl font-bold mb-2 group-hover:text-[#13C18D] transition-colors duration-300"
+                className="text-xl font-bold mb-2 group-hover:text-primary transition-colors duration-300"
                 style={{ color: isDark ? '#ffffff' : '#1a202c' }}
               >
                 {feature.title}
               </h3>
               
               {/* Description */}
-              <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+              <p className="text-sm text-gray-600 dark:text-muted-foreground leading-relaxed">
                 {feature.description}
               </p>
 
               {/* Hover Effect */}
-              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#13C18D]/10 to-[#0e8c6c]/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/80/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
             </motion.div>
           ))}
         </div>

@@ -35,7 +35,11 @@ exports.getRules = async (req, res) => {
     }
 
     if (trigger) {
-      query['trigger.type'] = trigger;
+      query.$or = [
+        { 'trigger.event': trigger },
+        { 'trigger.type': trigger }, // Legacy
+        { legacyTrigger: trigger }
+      ];
     }
 
     const total = await AutomationRule.countDocuments(query);
@@ -132,12 +136,18 @@ exports.createRule = async (req, res) => {
       });
     }
 
-    if (!trigger || !trigger.type) {
+    if (!trigger || (!trigger.event && !trigger.type)) {
       return res.status(400).json({
         success: false,
-        error: 'Trigger type is required',
+        error: 'Trigger event is required',
         code: 'MISSING_TRIGGER'
       });
+    }
+
+    // Map legacy trigger type to new trigger event if needed
+    const finalTrigger = { ...trigger };
+    if (!finalTrigger.event && finalTrigger.type) {
+      finalTrigger.event = finalTrigger.type;
     }
 
     if (!Array.isArray(actions) || actions.length === 0) {
@@ -151,7 +161,7 @@ exports.createRule = async (req, res) => {
     const rule = new AutomationRule({
       workspaceId,
       name,
-      trigger,
+      trigger: finalTrigger,
       conditions: conditions || [],
       actions,
       rateLimit: rateLimit || { perHour: 100, perContact: 10 },

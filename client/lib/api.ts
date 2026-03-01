@@ -15,21 +15,7 @@ function resolveApiUrl() {
   return 'http://localhost:5001/api/v1';
 }
 
-function resolveApiRoot() {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (envUrl && envUrl.length) {
-    return envUrl.replace(/\/api\/v1\/?$/, '');
-  }
-
-  if (typeof window !== 'undefined' && window.location) {
-    return window.location.origin;
-  }
-
-  return 'http://localhost:5001';
-}
-
 const API_URL = resolveApiUrl();
-const API_ROOT = resolveApiRoot();
 console.log('🔗 Backend API connected to:', API_URL);
 
 // Helper function to get token from localStorage
@@ -137,61 +123,6 @@ export const del = async (endpoint: string) => {
   }
 
   return response.json();
-};
-
-// ============================================================
-// EMBEDDED SIGNUP (ESB v3) API
-// ============================================================
-
-export const esbStart = async (params?: { businessName?: string; phone?: string }) => {
-  const qs = new URLSearchParams();
-  if (params?.businessName) qs.append('businessName', params.businessName);
-  if (params?.phone) qs.append('phone', params.phone);
-
-  const response = await fetch(`${API_ROOT}/api/onboarding/esb/start${qs.toString() ? `?${qs.toString()}` : ''}` , {
-    method: 'GET',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      localStorage.removeItem('token');
-      throw new Error('Unauthorized');
-    }
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to start Embedded Signup');
-  }
-
-  return response.json();
-};
-
-export const esbComplete = async (payload: { code: string; state: string }) => {
-  const response = await fetch(`${API_ROOT}/api/onboarding/esb/complete`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    if (response.status === 401) {
-      localStorage.removeItem('token');
-      throw new Error('Unauthorized');
-    }
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to complete Embedded Signup');
-  }
-
-  return response.json();
-};
-
-export const getEsbStatus = async () => {
-  return get('/onboarding/esb/status');
-};
-
-export const getWhatsAppAssetStatus = async () => {
-  return get('/onboarding/bsp/stage1-status');
 };
 
 // Convenience wrapper for account deletion
@@ -610,6 +541,29 @@ export const createTemplate = async (templateData) => {
 };
 
 // Update existing template
+
+// Upload template media
+export const uploadTemplateMedia = async (file: File) => {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('file', file);
+  const headers: HeadersInit = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_URL}/templates/upload-media`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: formData
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to upload template media');
+  }
+  return await response.json();
+};
+
 export const updateTemplate = async (templateId, updates) => {
   const response = await fetch(`${API_URL}/templates/${templateId}`, {
     method: 'PUT',
@@ -628,22 +582,11 @@ export const updateTemplate = async (templateId, updates) => {
 
 // Delete template
 export const deleteTemplate = async (templateId) => {
-  const response = await fetch(`${API_URL}/templates/${templateId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to delete template');
-  }
-
-  return await response.json();
+  return del(`/templates/${templateId}`);
 };
 
-// Submit template to Meta for approval
-export const submitTemplateToMeta = async (templateId) => {
+// Submit template to Gupshup for approval
+export const submitTemplateToGupshup = async (templateId) => {
   const response = await fetch(`${API_URL}/templates/${templateId}/submit`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -658,8 +601,8 @@ export const submitTemplateToMeta = async (templateId) => {
   return await response.json();
 };
 
-// Sync templates from Meta (your own templates)
-export const syncTemplatesFromMeta = async () => {
+// Sync templates from Gupshup (your own templates)
+export const syncTemplatesFromGupshup = async () => {
   const response = await fetch(`${API_URL}/templates/sync`, {
     method: 'GET',
     headers: getAuthHeaders(),
@@ -674,73 +617,9 @@ export const syncTemplatesFromMeta = async () => {
   return await response.json();
 };
 
-// Get Template Library (pre-made templates from Meta)
-export const getTemplateLibrary = async (category?: string) => {
-  const params = new URLSearchParams();
-  if (category) params.append('category', category);
-
-  const response = await fetch(`${API_URL}/templates/library?${params}`, {
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to fetch template library');
-  }
-
-  return await response.json();
-};
-
-// Sync from Meta's Template Library API
-export const syncTemplateLibrary = async (category?: string, language: string = 'en_US') => {
-  const params = new URLSearchParams();
-  if (category) params.append('category', category);
-  params.append('language', language);
-
-  const response = await fetch(`${API_URL}/templates/library/sync?${params}`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to sync template library');
-  }
-
-  return await response.json();
-};
-
-// Copy a template from Meta's Template Library
-export const copyFromTemplateLibrary = async (
-  libraryTemplateName: string,
-  customName?: string,
-  language: string = 'en_US',
-  category: string = 'UTILITY',
-  templateData?: {
-    headerText?: string;
-    bodyText?: string;
-    footerText?: string;
-    buttonLabels?: string[];
-    variables?: string[];
-    variableSamples?: Record<string, string>;
-  }
-) => {
-  const response = await fetch(`${API_URL}/templates/library/copy`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify({ libraryTemplateName, customName, language, category, templateData })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to copy template from library');
-  }
-
-  return await response.json();
-};
+// Backward compatibility aliases (scheduled for cleanup)
+export const submitTemplateToMeta = submitTemplateToGupshup;
+export const syncTemplatesFromMeta = syncTemplatesFromGupshup;
 
 // Get template categories
 export const getTemplateCategories = async () => {
@@ -816,6 +695,74 @@ export const getTemplateLibraryStats = async () => {
   _templateStatsCache = data;
   _templateStatsFetchedAt = Date.now();
   return data;
+};
+
+export const fetchTemplatesFromLibrary = async (params: {
+  elementName?: string;
+  industry?: string;
+  languageCode?: string;
+  topic?: string;
+  usecase?: string;
+} = {}) => {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) query.set(key, String(value));
+  });
+
+  const url = query.toString()
+    ? `${API_URL}/templates/library?${query.toString()}`
+    : `${API_URL}/templates/library`;
+
+  const response = await fetch(url, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch templates from library');
+  }
+
+  return await response.json();
+};
+
+export const createTemplateFromLibrary = async (payload: {
+  elementName: string;
+  category?: string;
+  languageCode: string;
+  libraryTemplateName: string;
+  buttons?: any[] | string;
+  libraryTemplateBodyInputs?: any[] | string;
+}) => {
+  const response = await fetch(`${API_URL}/templates/library`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create template from library');
+  }
+
+  return await response.json();
+};
+
+export const markTemplateReviewed = async (templateId: string, notes?: string) => {
+  const response = await fetch(`${API_URL}/templates/${templateId}/review`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify({ notes })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to mark template as reviewed');
+  }
+
+  return await response.json();
 };
 
 // Send template message
@@ -925,6 +872,10 @@ export const updateWABASettings = async (settings) => {
   }
   return response.json();
 };
+
+// Alias for WhatsApp Profile backward compatibility
+export const getProviderSettings = getWABASettings;
+export const updateProviderSettings = updateWABASettings;
 
 // Test WABA connection
 export const testWABAConnection = async () => {
@@ -1063,6 +1014,76 @@ export const getTemplateMetrics = async (days = 30) => {
   return response.json();
 };
 
+// ===== ANALYTICS DASHBOARD API =====
+
+export const getAnalyticsDashboardOverview = async (params: { startDate?: string; endDate?: string; days?: number } = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.startDate) queryParams.append('startDate', params.startDate);
+  if (params.endDate) queryParams.append('endDate', params.endDate);
+  if (params.days) queryParams.append('days', params.days.toString());
+  
+  const response = await fetch(`${API_URL}/analytics/dashboard/overview?${queryParams}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch analytics overview');
+  }
+  return response.json();
+};
+
+export const getAnalyticsDashboardConversations = async (params: { startDate?: string; endDate?: string; days?: number } = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.startDate) queryParams.append('startDate', params.startDate);
+  if (params.endDate) queryParams.append('endDate', params.endDate);
+  if (params.days) queryParams.append('days', params.days.toString());
+  
+  const response = await fetch(`${API_URL}/analytics/dashboard/conversations?${queryParams}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch conversation analytics');
+  }
+  return response.json();
+};
+
+export const getAnalyticsDashboardAgents = async (params: { startDate?: string; endDate?: string; days?: number } = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.startDate) queryParams.append('startDate', params.startDate);
+  if (params.endDate) queryParams.append('endDate', params.endDate);
+  if (params.days) queryParams.append('days', params.days.toString());
+  
+  const response = await fetch(`${API_URL}/analytics/dashboard/agents?${queryParams}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch agent analytics');
+  }
+  return response.json();
+};
+
+export const getAnalyticsDashboardMessages = async (params: { startDate?: string; endDate?: string; days?: number } = {}) => {
+  const queryParams = new URLSearchParams();
+  if (params.startDate) queryParams.append('startDate', params.startDate);
+  if (params.endDate) queryParams.append('endDate', params.endDate);
+  if (params.days) queryParams.append('days', params.days.toString());
+  
+  const response = await fetch(`${API_URL}/analytics/dashboard/messages?${queryParams}`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch message analytics');
+  }
+  return response.json();
+};
+
 // Get message metrics
 export const getMessageMetrics = async (days = 7) => {
   const response = await fetch(`${API_URL}/metrics/messages?days=${days}`, {
@@ -1178,6 +1199,46 @@ export const getCampaignStats = async () => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to fetch campaign stats');
+  }
+  return response.json();
+};
+
+// ===== INBOX & ASSIGNMENT API =====
+
+export const getInboxSettings = async () => {
+  const response = await fetch(`${API_URL}/settings/inbox`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch inbox settings');
+  }
+  return response.json();
+};
+
+export const updateInboxSettings = async (settings) => {
+  const response = await fetch(`${API_URL}/settings/inbox`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(settings),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to update inbox settings');
+  }
+  return response.json();
+};
+
+export const fetchAvailableAgents = async () => {
+  const response = await fetch(`${API_URL}/admin/team/members`, {
+    headers: getAuthHeaders(),
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch team members');
   }
   return response.json();
 };
@@ -1334,7 +1395,7 @@ export const completeOnboarding = async () => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Start BSP onboarding flow - generates Meta ESB URL
+ * Start BSP onboarding flow - generates Gupshup embed URL
  * REQUIRES: emailVerified === true (enforced on frontend)
  * RETURNS: { esbUrl: string, state: string }
  */
@@ -1351,10 +1412,33 @@ export const bspStart = async () => {
   return response.json();
 };
 
+export const bspRegisterPhone = async (payload: {
+  connectionType?: 'business_app' | 'new_number';
+  region?: string;
+  appId?: string;
+  businessName?: string;
+  phone?: string;
+  contactEmail?: string;
+} = {}) => {
+  const response = await fetch(`${API_URL}/onboarding/bsp/register-phone`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include',
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to register phone for onboarding');
+  }
+
+  return response.json();
+};
+
 /**
- * Complete BSP onboarding - processes OAuth callback from Meta
- * REQUIRES: code and state from Meta redirect
- * PERFORMS: Token exchange, WABA validation, workspace setup
+ * Complete BSP onboarding - processes callback from Gupshup
+ * REQUIRES: code/app token and state from Gupshup redirect
+ * PERFORMS: Partner app validation and workspace setup
  */
 export const bspComplete = async (payload: { code: string; state: string }) => {
   const response = await fetch(`${API_URL}/onboarding/bsp/complete`, {
@@ -1403,7 +1487,7 @@ export const bspStage1Status = async () => {
 };
 
 /**
- * Sync BSP workspace data with Meta
+ * Sync BSP workspace data with Gupshup
  */
 export const bspSync = async () => {
   const response = await fetch(`${API_URL}/onboarding/bsp/sync`, {
@@ -1552,17 +1636,7 @@ export const toggleWorkflow = async (workflowId: string) => {
  * Delete workflow
  */
 export const deleteWorkflow = async (workflowId: string) => {
-  return fetch(`${API_URL}/automation/${workflowId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  }).then(async (response) => {
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete workflow');
-    }
-    return response.json();
-  });
+  return del(`/automation/${workflowId}`);
 };
 
 /**
@@ -1650,17 +1724,7 @@ export const toggleAutoReply = async (autoReplyId: string) => {
  * Delete auto-reply
  */
 export const deleteAutoReply = async (autoReplyId: string) => {
-  return fetch(`${API_URL}/auto-replies/${autoReplyId}`, {
-    method: 'DELETE',
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  }).then(async (response) => {
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to delete auto-reply');
-    }
-    return response.json();
-  });
+  return del(`/auto-replies/${autoReplyId}`);
 };
 
 /**

@@ -2,17 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser, logoutUser, updateProfile } from '@/lib/api';
+import { logoutUser, updateProfile, get } from '@/lib/api';
+import { useAuth } from '@/lib/AuthProvider';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { FaBell, FaCog, FaUser, FaArrowLeft, FaSave, FaEdit } from "react-icons/fa";
+import { ArrowLeft, Save, Pencil, User, X } from 'lucide-react';
 
 export default function Profile() {
   const router = useRouter();
+  const { user: authUser, loading: authLoading, logout } = useAuth();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [workspaceInfo, setWorkspaceInfo] = useState(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -20,25 +23,34 @@ export default function Profile() {
   });
 
   useEffect(() => {
-    async function fetchUserData() {
-      try {
-        const userData = await getCurrentUser();
-        setUser(userData);
-        setFormData({
-          firstName: userData?.firstName || '',
-          lastName: userData?.lastName || '',
-          email: userData?.email || ''
-        });
-      } catch (err) {
-        setError('Failed to load user data. Please login again.');
-        router.push('/');
-      } finally {
-        setLoading(false);
-      }
+    if (authLoading) return;
+    if (authUser) {
+      setUser(authUser);
+      setFormData({
+        firstName: authUser.name?.split(' ')[0] || '',
+        lastName: authUser.name?.split(' ').slice(1).join(' ') || '',
+        email: authUser.email || ''
+      });
+      setLoading(false);
+    } else {
+      setError('Failed to load user data. Please login again.');
+      router.push('/');
     }
+  }, [authUser, authLoading, router]);
 
-    fetchUserData();
-  }, [router]);
+  useEffect(() => {
+    const loadWorkspaceProfile = async () => {
+      if (!authUser) return;
+      try {
+        const session = await get('/auth/me');
+        setWorkspaceInfo(session?.workspace || null);
+      } catch (_err) {
+        // Keep page functional even if workspace details fail to load
+      }
+    };
+
+    loadWorkspaceProfile();
+  }, [authUser]);
 
   const handleLogout = async () => {
     try {
@@ -51,10 +63,7 @@ export default function Profile() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
@@ -62,18 +71,13 @@ export default function Profile() {
       const updatedUser = await updateProfile(formData);
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
-      // Update the user state with new data
       setUser(updatedUser);
       setFormData({
         firstName: updatedUser?.firstName || '',
         lastName: updatedUser?.lastName || '',
         email: updatedUser?.email || ''
       });
-      
-      // Redirect to dashboard after successful update
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1500);
+      setTimeout(() => { router.push('/dashboard'); }, 1500);
     } catch (err) {
       setError('Failed to update profile. Please try again.');
     }
@@ -95,150 +99,101 @@ export default function Profile() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-[#f0f4f8] via-[#e8f0fe] to-[#f3e5f5] transition-all duration-500">
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Top Navbar */}
-        <nav className="bg-white dark:bg-gray-800 shadow px-6 py-3 flex items-center justify-between sticky top-0 z-10">
-          {/* Left: Back + Title */}
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-teal-600 dark:hover:text-teal-400 transition-colors"
-            >
-              <FaArrowLeft className="text-sm" />
-              Back to Dashboard
+    <div className="animate-fade-in-up">
+      {/* Top Bar */}
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={() => router.push('/dashboard')}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </button>
+          <h1 className="text-2xl font-bold text-foreground">Profile Settings</h1>
+        </div>
+      </div>
+
+      {/* Error/Success */}
+      {error && (
+        <div className="mb-4 p-4 bg-destructive/5 border border-destructive/20 text-destructive rounded-xl text-sm">{error}</div>
+      )}
+      {success && (
+        <div className="mb-4 p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 rounded-xl text-sm">{success}</div>
+      )}
+
+      <div className="max-w-2xl">
+        {/* Profile Header */}
+        <div className="bg-card border border-border/50 rounded-xl shadow-premium p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-primary/80 to-primary rounded-full flex items-center justify-center">
+                <User className="text-primary-foreground h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-foreground">{user?.firstName} {user?.lastName}</h2>
+                <p className="text-muted-foreground text-sm">{user?.email}</p>
+              </div>
+            </div>
+            <button onClick={() => setIsEditing(!isEditing)}
+              className="btn-primary flex items-center gap-2 text-sm">
+              {isEditing ? <><X className="h-4 w-4" /> Cancel</> : <><Pencil className="h-4 w-4" /> Edit Profile</>}
             </button>
-            <h1 className="text-xl font-semibold text-gray-700 dark:text-gray-200 tracking-wide">
-              Profile Settings
-            </h1>
           </div>
+        </div>
 
-          {/* Right: Icons */}
-          <div className="flex items-center gap-5">
-            <FaBell className="text-xl text-gray-600 dark:text-gray-300 cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition" />
-            <FaCog className="text-xl text-gray-600 dark:text-gray-300 cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition" />
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm"
-            >
-              Logout
-            </button>
-          </div>
-        </nav>
+        {/* Profile Form */}
+        <div className="bg-card border border-border/50 rounded-xl shadow-premium p-6">
+          <h3 className="text-lg font-semibold text-foreground mb-6">Personal Information</h3>
+          <div className="space-y-5">
+            {[
+              { label: 'First Name', name: 'firstName', type: 'text' },
+              { label: 'Last Name', name: 'lastName', type: 'text' },
+              { label: 'Email Address', name: 'email', type: 'email' },
+            ].map(field => (
+              <div key={field.name}>
+                <label className="block text-sm font-medium text-foreground mb-2">{field.label}</label>
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={formData[field.name]}
+                  onChange={handleInputChange}
+                  disabled={!isEditing}
+                  className="input-premium disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+              </div>
+            ))}
 
-        {/* Error/Success Display */}
-        {error && (
-          <div className="mx-6 mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-        {success && (
-          <div className="mx-6 mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
-            {success}
-          </div>
-        )}
-
-        {/* Profile Content */}
-        <div className="p-10">
-          <div className="max-w-2xl mx-auto">
-            {/* Profile Header */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-teal-600 dark:bg-teal-500 rounded-full flex items-center justify-center">
-                    <FaUser className="text-white text-2xl" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-                      {user?.firstName} {user?.lastName}
-                    </h2>
-                    <p className="text-gray-600 dark:text-gray-400">{user?.email}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors"
-                >
-                  <FaEdit className="text-sm" />
-                  {isEditing ? 'Cancel' : 'Edit Profile'}
+            {isEditing && (
+              <div className="flex gap-3 pt-2">
+                <button onClick={handleSave} className="btn-primary flex items-center gap-2 text-sm">
+                  <Save className="h-4 w-4" /> Save Changes
+                </button>
+                <button onClick={handleCancel}
+                  className="px-5 py-2.5 bg-muted text-muted-foreground hover:bg-accent rounded-xl transition-colors text-sm font-medium">
+                  Cancel
                 </button>
               </div>
-            </div>
-
-            {/* Profile Form */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-6">Personal Information</h3>
-              
-              <div className="space-y-6">
-                {/* First Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-400 dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-
-                {/* Last Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-400 dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    disabled={!isEditing}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-400 dark:bg-gray-700 dark:text-white"
-                  />
-                </div>
-
-                {/* Action Buttons */}
-                {isEditing && (
-                  <div className="flex gap-4 pt-4">
-                    <button
-                      onClick={handleSave}
-                      className="flex items-center gap-2 px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg transition-colors"
-                    >
-                      <FaSave className="text-sm" />
-                      Save Changes
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            )}
           </div>
+        </div>
+
+        {/* Business Profile */}
+        <div className="bg-card border border-border/50 rounded-xl shadow-premium p-6 mt-6">
+          <h3 className="text-lg font-semibold text-foreground mb-4">Business Information</h3>
+          {workspaceInfo ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div><span className="text-muted-foreground">Business Name:</span> <span className="text-foreground font-medium">{workspaceInfo?.businessInfo?.name || '-'}</span></div>
+              <div><span className="text-muted-foreground">Industry:</span> <span className="text-foreground font-medium">{workspaceInfo?.businessInfo?.industry || '-'}</span></div>
+              <div><span className="text-muted-foreground">Company Size:</span> <span className="text-foreground font-medium">{workspaceInfo?.businessInfo?.companySize || '-'}</span></div>
+              <div><span className="text-muted-foreground">Annual Revenue:</span> <span className="text-foreground font-medium">{workspaceInfo?.businessInfo?.annualRevenue || '-'}</span></div>
+              <div><span className="text-muted-foreground">Website:</span> <span className="text-foreground font-medium">{workspaceInfo?.businessInfo?.website || '-'}</span></div>
+              <div><span className="text-muted-foreground">Certification:</span> <span className="text-foreground font-medium">{workspaceInfo?.documents?.documentType || '-'} {workspaceInfo?.documents?.certificationNumber ? `(${workspaceInfo.documents.certificationNumber})` : ''}</span></div>
+              <div className="md:col-span-2"><span className="text-muted-foreground">Address:</span> <span className="text-foreground font-medium">{[workspaceInfo?.businessInfo?.address, workspaceInfo?.businessInfo?.city, workspaceInfo?.businessInfo?.state, workspaceInfo?.businessInfo?.country].filter(Boolean).join(', ') || '-'}</span></div>
+              <div className="md:col-span-2"><span className="text-muted-foreground">Description:</span> <span className="text-foreground font-medium">{workspaceInfo?.businessInfo?.description || '-'}</span></div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Business information not available.</p>
+          )}
         </div>
       </div>
     </div>
   );
-} 
+}

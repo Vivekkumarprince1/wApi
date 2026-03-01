@@ -138,7 +138,7 @@ const FacebookLogin = ({ onError, onSuccess, autoRedirect = true }) => {
       className={`w-full rounded-xl border-2 h-12 px-6 flex items-center justify-center gap-3 transition-all shadow-sm ${
         !appId
           ? 'border-gray-200 bg-white text-gray-500 cursor-not-allowed opacity-60'
-          : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md active:scale-[0.98]'
+          : 'border-gray-200 bg-white text-gray-700 hover:bg-muted hover:border-gray-300 hover:shadow-md active:scale-[0.98]'
       }`}
     >
       <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#1877f2] text-white">

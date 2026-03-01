@@ -71,7 +71,21 @@ async function sendSignupOTP(req, res, next) {
 // Verify OTP and complete signup
 async function verifySignupOTP(req, res, next) {
   try {
-    const { email, otp, name, password } = req.body;
+    const {
+      email,
+      otp,
+      name,
+      password,
+      businessName,
+      industry,
+      companySize,
+      website,
+      description,
+      companyLocation,
+      annualRevenue,
+      certificationType,
+      certificationNumber
+    } = req.body;
     getRedisClient(); // Ensure Redis is available (required for durable OTP)
 
     const stored = await getJson(`otp:signup:${email}`);
@@ -91,12 +105,48 @@ async function verifySignupOTP(req, res, next) {
     // OTP verified, create user
     await deleteKey(`otp:signup:${email}`);
 
+    const normalizedBusinessName = typeof businessName === 'string' ? businessName.trim() : '';
+    const normalizedIndustry = typeof industry === 'string' ? industry.trim() : '';
+    const normalizedCompanySize = typeof companySize === 'string' ? companySize.trim() : '';
+    const normalizedWebsite = typeof website === 'string' ? website.trim() : '';
+    const normalizedDescription = typeof description === 'string' ? description.trim() : '';
+    const normalizedCompanyLocation = typeof companyLocation === 'string' ? companyLocation.trim() : '';
+    const normalizedAnnualRevenue = typeof annualRevenue === 'string' ? annualRevenue.trim() : '';
+    const normalizedCertificationType = typeof certificationType === 'string' ? certificationType.trim().toLowerCase() : '';
+    const normalizedCertificationNumber = typeof certificationNumber === 'string' ? certificationNumber.trim() : '';
+    const hasBusinessInfo = !!(
+      normalizedBusinessName ||
+      normalizedIndustry ||
+      normalizedCompanySize ||
+      normalizedWebsite ||
+      normalizedDescription ||
+      normalizedCompanyLocation ||
+      normalizedAnnualRevenue ||
+      normalizedCertificationNumber
+    );
+
+    const businessDocuments = {
+      documentType: ['gst', 'msme', 'pan', 'other'].includes(normalizedCertificationType) ? normalizedCertificationType : undefined,
+      certificationNumber: normalizedCertificationNumber || undefined,
+      gstNumber: normalizedCertificationType === 'gst' ? normalizedCertificationNumber : undefined,
+      msmeNumber: normalizedCertificationType === 'msme' ? normalizedCertificationNumber : undefined,
+      panNumber: normalizedCertificationType === 'pan' ? normalizedCertificationNumber : undefined
+    };
+
     const workspace = await Workspace.create({
-      name: `${name}'s workspace`,
+      name: normalizedBusinessName || `${name}'s workspace`,
+      industry: normalizedIndustry || undefined,
+      companySize: normalizedCompanySize || undefined,
+      annualRevenue: normalizedAnnualRevenue || undefined,
+      website: normalizedWebsite || undefined,
+      address: normalizedCompanyLocation || undefined,
+      description: normalizedDescription || undefined,
+      businessDocuments,
       onboarding: {
-        step: 'business-info',
-        status: 'not-started',
-        businessInfoCompleted: false,
+        step: hasBusinessInfo ? 'whatsapp-setup' : 'business-info',
+        status: hasBusinessInfo ? 'in-progress' : 'not-started',
+        businessInfoCompleted: hasBusinessInfo,
+        businessInfoCompletedAt: hasBusinessInfo ? new Date() : null,
         whatsappSetupCompleted: false,
         templateSetupCompleted: false,
         completedAt: null
@@ -194,15 +244,65 @@ async function verifyLoginOTP(req, res, next) {
 // Signup with email/password (creates workspace)
 async function signup(req, res, next) {
   try {
-    const { name, email, password } = req.body;
+    const {
+      name,
+      email,
+      password,
+      businessName,
+      industry,
+      companySize,
+      website,
+      description,
+      companyLocation,
+      annualRevenue,
+      certificationType,
+      certificationNumber
+    } = req.body;
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: 'Email already registered' });
+
+    const normalizedBusinessName = typeof businessName === 'string' ? businessName.trim() : '';
+    const normalizedIndustry = typeof industry === 'string' ? industry.trim() : '';
+    const normalizedCompanySize = typeof companySize === 'string' ? companySize.trim() : '';
+    const normalizedWebsite = typeof website === 'string' ? website.trim() : '';
+    const normalizedDescription = typeof description === 'string' ? description.trim() : '';
+    const normalizedCompanyLocation = typeof companyLocation === 'string' ? companyLocation.trim() : '';
+    const normalizedAnnualRevenue = typeof annualRevenue === 'string' ? annualRevenue.trim() : '';
+    const normalizedCertificationType = typeof certificationType === 'string' ? certificationType.trim().toLowerCase() : '';
+    const normalizedCertificationNumber = typeof certificationNumber === 'string' ? certificationNumber.trim() : '';
+    const hasBusinessInfo = !!(
+      normalizedBusinessName ||
+      normalizedIndustry ||
+      normalizedCompanySize ||
+      normalizedWebsite ||
+      normalizedDescription ||
+      normalizedCompanyLocation ||
+      normalizedAnnualRevenue ||
+      normalizedCertificationNumber
+    );
+
+    const businessDocuments = {
+      documentType: ['gst', 'msme', 'pan', 'other'].includes(normalizedCertificationType) ? normalizedCertificationType : undefined,
+      certificationNumber: normalizedCertificationNumber || undefined,
+      gstNumber: normalizedCertificationType === 'gst' ? normalizedCertificationNumber : undefined,
+      msmeNumber: normalizedCertificationType === 'msme' ? normalizedCertificationNumber : undefined,
+      panNumber: normalizedCertificationType === 'pan' ? normalizedCertificationNumber : undefined
+    };
+
     const workspace = await Workspace.create({
-      name: `${name}'s workspace`,
+      name: normalizedBusinessName || `${name}'s workspace`,
+      industry: normalizedIndustry || undefined,
+      companySize: normalizedCompanySize || undefined,
+      annualRevenue: normalizedAnnualRevenue || undefined,
+      website: normalizedWebsite || undefined,
+      address: normalizedCompanyLocation || undefined,
+      description: normalizedDescription || undefined,
+      businessDocuments,
       onboarding: {
-        step: 'business-info',
-        status: 'not-started',
-        businessInfoCompleted: false,
+        step: hasBusinessInfo ? 'whatsapp-setup' : 'business-info',
+        status: hasBusinessInfo ? 'in-progress' : 'not-started',
+        businessInfoCompleted: hasBusinessInfo,
+        businessInfoCompletedAt: hasBusinessInfo ? new Date() : null,
         whatsappSetupCompleted: false,
         templateSetupCompleted: false,
         completedAt: null
@@ -273,11 +373,13 @@ async function me(req, res, next) {
         // WhatsApp connection status
         whatsapp: {
           isConnected: workspace.isBspConnected?.() || (!!(workspace.whatsappPhoneNumberId && !workspace.bspManaged)),
-          phoneNumber: workspace.whatsappPhoneNumber || null,
-          phoneNumberId: workspace.whatsappPhoneNumberId,
-          wabaId: workspace.wabaId,
+          phoneNumber: workspace.bspManaged ? (workspace.bspDisplayPhoneNumber || workspace.whatsappPhoneNumber) : (workspace.whatsappPhoneNumber || null),
+          phoneNumberId: workspace.whatsappPhoneNumberId || workspace.bspPhoneNumberId,
+          businessName: workspace.bspManaged ? (workspace.bspVerifiedName || workspace.verifiedName) : (workspace.verifiedName || null),
+          wabaId: workspace.wabaId || workspace.bspWabaId,
+          gupshupIdentity: workspace.gupshupIdentity || null, // Expose new identity structure (Dual-write migration)
           businessAccountId: workspace.businessAccountId,
-          connectedAt: workspace.connectedAt,
+          connectedAt: workspace.connectedAt || workspace.bspOnboardedAt,
           // Include setup status if not yet connected
           setupStatus: workspace.whatsappSetup?.status || 'not_started',
           requestedNumber: workspace.whatsappSetup?.requestedNumber
@@ -299,17 +401,34 @@ async function me(req, res, next) {
           gstNumber: workspace.businessDocuments?.gstNumber,
           msmeNumber: workspace.businessDocuments?.msmeNumber,
           panNumber: workspace.businessDocuments?.panNumber,
-          hasDocuments: !!(workspace.businessDocuments?.gstNumber || workspace.businessDocuments?.msmeNumber || workspace.businessDocuments?.panNumber)
+          certificationNumber: workspace.businessDocuments?.certificationNumber,
+          documentType: workspace.businessDocuments?.documentType,
+          hasDocuments: !!(
+            workspace.businessDocuments?.gstNumber ||
+            workspace.businessDocuments?.msmeNumber ||
+            workspace.businessDocuments?.panNumber ||
+            workspace.businessDocuments?.certificationNumber
+          )
         },
         // Business info
         businessInfo: {
           name: workspace.name,
           industry: workspace.industry,
+          companySize: workspace.companySize,
+          annualRevenue: workspace.annualRevenue,
           website: workspace.website,
           address: workspace.address,
           city: workspace.city,
           state: workspace.state,
-          country: workspace.country
+          country: workspace.country,
+          zipCode: workspace.zipCode,
+          description: workspace.description
+        },
+        onboarding: {
+          status: workspace.onboarding?.status || 'not-started',
+          step: workspace.onboarding?.step || 'business-info',
+          businessInfoCompleted: workspace.onboarding?.businessInfoCompleted || false,
+          businessInfoCompletedAt: workspace.onboarding?.businessInfoCompletedAt || null
         },
         createdAt: workspace.createdAt
       } : null
@@ -389,16 +508,10 @@ async function sendEmailVerification(req, res, next) {
       return res.status(400).json({ message: 'Email already verified' });
     }
 
-    // Prevent duplicate sends within TTL window (idempotent + rate limit)
-    const existing = await getJson(`email-verify:${user._id}`);
-    if (existing?.expiresAt && Date.now() < existing.expiresAt) {
-      const remainingMs = existing.expiresAt - Date.now();
-      const remainingMin = Math.ceil(remainingMs / 60000);
-      return res.status(429).json({
-        success: false,
-        message: `Verification already sent. Try again in ${remainingMin} minute(s).`,
-        code: 'EMAIL_VERIFICATION_ALREADY_SENT'
-      });
+    // Check if an OTP was recently sent (rate limiting)
+    const existingOTP = await getJson(`email-verify:${user._id}`);
+    if (existingOTP && existingOTP.createdAt && (Date.now() - existingOTP.createdAt < 60000)) {
+      return res.status(429).json({ message: 'Please wait 60 seconds before requesting another code' });
     }
 
     // Token-based verification (more secure than OTP, required for production)
@@ -407,7 +520,8 @@ async function sendEmailVerification(req, res, next) {
     await setJson(`email-verify:${user._id}`, {
       token,
       email: user.email,
-      expiresAt
+      expiresAt,
+      createdAt: Date.now()
     }, EMAIL_VERIFY_TTL_SECONDS);
 
     // Send verification email

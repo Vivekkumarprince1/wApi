@@ -70,7 +70,7 @@ export function RBACPermissionsMatrix() {
         <div className="space-y-6">
           {PERMISSIONS_MATRIX.map((category) => (
             <div key={category.category}>
-              <h3 className="font-semibold text-lg mb-3 text-gray-700">{category.category}</h3>
+              <h3 className="font-semibold text-lg mb-3 text-foreground">{category.category}</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -85,7 +85,7 @@ export function RBACPermissionsMatrix() {
                   </thead>
                   <tbody>
                     {category.permissions.map((perm) => (
-                      <tr key={perm.id} className="border-b hover:bg-gray-50">
+                      <tr key={perm.id} className="border-b hover:bg-muted">
                         <td className="py-3 px-3 font-medium">{perm.label}</td>
                         {ROLES.map((role) => (
                           <td key={`${perm.id}-${role}`} className="text-center py-3 px-3">

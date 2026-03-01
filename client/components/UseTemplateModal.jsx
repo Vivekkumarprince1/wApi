@@ -11,6 +11,17 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sending, setSending] = useState(false);
 
+  const normalizeTemplateText = (value) => {
+    if (typeof value === 'string') return value;
+    if (!value || typeof value !== 'object') return '';
+
+    if (typeof value.text === 'string') return value.text;
+    if (typeof value.content === 'string') return value.content;
+    if (typeof value.value === 'string') return value.value;
+
+    return '';
+  };
+
   useEffect(() => {
     if (isOpen) {
       loadContacts();
@@ -37,8 +48,8 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
     const bodyComponent = template.components?.find(c => c.type === 'BODY');
     const headerComponent = template.components?.find(c => c.type === 'HEADER');
     
-    const bodyText = bodyComponent?.text || template.body || template.content || '';
-    const headerText = headerComponent?.text || '';
+    const bodyText = bodyComponent?.text || normalizeTemplateText(template.body) || template.content || '';
+    const headerText = headerComponent?.text || normalizeTemplateText(template.header) || '';
     
     const regex = /\{\{(\d+)\}\}/g;
     const bodyMatches = [...bodyText.matchAll(regex)];
@@ -159,8 +170,9 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
     
     // Add header
     const headerComponent = template.components?.find(c => c.type === 'HEADER');
-    if (headerComponent?.text) {
-      let headerText = headerComponent.text;
+    const rawHeaderText = headerComponent?.text || normalizeTemplateText(template.header);
+    if (rawHeaderText) {
+      let headerText = rawHeaderText;
       Object.entries(variables.header || {}).forEach(([num, value]) => {
         headerText = headerText.replace(new RegExp(`\\{\\{${num}\\}\\}`, 'g'), value || `{{${num}}}`);
       });
@@ -169,7 +181,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
     
     // Add body
     const bodyComponent = template.components?.find(c => c.type === 'BODY');
-    let bodyText = bodyComponent?.text || template.body || template.content || '';
+    let bodyText = bodyComponent?.text || normalizeTemplateText(template.body) || template.content || '';
     Object.entries(variables.body || {}).forEach(([num, value]) => {
       bodyText = bodyText.replace(new RegExp(`\\{\\{${num}\\}\\}`, 'g'), value || `{{${num}}}`);
     });
@@ -177,8 +189,9 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
     
     // Add footer
     const footerComponent = template.components?.find(c => c.type === 'FOOTER');
-    if (footerComponent?.text) {
-      message += '\n\n' + footerComponent.text;
+    const footerText = footerComponent?.text || normalizeTemplateText(template.footer);
+    if (footerText) {
+      message += '\n\n' + footerText;
     }
     
     return message;
@@ -192,7 +205,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden m-4 flex flex-col">
+      <div className="bg-white dark:bg-card rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden m-4 flex flex-col">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 flex items-center justify-between flex-shrink-0">
           <div>
@@ -213,21 +226,21 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
 
         <div className="flex flex-1 min-h-0">
           {/* Left Side - Configuration */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 border-r border-gray-200 dark:border-gray-700 min-h-0">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 border-r border-gray-200 dark:border-border min-h-0">
             {/* Variables Section */}
             {hasAnyVars && (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                <h3 className="text-lg font-semibold text-foreground mb-3">
                   Fill Variables
                 </h3>
                 <div className="space-y-4">
                   {/* Header Variables */}
                   {hasHeaderVars && (
                     <div className="space-y-3">
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Header Variables:</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-muted-foreground">Header Variables:</p>
                       {Object.keys(variables.header).sort((a, b) => parseInt(a) - parseInt(b)).map(varNum => (
                         <div key={`header-${varNum}`}>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-muted-foreground mb-1">
                             Header Variable {`{{${varNum}}}`}
                           </label>
                           <input
@@ -235,7 +248,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                             value={variables.header[varNum]}
                             onChange={(e) => handleVariableChange('header', varNum, e.target.value)}
                             placeholder={`Enter value for {{${varNum}}}`}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
                       ))}
@@ -245,10 +258,10 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                   {/* Body Variables */}
                   {hasBodyVars && (
                     <div className="space-y-3">
-                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Body Variables:</p>
+                      <p className="text-sm font-medium text-gray-600 dark:text-muted-foreground">Body Variables:</p>
                       {Object.keys(variables.body).sort((a, b) => parseInt(a) - parseInt(b)).map(varNum => (
                         <div key={`body-${varNum}`}>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-muted-foreground mb-1">
                             Body Variable {`{{${varNum}}}`}
                           </label>
                           <input
@@ -256,7 +269,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                             value={variables.body[varNum]}
                             onChange={(e) => handleVariableChange('body', varNum, e.target.value)}
                             placeholder={`Enter value for {{${varNum}}}`}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
                       ))}
@@ -269,10 +282,10 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
             {/* Select Contacts */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <h3 className="text-lg font-semibold text-foreground">
                   Select Contacts
                 </h3>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-muted-foreground">
                   {selectedContacts.length} selected
                 </span>
               </div>
@@ -283,18 +296,18 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search contacts..."
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 mb-3"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500 mb-3"
               />
 
               {/* Select All */}
-              <label className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg mb-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+              <label className="flex items-center gap-2 p-3 bg-muted dark:bg-gray-700/50 rounded-lg mb-2 cursor-pointer hover:bg-muted dark:hover:bg-muted">
                 <input
                   type="checkbox"
                   checked={selectedContacts.length === filteredContacts.length && filteredContacts.length > 0}
                   onChange={toggleAll}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="font-medium text-foreground">
                   Select All ({filteredContacts.length})
                 </span>
               </label>
@@ -306,14 +319,14 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                   <p className="text-sm text-gray-500 mt-2">Loading contacts...</p>
                 </div>
               ) : (
-                <div className="max-h-64 overflow-y-auto space-y-2 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                <div className="max-h-64 overflow-y-auto space-y-2 border border-gray-200 dark:border-border rounded-lg p-2">
                   {filteredContacts.length === 0 ? (
                     <p className="text-center text-gray-500 py-4">No contacts found</p>
                   ) : (
                     filteredContacts.map(contact => (
                       <label
                         key={contact._id}
-                        className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded cursor-pointer"
+                        className="flex items-center gap-3 p-2 hover:bg-muted dark:hover:bg-gray-700/50 rounded cursor-pointer"
                       >
                         <input
                           type="checkbox"
@@ -322,10 +335,10 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                           className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          <p className="text-sm font-medium text-foreground">
                             {contact.firstName} {contact.lastName}
                           </p>
-                          <p className="text-xs text-gray-500">{contact.phone}</p>
+                          <p className="text-xs text-muted-foreground">{contact.phone}</p>
                         </div>
                       </label>
                     ))
@@ -336,19 +349,19 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
           </div>
 
           {/* Right Side - Preview */}
-          <div className="w-96 bg-gray-50 dark:bg-gray-900 p-6 flex flex-col min-h-0 overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex-shrink-0">
+          <div className="w-96 bg-muted dark:bg-background p-6 flex flex-col min-h-0 overflow-y-auto">
+            <h3 className="text-lg font-semibold text-foreground mb-4 flex-shrink-0">
               Preview
             </h3>
             
             {/* WhatsApp-like Preview */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-card rounded-lg shadow-lg p-4 border border-gray-200 dark:border-border">
               <div className="bg-[#dcf8c6] dark:bg-green-900/30 rounded-lg p-3 max-w-sm">
                 <p className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
                   {previewMessage()}
                 </p>
                 <div className="flex items-center justify-end gap-1 mt-2">
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                  <span className="text-xs text-gray-600 dark:text-muted-foreground">
                     {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 16 16">
@@ -357,27 +370,27 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                 </div>
               </div>
 
-              {template.footer && (
+              {normalizeTemplateText(template.footer) && (
                 <p className="text-xs text-gray-500 mt-2 text-center">
-                  {template.footer}
+                  {normalizeTemplateText(template.footer)}
                 </p>
               )}
             </div>
 
             <div className="mt-4 space-y-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-muted-foreground">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
                 <span>{selectedContacts.length} recipient(s)</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-muted-foreground">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                 </svg>
                 <span>Template: {template.name}</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-muted-foreground">
                 <span className={`w-2 h-2 rounded-full ${
                   template.status === 'APPROVED' ? 'bg-green-500' : 'bg-yellow-500'
                 }`}></span>
@@ -388,10 +401,10 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
         </div>
 
         {/* Footer Actions */}
-        <div className="border-t border-gray-200 dark:border-gray-700 px-6 py-4 flex gap-3 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
+        <div className="border-t border-gray-200 dark:border-border px-6 py-4 flex gap-3 bg-muted dark:bg-gray-800/50 flex-shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+            className="flex-1 px-6 py-3 border border-gray-300 dark:border-border text-gray-700 dark:text-muted-foreground rounded-lg hover:bg-muted dark:hover:bg-gray-700 transition-colors font-medium"
           >
             Cancel
           </button>

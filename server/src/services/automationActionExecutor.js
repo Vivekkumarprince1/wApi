@@ -13,6 +13,7 @@ const Template = require('../models/Template');
 const Deal = require('../models/Deal');
 const Pipeline = require('../models/Pipeline');
 const User = require('../models/User');
+const billingLedgerService = require('./billingLedgerService');
 const { logger } = require('../utils/logger');
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -125,6 +126,22 @@ const actionHandlers = {
       templateLanguage: templateLanguage || template.language || 'en',
       components: resolvedVariables
     });
+
+    // Record in billing ledger
+    try {
+      await billingLedgerService.recordMessage({
+        workspaceId,
+        conversationId: context.conversationId,
+        contactId,
+        direction: 'outbound',
+        messageId: result?.messageId,
+        whatsappMessageId: result?.whatsappMessageId,
+        isTemplate: true,
+        templateCategory: template.category
+      });
+    } catch (billingError) {
+      logger.error('[ActionExecutor] Billing record failed for template:', billingError.message);
+    }
     
     return { 
       success: true, 
@@ -165,6 +182,21 @@ const actionHandlers = {
       type: 'text',
       text: { body: messageContent }
     });
+
+    // Record in billing ledger
+    try {
+      await billingLedgerService.recordMessage({
+        workspaceId,
+        conversationId,
+        contactId,
+        direction: 'outbound',
+        messageId: result?.messageId,
+        whatsappMessageId: result?.whatsappMessageId,
+        isTemplate: false
+      });
+    } catch (billingError) {
+      logger.error('[ActionExecutor] Billing record failed for text:', billingError.message);
+    }
     
     return { 
       success: true, 

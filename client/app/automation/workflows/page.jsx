@@ -2,25 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaRobot, FaPlus, FaSearch, FaEllipsisV, FaWhatsapp, FaInstagram, FaCog, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaEye, FaChevronDown } from 'react-icons/fa';
 import Link from 'next/link';
-import { get, post, del } from '../../../lib/api';
+import {
+  Plus, Search, ChevronDown, Eye, Pencil, Trash2, ToggleLeft, ToggleRight, Workflow, RotateCcw
+} from 'lucide-react';
+import { get, post, del } from '@/lib/api';
+import PageLoader from '@/components/ui/PageLoader';
 
 export default function WorkflowsPage() {
   const router = useRouter();
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState({
-    enabled: 'all',
-    trigger: 'all',
-    search: ''
-  });
+  const [filters, setFilters] = useState({ enabled: 'all', trigger: 'all', search: '' });
   const [expandedId, setExpandedId] = useState(null);
 
-  useEffect(() => {
-    loadWorkflows();
-  }, [filters]);
+  useEffect(() => { loadWorkflows(); }, [filters]);
 
   const loadWorkflows = async () => {
     try {
@@ -28,21 +25,15 @@ export default function WorkflowsPage() {
       const params = new URLSearchParams();
       if (filters.enabled !== 'all') params.append('enabled', filters.enabled);
       if (filters.trigger !== 'all') params.append('trigger', filters.trigger);
-
       const data = await get(`/automation/rules?${params.toString()}`);
-      
-      // Ensure data is an array
-      let workflowList = Array.isArray(data) ? data : (Array.isArray(data?.rules) ? data.rules : []);
-      
-      // Filter by search term
+      let list = Array.isArray(data) ? data : (Array.isArray(data?.rules) ? data.rules : []);
       if (filters.search) {
-        workflowList = workflowList.filter(w => 
+        list = list.filter(w =>
           w.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
           w.description?.toLowerCase().includes(filters.search.toLowerCase())
         );
       }
-
-      setWorkflows(workflowList);
+      setWorkflows(list);
       setError('');
     } catch (err) {
       setError('Error loading workflows');
@@ -56,9 +47,7 @@ export default function WorkflowsPage() {
     e.stopPropagation();
     try {
       await post(`/automation/rules/${id}/enable`);
-      setWorkflows(workflows.map(w => 
-        w._id === id ? { ...w, enabled: !w.enabled } : w
-      ));
+      setWorkflows(workflows.map(w => w._id === id ? { ...w, enabled: !w.enabled } : w));
     } catch (err) {
       console.error('Error toggling workflow:', err);
     }
@@ -67,7 +56,6 @@ export default function WorkflowsPage() {
   const deleteWorkflow = async (id, e) => {
     e.stopPropagation();
     if (!confirm('Are you sure you want to delete this workflow?')) return;
-
     try {
       await del(`/automation/rules/${id}`);
       setWorkflows(workflows.filter(w => w._id !== id));
@@ -76,248 +64,188 @@ export default function WorkflowsPage() {
     }
   };
 
+  const triggerLabel = (trigger) => {
+    const map = {
+      message_received: '📨 Message', status_updated: '📊 Status', keyword: '🔑 Keyword',
+      tag_added: '🏷️ Tag', campaign_completed: '🎯 Campaign', ad_lead: '📱 Ad Lead'
+    };
+    return map[trigger] || trigger;
+  };
+
+  if (loading) return <PageLoader message="Loading workflows..." />;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <span className="text-teal-600">⚙️</span> Workflows
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">Automate your WhatsApp business processes</p>
+    <div className="animate-fade-in-up">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
+            <Workflow className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Workflows</h1>
+            <p className="text-sm text-muted-foreground">Automate your WhatsApp business processes</p>
+          </div>
+        </div>
+        <button onClick={() => router.push('/automation/workflows/create')}
+          className="btn-primary flex items-center gap-2 text-sm">
+          <Plus className="h-4 w-4" /> New Workflow
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-card rounded-xl border border-border/50 p-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Search</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input type="text" placeholder="Search workflows..." value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="input-premium pl-9" />
             </div>
-            <button
-              onClick={() => router.push('/automation/workflows/create')}
-              className="flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium transition-colors"
-            >
-              <FaPlus /> New Workflow
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Trigger Type</label>
+            <select value={filters.trigger} onChange={(e) => setFilters({ ...filters, trigger: e.target.value })}
+              className="input-premium">
+              <option value="all">All Triggers</option>
+              <option value="message_received">Message Received</option>
+              <option value="status_updated">Status Updated</option>
+              <option value="keyword">Keyword Match</option>
+              <option value="tag_added">Tag Added</option>
+              <option value="campaign_completed">Campaign Completed</option>
+              <option value="ad_lead">Ad Lead</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1.5">Status</label>
+            <select value={filters.enabled} onChange={(e) => setFilters({ ...filters, enabled: e.target.value })}
+              className="input-premium">
+              <option value="all">All Status</option>
+              <option value="true">Enabled</option>
+              <option value="false">Disabled</option>
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button onClick={() => setFilters({ enabled: 'all', trigger: 'all', search: '' })}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 border border-border text-muted-foreground hover:bg-accent rounded-xl text-sm font-medium transition-colors">
+              <RotateCcw className="h-3.5 w-3.5" /> Reset
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Search
-              </label>
-              <input
-                type="text"
-                placeholder="Search workflows..."
-                value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Trigger Type
-              </label>
-              <select
-                value={filters.trigger}
-                onChange={(e) => setFilters({ ...filters, trigger: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-              >
-                <option value="all">All Triggers</option>
-                <option value="message_received">Message Received</option>
-                <option value="status_updated">Status Updated</option>
-                <option value="keyword">Keyword Match</option>
-                <option value="tag_added">Tag Added</option>
-                <option value="campaign_completed">Campaign Completed</option>
-                <option value="ad_lead">Ad Lead</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Status
-              </label>
-              <select
-                value={filters.enabled}
-                onChange={(e) => setFilters({ ...filters, enabled: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-              >
-                <option value="all">All Status</option>
-                <option value="true">Enabled</option>
-                <option value="false">Disabled</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                &nbsp;
-              </label>
-              <button
-                onClick={() => setFilters({ enabled: 'all', trigger: 'all', search: '' })}
-                className="w-full px-3 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors"
-              >
-                Reset
-              </button>
-            </div>
-          </div>
+      {/* Error */}
+      {error && (
+        <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 mb-6">
+          <p className="text-destructive text-sm">{error}</p>
         </div>
+      )}
 
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-            <p className="text-red-600 dark:text-red-400">{error}</p>
+      {/* Workflows List */}
+      <div className="space-y-3">
+        {workflows.length === 0 ? (
+          <div className="bg-card rounded-xl border border-border/50 p-12 text-center">
+            <Workflow className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-muted-foreground mb-4">No workflows found</p>
+            <button onClick={() => router.push('/automation/workflows/create')}
+              className="btn-primary inline-flex items-center gap-2 text-sm">
+              <Plus className="h-4 w-4" /> Create First Workflow
+            </button>
           </div>
-        )}
-
-        {/* Workflows List */}
-        <div className="space-y-4">
-          {loading ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-              <p className="text-gray-600 dark:text-gray-400">Loading workflows...</p>
-            </div>
-          ) : workflows.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
-              <p className="text-gray-600 dark:text-gray-400 mb-4">No workflows found</p>
-              <button
-                onClick={() => router.push('/automation/workflows/create')}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg"
-              >
-                <FaPlus /> Create First Workflow
-              </button>
-            </div>
-          ) : (
-            workflows.map((workflow) => (
-              <div key={workflow._id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow overflow-hidden">
-                <div 
-                  className="p-6 cursor-pointer flex items-center justify-between"
-                  onClick={() => setExpandedId(expandedId === workflow._id ? null : workflow._id)}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        {workflow.name}
-                      </h3>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        workflow.enabled 
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                      }`}>
-                        {workflow.enabled ? '🟢 Active' : '🔴 Inactive'}
-                      </span>
-                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
-                        {workflow.trigger === 'message_received' ? '📨 Message' : 
-                         workflow.trigger === 'status_updated' ? '📊 Status' :
-                         workflow.trigger === 'keyword' ? '🔑 Keyword' :
-                         workflow.trigger === 'tag_added' ? '🏷️ Tag' :
-                         workflow.trigger === 'campaign_completed' ? '🎯 Campaign' :
-                         '📱 Ad Lead'}
-                      </span>
-                    </div>
-                    {workflow.description && (
-                      <p className="text-gray-600 dark:text-gray-400 text-sm">{workflow.description}</p>
-                    )}
-                    <div className="flex gap-6 mt-3 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
-                      <span>Executions: <span className="font-semibold">{workflow.executionCount || 0}</span></span>
-                      <span>Success: <span className="font-semibold text-green-600">{workflow.successCount || 0}</span></span>
-                      <span>Failed: <span className="font-semibold text-red-600">{workflow.failureCount || 0}</span></span>
-                      {workflow.lastExecutedAt && (
-                        <span>Last run: {new Date(workflow.lastExecutedAt).toLocaleDateString()}</span>
-                      )}
-                    </div>
+        ) : (
+          workflows.map((wf) => (
+            <div key={wf._id} className="bg-card rounded-xl border border-border/50 overflow-hidden hover:shadow-premium transition-all">
+              <div className="p-5 cursor-pointer flex items-center justify-between"
+                onClick={() => setExpandedId(expandedId === wf._id ? null : wf._id)}>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                    <h3 className="text-base font-semibold text-foreground">{wf.name}</h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${wf.enabled
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      : 'bg-muted text-muted-foreground'}`}>
+                      {wf.enabled ? '● Active' : '○ Inactive'}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      {triggerLabel(wf.trigger)}
+                    </span>
                   </div>
-
-                  <div className="flex items-center gap-2 ml-4">
-                    <FaChevronDown className={`transition-transform ${expandedId === workflow._id ? 'rotate-180' : ''}`} />
+                  {wf.description && <p className="text-sm text-muted-foreground truncate">{wf.description}</p>}
+                  <div className="flex gap-5 mt-2 text-xs text-muted-foreground flex-wrap">
+                    <span>Executions: <b className="text-foreground">{wf.executionCount || 0}</b></span>
+                    <span>Success: <b className="text-emerald-600">{wf.successCount || 0}</b></span>
+                    <span>Failed: <b className="text-destructive">{wf.failureCount || 0}</b></span>
+                    {wf.lastExecutedAt && <span>Last: {new Date(wf.lastExecutedAt).toLocaleDateString()}</span>}
                   </div>
                 </div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground ml-4 shrink-0 transition-transform ${expandedId === wf._id ? 'rotate-180' : ''}`} />
+              </div>
 
-                {/* Expanded Details */}
-                {expandedId === workflow._id && (
-                  <div className="border-t border-gray-200 dark:border-gray-700 p-6 bg-gray-50 dark:bg-gray-700/50">
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Trigger Type</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">{workflow.trigger}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Daily Limit</p>
-                        <p className="font-semibold text-gray-900 dark:text-white">
-                          {workflow.dailyExecutionLimit || 'Unlimited'}
-                        </p>
-                      </div>
+              {expandedId === wf._id && (
+                <div className="border-t border-border p-5 bg-muted/30">
+                  <div className="grid grid-cols-2 gap-4 mb-5">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Trigger Type</p>
+                      <p className="text-sm font-semibold text-foreground">{wf.trigger}</p>
                     </div>
-
-                    {workflow.condition && Object.keys(workflow.condition).length > 0 && (
-                      <div className="mb-6">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Condition</p>
-                        <div className="bg-white dark:bg-gray-800 rounded p-3 text-sm overflow-auto max-h-40">
-                          <pre className="font-mono text-xs text-gray-700 dark:text-gray-300">
-                            {JSON.stringify(workflow.condition, null, 2)}
-                          </pre>
-                        </div>
-                      </div>
-                    )}
-
-                    {workflow.actions && workflow.actions.length > 0 && (
-                      <div className="mb-6">
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Actions ({workflow.actions.length})</p>
-                        <div className="space-y-2">
-                          {workflow.actions.map((action, idx) => (
-                            <div key={idx} className="bg-white dark:bg-gray-800 rounded p-3 text-sm">
-                              <p className="font-semibold text-gray-900 dark:text-white mb-1">
-                                {idx + 1}. {action.type}
-                              </p>
-                              <pre className="font-mono text-xs text-gray-700 dark:text-gray-300 overflow-auto max-h-20">
-                                {JSON.stringify(action, null, 2)}
-                              </pre>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-3 flex-wrap">
-                      <button
-                        onClick={(e) => toggleWorkflow(workflow._id, e)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                          workflow.enabled
-                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200'
-                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200'
-                        }`}
-                      >
-                        {workflow.enabled ? <FaToggleOff /> : <FaToggleOn />}
-                        {workflow.enabled ? 'Disable' : 'Enable'}
-                      </button>
-
-                      <Link
-                        href={`/automation/workflows/view/${workflow._id}`}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 rounded-lg font-medium transition-colors"
-                      >
-                        <FaEye /> View
-                      </Link>
-
-                      <Link
-                        href={`/automation/workflows/edit/${workflow._id}`}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-200 rounded-lg font-medium transition-colors"
-                      >
-                        <FaEdit /> Edit
-                      </Link>
-
-                      <button
-                        onClick={(e) => deleteWorkflow(workflow._id, e)}
-                        className="flex items-center gap-2 px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 rounded-lg font-medium transition-colors"
-                      >
-                        <FaTrash /> Delete
-                      </button>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Daily Limit</p>
+                      <p className="text-sm font-semibold text-foreground">{wf.dailyExecutionLimit || 'Unlimited'}</p>
                     </div>
                   </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+
+                  {wf.condition && Object.keys(wf.condition).length > 0 && (
+                    <div className="mb-5">
+                      <p className="text-xs text-muted-foreground mb-1.5">Condition</p>
+                      <pre className="bg-card rounded-xl p-3 text-xs font-mono text-foreground overflow-auto max-h-32">
+                        {JSON.stringify(wf.condition, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+
+                  {wf.actions?.length > 0 && (
+                    <div className="mb-5">
+                      <p className="text-xs text-muted-foreground mb-1.5">Actions ({wf.actions.length})</p>
+                      <div className="space-y-2">
+                        {wf.actions.map((action, idx) => (
+                          <div key={idx} className="bg-card rounded-xl p-3">
+                            <p className="text-sm font-semibold text-foreground mb-1">{idx + 1}. {action.type}</p>
+                            <pre className="text-xs font-mono text-muted-foreground overflow-auto max-h-16">
+                              {JSON.stringify(action, null, 2)}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 flex-wrap">
+                    <button onClick={(e) => toggleWorkflow(wf._id, e)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${wf.enabled
+                        ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/20'
+                        : 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'}`}>
+                      {wf.enabled ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />}
+                      {wf.enabled ? 'Disable' : 'Enable'}
+                    </button>
+                    <Link href={`/automation/workflows/view/${wf._id}`}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 rounded-xl text-sm font-medium transition-colors">
+                      <Eye className="h-4 w-4" /> View
+                    </Link>
+                    <Link href={`/automation/workflows/edit/${wf._id}`}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 rounded-xl text-sm font-medium transition-colors">
+                      <Pencil className="h-4 w-4" /> Edit
+                    </Link>
+                    <button onClick={(e) => deleteWorkflow(wf._id, e)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-destructive/10 text-destructive hover:bg-destructive/20 rounded-xl text-sm font-medium transition-colors">
+                      <Trash2 className="h-4 w-4" /> Delete
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

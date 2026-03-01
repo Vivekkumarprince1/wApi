@@ -37,7 +37,11 @@ const WINDOW_24H = 24 * 60 * 60 * 1000;
 /**
  * Check if agent can send message to a conversation
  */
-async function canAgentSendMessage(agentId, workspaceId, conversationId) {
+async function canAgentSendMessage(agentId, workspaceId, conversationId, options = {}) {
+  const {
+    requireSendPermission = true,
+    requireOpenConversation = true
+  } = options;
   // Get permission
   const permission = await Permission.findOne({
     workspace: workspaceId,
@@ -49,13 +53,13 @@ async function canAgentSendMessage(agentId, workspaceId, conversationId) {
     return { allowed: false, reason: 'No active permissions' };
   }
 
-  // Owner and manager can send to any conversation
-  if (permission.role === 'owner' || permission.role === 'manager') {
+  // Owner/admin/manager can send to any conversation
+  if (permission.role === 'owner' || permission.role === 'admin' || permission.role === 'manager') {
     return { allowed: true };
   }
 
   // Agents need sendMessages permission
-  if (!permission.permissions?.sendMessages) {
+  if (requireSendPermission && !permission.permissions?.sendMessages) {
     return { allowed: false, reason: 'No sendMessages permission' };
   }
 
@@ -76,7 +80,7 @@ async function canAgentSendMessage(agentId, workspaceId, conversationId) {
   }
 
   // Check if conversation is closed
-  if (conversation.status === 'closed') {
+  if (requireOpenConversation && conversation.status === 'closed') {
     return { allowed: false, reason: 'Conversation is closed' };
   }
 
@@ -155,7 +159,7 @@ async function sendTextMessage(options) {
   // 4. Check 24-hour window
   const isInWindow = await isWithin24HourWindow(conversationId);
   if (!isInWindow) {
-    throw new Error('SESSION_WINDOW_EXPIRED: Use an approved template to re-open the session');
+    throw new Error('24-hour window expired. Please use a template message.');
   }
   
   // 5. Send via BSP service (centralized token + safety)
@@ -607,7 +611,10 @@ async function getConversationMessages(options) {
   } = options;
 
   // Permission check
-  const permissionCheck = await canAgentSendMessage(agentId, workspaceId, conversationId);
+  const permissionCheck = await canAgentSendMessage(agentId, workspaceId, conversationId, {
+    requireSendPermission: false,
+    requireOpenConversation: false
+  });
   if (!permissionCheck.allowed) {
     throw new Error(`PERMISSION_DENIED: ${permissionCheck.reason}`);
   }

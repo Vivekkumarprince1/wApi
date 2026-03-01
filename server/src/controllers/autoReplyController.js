@@ -9,15 +9,23 @@ const autoReplyService = require('../services/autoReplyService');
 async function createAutoReply(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
-    const { keywords, template: templateId, matchMode = 'contains', enabled = true } = req.body;
+    const { 
+      keywords, 
+      template: templateId, 
+      matchMode = 'contains', 
+      enabled = true,
+      triggerType = 'keyword'
+    } = req.body;
 
     // Validate input
-    if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
-      return res.status(400).json({ error: 'At least one keyword is required' });
-    }
+    if (triggerType === 'keyword') {
+      if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
+        return res.status(400).json({ error: 'At least one keyword is required for keyword-based auto-replies' });
+      }
 
-    if (keywords.length > 10) {
-      return res.status(400).json({ error: 'Maximum 10 keywords per auto-reply' });
+      if (keywords.length > 10) {
+        return res.status(400).json({ error: 'Maximum 10 keywords per auto-reply' });
+      }
     }
 
     if (!templateId) {
@@ -43,8 +51,9 @@ async function createAutoReply(req, res, next) {
     // Create auto-reply
     const autoReply = await AutoReply.create({
       workspace: workspaceId,
-      keywords: keywords.map(k => k.trim().toLowerCase()), // Normalize keywords
+      keywords: triggerType === 'keyword' ? keywords.map(k => k.trim().toLowerCase()) : [],
       matchMode,
+      triggerType,
       template: templateId,
       templateName: template.name,
       enabled
@@ -124,10 +133,10 @@ async function updateAutoReply(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
     const { id } = req.params;
-    const { keywords, template: templateId, matchMode, enabled } = req.body;
+    const { keywords, template: templateId, matchMode, enabled, triggerType } = req.body;
 
     // Validate input if provided
-    if (keywords) {
+    if (keywords && (triggerType === 'keyword' || !triggerType)) {
       if (!Array.isArray(keywords) || keywords.length === 0 || keywords.length > 10) {
         return res.status(400).json({ error: 'Keywords must be 1-10 items' });
       }
@@ -157,6 +166,12 @@ async function updateAutoReply(req, res, next) {
     }
     if (matchMode) {
       updateData.matchMode = matchMode;
+    }
+    if (triggerType) {
+      updateData.triggerType = triggerType;
+      if (triggerType !== 'keyword') {
+        updateData.keywords = [];
+      }
     }
     if (enabled !== undefined) {
       updateData.enabled = enabled;

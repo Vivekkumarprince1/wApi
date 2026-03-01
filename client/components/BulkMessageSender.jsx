@@ -184,7 +184,7 @@ const BulkMessageSender = () => {
               
               {/* Contact Stats */}
               {contactStats && (
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <div className="mb-4 p-3 bg-muted rounded-lg">
                   <div className="text-sm text-gray-600">
                     <span className="font-medium">{contactStats.totalContacts}</span> total contacts
                     <br />
@@ -285,7 +285,7 @@ const BulkMessageSender = () => {
               ))}
             </select>
             {selectedTemplate && (
-              <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+              <div className="mt-2 p-3 bg-muted rounded-lg">
                 <p className="text-sm text-gray-600">
                   <strong>Template:</strong> {selectedTemplate.name}
                 </p>
@@ -332,7 +332,7 @@ const BulkMessageSender = () => {
           <h3 className="text-lg font-semibold mb-3">Preview (First 3 contacts)</h3>
           <div className="space-y-2">
             {contacts.slice(0, 3).map((contact, index) => (
-              <div key={index} className="bg-gray-50 p-3 rounded-lg">
+              <div key={index} className="bg-muted p-3 rounded-lg">
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="font-medium">{contact.name || 'No name'}</span>

@@ -92,7 +92,7 @@ export default function HeroSection() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/auth/login')}
-            className="hidden sm:block px-6 py-2 text-sm font-semibold rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="hidden sm:block px-6 py-2 text-sm font-semibold rounded-lg transition-all hover:bg-accent"
             style={{ color: isDark ? '#ffffff' : '#000000' }}
           >
             Login
@@ -117,13 +117,13 @@ export default function HeroSection() {
             transition={{ duration: 0.5 }}
             className="mb-6"
           >
-            <div className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full px-4 py-2 shadow-md">
+            <div className="inline-flex items-center gap-2 bg-card rounded-full px-4 py-2 shadow-md">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="#1877F2" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 2L2 7L12 12L22 7L12 2Z" />
                 <path d="M2 17L12 22L22 17" />
                 <path d="M2 12L12 17L22 12" />
               </svg>
-              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Official Meta Business Partner</span>
+              <span className="text-xs font-bold text-foreground">Official Meta Business Partner</span>
             </div>
           </motion.div>
 
@@ -183,7 +183,7 @@ export default function HeroSection() {
             </button>
             <button
               onClick={() => router.push('#demo')}
-              className="px-8 py-4 text-lg font-bold bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-gray-200 dark:border-gray-700"
+              className="px-8 py-4 text-lg font-bold bg-card text-foreground rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-border"
             >
               Watch Demo
             </button>
@@ -194,7 +194,7 @@ export default function HeroSection() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="flex flex-wrap items-center justify-center gap-6 text-sm text-gray-600 dark:text-gray-400"
+            className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground"
           >
             <div className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-500" />

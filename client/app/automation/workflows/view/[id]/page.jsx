@@ -43,7 +43,7 @@ export default function ViewWorkflowPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading workflow...</p>
+          <p className="mt-4 text-muted-foreground">Loading workflow...</p>
         </div>
       </div>
     );
@@ -53,7 +53,7 @@ export default function ViewWorkflowPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
         <div className="max-w-4xl mx-auto px-4 py-8">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
             <p className="text-red-600 dark:text-red-400">{error}</p>
             <Link href="/automation/workflows" className="text-red-600 dark:text-red-400 hover:underline mt-4 inline-block">
               Back to Workflows
@@ -67,20 +67,20 @@ export default function ViewWorkflowPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+      <div className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center gap-4 mb-4">
             <Link
               href="/automation/workflows"
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground dark:hover:text-white"
             >
               <FaArrowLeft /> Back
             </Link>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{workflow.name}</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">{workflow.description}</p>
+              <h1 className="text-3xl font-bold text-foreground">{workflow.name}</h1>
+              <p className="text-muted-foreground mt-2">{workflow.description}</p>
             </div>
             <div className="text-right">
               <div className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${workflow.enabled ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
@@ -92,18 +92,18 @@ export default function ViewWorkflowPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-card border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-8">
             <button
               onClick={() => setActiveTab('details')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'details' ? 'border-teal-600 text-teal-600' : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'details' ? 'border-teal-600 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-white'}`}
             >
               Details
             </button>
             <button
               onClick={() => setActiveTab('executions')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'executions' ? 'border-teal-600 text-teal-600' : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'executions' ? 'border-teal-600 text-primary' : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-white'}`}
             >
               Execution History ({executions.length})
             </button>
@@ -116,20 +116,20 @@ export default function ViewWorkflowPage() {
           <div className="space-y-6">
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Executions</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{workflow.totalExecutions || 0}</p>
+              <div className="bg-card rounded-xl shadow p-4">
+                <p className="text-sm text-muted-foreground mb-1">Total Executions</p>
+                <p className="text-2xl font-bold text-foreground">{workflow.totalExecutions || 0}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Successful</p>
-                <p className="text-2xl font-bold text-green-600">{workflow.successfulExecutions || 0}</p>
+              <div className="bg-card rounded-xl shadow p-4">
+                <p className="text-sm text-muted-foreground mb-1">Successful</p>
+                <p className="text-2xl font-bold text-primary">{workflow.successfulExecutions || 0}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Failed</p>
+              <div className="bg-card rounded-xl shadow p-4">
+                <p className="text-sm text-muted-foreground mb-1">Failed</p>
                 <p className="text-2xl font-bold text-red-600">{workflow.failedExecutions || 0}</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Success Rate</p>
+              <div className="bg-card rounded-xl shadow p-4">
+                <p className="text-sm text-muted-foreground mb-1">Success Rate</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {workflow.totalExecutions > 0 
                     ? Math.round((workflow.successfulExecutions / workflow.totalExecutions) * 100) 
@@ -139,19 +139,19 @@ export default function ViewWorkflowPage() {
             </div>
 
             {/* Configuration */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Configuration</h2>
+            <div className="bg-card rounded-xl shadow p-6">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Configuration</h2>
               
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Trigger Type</p>
-                  <p className="text-lg font-medium text-gray-900 dark:text-white">{workflow.trigger}</p>
+                  <p className="text-sm text-muted-foreground mb-1">Trigger Type</p>
+                  <p className="text-lg font-medium text-foreground">{workflow.trigger}</p>
                 </div>
 
                 {Object.keys(workflow.condition || {}).length > 0 && (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Conditions</p>
-                    <pre className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto text-sm text-gray-800 dark:text-gray-200">
+                    <p className="text-sm text-muted-foreground mb-2">Conditions</p>
+                    <pre className="bg-muted p-4 rounded-xl overflow-x-auto text-sm text-foreground dark:text-foreground">
                       {JSON.stringify(workflow.condition, null, 2)}
                     </pre>
                   </div>
@@ -159,12 +159,12 @@ export default function ViewWorkflowPage() {
 
                 {workflow.actions && workflow.actions.length > 0 && (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Actions ({workflow.actions.length})</p>
+                    <p className="text-sm text-muted-foreground mb-3">Actions ({workflow.actions.length})</p>
                     <div className="space-y-2">
                       {workflow.actions.map((action, idx) => (
-                        <div key={idx} className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-                          <p className="font-medium text-gray-900 dark:text-white">Action {idx + 1}: {action.type}</p>
-                          <pre className="mt-2 text-xs text-gray-700 dark:text-gray-300 overflow-x-auto">
+                        <div key={idx} className="bg-muted p-3 rounded-xl">
+                          <p className="font-medium text-foreground">Action {idx + 1}: {action.type}</p>
+                          <pre className="mt-2 text-xs text-foreground overflow-x-auto">
                             {JSON.stringify(action, null, 2)}
                           </pre>
                         </div>
@@ -175,8 +175,8 @@ export default function ViewWorkflowPage() {
 
                 {workflow.dailyExecutionLimit && (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Daily Limit</p>
-                    <p className="text-lg font-medium text-gray-900 dark:text-white">{workflow.dailyExecutionLimit} executions/day</p>
+                    <p className="text-sm text-muted-foreground mb-1">Daily Limit</p>
+                    <p className="text-lg font-medium text-foreground">{workflow.dailyExecutionLimit} executions/day</p>
                   </div>
                 )}
               </div>
@@ -186,11 +186,11 @@ export default function ViewWorkflowPage() {
             <div className="flex gap-4">
               <Link
                 href={`/automation/workflows/edit/${workflow._id}`}
-                className="flex-1 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-medium text-center transition-colors"
+                className="flex-1 px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium text-center transition-colors"
               >
                 Edit Workflow
               </Link>
-              <button className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <button className="flex-1 px-6 py-3 border border-border rounded-xl font-medium text-foreground hover:bg-accent transition-colors">
                 Delete
               </button>
             </div>
@@ -201,33 +201,33 @@ export default function ViewWorkflowPage() {
           <div>
             {executions.length === 0 ? (
               <div className="text-center py-12">
-                <FaClock className="mx-auto text-4xl text-gray-400 mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">No executions yet</p>
+                <FaClock className="mx-auto text-4xl text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No executions yet</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                  <thead className="bg-muted border-b border-border dark:border-border">
                     <tr>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Time</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Status</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Duration</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Trigger</th>
-                      <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900 dark:text-white">Message</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Time</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Duration</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Trigger</th>
+                      <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Message</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tbody className="divide-y divide-border">
                     {executions.map((exec) => (
-                      <tr key={exec._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                      <tr key={exec._id} className="hover:bg-accent">
+                        <td className="px-6 py-4 text-sm text-foreground">
                           {new Date(exec.executedAt).toLocaleString()}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             {exec.status === 'success' ? (
                               <>
-                                <FaCheckCircle className="text-green-600" />
-                                <span className="text-sm text-green-600 font-medium">Success</span>
+                                <FaCheckCircle className="text-primary" />
+                                <span className="text-sm text-primary font-medium">Success</span>
                               </>
                             ) : (
                               <>
@@ -237,11 +237,11 @@ export default function ViewWorkflowPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 text-sm text-foreground">
                           {exec.duration ? `${exec.duration}ms` : '-'}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{exec.triggerData?.type || '-'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-400 max-w-xs truncate">
+                        <td className="px-6 py-4 text-sm text-foreground">{exec.triggerData?.type || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-muted-foreground max-w-xs truncate">
                           {exec.errorMessage || exec.triggerData?.message || '-'}
                         </td>
                       </tr>

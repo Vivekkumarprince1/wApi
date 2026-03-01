@@ -4,9 +4,9 @@
  * =============================================================================
  * 
  * Handles all BSP onboarding endpoints:
- * - POST /start - Generate ESB URL
- * - GET /callback - OAuth callback from Meta
- * - POST /complete - Process callback and create workspace
+ * - POST /start - Generate Gupshup embed URL
+ * - GET /callback - Callback redirect from Gupshup embed flow
+ * - POST /complete - Complete onboarding and create/update workspace
  * - GET /status - Get onboarding status
  * - POST /disconnect - Disconnect WhatsApp
  * - GET /stage1-status - Get Stage 1 completion status
@@ -24,15 +24,14 @@ const { logger } = require('../utils/logger');
 const { log: auditLog } = require('../services/auditService');
 const { getStage1Status } = require('../middlewares/phoneActivation');
 const { getRedis, setJson, getJson, deleteKey } = require('../config/redis');
-const { ensureParentWaba } = require('../services/parentWabaService');
-const { createOrUpdateFromOnboarding } = require('../services/childBusinessService');
 const {
   getBspConfig,
   generateBspSignupUrl,
-  completeBspOnboarding
+  completeBspOnboarding,
+  registerPhoneForWorkspace
 } = require('../services/bspOnboardingServiceV2'); // Use V2 hardened service
 
-// ESB state must survive restarts and multi-instance routing (Meta/Interakt requirement)
+// Embed state must survive restarts and multi-instance routing
 const ESB_STATE_TTL_SECONDS = 35 * 60; // 35 minutes
 
 function getRedisClient() {
@@ -61,17 +60,17 @@ async function deleteEsbState(state) {
 
 /**
  * Start BSP onboarding flow
- * Generates ESB URL and stores state
+ * Generates Gupshup embed URL and stores state
  * 
  * POST /api/v1/onboarding/bsp/start
  */
 async function startBspOnboarding(req, res) {
   try {
     const userId = req.user._id.toString();
-    
+
     // Check if user already has connected workspace
     const user = await User.findById(userId).populate('workspace');
-    
+
     if (user?.workspace?.whatsappConnected) {
       return res.status(400).json({
         success: false,
@@ -85,16 +84,16 @@ async function startBspOnboarding(req, res) {
       });
     }
 
-    // Generate ESB URL (accept query or body)
+    // Generate Gupshup embed URL
     const result = await generateBspSignupUrl(userId, {
-      businessName: req.body?.businessName || req.query?.businessName,
-      phone: req.body?.phone || req.query?.phone
+      businessName: req.body.businessName,
+      phone: req.body.phone
     });
 
     // Store state for callback verification (Redis-backed)
     await setEsbState(result.state, {
       userId,
-      workspaceId: user?.workspace?._id?.toString(),
+      workspaceId: result.workspaceId || user?.workspace?._id?.toString(),
       createdAt: new Date().toISOString(),
       expiresAt: new Date(result.expiresAt).toISOString()
     });
@@ -103,11 +102,11 @@ async function startBspOnboarding(req, res) {
 
     // Audit log (positional args: workspaceId, userId, action, resource, details)
     await auditLog(
-      user?.workspace?._id?.toString() || null,
+      result.workspaceId || user?.workspace?._id?.toString() || null,
       userId,
       'bsp_onboarding_started',
       'onboarding',
-      { configId: result.configId }
+      { appId: result.appId }
     );
 
     res.json({
@@ -118,7 +117,11 @@ async function startBspOnboarding(req, res) {
     });
   } catch (error) {
     logger.error('[BSP] Start onboarding error:', error.message);
-    
+    if (error.response) {
+      logger.error('[BSP] Response status:', error.response.status);
+      logger.error('[BSP] Response data:', error.response.data);
+    }
+
     const isConfigError = error.message.includes('configuration');
     res.status(isConfigError ? 503 : 400).json({
       success: false,
@@ -128,25 +131,117 @@ async function startBspOnboarding(req, res) {
   }
 }
 
+function normalizeRegion(value) {
+  return String(value || process.env.GUPSHUP_DEFAULT_REGION || 'IN').trim().toUpperCase();
+}
+
+function extractProviderMessage(error) {
+  const providerData = error?.response?.data;
+  if (!providerData) return null;
+  if (typeof providerData === 'string') return providerData;
+  return providerData.message || providerData.data || providerData.error || null;
+}
+
+async function registerPhoneForAppEndpoint(req, res) {
+  try {
+    const userId = req.user._id.toString();
+    const connectionType = req.body?.connectionType || 'new_number';
+
+    if (!['business_app', 'new_number'].includes(connectionType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'connectionType must be one of: business_app, new_number',
+        code: 'INVALID_CONNECTION_TYPE'
+      });
+    }
+
+    if (connectionType === 'business_app') {
+      const result = await generateBspSignupUrl(userId, {
+        businessName: req.body?.businessName,
+        phone: req.body?.phone,
+        contactEmail: req.body?.contactEmail
+      });
+
+      return res.json({
+        success: true,
+        connectionType,
+        message: 'Business app connect flow started',
+        url: result.url,
+        state: result.state,
+        expiresAt: result.expiresAt,
+        appId: result.appId
+      });
+    }
+
+    const region = normalizeRegion(req.body?.region);
+    const appId = req.body?.appId ? String(req.body.appId).trim() : undefined;
+
+    const result = await registerPhoneForWorkspace(userId, { region, appId });
+
+    return res.json({
+      success: true,
+      connectionType,
+      message: 'New number registration started',
+      appId: result.appId,
+      region: result.region,
+      providerResponse: result.providerResponse
+    });
+  } catch (error) {
+    const providerStatus = Number(error?.response?.status || 0);
+    const providerMessage = extractProviderMessage(error);
+
+    if (providerStatus === 429) {
+      return res.status(429).json({
+        success: false,
+        message: providerMessage || 'Rate limit hit while registering phone. Please retry shortly.',
+        code: 'PROVIDER_RATE_LIMIT'
+      });
+    }
+
+    if (providerStatus === 400) {
+      return res.status(400).json({
+        success: false,
+        message: providerMessage || error.message || 'Invalid register phone request',
+        code: 'REGISTER_PHONE_BAD_REQUEST'
+      });
+    }
+
+    if (providerStatus === 401 || providerStatus === 403) {
+      return res.status(502).json({
+        success: false,
+        message: providerMessage || 'Provider authentication failed while registering phone',
+        code: 'PROVIDER_AUTH_FAILED'
+      });
+    }
+
+    logger.error('[BSP] Register phone error:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: providerMessage || error.message || 'Failed to register phone for app',
+      code: 'REGISTER_PHONE_FAILED'
+    });
+  }
+}
+
 // =============================================================================
 // OAUTH CALLBACK
 // =============================================================================
 
 /**
- * Handle OAuth callback from Meta
+ * Handle callback from Gupshup onboarding embed
  * Redirects to frontend with code/state
  * 
  * GET /api/v1/onboarding/bsp/callback
  */
 async function handleCallback(req, res) {
-  const { code, state, error, error_description } = req.query;
+  const { code, state, appId, error, error_description } = req.query;
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-  // Handle errors from Meta
+  // Handle errors from provider
   if (error) {
-    logger.error('[BSP] Callback error from Meta:', error, error_description);
+    logger.error('[BSP] Callback error from Gupshup:', error, error_description);
     return res.redirect(
-      `${frontendUrl}/onboarding/esb?error=${encodeURIComponent(error)}&message=${encodeURIComponent(error_description || 'Signup cancelled')}`
+      `${frontendUrl}/onboarding/esb/callback?error=${encodeURIComponent(error)}&message=${encodeURIComponent(error_description || 'Signup cancelled')}`
     );
   }
 
@@ -154,24 +249,24 @@ async function handleCallback(req, res) {
   if (!state || !(await getEsbState(state))) {
     logger.error('[BSP] Invalid or expired state:', state);
     return res.redirect(
-      `${frontendUrl}/onboarding/esb?error=invalid_state&message=${encodeURIComponent('Session expired. Please try again.')}`
+      `${frontendUrl}/onboarding/esb/callback?error=invalid_state&message=${encodeURIComponent('Session expired. Please try again.')}`
     );
   }
 
-  // Validate code exists
-  if (!code) {
-    logger.error('[BSP] No code in callback');
+  // Accept either appId or code from callback
+  const callbackToken = appId || code;
+  if (!callbackToken) {
+    logger.error('[BSP] No appId/code in callback');
     return res.redirect(
-      `${frontendUrl}/onboarding/esb?error=no_code&message=${encodeURIComponent('No authorization code received.')}`
+      `${frontendUrl}/onboarding/esb/callback?error=no_app&message=${encodeURIComponent('No onboarding app identifier received.')}`
     );
   }
 
-  // Redirect to frontend with code and state
-  // Frontend will call /complete to finish onboarding
+  // Redirect to frontend, which calls /complete to persist workspace mapping
   logger.info('[BSP] Callback received, redirecting to frontend');
-  
+
   res.redirect(
-    `${frontendUrl}/onboarding/esb?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
+    `${frontendUrl}/onboarding/esb/callback?code=${encodeURIComponent(callbackToken)}&state=${encodeURIComponent(state)}`
   );
 }
 
@@ -229,14 +324,10 @@ async function completeOnboarding(req, res) {
       });
     }
 
-    // Ensure Parent WABA authority exists (singleton)
-    await ensureParentWaba();
-
-    // Complete BSP onboarding (exchange code, fetch WABA, etc)
-    // Pass workspace ID for token encryption context
+    // Complete BSP onboarding using Gupshup partner app resolution
     const workspaceId = stateData.workspaceId || 'new-workspace';
     const result = await completeBspOnboarding(code, workspaceId);
-    
+
     // Validate onboarding completion
     if (!result.onboardingComplete) {
       throw new Error('Onboarding validation failed: Stage 1 incomplete');
@@ -244,148 +335,93 @@ async function completeOnboarding(req, res) {
 
     // Create or update workspace
     let workspace;
-    
+
+    const updateData = {
+      // Business identifiers
+      businessId: result.businessId,
+      wabaId: result.wabaId,
+
+      // Phone details
+      whatsappPhoneNumber: result.displayPhoneNumber,
+      bspDisplayPhoneNumber: result.displayPhoneNumber,
+      verifiedName: result.verifiedName,
+      bspVerifiedName: result.verifiedName,
+
+      // Phone status (CRITICAL for Stage 1)
+      bspPhoneStatus: result.phoneStatus,
+
+      // Status
+      whatsappConnected: result.phoneStatus === 'CONNECTED',
+      connectedAt: result.connectedAt,
+
+      // Phone metadata
+      qualityRating: result.qualityRating,
+      bspQualityRating: result.qualityRating,
+      messagingLimitTier: result.messagingLimit,
+      bspMessagingTier: result.messagingLimit,
+      codeVerificationStatus: result.codeVerificationStatus,
+      nameStatus: result.nameStatus,
+      isOfficialAccount: result.isOfficialAccount,
+
+      // Token is stored in vault only (no workspace token storage)
+      tokenExpiresAt: result.tokenExpiresAt,
+
+      // BSP context
+      bspManaged: true,
+      bspWabaId: result.bspWabaId,
+      gupshupAppId: result.gupshupAppId,
+      onboardingStatus: result.onboardingStatus,
+      phoneStatus: result.phoneStatus,
+      bspOnboardedAt: new Date(),
+
+      // Business profile
+      businessProfile: result.businessProfile,
+
+      // All phones
+      phoneNumbers: result.allPhones,
+
+      // ESB flow tracking
+      'esbFlow.status': result.phoneStatus === 'CONNECTED' ? 'completed' : 'phone_pending',
+      'esbFlow.completedAt': result.phoneStatus === 'CONNECTED' ? new Date() : null,
+
+      // Onboarding progress
+      'onboarding.wabaConnectionCompleted': true,
+      'onboarding.wabaConnectionCompletedAt': new Date()
+    };
+
+    const unsetData = {};
+
+    if (result.phoneNumberId) {
+      updateData.phoneNumberId = result.phoneNumberId;
+      updateData.bspPhoneNumberId = result.phoneNumberId;
+      updateData.whatsappPhoneNumberId = result.phoneNumberId;
+    } else {
+      unsetData.phoneNumberId = 1;
+      unsetData.bspPhoneNumberId = 1;
+      unsetData.whatsappPhoneNumberId = 1;
+    }
+
     if (stateData.workspaceId) {
       // Update existing workspace
       workspace = await Workspace.findByIdAndUpdate(
         stateData.workspaceId,
         {
-          // Business identifiers
-          businessId: result.businessId,
-          metaBusinessId: result.businessId,
-          wabaId: result.wabaId,
-          childWabaId: result.wabaId,
-          
-          // Phone details
-          phoneNumberId: result.phoneNumberId,
-          bspPhoneNumberId: result.phoneNumberId,
-          whatsappPhoneNumber: result.displayPhoneNumber,
-          bspDisplayPhoneNumber: result.displayPhoneNumber,
-          verifiedName: result.verifiedName,
-          bspVerifiedName: result.verifiedName,
-          
-          // Phone status (legacy mirror)
-          bspPhoneStatus: result.phoneStatus,
-          
-          // Status
-          whatsappConnected: result.phoneStatus === 'CONNECTED',
-          connectedAt: result.connectedAt,
-          
-          // Phone metadata
-          qualityRating: result.qualityRating,
-          bspQualityRating: result.qualityRating,
-          messagingLimitTier: result.messagingLimit,
-          bspMessagingTier: result.messagingLimit,
-          codeVerificationStatus: result.codeVerificationStatus,
-          nameStatus: result.nameStatus,
-          isOfficialAccount: result.isOfficialAccount,
-          
-          // Token is stored in vault only (no workspace token storage)
-          tokenExpiresAt: result.tokenExpiresAt,
-          
-          // BSP context
-          bspManaged: true,
-          bspWabaId: result.bspWabaId,
-          bspOnboardedAt: new Date(),
-          
-          // Business profile
-          businessProfile: result.businessProfile,
-          
-          // All phones
-          phoneNumbers: result.allPhones,
-          
-          // ESB flow tracking
-          'esbFlow.status': result.phoneStatus === 'CONNECTED' ? 'completed' : 'phone_pending',
-          'esbFlow.completedAt': result.phoneStatus === 'CONNECTED' ? new Date() : null,
-          
-          // Onboarding progress
-          'onboarding.wabaConnectionCompleted': true,
-          'onboarding.wabaConnectionCompletedAt': new Date()
+          $set: updateData,
+          ...(Object.keys(unsetData).length > 0 ? { $unset: unsetData } : {})
         },
         { new: true }
       );
     } else {
       // Create new workspace
       workspace = await Workspace.create({
-        name: result.verifiedName || result.displayPhoneNumber,
+        name: result.verifiedName || result.displayPhoneNumber || 'New Workspace',
         owner: userId,
-        
-          // Business identifiers
-          businessId: result.businessId,
-          metaBusinessId: result.businessId,
-          wabaId: result.wabaId,
-          childWabaId: result.wabaId,
-        
-        // Phone details
-        phoneNumberId: result.phoneNumberId,
-        bspPhoneNumberId: result.phoneNumberId,
-        whatsappPhoneNumber: result.displayPhoneNumber,
-        bspDisplayPhoneNumber: result.displayPhoneNumber,
-        verifiedName: result.verifiedName,
-        bspVerifiedName: result.verifiedName,
-        
-        // Phone status (legacy mirror)
-        bspPhoneStatus: result.phoneStatus,
-        
-        // Status
-        whatsappConnected: result.phoneStatus === 'CONNECTED',
-        connectedAt: result.connectedAt,
-        
-        // Phone metadata
-        qualityRating: result.qualityRating,
-        bspQualityRating: result.qualityRating,
-        messagingLimitTier: result.messagingLimit,
-        bspMessagingTier: result.messagingLimit,
-        codeVerificationStatus: result.codeVerificationStatus,
-        nameStatus: result.nameStatus,
-        isOfficialAccount: result.isOfficialAccount,
-        
-        // Token is stored in vault only (no workspace token storage)
-        tokenExpiresAt: result.tokenExpiresAt,
-        
-        // BSP context
-        bspManaged: true,
-        bspWabaId: result.bspWabaId,
-        bspOnboardedAt: new Date(),
-        
-        // Business profile
-        businessProfile: result.businessProfile,
-        
-        // All phones
-        phoneNumbers: result.allPhones,
-        
-        // ESB flow tracking
-        esbFlow: {
-          status: result.phoneStatus === 'CONNECTED' ? 'completed' : 'phone_pending',
-          completedAt: result.phoneStatus === 'CONNECTED' ? new Date() : null
-        },
-        
-        // Onboarding progress
-        onboarding: {
-          wabaConnectionCompleted: true,
-          wabaConnectionCompletedAt: new Date()
-        }
+        ...updateData
       });
 
       // Link workspace to user
       await User.findByIdAndUpdate(userId, { workspace: workspace._id });
     }
-
-    // Create/Update ChildBusiness asset (Parent WABA owns phone)
-    const childBusiness = await createOrUpdateFromOnboarding({
-      workspaceId: workspace._id,
-      businessId: result.businessId,
-      wabaId: result.wabaId,
-      phoneNumberId: result.phoneNumberId,
-      displayPhoneNumber: result.displayPhoneNumber,
-      verifiedName: result.verifiedName,
-      qualityRating: result.qualityRating,
-      messagingLimitTier: result.messagingLimit,
-      codeVerificationStatus: result.codeVerificationStatus,
-      nameStatus: result.nameStatus,
-      accountMode: result.accountMode,
-      phoneStatusRaw: result.phoneStatus
-    });
 
     // Clean up state
     await deleteEsbState(state);
@@ -397,7 +433,7 @@ async function completeOnboarding(req, res) {
       'bsp_onboarding_completed',
       'workspace',
       {
-        wabaId: result.wabaId,
+        appId: result.gupshupAppId,
         phoneNumberId: result.phoneNumberId,
         displayPhoneNumber: result.displayPhoneNumber
       }
@@ -410,43 +446,43 @@ async function completeOnboarding(req, res) {
 
     res.json({
       success: true,
-      message: result.phoneStatus === 'CONNECTED' 
-        ? 'WhatsApp connected successfully' 
+      message: result.phoneStatus === 'CONNECTED'
+        ? 'WhatsApp connected successfully'
         : 'WhatsApp setup in progress - phone activation pending',
       workspace: {
         id: workspace._id,
         name: workspace.name,
-        wabaId: workspace.wabaId,
+        gupshupAppId: workspace.gupshupAppId,
         phoneNumberId: workspace.phoneNumberId,
         phoneNumber: workspace.whatsappPhoneNumber,
         verifiedName: workspace.verifiedName,
         qualityRating: workspace.qualityRating,
         messagingLimit: workspace.messagingLimitTier,
         connectedAt: workspace.connectedAt,
-        phoneStatus: childBusiness?.phoneStatus || result.phoneStatus
+        phoneStatus: result.phoneStatus
       },
       stage1: {
-        complete: (childBusiness?.phoneStatus || result.phoneStatus) === 'active' || result.phoneStatus === 'CONNECTED',
-        wabaIdFetched: !!result.wabaId,
+        complete: result.phoneStatus === 'CONNECTED',
+        appIdFetched: !!result.gupshupAppId,
         phoneNumberIdFetched: !!result.phoneNumberId,
-        phoneStatus: childBusiness?.phoneStatus || result.phoneStatus,
+        phoneStatus: result.phoneStatus,
         onboardingProgress: result.onboardingProgress
       }
     });
   } catch (error) {
     logger.error('[BSP] Complete onboarding error:', error.message);
-    
+
     // Include progress info in error response
     const errorResponse = {
       success: false,
       message: error.message,
       code: 'COMPLETE_FAILED'
     };
-    
+
     if (error.onboardingProgress) {
       errorResponse.onboardingProgress = error.onboardingProgress;
     }
-    
+
     res.status(400).json(errorResponse);
   }
 }
@@ -479,11 +515,11 @@ async function getStatus(req, res) {
     res.json({
       success: true,
       connected: ws.whatsappConnected || false,
-      status: ws.esbFlow?.status || 'not_started',
+      status: ws.onboardingStatus || ws.esbFlow?.status || 'not_started',
       workspace: ws.whatsappConnected ? {
         id: ws._id,
         name: ws.name,
-        wabaId: ws.wabaId,
+        gupshupAppId: ws.gupshupAppId,
         phoneNumberId: ws.phoneNumberId,
         phoneNumber: ws.whatsappPhoneNumber,
         verifiedName: ws.verifiedName,
@@ -573,12 +609,12 @@ async function disconnect(req, res) {
 async function getConfig(req, res) {
   try {
     const bsp = getBspConfig();
-    
+
     res.json({
       success: true,
       config: {
-        appId: bsp.appId,
-        configId: bsp.configId,
+        appId: bsp.gupshup.appId,
+        provider: bsp.provider,
         // Don't expose secrets!
         configured: true
       }
@@ -672,9 +708,8 @@ async function triggerSync(req, res) {
       });
     }
 
-    // Import sync service
-    const { triggerWorkspaceSync } = require('../services/wabaAutosyncService');
-    
+    const { triggerWorkspaceSync } = require('../services/gupshupAppSyncService');
+
     const result = await triggerWorkspaceSync(user.workspace._id);
 
     // Get updated stage 1 status
@@ -702,6 +737,7 @@ async function triggerSync(req, res) {
 
 module.exports = {
   startBspOnboarding,
+  registerPhoneForAppEndpoint,
   handleCallback,
   completeOnboarding,
   getStatus,

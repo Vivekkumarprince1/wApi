@@ -147,14 +147,22 @@ async function snapshotActivePhones(date = new Date()) {
   await Promise.all(updates);
 }
 
-async function upsertMetaUsage({
+async function upsertProviderUsage({
   workspaceId,
   billingPeriod,
+  providerInvoiceId,
+  providerAmountCents,
+  providerCurrency,
+  providerConversations,
   metaInvoiceId,
   metaAmountCents,
   metaCurrency,
   metaConversations
 }) {
+  const normalizedInvoiceId = providerInvoiceId ?? metaInvoiceId;
+  const normalizedAmountCents = providerAmountCents ?? metaAmountCents;
+  const normalizedCurrency = providerCurrency ?? metaCurrency;
+  const normalizedConversations = providerConversations ?? metaConversations;
   const { periodStart, periodEnd } = getPeriodBoundsFromKey(billingPeriod);
 
   return UsageLedger.findOneAndUpdate(
@@ -167,10 +175,10 @@ async function upsertMetaUsage({
         periodEnd
       },
       $set: {
-        'metaUsage.metaInvoiceId': metaInvoiceId,
-        'metaUsage.metaAmountCents': metaAmountCents,
-        'metaUsage.metaCurrency': metaCurrency,
-        'metaUsage.metaConversations': metaConversations || {}
+        'providerUsage.providerInvoiceId': normalizedInvoiceId,
+        'providerUsage.providerAmountCents': normalizedAmountCents,
+        'providerUsage.providerCurrency': normalizedCurrency,
+        'providerUsage.providerConversations': normalizedConversations || {}
       }
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -184,5 +192,5 @@ module.exports = {
   incrementMessages,
   incrementTemplateSubmissions,
   snapshotActivePhones,
-  upsertMetaUsage
+  upsertProviderUsage
 };

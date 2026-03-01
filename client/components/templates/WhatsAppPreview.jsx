@@ -75,7 +75,7 @@ const WhatsAppPreview = ({ template, className = '' }) => {
   return (
     <div className={`flex flex-col h-full ${className}`}>
       {/* Phone Frame */}
-      <div className="flex flex-col h-full bg-gray-100 rounded-2xl overflow-hidden border-4 border-gray-800 shadow-xl max-w-[320px] mx-auto">
+      <div className="flex flex-col h-full bg-muted rounded-2xl overflow-hidden border-4 border-gray-800 shadow-xl max-w-[320px] mx-auto">
         
         {/* WhatsApp Header */}
         <div className="bg-[#075e54] text-white px-4 py-3 flex items-center gap-3">
@@ -157,7 +157,7 @@ const WhatsAppPreview = ({ template, className = '' }) => {
                 {/* Document Header */}
                 {header.format === 'DOCUMENT' && (
                   <div className="px-3 pt-3 pb-2">
-                    <div className="flex items-center gap-3 bg-gray-100 rounded-lg p-3">
+                    <div className="flex items-center gap-3 bg-muted rounded-lg p-3">
                       <div className="w-10 h-12 bg-red-500 rounded flex items-center justify-center">
                         <FaFileAlt className="text-white text-lg" />
                       </div>
@@ -255,17 +255,17 @@ export const WhatsAppPreviewCompact = ({ template, className = '' }) => {
               <p className="px-3 pt-2 font-semibold text-gray-900 truncate">{header.text}</p>
             )}
             {header.format === 'IMAGE' && (
-              <div className="h-20 bg-gray-200 rounded-t flex items-center justify-center">
+              <div className="h-20 bg-border rounded-t flex items-center justify-center">
                 <FaImage className="text-gray-400" />
               </div>
             )}
             {header.format === 'VIDEO' && (
-              <div className="h-20 bg-gray-200 rounded-t flex items-center justify-center">
+              <div className="h-20 bg-border rounded-t flex items-center justify-center">
                 <FaVideo className="text-gray-400" />
               </div>
             )}
             {header.format === 'DOCUMENT' && (
-              <div className="h-12 bg-gray-100 rounded-t flex items-center justify-center gap-2">
+              <div className="h-12 bg-muted rounded-t flex items-center justify-center gap-2">
                 <FaFileAlt className="text-red-500" />
                 <span className="text-xs text-gray-600">Document</span>
               </div>

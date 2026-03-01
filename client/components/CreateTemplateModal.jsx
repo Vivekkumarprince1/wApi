@@ -1,23 +1,49 @@
 'use client';
 
 import React, { useState } from 'react';
-import { createTemplate } from '../lib/api';
+import { createTemplate, uploadTemplateMedia } from '../lib/api';
+import { Image } from 'lucide-react';
 
 const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     name: '',
     category: 'MARKETING',
     language: 'en',
-    header: { type: 'TEXT', text: '' },
+    header: { type: 'NONE', text: '' },
     body: '',
     footer: '',
     buttons: [],
     variables: []
   });
   
+  const [variableSamples, setVariableSamples] = useState({});
+  
   const [loading, setLoading] = useState(false);
+  const [headerFile, setHeaderFile] = useState(null);
   const [error, setError] = useState('');
   const [buttonType, setButtonType] = useState('NONE');
+  const [topPosition, setTopPosition] = useState(0);
+
+  // Dynamic positioning effect
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const calculatePosition = () => {
+      const scrollY = window.scrollY;
+      const viewportHeight = window.innerHeight;
+      const baseGap = Math.max(10, Math.min(viewportHeight * 0.05, 100)); // Dynamic gap based on screen size max 100px
+      setTopPosition(scrollY + baseGap);
+    };
+
+    calculatePosition();
+    window.addEventListener('resize', calculatePosition);
+    window.addEventListener('scroll', calculatePosition);
+    
+    return () => {
+      window.removeEventListener('resize', calculatePosition);
+      window.removeEventListener('scroll', calculatePosition);
+    };
+  }, [isOpen]);
 
   const categories = [
     'MARKETING',
@@ -36,7 +62,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
     { code: 'pt', name: 'Portuguese' }
   ];
 
-  const headerTypes = ['NONE', 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'];
+  const headerTypes = ['NONE', 'TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT', 'GIF', 'LOCATION'];
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -96,6 +122,23 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
     setError('');
 
     try {
+      let exampleMedia = null;
+      let exampleMediaUrl = null;
+      let mediaType = formData.header?.type || 'NONE';
+
+      // Upload media if present
+      if (headerFile && ['IMAGE', 'VIDEO', 'DOCUMENT', 'GIF'].includes(mediaType)) {
+        try {
+          const uploadRes = await uploadTemplateMedia(headerFile);
+          if (uploadRes) {
+            if (uploadRes.handleId) exampleMedia = uploadRes.handleId;
+            if (uploadRes.url) exampleMediaUrl = uploadRes.url;
+          }
+        } catch (uploadErr) {
+          throw new Error('Media upload failed: ' + uploadErr.message);
+        }
+      }
+
       // Detect variables in body
       const bodyVars = detectVariables(formData.body);
       const headerVars = formData.header?.text ? detectVariables(formData.header.text) : [];
@@ -105,18 +148,27 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
         name: formData.name.toLowerCase().replace(/\s+/g, '_'),
         category: formData.category,
         language: formData.language,
+        exampleMedia,
+        mediaUrl: exampleMediaUrl,
+        templateType: ['IMAGE', 'VIDEO', 'DOCUMENT', 'GIF', 'LOCATION'].includes(mediaType) ? mediaType : 'TEXT',
         components: [
           ...(formData.header && formData.header.type !== 'NONE' ? [{
             type: 'HEADER',
             format: formData.header.type,
-            ...(formData.header.text && { text: formData.header.text })
+            ...(formData.header.text && { text: formData.header.text }),
+            ...(exampleMedia || exampleMediaUrl ? { 
+              example: { 
+                ...(exampleMedia && { header_handle: [exampleMedia] }),
+                ...(exampleMediaUrl && { header_url: [exampleMediaUrl] })
+              } 
+            } : {})
           }] : []),
           {
             type: 'BODY',
             text: formData.body,
             ...(allVars.length > 0 && {
               example: {
-                body_text: [allVars.map(v => `Example ${v}`)]
+                body_text: [allVars.map(v => variableSamples[v] || `Example ${v}`)]
               }
             })
           },
@@ -136,6 +188,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
       onClose();
       
       // Reset form
+      setHeaderFile(null);
       setFormData({
         name: '',
         category: 'MARKETING',
@@ -145,6 +198,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
         footer: '',
         buttons: []
       });
+      setVariableSamples({});
     } catch (err) {
       setError(err.message || 'Failed to create template');
     } finally {
@@ -155,25 +209,41 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto m-4">
+    <div 
+      className="fixed inset-0 z-[60] p-4 sm:p-6 md:p-8 flex justify-center pointer-events-none"
+    >
+      {/* Background Overlay */}
+      <div 
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto transition-opacity" 
+        onClick={onClose}
+      />
+      
+      {/* Modal Content */}
+      <div 
+        className="bg-card w-full max-w-3xl rounded-xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto transition-all duration-200 ease-in-out relative z-10"
+        style={{ 
+          maxHeight: 'min(90vh, 800px)',
+          marginTop: `${topPosition}px`,
+          position: 'absolute'
+        }}
+      >
         {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            Create WhatsApp Template
-          </h2>
+        <div className="bg-primary text-primary-foreground px-6 py-4 shrink-0 z-20 flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold">Create Template</h2>
+            <p className="text-teal-100 text-sm">Create and submit a new WhatsApp template for approval</p>
+          </div>
           <button
+            type="button"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="text-white hover:text-teal-200 text-2xl"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            ×
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg">
               {error}
@@ -182,7 +252,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
 
           {/* Template Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Template Name *
             </label>
             <input
@@ -190,7 +260,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="e.g., welcome_message"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500"
               required
             />
             <p className="text-xs text-gray-500 mt-1">Use lowercase, underscores only (no spaces)</p>
@@ -199,13 +269,13 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
           {/* Category & Language */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Category *
               </label>
               <select
                 value={formData.category}
                 onChange={(e) => handleInputChange('category', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -213,13 +283,13 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Language *
               </label>
               <select
                 value={formData.language}
                 onChange={(e) => handleInputChange('language', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500"
               >
                 {languages.map(lang => (
                   <option key={lang.code} value={lang.code}>{lang.name}</option>
@@ -230,13 +300,13 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
 
           {/* Header */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Header (Optional)
             </label>
             <select
               value={formData.header?.type || 'NONE'}
               onChange={(e) => handleHeaderChange(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 mb-2"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500 mb-2"
             >
               {headerTypes.map(type => (
                 <option key={type} value={type}>{type}</option>
@@ -251,14 +321,38 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
                   header: { ...prev.header, text: e.target.value }
                 }))}
                 placeholder="Header text (supports {{1}}, {{2}}, etc. for variables)"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500"
               />
+            )}
+            {['IMAGE', 'VIDEO', 'DOCUMENT', 'GIF'].includes(formData.header?.type) && (
+              <div className="mt-2 p-4 border border-dashed rounded-lg text-center">
+                <input
+                  type="file"
+                  onChange={(e) => setHeaderFile(e.target.files[0])}
+                  className="hidden"
+                  id="header-media-upload"
+                  accept={
+                    formData.header?.type === 'IMAGE' ? 'image/*' :
+                    (formData.header?.type === 'VIDEO' || formData.header?.type === 'GIF') ? 'video/*' :
+                    '.pdf,.doc,.docx'
+                  }
+                />
+                <label htmlFor="header-media-upload" className="cursor-pointer flex flex-col items-center">
+                  <Image className="w-8 h-8 text-gray-400 mb-2" />
+                  <span className="text-sm font-medium">
+                    {headerFile ? headerFile.name : `Upload Sample ${formData.header?.type}`}
+                  </span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    Required for Meta approval
+                  </span>
+                </label>
+              </div>
             )}
           </div>
 
           {/* Body */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Message Body *
             </label>
             <textarea
@@ -266,7 +360,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
               onChange={(e) => handleInputChange('body', e.target.value)}
               placeholder="Enter your message. Use {{1}}, {{2}}, etc. for variables&#10;Example: Hello {{1}}! Your order {{2}} is confirmed."
               rows={6}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -275,10 +369,38 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
                 : 'None'}
             </p>
           </div>
+          
+          {/* Variable Samples */}
+          {detectVariables(formData.body).length > 0 && (
+            <div className="bg-muted/30 p-4 rounded-lg border border-border mt-4">
+              <h4 className="text-sm font-medium text-foreground mb-3">Variable Samples</h4>
+              <p className="text-xs text-muted-foreground mb-4">
+                Provide sample values for the variables to help Meta review your template.
+              </p>
+              
+              <div className="space-y-3">
+                {detectVariables(formData.body).map(variable => (
+                  <div key={`var-${variable}`} className="flex items-center gap-3">
+                    <span className="text-sm font-medium w-12 text-center bg-muted py-1.5 rounded text-muted-foreground border border-border">
+                      {`{{${variable}}}`}
+                    </span>
+                    <input
+                      type="text"
+                      value={variableSamples[variable] || ''}
+                      onChange={(e) => setVariableSamples(prev => ({...prev, [variable]: e.target.value}))}
+                      placeholder={`Sample for {{${variable}}}`}
+                      className="flex-1 px-3 py-1.5 text-sm border border-border rounded bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                      required
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Footer */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Footer (Optional)
             </label>
             <input
@@ -286,25 +408,26 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
               value={formData.footer}
               onChange={(e) => handleInputChange('footer', e.target.value)}
               placeholder="e.g., Powered by YourCompany"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {/* Buttons */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Buttons (Optional)
             </label>
             <div className="flex gap-2 mb-3">
               <select
                 value={buttonType}
                 onChange={(e) => setButtonType(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-4 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground focus:ring-2 focus:ring-blue-500"
               >
                 <option value="NONE">Select button type</option>
                 <option value="QUICK_REPLY">Quick Reply</option>
                 <option value="URL">URL</option>
                 <option value="PHONE_NUMBER">Phone Number</option>
+                <option value="FLOW">WhatsApp Flow</option>
               </select>
               <button
                 type="button"
@@ -317,7 +440,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
             </div>
 
             {formData.buttons.map((button, index) => (
-              <div key={index} className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg mb-2">
+              <div key={index} className="bg-muted/50 p-3 rounded-lg mb-2">
                 <div className="flex items-start gap-2">
                   <div className="flex-1 space-y-2">
                     <input
@@ -325,7 +448,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
                       value={button.text}
                       onChange={(e) => updateButton(index, 'text', e.target.value)}
                       placeholder="Button text"
-                      className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full px-3 py-1.5 text-sm border border-border rounded bg-white dark:bg-muted text-foreground"
                     />
                     {button.type === 'URL' && (
                       <input
@@ -333,7 +456,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
                         value={button.url}
                         onChange={(e) => updateButton(index, 'url', e.target.value)}
                         placeholder="https://example.com"
-                        className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className="w-full px-3 py-1.5 text-sm border border-border rounded bg-white dark:bg-muted text-foreground"
                       />
                     )}
                     {button.type === 'PHONE_NUMBER' && (
@@ -342,14 +465,40 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
                         value={button.phone_number}
                         onChange={(e) => updateButton(index, 'phone_number', e.target.value)}
                         placeholder="+1234567890"
-                        className="w-full px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                        className="w-full px-3 py-1.5 text-sm border border-border rounded bg-white dark:bg-muted text-foreground"
                       />
+                    )}
+                    {button.type === 'FLOW' && (
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={button.flow_id || ''}
+                          onChange={(e) => updateButton(index, 'flow_id', e.target.value)}
+                          placeholder="Flow ID"
+                          className="w-full px-3 py-1.5 text-sm border border-border rounded bg-white dark:bg-muted text-foreground"
+                        />
+                        <select
+                          value={button.flow_action || 'NAVIGATE'}
+                          onChange={(e) => updateButton(index, 'flow_action', e.target.value)}
+                          className="w-full px-3 py-1.5 text-sm border border-border rounded bg-white dark:bg-muted text-foreground"
+                        >
+                          <option value="NAVIGATE">Navigate</option>
+                          <option value="DATA_EXCHANGE">Data Exchange</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={button.navigate_screen || ''}
+                          onChange={(e) => updateButton(index, 'navigate_screen', e.target.value)}
+                          placeholder="Navigate Screen (e.g. START_SCREEN)"
+                          className="w-full px-3 py-1.5 text-sm border border-border rounded bg-white dark:bg-muted text-foreground"
+                        />
+                      </div>
                     )}
                   </div>
                   <button
                     type="button"
                     onClick={() => removeButton(index)}
-                    className="text-red-500 hover:text-red-700 p-1"
+                    className="text-destructive hover:text-destructive/80 p-1"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -362,11 +511,11 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex gap-3 pt-4 border-t border-border">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="flex-1 px-6 py-3 border border-border text-foreground rounded-lg hover:bg-accent transition-colors"
             >
               Cancel
             </button>

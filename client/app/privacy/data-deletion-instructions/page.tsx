@@ -7,7 +7,7 @@ export const metadata = {
 
 export default function DataDeletionInstructions() {
   return (
-    <main className="min-h-screen bg-white text-gray-900 px-4 py-14">
+    <main className="min-h-screen bg-white text-foreground px-4 py-14">
       <div className="max-w-3xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">Data Deletion Instructions</h1>
         <p>

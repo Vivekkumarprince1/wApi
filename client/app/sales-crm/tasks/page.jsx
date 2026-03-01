@@ -13,26 +13,26 @@ export default function SalesTasksPage(){
 
   const getPriorityColor = (priority) => {
     const colors = {
-      'High': 'bg-red-100 text-red-700',
-      'Medium': 'bg-yellow-100 text-yellow-700',
-      'Low': 'bg-green-100 text-green-700',
+      'High': 'bg-destructive/10 text-destructive',
+      'Medium': 'bg-amber-500/10 text-amber-600',
+      'Low': 'bg-emerald-500/10 text-emerald-600',
     };
-    return colors[priority] || 'bg-gray-100 text-gray-700';
+    return colors[priority] || 'bg-muted text-muted-foreground';
   };
 
   const getStatusColor = (status) => {
     const colors = {
-      'Pending': 'bg-gray-100 text-gray-700',
+      'Pending': 'bg-muted text-muted-foreground',
       'In Progress': 'bg-blue-100 text-blue-700',
-      'Completed': 'bg-green-100 text-green-700',
+      'Completed': 'bg-emerald-500/10 text-emerald-600',
     };
-    return colors[status] || 'bg-gray-100 text-gray-700';
+    return colors[status] || 'bg-muted text-muted-foreground';
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="">
       {/* Header with Gradient */}
-      <div className="bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] shadow-lg">
+      <div className="bg-gradient-to-r from-primary to-primary/80 shadow-premium">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -44,7 +44,7 @@ export default function SalesTasksPage(){
                 <p className="text-white/90 text-sm mt-1">Manage your sales activities and follow-ups</p>
               </div>
             </div>
-            <button className="flex items-center space-x-2 px-5 py-2.5 bg-white text-[#13C18D] rounded-xl font-semibold hover:shadow-xl transition-all hover:scale-105">
+            <button className="flex items-center space-x-2 px-5 py-2.5 bg-white text-primary rounded-xl font-semibold hover:shadow-xl transition-all hover:scale-105">
               <FaPlus />
               <span>Create Task</span>
             </button>
@@ -56,73 +56,73 @@ export default function SalesTasksPage(){
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total Tasks</p>
-            <p className="text-3xl font-bold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] bg-clip-text text-transparent">{tasks.length}</p>
+          <div className="bg-card rounded-2xl shadow-premium p-6">
+            <p className="text-muted-foreground text-sm mb-1">Total Tasks</p>
+            <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{tasks.length}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Pending</p>
-            <p className="text-3xl font-bold text-gray-500">{tasks.filter(t => t.status === 'Pending').length}</p>
+          <div className="bg-card rounded-2xl shadow-premium p-6">
+            <p className="text-muted-foreground text-sm mb-1">Pending</p>
+            <p className="text-3xl font-bold text-muted-foreground">{tasks.filter(t => t.status === 'Pending').length}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">In Progress</p>
+          <div className="bg-card rounded-2xl shadow-premium p-6">
+            <p className="text-muted-foreground text-sm mb-1">In Progress</p>
             <p className="text-3xl font-bold text-blue-500">{tasks.filter(t => t.status === 'In Progress').length}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Completed</p>
+          <div className="bg-card rounded-2xl shadow-premium p-6">
+            <p className="text-muted-foreground text-sm mb-1">Completed</p>
             <p className="text-3xl font-bold text-green-500">{tasks.filter(t => t.status === 'Completed').length}</p>
           </div>
         </div>
 
         {/* Filter Bar */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 mb-6">
+        <div className="bg-card rounded-2xl shadow-premium p-4 mb-6">
           <div className="flex items-center space-x-3">
-            <button className="px-4 py-2 bg-[#13C18D] text-white rounded-xl font-medium">
+            <button className="px-4 py-2 bg-primary text-white rounded-xl font-medium">
               All Tasks
             </button>
-            <button className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl font-medium">
+            <button className="px-4 py-2 text-foreground hover:bg-accent rounded-xl font-medium">
               My Tasks
             </button>
-            <button className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl font-medium">
+            <button className="px-4 py-2 text-foreground hover:bg-accent rounded-xl font-medium">
               Overdue
             </button>
             <div className="flex-1"></div>
-            <button className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl">
+            <button className="p-2 text-muted-foreground hover:bg-accent rounded-xl">
               <FaFilter />
             </button>
           </div>
         </div>
 
         {/* Tasks Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-card rounded-2xl shadow-premium overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Task</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Related To</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Assignee</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Due Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Priority</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Action</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Task</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Related To</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Assignee</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Due Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Priority</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="divide-y divide-border">
                 {tasks.map((task) => (
-                  <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">{task.title}</td>
-                    <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-300">{task.relatedTo}</td>
+                  <tr key={task.id} className="hover:bg-accent transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-foreground">{task.title}</td>
+                    <td className="px-6 py-4 text-sm text-muted-foreground">{task.relatedTo}</td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center space-x-2">
-                        <FaUser className="text-gray-400" />
-                        <span className="text-gray-600 dark:text-gray-300">{task.assignee}</span>
+                        <FaUser className="text-muted-foreground" />
+                        <span className="text-muted-foreground">{task.assignee}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm">
                       <div className="flex items-center space-x-2">
-                        <FaCalendarAlt className="text-gray-400" />
-                        <span className="text-gray-600 dark:text-gray-300">{task.dueDate}</span>
+                        <FaCalendarAlt className="text-muted-foreground" />
+                        <span className="text-muted-foreground">{task.dueDate}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -136,7 +136,7 @@ export default function SalesTasksPage(){
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <button className="text-[#13C18D] hover:text-[#0e8c6c]" title="Mark as Complete">
+                      <button className="text-primary hover:text-primary/80" title="Mark as Complete">
                         <FaCheck />
                       </button>
                     </td>

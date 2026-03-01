@@ -17,7 +17,18 @@ const CATEGORY_MAP = {
   'PROMOTIONAL': 'MARKETING',
   'TRANSACTIONAL': 'UTILITY',
   'SERVICE': 'UTILITY',
-  'OTP': 'AUTHENTICATION'
+  'OTP': 'AUTHENTICATION',
+  'ACCOUNT_UPDATE': 'UTILITY',
+  'PAYMENT_UPDATE': 'UTILITY',
+  'PERSONAL_FINANCE_UPDATE': 'UTILITY',
+  'SHIPPING_UPDATE': 'UTILITY',
+  'RESERVATION_UPDATE': 'UTILITY',
+  'ISSUE_RESOLUTION': 'UTILITY',
+  'APPOINTMENT_UPDATE': 'UTILITY',
+  'TRANSPORTATION_UPDATE': 'UTILITY',
+  'TICKET_UPDATE': 'UTILITY',
+  'ALERT_UPDATE': 'UTILITY',
+  'AUTO_REPLY': 'UTILITY'
 };
 
 // Supported languages with their Meta codes
@@ -67,6 +78,29 @@ const ApprovalHistorySchema = new mongoose.Schema({
   rawEvent: { type: mongoose.Schema.Types.Mixed }
 }, { _id: false });
 
+const EditHistorySchema = new mongoose.Schema({
+  action: {
+    type: String,
+    enum: [
+      'DIRECT_EDIT',
+      'APPROVED_FORK_CREATED',
+      'APPROVED_FORK_SUBMITTED',
+      'APPROVED_FORK_SUBMISSION_FAILED'
+    ],
+    required: true
+  },
+  timestamp: { type: Date, default: Date.now },
+  actor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  sourceTemplateId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Template'
+  },
+  details: { type: mongoose.Schema.Types.Mixed }
+}, { _id: false });
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN TEMPLATE SCHEMA
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -81,12 +115,6 @@ const TemplateSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  parentWaba: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ParentWABA',
-    index: true
-  },
-  parentWabaId: { type: String, index: true },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -260,6 +288,7 @@ const TemplateSchema = new mongoose.Schema({
    * Complete approval history
    */
   approvalHistory: [ApprovalHistorySchema],
+  editHistory: [EditHistorySchema],
 
   /**
    * Quality rating from Meta
@@ -386,16 +415,10 @@ const TemplateSchema = new mongoose.Schema({
   // ─────────────────────────────────────────────────────────────────────────────
   source: {
     type: String,
-    enum: ['META', 'LOCAL'],
+    enum: ['META', 'LOCAL', 'BSP'],
     default: 'LOCAL'
   },
   
-  isSystemGenerated: { type: Boolean, default: false },
-  generationSource: {
-    type: String,
-    enum: ['onboarding', 'scheduled', 'manual', 'duplicate', null],
-    default: null
-  },
   duplicatedFrom: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Template'
@@ -680,8 +703,9 @@ TemplateSchema.statics.getStatusCounts = async function(workspaceId) {
  * @returns {Promise<Object>} New template in DRAFT status
  * @throws {Error} If template is not approved or not found
  */
-TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId) {
+TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId, options = {}) {
   const Template = this;
+  const { alwaysNew = false } = options;
   
   const originalTemplate = await Template.findById(templateId);
   
@@ -701,9 +725,15 @@ TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId
   }
   
   // Generate new name with version suffix
-  const newVersion = originalTemplate.version + 1;
+  const newVersion = (originalTemplate.version || 1) + 1;
   const baseName = originalTemplate.name.replace(/_v\d+$/, ''); // Remove existing version suffix
   const newName = `${baseName}_v${newVersion}`;
+
+  if (alwaysNew) {
+    const timestamp = Date.now().toString().slice(-6);
+    const uniqueName = `${newName}_${timestamp}`;
+    return createClone(originalTemplate, uniqueName, newVersion, userId);
+  }
   
   // Check if name already exists
   const existingClone = await Template.findOne({
@@ -745,8 +775,7 @@ TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId
       // Ownership
       createdBy: creatorId,
       lastEditedBy: creatorId,
-      source: 'LOCAL',
-      generationSource: 'version_fork'
+      source: 'LOCAL'
     });
     
     await clonedTemplate.save();
@@ -908,6 +937,13 @@ TemplateSchema.methods.addStatusUpdate = function(status, reason = null, metaEve
  */
 TemplateSchema.methods.buildMetaComponents = function() {
   const components = [];
+
+  const extractVariableIndexes = (text) => {
+    const matches = String(text || '').match(/\{\{(\d+)\}\}/g) || [];
+    const indexes = [...new Set(matches.map((match) => Number(match.replace(/[^0-9]/g, ''))).filter(Number.isFinite))];
+    indexes.sort((a, b) => a - b);
+    return indexes;
+  };
   
   // Header component
   if (this.header?.enabled && this.header.format !== 'NONE') {
@@ -918,9 +954,12 @@ TemplateSchema.methods.buildMetaComponents = function() {
     
     if (this.header.format === 'TEXT') {
       headerComponent.text = this.header.text;
-      if (this.header.variables?.length > 0) {
+      const headerVariableIndexes = extractVariableIndexes(this.header.text);
+      if (headerVariableIndexes.length > 0 || this.header.variables?.length > 0) {
         headerComponent.example = {
-          header_text: this.header.example ? [this.header.example] : ['Example']
+          header_text: this.header.example
+            ? [this.header.example]
+            : headerVariableIndexes.map((index) => `Sample${index}`)
         };
       }
     } else {
@@ -940,11 +979,17 @@ TemplateSchema.methods.buildMetaComponents = function() {
     type: 'BODY',
     text: this.body.text
   };
-  
-  if (this.body.variables?.length > 0) {
-    const examples = this.body.examples?.length > 0 
-      ? this.body.examples 
-      : this.body.variables.map((_, i) => `Example${i + 1}`);
+
+  const bodyVariableIndexes = extractVariableIndexes(this.body.text);
+  const bodyVariableCount = this.body.variables?.length || bodyVariableIndexes.length;
+
+  if (bodyVariableCount > 0) {
+    const examples = this.body.examples?.length > 0
+      ? this.body.examples
+      : bodyVariableIndexes.length > 0
+        ? bodyVariableIndexes.map((index) => `Sample${index}`)
+        : Array.from({ length: bodyVariableCount }, (_item, i) => `Sample${i + 1}`);
+
     bodyComponent.example = {
       body_text: [examples]
     };
@@ -1013,8 +1058,7 @@ TemplateSchema.methods.duplicate = async function(newName, workspaceId = null) {
     buttons: this.buttons,
     status: 'DRAFT',
     source: 'LOCAL',
-    duplicatedFrom: this._id,
-    generationSource: 'duplicate'
+    duplicatedFrom: this._id
   };
   
   return Template.create(duplicateData);

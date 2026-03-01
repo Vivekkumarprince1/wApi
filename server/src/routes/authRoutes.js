@@ -27,12 +27,39 @@ const router = express.Router();
 
 // OTP-based authentication
 router.post('/send-signup-otp', [body('email').isEmail()], validate, sendSignupOTP);
-router.post('/verify-signup-otp', [body('email').isEmail(), body('otp').notEmpty(), body('name').notEmpty(), body('password').isLength({ min: 6 })], validate, verifySignupOTP);
+router.post('/verify-signup-otp', [
+  body('email').isEmail(),
+  body('otp').notEmpty(),
+  body('name').notEmpty(),
+  body('password').isLength({ min: 6 }),
+  body('businessName').optional().isString(),
+  body('industry').optional().isString(),
+  body('companySize').optional().isString(),
+  body('annualRevenue').optional().isString(),
+  body('website').optional().isString(),
+  body('description').optional().isString(),
+  body('companyLocation').optional().isString(),
+  body('certificationType').optional().isIn(['gst', 'msme', 'pan', 'other']),
+  body('certificationNumber').optional().isString()
+], validate, verifySignupOTP);
 router.post('/send-login-otp', [body('email').isEmail()], validate, sendLoginOTP);
 router.post('/verify-login-otp', [body('email').isEmail(), body('otp').notEmpty()], validate, verifyLoginOTP);
 
 // Traditional email/password authentication
-router.post('/signup', [body('email').isEmail(), body('password').isLength({ min: 6 }), body('name').notEmpty()], validate, signup);
+router.post('/signup', [
+  body('email').isEmail(),
+  body('password').isLength({ min: 6 }),
+  body('name').notEmpty(),
+  body('businessName').optional().isString(),
+  body('industry').optional().isString(),
+  body('companySize').optional().isString(),
+  body('annualRevenue').optional().isString(),
+  body('website').optional().isString(),
+  body('description').optional().isString(),
+  body('companyLocation').optional().isString(),
+  body('certificationType').optional().isIn(['gst', 'msme', 'pan', 'other']),
+  body('certificationNumber').optional().isString()
+], validate, signup);
 router.post('/login', [body('email').isEmail(), body('password').notEmpty()], validate, login);
 
 // Protected routes

@@ -5,19 +5,6 @@ const AuditLogSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   action: {
     type: String,
-    enum: [
-      'user.login', 'user.logout', 'user.created', 'user.updated', 'user.deleted',
-      'contact.created', 'contact.updated', 'contact.deleted', 'contact.imported',
-      'contact.opted_out', 'contact.opted_in', 'contact.manually_opted_out', 'contact.manually_opted_in',
-      'message.sent', 'message.failed', 'message.delivered', 'message.read',
-      'campaign.started', 'campaign.completed', 'campaign.paused',
-      'template.created', 'template.submitted', 'template.approved', 'template.rejected', 'template.deleted',
-      'settings.updated', 'team.member_added', 'team.member_removed', 'team.permissions_changed',
-      'waba.connected', 'waba.disconnected', 'waba.verified', 'waba.disabled',
-      'token.refreshed', 'token.expired', 'token.revoked',
-      'webhook.received', 'webhook.failed',
-      'bsp_onboarding_started'
-    ],
     required: true,
     index: true
   },

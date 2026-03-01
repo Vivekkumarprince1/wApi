@@ -8,5 +8,3 @@ export { default as TemplateBuilder } from './TemplateBuilder';
 export { default as TemplateStepBuilder } from './TemplateStepBuilder';
 export { default as TemplateList } from './TemplateList';
 export { default as WhatsAppPreview, WhatsAppPreviewCompact } from './WhatsAppPreview';
-export { default as TemplateSender } from './TemplateSender';
-export { default as MessagingDashboard } from './MessagingDashboard';

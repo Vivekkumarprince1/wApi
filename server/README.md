@@ -50,6 +50,46 @@ See `.env.example` for all available options. Key variables:
 | `META_PHONE_NUMBER_ID` | Your WhatsApp phone number ID |
 | `META_WABA_ID` | WhatsApp Business Account ID |
 | `META_CONFIG_ID` | Embedded Signup config ID (for multi-tenant) |
+| `GUPSHUP_PARTNER_TOKEN` | Partner token for Gupshup partner APIs |
+| `GUPSHUP_APP_ID` | Default partner app ID |
+| `GUPSHUP_API_KEY` | Gupshup app API key for messaging APIs |
+| `GUPSHUP_DEFAULT_REGION` | Default region for register-phone flow (default: `IN`) |
+
+## 📞 BSP Connect Number API
+
+The backend now supports both connection options from the dashboard modal:
+
+- Connect your WhatsApp Business App
+- Connect new number
+
+Endpoint:
+
+```http
+POST /api/v1/onboarding/bsp/register-phone
+Authorization: Bearer <jwt>
+Content-Type: application/json
+```
+
+Request body:
+
+```json
+{
+   "connectionType": "business_app" | "new_number",
+   "region": "IN",
+   "appId": "optional-app-id"
+}
+```
+
+Behavior:
+
+- `business_app`: starts BSP embedded onboarding and returns onboarding `url` + `state`.
+- `new_number`: calls Gupshup `POST /partner/app/{appId}/onboarding/register` and returns provider response.
+
+Common error codes:
+
+- `400` invalid request payload or provider-side validation errors
+- `429` provider rate limit reached
+- `502` provider authentication/authorization failure
 
 ## 🔐 Business Verification & WhatsApp Setup
 
@@ -129,6 +169,6 @@ POST /api/v1/admin/workspaces/:id/activate-whatsapp - Manual activation
 - Check App is in Live mode (not Development)
 - Ensure domain is whitelisted in Meta App settings
 
-## 📝 License
+##  License
 
 MIT

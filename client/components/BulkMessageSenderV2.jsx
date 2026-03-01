@@ -170,7 +170,7 @@ export default function BulkMessageSender() {
           <FaWhatsapp className="text-green-600" />
           Bulk Message Sender
         </h1>
-        <p className="text-gray-600">Send template messages to multiple contacts</p>
+        <p className="text-muted-foreground">Send template messages to multiple contacts</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -185,7 +185,7 @@ export default function BulkMessageSender() {
               </div>
             ) : templates.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-600">No approved templates found</p>
+                <p className="text-muted-foreground">No approved templates found</p>
                 <p className="text-sm text-gray-500 mt-2">Create and approve templates first</p>
               </div>
             ) : (
@@ -232,7 +232,7 @@ export default function BulkMessageSender() {
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-4">Preview</h2>
               <div className="bg-green-50 border-l-4 border-green-600 p-4 rounded">
-                <div className="whitespace-pre-wrap text-sm text-gray-800">
+                <div className="whitespace-pre-wrap text-sm text-foreground">
                   {preview}
                 </div>
               </div>
@@ -247,7 +247,7 @@ export default function BulkMessageSender() {
               <FaUsers />
               3. Select Contacts
             </h2>
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted-foreground">
               {selectedContacts.length} selected
             </span>
           </div>
@@ -285,7 +285,7 @@ export default function BulkMessageSender() {
               contacts.map((contact) => (
                 <label
                   key={contact._id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted cursor-pointer"
                 >
                   <input
                     type="checkbox"
@@ -294,8 +294,8 @@ export default function BulkMessageSender() {
                     className="w-4 h-4 text-green-600 rounded focus:ring-green-500"
                   />
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{contact.name}</p>
-                    <p className="text-sm text-gray-600">{contact.phone}</p>
+                    <p className="font-medium text-foreground">{contact.name}</p>
+                    <p className="text-sm text-muted-foreground">{contact.phone}</p>
                   </div>
                 </label>
               ))
@@ -307,7 +307,7 @@ export default function BulkMessageSender() {
       {/* Send Button */}
       <div className="mt-6 bg-white rounded-lg shadow p-6">
         <div className="flex items-center justify-between">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {selectedTemplate && selectedContacts.length > 0 && (
               <p>
                 Ready to send <strong>{selectedTemplate.name}</strong> to{' '}
@@ -318,7 +318,7 @@ export default function BulkMessageSender() {
           <button
             onClick={handleSend}
             disabled={!selectedTemplate || selectedContacts.length === 0 || sending}
-            className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 font-medium flex items-center gap-2"
+            className="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium flex items-center gap-2"
           >
             {sending ? (
               <>
@@ -342,15 +342,15 @@ export default function BulkMessageSender() {
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">{result.total}</div>
-              <div className="text-sm text-gray-600">Total</div>
+              <div className="text-sm text-muted-foreground">Total</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
               <div className="text-2xl font-bold text-green-600">{result.sent}</div>
-              <div className="text-sm text-gray-600">Sent</div>
+              <div className="text-sm text-muted-foreground">Sent</div>
             </div>
             <div className="text-center p-4 bg-red-50 rounded-lg">
               <div className="text-2xl font-bold text-red-600">{result.failed}</div>
-              <div className="text-sm text-gray-600">Failed</div>
+              <div className="text-sm text-muted-foreground">Failed</div>
             </div>
           </div>
           

@@ -1,28 +1,27 @@
 /**
  * =============================================================================
- * WEBHOOK ROUTES - META COMPLIANT
+ * WEBHOOK ROUTES - GUPSHUP
  * =============================================================================
  * 
  * Single webhook endpoint for all tenants (BSP model like Interakt).
  * 
  * SECURITY:
- * - X-Hub-Signature-256 verification on all POST requests
+ * - Source IP allowlist
  * - Replay attack protection
  * - Fast response (<2 seconds) with async processing via queue
  */
 
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { handler, verify } = require('../controllers/metaWebhookController');
+const { handler, verify } = require('../controllers/gupshupWebhookController');
 const { 
-  captureRawBody, 
-  verifyWebhookSignature, 
+  verifyWebhookIp,
   replayProtection 
 } = require('../middlewares/webhookSecurity');
 
 const router = express.Router();
 
-// Higher limit for Meta webhooks (avoid throttling)
+// Higher limit for provider webhooks (avoid throttling)
 const webhookLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 1000,
@@ -33,33 +32,20 @@ const webhookLimiter = rateLimit({
 router.use(webhookLimiter);
 
 // =============================================================================
-// WEBHOOK VERIFICATION (GET)
+// WEBHOOK HEALTH (GET)
 // =============================================================================
-// Meta sends GET request to verify webhook URL
-// No signature verification needed for GET
-router.get('/meta', verify);
+router.get('/gupshup', verify);
 
 // =============================================================================
 // WEBHOOK HANDLER (POST)
 // =============================================================================
-// Meta sends POST for all events (messages, status, etc.)
-// SECURITY: Full signature verification before processing
-router.post('/meta', 
-  captureRawBody,           // Capture raw body for signature verification
-  verifyWebhookSignature,   // Verify X-Hub-Signature-256
-  replayProtection,         // Prevent replay attacks
+router.post('/gupshup', 
+  verifyWebhookIp,
+  replayProtection,
   handler                   // Process webhook (responds quickly, queues for async)
 );
 
-// =============================================================================
-// LEGACY ROUTES (for backwards compatibility)
-// =============================================================================
 router.get('/whatsapp', verify);
-router.post('/whatsapp', 
-  captureRawBody,
-  verifyWebhookSignature,
-  replayProtection,
-  handler
-);
+router.post('/whatsapp', verifyWebhookIp, replayProtection, handler);
 
 module.exports = router;

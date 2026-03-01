@@ -8,7 +8,7 @@ const LoadingSpinner = () => {
           {/* Logo with spinning animation */}
           <div className="w-20 h-20 mx-auto relative">
             <Image
-              src="/my_logo.png"
+              src="/interact-logo.png"
               alt={`${process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} Logo`}
               width={80}
               height={80}
@@ -21,8 +21,8 @@ const LoadingSpinner = () => {
         
         {/* Loading text */}
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold text-gray-800">{process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</h2>
-          <p className="text-gray-600">Loading your dashboard...</p>
+          <h2 className="text-2xl font-bold text-foreground">{process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</h2>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
         </div>
         
         {/* Progress dots */}

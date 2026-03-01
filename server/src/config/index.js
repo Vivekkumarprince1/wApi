@@ -11,14 +11,14 @@ module.exports = {
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
   facebookAppId: process.env.FACEBOOK_APP_ID || '',
   facebookAppSecret: process.env.FACEBOOK_APP_SECRET || '',
-  // Meta WhatsApp Cloud API credentials
-  whatsappToken: process.env.META_ACCESS_TOKEN || '',
-  whatsappPhoneId: process.env.META_PHONE_NUMBER_ID || '',
-  metaAppId: process.env.META_APP_ID || '',
-  metaAppSecret: process.env.META_APP_SECRET || '',
-  metaWabaId: process.env.META_WABA_ID || '',
-  metaVerifyToken: process.env.META_VERIFY_TOKEN || '',
-  // Meta Embedded Signup Configuration
-  metaConfigId: process.env.META_CONFIG_ID || '', // WhatsApp Embedded Signup Config ID
-  metaBusinessId: process.env.META_BUSINESS_ID || '' // Your Meta Business ID
+  // Gupshup WhatsApp API credentials
+  whatsappToken: process.env.GUPSHUP_API_KEY || '',
+  whatsappPhoneId: process.env.GUPSHUP_SOURCE_NUMBER || '',
+  metaAppId: process.env.GUPSHUP_APP_ID || '',
+  metaAppSecret: process.env.GUPSHUP_PARTNER_TOKEN || '',
+  metaWabaId: process.env.GUPSHUP_APP_ID || '',
+  metaVerifyToken: '',
+  // Embedded onboarding configuration
+  metaConfigId: process.env.GUPSHUP_APP_ID || '',
+  metaBusinessId: process.env.GUPSHUP_APP_ID || ''
 };

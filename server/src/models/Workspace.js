@@ -1,14 +1,14 @@
 const mongoose = require('mongoose');
 
 const WorkspaceSchema = new mongoose.Schema({
-  name: { 
-    type: String, 
-    required: true 
+  name: {
+    type: String,
+    required: true
   },
-  plan: { 
-    type: String, 
-    enum: ['free', 'basic', 'premium', 'enterprise'], 
-    default: 'free' 
+  plan: {
+    type: String,
+    enum: ['free', 'basic', 'premium', 'enterprise'],
+    default: 'free'
   },
   // BSP billing (single active phone + suspension mirror)
   activePhoneNumberId: { type: String },
@@ -21,6 +21,7 @@ const WorkspaceSchema = new mongoose.Schema({
   // Business Information
   industry: { type: String },
   companySize: { type: String },
+  annualRevenue: { type: String },
   website: { type: String },
   address: { type: String },
   city: { type: String },
@@ -28,24 +29,25 @@ const WorkspaceSchema = new mongoose.Schema({
   country: { type: String },
   zipCode: { type: String },
   description: { type: String },
-  
+
   // Official Business Documents for Verification
   businessDocuments: {
     gstNumber: { type: String },
     msmeNumber: { type: String },
     panNumber: { type: String },
-    documentType: { 
-      type: String, 
-      enum: ['gst', 'msme', 'pan', 'other'] 
+    certificationNumber: { type: String },
+    documentType: {
+      type: String,
+      enum: ['gst', 'msme', 'pan', 'other']
     },
     documentUrl: { type: String }, // URL of uploaded document if any
     submittedAt: { type: Date }
   },
-  
+
   // Business Verification Status
   businessVerification: {
-    status: { 
-      type: String, 
+    status: {
+      type: String,
       enum: ['not_submitted', 'pending', 'in_review', 'verified', 'rejected'],
       default: 'not_submitted'
     },
@@ -79,9 +81,9 @@ const WorkspaceSchema = new mongoose.Schema({
     // ESB Flow Status
     status: {
       type: String,
-      enum: ['not_started', 'signup_initiated', 'code_received', 'token_exchanged', 
-             'business_verified', 'phone_registered', 'otp_sent', 'otp_verified', 
-             'system_user_created', 'waba_activated', 'completed', 'failed'],
+      enum: ['not_started', 'signup_initiated', 'code_received', 'token_exchanged',
+        'business_verified', 'phone_registered', 'otp_sent', 'otp_verified',
+        'system_user_created', 'waba_activated', 'completed', 'failed', 'phone_pending', 'disconnected'],
       default: 'not_started'
     },
     // Authorization & State
@@ -135,8 +137,8 @@ const WorkspaceSchema = new mongoose.Schema({
     requestedNumber: { type: String },
     hasExistingAccount: { type: Boolean },
     requestedAt: { type: Date },
-    status: { 
-      type: String, 
+    status: {
+      type: String,
       enum: ['not_started', 'otp_sent', 'otp_expired', 'otp_verified', 'registering', 'pending_activation', 'connected', 'failed', 'blocked'],
       default: 'not_started'
     },
@@ -175,7 +177,7 @@ const WorkspaceSchema = new mongoose.Schema({
   whatsappVerifyToken: { type: String },
   connectedAt: { type: Date },
   whatsappConnected: { type: Boolean, default: false }, // Quick check if WhatsApp is connected
-  
+
   // Phone metadata (BSP model - synced from Meta)
   /**
    * Internal mirror of phone_number_id used by some legacy services.
@@ -189,15 +191,23 @@ const WorkspaceSchema = new mongoose.Schema({
   codeVerificationStatus: { type: String }, // VERIFIED, NOT_VERIFIED
   nameStatus: { type: String }, // APPROVED, PENDING, REJECTED
   isOfficialAccount: { type: Boolean, default: false },
-  
+
   // Token storage (BSP model)
   accessToken: { type: String }, // User's access token (encrypt in production)
   tokenExpiresAt: { type: Date },
-  
+
+  // Gupshup Identity (Primary Workspace Resolution)
+  gupshupIdentity: {
+    partnerAppId: { type: String, sparse: true, unique: true },
+    appApiKey: { type: String },
+    source: { type: String } // e.g., source phone number representation mapped by Gupshup
+  },
+
+
   // ═══════════════════════════════════════════════════════════════════
   // BSP MULTI-TENANT CONFIGURATION
   // ═══════════════════════════════════════════════════════════════════
-  
+
   /**
    * BSP Managed flag - TRUE for all tenants under your parent WABA
    * When true, all Meta API calls use the centralized BSP system token
@@ -215,58 +225,63 @@ const WorkspaceSchema = new mongoose.Schema({
    * ChildBusiness reference (per-tenant phone asset)
    */
   childBusiness: { type: mongoose.Schema.Types.ObjectId, ref: 'ChildBusiness' },
-  
+
   /**
    * Parent WABA ID - Reference to your BSP's WABA
    * All tenants share this WABA but have different phone_number_ids
    */
   bspWabaId: { type: String },
-  
+
+  /**
+   * Gupshup App ID for this workspace
+   */
+  gupshupAppId: { type: String },
+
   /**
    * The phone_number_id assigned to this tenant/workspace
    * This is the PRIMARY KEY for multi-tenant routing
    * Each workspace MUST have a unique phone_number_id
    */
   bspPhoneNumberId: { type: String, unique: true, sparse: true },
-  
+
   /**
    * Display phone number for this workspace (e.g., +919876543210)
    */
   bspDisplayPhoneNumber: { type: String },
-  
+
   /**
    * Verified business name for this phone number (from Meta)
    */
   bspVerifiedName: { type: String },
-  
+
   /**
    * Phone number status from Meta
    */
-  bspPhoneStatus: { 
-    type: String, 
+  bspPhoneStatus: {
+    type: String,
     enum: ['PENDING', 'CONNECTED', 'DISCONNECTED', 'BANNED', 'FLAGGED', 'RATE_LIMITED'],
     default: 'PENDING'
   },
-  
+
   /**
    * Quality rating from Meta for this phone number
    */
-  bspQualityRating: { 
-    type: String, 
+  bspQualityRating: {
+    type: String,
     enum: ['GREEN', 'YELLOW', 'RED', 'UNKNOWN'],
     default: 'UNKNOWN'
   },
-  
+
   /**
    * Messaging limit tier from Meta (TIER_1K, TIER_10K, TIER_100K, TIER_UNLIMITED)
    */
   bspMessagingTier: { type: String, default: 'TIER_1K' },
-  
+
   /**
    * When this workspace was onboarded to BSP
    */
   bspOnboardedAt: { type: Date },
-  
+
   /**
    * BSP-specific rate limiting overrides (optional)
    * If set, overrides plan-based limits
@@ -277,7 +292,7 @@ const WorkspaceSchema = new mongoose.Schema({
     monthlyMessageLimit: { type: Number },
     templateSubmissionsPerDay: { type: Number }
   },
-  
+
   /**
    * BSP usage tracking (separate from general usage)
    */
@@ -290,7 +305,7 @@ const WorkspaceSchema = new mongoose.Schema({
     lastUsageReset: { type: Date, default: Date.now },
     lastMonthlyReset: { type: Date, default: Date.now }
   },
-  
+
   /**
    * Audit trail for BSP actions
    */
@@ -305,7 +320,7 @@ const WorkspaceSchema = new mongoose.Schema({
       createdAt: { type: Date, default: Date.now }
     }]
   },
-  
+
   // Business profile from Meta
   businessProfile: {
     about: { type: String },
@@ -316,7 +331,7 @@ const WorkspaceSchema = new mongoose.Schema({
     websites: [{ type: String }],
     vertical: { type: String }
   },
-  
+
   // All phone numbers for this WABA (for multi-phone support)
   phoneNumbers: [{
     id: { type: String },
@@ -324,7 +339,7 @@ const WorkspaceSchema = new mongoose.Schema({
     verifiedName: { type: String },
     qualityRating: { type: String }
   }],
-  
+
   planLimits: {
     maxContacts: { type: Number, default: 100 },
     maxMessages: { type: Number, default: 1000 },
@@ -365,7 +380,7 @@ const WorkspaceSchema = new mongoose.Schema({
       push: { type: Boolean, default: true }
     }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // STAGE 4 HARDENING: INBOX SETTINGS
   // ═══════════════════════════════════════════════════════════════════
@@ -379,26 +394,26 @@ const WorkspaceSchema = new mongoose.Schema({
     },
     // Track last assigned agent for round-robin
     lastAssignedAgentIndex: { type: Number, default: 0 },
-    
+
     // SLA configuration
     slaEnabled: { type: Boolean, default: false },
     slaFirstResponseMinutes: { type: Number, default: 60 }, // Default 1 hour
     slaResolutionMinutes: { type: Number, default: 1440 }, // Default 24 hours
     slaBreachAutoEscalate: { type: Boolean, default: true },
-    
+
     // Agent rate limiting (safety)
     agentRateLimitEnabled: { type: Boolean, default: true },
     agentMessagesPerMinute: { type: Number, default: 30 },
-    
+
     // Soft lock settings
     softLockEnabled: { type: Boolean, default: true },
     softLockTimeoutSeconds: { type: Number, default: 60 }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // STAGE 5: BILLING QUOTA & USAGE TRACKING
   // ═══════════════════════════════════════════════════════════════════
-  
+
   /**
    * Billing quota limits per month
    * Based on plan tier
@@ -406,69 +421,69 @@ const WorkspaceSchema = new mongoose.Schema({
   billingQuota: {
     // Total monthly conversation limit
     monthlyConversations: { type: Number, default: 1000 },
-    
+
     // Per-category limits (optional - for enterprise plans)
     marketingConversations: { type: Number },
     utilityConversations: { type: Number },
     authenticationConversations: { type: Number },
     serviceConversations: { type: Number },
-    
+
     // Warning and block thresholds (percentage)
     warningThreshold: { type: Number, default: 80 },
     blockThreshold: { type: Number, default: 100 },
-    
+
     // Whether to hard block or just warn
     hardBlock: { type: Boolean, default: false },
-    
+
     // Custom override (for enterprise deals)
     isCustom: { type: Boolean, default: false },
     customQuotaNote: { type: String }
   },
-  
+
   /**
    * Monthly usage counters (reset at start of billing period)
    */
   billingUsage: {
     // Total conversations this month
     monthlyConversationsUsed: { type: Number, default: 0 },
-    
+
     // Breakdown by category
     marketingUsed: { type: Number, default: 0 },
     utilityUsed: { type: Number, default: 0 },
     authenticationUsed: { type: Number, default: 0 },
     serviceUsed: { type: Number, default: 0 },
-    
+
     // Breakdown by initiator
     businessInitiated: { type: Number, default: 0 },
     userInitiated: { type: Number, default: 0 },
-    
+
     // Breakdown by source
     campaignConversations: { type: Number, default: 0 },
     inboxConversations: { type: Number, default: 0 },
     apiConversations: { type: Number, default: 0 },
     automationConversations: { type: Number, default: 0 },
-    
+
     // Total messages (not conversations)
     totalMessagesSent: { type: Number, default: 0 },
     totalMessagesReceived: { type: Number, default: 0 },
     templateMessagesSent: { type: Number, default: 0 },
-    
+
     // Reset tracking
     lastResetAt: { type: Date, default: Date.now },
     billingPeriodStart: { type: Date },
     billingPeriodEnd: { type: Date },
-    
+
     // Warning status
     warningIssuedAt: { type: Date },
     warningAcknowledgedAt: { type: Date },
     blockIssuedAt: { type: Date }
   },
-  
+
   subscription: {
-    status: { 
-      type: String, 
-      enum: ['active', 'inactive', 'cancelled', 'past_due'], 
-      default: 'active' 
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'cancelled', 'past_due'],
+      default: 'active'
     },
     startDate: { type: Date },
     endDate: { type: Date },
@@ -498,7 +513,11 @@ WorkspaceSchema.index({ createdAt: 1 });
 // BSP MULTI-TENANT INDEXES & INVARIANTS
 // ═══════════════════════════════════════════════════════════════════
 
-// Index for finding all workspaces under a BSP WABA
+// Index for finding workspaces by owner or user ID relations (used in some direct lookups)
+WorkspaceSchema.index({ createdBy: 1 });
+
+// Index for efficiently resolving workspaces by App ID
+WorkspaceSchema.index({ gupshupAppId: 1 }, { sparse: true });
 WorkspaceSchema.index({ bspWabaId: 1, bspManaged: 1 });
 
 // Globally unique phone_number_id invariants (no reuse across tenants)
@@ -510,6 +529,11 @@ WorkspaceSchema.index(
   { phoneNumberId: 1 },
   { unique: true, sparse: true, name: 'uniq_workspace_phone_number_id' }
 );
+// Primary Partner App index (replaces WABA/Phone dependencies)
+WorkspaceSchema.index(
+  { 'gupshupIdentity.partnerAppId': 1 },
+  { unique: true, sparse: true, name: 'uniq_partner_app_id' }
+);
 // bspPhoneNumberId already has a unique constraint at field level, which
 // together with the indexes above guarantees that a Meta phone number is
 // never bound to more than one workspace at a time.
@@ -519,13 +543,13 @@ WorkspaceSchema.index({ bspManaged: 1, bspPhoneStatus: 1 });
 WorkspaceSchema.index({ bspManaged: 1, bspQualityRating: 1 });
 
 // Update the updatedAt timestamp on save
-WorkspaceSchema.pre('save', function(next) {
+WorkspaceSchema.pre('save', function (next) {
   this.updatedAt = new Date();
 
   // ═══════════════════════════════════════════════════════════════════
   // BSP FIELD SYNCHRONIZATION
   // ═══════════════════════════════════════════════════════════════════
-  
+
   // If BSP managed, sync bspPhoneNumberId with legacy whatsappPhoneNumberId
   if (this.bspManaged) {
     if (this.bspPhoneNumberId && !this.whatsappPhoneNumberId) {
@@ -566,19 +590,32 @@ WorkspaceSchema.pre('save', function(next) {
   next();
 });
 
+// Method to check if workspace is ready for BSP messaging and has strong credentials
+WorkspaceSchema.methods.ensureWorkspaceBspReady = function () {
+  if (!this.bspManaged) {
+    throw Object.assign(new Error('Workspace is not configured for WhatsApp. Please complete onboarding.'), { code: 'WORKSPACE_NOT_BSP_MANAGED' });
+  }
+
+  const identity = this.gupshupIdentity;
+  if (!identity || !identity.partnerAppId || !identity.appApiKey || !identity.source) {
+    throw Object.assign(new Error('Workspace Gupshup credentials missing. Ensure partnerAppId, appApiKey, and source are all set.'), { code: 'CREDENTIALS_MISSING' });
+  }
+  return true;
+};
+
 // Method to check if workspace has reached limit
-WorkspaceSchema.methods.hasReachedLimit = function(resource) {
+WorkspaceSchema.methods.hasReachedLimit = function (resource) {
   return this.usage[resource] >= this.planLimits[`max${resource.charAt(0).toUpperCase() + resource.slice(1)}`];
 };
 
 // Method to increment usage
-WorkspaceSchema.methods.incrementUsage = function(resource, amount = 1) {
+WorkspaceSchema.methods.incrementUsage = function (resource, amount = 1) {
   this.usage[resource] = (this.usage[resource] || 0) + amount;
   return this.save();
 };
 
 // Method to decrement usage
-WorkspaceSchema.methods.decrementUsage = function(resource, amount = 1) {
+WorkspaceSchema.methods.decrementUsage = function (resource, amount = 1) {
   this.usage[resource] = Math.max(0, (this.usage[resource] || 0) - amount);
   return this.save();
 };
@@ -595,11 +632,11 @@ WorkspaceSchema.methods.decrementUsage = function(resource, amount = 1) {
  * @param {String} initiatedBy - BUSINESS, USER
  * @param {String} source - CAMPAIGN, INBOX, API, AUTOMATION
  */
-WorkspaceSchema.methods.incrementBillingUsage = async function(category, initiatedBy, source) {
+WorkspaceSchema.methods.incrementBillingUsage = async function (category, initiatedBy, source) {
   const categoryField = `billingUsage.${category.toLowerCase()}Used`;
-  const initiatorField = initiatedBy === 'BUSINESS' ? 
+  const initiatorField = initiatedBy === 'BUSINESS' ?
     'billingUsage.businessInitiated' : 'billingUsage.userInitiated';
-  
+
   const sourceFieldMap = {
     'CAMPAIGN': 'billingUsage.campaignConversations',
     'INBOX': 'billingUsage.inboxConversations',
@@ -608,7 +645,7 @@ WorkspaceSchema.methods.incrementBillingUsage = async function(category, initiat
     'ANSWERBOT': 'billingUsage.automationConversations'
   };
   const sourceField = sourceFieldMap[source] || 'billingUsage.inboxConversations';
-  
+
   const updateOps = {
     $inc: {
       'billingUsage.monthlyConversationsUsed': 1,
@@ -617,7 +654,7 @@ WorkspaceSchema.methods.incrementBillingUsage = async function(category, initiat
       [sourceField]: 1
     }
   };
-  
+
   return await this.constructor.findByIdAndUpdate(this._id, updateOps, { new: true });
 };
 
@@ -625,18 +662,18 @@ WorkspaceSchema.methods.incrementBillingUsage = async function(category, initiat
  * Check if workspace is at or over quota
  * @returns {Object} { isWarning, isBlocked, percentage, remaining }
  */
-WorkspaceSchema.methods.checkBillingQuota = function() {
+WorkspaceSchema.methods.checkBillingQuota = function () {
   const quota = this.billingQuota || {};
   const usage = this.billingUsage || {};
-  
+
   const limit = quota.monthlyConversations || 1000;
   const used = usage.monthlyConversationsUsed || 0;
   const percentage = (used / limit) * 100;
-  
+
   const warningThreshold = quota.warningThreshold || 80;
   const blockThreshold = quota.blockThreshold || 100;
   const hardBlock = quota.hardBlock !== false; // Default true
-  
+
   return {
     used,
     limit,
@@ -654,10 +691,10 @@ WorkspaceSchema.methods.checkBillingQuota = function() {
  * Reset monthly billing counters
  * Called at the start of a new billing period
  */
-WorkspaceSchema.methods.resetBillingUsage = async function() {
+WorkspaceSchema.methods.resetBillingUsage = async function () {
   const now = new Date();
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  
+
   return await this.constructor.findByIdAndUpdate(
     this._id,
     {
@@ -693,11 +730,11 @@ WorkspaceSchema.methods.resetBillingUsage = async function() {
  * @param {String} direction - inbound or outbound
  * @param {Boolean} isTemplate - whether it's a template message
  */
-WorkspaceSchema.methods.incrementMessageUsage = async function(direction, isTemplate = false) {
+WorkspaceSchema.methods.incrementMessageUsage = async function (direction, isTemplate = false) {
   const updateOps = {
     $inc: {}
   };
-  
+
   if (direction === 'outbound') {
     updateOps.$inc['billingUsage.totalMessagesSent'] = 1;
     if (isTemplate) {
@@ -706,7 +743,7 @@ WorkspaceSchema.methods.incrementMessageUsage = async function(direction, isTemp
   } else {
     updateOps.$inc['billingUsage.totalMessagesReceived'] = 1;
   }
-  
+
   return await this.constructor.findByIdAndUpdate(this._id, updateOps, { new: true });
 };
 
@@ -717,17 +754,17 @@ WorkspaceSchema.methods.incrementMessageUsage = async function(direction, isTemp
 /**
  * Check if workspace is BSP managed and connected
  */
-WorkspaceSchema.methods.isBspConnected = function() {
-  return this.bspManaged && 
-         this.bspPhoneNumberId && 
-         this.bspPhoneStatus === 'CONNECTED';
+WorkspaceSchema.methods.isBspConnected = function () {
+  return this.bspManaged &&
+    this.bspPhoneNumberId &&
+    this.bspPhoneStatus === 'CONNECTED';
 };
 
 /**
  * Get the phone_number_id for this workspace
  * BSP managed workspaces use bspPhoneNumberId, others use legacy field
  */
-WorkspaceSchema.methods.getPhoneNumberId = function() {
+WorkspaceSchema.methods.getPhoneNumberId = function () {
   if (this.bspManaged) {
     return this.bspPhoneNumberId;
   }
@@ -737,7 +774,7 @@ WorkspaceSchema.methods.getPhoneNumberId = function() {
 /**
  * Check if workspace can send messages (BSP rate limits)
  */
-WorkspaceSchema.methods.canSendMessage = function() {
+WorkspaceSchema.methods.canSendMessage = function () {
   if (!this.bspManaged) return true;
 
   // Meta enforcement checks (Interakt-grade safety)
@@ -750,32 +787,32 @@ WorkspaceSchema.methods.canSendMessage = function() {
   if (quality === 'RED') {
     return false;
   }
-  
+
   if (this.bspPhoneStatus === 'BANNED' || this.bspPhoneStatus === 'RATE_LIMITED') {
     return false;
   }
-  
+
   return true;
 };
 
 /**
  * Increment BSP message usage atomically
  */
-WorkspaceSchema.methods.incrementBspMessageUsage = async function() {
+WorkspaceSchema.methods.incrementBspMessageUsage = async function () {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  
+
   // Check if we need to reset daily counter
   const lastReset = this.bspUsage?.lastUsageReset || new Date(0);
   const shouldResetDaily = lastReset < today;
-  
+
   // Check if we need to reset monthly counter
   const lastMonthlyReset = this.bspUsage?.lastMonthlyReset || new Date(0);
   const shouldResetMonthly = lastMonthlyReset < thisMonth;
-  
+
   const updateOps = {
-    $inc: { 
+    $inc: {
       'bspUsage.messagesToday': shouldResetDaily ? 1 : 1,
       'bspUsage.messagesThisMonth': shouldResetMonthly ? 1 : 1
     },
@@ -783,41 +820,56 @@ WorkspaceSchema.methods.incrementBspMessageUsage = async function() {
       'bspUsage.lastMessageTimestamp': now
     }
   };
-  
+
   if (shouldResetDaily) {
     updateOps.$set['bspUsage.messagesToday'] = 1;
     updateOps.$set['bspUsage.lastUsageReset'] = today;
     delete updateOps.$inc['bspUsage.messagesToday'];
   }
-  
+
   if (shouldResetMonthly) {
     updateOps.$set['bspUsage.messagesThisMonth'] = 1;
     updateOps.$set['bspUsage.lastMonthlyReset'] = thisMonth;
     delete updateOps.$inc['bspUsage.messagesThisMonth'];
   }
-  
+
   return await this.constructor.findByIdAndUpdate(this._id, updateOps, { new: true });
 };
 
 /**
  * Static method to find workspace by phone_number_id (for webhook routing)
  */
-WorkspaceSchema.statics.findByPhoneNumberId = async function(phoneNumberId) {
-  // First try BSP phone number ID (new model)
+WorkspaceSchema.statics.findByPhoneNumberId = async function (phoneNumberId) {
   let workspace = await this.findOne({ bspPhoneNumberId: phoneNumberId });
-  
-  // Fallback to legacy field for backwards compatibility
+  if (!workspace) {
+    workspace = await this.findOne({ phoneNumberId });
+  }
   if (!workspace) {
     workspace = await this.findOne({ whatsappPhoneNumberId: phoneNumberId });
   }
-  
+  return workspace;
+};
+
+// Next-Gen Identity Resolver (Gupshup Partner App)
+WorkspaceSchema.statics.findByPartnerAppId = async function (partnerAppId) {
+  // First, check the definitive gupshupIdentity field
+  let workspace = await this.findOne({ 'gupshupIdentity.partnerAppId': partnerAppId });
+
+  // Dual-write fallback during migration: resolve by the legacy gupshupAppId or wabaId
+  if (!workspace) {
+    workspace = await this.findOne({ gupshupAppId: partnerAppId });
+  }
+  if (!workspace) {
+    // some legacy webhook routers might present WABA where Gupshup app expects it.
+    workspace = await this.findOne({ wabaId: partnerAppId });
+  }
   return workspace;
 };
 
 /**
  * Static method to get all BSP managed workspaces
  */
-WorkspaceSchema.statics.findBspManagedWorkspaces = function(wabaId) {
+WorkspaceSchema.statics.findBspManagedWorkspaces = function (wabaId) {
   const query = { bspManaged: true };
   if (wabaId) {
     query.bspWabaId = wabaId;

@@ -5,11 +5,11 @@ import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  getCurrentUser,
   logoutUser,
   sendSignupOTP,
   sendLoginOTP,
 } from '@/lib/api'
+import { useAuth } from '@/lib/AuthProvider'
 import {
   ChevronRight,
   MessageCircle,
@@ -28,7 +28,7 @@ import { useTheme } from 'next-themes'
 import HeroSection from '@/components/HeroSection'
 import FeatureBar from '@/components/FeatureBar'
 import ContactsSection from '@/components/ContactsSection'
-import DashboardLayout from '@/components/DashboardLayout'
+// Dashboard is handled by /dashboard route via LayoutWrapper
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 
 const industrySlides = [
@@ -314,24 +314,15 @@ export default function HomePage() {
     setMounted(true)
   }, [])
 
-  // Check authentication status on page load
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const user = await getCurrentUser();
-        if (user) {
-          setIsLoggedIn(true);
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        setIsLoggedIn(false);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
+  // Check authentication status from AuthProvider
+  const { authenticated, loading: authContextLoading } = useAuth();
 
-    checkAuth();
-  }, []);
+  useEffect(() => {
+    if (!authContextLoading) {
+      setIsLoggedIn(authenticated);
+      setAuthLoading(false);
+    }
+  }, [authenticated, authContextLoading]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -512,10 +503,10 @@ export default function HomePage() {
   // Show loading spinner while checking authentication
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -523,9 +514,9 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Show Dashboard Layout when logged in */}
+      {/* Redirect to dashboard when logged in */}
       {isLoggedIn ? (
-        <DashboardLayout />
+        (() => { router.push('/dashboard'); return null; })()
       ) : (
         <>
           {/* Landing page content when not logged in */}
@@ -542,7 +533,7 @@ export default function HomePage() {
               {/* Add a theme switch button in the top right corner */}
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="fixed top-4 right-4 z-50 w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg backdrop-blur-sm"
+                className="fixed top-4 right-4 z-50 w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-premium backdrop-blur-sm"
                 style={{
                   backgroundColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
                   border: isDark ? '1px solid rgba(255, 255, 255, 0.2)' : '1px solid rgba(0, 0, 0, 0.2)',
@@ -599,9 +590,9 @@ export default function HomePage() {
                     className="text-center mb-12"
                   >
                     <h2 className="text-4xl sm:text-5xl font-bold mb-4" style={{ color: isDark ? '#ffffff' : '#1a202c' }}>
-                      Trusted by <span className="text-[#13C18D]">10,000+</span> Businesses
+                      Trusted by <span className="text-primary">10,000+</span> Businesses
                     </h2>
-                    <p className="text-lg text-gray-600 dark:text-gray-400">Powering growth across industries worldwide</p>
+                    <p className="text-lg text-muted-foreground">Powering growth across industries worldwide</p>
                   </motion.div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                     {[
@@ -616,13 +607,13 @@ export default function HomePage() {
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5, delay: idx * 0.1 }}
-                        className="text-center p-6 rounded-2xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                        className="text-center p-6 rounded-2xl bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 shadow-premium hover:shadow-xl transition-all duration-300 hover:scale-105"
                       >
                         <div className="text-4xl mb-3">{stat.icon}</div>
-                        <div className="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] bg-clip-text text-transparent">
+                        <div className="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                           {stat.number}
                         </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">{stat.label}</div>
+                        <div className="text-sm text-muted-foreground font-medium">{stat.label}</div>
                       </motion.div>
                     ))}
                   </div>
@@ -652,7 +643,7 @@ export default function HomePage() {
                         letterSpacing: '-0.03em'
                       }}
                     >
-                      Launch Powerful <span className="text-[#13C18D]">Click-to-WhatsApp</span> Ad Campaigns
+                      Launch Powerful <span className="text-primary">Click-to-WhatsApp</span> Ad Campaigns
                     </motion.h2>
                     <ul className="space-y-6 w-full">
                       <motion.li
@@ -662,7 +653,7 @@ export default function HomePage() {
                         transition={{ duration: 0.5, delay: 0.1 }}
                         className="flex items-start gap-4 group"
                       >
-                        <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] shadow-lg group-hover:scale-110 transition-all duration-300">
+                        <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-premium group-hover:scale-110 transition-all duration-300">
                           <svg width="28" height="28" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
                             <polyline points="22 4 12 14.01 9 11.01" />
@@ -672,7 +663,7 @@ export default function HomePage() {
                           <h3 className="text-xl font-bold mb-2" style={{ color: isDark ? '#ffffff' : '#1a202c' }}>
                             Automate Sales Conversations
                           </h3>
-                          <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                          <p className="text-base text-muted-foreground leading-relaxed">
                             Turn ad clicks into automated WhatsApp conversations that drive revenue 24/7
                           </p>
                         </div>
@@ -684,7 +675,7 @@ export default function HomePage() {
                         transition={{ duration: 0.5, delay: 0.2 }}
                         className="flex items-start gap-4 group"
                       >
-                        <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] shadow-lg group-hover:scale-110 transition-all duration-300">
+                        <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-premium group-hover:scale-110 transition-all duration-300">
                           <svg width="28" height="28" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                             <circle cx="9" cy="7" r="4" />
@@ -696,7 +687,7 @@ export default function HomePage() {
                           <h3 className="text-xl font-bold mb-2" style={{ color: isDark ? '#ffffff' : '#1a202c' }}>
                             Target & Segment Precisely
                           </h3>
-                          <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                          <p className="text-base text-muted-foreground leading-relaxed">
                             Reach the right customers with advanced audience segmentation and targeting
                           </p>
                         </div>
@@ -708,7 +699,7 @@ export default function HomePage() {
                         transition={{ duration: 0.5, delay: 0.3 }}
                         className="flex items-start gap-4 group"
                       >
-                        <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] shadow-lg group-hover:scale-110 transition-all duration-300">
+                        <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-premium group-hover:scale-110 transition-all duration-300">
                           <svg width="28" height="28" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M6 2L3 6v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V6l-3-4H6z" />
                             <line x1="3" y1="6" x2="21" y2="6" />
@@ -719,7 +710,7 @@ export default function HomePage() {
                           <h3 className="text-xl font-bold mb-2" style={{ color: isDark ? '#ffffff' : '#1a202c' }}>
                             Drive Instant Purchases
                           </h3>
-                          <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
+                          <p className="text-base text-muted-foreground leading-relaxed">
                             Enable one-tap product catalog browsing and checkout directly in WhatsApp
                           </p>
                         </div>
@@ -731,7 +722,7 @@ export default function HomePage() {
                       viewport={{ once: true }}
                       transition={{ duration: 0.5, delay: 0.4 }}
                       onClick={() => router.push('/auth/register')}
-                      className="mt-8 px-8 py-4 text-lg font-bold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white rounded-xl shadow-lg hover:shadow-2xl transition-all transform hover:scale-105"
+                      className="mt-8 px-8 py-4 text-lg font-bold bg-gradient-to-r from-primary to-primary/80 text-white rounded-xl shadow-premium hover:shadow-2xl transition-all transform hover:scale-105"
                     >
                       Start Creating Ads →
                     </motion.button>
@@ -745,7 +736,7 @@ export default function HomePage() {
                     className="flex-1 flex items-center justify-center"
                   >
                     <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#13C18D]/20 to-[#0e8c6c]/20 blur-3xl"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/80/20 blur-3xl"></div>
                       <img
                         src="/whatsapp-business-mockup.png"
                         alt="WhatsApp Business Ads"
@@ -781,14 +772,14 @@ export default function HomePage() {
                       <span style={{ color: isDark ? '#ffffff' : '#1a202c' }}>
                         Get started with{' '}
                       </span>
-                      <span className="text-[#13C18D]">{process.env.NEXT_PUBLIC_APP_NAME || 'WABA'}</span>
+                      <span className="text-primary">{process.env.NEXT_PUBLIC_APP_NAME || 'WABA'}</span>
                     </motion.h2>
                     <motion.p
                       initial={{ opacity: 0, y: 20 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.6, delay: 0.2 }}
-                      className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
+                      className="text-lg text-muted-foreground max-w-2xl mx-auto"
                     >
                       Choose the perfect way to start your WhatsApp Business journey
                     </motion.p>
@@ -809,7 +800,7 @@ export default function HomePage() {
                       }}
                     >
                       <div
-                        className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] shadow-lg group-hover:shadow-xl transition-all duration-300"
+                        className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br from-primary to-primary/80 shadow-premium group-hover:shadow-xl transition-all duration-300"
                       >
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
@@ -830,7 +821,7 @@ export default function HomePage() {
                       </p>
                       <button
                         onClick={() => router.push('/auth/register')}
-                        className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 text-white bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] shadow-lg hover:shadow-xl"
+                        className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 text-white bg-gradient-to-r from-primary to-primary/80 shadow-premium hover:shadow-xl"
                       >
                         Explore Plans →
                       </button>
@@ -849,7 +840,7 @@ export default function HomePage() {
                       }}
                     >
                       <div
-                        className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] shadow-lg group-hover:shadow-xl transition-all duration-300"
+                        className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br from-primary to-primary/80 shadow-premium group-hover:shadow-xl transition-all duration-300"
                       >
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <circle cx="12" cy="12" r="10" />
@@ -871,7 +862,7 @@ export default function HomePage() {
                       </p>
                       <button
                         onClick={() => router.push('/auth/register')}
-                        className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 text-white bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] shadow-lg hover:shadow-xl"
+                        className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 text-white bg-gradient-to-r from-primary to-primary/80 shadow-premium hover:shadow-xl"
                       >
                         Get Started →
                       </button>
@@ -890,7 +881,7 @@ export default function HomePage() {
                       }}
                     >
                       <div
-                        className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] shadow-lg group-hover:shadow-xl transition-all duration-300"
+                        className="w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br from-primary to-primary/80 shadow-premium group-hover:shadow-xl transition-all duration-300"
                       >
                         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -913,7 +904,7 @@ export default function HomePage() {
                       </p>
                       <button
                         onClick={() => router.push('/auth/register')}
-                        className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 text-white bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] shadow-lg hover:shadow-xl"
+                        className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 text-white bg-gradient-to-r from-primary to-primary/80 shadow-premium hover:shadow-xl"
                       >
                         Talk to Expert →
                       </button>
@@ -961,7 +952,7 @@ export default function HomePage() {
                             }}
                           >
                             {/* Floating badge/icon */}
-                            <div className="absolute top-4 right-4 z-20 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-[#3ed17b] to-[#2bb673] shadow-lg ring-2 ring-white/60 dark:ring-gray-900/60 animate-pulse">
+                            <div className="absolute top-4 right-4 z-20 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-[#3ed17b] to-[#2bb673] shadow-premium ring-2 ring-white/60 dark:ring-gray-900/60 animate-pulse">
                               <Sparkles className="w-5 h-5 text-white drop-shadow" />
                             </div>
                             <CardHeader className="relative z-10 p-0">
@@ -1010,9 +1001,9 @@ export default function HomePage() {
                 </div>
               </section>
               {/* Integrates easily with 60+ platforms Section */}
-              <section className="w-full bg-white dark:bg-black py-8 sm:py-12 md:py-16 flex flex-col items-center border-t border-gray-100 dark:border-gray-800" style={{ backgroundColor: sectionBgs[3] }}>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 sm:mb-8 md:mb-10 text-black dark:text-white px-4">
-                  Integrates easily with <span className="text-[#13C18D]">60+</span> platforms
+              <section className="w-full bg-white dark:bg-black py-8 sm:py-12 md:py-16 flex flex-col items-center border-t border-border/50" style={{ backgroundColor: sectionBgs[3] }}>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-6 sm:mb-8 md:mb-10 text-black dark:text-foreground px-4">
+                  Integrates easily with <span className="text-primary">60+</span> platforms
                 </h2>
                 <div className="flex flex-row justify-center items-center gap-x-6 sm:gap-x-8 md:gap-x-12 mb-8 sm:mb-10 md:mb-12 w-full max-w-5xl overflow-x-auto scrollbar-hide px-2 sm:px-4">
                   {/* Platform logos from reliable online sources */}
@@ -1025,7 +1016,7 @@ export default function HomePage() {
                 </div>
                 <button
                   onClick={() => router.push('/auth/register')}
-                  className={`font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg shadow-lg transition-all duration-500 transform ${activeButton === 'platforms'
+                  className={`font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg shadow-premium transition-all duration-500 transform ${activeButton === 'platforms'
                     ? 'bg-[#CCFF00] text-black scale-105 shadow-2xl'
                     : 'bg-[#CCFF00] text-black hover:bg-[#BFFF00] hover:shadow-2xl hover:scale-110 hover:-translate-y-1'
                     }`}
@@ -1073,7 +1064,7 @@ export default function HomePage() {
                     <img
                       src="/whatsapp-mockup.png"
                       alt="WhatsApp Mockup"
-                      className="w-full max-w-xl rounded-2xl shadow-xl border border-[#e0f7d9]"
+                      className="w-full max-w-xl rounded-2xl shadow-premium border border-[#e0f7d9]"
                       style={{ background: '#e0f7d9' }}
                     />
                   </div>
@@ -1088,12 +1079,12 @@ export default function HomePage() {
                       <path d="M17.5 8C10.6 8 6 13.6 6 21.5c0 5.5 3.4 10.3 8.8 11.7V40c0 2 1.3 3.5 3.5 3.5s3.5-1.5 3.5-3.5V21.5C21.8 13.6 17.5 8 17.5 8z" fill="currentColor" />
                     </svg>
                     <div className="relative z-10">
-                      <p className="text-2xl md:text-3xl font-medium italic text-gray-800 dark:text-white leading-snug">
+                      <p className="text-2xl md:text-3xl font-medium italic text-foreground leading-snug">
                         We were able to increase our revenue from the first Diwali to the second Diwali to approximately 4× of what we did and we couldn't have done this without the help of {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}.
                       </p>
                       <div className="mt-4">
-                        <span className="text-[#13C18D] font-bold text-4xl">Yash Banage</span><br />
-                        <span className="text-2xl font-bold text-gray-800 dark:text-white">Co-founder, Bombay Sweet Shop</span>
+                        <span className="text-primary font-bold text-4xl">Yash Banage</span><br />
+                        <span className="text-2xl font-bold text-foreground">Co-founder, Bombay Sweet Shop</span>
                       </div>
                     </div>
                   </div>
@@ -1106,28 +1097,28 @@ export default function HomePage() {
                 <div className="w-full max-w-5xl mt-4 sm:mt-6 flex flex-col sm:flex-row gap-4 sm:gap-6 md:gap-8 justify-center items-center px-4">
                   <div className="flex-1 min-w-[250px] sm:min-w-[300px] h-[140px] sm:h-[170px] bg-white border-2 border-[#ffe6b3] rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col items-center text-center shadow-sm justify-center" style={{ backgroundColor: cardBg }}>
                     <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#0e3c2c] mb-2">1.56L</span>
-                    <span className="text-sm sm:text-base md:text-xl text-gray-700 text-center">revenue generated in a day</span>
+                    <span className="text-sm sm:text-base md:text-xl text-foreground text-center">revenue generated in a day</span>
                   </div>
                   <div className="flex-1 min-w-[250px] sm:min-w-[300px] h-[140px] sm:h-[170px] bg-white border-2 border-[#ffe6b3] rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col items-center text-center shadow-sm justify-center" style={{ backgroundColor: cardBg }}>
                     <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#0e3c2c] mb-2">40%</span>
-                    <span className="text-sm sm:text-base md:text-xl text-gray-700 text-center">customer queries handled by Boondi – the bot</span>
+                    <span className="text-sm sm:text-base md:text-xl text-foreground text-center">customer queries handled by Boondi – the bot</span>
                   </div>
                   <div className="flex-1 min-w-[250px] sm:min-w-[300px] h-[140px] sm:h-[170px] bg-white border-2 border-[#ffe6b3] rounded-2xl p-4 sm:p-6 md:p-8 flex flex-col items-center text-center shadow-sm justify-center" style={{ backgroundColor: cardBg }}>
                     <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-[#0e3c2c] mb-2">4X</span>
-                    <span className="text-sm sm:text-base md:text-xl text-gray-700 text-center">increase in revenue since onboarding with {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</span>
+                    <span className="text-sm sm:text-base md:text-xl text-foreground text-center">increase in revenue since onboarding with {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</span>
                   </div>
                 </div>
               </section>
               {/* More reasons to choose Interakt Section */}
               <section className="w-full bg-white dark:bg-black py-8 sm:py-12 md:py-16 flex flex-col items-center relative overflow-hidden" style={{ backgroundColor: sectionBgs[6] }}>
                 {/* Floating background elements */}
-                <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-[#13C18D]/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
                 <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-[#CCFF00]/15 to-transparent rounded-full blur-3xl animate-bounce" style={{ animationDuration: '4s' }}></div>
-                <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-gradient-to-br from-[#13C18D]/8 to-[#CCFF00]/5 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '3s' }}></div>
-                <div className="absolute bottom-1/3 right-1/4 w-20 h-20 bg-gradient-to-br from-[#CCFF00]/10 to-[#13C18D]/8 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '1s' }}></div>
+                <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-gradient-to-br from-primary/8 to-[#CCFF00]/5 rounded-full blur-2xl animate-pulse" style={{ animationDuration: '3s' }}></div>
+                <div className="absolute bottom-1/3 right-1/4 w-20 h-20 bg-gradient-to-br from-[#CCFF00]/10 to-primary/8 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '1s' }}></div>
 
-                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-2 sm:mb-3 text-gray-900 dark:text-white px-4 relative z-10" style={{ fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif', letterSpacing: '-0.02em' }}>More reasons to <span className="text-[#13C18D]">choose</span> {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</h2>
-                <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-white mb-8 sm:mb-10 md:mb-12 font-medium tracking-wide px-4 relative z-10" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>Why businesses love us</p>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-2 sm:mb-3 text-foreground px-4 relative z-10" style={{ fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif', letterSpacing: '-0.02em' }}>More reasons to <span className="text-primary">choose</span> {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}</h2>
+                <p className="text-sm sm:text-base md:text-lg text-muted-foreground dark:text-foreground mb-8 sm:mb-10 md:mb-12 font-medium tracking-wide px-4 relative z-10" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>Why businesses love us</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 w-full max-w-6xl px-4 sm:px-6 md:px-0 relative z-10">
                   {reasons.map((reason, idx) => (
                     <motion.div
@@ -1142,31 +1133,31 @@ export default function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-br from-white via-gray-50/50 to-white dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
 
                       {/* Floating decorative elements */}
-                      <div className="absolute top-2 right-2 w-20 h-20 bg-gradient-to-br from-[#13C18D]/20 to-[#CCFF00]/15 rounded-full -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-700 animate-pulse"></div>
-                      <div className="absolute bottom-2 left-2 w-16 h-16 bg-gradient-to-br from-[#CCFF00]/15 to-[#13C18D]/20 rounded-full translate-y-8 -translate-x-8 group-hover:scale-150 transition-transform duration-700 animate-bounce" style={{ animationDuration: '3s' }}></div>
-                      <div className="absolute top-1/2 left-4 w-12 h-12 bg-gradient-to-br from-[#13C18D]/10 to-[#CCFF00]/8 rounded-full animate-pulse" style={{ animationDuration: '2.5s' }}></div>
-                      <div className="absolute top-1/3 right-4 w-10 h-10 bg-gradient-to-br from-[#CCFF00]/12 to-[#13C18D]/10 rounded-full animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '0.8s' }}></div>
+                      <div className="absolute top-2 right-2 w-20 h-20 bg-gradient-to-br from-primary/20 to-[#CCFF00]/15 rounded-full -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-700 animate-pulse"></div>
+                      <div className="absolute bottom-2 left-2 w-16 h-16 bg-gradient-to-br from-[#CCFF00]/15 to-primary/20 rounded-full translate-y-8 -translate-x-8 group-hover:scale-150 transition-transform duration-700 animate-bounce" style={{ animationDuration: '3s' }}></div>
+                      <div className="absolute top-1/2 left-4 w-12 h-12 bg-gradient-to-br from-primary/10 to-[#CCFF00]/8 rounded-full animate-pulse" style={{ animationDuration: '2.5s' }}></div>
+                      <div className="absolute top-1/3 right-4 w-10 h-10 bg-gradient-to-br from-[#CCFF00]/12 to-primary/10 rounded-full animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '0.8s' }}></div>
 
                       {/* Modern icon container with glow */}
-                      <div className="relative z-10 mb-3 sm:mb-4 flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-[#13C18D]/20 via-[#13C18D]/15 to-[#13C18D]/10 shadow-2xl group-hover:shadow-3xl transition-all duration-500 group-hover:scale-110 border border-[#13C18D]/20">
-                        <reason.icon className="w-6 h-6 sm:w-7 sm:h-7 text-[#13C18D] group-hover:text-[#0e8c6c] transition-colors duration-300 drop-shadow-sm" />
+                      <div className="relative z-10 mb-3 sm:mb-4 flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/15 to-primary/10 shadow-2xl group-hover:shadow-3xl transition-all duration-500 group-hover:scale-110 border border-primary/20">
+                        <reason.icon className="w-6 h-6 sm:w-7 sm:h-7 text-primary group-hover:text-primary/80 transition-colors duration-300 drop-shadow-sm" />
                       </div>
 
                       {/* Content with enhanced typography */}
                       <div className="relative z-10 flex flex-col items-center text-center">
-                        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3 md:mb-4 text-center leading-tight" style={{ fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif' }}>
+                        <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-foreground mb-2 sm:mb-3 md:mb-4 text-center leading-tight" style={{ fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif' }}>
                           {reason.title}
                         </h3>
-                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 text-center leading-relaxed max-w-[200px] sm:max-w-[220px] font-medium" style={{ fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif' }}>
+                        <p className="text-xs sm:text-sm text-muted-foreground text-center leading-relaxed max-w-[200px] sm:max-w-[220px] font-medium" style={{ fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif' }}>
                           {reason.description}
                         </p>
                       </div>
 
                       {/* Modern bottom accent with gradient */}
-                      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#13C18D] via-[#CCFF00] to-[#13C18D] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-b-3xl"></div>
+                      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-[#CCFF00] to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-b-3xl"></div>
 
                       {/* Hover glow effect */}
-                      <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-[#13C18D]/0 via-[#13C18D]/5 to-[#13C18D]/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     </motion.div>
                   ))}
                 </div>
@@ -1183,9 +1174,9 @@ export default function HomePage() {
                     className="text-center mb-16"
                   >
                     <h2 className="text-4xl sm:text-5xl font-bold mb-4" style={{ color: isDark ? '#ffffff' : '#1a202c' }}>
-                      Everything You Need in <span className="text-[#13C18D]">One Platform</span>
+                      Everything You Need in <span className="text-primary">One Platform</span>
                     </h2>
-                    <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                    <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                       Powerful features designed to help you grow your business on WhatsApp
                     </p>
                   </motion.div>
@@ -1234,18 +1225,18 @@ export default function HomePage() {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5, delay: idx * 0.1 }}
-                        className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 group"
+                        className="bg-card rounded-2xl p-8 shadow-premium hover:shadow-2xl transition-all duration-300 hover:scale-105 group"
                       >
                         <div className="flex items-start gap-4 mb-4">
                           <div className="text-4xl group-hover:scale-110 transition-transform duration-300">{feature.icon}</div>
                           <div className="flex-1">
                             <h3 className="text-2xl font-bold mb-2" style={{ color: isDark ? '#ffffff' : '#1a202c' }}>{feature.title}</h3>
-                            <p className="text-gray-600 dark:text-gray-400 mb-4">{feature.description}</p>
+                            <p className="text-muted-foreground mb-4">{feature.description}</p>
                             <ul className="space-y-2">
                               {feature.features.map((item, i) => (
                                 <li key={i} className="flex items-center gap-2 text-sm">
-                                  <span className="w-2 h-2 rounded-full bg-[#13C18D]"></span>
-                                  <span className="text-gray-700 dark:text-gray-300">{item}</span>
+                                  <span className="w-2 h-2 rounded-full bg-primary"></span>
+                                  <span className="text-foreground">{item}</span>
                                 </li>
                               ))}
                             </ul>
@@ -1260,10 +1251,10 @@ export default function HomePage() {
               {/* Bottom CTA Section */}
               <section className="w-full bg-[#f5f5dc] dark:bg-black py-8 sm:py-12 md:py-16 flex flex-col items-center" style={{ backgroundColor: sectionBgs[7] }}>
                 <div className="text-center max-w-4xl mx-auto px-4 sm:px-6">
-                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 sm:mb-4" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', letterSpacing: '-0.02em' }}>
-                    Ready to <span className="text-[#13C18D]">Transform</span> Your Business?
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3 sm:mb-4" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif', letterSpacing: '-0.02em' }}>
+                    Ready to <span className="text-primary">Transform</span> Your Business?
                   </h2>
-                  <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-white mb-6 sm:mb-8 max-w-2xl mx-auto">
+                  <p className="text-sm sm:text-base md:text-lg text-muted-foreground dark:text-foreground mb-6 sm:mb-8 max-w-2xl mx-auto">
                     Join thousands of businesses already using {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'} to grow their customer engagement and drive conversions.
                   </p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
@@ -1276,7 +1267,7 @@ export default function HomePage() {
                         });
                         setTimeout(() => setActiveButton(null), 1000);
                       }}
-                      className={`font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg shadow-lg transition-all duration-500 transform ${activeButton === 'bottom'
+                      className={`font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg shadow-premium transition-all duration-500 transform ${activeButton === 'bottom'
                         ? 'bg-[#CCFF00] text-black scale-105 shadow-2xl'
                         : 'bg-[#CCFF00] text-black hover:bg-[#BFFF00] hover:shadow-2xl hover:scale-110 hover:-translate-y-1'
                         }`}
@@ -1285,7 +1276,7 @@ export default function HomePage() {
                     </button>
                     <Link
                       href="/privacy"
-                      className="px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg font-semibold border border-gray-300 text-gray-800 dark:text-white bg-white/80 dark:bg-gray-900/60 hover:border-gray-400 hover:shadow-md transition-all duration-300"
+                      className="px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg font-semibold border border-border text-foreground bg-white/80 dark:bg-gray-900/60 hover:border-gray-400 hover:shadow-md transition-all duration-300"
                     >
                       View Privacy Policy
                     </Link>
@@ -1300,7 +1291,7 @@ export default function HomePage() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   onClick={scrollToTop}
-                  className="fixed bottom-4 sm:bottom-6 md:bottom-8 right-4 sm:right-6 md:right-8 z-50 w-10 h-10 sm:w-12 sm:h-12 bg-[#CCFF00] hover:bg-[#BFFF00] text-black rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
+                  className="fixed bottom-4 sm:bottom-6 md:bottom-8 right-4 sm:right-6 md:right-8 z-50 w-10 h-10 sm:w-12 sm:h-12 bg-[#CCFF00] hover:bg-[#BFFF00] text-black rounded-full shadow-premium hover:shadow-xl transition-all duration-300 flex items-center justify-center group"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -1309,7 +1300,7 @@ export default function HomePage() {
               )}
 
               {/* Footer */}
-              <footer className="w-full border-t border-gray-200 bg-[#f5f5dc] dark:bg-black py-4 text-center text-gray-700 dark:text-white text-sm font-medium" style={{ fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif' }}>
+              <footer className="w-full border-t border-border bg-[#f5f5dc] dark:bg-black py-4 text-center text-foreground dark:text-foreground text-sm font-medium" style={{ fontFamily: 'Quicksand, system-ui, -apple-system, sans-serif' }}>
                 @2025 {process.env.NEXT_PUBLIC_APP_NAME || 'Interakt'}. All rights reserved.
               </footer>
             </div>
@@ -1320,7 +1311,7 @@ export default function HomePage() {
       {/* Welcome Popup */}
       {showWelcomePopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 max-w-md mx-4 transform transition-all duration-300 scale-100">
+          <div className="bg-card rounded-2xl shadow-2xl p-8 max-w-md mx-4 transform transition-all duration-300 scale-100">
             <div className="text-center">
               {/* Success Icon */}
               <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mb-6">
@@ -1330,11 +1321,11 @@ export default function HomePage() {
               </div>
 
               {/* Welcome Message */}
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 Welcome{!welcomeData.isSignup ? ' back' : ''}, {welcomeData.firstName}! 🎉
               </h2>
 
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-muted-foreground mb-6">
                 {welcomeData.isSignup
                   ? "Your account has been created successfully. You're now ready to manage your WhatsApp business communications!"
                   : "You've been logged in successfully. Welcome back to your dashboard!"
@@ -1344,7 +1335,7 @@ export default function HomePage() {
               {/* Action Button */}
               <button
                 onClick={() => router.push('/auth/register')}
-                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 shadow-premium hover:shadow-xl transform hover:scale-105"
               >
                 Get Started
               </button>

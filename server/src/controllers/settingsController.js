@@ -17,34 +17,34 @@ async function initializeWABAFromEnv(req, res, next) {
       });
     }
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
-    
+
     // Only allow if no credentials already set
     if (workspace.whatsappAccessToken || workspace.wabaId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Workspace already has WABA credentials configured',
         hint: 'Clear existing credentials first if you want to reset'
       });
     }
-    
+
     // Populate from environment variables
-    const accessToken = process.env.META_ACCESS_TOKEN;
-    const wabaId = process.env.META_WABA_ID;
-    const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
-    const verifyToken = process.env.META_VERIFY_TOKEN;
-    const appSecret = process.env.META_APP_SECRET;
-    
+    const accessToken = process.env.GUPSHUP_API_KEY;
+    const wabaId = process.env.GUPSHUP_APP_ID;
+    const phoneNumberId = process.env.GUPSHUP_SOURCE_NUMBER;
+    const verifyToken = '';
+    const appSecret = process.env.GUPSHUP_PARTNER_TOKEN;
+
     if (!accessToken || !wabaId || !phoneNumberId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Missing required environment variables',
-        required: ['META_ACCESS_TOKEN', 'META_WABA_ID', 'META_PHONE_NUMBER_ID'],
+        required: ['GUPSHUP_API_KEY', 'GUPSHUP_APP_ID', 'GUPSHUP_SOURCE_NUMBER'],
         hint: 'Set these in your .env file'
       });
     }
-    
+
     // Update workspace
     // WHY: Tokens must be encrypted at rest (Meta/BSP compliance)
     workspace.whatsappAccessToken = isEncrypted(accessToken)
@@ -54,9 +54,9 @@ async function initializeWABAFromEnv(req, res, next) {
     workspace.whatsappPhoneNumberId = phoneNumberId;
     workspace.whatsappVerifyToken = verifyToken || workspace.whatsappVerifyToken;
     workspace.connectedAt = new Date();
-    
+
     await workspace.save();
-    
+
     res.json({
       success: true,
       message: 'WABA credentials initialized from environment variables',
@@ -77,7 +77,7 @@ async function initializeWABAFromEnv(req, res, next) {
 async function getWhatsAppNumberStatus(req, res, next) {
   try {
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
@@ -98,24 +98,28 @@ async function getWhatsAppNumberStatus(req, res, next) {
 async function getWABASettings(req, res, next) {
   try {
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
-    
+
     // Mask sensitive token (only show last 4 chars)
     const maskedToken = workspace.whatsappAccessToken
       ? `****${workspace.whatsappAccessToken.slice(-4)}`
       : null;
-    
+
     res.json({
-      whatsappPhoneNumberId: workspace.whatsappPhoneNumberId || null,
+      whatsappPhoneNumberId: workspace.whatsappPhoneNumberId || workspace.bspPhoneNumberId || null,
+      whatsappPhoneNumber: workspace.bspDisplayPhoneNumber || workspace.whatsappPhoneNumber || null,
+      businessName: workspace.bspVerifiedName || workspace.verifiedName || null,
       whatsappVerifyToken: workspace.whatsappVerifyToken || null,
-      wabaId: workspace.wabaId || null,
+      wabaId: workspace.wabaId || workspace.bspWabaId || null,
       businessAccountId: workspace.businessAccountId || null,
-      connectedAt: workspace.connectedAt || null,
+      connectedAt: workspace.connectedAt || workspace.bspOnboardedAt || null,
       hasToken: !!workspace.whatsappAccessToken,
-      maskedToken
+      isBspManaged: !!workspace.bspManaged,
+      maskedToken,
+      profile: workspace.businessProfile || { businessName: workspace.bspVerifiedName || workspace.verifiedName || '' }
     });
   } catch (err) {
     next(err);
@@ -125,35 +129,68 @@ async function getWABASettings(req, res, next) {
 // Update WABA settings for current workspace
 async function updateWABASettings(req, res, next) {
   try {
-    if (BSP_ONLY) {
-      // In BSP mode, block any attempt to mutate WABA credentials from the
-      // tenant side. Business profile updates should go through dedicated
-      // BSP endpoints and not direct token/WABA edits.
-      return res.status(410).json({
-        success: false,
-        message: 'WhatsApp connection is fully managed by the BSP. You cannot edit WABA IDs, phone_number_id, or tokens from this workspace.',
-        code: 'BSP_ONLY_WABA_MUTATION_DISABLED'
-      });
-    }
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
-    
-    // Only owner can update WABA settings
-    if (String(workspace.owner) !== String(req.user._id) && req.user.role !== 'owner') {
-      return res.status(403).json({ message: 'Only workspace owner can update WABA settings' });
-    }
-    
+
+    const isWorkspaceOwner = String(workspace.owner) === String(req.user._id) || req.user.role === 'owner';
+    const canUpdateBspProfile = isWorkspaceOwner || req.user.role === 'admin' || req.user.role === 'super_admin';
+
     const {
       whatsappAccessToken,
       whatsappPhoneNumberId,
       whatsappVerifyToken,
       wabaId,
-      businessAccountId
+      businessAccountId,
+      profile
     } = req.body;
-    
+
+    if (BSP_ONLY) {
+      const hasCredentialMutation =
+        whatsappAccessToken !== undefined ||
+        whatsappPhoneNumberId !== undefined ||
+        whatsappVerifyToken !== undefined ||
+        wabaId !== undefined ||
+        businessAccountId !== undefined;
+
+      if (hasCredentialMutation) {
+        return res.status(410).json({
+          success: false,
+          message: 'WhatsApp connection is fully managed by the BSP. You cannot edit WABA IDs, phone_number_id, or tokens from this workspace.',
+          code: 'BSP_ONLY_WABA_MUTATION_DISABLED'
+        });
+      }
+
+      if (profile !== undefined) {
+        if (!canUpdateBspProfile) {
+          return res.status(403).json({ message: 'Insufficient permissions to update WhatsApp profile' });
+        }
+
+        workspace.businessProfile = profile;
+        await workspace.save();
+
+        return res.json({
+          success: true,
+          message: 'WhatsApp business profile updated successfully',
+          settings: {
+            profile: workspace.businessProfile || {}
+          }
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: 'No updatable fields provided'
+      });
+    }
+
+    // In non-BSP mode, only owner can update WABA settings
+    if (!isWorkspaceOwner) {
+      return res.status(403).json({ message: 'Only workspace owner can update WABA settings' });
+    }
+
     // Update fields if provided
     if (whatsappAccessToken !== undefined) {
       // WHY: Tokens must be encrypted at rest (Meta/BSP compliance)
@@ -173,19 +210,22 @@ async function updateWABASettings(req, res, next) {
     if (businessAccountId !== undefined) {
       workspace.businessAccountId = businessAccountId;
     }
-    
+    if (profile !== undefined) {
+      workspace.businessProfile = profile;
+    }
+
     // Set connected timestamp if this is the first time setting credentials
     if (!workspace.connectedAt && whatsappAccessToken && whatsappPhoneNumberId) {
       workspace.connectedAt = new Date();
     }
-    
+
     await workspace.save();
-    
+
     // Return masked response
     const maskedToken = workspace.whatsappAccessToken
       ? `****${workspace.whatsappAccessToken.slice(-4)}`
       : null;
-    
+
     res.json({
       message: 'WABA settings updated successfully',
       settings: {
@@ -193,6 +233,7 @@ async function updateWABASettings(req, res, next) {
         whatsappVerifyToken: workspace.whatsappVerifyToken,
         wabaId: workspace.wabaId,
         businessAccountId: workspace.businessAccountId,
+        profile: workspace.businessProfile || {},
         connectedAt: workspace.connectedAt,
         hasToken: !!workspace.whatsappAccessToken,
         maskedToken
@@ -214,22 +255,22 @@ async function testWABAConnection(req, res, next) {
       });
     }
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
-    
+
     if (!workspace.whatsappAccessToken || !workspace.whatsappPhoneNumberId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'WABA credentials not configured',
-        success: false 
+        success: false
       });
     }
-    
+
     // Test by fetching phone number info from Meta API
-    const metaService = require('../services/metaService');
+    const gupshupService = require('../services/gupshupService');
     const axios = require('axios');
-    
+
     try {
       const response = await axios.get(
         `https://graph.facebook.com/v21.0/${workspace.whatsappPhoneNumberId}`,
@@ -238,7 +279,7 @@ async function testWABAConnection(req, res, next) {
           headers: { Authorization: `Bearer ${workspace.whatsappAccessToken}` }
         }
       );
-      
+
       res.json({
         success: true,
         message: 'WABA connection successful',
@@ -274,31 +315,31 @@ async function debugMetaCredentials(req, res, next) {
       });
     }
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
 
-    const accessToken = workspace.whatsappAccessToken || process.env.META_ACCESS_TOKEN;
-    const phoneNumberId = workspace.whatsappPhoneNumberId || process.env.META_PHONE_NUMBER_ID;
-    
+    const accessToken = workspace.gupshupIdentity?.appApiKey;
+    const phoneNumberId = workspace.gupshupIdentity?.source;
+
     if (!accessToken) {
-      return res.status(400).json({ 
-        message: 'No access token configured',
-        hint: 'Set META_ACCESS_TOKEN in .env or configure in settings'
+      return res.status(400).json({
+        message: 'CREDENTIALS_MISSING: No access token configured',
+        hint: 'Configure gupshupIdentity in workspace settings'
       });
     }
 
-    const metaService = require('../services/metaService');
-    
+    const gupshupService = require('../services/gupshupService');
+
     // Get debug info
-    const debugInfo = await metaService.debugTokenInfo(accessToken);
-    
+    const debugInfo = await gupshupService.debugTokenInfo(accessToken);
+
     // Try to get WABA from phone number if available
     let wabaFromPhone = null;
     if (phoneNumberId) {
       try {
-        wabaFromPhone = await metaService.getWABAFromPhoneNumber(accessToken, phoneNumberId);
+        wabaFromPhone = await gupshupService.getWABAFromPhoneNumber(accessToken, phoneNumberId);
       } catch (e) {
         wabaFromPhone = { error: e.message };
       }
@@ -308,7 +349,7 @@ async function debugMetaCredentials(req, res, next) {
       success: true,
       currentConfig: {
         phoneNumberId: phoneNumberId || 'Not configured',
-        wabaId: workspace.wabaId || process.env.META_WABA_ID || 'Not configured',
+        wabaId: workspace.wabaId || process.env.GUPSHUP_APP_ID || 'Not configured',
         hasAccessToken: !!accessToken
       },
       debugInfo,
@@ -322,27 +363,27 @@ async function debugMetaCredentials(req, res, next) {
 
 function generateRecommendations(debugInfo, wabaFromPhone) {
   const recommendations = [];
-  
+
   if (!debugInfo.tokenValid) {
     recommendations.push('❌ Your access token is invalid or expired. Generate a new one from Meta Developer Portal.');
   }
-  
+
   if (debugInfo.wabaAccounts.length > 0) {
-    recommendations.push(`✅ Found ${debugInfo.wabaAccounts.length} WABA account(s). Use one of these IDs as META_WABA_ID:`);
+    recommendations.push(`✅ Found ${debugInfo.wabaAccounts.length} app account(s). Use one of these IDs as GUPSHUP_APP_ID:`);
     debugInfo.wabaAccounts.forEach(waba => {
       recommendations.push(`   - WABA ID: ${waba.id} (${waba.name})`);
     });
   }
-  
+
   if (wabaFromPhone?.wabaId) {
     recommendations.push(`✅ Found WABA ID from phone number: ${wabaFromPhone.wabaId}`);
-    recommendations.push(`   Update your .env: META_WABA_ID=${wabaFromPhone.wabaId}`);
+    recommendations.push(`   Update your .env: GUPSHUP_APP_ID=${wabaFromPhone.wabaId}`);
   }
-  
+
   if (debugInfo.errors.length > 0) {
     recommendations.push('⚠️  Some API calls failed. Check the errors array for details.');
   }
-  
+
   return recommendations;
 }
 
@@ -354,7 +395,7 @@ function generateRecommendations(debugInfo, wabaFromPhone) {
 async function getCommerceSettings(req, res, next) {
   try {
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
@@ -368,7 +409,7 @@ async function getCommerceSettings(req, res, next) {
     };
 
     const canAccessCommerce = PLAN_FEATURES[workspace.plan]?.commerce;
-    
+
     if (!canAccessCommerce) {
       return res.status(403).json({
         message: 'Commerce features are not available on your plan',
@@ -430,7 +471,7 @@ async function getCommerceSettings(req, res, next) {
 async function updateCommerceSettings(req, res, next) {
   try {
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
@@ -444,7 +485,7 @@ async function updateCommerceSettings(req, res, next) {
     };
 
     const canAccessCommerce = PLAN_FEATURES[workspace.plan]?.commerce;
-    
+
     if (!canAccessCommerce) {
       return res.status(403).json({
         message: 'Commerce features are not available on your plan',
@@ -453,8 +494,8 @@ async function updateCommerceSettings(req, res, next) {
       });
     }
 
-    // Only owner can update commerce settings
-    if (String(workspace.owner) !== String(req.user._id) && req.user.role !== 'owner') {
+    // Only owner/admin can update commerce settings
+    if (String(workspace.owner) !== String(req.user._id) && !['owner', 'admin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Only workspace owner can update commerce settings' });
     }
 
@@ -598,7 +639,7 @@ async function updateCommerceSettings(req, res, next) {
 async function validateCommerceConfig(req, res, next) {
   try {
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
@@ -651,6 +692,98 @@ async function validateCommerceConfig(req, res, next) {
   }
 }
 
+// ==========================================
+// INBOX & ASSIGNMENT SETTINGS
+// ==========================================
+
+/**
+ * Get Inbox Settings for current workspace
+ */
+async function getInboxSettings(req, res, next) {
+  try {
+    const workspace = await Workspace.findById(req.user.workspace)
+      .select('inboxSettings')
+      .lean();
+
+    if (!workspace) {
+      return res.status(404).json({ message: 'Workspace not found' });
+    }
+
+    res.json({
+      success: true,
+      settings: workspace.inboxSettings || {
+        autoAssignmentEnabled: false,
+        assignmentStrategy: 'MANUAL',
+        slaEnabled: false,
+        slaFirstResponseMinutes: 60,
+        slaResolutionMinutes: 1440,
+        agentRateLimitEnabled: true,
+        agentMessagesPerMinute: 30,
+        softLockEnabled: true,
+        softLockTimeoutSeconds: 60
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Update Inbox Settings for current workspace
+ */
+async function updateInboxSettings(req, res, next) {
+  try {
+    const workspace = await Workspace.findById(req.user.workspace);
+
+    if (!workspace) {
+      return res.status(404).json({ message: 'Workspace not found' });
+    }
+
+    // Only owner/admin can update inbox settings
+    if (String(workspace.owner) !== String(req.user._id) && !['owner', 'admin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Only workspace owner or admin can update inbox settings' });
+    }
+
+    const {
+      autoAssignmentEnabled,
+      assignmentStrategy,
+      slaEnabled,
+      slaFirstResponseMinutes,
+      slaResolutionMinutes,
+      agentRateLimitEnabled,
+      agentMessagesPerMinute,
+      softLockEnabled,
+      softLockTimeoutSeconds
+    } = req.body;
+
+    // Initialize if missing
+    if (!workspace.inboxSettings) {
+      workspace.inboxSettings = {};
+    }
+
+    // Update fields
+    if (autoAssignmentEnabled !== undefined) workspace.inboxSettings.autoAssignmentEnabled = autoAssignmentEnabled;
+    if (assignmentStrategy !== undefined) workspace.inboxSettings.assignmentStrategy = assignmentStrategy;
+    if (slaEnabled !== undefined) workspace.inboxSettings.slaEnabled = slaEnabled;
+    if (slaFirstResponseMinutes !== undefined) workspace.inboxSettings.slaFirstResponseMinutes = slaFirstResponseMinutes;
+    if (slaResolutionMinutes !== undefined) workspace.inboxSettings.slaResolutionMinutes = slaResolutionMinutes;
+    if (agentRateLimitEnabled !== undefined) workspace.inboxSettings.agentRateLimitEnabled = agentRateLimitEnabled;
+    if (agentMessagesPerMinute !== undefined) workspace.inboxSettings.agentMessagesPerMinute = agentMessagesPerMinute;
+    if (softLockEnabled !== undefined) workspace.inboxSettings.softLockEnabled = softLockEnabled;
+    if (softLockTimeoutSeconds !== undefined) workspace.inboxSettings.softLockTimeoutSeconds = softLockTimeoutSeconds;
+
+    await workspace.save();
+
+    res.json({
+      success: true,
+      message: 'Inbox settings updated successfully',
+      settings: workspace.inboxSettings
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getWhatsAppNumberStatus,
   getWABASettings,
@@ -661,5 +794,7 @@ module.exports = {
   debugMetaCredentials,
   getCommerceSettings,
   updateCommerceSettings,
-  validateCommerceConfig
+  validateCommerceConfig,
+  getInboxSettings,
+  updateInboxSettings
 };

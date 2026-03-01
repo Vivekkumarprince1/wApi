@@ -540,11 +540,20 @@ async function reconcileBilling(req, res, next) {
     const {
       workspaceId,
       billingPeriod,
+      providerInvoiceId,
+      providerAmountCents,
+      providerCurrency,
+      providerConversations,
       metaInvoiceId,
       metaAmountCents,
       metaCurrency,
       metaConversations
     } = req.body;
+
+    const normalizedInvoiceId = providerInvoiceId ?? metaInvoiceId;
+    const normalizedAmountCents = providerAmountCents ?? metaAmountCents;
+    const normalizedCurrency = providerCurrency ?? metaCurrency;
+    const normalizedConversations = providerConversations ?? metaConversations;
 
     if (!workspaceId || !billingPeriod) {
       return res.status(400).json({
@@ -553,13 +562,13 @@ async function reconcileBilling(req, res, next) {
       });
     }
 
-    const usageLedger = await usageLedgerService.upsertMetaUsage({
+    const usageLedger = await usageLedgerService.upsertProviderUsage({
       workspaceId,
       billingPeriod,
-      metaInvoiceId,
-      metaAmountCents,
-      metaCurrency,
-      metaConversations
+      providerInvoiceId: normalizedInvoiceId,
+      providerAmountCents: normalizedAmountCents,
+      providerCurrency: normalizedCurrency,
+      providerConversations: normalizedConversations
     });
 
     const trackedConversations =
@@ -568,19 +577,19 @@ async function reconcileBilling(req, res, next) {
       (usageLedger.conversations?.authentication || 0) +
       (usageLedger.conversations?.service || 0);
 
-    const metaConversationTotal =
-      (metaConversations?.marketing || 0) +
-      (metaConversations?.utility || 0) +
-      (metaConversations?.authentication || 0) +
-      (metaConversations?.service || 0);
+    const providerConversationTotal =
+      (normalizedConversations?.marketing || 0) +
+      (normalizedConversations?.utility || 0) +
+      (normalizedConversations?.authentication || 0) +
+      (normalizedConversations?.service || 0);
 
     const invoice = await Invoice.findOne({ workspace: workspaceId, billingPeriod });
     const deltaAmountCents =
-      typeof metaAmountCents === 'number' && invoice
-        ? metaAmountCents - (invoice.totalCents || 0)
+      typeof normalizedAmountCents === 'number' && invoice
+        ? normalizedAmountCents - (invoice.totalCents || 0)
         : 0;
 
-    const deltaConversations = metaConversationTotal - trackedConversations;
+    const deltaConversations = providerConversationTotal - trackedConversations;
     const status = deltaAmountCents === 0 && deltaConversations === 0 ? 'matched' : 'mismatch';
 
     await UsageLedger.findByIdAndUpdate(usageLedger._id, {
@@ -597,9 +606,9 @@ async function reconcileBilling(req, res, next) {
     if (invoice) {
       await Invoice.findByIdAndUpdate(invoice._id, {
         $set: {
-          metaInvoiceId,
-          metaAmountCents,
-          metaDeltaCents: deltaAmountCents
+          providerInvoiceId: normalizedInvoiceId,
+          providerAmountCents: normalizedAmountCents,
+          providerDeltaCents: deltaAmountCents
         }
       });
     }

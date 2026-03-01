@@ -190,7 +190,7 @@ function startWebhookWorker(redisConnection) {
 
   try {
     webhookWorker = new Worker('webhooks', async (job) => {
-      const { processWhatsAppWebhook } = require('../controllers/metaWebhookController');
+      const { processWebhookPayload } = require('../controllers/gupshupWebhookController');
 
       console.log(`[WebhookQueue] ⚙️  Processing job ${job.id} (attempt ${job.attemptsMade + 1}/5)`);
 
@@ -205,7 +205,7 @@ function startWebhookWorker(redisConnection) {
       }
 
       try {
-        await processWhatsAppWebhook(job.data.payload, job.data.signature);
+        await processWebhookPayload(job.data.payload, job.data.signature, null);
         
         // TASK C: Mark as processed after successful processing
         if (idempotencyKey) {

@@ -43,7 +43,7 @@ import { WhatsAppPreviewCompact } from './WhatsAppPreview';
 
 const STATUS_CONFIG = {
   DRAFT: { 
-    color: 'bg-gray-100 text-gray-700 border-gray-200', 
+    color: 'bg-muted text-gray-700 border-gray-200', 
     icon: FaEdit,
     label: 'Draft',
     description: 'Not yet submitted for approval'
@@ -73,7 +73,7 @@ const STATUS_CONFIG = {
     description: 'Temporarily disabled'
   },
   DISABLED: { 
-    color: 'bg-gray-100 text-gray-500 border-gray-200', 
+    color: 'bg-muted text-gray-500 border-gray-200', 
     icon: FaBan,
     label: 'Disabled',
     description: 'Permanently disabled'
@@ -176,7 +176,7 @@ const TemplateCard = ({
   const [showActions, setShowActions] = useState(false);
   const [showRejection, setShowRejection] = useState(false);
   
-  const canEdit = ['DRAFT', 'REJECTED'].includes(template.status);
+  const canEdit = ['DRAFT', 'REJECTED', 'APPROVED'].includes(template.status);
   const canSubmit = canSubmitTemplates && ['DRAFT', 'REJECTED'].includes(template.status);
   const canDelete = true;
   const isApproved = template.status === 'APPROVED';
@@ -242,7 +242,7 @@ const TemplateCard = ({
                     <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1">
                       <button
                         onClick={() => { onView(template); setShowActions(false); }}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                       >
                         <FaEye className="text-gray-400" />
                         View Details
@@ -251,17 +251,17 @@ const TemplateCard = ({
                       {canEdit && (
                         <button
                           onClick={() => { onEdit(template); setShowActions(false); }}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <FaEdit className="text-blue-500" />
-                          Edit Template
+                          {template.status === 'APPROVED' ? 'Edit (New Version)' : 'Edit Template'}
                         </button>
                       )}
                       
                       {canSubmit && (
                         <button
                           onClick={() => { onSubmit(template._id); setShowActions(false); }}
-                          className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                          className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                         >
                           <FaPaperPlane className="text-green-500" />
                           Submit for Approval
@@ -270,7 +270,7 @@ const TemplateCard = ({
                       
                       <button
                         onClick={() => { onDuplicate(template._id); setShowActions(false); }}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
                       >
                         <FaCopy className="text-purple-500" />
                         Duplicate
@@ -280,7 +280,7 @@ const TemplateCard = ({
                       
                       <button
                         onClick={() => { onDelete(template._id); setShowActions(false); }}
-                        className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
+                        className="w-full px-4 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 text-red-600"
                       >
                         <FaTrash />
                         Delete
@@ -341,7 +341,7 @@ const TemplateCard = ({
               className="px-3 py-1.5 text-sm bg-blue-50 text-blue-600 rounded hover:bg-blue-100 flex items-center gap-1"
             >
               <FaEdit className="text-xs" />
-              Edit
+              {template.status === 'APPROVED' ? 'Edit (New Version)' : 'Edit'}
             </button>
           )}
           
@@ -354,6 +354,17 @@ const TemplateCard = ({
               Submit
             </button>
           )}
+
+          {(!isApproved || (template.status !== 'DELETED' && template.status !== 'APPROVED')) && onDelete && (
+            <button
+              onClick={() => onDelete(template._id)}
+              className="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded hover:bg-red-100 flex items-center gap-1"
+              title="Delete template"
+            >
+              <FaTrash className="text-xs" />
+              Delete
+            </button>
+          )}
           
           {isApproved && (
             <span className="px-3 py-1.5 text-sm bg-green-100 text-green-700 rounded flex items-center gap-1">
@@ -364,7 +375,7 @@ const TemplateCard = ({
           
           <button
             onClick={() => onDuplicate(template._id)}
-            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded flex items-center gap-1 ml-auto"
+            className="px-3 py-1.5 text-sm text-gray-600 hover:bg-muted rounded flex items-center gap-1 ml-auto"
           >
             <FaCopy className="text-xs" />
             Duplicate
@@ -378,7 +389,7 @@ const TemplateCard = ({
 // Empty State
 const EmptyState = ({ onCreateNew, hasFilters }) => (
   <div className="text-center py-12">
-    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
       <FaEdit className="text-gray-400 text-2xl" />
     </div>
     <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -477,7 +488,7 @@ const TemplateList = ({
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
               selectedStatus === tab.value
                 ? 'bg-green-100 text-green-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-muted text-gray-600 hover:bg-gray-200'
             }`}
           >
             {tab.label}
@@ -569,7 +580,7 @@ const TemplateList = ({
             <button
               onClick={() => onPageChange?.(pagination.page - 1)}
               disabled={pagination.page === 1}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Previous
             </button>
@@ -581,7 +592,7 @@ const TemplateList = ({
             <button
               onClick={() => onPageChange?.(pagination.page + 1)}
               disabled={!pagination.hasMore}
-              className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Next
             </button>

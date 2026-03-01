@@ -70,11 +70,8 @@ async function generateFAQsFromWebsite(workspace, websiteUrl) {
       // MOCK: Simulate website crawling + FAQ generation
       // In production, this would:
       // 1. Use a web crawler (cheerio, puppeteer, etc.)
-      // 2. Extract FAQs from page content
-      // 3. Use AI (GPT) to generate variations and answers
-      // 4. Parse common FAQ formats (schema.org FAQ, custom HTML, etc.)
-
-      const mockFAQs = generateMockFAQs(websiteUrl);
+      // Try to scrape website using cheerio
+      const mockFAQs = await scrapeFAQs(websiteUrl);
 
       // Delete old FAQs for this source
       await FAQ.updateMany(
@@ -130,70 +127,87 @@ async function generateFAQsFromWebsite(workspace, websiteUrl) {
   }
 }
 
-/**
- * MOCK: Generate sample FAQs from website
- * In production, use actual crawler + AI
- */
-function generateMockFAQs(websiteUrl) {
-  // Extract domain for context
-  const domain = new URL(websiteUrl).hostname;
+const axios = require('axios');
+const cheerio = require('cheerio');
 
-  return [
-    {
-      question: `What is ${domain}?`,
-      answer: `${domain} is a leading platform providing innovative solutions to businesses worldwide. We are committed to delivering exceptional service and value to our customers.`,
-      variations: [
-        'Tell me about this website',
-        `Who is ${domain}?`,
-        'What do you do?',
-        'What is your company?'
-      ]
-    },
-    {
-      question: 'How can I contact support?',
-      answer: 'You can reach our support team via email at support@company.com, phone at +1-800-123-4567, or through our contact form on the website. We typically respond within 24 hours.',
-      variations: [
-        'How do I contact support?',
-        'Contact support',
-        'I need help',
-        'Where is your contact information?',
-        'Customer support'
-      ]
-    },
-    {
-      question: 'What are your business hours?',
-      answer: 'We are available Monday through Friday, 9:00 AM to 6:00 PM EST. Weekend and holiday hours are limited. For urgent matters, please call our emergency line.',
-      variations: [
-        'When are you open?',
-        'What are your hours?',
-        'Business hours',
-        'Are you open now?',
-        'When can I reach you?'
-      ]
-    },
-    {
-      question: 'Do you offer free trials?',
-      answer: 'Yes! We offer a 14-day free trial of our full platform. No credit card required. Simply sign up on our website and start exploring all features.',
-      variations: [
-        'Free trial',
-        'Can I try for free?',
-        'Trial period',
-        'How long is the free trial?',
-        'Is there a trial version?'
-      ]
-    },
-    {
-      question: 'What payment methods do you accept?',
-      answer: 'We accept all major credit cards (Visa, Mastercard, American Express), bank transfers, PayPal, and cryptocurrency payments. All transactions are secure and encrypted.',
-      variations: [
-        'Payment options',
-        'How can I pay?',
-        'Do you accept credit cards?',
-        'Payment methods',
-        'Ways to pay'
-      ]
-    }
-  ];
+/**
+ * Scrape FAQs from website URL
+ */
+async function scrapeFAQs(websiteUrl) {
+  const domain = new URL(websiteUrl).hostname;
+  const faqs = [];
+  
+  try {
+    const { data } = await axios.get(websiteUrl, { timeout: 10000 });
+    const $ = cheerio.load(data);
+    
+    // 1. Look for Definition Lists (dl, dt, dd)
+    $('dl').each((i, dl) => {
+      const questions = $(dl).find('dt');
+      const answers = $(dl).find('dd');
+      
+      questions.each((j, dt) => {
+        const question = $(dt).text().trim();
+        const answer = $(answers[j]).text().trim();
+        if (question && answer && question.length < 150) {
+          faqs.push({
+            question,
+            answer,
+            variations: [question.toLowerCase()]
+          });
+        }
+      });
+    });
+
+    // 2. Look for H2/H3 elements ending with '?' followed by a paragraph
+    $('h2, h3, h4, .faq-question').each((i, h) => {
+      const text = $(h).text().trim();
+      if (text.endsWith('?')) {
+        const nextElem = $(h).next();
+        if (nextElem.is('p') || nextElem.is('div')) {
+           const answer = nextElem.text().trim();
+           if (answer && answer.length > 5) {
+             faqs.push({
+               question: text,
+               answer: answer,
+               variations: [text.toLowerCase()]
+             });
+           }
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('[AnswerBot] Scrape failed:', error.message);
+  }
+
+  // Fallback to basic mock if we failed or found nothing
+  if (faqs.length === 0) {
+    faqs.push(
+      {
+        question: `What is ${domain}?`,
+        answer: `${domain} is a leading platform providing innovative solutions. We are committed to delivering exceptional service.`,
+        variations: [`Tell me about ${domain}`, 'What is your company?']
+      },
+      {
+        question: 'How can I contact support?',
+        answer: 'You can reach out to our team using the contact forms on our website. We are here to help.',
+        variations: ['Contact support', 'I need help', 'Where is your contact info?']
+      },
+      {
+        question: 'What are your business hours?',
+        answer: 'We are available Monday through Friday during regular business hours.',
+        variations: ['When are you open?', 'What are your hours?', 'Business hours']
+      },
+      {
+        question: 'Do you offer a free trial?',
+        answer: 'Please check our pricing page on the website for current offers, including trials if available.',
+        variations: ['Free trial', 'Can I try for free?', 'Trial period']
+      }
+    );
+  }
+
+  return faqs;
 }
 
 /**

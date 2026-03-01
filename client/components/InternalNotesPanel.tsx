@@ -159,7 +159,7 @@ export default function InternalNotesPanel({ conversationId, contactName }: Inte
                 value={newNote}
                 onChange={(e) => setNewNote(e.target.value)}
                 placeholder={`Add note about ${contactName}...`}
-                className="flex-1 px-3 py-2 text-sm border border-yellow-300 dark:border-yellow-600 rounded-lg bg-white dark:bg-gray-800 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                className="flex-1 px-3 py-2 text-sm border border-yellow-300 dark:border-yellow-600 rounded-lg bg-card focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
               />
               <button
                 type="submit"
@@ -191,7 +191,7 @@ export default function InternalNotesPanel({ conversationId, contactName }: Inte
               {notes.map((note) => (
                 <div
                   key={note._id}
-                  className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-yellow-200 dark:border-yellow-700 shadow-sm"
+                  className="bg-card rounded-lg p-3 border border-yellow-200 dark:border-yellow-700 shadow-sm"
                 >
                   {editingId === note._id ? (
                     <div className="space-y-2">
@@ -220,10 +220,10 @@ export default function InternalNotesPanel({ conversationId, contactName }: Inte
                     </div>
                   ) : (
                     <>
-                      <p className="text-sm text-gray-800 dark:text-gray-200 mb-2">
+                      <p className="text-sm text-gray-800 dark:text-foreground mb-2">
                         {note.content}
                       </p>
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>
                           {note.createdBy?.name || 'Unknown'} • {formatDate(note.createdAt)}
                         </span>
@@ -236,7 +236,7 @@ export default function InternalNotesPanel({ conversationId, contactName }: Inte
                           </button>
                           <button
                             onClick={() => handleDeleteNote(note._id)}
-                            className="text-red-500 hover:text-red-700 transition-colors"
+                            className="text-destructive hover:text-destructive/80 transition-colors"
                           >
                             <FaTrash />
                           </button>

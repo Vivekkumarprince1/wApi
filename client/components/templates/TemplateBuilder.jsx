@@ -253,7 +253,7 @@ const SectionHeader = ({ title, description, enabled, onToggle, required = false
           onChange={(e) => onToggle(e.target.checked)}
           className="sr-only peer"
         />
-        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
+        <div className="w-11 h-6 bg-border peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500"></div>
       </label>
     )}
   </div>
@@ -469,7 +469,7 @@ const TemplateBuilder = ({
                   onChange={handleNameChange}
                   placeholder="e.g., welcome_message"
                   disabled={isEditing}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-muted disabled:cursor-not-allowed"
                 />
                 <p className="text-xs text-gray-500 mt-1">Lowercase, numbers, underscores only</p>
               </div>
@@ -662,7 +662,7 @@ const TemplateBuilder = ({
               
               {/* Variable Examples */}
               {bodyVariables.length > 0 && (
-                <div className="bg-gray-50 rounded-lg p-3">
+                <div className="bg-muted rounded-lg p-3">
                   <p className="text-sm font-medium text-gray-700 mb-2">Example values for variables:</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {bodyVariables.map((varNum, index) => (
@@ -730,7 +730,7 @@ const TemplateBuilder = ({
               <div className="space-y-3">
                 {/* Button List */}
                 {template.buttons.items.map((button, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-3 relative">
+                  <div key={index} className="bg-muted rounded-lg p-3 relative">
                     <button
                       type="button"
                       onClick={() => removeButton(index)}

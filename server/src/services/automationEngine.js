@@ -12,6 +12,7 @@
 
 const AutomationRule = require('../models/AutomationRule');
 const AutomationExecution = require('../models/AutomationExecution');
+const AutomationAuditLog = require('../models/AutomationAuditLog');
 const Contact = require('../models/Contact');
 const Conversation = require('../models/Conversation');
 const { automationEvents, AUTOMATION_EVENTS } = require('./automationEventEmitter');
@@ -151,6 +152,21 @@ async function processRule(rule, context, isDryRun = false) {
         // Record skip in rule stats
         await AutomationRule.recordExecution(rule._id, 'SKIPPED');
         
+        // Also log to AuditLog
+        await AutomationAuditLog.logExecution({
+          workspaceId: context.workspaceId,
+          ruleId: rule._id,
+          executionId: execution._id,
+          conversationId: context.conversationId,
+          contactId: context.contactId,
+          triggerType: context.eventType,
+          triggerMetadata: context.metadata,
+          status: 'SKIPPED',
+          reason: safetyResult.skipReason,
+          notes: safetyResult.skipDetails,
+          duration: execution.durationMs
+        });
+
         logger.debug(`[AutomationEngine] Rule ${rule.name} skipped: ${safetyResult.skipReason}`);
         return { status: 'SKIPPED', reason: safetyResult.skipReason };
       }
@@ -167,6 +183,22 @@ async function processRule(rule, context, isDryRun = false) {
       
       if (!isDryRun) {
         await AutomationRule.recordExecution(rule._id, 'SKIPPED');
+
+        // Also log to AuditLog
+        await AutomationAuditLog.logExecution({
+          workspaceId: context.workspaceId,
+          ruleId: rule._id,
+          executionId: execution._id,
+          conversationId: context.conversationId,
+          contactId: context.contactId,
+          triggerType: context.eventType,
+          triggerMetadata: context.metadata,
+          status: 'SKIPPED',
+          reason: evalResult.reason,
+          notes: evalResult.details,
+          duration: execution.durationMs,
+          conditionsEvaluated: evalResult.evaluations || []
+        });
       }
       
       logger.debug(`[AutomationEngine] Rule ${rule.name} conditions not met`);
@@ -201,6 +233,29 @@ async function processRule(rule, context, isDryRun = false) {
     if (!isDryRun) {
       await AutomationRule.recordExecution(rule._id, actionResult.status);
       incrementCounters(context.workspaceId);
+
+      // Also log to AuditLog
+      await AutomationAuditLog.logExecution({
+        workspaceId: context.workspaceId,
+        ruleId: rule._id,
+        executionId: execution._id,
+        conversationId: context.conversationId,
+        contactId: context.contactId,
+        triggerType: context.eventType,
+        triggerMetadata: context.metadata,
+        status: actionResult.status,
+        reason: actionResult.status === 'FAILED' ? execution.failureReason : null,
+        errorMessage: execution.failureDetails,
+        duration: execution.durationMs,
+        actionsExecuted: actionResult.results.map(r => ({
+          actionType: r.actionType,
+          status: r.status,
+          result: r.result,
+          error: r.error,
+          executedAt: new Date(),
+          duration: r.durationMs
+        }))
+      });
     }
     
     logger.info(`[AutomationEngine] Rule ${rule.name} executed: ${actionResult.status}`, {

@@ -27,12 +27,12 @@ const UsageLedgerSchema = new mongoose.Schema({
     phoneNumberIds: [String]
   },
 
-  // Meta reconciliation snapshot
-  metaUsage: {
-    metaInvoiceId: { type: String },
-    metaAmountCents: { type: Number },
-    metaCurrency: { type: String },
-    metaConversations: {
+  // Provider reconciliation snapshot
+  providerUsage: {
+    providerInvoiceId: { type: String },
+    providerAmountCents: { type: Number },
+    providerCurrency: { type: String },
+    providerConversations: {
       marketing: { type: Number, default: 0 },
       utility: { type: Number, default: 0 },
       authentication: { type: Number, default: 0 },

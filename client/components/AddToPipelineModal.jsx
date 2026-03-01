@@ -87,10 +87,10 @@ export default function AddToPipelineModal({ isOpen, onClose, contact, onSuccess
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div className="bg-card rounded-lg shadow-xl max-w-md w-full mx-4">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-bold text-foreground">
             Add to Sales Pipeline
           </h2>
           <button
@@ -110,9 +110,9 @@ export default function AddToPipelineModal({ isOpen, onClose, contact, onSuccess
           ) : (
             <form onSubmit={handleCreateDeal} className="space-y-4">
               {/* Contact Info */}
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Contact</p>
-                <p className="font-semibold text-gray-900 dark:text-white">
+              <div className="bg-muted p-4 rounded-lg">
+                <p className="text-sm text-muted-foreground">Contact</p>
+                <p className="font-semibold text-foreground">
                   {contact.firstName} {contact.lastName} ({contact.phone})
                 </p>
               </div>
@@ -120,10 +120,10 @@ export default function AddToPipelineModal({ isOpen, onClose, contact, onSuccess
               {/* Pipeline Name */}
               {pipeline && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Pipeline
                   </label>
-                  <p className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-medium">
+                  <p className="px-4 py-2 rounded-lg border border-border bg-muted text-foreground font-medium">
                     {pipeline.name}
                   </p>
                 </div>
@@ -132,13 +132,13 @@ export default function AddToPipelineModal({ isOpen, onClose, contact, onSuccess
               {/* Starting Stage */}
               {pipeline && pipeline.stages && pipeline.stages.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Starting Stage
                   </label>
-                  <p className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white font-medium">
+                  <p className="px-4 py-2 rounded-lg border border-border bg-muted text-foreground font-medium">
                     {pipeline.stages.find(s => s.id === selectedStage)?.title || 'Select stage'}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="text-xs text-muted-foreground mt-1">
                     Deal will start in the first stage of the pipeline
                   </p>
                 </div>
@@ -146,7 +146,7 @@ export default function AddToPipelineModal({ isOpen, onClose, contact, onSuccess
 
               {/* Deal Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Deal Title
                 </label>
                 <input
@@ -154,14 +154,14 @@ export default function AddToPipelineModal({ isOpen, onClose, contact, onSuccess
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g., Q1 Project"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-4 py-2 rounded-lg border border-border bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ring"
                   disabled={creating}
                 />
               </div>
 
               {/* Deal Value (Optional) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Deal Value (Optional)
                 </label>
                 <input
@@ -170,7 +170,7 @@ export default function AddToPipelineModal({ isOpen, onClose, contact, onSuccess
                   onChange={(e) => setValue(e.target.value)}
                   placeholder="e.g., 50000"
                   min="0"
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-4 py-2 rounded-lg border border-border bg-white dark:bg-muted text-foreground placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-ring"
                   disabled={creating}
                 />
               </div>
@@ -194,14 +194,14 @@ export default function AddToPipelineModal({ isOpen, onClose, contact, onSuccess
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg border border-border text-foreground font-medium hover:bg-accent transition-colors"
                   disabled={creating}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 px-4 py-2 rounded-lg bg-teal-600 hover:bg-primary/90 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   disabled={creating || !title.trim()}
                 >
                   {creating ? (

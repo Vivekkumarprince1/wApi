@@ -147,12 +147,12 @@ const TemplateManager = () => {
 
   const getStatusBadge = (status) => {
     const badges = {
-      DRAFT: { color: 'bg-gray-100 text-gray-800', icon: FaClock },
+      DRAFT: { color: 'bg-muted text-gray-800', icon: FaClock },
       PENDING: { color: 'bg-yellow-100 text-yellow-800', icon: FaClock },
       APPROVED: { color: 'bg-green-100 text-green-800', icon: FaCheckCircle },
       REJECTED: { color: 'bg-red-100 text-red-800', icon: FaTimes },
       PAUSED: { color: 'bg-orange-100 text-orange-800', icon: FaClock },
-      DISABLED: { color: 'bg-gray-100 text-gray-600', icon: FaTimes }
+      DISABLED: { color: 'bg-muted text-gray-600', icon: FaTimes }
     };
     
     const badge = badges[status] || badges.DRAFT;

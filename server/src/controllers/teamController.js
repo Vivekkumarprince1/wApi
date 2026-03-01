@@ -65,15 +65,17 @@ async function inviteTeamMember(req, res, next) {
 
     // Create audit log
     await AuditLog.create({
-      workspaceId,
-      entityType: 'user',
-      entityId: user._id,
-      action: 'invite',
+      workspace: workspaceId,
+      action: 'team.member_invited',
+      resource: {
+        type: 'user',
+        id: user._id
+      },
       details: {
         email,
         role,
-      },
-      status: 'success',
+        status: 'success',
+      }
     });
 
     // TODO: Send invitation email with link to accept
@@ -134,16 +136,18 @@ async function updateMemberRole(req, res, next) {
 
     // Create audit log
     await AuditLog.create({
-      workspaceId,
-      entityType: 'user',
-      entityId: memberId,
-      action: 'role_updated',
+      workspace: workspaceId,
+      action: 'team.permissions_changed',
+      resource: {
+        type: 'user',
+        id: memberId
+      },
       details: {
         oldRole,
         newRole: role,
         email: user.email,
-      },
-      status: 'success',
+        status: 'success',
+      }
     });
 
     logger.info('[TeamController] Member role updated:', {
@@ -197,15 +201,17 @@ async function removeTeamMember(req, res, next) {
 
     // Create audit log
     await AuditLog.create({
-      workspaceId,
-      entityType: 'user',
-      entityId: memberId,
-      action: 'remove',
+      workspace: workspaceId,
+      action: 'team.member_removed',
+      resource: {
+        type: 'user',
+        id: memberId
+      },
       details: {
         email: user.email,
         role: user.role,
-      },
-      status: 'success',
+        status: 'success',
+      }
     });
 
     logger.info('[TeamController] Member removed:', {

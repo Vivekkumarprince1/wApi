@@ -3,14 +3,16 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
  * SINGLE BSP ONBOARDING ENTRY POINT
- * Strict BSP flow - Parent WABA only via Meta Embedded Signup V2
+ * Strict BSP flow - Partner app onboarding via Gupshup embed flow
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaWhatsapp, FaCheckCircle, FaExclamationCircle, FaSpinner, FaShieldAlt, FaExternalLinkAlt } from 'react-icons/fa';
-import { getCurrentUser, esbStart, getEsbStatus } from '@/lib/api';
+import { FaWhatsapp, FaCheckCircle, FaExclamationCircle, FaSpinner, FaShieldAlt } from 'react-icons/fa';
+import { getCurrentUser } from '@/lib/api';
+import { bspRegisterPhone } from '@/lib/api';
+import * as api from '@/lib/api';
 
 export default function ESBOnboardingPage() {
   const router = useRouter();
@@ -18,9 +20,6 @@ export default function ESBOnboardingPage() {
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [signupUrl, setSignupUrl] = useState('');
-  const [showIframe, setShowIframe] = useState(false);
-  const [onboardingStatus, setOnboardingStatus] = useState(null);
 
   useEffect(() => {
     // CRITICAL: Email verification gate
@@ -55,47 +54,48 @@ export default function ESBOnboardingPage() {
     checkEmailVerification();
   }, [router]);
 
+  // Poll for status if not connected (useful when onboarding in a new tab)
+  useEffect(() => {
+    if (checkingAuth) return;
+
+    const checkStatus = async () => {
+      try {
+        const statusRes = await api.get('/onboarding/bsp/status');
+        if (statusRes?.connected) {
+          router.push('/dashboard');
+        }
+      } catch (err) {
+        // Ignore errors during polling
+      }
+    };
+
+    const interval = setInterval(checkStatus, 5000); // Check every 5 seconds
+    return () => clearInterval(interval);
+  }, [checkingAuth, router]);
+
   const handleConnectWhatsApp = async () => {
     try {
       setLoading(true);
       setError('');
 
-      // Call BSP start endpoint
-      const response = await esbStart();
-      const url = response?.esbUrl || response?.url;
+      const response = await bspRegisterPhone({ connectionType: 'business_app' });
+      const signupUrl = response?.esbUrl || response?.url;
 
-      if (!url) {
-        throw new Error(response?.message || 'Failed to generate Meta signup URL');
+      if (!signupUrl) {
+        throw new Error(response?.message || 'Failed to generate Gupshup onboarding URL');
       }
 
-      // Open ESB inside embedded iframe (Meta ESB v3)
-      setSignupUrl(url);
-      setShowIframe(true);
+      // Open Gupshup onboarding embed in a new tab
+      window.open(signupUrl, '_blank');
+      
+      // Stop loading so the user can click again if needed
+      setLoading(false);
     } catch (err) {
       console.error('ESB start failed:', err);
       setError(err.message || 'Failed to start WhatsApp connection');
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!user) return;
-    let interval = null;
-
-    const fetchStatus = async () => {
-      try {
-        const status = await getEsbStatus();
-        setOnboardingStatus(status?.status || status?.workspace || status);
-      } catch (statusErr) {
-        // Silent failure (non-blocking)
-      }
-    };
-
-    fetchStatus();
-    interval = setInterval(fetchStatus, 10000);
-
-    return () => interval && clearInterval(interval);
-  }, [user]);
 
   if (checkingAuth) {
     return (
@@ -130,8 +130,8 @@ export default function ESBOnboardingPage() {
             Connect WhatsApp Business
           </h1>
           <p className="text-gray-600 text-center max-w-md">
-            Connect your WhatsApp Business phone number using Meta Embedded Signup (ESB v3). 
-            The platform owns the Parent WABA and manages all tokens, templates, and webhooks.
+            Connect your WhatsApp Business account using Gupshup Partner onboarding.
+            You'll be redirected to Gupshup to complete setup.
           </p>
         </div>
 
@@ -164,20 +164,13 @@ export default function ESBOnboardingPage() {
             What happens next?
           </h3>
           <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
-            <li>Embedded Signup opens securely inside Meta's iframe</li>
-            <li>Sign in with your Facebook Business account</li>
-            <li>Select your WhatsApp Business account</li>
-            <li>Grant permissions to manage messaging</li>
+            <li>You'll be redirected to Gupshup Partner onboarding</li>
+            <li>Confirm your partner app/business details</li>
+            <li>Complete WhatsApp setup under your partner account</li>
+            <li>Grant required onboarding permissions</li>
             <li>Return here to complete setup</li>
           </ol>
         </div>
-
-        {onboardingStatus && (
-          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-800">
-            <div className="font-semibold">Onboarding status</div>
-            <div className="mt-1">{onboardingStatus?.status || onboardingStatus?.phoneStatus || 'In progress'}</div>
-          </div>
-        )}
 
         {/* CTA Button */}
         <button
@@ -193,49 +186,16 @@ export default function ESBOnboardingPage() {
           ) : (
             <>
               <FaWhatsapp />
-              Continue to Meta
+              Continue to Gupshup
             </>
           )}
         </button>
 
         {/* Security notice */}
         <p className="mt-4 text-xs text-center text-gray-500">
-          Tokens and Meta credentials are never exposed to customers. The platform manages all access.
+          Your credentials are never shared with us. Authentication is handled by Gupshup.
         </p>
       </div>
-
-      {showIframe && signupUrl && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-5xl h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <div className="text-sm font-semibold text-gray-700">Meta Embedded Signup</div>
-              <div className="flex items-center gap-3">
-                <a
-                  href={signupUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-green-700 flex items-center gap-1"
-                >
-                  Open in new tab <FaExternalLinkAlt />
-                </a>
-                <button
-                  onClick={() => setShowIframe(false)}
-                  className="text-xs text-gray-500 hover:text-gray-700"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-            <iframe
-              title="Meta Embedded Signup"
-              src={signupUrl}
-              className="w-full h-full"
-              allow="clipboard-write; encrypted-media"
-              sandbox="allow-forms allow-scripts allow-same-origin allow-popups"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

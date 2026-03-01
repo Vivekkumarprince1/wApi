@@ -102,7 +102,7 @@ function startMessageRetryWorker(redisConnection) {
 
 /**
  * Enqueue failed message for retry
- * Called by metaWebhookController when message send fails
+ * Called by gupshupWebhookController when message send fails
  * 
  * Retry delays: 1m, 5m, 15m, 1h (exponential backoff)
  */
@@ -152,17 +152,19 @@ async function enqueueRetry(messageData, lastError, retryCount = 0) {
 
     // Audit log
     await AuditLog.create({
-      workspaceId: messageData.workspaceId,
-      entityType: 'message',
-      entityId: messageData._id || messageData.id,
-      action: 'retry_enqueued',
+      workspace: messageData.workspaceId,
+      action: 'message.retry_enqueued',
+      resource: {
+        type: 'message',
+        id: messageData._id || messageData.id
+      },
       details: {
         retryCount,
         delaySeconds: delayMs / 1000,
         lastError,
         jobId: job.id,
-      },
-      status: 'warning',
+        status: 'warning',
+      }
     });
 
     return job;
@@ -243,15 +245,17 @@ async function processMessageRetry(job) {
 
     // Audit log
     await AuditLog.create({
-      workspaceId,
-      entityType: 'message',
-      entityId: messageId,
-      action: 'retry_success',
+      workspace: workspaceId,
+      action: 'message.retry_success',
+      resource: {
+        type: 'message',
+        id: messageId
+      },
       details: {
         retryCount: data.retryCount,
         metaMessageId: result.messages[0].id,
-      },
-      status: 'success',
+        status: 'success',
+      }
     });
 
     logger.info(`[MessageRetryQueue] Message sent successfully on retry:`, {
@@ -271,15 +275,17 @@ async function processMessageRetry(job) {
     // If max retries reached, move to dead letter queue
     if (data.retryCount >= maxRetries - 1) {
       await AuditLog.create({
-        workspaceId: data.workspaceId,
-        entityType: 'message',
-        entityId: messageId,
-        action: 'retry_exhausted',
+        workspace: data.workspaceId,
+        action: 'message.retry_exhausted',
+        resource: {
+          type: 'message',
+          id: messageId
+        },
         details: {
           finalError: error.message,
           totalAttempts: data.retryCount + 1,
-        },
-        status: 'critical',
+          status: 'critical',
+        }
       });
 
       logger.error(`[MessageRetryQueue] Max retries exhausted, moving to dead letter:`, {

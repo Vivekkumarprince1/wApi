@@ -1,7 +1,6 @@
 const cron = require('node-cron');
 const Workspace = require('../models/Workspace');
 const secretsManager = require('./secretsManager');
-const metaAutomationService = require('./metaAutomationService');
 const AuditLog = require('../models/AuditLog');
 const { logger } = require('../utils/logger');
 
@@ -68,6 +67,10 @@ class TokenRefreshCron {
 
     try {
       logger.info('[TokenRefreshCron] Starting token refresh cycle');
+
+      logger.info('[TokenRefreshCron] Provider-managed token refresh is disabled in BSP migration mode');
+      this.failureCount = 0;
+      return;
 
       if (BSP_ONLY) {
         const systemResult = await this._refreshSystemToken();
@@ -201,12 +204,13 @@ class TokenRefreshCron {
 
         // Audit log
         await AuditLog.create({
-          workspaceId,
-          entityType: 'token',
-          entityId: 'access_token',
-          action: 'refresh_success',
-          details: { attempt: attempt + 1 },
-          status: 'success',
+          workspace: workspaceId,
+          action: 'token.refreshed',
+          resource: {
+            type: 'token',
+            name: 'access_token'
+          },
+          details: { attempt: attempt + 1, status: 'success' },
         });
 
         logger.info('[TokenRefreshCron] Token refreshed successfully', {
@@ -229,15 +233,17 @@ class TokenRefreshCron {
           });
 
           await AuditLog.create({
-            workspaceId,
-            entityType: 'token',
-            entityId: 'access_token',
-            action: 'refresh_failed',
+            workspace: workspaceId,
+            action: 'token.refresh_failed',
+            resource: {
+              type: 'token',
+              name: 'access_token'
+            },
             details: {
               attempts: maxRetries,
               error: error.message,
-            },
-            status: 'critical',
+              status: 'critical',
+            }
           });
 
           return {
@@ -272,60 +278,15 @@ class TokenRefreshCron {
    *   - access_token={CURRENT_REFRESH_TOKEN}
    */
   async _callMetaTokenRefresh(refreshToken, phoneNumberId) {
-    try {
-      const result = await metaAutomationService.refreshUserToken(refreshToken);
-      if (!result?.accessToken) {
-        throw new Error('Invalid token refresh response from Meta');
-      }
-
-      return result;
-    } catch (error) {
-      logger.error('[TokenRefreshCron] _callMetaTokenRefresh failed:', error);
-      throw error;
-    }
+    throw new Error('Provider token refresh via Meta OAuth is deprecated in BSP mode');
   }
 
   /**
    * Refresh BSP system token only (BSP-only mode)
    */
   async _refreshSystemToken() {
-    try {
-      const refreshToken = await secretsManager.retrieveRefreshToken('bsp-system');
-      if (!refreshToken) {
-        logger.warn('[TokenRefreshCron] No system refresh token found');
-        return { success: false, error: 'NO_SYSTEM_REFRESH_TOKEN' };
-      }
-
-      const refreshed = await metaAutomationService.refreshUserToken(refreshToken);
-
-      await secretsManager.storeToken('bsp-system', 'systemUserToken', refreshed.accessToken);
-      if (refreshed.refreshToken) {
-        await secretsManager.storeRefreshToken('bsp-system', refreshed.refreshToken);
-      }
-
-      await AuditLog.create({
-        workspaceId: null,
-        entityType: 'token',
-        entityId: 'systemUserToken',
-        action: 'refresh_success',
-        details: { scope: 'bsp-system' },
-        status: 'success',
-      });
-
-      logger.info('[TokenRefreshCron] System token refreshed successfully');
-      return { success: true };
-    } catch (error) {
-      logger.warn('[TokenRefreshCron] System token refresh failed:', error.message);
-      await AuditLog.create({
-        workspaceId: null,
-        entityType: 'token',
-        entityId: 'systemUserToken',
-        action: 'refresh_failed',
-        details: { scope: 'bsp-system', error: error.message },
-        status: 'critical',
-      });
-      return { success: false, error: error.message };
-    }
+    logger.info('[TokenRefreshCron] System token refresh skipped in BSP migration mode');
+    return { success: true, skipped: true };
   }
 
   /**

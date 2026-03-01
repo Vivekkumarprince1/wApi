@@ -26,5 +26,3 @@ router.post('/:id/toggle', instagramQuickflowController.toggleInstagramQuickflow
 router.get('/:id/stats', instagramQuickflowController.getInstagramQuickflowStats);
 
 module.exports = router;
-
-module.exports = router;

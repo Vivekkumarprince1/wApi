@@ -3,7 +3,7 @@ import { FaAddressBook, FaDownload, FaPlus, FaSearch, FaFilter } from 'react-ico
 import CreateContactModal from './CreateContactModal';
 import ContactDetailModal from './ContactDetailModal';
 import AddToPipelineModal from './AddToPipelineModal';
-import { fetchContacts, post, get } from '../lib/api';
+import { fetchContacts, uploadContacts, get } from '../lib/api';
 import { toast } from 'react-toastify';
 
 const ContactsSection = () => {
@@ -101,7 +101,7 @@ const ContactsSection = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-background">
       {/* Header with Gradient */}
       <div className="bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -134,21 +134,30 @@ const ContactsSection = () => {
                         try {
                           const text = event.target.result;
                           const rows = text.split('\n').slice(1);
-                          let imported = 0;
+                          const parsedContacts = [];
                           for (const row of rows) {
                             if (row.trim()) {
                               const [firstName, lastName, phone, email] = row.split(',');
-                              await post('/contacts', {
-                                firstName: firstName?.trim(),
-                                lastName: lastName?.trim(),
-                                phone: phone?.trim(),
-                                email: email?.trim()
-                              });
-                              imported++;
+                              if (phone?.trim()) {
+                                parsedContacts.push({
+                                  first_name: firstName?.trim(),
+                                  last_name: lastName?.trim(),
+                                  phone_number: phone?.trim(),
+                                  email: email?.trim()
+                                });
+                              }
                             }
                           }
-                          toast?.success?.(`${imported} contacts imported successfully!`) ||
-                            alert(`${imported} contacts imported successfully!`);
+
+                          if (parsedContacts.length === 0) {
+                            throw new Error('No valid contacts found in CSV');
+                          }
+
+                          const result = await uploadContacts(parsedContacts);
+                          const importedCount = result?.success?.length || parsedContacts.length;
+
+                          toast?.success?.(`${importedCount} contacts imported successfully!`) ||
+                            alert(`${importedCount} contacts imported successfully!`);
                           loadContacts();
                         } catch (err) {
                           toast?.error?.('Error importing contacts: ' + err.message) ||
@@ -180,7 +189,7 @@ const ContactsSection = () => {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center space-x-3">
             {/* Search */}
@@ -191,21 +200,21 @@ const ContactsSection = () => {
                 placeholder="Search contacts..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2.5 w-full border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent"
+                className="pl-10 pr-4 py-2.5 w-full border border-border rounded-xl bg-white dark:bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent"
               />
             </div>
             {/* Filter Dropdown */}
             <select
               value={filter}
               onChange={e => setFilter(e.target.value)}
-              className="py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent"
+              className="py-2.5 px-4 border border-border rounded-xl bg-white dark:bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent"
             >
               <option value="all">All Contacts</option>
               <option value="withEmail">With Email</option>
               <option value="withoutEmail">Without Email</option>
             </select>
             {/* Filter Icon */}
-            <button className="p-3 text-gray-500 hover:text-[#13C18D] dark:text-gray-400 dark:hover:text-[#13C18D] hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors" title="Filter options">
+            <button className="p-3 text-gray-500 hover:text-[#13C18D] dark:text-muted-foreground dark:hover:text-[#13C18D] hover:bg-accent rounded-xl transition-colors" title="Filter options">
               <FaFilter className="text-lg" />
             </button>
           </div>
@@ -216,79 +225,79 @@ const ContactsSection = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-shadow">
+          <div className="bg-card rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-border hover:shadow-xl transition-shadow">
             <div className="flex items-center">
               <div className="p-3 bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] rounded-xl shadow-md">
                 <FaAddressBook className="text-white text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Contacts</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Contacts</p>
                 <p className="text-2xl font-bold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] bg-clip-text text-transparent">{totalContacts}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-card rounded-lg shadow-sm p-6 border border-border">
             <div className="flex items-center">
               <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
                 <FaAddressBook className="text-blue-500 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Contacts</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeContacts}</p>
+                <p className="text-sm font-medium text-muted-foreground">Active Contacts</p>
+                <p className="text-2xl font-bold text-foreground">{activeContacts}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-card rounded-lg shadow-sm p-6 border border-border">
             <div className="flex items-center">
               <div className="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
                 <FaAddressBook className="text-yellow-500 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">New This Month</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{newThisMonth}</p>
+                <p className="text-sm font-medium text-muted-foreground">New This Month</p>
+                <p className="text-2xl font-bold text-foreground">{newThisMonth}</p>
               </div>
             </div>
           </div>
           
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
+          <div className="bg-card rounded-lg shadow-sm p-6 border border-border">
             <div className="flex items-center">
               <div className="p-3 bg-purple-100 dark:bg-purple-900 rounded-lg">
                 <FaAddressBook className="text-purple-500 text-xl" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Groups</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{groups}</p>
+                <p className="text-sm font-medium text-muted-foreground">Groups</p>
+                <p className="text-2xl font-bold text-foreground">{groups}</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Contacts Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Recent Contacts</h3>
+        <div className="bg-card rounded-lg shadow-sm border border-border">
+          <div className="px-6 py-4 border-b border-border">
+            <h3 className="text-lg font-medium text-foreground">Recent Contacts</h3>
           </div>
           
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Created</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Created</th>
                 </tr>
               </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-card divide-y divide-border">
                 {loading ? (
-                  <tr><td colSpan={4} className="text-center py-8 text-gray-500 dark:text-gray-400">Loading...</td></tr>
+                  <tr><td colSpan={4} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
                 ) : filteredContacts.length === 0 ? (
-                  <tr><td colSpan={4} className="text-center py-8 text-gray-500 dark:text-gray-400">No contacts found.</td></tr>
+                  <tr><td colSpan={4} className="text-center py-8 text-muted-foreground">No contacts found.</td></tr>
                 ) : (
                   filteredContacts.slice(0, 20).map((c, idx) => (
-                    <tr key={c.id || idx} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <tr key={c.id || idx} className="hover:bg-accent">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => handleOpenDetailModal(c)}
@@ -298,15 +307,15 @@ const ContactsSection = () => {
                             <span className="text-white font-medium">{(c.firstName || c.lastName) ? `${(c.firstName||'')[0] || ''}${(c.lastName||'')[0] || ''}`.toUpperCase() : c.phone[0]}</span>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">{c.firstName || '-'} {c.lastName || ''}</div>
+                            <div className="text-sm font-medium text-foreground">{c.firstName || '-'} {c.lastName || ''}</div>
                           </div>
                         </button>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         <button onClick={() => openWhatsAppProfile(c.phone, c._id)} className="text-left text-blue-600 hover:underline">{c.phone}</button>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">{c.email || '-'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{new Date(c.createdAt).toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{c.email || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</td>
                     </tr>
                   ))
                 )}
@@ -334,12 +343,6 @@ const ContactsSection = () => {
           onAddToPipeline={() => {
             setIsDetailModalOpen(false);
             handleOpenAddToPipelineModal(selectedContact);
-          }}
-          onSuccess={() => {
-            setIsDetailModalOpen(false);
-            setSelectedContact(null);
-            // Refresh contacts list by re-fetching
-            window.location.reload();
           }}
         />
       )}

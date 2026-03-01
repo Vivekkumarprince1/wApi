@@ -95,7 +95,7 @@ export default function AdsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading ads...</p>
+          <p className="mt-4 text-muted-foreground">Loading ads...</p>
         </div>
       </div>
     );
@@ -112,21 +112,21 @@ export default function AdsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="animate-fade-in-up">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      <div className="bg-white border-b border-border px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">WhatsApp Ads</h1>
-            <p className="text-gray-600 mt-1">Click-to-Chat campaigns</p>
+            <h1 className="text-2xl font-bold text-foreground">WhatsApp Ads</h1>
+            <p className="text-muted-foreground mt-1">Click-to-Chat campaigns</p>
           </div>
           <button
             onClick={handleCreateAd}
             disabled={!eligibility.enabled}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${
               eligibility.enabled
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ? 'bg-primary hover:bg-primary/90 text-white'
+                : 'bg-gray-300 text-muted-foreground cursor-not-allowed'
             }`}
           >
             <FaPlus /> Create Ad
@@ -162,7 +162,7 @@ export default function AdsPage() {
 
         {/* Eligibility Checks */}
         {!eligibility.enabled && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-6">
             <h3 className="font-semibold text-yellow-900 mb-3">
               Why WhatsApp Ads is not available:
             </h3>
@@ -182,35 +182,35 @@ export default function AdsPage() {
 
         {/* Ads List */}
         {eligibility.enabled && ads.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-            <p className="text-gray-600 mb-4">No ads created yet.</p>
+          <div className="text-center py-12 bg-white rounded-xl border border-border">
+            <p className="text-muted-foreground mb-4">No ads created yet.</p>
             <button
               onClick={handleCreateAd}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium"
             >
               <FaPlus /> Create Your First Ad
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white rounded-xl border border-border overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Budget</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Spent</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Impressions</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Actions</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Name</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Budget</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Spent</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Impressions</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {ads.map((ad) => (
-                  <tr key={ad._id} className="border-b border-gray-200 hover:bg-gray-50">
+                  <tr key={ad._id} className="border-b border-border hover:bg-muted">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="font-medium text-gray-900">{ad.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="font-medium text-foreground">{ad.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
                           {new Date(ad.createdAt).toLocaleDateString()}
                         </p>
                       </div>
@@ -220,16 +220,16 @@ export default function AdsPage() {
                         {ad.status.replace('_', ' ').toUpperCase()}
                       </span>
                       {ad.pausedReason && (
-                        <p className="text-xs text-gray-600 mt-1">{ad.pausedReason}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{ad.pausedReason}</p>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-gray-900">
+                    <td className="px-6 py-4 text-foreground">
                       ${(ad.budget / 100).toFixed(2)}/day
                     </td>
-                    <td className="px-6 py-4 text-gray-900">
+                    <td className="px-6 py-4 text-foreground">
                       ${(ad.spentAmount / 100).toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 text-gray-900">
+                    <td className="px-6 py-4 text-foreground">
                       {ad.impressions.toLocaleString()}
                     </td>
                     <td className="px-6 py-4">
@@ -254,7 +254,7 @@ export default function AdsPage() {
                         
                         <button
                           onClick={() => router.push(`/dashboard/ads/${ad._id}`)}
-                          className="p-2 text-gray-600 hover:bg-gray-100 rounded transition"
+                          className="p-2 text-muted-foreground hover:bg-accent rounded transition"
                           title="View"
                         >
                           <FaEye size={16} />
@@ -280,7 +280,7 @@ export default function AdsPage() {
 
         {/* Plan Limits Info */}
         {eligibility.enabled && eligibility.limits && (
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
             <h3 className="font-semibold text-blue-900 mb-2">Your Plan Limits</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>

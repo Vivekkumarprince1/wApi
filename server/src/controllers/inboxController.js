@@ -19,7 +19,6 @@ const Contact = require('../models/Contact');
 const User = require('../models/User');
 const Permission = require('../models/Permission');
 const { getIO } = require('../utils/socket');
-const metaService = require('../services/metaService');
 
 // Hardening services
 const softLockService = require('../services/softLockService');
@@ -741,8 +740,8 @@ exports.getInbox = async (req, res) => {
     } else if (view === 'unassigned') {
       query.assignedTo = null;
     } else if (view === 'all') {
-      // Only owners/managers can view all
-      if (permission.role !== 'owner' && permission.role !== 'manager' && 
+      // Only owners/admins/managers can view all
+      if (permission.role !== 'owner' && permission.role !== 'admin' && permission.role !== 'manager' && 
           !permission.permissions?.viewAllConversations) {
         return res.status(403).json({
           success: false,
@@ -840,7 +839,7 @@ exports.getInboxStats = async (req, res) => {
       });
     }
 
-    const isManagerOrOwner = permission.role === 'owner' || permission.role === 'manager';
+    const isManagerOrOwner = permission.role === 'owner' || permission.role === 'admin' || permission.role === 'manager';
 
     // Base stats for current agent
     const [
@@ -971,7 +970,7 @@ exports.getAvailableAgents = async (req, res) => {
     const permissions = await Permission.find({
       workspace: workspaceId,
       isActive: true,
-      role: { $in: ['owner', 'manager', 'agent'] }
+      role: { $in: ['owner', 'admin', 'manager', 'agent'] }
     }).populate('user', 'name email');
 
     // Get conversation counts per agent
@@ -1070,6 +1069,14 @@ exports.sendMessage = async (req, res) => {
         success: false,
         message: err.message.replace('PERMISSION_DENIED: ', ''),
         code: 'PERMISSION_DENIED'
+      });
+    }
+
+    if (err.message.includes('24-hour window')) {
+      return res.status(400).json({
+        success: false,
+        message: err.message,
+        code: 'WINDOW_EXPIRED'
       });
     }
 

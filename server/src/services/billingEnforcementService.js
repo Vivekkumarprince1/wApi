@@ -8,11 +8,22 @@ const BLOCKED_STATUSES = {
 };
 
 async function enforceWorkspaceBilling(workspaceId) {
+  if (process.env.BILLING_ENFORCEMENT_DISABLED === 'true') {
+    return { status: 'disabled', subscription: null };
+  }
+
   const subscription = await Subscription.findOne({ workspace: workspaceId })
     .sort({ createdAt: -1 })
     .lean();
 
-  const status = subscription?.status || 'trialing';
+  const workspace = subscription
+    ? null
+    : await Workspace.findById(workspaceId).select('billingStatus').lean();
+
+  const status =
+    subscription?.status ||
+    workspace?.billingStatus ||
+    'trialing';
 
   if (BLOCKED_STATUSES[status]) {
     const error = new Error(BLOCKED_STATUSES[status]);

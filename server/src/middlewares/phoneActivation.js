@@ -18,19 +18,19 @@
  */
 
 const Workspace = require('../models/Workspace');
-const { getChildBusinessForWorkspace, normalizeLifecycleStatus } = require('../services/childBusinessService');
 
 // =============================================================================
 // PHONE STATUS CONSTANTS
 // =============================================================================
 
 const PHONE_STATUS = {
-  PENDING: 'pending',
-  VERIFIED: 'verified',
-  DISPLAY_NAME_APPROVED: 'display_name_approved',
-  ACTIVE: 'active',
-  RESTRICTED: 'restricted',
-  DISABLED: 'disabled'
+  PENDING: 'PENDING',
+  CONNECTED: 'CONNECTED',
+  DISCONNECTED: 'DISCONNECTED',
+  BANNED: 'BANNED',
+  FLAGGED: 'FLAGGED',
+  RESTRICTED: 'RESTRICTED',
+  RATE_LIMITED: 'RATE_LIMITED'
 };
 
 // =============================================================================
@@ -38,22 +38,24 @@ const PHONE_STATUS = {
 // =============================================================================
 
 // Statuses that allow full messaging
-const FULL_ACCESS_STATUSES = [PHONE_STATUS.ACTIVE];
+const FULL_ACCESS_STATUSES = [PHONE_STATUS.CONNECTED];
 
 // Statuses that allow read-only access (can view but not send)
-const READ_ONLY_STATUSES = [PHONE_STATUS.RESTRICTED];
+const READ_ONLY_STATUSES = [PHONE_STATUS.RESTRICTED, PHONE_STATUS.FLAGGED];
 
 // Statuses that block all sending operations
 const SEND_BLOCKED_STATUSES = [
-  PHONE_STATUS.PENDING,
-  PHONE_STATUS.VERIFIED,
-  PHONE_STATUS.DISPLAY_NAME_APPROVED,
-  PHONE_STATUS.RESTRICTED,
-  PHONE_STATUS.DISABLED
+  PHONE_STATUS.DISCONNECTED,
+  PHONE_STATUS.BANNED,
+  PHONE_STATUS.RATE_LIMITED,
+  PHONE_STATUS.PENDING
 ];
 
 // Statuses that require admin intervention
-const BLOCKED_STATUSES = [PHONE_STATUS.DISABLED];
+const BLOCKED_STATUSES = [
+  PHONE_STATUS.BANNED,
+  PHONE_STATUS.RATE_LIMITED
+];
 
 /**
  * Get access level based on phone status (Task E)
@@ -88,17 +90,16 @@ function getAccessLevel(phoneStatus) {
   
   // All other statuses block sending
   const messages = {
-    [PHONE_STATUS.PENDING]: 'Phone activation is pending. Please wait.',
-    [PHONE_STATUS.VERIFIED]: 'Phone is verified but not yet display-name approved.',
-    [PHONE_STATUS.DISPLAY_NAME_APPROVED]: 'Display name approved. Waiting for activation.',
-    [PHONE_STATUS.RESTRICTED]: 'Phone is restricted. Messaging is paused.',
-    [PHONE_STATUS.DISABLED]: 'Phone has been disabled by Meta enforcement.'
+    [PHONE_STATUS.DISCONNECTED]: 'Phone is disconnected. Please reconnect.',
+    [PHONE_STATUS.BANNED]: 'Your phone number has been banned by Meta.',
+    [PHONE_STATUS.RATE_LIMITED]: 'You have been rate limited. Please wait.',
+    [PHONE_STATUS.PENDING]: 'Phone activation is pending. Please wait.'
   };
   
   return {
     level: 'blocked',
     canSend: false,
-    canRead: phoneStatus !== PHONE_STATUS.DISABLED,
+    canRead: phoneStatus !== PHONE_STATUS.BANNED, // Banned can't read either
     degraded: true,
     message: messages[phoneStatus] || 'Messaging is blocked.'
   };
@@ -154,17 +155,10 @@ async function requirePhoneActivation(req, res, next) {
       });
     }
 
-    // Resolve child business (Interakt-style authoritative asset)
-    const childBusiness = await getChildBusinessForWorkspace(workspaceId).catch(() => null);
-    const phoneNumberId = childBusiness?.phoneNumberId || workspace.phoneNumberId || workspace.bspPhoneNumberId || workspace.whatsappPhoneNumberId;
-    const wabaId = childBusiness?.parentWabaId || workspace.wabaId || workspace.bspWabaId;
-
-    // Get phone status (new lifecycle with legacy fallback)
-    const phoneStatus = childBusiness?.phoneStatus || normalizeLifecycleStatus({
-      rawStatus: workspace.bspPhoneStatus,
-      codeVerificationStatus: workspace.codeVerificationStatus,
-      nameStatus: workspace.nameStatus
-    });
+    // Get phone status
+    const phoneStatus = workspace.bspPhoneStatus || PHONE_STATUS.PENDING;
+    const phoneNumberId = workspace.phoneNumberId || workspace.bspPhoneNumberId || workspace.whatsappPhoneNumberId;
+    const wabaId = workspace.wabaId || workspace.bspWabaId;
 
     // Check if phone number exists
     if (!phoneNumberId) {
@@ -204,13 +198,14 @@ async function requirePhoneActivation(req, res, next) {
     // Check if phone is permanently blocked (BANNED)
     if (BLOCKED_STATUSES.includes(phoneStatus)) {
       const messages = {
-        [PHONE_STATUS.DISABLED]: 'Your phone number is disabled by Meta'
+        [PHONE_STATUS.BANNED]: 'Your phone number has been banned by Meta',
+        [PHONE_STATUS.RATE_LIMITED]: 'Your phone number is currently rate limited'
       };
 
       return res.status(403).json({
         success: false,
         message: messages[phoneStatus] || 'Phone number is blocked',
-        code: `PHONE_${phoneStatus.toUpperCase()}`,
+        code: `PHONE_${phoneStatus}`,
         phoneStatus,
         accessLevel: accessLevel.level,
         degraded: accessLevel.degraded,
@@ -298,15 +293,9 @@ async function softPhoneActivationCheck(req, res, next) {
       return next();
     }
 
-    const childBusiness = await getChildBusinessForWorkspace(workspaceId).catch(() => null);
-
-    const phoneStatus = childBusiness?.phoneStatus || normalizeLifecycleStatus({
-      rawStatus: workspace.bspPhoneStatus,
-      codeVerificationStatus: workspace.codeVerificationStatus,
-      nameStatus: workspace.nameStatus
-    });
-    const phoneNumberId = childBusiness?.phoneNumberId || workspace.phoneNumberId || workspace.bspPhoneNumberId || workspace.whatsappPhoneNumberId;
-    const wabaId = childBusiness?.parentWabaId || workspace.wabaId || workspace.bspWabaId;
+    const phoneStatus = workspace.bspPhoneStatus || PHONE_STATUS.PENDING;
+    const phoneNumberId = workspace.phoneNumberId || workspace.bspPhoneNumberId || workspace.whatsappPhoneNumberId;
+    const wabaId = workspace.wabaId || workspace.bspWabaId;
     const isConnected = ACTIVE_STATUSES.includes(phoneStatus);
 
     req.stage1Complete = isConnected && !!phoneNumberId && !!wabaId;
@@ -316,8 +305,8 @@ async function softPhoneActivationCheck(req, res, next) {
       phoneNumberId: !!phoneNumberId,
       phoneStatus,
       isActivated: isConnected,
-      qualityRating: childBusiness?.qualityRating || workspace.qualityRating || workspace.bspQualityRating,
-      messagingTier: childBusiness?.messagingLimitTier || workspace.messagingLimitTier || workspace.bspMessagingTier
+      qualityRating: workspace.qualityRating || workspace.bspQualityRating,
+      messagingTier: workspace.messagingLimitTier || workspace.bspMessagingTier
     };
     req.phoneStatus = phoneStatus;
     req.phoneNumberId = phoneNumberId;
@@ -349,16 +338,10 @@ async function getStage1Status(workspaceId) {
       };
     }
 
-    const childBusiness = await getChildBusinessForWorkspace(workspaceId).catch(() => null);
-
-    const phoneStatus = childBusiness?.phoneStatus || normalizeLifecycleStatus({
-      rawStatus: workspace.bspPhoneStatus,
-      codeVerificationStatus: workspace.codeVerificationStatus,
-      nameStatus: workspace.nameStatus
-    });
-    const phoneNumberId = childBusiness?.phoneNumberId || workspace.phoneNumberId || workspace.bspPhoneNumberId || workspace.whatsappPhoneNumberId;
-    const wabaId = childBusiness?.parentWabaId || workspace.wabaId || workspace.bspWabaId;
-    const businessId = workspace.metaBusinessId || workspace.businessId;
+    const phoneStatus = workspace.bspPhoneStatus || PHONE_STATUS.PENDING;
+    const phoneNumberId = workspace.phoneNumberId || workspace.bspPhoneNumberId || workspace.whatsappPhoneNumberId;
+    const wabaId = workspace.wabaId || workspace.bspWabaId;
+    const businessId = workspace.businessId;
     const isConnected = ACTIVE_STATUSES.includes(phoneStatus);
     
     // TASK E: Get access level for degradation state
@@ -394,8 +377,8 @@ async function getStage1Status(workspaceId) {
         phoneNumber: workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || null,
         phoneStatus,
         verifiedName: workspace.verifiedName || workspace.bspVerifiedName || null,
-        qualityRating: childBusiness?.qualityRating || workspace.qualityRating || workspace.bspQualityRating || 'UNKNOWN',
-        messagingTier: childBusiness?.messagingLimitTier || workspace.messagingLimitTier || workspace.bspMessagingTier || 'TIER_NOT_SET',
+        qualityRating: workspace.qualityRating || workspace.bspQualityRating || 'UNKNOWN',
+        messagingTier: workspace.messagingLimitTier || workspace.bspMessagingTier || 'TIER_NOT_SET',
         onboardingStatus: workspace.esbFlow?.status || 'not_started',
         connectedAt: workspace.connectedAt || workspace.bspOnboardedAt || null,
         // TASK E: Sync status for backoff visibility

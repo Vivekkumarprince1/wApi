@@ -10,7 +10,9 @@ const {
   debugMetaCredentials,
   getCommerceSettings,
   updateCommerceSettings,
-  validateCommerceConfig
+  validateCommerceConfig,
+  getInboxSettings,
+  updateInboxSettings
 } = require('../controllers/settingsController');
 
 const router = express.Router();
@@ -25,6 +27,10 @@ router.post('/waba', createWABASettings);
 router.post('/waba/init-from-env', initializeWABAFromEnv);
 router.post('/waba/test', testWABAConnection);
 router.get('/waba/debug', debugMetaCredentials);
+
+// Inbox & Assignment Settings Routes
+router.get('/inbox', getInboxSettings);
+router.put('/inbox', updateInboxSettings);
 
 // Commerce Settings Routes
 router.get('/commerce', getCommerceSettings);

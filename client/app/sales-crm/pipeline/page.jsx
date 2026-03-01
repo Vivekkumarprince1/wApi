@@ -67,13 +67,13 @@ export default function SalesPipelinePage() {
   const currentStageData = stages.find(s => s.key === activeStage);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+      <div className="bg-card border-b border-border px-6 py-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Sales Pipelines</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <h1 className="text-2xl font-bold text-foreground">Sales Pipelines</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               You can track and manage your Contacts (Leads) at all stages of your sales cycle here
             </p>
           </div>
@@ -84,7 +84,7 @@ export default function SalesPipelinePage() {
           <select
             value={filterContact}
             onChange={(e) => setFilterContact(e.target.value)}
-            className="flex items-center gap-1 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 focus:outline-none"
+            className="flex items-center gap-1 px-3 py-2 rounded border border-border bg-white dark:bg-muted text-sm text-foreground focus:outline-none"
           >
             {contacts.map((c) => (
               <option key={c} value={c}>
@@ -96,20 +96,20 @@ export default function SalesPipelinePage() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="flex items-center gap-1 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 focus:outline-none"
+            className="flex items-center gap-1 px-3 py-2 rounded border border-border bg-white dark:bg-muted text-sm text-foreground focus:outline-none"
           >
             <option value="descending">Descending</option>
             <option value="ascending">Ascending</option>
           </select>
 
-          <button className="flex items-center gap-1 px-3 py-2 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600">
+          <button className="flex items-center gap-1 px-3 py-2 rounded border border-border bg-white dark:bg-muted text-sm text-foreground hover:bg-accent dark:hover:bg-gray-600">
             Filters <ChevronDown className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {/* Pipeline Stages Tabs */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <div className="bg-card border-b border-border overflow-x-auto">
         <div className="flex px-6 gap-0">
           {stages.map((stage) => (
             <button
@@ -117,8 +117,8 @@ export default function SalesPipelinePage() {
               onClick={() => setActiveStage(stage.key)}
               className={`px-4 py-3 text-sm font-medium border-b-2 whitespace-nowrap transition-colors ${
                 activeStage === stage.key
-                  ? `border-b-2 text-gray-900 dark:text-white`
-                  : `border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300`
+                  ? `border-b-2 text-foreground`
+                  : `border-transparent text-muted-foreground hover:text-gray-800 dark:hover:text-gray-300`
               }`}
               style={
                 activeStage === stage.key
@@ -140,25 +140,25 @@ export default function SalesPipelinePage() {
       <div className="p-6">
         {filteredDeals().length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">No deals in this stage</p>
+            <p className="text-muted-foreground">No deals in this stage</p>
           </div>
         ) : (
           <div className="grid gap-4">
             {filteredDeals().map((deal) => (
               <div
                 key={deal.id}
-                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
+                className="bg-card rounded-xl border border-border p-4 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white">{deal.name}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Owner: {deal.owner}</p>
+                    <h3 className="font-medium text-foreground">{deal.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Owner: {deal.owner}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-gray-900 dark:text-white text-lg">
+                    <p className="font-semibold text-foreground text-lg">
                       ₹{deal.value.toLocaleString()}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{deal.updated}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{deal.updated}</p>
                   </div>
                 </div>
               </div>

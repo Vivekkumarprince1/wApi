@@ -107,7 +107,7 @@ export default function FormResponsesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex items-center justify-center min-h-screen">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mb-4"></div>
-            <p className="text-gray-600 dark:text-gray-400">Loading responses...</p>
+            <p className="text-muted-foreground">Loading responses...</p>
           </div>
         </div>
       </div>
@@ -117,28 +117,28 @@ export default function FormResponsesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
+      <div className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center gap-4 mb-4">
             <Link
               href="/automation/whatsapp-forms"
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-accent rounded-xl transition-colors"
             >
-              <FaArrowLeft className="text-gray-600 dark:text-gray-400" />
+              <FaArrowLeft className="text-muted-foreground" />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Form Responses</h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">{form?.name}</p>
+              <h1 className="text-3xl font-bold text-foreground">Form Responses</h1>
+              <p className="text-muted-foreground mt-1">{form?.name}</p>
             </div>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex gap-2 items-center">
-              <FaFilter className="text-gray-600 dark:text-gray-400" />
+              <FaFilter className="text-muted-foreground" />
               <select
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white text-sm"
+                className="px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground text-sm"
               >
                 <option value="all">All Statuses</option>
                 <option value="in_progress">In Progress</option>
@@ -149,7 +149,7 @@ export default function FormResponsesPage() {
 
             <button
               onClick={exportToCSV}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors"
             >
               <FaDownload /> Export CSV
             </button>
@@ -159,36 +159,36 @@ export default function FormResponsesPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
             <p className="text-red-600 dark:text-red-400">{error}</p>
           </div>
         )}
 
         {/* Summary */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Total Responses</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+          <div className="bg-card rounded-xl shadow p-6">
+            <p className="text-muted-foreground text-sm font-medium">Total Responses</p>
+            <p className="text-3xl font-bold text-foreground mt-2">
               {form?.statistics?.totalResponses || 0}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Completed</p>
-            <p className="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">
+          <div className="bg-card rounded-xl shadow p-6">
+            <p className="text-muted-foreground text-sm font-medium">Completed</p>
+            <p className="text-3xl font-bold text-primary dark:text-green-400 mt-2">
               {form?.statistics?.completedResponses || 0}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Completion Rate</p>
+          <div className="bg-card rounded-xl shadow p-6">
+            <p className="text-muted-foreground text-sm font-medium">Completion Rate</p>
             <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">
               {form?.statistics?.completionRate || 0}%
             </p>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">Avg Time (min)</p>
+          <div className="bg-card rounded-xl shadow p-6">
+            <p className="text-muted-foreground text-sm font-medium">Avg Time (min)</p>
             <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">
               {Math.round((form?.statistics?.avgTimeSpent || 0) / 60) || 0}
             </p>
@@ -197,28 +197,28 @@ export default function FormResponsesPage() {
 
         {/* Responses List */}
         {responses.length === 0 ? (
-          <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-lg">
+          <div className="text-center py-16 bg-card rounded-xl">
             <div className="text-6xl mb-4">📋</div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">No responses yet</p>
+            <p className="text-muted-foreground text-lg">No responses yet</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div className="bg-card rounded-xl shadow overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                <thead className="bg-muted/50 border-b border-border">
                   <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Phone</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Status</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Completed</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900 dark:text-white">Progress</th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-white"></th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Phone</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Completed</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Progress</th>
+                    <th className="px-6 py-4 text-right text-sm font-semibold text-foreground"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody className="divide-y divide-border">
                   {responses.map((response) => (
-                    <tr key={response._id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <tr key={response._id} className="hover:bg-accent/30 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900 dark:text-white">{response.userPhone || 'Unknown'}</p>
+                        <p className="font-medium text-foreground">{response.userPhone || 'Unknown'}</p>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -226,25 +226,25 @@ export default function FormResponsesPage() {
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                             : response.status === 'in_progress'
                             ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-400'
+                            : 'bg-muted text-foreground dark:text-muted-foreground'
                         }`}>
                           {response.status?.replace('_', ' ').charAt(0).toUpperCase() + response.status?.slice(1).replace('_', ' ')}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           {response.completedAt ? new Date(response.completedAt).toLocaleDateString() : '-'}
                         </p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           {response.currentStep}/{form?.questions?.length || 0}
                         </p>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => setExpandedId(expandedId === response._id ? null : response._id)}
-                          className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                          className="p-2 text-muted-foreground hover:bg-accent rounded-xl transition-colors"
                         >
                           <FaChevronDown className={`transition-transform ${expandedId === response._id ? 'rotate-180' : ''}`} />
                         </button>
@@ -257,24 +257,24 @@ export default function FormResponsesPage() {
 
             {/* Expanded Response Details */}
             {expandedId && responses.find(r => r._id === expandedId) && (
-              <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 p-6">
+              <div className="border-t border-border bg-muted/30 p-6">
                 <div className="mb-6">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-4">
+                  <h3 className="font-semibold text-foreground mb-4">
                     Response Details
                   </h3>
                   {Object.entries(responses.find(r => r._id === expandedId).responses || {}).map(([qId, answer]) => {
                     const question = form?.questions.find(q => q.id === qId);
                     return (
                       <div key={qId} className="mb-4">
-                        <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{question?.title}</p>
-                        <p className="mt-1 text-gray-900 dark:text-white">{answer}</p>
+                        <p className="text-sm font-medium text-muted-foreground">{question?.title}</p>
+                        <p className="mt-1 text-foreground">{answer}</p>
                       </div>
                     );
                   })}
                 </div>
 
                 {responses.find(r => r._id === expandedId).convertedToLead && (
-                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="pt-4 border-t border-border">
                     <span className="inline-block px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-medium">
                       ✓ Converted to Lead
                     </span>

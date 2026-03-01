@@ -17,16 +17,21 @@ const {
   updateTemplate,
   deleteTemplate,
   submitTemplate,
-  syncTemplates,
   duplicateTemplate,
   validateTemplatePreview,
   getTemplateCategories,
   getTemplateLibraryStats,
+  syncTemplates,
   forkApprovedTemplate,
-  getTemplateVersions
+  getTemplateVersions,
+  getLibraryTemplates,
+  createFromLibrary,
+  uploadTemplateMedia
 } = require('../controllers/templateController');
 
 const router = express.Router();
+const multer = require('multer');
+const upload = multer();
 
 router.use(auth);
 
@@ -58,11 +63,20 @@ router.get('/categories', getTemplateCategories);
 // Get library stats (total, by category, by status)
 router.get('/stats', getTemplateLibraryStats);
 
-// Sync templates from Meta (requires activation)
+// Sync template statuses from provider
 router.get('/sync', requirePhoneActivation, syncTemplates);
+
+// Browse pre-approved Meta library templates (Gupshup)
+router.get('/library', getLibraryTemplates);
+
+// Create a template from Meta's pre-approved library
+router.post('/library', requirePhoneActivation, createFromLibrary);
 
 // Validate template preview (without saving) - no activation required
 router.post('/validate', validateTemplatePreview);
+
+// Upload sample media for templates
+router.post('/upload-media', requirePhoneActivation, upload.single('file'), uploadTemplateMedia);
 
 // Get single template (read-only)
 router.get('/:id', getTemplate);

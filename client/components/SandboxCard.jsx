@@ -8,7 +8,7 @@ const SandboxCard = () => {
         <h2 className="text-xl font-bold text-green-700">🎉 Your sandbox mode is ready</h2>
         <ul className="list-disc list-inside mt-2 text-sm text-gray-700 leading-relaxed">
           <li>A WhatsApp Business number <strong>+16086000059</strong> is assigned to you.</li>
-          <li>Use your sandbox code <span className="bg-gray-200 px-1 py-0.5 rounded font-mono">#qYu04Yu</span> in the message body.</li>
+          <li>Use your sandbox code <span className="bg-border px-1 py-0.5 rounded font-mono">#qYu04Yu</span> in the message body.</li>
           <li>You can chat with up to two users per day in sandbox mode.</li>
         </ul>
       </div>
@@ -56,7 +56,7 @@ const SandboxCard = () => {
 
       {/* Footer Note */}
       <div className="mt-8 text-center">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           To get out of sandbox mode, you can connect your own number within your 14 days free trial.
         </p>
         <button className="mt-4 px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-200">

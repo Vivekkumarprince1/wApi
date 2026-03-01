@@ -1,16 +1,4 @@
-/**
- * Analytics Aggregation Service - Stage 5
- * 
- * Computes and stores daily analytics summaries.
- * Provides real-time analytics queries.
- * 
- * Follows Interakt's analytics patterns:
- * - Conversation metrics
- * - Response time tracking
- * - SLA compliance
- * - Agent performance
- * - Billing summaries
- */
+
 
 const mongoose = require('mongoose');
 const DailyAnalytics = require('../models/DailyAnalytics');
@@ -22,6 +10,8 @@ const Contact = require('../models/Contact');
 const Campaign = require('../models/Campaign');
 const CampaignMessage = require('../models/CampaignMessage');
 const User = require('../models/User');
+const Template = require('../models/Template');
+const AuditLog = require('../models/AuditLog');
 const { logger } = require('../utils/logger');
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -677,6 +667,22 @@ async function computeAgentMetrics(workspaceId, startOfDay, endOfDay) {
  */
 async function getAnalyticsOverview(workspaceId, startDate, endDate) {
   const ObjectId = mongoose.Types.ObjectId;
+
+  // Fetch static counts (snapshot)
+  const [activeCampaigns, totalTemplates, totalContacts, recentActivity] = await Promise.all([
+    Campaign.countDocuments({
+      workspace: workspaceId,
+      status: { $in: ['SCHEDULED', 'RUNNING', 'queued', 'sending'] }
+    }),
+    Template.countDocuments({
+      workspace: workspaceId,
+      status: { $ne: 'DELETED' }
+    }),
+    Contact.countDocuments({
+      workspace: workspaceId
+    }),
+    getRecentActivity(workspaceId)
+  ]);
   
   // Get daily records in range
   const dailyRecords = await DailyAnalytics.find({
@@ -684,50 +690,60 @@ async function getAnalyticsOverview(workspaceId, startDate, endDate) {
     date: { $gte: startDate, $lte: endDate }
   }).sort({ date: 1 }).lean();
   
+  let overview;
+
   if (dailyRecords.length === 0) {
     // Return real-time computed metrics if no daily records
-    return computeRealTimeOverview(workspaceId, startDate, endDate);
+    overview = await computeRealTimeOverview(workspaceId, startDate, endDate);
+  } else {
+    // Aggregate metrics
+    overview = {
+      period: { startDate, endDate },
+      conversations: {
+        total: dailyRecords.reduce((sum, r) => sum + r.conversations.newCount, 0),
+        resolved: dailyRecords.reduce((sum, r) => sum + r.conversations.resolvedCount, 0),
+        closed: dailyRecords.reduce((sum, r) => sum + r.conversations.closedCount, 0),
+        activeCount: dailyRecords[dailyRecords.length - 1]?.conversations.activeCount || 0
+      },
+      responseTime: {
+        avgFirstResponseTime: calculateAverage(dailyRecords.map(r => r.responseTime.avgFirstResponseTime)),
+        slaComplianceRate: calculateAverage(dailyRecords.map(r => r.responseTime.slaComplianceRate))
+      },
+      messages: {
+        totalInbound: dailyRecords.reduce((sum, r) => sum + r.messages.totalInbound, 0),
+        totalOutbound: dailyRecords.reduce((sum, r) => sum + r.messages.totalOutbound, 0),
+        deliveryRate: calculateAverage(dailyRecords.map(r => r.messages.deliveryRate)),
+        readRate: calculateAverage(dailyRecords.map(r => r.messages.readRate))
+      },
+      billing: {
+        totalConversations: dailyRecords.reduce((sum, r) => sum + r.billing.totalBillableConversations, 0),
+        byCategory: aggregateByCategory(dailyRecords.map(r => r.billing.byCategory))
+      },
+      campaigns: {
+        total: dailyRecords.reduce((sum, r) => sum + r.campaigns.campaignsRun, 0),
+        messagesSent: dailyRecords.reduce((sum, r) => sum + r.campaigns.messagesSent, 0),
+        deliveryRate: calculateAverage(dailyRecords.map(r => r.campaigns.deliveryRate)),
+        replyRate: calculateAverage(dailyRecords.map(r => r.campaigns.replyRate))
+      },
+      contacts: {
+        newContacts: dailyRecords.reduce((sum, r) => sum + r.contacts.newContacts, 0),
+        total: dailyRecords[dailyRecords.length - 1]?.contacts.totalContacts || 0
+      },
+      trend: dailyRecords.map(r => ({
+        date: r.date,
+        conversations: r.conversations.newCount,
+        messages: r.messages.totalInbound + r.messages.totalOutbound,
+        billing: r.billing.totalBillableConversations
+      }))
+    };
   }
   
-  // Aggregate metrics
-  const overview = {
-    period: { startDate, endDate },
-    conversations: {
-      total: dailyRecords.reduce((sum, r) => sum + r.conversations.newCount, 0),
-      resolved: dailyRecords.reduce((sum, r) => sum + r.conversations.resolvedCount, 0),
-      closed: dailyRecords.reduce((sum, r) => sum + r.conversations.closedCount, 0)
-    },
-    responseTime: {
-      avgFirstResponseTime: calculateAverage(dailyRecords.map(r => r.responseTime.avgFirstResponseTime)),
-      slaComplianceRate: calculateAverage(dailyRecords.map(r => r.responseTime.slaComplianceRate))
-    },
-    messages: {
-      totalInbound: dailyRecords.reduce((sum, r) => sum + r.messages.totalInbound, 0),
-      totalOutbound: dailyRecords.reduce((sum, r) => sum + r.messages.totalOutbound, 0),
-      deliveryRate: calculateAverage(dailyRecords.map(r => r.messages.deliveryRate)),
-      readRate: calculateAverage(dailyRecords.map(r => r.messages.readRate))
-    },
-    billing: {
-      totalConversations: dailyRecords.reduce((sum, r) => sum + r.billing.totalBillableConversations, 0),
-      byCategory: aggregateByCategory(dailyRecords.map(r => r.billing.byCategory))
-    },
-    campaigns: {
-      total: dailyRecords.reduce((sum, r) => sum + r.campaigns.campaignsRun, 0),
-      messagesSent: dailyRecords.reduce((sum, r) => sum + r.campaigns.messagesSent, 0),
-      deliveryRate: calculateAverage(dailyRecords.map(r => r.campaigns.deliveryRate))
-    },
-    contacts: {
-      newContacts: dailyRecords.reduce((sum, r) => sum + r.contacts.newContacts, 0),
-      total: dailyRecords[dailyRecords.length - 1]?.contacts.totalContacts || 0
-    },
-    trend: dailyRecords.map(r => ({
-      date: r.date,
-      conversations: r.conversations.newCount,
-      messages: r.messages.totalInbound + r.messages.totalOutbound,
-      billing: r.billing.totalBillableConversations
-    }))
-  };
-  
+  // Append static counts
+  overview.activeCampaigns = activeCampaigns;
+  overview.totalTemplates = totalTemplates;
+  overview.totalContacts = totalContacts;
+  overview.recentActivity = recentActivity;
+
   return overview;
 }
 
@@ -735,11 +751,12 @@ async function getAnalyticsOverview(workspaceId, startDate, endDate) {
  * Compute real-time overview when no daily records exist
  */
 async function computeRealTimeOverview(workspaceId, startDate, endDate) {
-  const [conversations, messages, billing, contacts] = await Promise.all([
+  const [conversations, messages, billing, contacts, campaigns] = await Promise.all([
     computeConversationMetrics(workspaceId, startDate, endDate),
     computeMessageMetrics(workspaceId, startDate, endDate),
     computeBillingMetrics(workspaceId, startDate, endDate),
-    computeContactMetrics(workspaceId, startDate, endDate)
+    computeContactMetrics(workspaceId, startDate, endDate),
+    computeCampaignMetrics(workspaceId, startDate, endDate)
   ]);
   
   return {
@@ -747,7 +764,8 @@ async function computeRealTimeOverview(workspaceId, startDate, endDate) {
     conversations: {
       total: conversations.newCount,
       resolved: conversations.resolvedCount,
-      closed: conversations.closedCount
+      closed: conversations.closedCount,
+      activeCount: conversations.activeCount
     },
     responseTime: {
       avgFirstResponseTime: 0,
@@ -764,9 +782,10 @@ async function computeRealTimeOverview(workspaceId, startDate, endDate) {
       byCategory: billing.byCategory
     },
     campaigns: {
-      total: 0,
-      messagesSent: 0,
-      deliveryRate: 0
+      total: campaigns.campaignsRun,
+      messagesSent: campaigns.messagesSent,
+      deliveryRate: campaigns.deliveryRate,
+      replyRate: campaigns.replyRate
     },
     contacts: {
       newContacts: contacts.newContacts,
@@ -937,6 +956,59 @@ function aggregateByCategory(categories) {
   return result;
 }
 
+/**
+ * Get recent activity for dashboard
+ */
+async function getRecentActivity(workspaceId, limit = 5) {
+  const logs = await AuditLog.find({ workspace: workspaceId })
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .populate('user', 'name')
+    .lean();
+    
+  if (logs.length === 0) return [];
+
+  return logs.map(log => ({
+    id: log._id,
+    title: formatLogTitle(log),
+    time: log.createdAt, 
+    icon: getLogIcon(log.action),
+    color: getLogColor(log.action)
+  }));
+}
+
+function formatLogTitle(log) {
+  const resourceName = log.resource?.name || 'item';
+  switch(log.action) {
+    case 'campaign.completed': return `Campaign "${resourceName}" completed`;
+    case 'campaign.started': return `Campaign "${resourceName}" started`;
+    case 'contact.created': return `New contact added`;
+    case 'message.sent': return `Message sent`;
+    case 'template.approved': return `Template "${resourceName}" approved`;
+    case 'template.created': return `Template "${resourceName}" created`;
+    case 'user.login': return `${log.user?.name || 'User'} logged in`;
+    default: return log.action.replace(/_/g, ' ').replace(/\./g, ' ');
+  }
+}
+
+function getLogIcon(action) {
+  if (action.includes('campaign')) return 'rocket';
+  if (action.includes('contact')) return 'user';
+  if (action.includes('message')) return 'send';
+  if (action.includes('template')) return 'check';
+  if (action.includes('user')) return 'user';
+  return 'zap';
+}
+
+function getLogColor(action) {
+  if (action.includes('campaign')) return 'violet';
+  if (action.includes('contact')) return 'blue';
+  if (action.includes('message')) return 'emerald';
+  if (action.includes('template')) return 'amber';
+  if (action.includes('error') || action.includes('fail')) return 'red';
+  return 'gray';
+}
+
 module.exports = {
   // Daily aggregation
   computeDailyAnalytics,
@@ -946,6 +1018,7 @@ module.exports = {
   getAnalyticsOverview,
   getAgentAnalytics,
   getBillingPreview,
+  getRecentActivity,
   
   // Individual metrics (for testing)
   computeConversationMetrics,

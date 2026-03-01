@@ -71,7 +71,7 @@ export default function KanbanBoard({
 
   if (!pipeline) {
     return (
-      <div className="flex items-center justify-center h-96 text-gray-500 dark:text-gray-400">
+      <div className="flex items-center justify-center h-96 text-muted-foreground">
         <p>Select a pipeline to view deals</p>
       </div>
     );
@@ -89,11 +89,11 @@ export default function KanbanBoard({
 
       {/* Pipeline Info */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+        <h2 className="text-2xl font-bold text-foreground mb-2">
           {pipeline.name}
         </h2>
         {pipeline.description && (
-          <p className="text-gray-600 dark:text-gray-400">{pipeline.description}</p>
+          <p className="text-muted-foreground">{pipeline.description}</p>
         )}
       </div>
 
@@ -118,7 +118,7 @@ export default function KanbanBoard({
               );
             })
           ) : (
-            <div className="flex items-center justify-center w-full h-96 text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center w-full h-96 text-muted-foreground">
               <p>No stages configured for this pipeline</p>
             </div>
           )}

@@ -76,9 +76,10 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
   // RBAC helper functions
   const canAccessFeature = (feature) => {
     if (loadingRole) return false;
-    
+
     const rolePermissions = {
       owner: ['all'],
+      admin: ['all'],
       manager: ['templates', 'campaigns', 'messaging', 'contacts', 'automation', 'commerce', 'team'],
       agent: ['inbox', 'messaging', 'contacts'],
       viewer: ['inbox', 'contacts']
@@ -110,9 +111,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
     <>
       {/* Desktop Sidebar - Always visible, expands on hover, starts below header */}
       <div
-        className={`hidden lg:block fixed top-[60px] left-0 h-[calc(100vh-60px)] bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-gray-200 shadow-2xl z-50 transition-all duration-300 border-r border-gray-200 dark:border-gray-700 ${
-          isHovered ? "w-72" : "w-20"
-        }`}
+        className={`hidden lg:block fixed top-[60px] left-0 h-[calc(100vh-60px)] bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 text-gray-800 dark:text-gray-200 shadow-2xl z-50 transition-all duration-300 border-r border-gray-200 dark:border-gray-700 ${isHovered ? "w-72" : "w-20"
+          }`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -120,19 +120,17 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
           {/* Home - Dashboard */}
           <div className="mb-6">
             <div
-              className={`group flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all duration-200 ${
-                isActive('/dashboard') && !currentPath?.includes('/dashboard/')
+              className={`group flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard') && !currentPath?.includes('/dashboard/')
                   ? 'bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white shadow-lg scale-105'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:scale-105 hover:shadow-md'
-              }`}
+                }`}
               onClick={() => navigate("/dashboard")}
               title="Dashboard"
             >
-              <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${
-                isActive('/dashboard') && !currentPath?.includes('/dashboard/')
+              <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${isActive('/dashboard') && !currentPath?.includes('/dashboard/')
                   ? 'bg-white/20'
                   : 'bg-gradient-to-br from-[#13C18D]/10 to-[#0e8c6c]/10'
-              }`}>
+                }`}>
                 <FaHome className={`text-lg ${isActive('/dashboard') && !currentPath?.includes('/dashboard/') ? 'text-white' : 'text-[#13C18D]'}`} />
               </div>
               {isHovered && (
@@ -155,61 +153,37 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
 
           {/* Inbox */}
           <div
-            className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer mb-2 transition-all duration-200 ${
-              isActive('/dashboard/inbox')
+            className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer mb-2 transition-all duration-200 ${isActive('/dashboard/inbox')
                 ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
                 : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
-            }`}
+              }`}
             onClick={() => navigate("/dashboard/inbox")}
             title="Inbox"
           >
-            <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-              isActive('/dashboard/inbox')
+            <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/inbox')
                 ? 'bg-white/20'
                 : 'bg-gradient-to-br from-blue-500/10 to-blue-600/10'
-            }`}>
+              }`}>
               <FaInbox className={`${isActive('/dashboard/inbox') ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
             </div>
             {isHovered && <span className={`font-medium text-sm ${isActive('/dashboard/inbox') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Inbox</span>}
-          </div>
-
-          {/* WhatsApp Assets */}
-          <div
-            className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer mb-2 transition-all duration-200 ${
-              isActive('/dashboard/whatsapp-assets')
-                ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
-            }`}
-            onClick={() => navigate("/dashboard/whatsapp-assets")}
-            title="WhatsApp Assets"
-          >
-            <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-              isActive('/dashboard/whatsapp-assets')
-                ? 'bg-white/20'
-                : 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/10'
-            }`}>
-              <FaWhatsapp className={`${isActive('/dashboard/whatsapp-assets') ? 'text-white' : 'text-emerald-600 dark:text-emerald-400'}`} />
-            </div>
-            {isHovered && <span className={`font-medium text-sm ${isActive('/dashboard/whatsapp-assets') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>WhatsApp Assets</span>}
           </div>
 
           {/* Main Menu Items */}
           <div className="space-y-2">
             {/* Campaigns */}
             <div
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                isActive('/campaign')
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/campaign')
                   ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
-              }`}
+                }`}
               onClick={() => navigate("/campaign")}
               title="Campaigns"
             >
-              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-                isActive('/campaign')
+              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/campaign')
                   ? 'bg-white/20'
                   : 'bg-gradient-to-br from-purple-500/10 to-purple-600/10'
-              }`}>
+                }`}>
                 <FaBullhorn className={`${isActive('/campaign') ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
               </div>
               {isHovered && <span className={`font-medium text-sm ${isActive('/campaign') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Campaigns</span>}
@@ -217,19 +191,17 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
 
             {/* Contacts */}
             <div
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                isActive('/dashboard/contacts')
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard/contacts')
                   ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
-              }`}
+                }`}
               onClick={() => navigate("/dashboard/contacts")}
               title="Contacts"
             >
-              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-                isActive('/dashboard/contacts')
+              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/contacts')
                   ? 'bg-white/20'
                   : 'bg-gradient-to-br from-orange-500/10 to-orange-600/10'
-              }`}>
+                }`}>
                 <FaAddressBook className={`${isActive('/dashboard/contacts') ? 'text-white' : 'text-orange-600 dark:text-orange-400'}`} />
               </div>
               {isHovered && <span className={`font-medium text-sm ${isActive('/dashboard/contacts') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Contacts</span>}
@@ -243,11 +215,10 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
                 </p>
               )}
               <div
-                className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                  openMarket
+                className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openMarket
                     ? 'bg-gray-100 dark:bg-gray-700/50'
                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
-                }`}
+                  }`}
                 onClick={() => setOpenMarket(!openMarket)}
                 title="Market"
               >
@@ -259,9 +230,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
                 </div>
                 {isHovered && (
                   <FaChevronDown
-                    className={`text-gray-400 dark:text-gray-500 transition-transform ${
-                      openMarket ? "rotate-180" : ""
-                    }`}
+                    className={`text-gray-400 dark:text-gray-500 transition-transform ${openMarket ? "rotate-180" : ""
+                      }`}
                   />
                 )}
               </div>
@@ -269,32 +239,20 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {openMarket && isHovered && (
               <div className="ml-6 mb-4 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
                 <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                    isActive('/dashboard/messaging')
-                      ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300'
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                  }`}
-                  onClick={() => navigate("/dashboard/messaging")}
-                >
-                  <span className="whitespace-nowrap text-sm">💬 Send Messages</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-                    isActive('/dashboard/templates')
+                  className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${isActive('/dashboard/templates')
                       ? 'bg-[#13C18D]/10 text-[#13C18D] dark:text-[#13C18D] font-medium'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
-                  }`}
+                    }`}
                   onClick={() => navigate("/dashboard/templates")}
                 >
                   <span className="text-lg">📚</span>
                   <span className="text-sm">Templates & Library</span>
                 </div>
                 <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                    isActive('/campaign') && currentPath === '/campaign'
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/campaign') && currentPath === '/campaign'
                       ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
-                  }`}
+                    }`}
                   onClick={() => navigate("/campaign")}
                 >
                   <span className="text-lg">📢</span>
@@ -307,37 +265,15 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
                   <span className="text-lg">🎯</span>
                   <span className="text-sm">Custom Campaign</span>
                 </div>
-                <div
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${
-                    isActive('/campaign/meta-ads')
-                      ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium'
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
-                  }`}
-                  onClick={() => navigate('/campaign/meta-ads')}
-                >
-                  <span className="text-lg">💎</span>
-                  <span className="text-sm">Meta Ads</span>
-                </div>
-                <div
-                  className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
-                    isActive('/dashboard/ads')
-                      ? 'bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-300'
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                  }`}
-                  onClick={() => navigate('/dashboard/ads')}
-                >
-                  <span className="whitespace-nowrap text-sm">🎯 Ads</span>
-                </div>
               </div>
             )}
 
             {/* Support */}
             <div
-              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                openSupport
+              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openSupport
                   ? 'bg-gray-100 dark:bg-gray-700/50'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}
+                }`}
               onClick={() => setOpenSupport(!openSupport)}
               title="Support"
             >
@@ -349,23 +285,22 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
               </div>
               {isHovered && (
                 <FaChevronDown
-                  className={`text-gray-400 dark:text-gray-500 transition-transform ${
-                    openSupport ? "rotate-180" : ""
-                  }`}
+                  className={`text-gray-400 dark:text-gray-500 transition-transform ${openSupport ? "rotate-180" : ""
+                    }`}
                 />
               )}
             </div>
             {openSupport && isHovered && (
               <div className="ml-6 mb-4 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/dashboard/inbox') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/dashboard/inbox')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/dashboard/inbox') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/dashboard/inbox')}>
                   <FaEnvelope className="text-sm" />
                   <span className="text-sm">Inbox</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/support/chat-analytics') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/support/chat-analytics')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/support/chat-analytics') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/support/chat-analytics')}>
                   <FaChartBar className="text-sm" />
                   <span className="text-sm">Chat Analytics</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/support/chat-assignment') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/support/chat-assignment')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/support/chat-assignment') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/support/chat-assignment')}>
                   <FaPlusSquare className="text-sm" />
                   <span className="text-sm">Chat Assignment</span>
                 </div>
@@ -374,11 +309,10 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
 
             {/* Automation */}
             <div
-              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                openAutomation
+              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openAutomation
                   ? 'bg-gray-100 dark:bg-gray-700/50'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}
+                }`}
               onClick={() => setOpenAutomation(!openAutomation)}
               title="Automation"
             >
@@ -390,30 +324,29 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
               </div>
               {isHovered && (
                 <FaChevronDown
-                  className={`text-gray-400 dark:text-gray-500 transition-transform ${
-                    openAutomation ? "rotate-180" : ""
-                  }`}
+                  className={`text-gray-400 dark:text-gray-500 transition-transform ${openAutomation ? "rotate-180" : ""
+                    }`}
                 />
               )}
             </div>
             {openAutomation && isHovered && (
               <div className="ml-6 mb-4 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/workflows') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/automation/workflows')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/workflows') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/automation/workflows')}>
                   <span className="text-sm">⚡ Workflows</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/auto-replies') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/automation/auto-replies')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/auto-replies') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/automation/auto-replies')}>
                   <span className="text-sm">💬 Auto Replies</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/instagram-quickflows') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/automation/instagram-quickflows')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/instagram-quickflows') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/automation/instagram-quickflows')}>
                   <span className="text-sm">📸 Instagram Quickflows</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/whatsapp-forms') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/automation/whatsapp-forms')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/whatsapp-forms') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/automation/whatsapp-forms')}>
                   <span className="text-sm">📋 WhatsApp Forms</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/interaktive-list') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/automation/interaktive-list')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/interaktive-list') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/automation/interaktive-list')}>
                   <span className="text-sm">📝 Interaktive List</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/answerbot') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/automation/answerbot')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/answerbot') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/automation/answerbot')}>
                   <span className="text-sm">🤖 Answerbot</span>
                 </div>
               </div>
@@ -421,11 +354,10 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
 
             {/* Sales CRM */}
             <div
-              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                openSalesCRM
+              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openSalesCRM
                   ? 'bg-gray-100 dark:bg-gray-700/50'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}
+                }`}
               onClick={() => setOpenSalesCRM(!openSalesCRM)}
               title="Sales CRM"
             >
@@ -437,27 +369,26 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
               </div>
               {isHovered && (
                 <FaChevronDown
-                  className={`text-gray-400 dark:text-gray-500 transition-transform ${
-                    openSalesCRM ? "rotate-180" : ""
-                  }`}
+                  className={`text-gray-400 dark:text-gray-500 transition-transform ${openSalesCRM ? "rotate-180" : ""
+                    }`}
                 />
               )}
             </div>
             {openSalesCRM && isHovered && (
               <div className="ml-6 mb-4 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/dashboard/contacts') && currentPath.includes('contacts') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/dashboard/contacts')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/dashboard/contacts') && currentPath.includes('contacts') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/dashboard/contacts')}>
                   <FaClipboardList className="text-sm" />
                   <span className="text-sm">Contacts</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/sales-crm/pipeline') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/sales-crm/pipeline')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/sales-crm/pipeline') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/sales-crm/pipeline')}>
                   <FaListAlt className="text-sm" />
                   <span className="text-sm">Sales Pipeline</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/sales-crm/reports') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/sales-crm/reports')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/sales-crm/reports') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/sales-crm/reports')}>
                   <FaClock className="text-sm" />
                   <span className="text-sm">Reports</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/sales-crm/tasks') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/sales-crm/tasks')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/sales-crm/tasks') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/sales-crm/tasks')}>
                   <FaTasks className="text-sm" />
                   <span className="text-sm">Tasks</span>
                 </div>
@@ -466,11 +397,10 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
 
             {/* WhatsApp Commerce */}
             <div
-              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                openWhatsAppCommerce
+              className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openWhatsAppCommerce
                   ? 'bg-gray-100 dark:bg-gray-700/50'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
-              }`}
+                }`}
               onClick={() => setOpenWhatsAppCommerce(!openWhatsAppCommerce)}
               title="WhatsApp Commerce"
             >
@@ -484,27 +414,26 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
               </div>
               {isHovered && (
                 <FaChevronDown
-                  className={`text-gray-400 dark:text-gray-500 transition-transform ${
-                    openWhatsAppCommerce ? "rotate-180" : ""
-                  }`}
+                  className={`text-gray-400 dark:text-gray-500 transition-transform ${openWhatsAppCommerce ? "rotate-180" : ""
+                    }`}
                 />
               )}
             </div>
             {openWhatsAppCommerce && isHovered && (
               <div className="ml-6 mb-4 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/commerce/settings') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/commerce/settings')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/commerce/settings') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/commerce/settings')}>
                   <FaCog className="text-sm" />
                   <span className="text-sm">Settings</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/commerce/catalog') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/commerce/catalog')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/commerce/catalog') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/commerce/catalog')}>
                   <FaClipboardList className="text-sm" />
                   <span className="text-sm">Catalog</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/commerce/checkout-bot') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/commerce/checkout-bot')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/commerce/checkout-bot') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/commerce/checkout-bot')}>
                   <FaClock className="text-sm" />
                   <span className="text-sm">Checkout Bot</span>
                 </div>
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/commerce/order-panel') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={()=>navigate('/commerce/order-panel')}>
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/commerce/order-panel') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/commerce/order-panel')}>
                   <FaBoxOpen className="text-sm" />
                   <span className="text-sm">Order Panel</span>
                 </div>
@@ -521,61 +450,55 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             </div>
 
             {/* Integrations */}
-            <div 
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                isActive('/integrations')
+            <div
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/integrations')
                   ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
-              }`}
+                }`}
               onClick={() => navigate("/integrations")}
               title="Integrations"
             >
-              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-                isActive('/integrations')
+              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/integrations')
                   ? 'bg-white/20'
                   : 'bg-gradient-to-br from-red-500/10 to-red-600/10'
-              }`}>
+                }`}>
                 <FaPuzzlePiece className={`${isActive('/integrations') ? 'text-white' : 'text-red-600 dark:text-red-400'}`} />
               </div>
               {isHovered && <span className={`font-medium text-sm ${isActive('/integrations') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Integrations</span>}
             </div>
 
             {/* Widget */}
-            <div 
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                isActive('/widget')
+            <div
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/widget')
                   ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
                   : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
-              }`}
+                }`}
               onClick={() => navigate("/widget")}
               title="Widget"
             >
-              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-                isActive('/widget')
+              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/widget')
                   ? 'bg-white/20'
                   : 'bg-gradient-to-br from-teal-500/10 to-teal-600/10'
-              }`}>
+                }`}>
                 <FaThLarge className={`${isActive('/widget') ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
               </div>
               {isHovered && <span className={`font-medium text-sm ${isActive('/widget') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Widget</span>}
             </div>
 
-            {/* Team Management - Only for owners and managers */}
-            {!loadingRole && (userRole === 'owner' || userRole === 'manager') && (
+            {/* Team Management - Only for owners, admins and managers */}
+            {!loadingRole && (userRole === 'owner' || userRole === 'admin' || userRole === 'manager') && (
               <div
-                className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${
-                  isActive('/dashboard/settings/teams')
+                className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard/settings/teams')
                     ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
                     : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
-                }`}
+                  }`}
                 onClick={() => navigate('/dashboard/settings/teams')}
                 title="Team Management"
               >
-                <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-                  isActive('/dashboard/settings/teams')
+                <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/settings/teams')
                     ? 'bg-white/20'
                     : 'bg-gradient-to-br from-violet-500/10 to-violet-600/10'
-                }`}>
+                  }`}>
                   <FaUsers className={`${isActive('/dashboard/settings/teams') ? 'text-white' : 'text-violet-600 dark:text-violet-400'}`} />
                 </div>
                 {isHovered && <span className={`font-medium text-sm ${isActive('/dashboard/settings/teams') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Team</span>}
@@ -583,13 +506,12 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             )}
 
             {/* Admin Dashboard - Only for owners */}
-            {!loadingRole && userRole === 'owner' && (
+            {!loadingRole && userRole === 'admin' && (
               <div
-                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
-                  isActive('/admin')
+                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${isActive('/admin')
                     ? 'bg-teal-700 dark:bg-teal-600 text-white'
                     : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                  }`}
                 onClick={() => navigate('/admin')}
                 title="Admin Dashboard"
               >
@@ -604,14 +526,13 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
 
       {/* Mobile Sidebar - Slides in from left, starts below header */}
       <div
-        className={`lg:hidden fixed top-[60px] left-0 h-[calc(100vh-60px)] w-64 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 transform ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } transition-transform duration-300 z-50 shadow-lg flex flex-col overflow-hidden`}
+        className={`lg:hidden fixed top-[60px] left-0 h-[calc(100vh-60px)] w-64 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 transform ${isOpen ? "translate-x-0" : "-translate-x-full"
+          } transition-transform duration-300 z-50 shadow-lg flex flex-col overflow-hidden`}
       >
         <div className="p-4 flex-1 overflow-y-auto">
           {/* Home - Selected */}
           <div className="mb-6">
-            <div 
+            <div
               className="flex items-center gap-3 p-2 bg-green-600 text-white rounded cursor-pointer"
               onClick={() => navigate('/dashboard')}
             >
@@ -623,7 +544,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
           {/* Quick Links */}
           <div className="mb-6">
             <p className="text-xs text-gray-500 uppercase tracking-wide mb-3">Quick Links</p>
-            <div 
+            <div
               className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
               onClick={() => navigate('/dashboard/inbox')}
             >
@@ -635,7 +556,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
           {/* Main Menu Items */}
           <div className="space-y-1">
             {/* Campaigns */}
-            <div 
+            <div
               className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
               onClick={() => navigate('/campaign')}
             >
@@ -644,7 +565,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             </div>
 
             {/* Contacts */}
-            <div 
+            <div
               className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
               onClick={() => navigate('/dashboard/contacts')}
             >
@@ -708,7 +629,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             </div>
 
             {/* Integrations */}
-            <div 
+            <div
               className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
               onClick={() => navigate('/integrations')}
             >
@@ -717,7 +638,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             </div>
 
             {/* Widget */}
-            <div 
+            <div
               className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
               onClick={() => navigate('/widget')}
             >
@@ -727,7 +648,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
 
             {/* Admin Dashboard - Only for owners */}
             {!loadingRole && userRole === 'admin' && (
-              <div 
+              <div
                 className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
                 onClick={() => navigate('/admin')}
               >
@@ -737,7 +658,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             )}
 
             {/* Settings */}
-            <div 
+            <div
               className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
               onClick={() => navigate('/dashboard/settings')}
             >

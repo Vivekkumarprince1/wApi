@@ -31,7 +31,7 @@ async function getEstimate(req, res, next) {
 
     const plan = subscription?.plan || null;
     const baseFeeCents = plan?.monthlyBaseFeeCents || 0;
-    const passThroughCents = ledger?.metaUsage?.metaAmountCents || 0;
+    const passThroughCents = ledger?.providerUsage?.providerAmountCents || ledger?.metaUsage?.metaAmountCents || 0;
 
     res.json({
       success: true,
@@ -40,7 +40,7 @@ async function getEstimate(req, res, next) {
         baseFeeCents,
         passThroughCents,
         estimatedTotalCents: baseFeeCents + passThroughCents,
-        currency: plan?.currency || ledger?.metaUsage?.metaCurrency || 'USD'
+        currency: plan?.currency || ledger?.providerUsage?.providerCurrency || ledger?.metaUsage?.metaCurrency || 'USD'
       }
     });
   } catch (err) {

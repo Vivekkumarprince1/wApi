@@ -1,6 +1,7 @@
 const InstagramQuickflow = require('../models/InstagramQuickflow');
 const InstagramQuickflowLog = require('../models/InstagramQuickflowLog');
 const Workspace = require('../models/Workspace');
+const bspConfig = require('../config/bspConfig');
 const axios = require('axios');
 
 /**
@@ -114,32 +115,44 @@ async function sendInstagramQuickflowResponse(
       responseContent = `[Template: ${quickflow.response.template.name}]`;
     }
 
-    // Send response via Instagram API
+    // Send response via Gupshup Multi-channel API
     if (responseContent) {
       try {
-        // Send DM via Instagram API
-        const metaGraphUrl = 'https://graph.instagram.com/v21.0';
-        const response = await axios.post(
-          `${metaGraphUrl}/${workspace.instagramConfig.accountId}/messages`,
-          {
-            recipient: {
-              id: instagramUserId
-            },
-            message: {
-              text: responseContent
-            }
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${metaAccessToken}`
-            }
-          }
-        );
+        const url = `${bspConfig.apiBaseUrl}/sm/api/v1/msg`;
+        
+        const body = new URLSearchParams();
+        body.set('channel', 'instagram');
+        body.set('source', workspace.instagramConfig.accountId);
+        body.set('destination', instagramUserId);
+        
+        const messagePayload = {
+          type: 'text',
+          text: responseContent
+        };
 
-        responseId = response.data.message_id;
-        responseSent = true;
+        // If redirect to WhatsApp is enabled, add it to the message
+        if (quickflow.response.redirectToWhatsApp?.enabled) {
+          const waNumber = workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber;
+          if (waNumber) {
+            const customMsg = quickflow.response.redirectToWhatsApp.customMessage || '';
+            const waLink = `https://wa.me/${waNumber.replace(/\D/g, '')}${customMsg ? '?text=' + encodeURIComponent(customMsg) : ''}`;
+            messagePayload.text += `\n\nChat with us on WhatsApp: ${waLink}`;
+          }
+        }
+
+        body.set('message', JSON.stringify(messagePayload));
+
+        const response = await axios.post(url, body.toString(), {
+          headers: {
+            'apikey': bspConfig.gupshup.apiKey,
+            'Content-Type': 'application/x-www-form-urlencoded'
+          }
+        });
+
+        responseId = response.data.messageId || response.data.id;
+        responseSent = response.data.status === 'submitted' || response.data.status === 'success';
       } catch (apiErr) {
-        console.error('Error sending Instagram response:', apiErr.message);
+        console.error('Error sending Instagram response via Gupshup:', apiErr.message);
         responseSent = false;
       }
     }

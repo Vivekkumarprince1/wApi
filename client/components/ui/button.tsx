@@ -14,7 +14,7 @@ function variantClass(variant: string | undefined) {
     case 'outline':
       return 'border bg-white'
     case 'secondary':
-      return 'bg-gray-100 text-gray-900'
+      return 'bg-muted text-foreground'
     case 'ghost':
       return 'bg-transparent'
     case 'link':

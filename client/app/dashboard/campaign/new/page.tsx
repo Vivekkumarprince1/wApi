@@ -98,8 +98,8 @@ function CampaignWizard() {
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
               step >= num
-                ? 'bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
+                : 'bg-gray-200 dark:bg-muted text-muted-foreground'
             }`}
           >
             {num}
@@ -107,7 +107,7 @@ function CampaignWizard() {
           {num < 4 && (
             <div
               className={`w-16 h-1 ${
-                step > num ? 'bg-[#13C18D]' : 'bg-gray-200 dark:bg-gray-700'
+                step > num ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'
               }`}
             />
           )}
@@ -119,7 +119,7 @@ function CampaignWizard() {
   const renderStep1 = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           Campaign Name *
         </label>
         <input
@@ -127,12 +127,12 @@ function CampaignWizard() {
           value={campaignData.name}
           onChange={(e) => setCampaignData({ ...campaignData, name: e.target.value })}
           placeholder="e.g., Black Friday Sale 2024"
-          className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#13C18D] focus:border-transparent"
+          className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground focus:ring-2 focus:ring-ring focus:border-transparent"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           Campaign Type
         </label>
         <div className="grid grid-cols-2 gap-4">
@@ -142,14 +142,14 @@ function CampaignWizard() {
               onClick={() => setCampaignData({ ...campaignData, type })}
               className={`p-4 rounded-xl border-2 transition-all ${
                 campaignData.type === type
-                  ? 'border-[#13C18D] bg-[#13C18D]/10'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-[#13C18D]'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border hover:border-primary'
               }`}
             >
-              <div className="font-semibold text-gray-900 dark:text-white capitalize">
+              <div className="font-semibold text-foreground capitalize">
                 {type.replace('-', ' ')}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <div className="text-sm text-muted-foreground mt-1">
                 {type === 'one-time' ? 'Send once to audience' : 'Schedule multiple sends'}
               </div>
             </button>
@@ -162,7 +162,7 @@ function CampaignWizard() {
   const renderStep2 = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           Select Template *
         </label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
@@ -172,20 +172,20 @@ function CampaignWizard() {
               onClick={() => setCampaignData({ ...campaignData, template: template.id })}
               className={`p-4 rounded-xl border-2 text-left transition-all ${
                 campaignData.template === template.id
-                  ? 'border-[#13C18D] bg-[#13C18D]/10'
-                  : 'border-gray-300 dark:border-gray-600 hover:border-[#13C18D]'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border hover:border-primary'
               }`}
             >
-              <div className="font-semibold text-gray-900 dark:text-white">{template.name}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+              <div className="font-semibold text-foreground">{template.name}</div>
+              <div className="text-sm text-muted-foreground mt-1 line-clamp-2">
                 {template.body}
               </div>
-              <div className="text-xs text-[#13C18D] mt-2">{template.category}</div>
+              <div className="text-xs text-primary mt-2">{template.category}</div>
             </button>
           ))}
         </div>
         {templates.filter(t => t.status === 'APPROVED').length === 0 && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-muted-foreground">
             No approved templates found. Create and approve templates first.
           </div>
         )}
@@ -196,7 +196,7 @@ function CampaignWizard() {
   const renderStep3 = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           Select Audience
         </label>
         <div className="space-y-4">
@@ -204,18 +204,18 @@ function CampaignWizard() {
             onClick={() => setCampaignData({ ...campaignData, audience: 'all' })}
             className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
               campaignData.audience === 'all'
-                ? 'border-[#13C18D] bg-[#13C18D]/10'
-                : 'border-gray-300 dark:border-gray-600 hover:border-[#13C18D]'
+                ? 'border-primary bg-primary/10'
+                : 'border-border hover:border-primary'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-semibold text-gray-900 dark:text-white">All Contacts</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <div className="font-semibold text-foreground">All Contacts</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   Send to {contacts.length} contacts
                 </div>
               </div>
-              <FaUsers className="text-2xl text-[#13C18D]" />
+              <FaUsers className="text-2xl text-primary" />
             </div>
           </button>
 
@@ -223,26 +223,26 @@ function CampaignWizard() {
             onClick={() => setCampaignData({ ...campaignData, audience: 'custom' })}
             className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
               campaignData.audience === 'custom'
-                ? 'border-[#13C18D] bg-[#13C18D]/10'
-                : 'border-gray-300 dark:border-gray-600 hover:border-[#13C18D]'
+                ? 'border-primary bg-primary/10'
+                : 'border-border hover:border-primary'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-semibold text-gray-900 dark:text-white">Custom Selection</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <div className="font-semibold text-foreground">Custom Selection</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   Choose specific contacts
                 </div>
               </div>
-              <FaUsers className="text-2xl text-[#13C18D]" />
+              <FaUsers className="text-2xl text-primary" />
             </div>
           </button>
         </div>
 
         {campaignData.audience === 'custom' && (
-          <div className="mt-4 p-4 border border-gray-300 dark:border-gray-600 rounded-xl max-h-64 overflow-y-auto">
+          <div className="mt-4 p-4 border border-border rounded-xl max-h-64 overflow-y-auto">
             {contacts.map((contact) => (
-              <label key={contact.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded cursor-pointer">
+              <label key={contact.id} className="flex items-center gap-3 p-2 hover:bg-accent dark:hover:bg-gray-800 rounded cursor-pointer">
                 <input
                   type="checkbox"
                   checked={campaignData.selectedContacts.includes(contact.id)}
@@ -259,13 +259,13 @@ function CampaignWizard() {
                       });
                     }
                   }}
-                  className="w-4 h-4 text-[#13C18D] rounded focus:ring-[#13C18D]"
+                  className="w-4 h-4 text-primary rounded focus:ring-ring"
                 />
                 <div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="text-sm font-medium text-foreground">
                     {contact.firstName} {contact.lastName}
                   </div>
-                  <div className="text-xs text-gray-500">{contact.phone}</div>
+                  <div className="text-xs text-muted-foreground">{contact.phone}</div>
                 </div>
               </label>
             ))}
@@ -278,7 +278,7 @@ function CampaignWizard() {
   const renderStep4 = () => (
     <div className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-foreground mb-2">
           Schedule Campaign
         </label>
         <div className="space-y-4">
@@ -286,18 +286,18 @@ function CampaignWizard() {
             onClick={() => setCampaignData({ ...campaignData, scheduleType: 'now' })}
             className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
               campaignData.scheduleType === 'now'
-                ? 'border-[#13C18D] bg-[#13C18D]/10'
-                : 'border-gray-300 dark:border-gray-600 hover:border-[#13C18D]'
+                ? 'border-primary bg-primary/10'
+                : 'border-border hover:border-primary'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-semibold text-gray-900 dark:text-white">Send Now</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <div className="font-semibold text-foreground">Send Now</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   Send campaign immediately
                 </div>
               </div>
-              <FaRocket className="text-2xl text-[#13C18D]" />
+              <FaRocket className="text-2xl text-primary" />
             </div>
           </button>
 
@@ -305,18 +305,18 @@ function CampaignWizard() {
             onClick={() => setCampaignData({ ...campaignData, scheduleType: 'later' })}
             className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
               campaignData.scheduleType === 'later'
-                ? 'border-[#13C18D] bg-[#13C18D]/10'
-                : 'border-gray-300 dark:border-gray-600 hover:border-[#13C18D]'
+                ? 'border-primary bg-primary/10'
+                : 'border-border hover:border-primary'
             }`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <div className="font-semibold text-gray-900 dark:text-white">Schedule for Later</div>
-                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <div className="font-semibold text-foreground">Schedule for Later</div>
+                <div className="text-sm text-muted-foreground mt-1">
                   Pick a date and time
                 </div>
               </div>
-              <FaClock className="text-2xl text-[#13C18D]" />
+              <FaClock className="text-2xl text-primary" />
             </div>
           </button>
         </div>
@@ -324,25 +324,25 @@ function CampaignWizard() {
         {campaignData.scheduleType === 'later' && (
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Date
               </label>
               <input
                 type="date"
                 value={campaignData.scheduleDate}
                 onChange={(e) => setCampaignData({ ...campaignData, scheduleDate: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Time
               </label>
               <input
                 type="time"
                 value={campaignData.scheduleTime}
                 onChange={(e) => setCampaignData({ ...campaignData, scheduleTime: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="w-full px-4 py-3 rounded-xl border border-border bg-card text-foreground"
               />
             </div>
           </div>
@@ -350,34 +350,34 @@ function CampaignWizard() {
       </div>
 
       {/* Summary */}
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 space-y-3">
-        <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">Campaign Summary</h3>
+      <div className="bg-muted dark:bg-card rounded-xl p-6 space-y-3">
+        <h3 className="font-bold text-lg text-foreground mb-4">Campaign Summary</h3>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Name:</span>
-            <span className="font-medium text-gray-900 dark:text-white">{campaignData.name || 'Not set'}</span>
+            <span className="text-muted-foreground">Name:</span>
+            <span className="font-medium text-foreground">{campaignData.name || 'Not set'}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Type:</span>
-            <span className="font-medium text-gray-900 dark:text-white capitalize">{campaignData.type}</span>
+            <span className="text-muted-foreground">Type:</span>
+            <span className="font-medium text-foreground capitalize">{campaignData.type}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Template:</span>
-            <span className="font-medium text-gray-900 dark:text-white">
+            <span className="text-muted-foreground">Template:</span>
+            <span className="font-medium text-foreground">
               {templates.find(t => t.id === campaignData.template)?.name || 'Not selected'}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Recipients:</span>
-            <span className="font-medium text-gray-900 dark:text-white">
+            <span className="text-muted-foreground">Recipients:</span>
+            <span className="font-medium text-foreground">
               {campaignData.audience === 'all'
                 ? `${contacts.length} contacts`
                 : `${campaignData.selectedContacts.length} selected`}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Schedule:</span>
-            <span className="font-medium text-gray-900 dark:text-white">
+            <span className="text-muted-foreground">Schedule:</span>
+            <span className="font-medium text-foreground">
               {campaignData.scheduleType === 'now'
                 ? 'Send immediately'
                 : `${campaignData.scheduleDate} at ${campaignData.scheduleTime}`}
@@ -404,9 +404,9 @@ function CampaignWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] shadow-lg">
+      <div className="bg-gradient-to-r from-primary to-primary/80 shadow-premium">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center gap-4">
             <button
@@ -431,17 +431,17 @@ function CampaignWizard() {
           onLimitExceeded={() => setQuotaExceeded(true)} 
         />
         
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+        <div className="bg-card rounded-2xl shadow-premium p-8">
           {renderStepIndicator()}
 
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            <h2 className="text-2xl font-bold text-foreground mb-2">
               {step === 1 && 'Campaign Details'}
               {step === 2 && 'Choose Template'}
               {step === 3 && 'Select Audience'}
               {step === 4 && 'Review & Schedule'}
             </h2>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-muted-foreground">
               {step === 1 && 'Enter the basic information about your campaign'}
               {step === 2 && 'Select an approved template for your message'}
               {step === 3 && 'Choose who will receive this campaign'}
@@ -455,11 +455,11 @@ function CampaignWizard() {
           {step === 4 && renderStep4()}
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between mt-8 pt-6 border-t border-border">
             <button
               onClick={handleBack}
               disabled={step === 1}
-              className="px-6 py-3 rounded-xl font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-3 rounded-xl font-semibold text-foreground hover:bg-accent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Back
             </button>
@@ -468,7 +468,7 @@ function CampaignWizard() {
               <button
                 onClick={handleNext}
                 disabled={!isStepValid()}
-                className="px-8 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+                className="px-8 py-3 rounded-xl font-semibold bg-gradient-to-r from-primary to-primary/80 text-white shadow-premium hover:shadow-xl transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
                 Next →
               </button>
@@ -476,7 +476,7 @@ function CampaignWizard() {
               <button
                 onClick={handleSubmit}
                 disabled={!isStepValid() || loading || quotaExceeded}
-                className="px-8 py-3 rounded-xl font-semibold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2"
+                className="px-8 py-3 rounded-xl font-semibold bg-gradient-to-r from-primary to-primary/80 text-white shadow-premium hover:shadow-xl transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center gap-2"
               >
                 {loading ? 'Creating...' : 'Launch Campaign'} <FaRocket />
               </button>

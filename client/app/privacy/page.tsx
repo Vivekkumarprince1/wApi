@@ -7,12 +7,12 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="min-h-screen bg-white text-gray-900 px-4 py-10 sm:py-14">
+    <main className="min-h-screen bg-white text-foreground px-4 py-10 sm:py-14">
       <div className="max-w-4xl mx-auto space-y-10">
         <header className="space-y-2 text-center">
           <p className="text-sm font-semibold text-emerald-600">Privacy Policy</p>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Your privacy, protected</h1>
-          <p className="text-sm text-gray-600">Last updated: 30 Dec 2025</p>
+          <p className="text-sm text-muted-foreground">Last updated: 30 Dec 2025</p>
         </header>
 
         <section className="space-y-4 text-base leading-7">
@@ -126,8 +126,8 @@ export default function PrivacyPolicyPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-      <div className="text-gray-700 leading-7 space-y-2">{children}</div>
+      <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+      <div className="text-foreground leading-7 space-y-2">{children}</div>
     </section>
   );
 }

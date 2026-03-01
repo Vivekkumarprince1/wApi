@@ -169,7 +169,7 @@ export default function CreateAdPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -178,11 +178,11 @@ export default function CreateAdPage() {
   const progressPercentage = (step / 4) * 100;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="animate-fade-in-up">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
-        <h1 className="text-2xl font-bold text-gray-900">Create WhatsApp Ad</h1>
-        <p className="text-gray-600 mt-1">Step {step} of 4: {['Basic Info', 'Budget & Targeting', 'Template & CTA', 'Review'][step - 1]}</p>
+      <div className="bg-white border-b border-border px-6 py-4">
+        <h1 className="text-2xl font-bold text-foreground">Create WhatsApp Ad</h1>
+        <p className="text-muted-foreground mt-1">Step {step} of 4: {['Basic Info', 'Budget & Targeting', 'Template & CTA', 'Review'][step - 1]}</p>
       </div>
 
       <div className="p-6 max-w-2xl mx-auto">
@@ -195,14 +195,14 @@ export default function CreateAdPage() {
                 className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${
                   s <= step
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-600'
+                    : 'bg-gray-200 text-muted-foreground'
                 }`}
               >
                 {s < step ? <FaCheckCircle /> : s}
               </div>
             ))}
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-border rounded-full h-2">
             <div
               className="bg-blue-600 h-2 rounded-full transition-all"
               style={{ width: `${progressPercentage}%` }}
@@ -219,11 +219,11 @@ export default function CreateAdPage() {
 
         {/* Step 1: Basic Info */}
         {step === 1 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-            <h2 className="text-xl font-bold text-gray-900">Campaign Information</h2>
+          <div className="bg-white rounded-xl border border-border p-6 space-y-6">
+            <h2 className="text-xl font-bold text-foreground">Campaign Information</h2>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Campaign Name *
               </label>
               <input
@@ -231,34 +231,34 @@ export default function CreateAdPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g., Black Friday Sale"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 A descriptive name to identify this ad campaign
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Start Date *
                 </label>
                 <input
                   type="datetime-local"
                   value={scheduleStart}
                   onChange={(e) => setScheduleStart(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   End Date (Optional)
                 </label>
                 <input
                   type="datetime-local"
                   value={scheduleEnd}
                   onChange={(e) => setScheduleEnd(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -267,38 +267,38 @@ export default function CreateAdPage() {
 
         {/* Step 2: Budget & Targeting */}
         {step === 2 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-            <h2 className="text-xl font-bold text-gray-900">Budget & Targeting</h2>
+          <div className="bg-white rounded-xl border border-border p-6 space-y-6">
+            <h2 className="text-xl font-bold text-foreground">Budget & Targeting</h2>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Daily Budget *
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-600">$</span>
+                  <span className="text-muted-foreground">$</span>
                   <input
                     type="number"
                     value={budget / 100}
                     onChange={(e) => setBudget(Math.round(parseFloat(e.target.value) * 100))}
                     step="0.01"
                     min="1"
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Minimum $1.00/day
                 </p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Currency
                 </label>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="USD">USD ($)</option>
                   <option value="INR">INR (₹)</option>
@@ -309,10 +309,10 @@ export default function CreateAdPage() {
             </div>
 
             <div className="border-t pt-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Age Targeting</h3>
+              <h3 className="font-semibold text-foreground mb-4">Age Targeting</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Minimum Age
                   </label>
                   <input
@@ -321,11 +321,11 @@ export default function CreateAdPage() {
                     onChange={(e) => setAgeMin(e.target.value)}
                     min="13"
                     max="100"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Maximum Age
                   </label>
                   <input
@@ -334,14 +334,14 @@ export default function CreateAdPage() {
                     onChange={(e) => setAgeMax(e.target.value)}
                     min="13"
                     max="100"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>
             </div>
 
             <div className="border-t pt-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Geographic Targeting</h3>
+              <h3 className="font-semibold text-foreground mb-4">Geographic Targeting</h3>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -349,12 +349,12 @@ export default function CreateAdPage() {
                   onChange={(e) => setCountryInput(e.target.value)}
                   placeholder="Country code (e.g., US, IN, UK)"
                   maxLength="2"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onKeyPress={(e) => e.key === 'Enter' && handleAddCountry()}
                 />
                 <button
                   onClick={handleAddCountry}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700"
                 >
                   Add
                 </button>
@@ -383,17 +383,17 @@ export default function CreateAdPage() {
 
         {/* Step 3: Template & CTA */}
         {step === 3 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-            <h2 className="text-xl font-bold text-gray-900">Template & Message</h2>
+          <div className="bg-white rounded-xl border border-border p-6 space-y-6">
+            <h2 className="text-xl font-bold text-foreground">Template & Message</h2>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Select Template *
               </label>
               <select
                 value={selectedTemplate}
                 onChange={(e) => setSelectedTemplate(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Choose a template...</option>
                 {templates.map((template) => (
@@ -402,13 +402,13 @@ export default function CreateAdPage() {
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Only APPROVED templates are available
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Welcome Message *
               </label>
               <textarea
@@ -416,15 +416,15 @@ export default function CreateAdPage() {
                 onChange={(e) => setWelcomeMessage(e.target.value)}
                 placeholder="Message shown when user opens chat"
                 rows="4"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 This message appears in the chat window when users click your ad
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Button Text
               </label>
               <input
@@ -432,7 +432,7 @@ export default function CreateAdPage() {
                 value={ctaText}
                 onChange={(e) => setCtaText(e.target.value)}
                 placeholder="e.g., Message us"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -440,31 +440,31 @@ export default function CreateAdPage() {
 
         {/* Step 4: Review */}
         {step === 4 && (
-          <div className="bg-white rounded-lg border border-gray-200 p-6 space-y-6">
-            <h2 className="text-xl font-bold text-gray-900">Review & Confirm</h2>
+          <div className="bg-white rounded-xl border border-border p-6 space-y-6">
+            <h2 className="text-xl font-bold text-foreground">Review & Confirm</h2>
 
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+            <div className="bg-muted rounded-xl p-4 space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-700">Campaign Name:</span>
-                <span className="font-semibold text-gray-900">{name}</span>
+                <span className="text-foreground">Campaign Name:</span>
+                <span className="font-semibold text-foreground">{name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Daily Budget:</span>
-                <span className="font-semibold text-gray-900">${(budget / 100).toFixed(2)}</span>
+                <span className="text-foreground">Daily Budget:</span>
+                <span className="font-semibold text-foreground">${(budget / 100).toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Target Ages:</span>
-                <span className="font-semibold text-gray-900">{ageMin} - {ageMax}</span>
+                <span className="text-foreground">Target Ages:</span>
+                <span className="font-semibold text-foreground">{ageMin} - {ageMax}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Countries:</span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-foreground">Countries:</span>
+                <span className="font-semibold text-foreground">
                   {countries.length > 0 ? countries.join(', ') : 'Worldwide'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-700">Start Date:</span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-foreground">Start Date:</span>
+                <span className="font-semibold text-foreground">
                   {new Date(scheduleStart).toLocaleDateString()}
                 </span>
               </div>
@@ -478,7 +478,7 @@ export default function CreateAdPage() {
                   onChange={(e) => setAgreed(e.target.checked)}
                   className="mt-1"
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-foreground">
                   I agree to Meta's advertising policies and understand that WhatsApp ads may be subject to review and approval. My ad must comply with all policies and cannot promote illegal content.
                 </span>
               </label>
@@ -491,10 +491,10 @@ export default function CreateAdPage() {
           <button
             onClick={handlePrevious}
             disabled={step === 1}
-            className={`px-6 py-2 rounded-lg font-medium ${
+            className={`px-6 py-2 rounded-xl font-medium ${
               step === 1
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'bg-gray-300 hover:bg-gray-400 text-gray-900'
+                ? 'bg-gray-200 text-muted-foreground cursor-not-allowed'
+                : 'bg-gray-300 hover:bg-gray-400 text-foreground'
             }`}
           >
             Previous
@@ -503,7 +503,7 @@ export default function CreateAdPage() {
           {step < 4 ? (
             <button
               onClick={handleNext}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium"
             >
               Next
             </button>
@@ -511,7 +511,7 @@ export default function CreateAdPage() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium disabled:opacity-50"
+              className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium disabled:opacity-50"
             >
               {submitting ? 'Creating...' : 'Create Ad'}
             </button>

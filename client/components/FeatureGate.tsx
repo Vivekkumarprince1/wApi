@@ -37,18 +37,18 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
   // Coming soon features - show placeholder
   if (comingSoon) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-8">
+      <div className="flex flex-col items-center justify-center min-h-[400px] bg-muted dark:bg-card rounded-xl border-2 border-dashed border-border p-8">
         <div className="text-center max-w-md">
           <div className="w-20 h-20 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-6">
             <FaLock className="text-4xl text-purple-500" />
           </div>
-          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">Coming Soon</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <h3 className="text-xl font-bold text-foreground mb-3">Coming Soon</h3>
+          <p className="text-muted-foreground mb-6">
             This feature is under development and will be available soon. Stay tuned!
           </p>
           <button
             onClick={() => router.push('/dashboard')}
-            className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
+            className="px-6 py-3 bg-border dark:bg-muted text-foreground rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-all duration-200"
           >
             Back to Dashboard
           </button>
@@ -76,7 +76,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
           blocked = true;
           reason = 'Connect your WhatsApp Business number to create and manage templates';
           blockType = 'phone';
-        } else if (!['owner', 'manager'].includes(workspace.user.role)) {
+        } else if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
           blocked = true;
           reason = 'You need Manager or Owner access to create templates';
           blockType = 'role';
@@ -88,7 +88,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
           blocked = true;
           reason = 'Connect your WhatsApp Business number to create and send campaigns';
           blockType = 'phone';
-        } else if (!['owner', 'manager'].includes(workspace.user.role)) {
+        } else if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
           blocked = true;
           reason = 'You need Manager or Owner access to create campaigns';
           blockType = 'role';
@@ -104,7 +104,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
         break;
 
       case 'team':
-        if (!['owner', 'manager'].includes(workspace.user.role)) {
+        if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
           blocked = true;
           reason = 'You need Manager or Owner access to manage team members';
           blockType = 'role';
@@ -112,17 +112,17 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
         break;
 
       case 'billing':
-        if (workspace.user.role !== 'owner') {
+        if (!['owner', 'admin'].includes(workspace.user.role)) {
           blocked = true;
-          reason = 'Only the workspace Owner can access billing settings';
+          reason = 'Only the workspace Owner or Admin can access billing settings';
           blockType = 'role';
         }
         break;
 
       case 'admin':
-        if (workspace.user.role !== 'owner') {
+        if (!['owner', 'admin'].includes(workspace.user.role)) {
           blocked = true;
-          reason = 'Only the workspace Owner can access admin settings';
+          reason = 'Only the workspace Owner or Admin can access admin settings';
           blockType = 'role';
         }
         break;
@@ -165,19 +165,19 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 p-8">
+    <div className="flex flex-col items-center justify-center min-h-[400px] bg-muted dark:bg-card rounded-xl border-2 border-dashed border-border p-8">
       <div className="text-center max-w-md">
-        <div className="w-20 h-20 bg-white dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+        <div className="w-20 h-20 bg-white dark:bg-muted rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
           {icons[blockType]}
         </div>
         
-        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
+        <h3 className="text-xl font-bold text-foreground mb-3">
           {blockType === 'phone' && 'WhatsApp Connection Required'}
           {blockType === 'role' && 'Access Restricted'}
           {blockType === 'auth' && 'Authentication Required'}
         </h3>
         
-        <p className="text-gray-600 dark:text-gray-400 mb-6">
+        <p className="text-muted-foreground mb-6">
           {reason}
         </p>
         
@@ -189,7 +189,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
         </button>
         
         {blockType === 'phone' && (
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+          <p className="text-sm text-muted-foreground mt-4">
             You need to connect your WhatsApp Business number through the Meta Business Suite
           </p>
         )}
@@ -217,7 +217,7 @@ export function useFeatureAccess(feature: 'templates' | 'campaigns' | 'messaging
       if (!workspace.stage1Complete) {
         disabled = true;
         tooltip = 'Connect WhatsApp first';
-      } else if (!['owner', 'manager'].includes(workspace.user.role)) {
+      } else if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
         disabled = true;
         tooltip = 'Manager access required';
       }
@@ -231,7 +231,7 @@ export function useFeatureAccess(feature: 'templates' | 'campaigns' | 'messaging
       break;
 
     case 'team':
-      if (!['owner', 'manager'].includes(workspace.user.role)) {
+      if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
         disabled = true;
         tooltip = 'Manager access required';
       }
@@ -239,7 +239,7 @@ export function useFeatureAccess(feature: 'templates' | 'campaigns' | 'messaging
 
     case 'billing':
     case 'admin':
-      if (workspace.user.role !== 'owner') {
+      if (!['owner', 'admin'].includes(workspace.user.role)) {
         disabled = true;
         tooltip = 'Owner access required';
       }

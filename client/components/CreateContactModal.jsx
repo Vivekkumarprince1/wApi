@@ -138,11 +138,47 @@ const CreateContactModal = ({ isOpen, onClose }) => {
   const validContacts = csvData.filter(contact => contact.phone_number);
   const invalidContacts = csvData.length - validContacts.length;
 
-  const handleSubmit = () => {
-    if (contactName.trim()) {
-      console.log('Creating contact:', contactName);
+  const splitName = (fullName) => {
+    const parts = (fullName || '').trim().split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return { firstName: '', lastName: '' };
+    if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+    return {
+      firstName: parts[0],
+      lastName: parts.slice(1).join(' ')
+    };
+  };
+
+  const submitSingleContact = async () => {
+    setContactError('');
+    if (!contactName.trim() || !contactPhone.trim()) {
+      setContactError('Name and phone are required');
+      return;
+    }
+
+    const { firstName, lastName } = splitName(contactName);
+
+    setContactLoading(true);
+    try {
+      await uploadContacts([
+        {
+          first_name: firstName,
+          last_name: lastName,
+          phone_number: contactPhone,
+          email: contactEmail
+        }
+      ]);
       setContactName('');
+      setContactPhone('');
+      setContactEmail('');
+      setContactError('');
+      if (typeof window !== 'undefined' && typeof window.refreshContacts === 'function') {
+        await window.refreshContacts();
+      }
       onClose();
+    } catch (err) {
+      setContactError('Failed to add contact');
+    } finally {
+      setContactLoading(false);
     }
   };
 
@@ -163,16 +199,16 @@ const CreateContactModal = ({ isOpen, onClose }) => {
         
         <div className="h-full flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between p-6 border-b border-border">
             <div className="flex items-center space-x-3">
               <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center">
                 <FaBriefcase className="text-white text-sm" />
               </div>
-              <h2 className="text-lg font-bold text-gray-900">Create Contacts</h2>
+              <h2 className="text-lg font-bold text-foreground">Create Contacts</h2>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-full bg-muted hover:bg-border flex items-center justify-center transition-colors"
             >
               <FaTimes className="text-gray-600 text-sm" />
             </button>
@@ -182,7 +218,7 @@ const CreateContactModal = ({ isOpen, onClose }) => {
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             {/* Bulk Upload Section */}
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3 dark:text-gray-200">
+              <h3 className="text-sm font-medium text-gray-700 mb-3 dark:text-foreground">
                 Create Contacts Via Bulk Upload
               </h3>
               {!showResults ? (
@@ -195,7 +231,7 @@ const CreateContactModal = ({ isOpen, onClose }) => {
                         ? 'border-green-500 bg-green-50 dark:bg-green-900'
                         : uploadStatus === 'error'
                         ? 'border-red-500 bg-red-50 dark:bg-red-900'
-                        : 'border-gray-300 bg-white dark:bg-gray-800 hover:border-green-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        : 'border-gray-300 bg-card hover:border-green-400 hover:bg-accent'
                     }`}
                     onDragEnter={() => setDragActive(true)}
                     onDragLeave={() => setDragActive(false)}
@@ -213,8 +249,8 @@ const CreateContactModal = ({ isOpen, onClose }) => {
                       <div className="space-y-4">
                         <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Upload Failed</h3>
-                          <p className="text-gray-600 dark:text-gray-300 mt-2">
+                          <h3 className="text-lg font-semibold text-foreground">Upload Failed</h3>
+                          <p className="text-muted-foreground mt-2">
                             Please upload a valid CSV file
                           </p>
                         </div>
@@ -225,18 +261,18 @@ const CreateContactModal = ({ isOpen, onClose }) => {
                           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500"></div>
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Processing...</h3>
-                          <p className="text-gray-600 dark:text-gray-300 mt-2">
+                          <h3 className="text-lg font-semibold text-foreground">Processing...</h3>
+                          <p className="text-muted-foreground mt-2">
                             Parsing {uploadedFile?.name}
                           </p>
                         </div>
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <Upload className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto" />
+                        <Upload className="w-16 h-16 text-muted-foreground mx-auto" />
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Drop your CSV file here</h3>
-                          <p className="text-gray-600 dark:text-gray-300 mt-2">
+                          <h3 className="text-lg font-semibold text-foreground">Drop your CSV file here</h3>
+                          <p className="text-muted-foreground mt-2">
                             or click to browse your files
                           </p>
                         </div>
@@ -249,12 +285,12 @@ const CreateContactModal = ({ isOpen, onClose }) => {
                       </div>
                     )}
                   </div>
-                  <div className="mt-6 bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700">
+                  <div className="mt-6 bg-card p-4 rounded-xl border border-border">
                     <div className="flex items-center mb-2">
                       <FileText className="w-5 h-5 text-blue-500 mr-2" />
-                      <h4 className="font-semibold text-gray-900 dark:text-white">CSV Format Requirements</h4>
+                      <h4 className="font-semibold text-foreground">CSV Format Requirements</h4>
                     </div>
-                    <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                    <ul className="space-y-1 text-xs text-muted-foreground">
                       <li>• Phone numbers with country code (+91)</li>
                       <li>• Required columns: phone_number</li>
                       <li>• Optional: first_name, last_name, email</li>
@@ -262,7 +298,7 @@ const CreateContactModal = ({ isOpen, onClose }) => {
                     </ul>
                     <button
                       onClick={downloadTemplate}
-                      className="mt-4 w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-xs font-medium"
+                      className="mt-4 w-full bg-muted text-foreground py-2 rounded-lg hover:bg-border dark:hover:bg-gray-600 transition-colors text-xs font-medium"
                     >
                       <Download className="w-4 h-4 inline mr-2" />Download CSV Template
                     </button>
@@ -275,44 +311,44 @@ const CreateContactModal = ({ isOpen, onClose }) => {
                       <div className="flex items-center">
                         <CheckCircle className="w-8 h-8 text-green-500 mr-3" />
                         <div>
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Upload Successful!</h3>
-                          <p className="text-gray-600 dark:text-gray-300">Your contacts have been processed and are ready to use</p>
+                          <h3 className="text-xl font-bold text-foreground">Upload Successful!</h3>
+                          <p className="text-muted-foreground">Your contacts have been processed and are ready to use</p>
                         </div>
                       </div>
                       <button
                         onClick={resetUpload}
-                        className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        className="bg-muted text-foreground px-4 py-2 rounded-lg hover:bg-border dark:hover:bg-gray-600 transition-colors"
                       >
                         Upload New File
                       </button>
                     </div>
                     <div className="grid md:grid-cols-4 gap-4">
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl text-center">
+                      <div className="bg-card p-4 rounded-xl text-center">
                         <Users className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                        <div className="text-xl font-bold text-gray-900 dark:text-white">{validContacts.length}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">Valid Contacts</div>
+                        <div className="text-xl font-bold text-foreground">{validContacts.length}</div>
+                        <div className="text-xs text-muted-foreground">Valid Contacts</div>
                       </div>
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl text-center">
+                      <div className="bg-card p-4 rounded-xl text-center">
                         <AlertCircle className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-                        <div className="text-xl font-bold text-gray-900 dark:text-white">{invalidContacts}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">Invalid Entries</div>
+                        <div className="text-xl font-bold text-foreground">{invalidContacts}</div>
+                        <div className="text-xs text-muted-foreground">Invalid Entries</div>
                       </div>
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl text-center">
+                      <div className="bg-card p-4 rounded-xl text-center">
                         <FileText className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                        <div className="text-xl font-bold text-gray-900 dark:text-white">{uploadedFile?.name.split('.')[0]}</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">File Name</div>
+                        <div className="text-xl font-bold text-foreground">{uploadedFile?.name.split('.')[0]}</div>
+                        <div className="text-xs text-muted-foreground">File Name</div>
                       </div>
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl text-center">
+                      <div className="bg-card p-4 rounded-xl text-center">
                         <Eye className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                        <div className="text-xl font-bold text-gray-900 dark:text-white">{(uploadedFile?.size || 0 / 1024).toFixed(1)} KB</div>
-                        <div className="text-xs text-gray-600 dark:text-gray-300">File Size</div>
+                        <div className="text-xl font-bold text-foreground">{(uploadedFile?.size || 0 / 1024).toFixed(1)} KB</div>
+                        <div className="text-xs text-muted-foreground">File Size</div>
                       </div>
                     </div>
                   </div>
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                  <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                    <div className="px-4 py-2 border-b border-border bg-background">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-white">Contact List Preview</h4>
+                        <h4 className="text-lg font-semibold text-foreground">Contact List Preview</h4>
                         <div className="flex items-center space-x-3">
                           <button className="flex items-center px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs">
                             <Eye className="w-4 h-4 mr-1" />Preview Campaign
@@ -325,22 +361,22 @@ const CreateContactModal = ({ isOpen, onClose }) => {
                     </div>
                     <div className="overflow-x-auto">
                       <table className="w-full">
-                        <thead className="bg-gray-50 dark:bg-gray-900">
+                        <thead className="bg-background">
                           <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Phone Number</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">First Name</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Last Name</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone Number</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">First Name</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Name</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                        <tbody className="bg-card divide-y divide-border">
                           {validContacts.slice(0, 10).map((contact, index) => (
-                            <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                              <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{contact.phone_number}</td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{contact.first_name || '-'}</td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{contact.last_name || '-'}</td>
-                              <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{contact.email || '-'}</td>
+                            <tr key={index} className="hover:bg-accent">
+                              <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-foreground">{contact.phone_number}</td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-muted-foreground">{contact.first_name || '-'}</td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-muted-foreground">{contact.last_name || '-'}</td>
+                              <td className="px-4 py-2 whitespace-nowrap text-sm text-muted-foreground">{contact.email || '-'}</td>
                               <td className="px-4 py-2 whitespace-nowrap">
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Valid</span>
                               </td>
@@ -350,8 +386,8 @@ const CreateContactModal = ({ isOpen, onClose }) => {
                       </table>
                     </div>
                     {validContacts.length > 10 && (
-                      <div className="px-4 py-2 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-center">
-                        <p className="text-xs text-gray-600 dark:text-gray-300">
+                      <div className="px-4 py-2 border-t border-border bg-background text-center">
+                        <p className="text-xs text-muted-foreground">
                           Showing 10 of {validContacts.length} contacts. <button className="text-green-600 hover:text-green-700 ml-1 font-medium">View all contacts</button>
                         </p>
                       </div>
@@ -364,16 +400,16 @@ const CreateContactModal = ({ isOpen, onClose }) => {
             {/* Separator */}
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
+                <div className="w-full border-t border-border"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">OR</span>
+                <span className="px-2 bg-white text-muted-foreground">OR</span>
               </div>
             </div>
 
             {/* Individual Contact Section */}
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3 dark:text-gray-200">
+              <h3 className="text-sm font-medium text-gray-700 mb-3 dark:text-foreground">
                 Create Contact Individually
               </h3>
               
@@ -410,27 +446,7 @@ const CreateContactModal = ({ isOpen, onClose }) => {
                 </div>
                 {contactError && <div className="text-red-500 text-sm">{contactError}</div>}
                 <button
-                  onClick={async () => {
-                    setContactError('');
-                    if (!contactName.trim() || !contactPhone.trim()) {
-                      setContactError('Name and phone are required');
-                      return;
-                    }
-                    setContactLoading(true);
-                    try {
-                      await uploadContacts([{ first_name: contactName, phone_number: contactPhone, email: contactEmail }]);
-                      setContactName('');
-                      setContactPhone('');
-                      setContactEmail('');
-                      setContactError('');
-                      if (typeof window !== 'undefined' && typeof window.refreshContacts === 'function') {
-                        window.refreshContacts();
-                      }
-                    } catch (err) {
-                      setContactError('Failed to add contact');
-                    }
-                    setContactLoading(false);
-                  }}
+                  onClick={submitSingleContact}
                   disabled={contactLoading}
                   className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${contactLoading ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600 text-white'}`}
                 >
@@ -441,17 +457,17 @@ const CreateContactModal = ({ isOpen, onClose }) => {
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-gray-200">
+          <div className="p-6 border-t border-border">
             <button
-              onClick={handleSubmit}
-              disabled={!contactName.trim()}
+              onClick={submitSingleContact}
+              disabled={contactLoading || !contactName.trim() || !contactPhone.trim()}
               className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                contactName.trim()
+                !contactLoading && contactName.trim() && contactPhone.trim()
                   ? 'bg-green-500 hover:bg-green-600 text-white'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
-              Submit
+              {contactLoading ? 'Submitting...' : 'Submit'}
             </button>
           </div>
         </div>

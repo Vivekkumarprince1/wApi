@@ -106,7 +106,7 @@ const ConfirmModal = ({ isOpen, title, message, confirmText = 'Confirm', onConfi
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const TemplateDetailView = ({ template, canSubmitTemplates, onBack, onEdit, onSubmit, onDelete, onDuplicate }) => {
-  const canEdit = ['DRAFT', 'REJECTED'].includes(template.status);
+  const canEdit = ['DRAFT', 'REJECTED', 'APPROVED'].includes(template.status);
   const canSubmit = canSubmitTemplates && ['DRAFT', 'REJECTED'].includes(template.status);
   
   // Format date
@@ -139,7 +139,7 @@ const TemplateDetailView = ({ template, canSubmitTemplates, onBack, onEdit, onSu
               onClick={() => onEdit(template)}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
-              Edit Template
+              {template.status === 'APPROVED' ? 'Edit as New Version' : 'Edit Template'}
             </button>
           )}
           {canSubmit && (
@@ -221,6 +221,15 @@ const TemplateDetailView = ({ template, canSubmitTemplates, onBack, onEdit, onSu
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <h4 className="font-medium text-red-800 mb-2">Rejection Reason</h4>
               <p className="text-red-700">{template.rejectionReason}</p>
+            </div>
+          )}
+
+          {template.status === 'APPROVED' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-800 mb-2">Editing Workflow</h4>
+              <p className="text-blue-700 text-sm">
+                Editing an approved template creates a new version and submits it for Meta approval automatically.
+              </p>
             </div>
           )}
           
@@ -336,8 +345,20 @@ const TemplateManager = () => {
   const updateTemplate = async (templateId, templateData) => {
     try {
       setSaving(true);
-      const response = await put(`/templates/${templateId}`, templateData);
-      showToast('Template updated successfully', 'success');
+      const payload = {
+        ...templateData,
+        expectedVersion: selectedTemplate?.version,
+        expectedStatus: selectedTemplate?.status
+      };
+      const response = await put(`/templates/${templateId}`, payload);
+
+      if (response?.notification) {
+        const toastType = response.workflow === 'APPROVED_FORK_AND_SUBMIT' ? 'info' : 'success';
+        showToast(response.notification, toastType);
+      } else {
+        showToast('Template updated successfully', 'success');
+      }
+
       setView('list');
       loadTemplates();
       return response.template;

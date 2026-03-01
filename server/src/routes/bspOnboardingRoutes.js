@@ -16,10 +16,13 @@
  */
 
 const express = require('express');
+const { body } = require('express-validator');
 const router = express.Router();
 const authenticate = require('../middlewares/auth');
+const validate = require('../middlewares/validate');
 const {
   startBspOnboarding,
+  registerPhoneForAppEndpoint,
   handleCallback,
   completeOnboarding,
   getStatus,
@@ -51,6 +54,22 @@ router.get('/stage1-status', authenticate, getStage1StatusEndpoint);
 
 // Start BSP onboarding flow
 router.post('/start', authenticate, startBspOnboarding);
+
+// Connect business app / register new number
+router.post(
+  '/register-phone',
+  authenticate,
+  [
+    body('connectionType').optional().isIn(['business_app', 'new_number']),
+    body('region').optional().isString().trim().matches(/^[A-Za-z]{2,10}$/),
+    body('appId').optional().isString().trim().notEmpty(),
+    body('businessName').optional().isString().trim(),
+    body('phone').optional().isString().trim(),
+    body('contactEmail').optional().isEmail()
+  ],
+  validate,
+  registerPhoneForAppEndpoint
+);
 
 // Complete onboarding after callback
 router.post('/complete', authenticate, completeOnboarding);

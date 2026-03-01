@@ -44,12 +44,12 @@ export default function BillingDashboardPage() {
   const quotaPercentage = quota?.percentage ?? null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
+    <div className=" p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Billing & Usage</h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <h1 className="text-2xl font-bold text-foreground">Billing & Usage</h1>
+            <p className="text-sm text-muted-foreground">
               Meta-aligned conversation usage under our BSP account.
             </p>
           </div>
@@ -68,22 +68,22 @@ export default function BillingDashboardPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-3">
             {/* Quota summary */}
-            <div className="rounded-xl bg-white p-5 shadow-sm dark:bg-gray-800 md:col-span-1">
-              <h2 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+            <div className="rounded-xl bg-white p-5 shadow-premium dark:bg-card md:col-span-1">
+              <h2 className="mb-2 text-sm font-semibold text-foreground">
                 Monthly conversation quota
               </h2>
               {quota ? (
                 <>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  <p className="text-2xl font-bold text-foreground">
                     {quota.used} / {quota.limit}{' '}
-                    <span className="text-sm font-normal text-gray-500">conversations</span>
+                    <span className="text-sm font-normal text-muted-foreground">conversations</span>
                   </p>
                   {typeof quotaPercentage === 'number' && (
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       {quotaPercentage}% of monthly allowance used
                     </p>
                   )}
-                  <div className="mt-3 h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                  <div className="mt-3 h-2 w-full rounded-full bg-border dark:bg-muted">
                     <div
                       className={`h-2 rounded-full ${
                         quota.isBlocked
@@ -106,15 +106,15 @@ export default function BillingDashboardPage() {
                   ) : null}
                 </>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Quota details are not available for this workspace.
                 </p>
               )}
             </div>
 
             {/* Conversation usage */}
-            <div className="rounded-xl bg-white p-5 shadow-sm dark:bg-gray-800 md:col-span-2">
-              <h2 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+            <div className="rounded-xl bg-white p-5 shadow-premium dark:bg-card md:col-span-2">
+              <h2 className="mb-2 text-sm font-semibold text-foreground">
                 Current month conversations
               </h2>
               {currentMonth ? (
@@ -137,40 +137,40 @@ export default function BillingDashboardPage() {
                   />
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   No billing data for the current month yet.
                 </p>
               )}
             </div>
 
             {/* Estimated cost (simple preview) */}
-            <div className="rounded-xl bg-white p-5 shadow-sm dark:bg-gray-800 md:col-span-3">
-              <h2 className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+            <div className="rounded-xl bg-white p-5 shadow-premium dark:bg-card md:col-span-3">
+              <h2 className="mb-2 text-sm font-semibold text-foreground">
                 Estimated Meta cost (preview)
               </h2>
               {preview ? (
                 <div className="flex flex-wrap items-baseline gap-2">
                   {preview.amountUSD !== undefined ? (
                     <>
-                      <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                      <span className="text-3xl font-bold text-foreground">
                         ${preview.amountUSD}
                       </span>
-                      <span className="text-xs uppercase tracking-wide text-gray-500">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">
                         estimated for this period (conversation-based)
                       </span>
                     </>
                   ) : (
-                    <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-gray-900 p-3 text-xs text-gray-100">
+                    <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-background p-3 text-xs text-gray-100">
                       {JSON.stringify(preview, null, 2)}
                     </pre>
                   )}
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Cost preview is not available yet for this workspace.
                 </p>
               )}
-              <p className="mt-3 text-xs text-gray-500">
+              <p className="mt-3 text-xs text-muted-foreground">
                 All conversations are initiated under our BSP-owned Meta assets. Meta bills us,
                 and we pass through charges to your workspace based on these units.
               </p>
@@ -184,9 +184,9 @@ export default function BillingDashboardPage() {
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 text-sm dark:border-gray-700 dark:bg-gray-900/40">
-      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="mt-1 text-xl font-semibold text-gray-900 dark:text-white">{value}</p>
+    <div className="rounded-xl border border-gray-100 bg-muted p-4 text-sm dark:border-border dark:bg-gray-900/40">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 text-xl font-semibold text-foreground">{value}</p>
     </div>
   );
 }

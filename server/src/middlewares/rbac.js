@@ -19,7 +19,8 @@ const ROLE_HIERARCHY = {
   viewer: 0,
   agent: 1,
   manager: 2,
-  owner: 3
+  owner: 3,
+  admin: 3
 };
 
 /**
@@ -77,8 +78,8 @@ function requirePermission(permissionKey) {
         });
       }
 
-      // Owners bypass all permission checks
-      if (permission.role === 'owner') {
+      // Owners/admins bypass all permission checks
+      if (permission.role === 'owner' || permission.role === 'admin') {
         req.permissions = permission;
         return next();
       }
@@ -185,8 +186,8 @@ function requireRole(allowedRoles) {
       // Check role
       const userRole = permission.role;
       
-      // Owner always passes
-      if (userRole === 'owner') {
+      // Owner/admin always pass
+      if (userRole === 'owner' || userRole === 'admin') {
         return next();
       }
 
@@ -261,8 +262,8 @@ function requireConversationAccess(conversationIdParam = 'conversationId') {
         });
       }
 
-      // Owners and managers can access all conversations
-      if (permission.role === 'owner' || permission.role === 'manager' || 
+      // Owners/admins/managers can access all conversations
+      if (permission.role === 'owner' || permission.role === 'admin' || permission.role === 'manager' || 
           permission.permissions?.viewAllConversations) {
         return next();
       }
@@ -313,8 +314,8 @@ function requireConversationAccess(conversationIdParam = 'conversationId') {
 function applyAgentRestrictions(query, permission) {
   if (!permission) return query;
 
-  // Owners see everything
-  if (permission.role === 'owner') return query;
+  // Owners/admins see everything
+  if (permission.role === 'owner' || permission.role === 'admin') return query;
 
   // Agents only see assigned tags/phones
   if (permission.role === 'agent') {
@@ -341,7 +342,7 @@ async function canViewResource(userId, workspaceId, resourceType, resourceId) {
     }).lean();
 
     if (!permission) return false;
-    if (permission.role === 'owner') return true;
+    if (permission.role === 'owner' || permission.role === 'admin') return true;
 
     const viewPermissionKey = `view${resourceType.charAt(0).toUpperCase() + resourceType.slice(1)}`;
     return permission.permissions[viewPermissionKey] === true;
@@ -377,7 +378,7 @@ async function canAssignConversations(userId, workspaceId) {
   }).lean();
 
   if (!permission) return false;
-  if (permission.role === 'owner' || permission.role === 'manager') return true;
+  if (permission.role === 'owner' || permission.role === 'admin' || permission.role === 'manager') return true;
   return permission.permissions?.assignConversations === true;
 }
 
@@ -393,7 +394,7 @@ async function canSendMessage(userId, workspaceId, conversationId) {
   if (!permission || !permission.isActive) return false;
   
   // Owners and managers can send to any conversation
-  if (permission.role === 'owner' || permission.role === 'manager') return true;
+  if (permission.role === 'owner' || permission.role === 'admin' || permission.role === 'manager') return true;
 
   // Agents can only send to assigned conversations
   if (permission.permissions?.sendMessages) {

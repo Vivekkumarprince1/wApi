@@ -109,7 +109,7 @@ async function startDB() {
       console.log('MongoDB connected');
       
       // Initialize WABA credentials for workspaces after DB connection
-      await initializeDefaultWABA();
+      // await initializeDefaultWABA(); // Disabled to prevent E11000 duplicate key errors in multi-tenant setup
     } catch (err) {
       console.error('MongoDB connection error:', err);
     }
@@ -168,14 +168,14 @@ try {
   console.error('[Server] Failed to start usage ledger cron:', err.message);
 }
 
-// Start WABA autosync service (Stage 1 hardening)
+// Start Gupshup app autosync service
 if (process.env.START_WABA_AUTOSYNC !== 'false') {
   try {
-    const { startAutosync } = require('./services/wabaAutosyncService');
+    const { startAutosync } = require('./services/gupshupAppSyncService');
     startAutosync();
-    console.log('[Server] ✅ WABA autosync service started');
+    console.log('[Server] ✅ Gupshup app autosync service started');
   } catch (err) {
-    console.error('[Server] Failed to start WABA autosync:', err.message);
+    console.error('[Server] Failed to start Gupshup app autosync:', err.message);
   }
 }
 
@@ -201,7 +201,6 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const billingRoutes = require('./routes/billingRoutes'); // Week 2 addition
 const templateRoutes = require('./routes/templateRoutes');
-const messagingRoutes = require('./routes/messagingRoutes'); // Template sending (Interakt-style)
 const conversationRoutes = require('./routes/conversationRoutes');
 const inboxRoutes = require('./routes/inboxRoutes'); // Stage 4: Shared Inbox
 const internalNotesRoutes = require('./routes/internalNotesRoutes'); // Stage 4 Hardening: Internal Notes
@@ -237,14 +236,11 @@ app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/billing', billingRoutes); // Week 2 addition
 app.use('/api/v1/templates', templateRoutes);
-app.use('/api/v1/messages', messagingRoutes); // Template sending (Interakt-style)
 app.use('/api/v1/conversations', conversationRoutes);
 app.use('/api/v1/inbox', inboxRoutes); // Stage 4: Shared Inbox
 app.use('/api/v1/inbox', internalNotesRoutes); // Stage 4 Hardening: Internal Notes
 app.use('/api/v1/metrics', metricsRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);
-// Alias (no version prefix) for Embedded Signup start/callback
-app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/v1/onboarding/bsp', bspOnboardingRoutes); // BSP Interakt model
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/admin/bsp', bspAdminRoutes); // BSP multi-tenant admin
@@ -324,73 +320,7 @@ if (process.env.START_ANALYTICS_CRON === 'true') {
   });
 }
 
-// Token refresh cron (daily) - refreshes ESB tokens before 60-day expiry
-if (!BSP_ONLY && process.env.START_TOKEN_REFRESH_CRON === 'true') {
-  const cron = require('node-cron');
-  const metaAutomationService = require('./services/metaAutomationService');
-  const { decrypt, encrypt, isEncrypted } = require('./utils/encryption');
-  
-  cron.schedule('0 2 * * *', async () => { // 2 AM UTC daily
-    try {
-      const Workspace = require('./models/Workspace');
-      
-      // Find workspaces with tokens expiring within 7 days
-      const workspaces = await Workspace.find({
-        'esbFlow.tokenExpiry': { 
-          $lt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Within 7 days
-          $gt: new Date() // But still valid
-        },
-        'esbFlow.userRefreshToken': { $exists: true, $ne: null },
-        'esbFlow.status': 'completed'
-      });
-      
-      console.log(`[Token Refresh] Found ${workspaces.length} workspaces with tokens expiring within 7 days`);
-      
-      for (const workspace of workspaces) {
-        try {
-          const workspaceId = workspace._id.toString();
-          
-          // Decrypt refresh token
-          let refreshToken = workspace.esbFlow.userRefreshToken;
-          if (isEncrypted(refreshToken)) {
-            refreshToken = decrypt(refreshToken, workspaceId);
-          }
-          
-          if (!refreshToken) {
-            console.warn(`[Token Refresh] No refresh token for workspace ${workspaceId}`);
-            continue;
-          }
-          
-          // Refresh the token
-          const newToken = await metaAutomationService.refreshUserToken(refreshToken);
-          
-          // Update with encrypted tokens
-          workspace.esbFlow.userAccessToken = encrypt(newToken.accessToken, workspaceId);
-          workspace.esbFlow.userRefreshToken = encrypt(newToken.refreshToken || refreshToken, workspaceId);
-          workspace.esbFlow.tokenExpiry = new Date(Date.now() + newToken.expiresIn * 1000);
-          
-          await workspace.save();
-          console.log(`[Token Refresh] ✅ Token refreshed for workspace ${workspaceId}`);
-        } catch (err) {
-          console.error(`[Token Refresh] ❌ Failed to refresh token for workspace ${workspace._id}:`, err.message);
-          
-          // Mark workspace with refresh failure for admin alerts
-          try {
-            workspace.esbFlow.lastTokenRefreshError = err.message;
-            workspace.esbFlow.lastTokenRefreshAttempt = new Date();
-            await workspace.save();
-          } catch (saveErr) {
-            console.error('Failed to save refresh error:', saveErr.message);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('[Token Refresh] Cron job error:', err.message);
-    }
-  });
-  
-  console.log('[Server] ✅ Token refresh cron enabled (runs daily at 2 AM UTC)');
-}
+// Legacy ESB token refresh cron removed in Gupshup-only control plane.
 
 // BSP system token health monitor (Interakt-grade operational hardening)
 if (process.env.START_BSP_HEALTH_MONITOR !== 'false') {

@@ -115,16 +115,16 @@ function CatalogContent(){
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <FaSpinner className="animate-spin text-3xl text-[#13C18D]" />
+      <div className=" flex items-center justify-center">
+        <FaSpinner className="animate-spin text-3xl text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="">
       {/* Header with Gradient */}
-      <div className="bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] shadow-lg">
+      <div className="bg-gradient-to-r from-primary to-primary/80 shadow-premium">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -138,7 +138,7 @@ function CatalogContent(){
             </div>
             <button 
               onClick={handleAddProduct}
-              className="flex items-center space-x-2 px-5 py-2.5 bg-white text-[#13C18D] rounded-xl font-semibold hover:shadow-xl transition-all hover:scale-105"
+              className="flex items-center space-x-2 px-5 py-2.5 bg-white text-primary rounded-xl font-semibold hover:shadow-xl transition-all hover:scale-105"
             >
               <FaPlus />
               <span>Add Product</span>
@@ -151,39 +151,39 @@ function CatalogContent(){
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Total Products</p>
-            <p className="text-3xl font-bold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] bg-clip-text text-transparent">{stats?.totalProducts || products.length}</p>
+          <div className="bg-card rounded-2xl shadow-premium p-6">
+            <p className="text-muted-foreground text-sm mb-1">Total Products</p>
+            <p className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{stats?.totalProducts || products.length}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Active Products</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.activeProducts || (Array.isArray(products) ? products.filter(p => p.isActive).length : 0)}</p>
+          <div className="bg-card rounded-2xl shadow-premium p-6">
+            <p className="text-muted-foreground text-sm mb-1">Active Products</p>
+            <p className="text-3xl font-bold text-foreground">{stats?.activeProducts || (Array.isArray(products) ? products.filter(p => p.isActive).length : 0)}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Categories</p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats?.categories || (Array.isArray(products) ? new Set(products.map(p => p.category)).size : 0)}</p>
+          <div className="bg-card rounded-2xl shadow-premium p-6">
+            <p className="text-muted-foreground text-sm mb-1">Categories</p>
+            <p className="text-3xl font-bold text-foreground">{stats?.categories || (Array.isArray(products) ? new Set(products.map(p => p.category)).size : 0)}</p>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-            <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Out of Stock</p>
+          <div className="bg-card rounded-2xl shadow-premium p-6">
+            <p className="text-muted-foreground text-sm mb-1">Out of Stock</p>
             <p className="text-3xl font-bold text-red-500">{stats?.outOfStock || (Array.isArray(products) ? products.filter(p => p.stock === 0).length : 0)}</p>
           </div>
         </div>
 
         {/* Search and Filter */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 mb-6">
+        <div className="bg-card rounded-2xl shadow-premium p-4 mb-6">
           <div className="flex items-center space-x-3">
             <div className="relative flex-1">
-              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#13C18D]"
+                className="w-full pl-10 pr-4 py-2.5 border border-border rounded-xl bg-white dark:bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
-            <button className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-              <FaFilter className="text-gray-600 dark:text-gray-300" />
+            <button className="px-4 py-2.5 border border-border rounded-xl hover:bg-accent transition-colors">
+              <FaFilter className="text-muted-foreground" />
             </button>
           </div>
         </div>
@@ -192,10 +192,10 @@ function CatalogContent(){
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.length === 0 ? (
             <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 dark:text-gray-400">No products found. Add your first product!</p>
+              <p className="text-muted-foreground">No products found. Add your first product!</p>
             </div>
           ) : filteredProducts.map((product) => (
-            <div key={product._id || product.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <div key={product._id || product.id} className="bg-card rounded-2xl shadow-premium overflow-hidden hover:shadow-xl transition-shadow">
               <div className="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 h-48 flex items-center justify-center text-6xl">
                 {product.images?.[0]?.url ? (
                   <img src={product.images[0].url} alt={product.name} className="w-full h-full object-cover" />
@@ -204,34 +204,34 @@ function CatalogContent(){
               <div className="p-5">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{product.name}</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{product.category || 'General'}</p>
+                    <h3 className="text-lg font-bold text-foreground">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground">{product.category || 'General'}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    product.isActive && product.stock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    product.isActive && product.stock > 0 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-destructive/10 text-destructive'
                   }`}>{product.isActive && product.stock > 0 ? 'Active' : 'Out of Stock'}</span>
                 </div>
                 <div className="flex items-center justify-between mt-4">
                   <div>
-                    <p className="text-2xl font-bold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] bg-clip-text text-transparent">₹{product.price}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Stock: {product.stock}</p>
+                    <p className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">₹{product.price}</p>
+                    <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
                   </div>
                   <div className="flex space-x-2">
                     <button 
                       onClick={() => handleViewProduct(product)}
-                      className="p-2 text-[#13C18D] hover:bg-[#13C18D] hover:text-white rounded-lg transition-colors"
+                      className="p-2 text-primary hover:bg-primary hover:text-white rounded-xl transition-colors"
                     >
                       <FaEye />
                     </button>
                     <button 
                       onClick={() => handleEditProduct(product)}
-                      className="p-2 text-blue-500 hover:bg-blue-500 hover:text-white rounded-lg transition-colors"
+                      className="p-2 text-blue-500 hover:bg-blue-500 hover:text-white rounded-xl transition-colors"
                     >
                       <FaEdit />
                     </button>
                     <button 
                       onClick={() => handleDeleteProduct(product._id || product.id)}
-                      className="p-2 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors"
+                      className="p-2 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-colors"
                     >
                       <FaTrash />
                     </button>

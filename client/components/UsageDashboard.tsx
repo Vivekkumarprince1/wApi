@@ -145,7 +145,7 @@ export default function UsageDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Usage & Limits</h2>
+          <h2 className="text-2xl font-bold text-foreground">Usage & Limits</h2>
           <p className="text-sm text-gray-500 mt-1">
             Current Plan: <span className="font-semibold capitalize">{usageData.plan}</span>
           </p>
@@ -167,7 +167,7 @@ export default function UsageDashboard() {
               <div className="space-y-4">
                 {/* Title & Warning */}
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-gray-900">{resource.label}</h3>
+                  <h3 className="font-semibold text-foreground">{resource.label}</h3>
                   {warning && (
                     <span className="text-xs font-medium px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
                       ⚠️ High
@@ -182,10 +182,10 @@ export default function UsageDashboard() {
 
                 {/* Usage Numbers */}
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-gray-900">
+                  <span className="text-3xl font-bold text-foreground">
                     {formatLimit(resource.current)}
                   </span>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-muted-foreground">
                     / {formatLimit(resource.limit)}
                   </span>
                 </div>
@@ -193,7 +193,7 @@ export default function UsageDashboard() {
                 {/* Progress Bar */}
                 {!isUnlimited && (
                   <div className="space-y-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-border rounded-full h-2">
                       <div
                         className={`h-2 rounded-full transition-all ${getProgressColor(percentage, warning)}`}
                         style={{ width: `${Math.min(100, percentage)}%` }}
@@ -219,7 +219,7 @@ export default function UsageDashboard() {
         <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-foreground">
                 Approaching Your Plan Limits
               </h3>
               <p className="text-sm text-gray-600 mt-1">

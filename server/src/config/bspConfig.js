@@ -1,67 +1,58 @@
 /**
  * BSP (Business Solution Provider) Configuration
  * 
- * This configuration centralizes all Meta/WhatsApp credentials for the BSP model.
- * In this architecture, YOU are the BSP like Interakt, and all tenants operate
- * under your single parent WABA using different phone_number_ids.
+ * This configuration centralizes all Gupshup Partner + WhatsApp credentials.
+ * In this architecture, YOU are the BSP partner and all tenants operate
+ * under your partner-owned parent app account.
  * 
- * IMPORTANT: Never allow per-tenant WABA tokens. All API calls go through
- * the parent system user token configured here.
+ * IMPORTANT: Never allow per-tenant provider tokens. All API calls go through
+ * centralized partner/api credentials configured here.
  */
 
 const dotenv = require('dotenv');
 dotenv.config();
 
 const bspConfig = {
+  provider: 'gupshup',
+
   // ═══════════════════════════════════════════════════════════════════
-  // PARENT WABA CONFIGURATION (Your BSP Account)
+  // PARTNER APP CONFIGURATION
   // ═══════════════════════════════════════════════════════════════════
-  
-  /**
-   * Your parent WABA ID - all tenants operate under this single WABA
-   * This is your BSP's WhatsApp Business Account ID
-   */
-  parentWabaId: process.env.META_WABA_ID,
-  
-  /**
-   * Your Meta Business ID - the business that owns the parent WABA
-   */
-  parentBusinessId: process.env.META_BUSINESS_ID,
-  
-  /**
-   * System User Access Token - PERMANENT token for server-to-server API calls
-   * This should be a system user token, NOT a user access token
-   * Generate from: Business Settings > System Users > Generate Token
-   * Required scopes: whatsapp_business_management, whatsapp_business_messaging
-   */
-  systemUserToken: process.env.META_ACCESS_TOKEN,
-  
-  /**
-   * Meta App credentials for webhook verification
-   */
-  appId: process.env.META_APP_ID,
-  appSecret: process.env.META_APP_SECRET,
-  configId: process.env.META_CONFIG_ID,
-  
-  /**
-   * Webhook verification token (shared across all webhooks)
-   */
-  webhookVerifyToken: process.env.META_VERIFY_TOKEN,
+
+  gupshup: {
+    partnerToken: process.env.GUPSHUP_PARTNER_TOKEN,
+    appId: process.env.GUPSHUP_APP_ID,
+    apiKey: process.env.GUPSHUP_API_KEY,
+    sourceNumber: process.env.GUPSHUP_SOURCE_NUMBER,
+    partnerBaseUrl: process.env.GUPSHUP_PARTNER_BASE_URL || 'https://partner.gupshup.io',
+    apiBaseUrl: process.env.GUPSHUP_API_BASE_URL || 'https://api.gupshup.io',
+    embedCallbackUrl: process.env.GUPSHUP_EMBED_CALLBACK_URL || `${process.env.APP_URL}/api/v1/onboarding/bsp/callback`,
+    webhookAllowedIPs: (process.env.GUPSHUP_WEBHOOK_IPS || '').split(',').map((value) => value.trim()).filter(Boolean)
+  },
+
+  // Transitional aliases used by existing modules while migration is in-progress.
+  get systemUserToken() {
+    return this.gupshup.partnerToken;
+  },
+
+  get appId() {
+    return this.gupshup.appId;
+  },
+
+  get webhookVerifyToken() {
+    return null;
+  },
   
   // ═══════════════════════════════════════════════════════════════════
   // API CONFIGURATION
   // ═══════════════════════════════════════════════════════════════════
   
-  /**
-   * Meta Graph API version
-   */
-  apiVersion: process.env.META_API_VERSION || 'v21.0',
-  
-  /**
-   * Base URL for Meta Graph API
-   */
-  get baseUrl() {
-    return `https://graph.facebook.com/${this.apiVersion}`;
+  get partnerBaseUrl() {
+    return this.gupshup.partnerBaseUrl;
+  },
+
+  get apiBaseUrl() {
+    return this.gupshup.apiBaseUrl;
   },
   
   // ═══════════════════════════════════════════════════════════════════
@@ -155,23 +146,19 @@ const bspConfig = {
    */
   validate() {
     const errors = [];
-    
-    if (!this.parentWabaId) {
-      errors.push('META_WABA_ID is required');
+
+    if (!this.gupshup.partnerToken) {
+      errors.push('GUPSHUP_PARTNER_TOKEN is required');
     }
-    
-    if (!this.systemUserToken) {
-      errors.push('META_ACCESS_TOKEN is required');
+
+    if (!this.gupshup.apiKey) {
+      errors.push('GUPSHUP_API_KEY is required');
     }
-    
-    if (!this.appSecret) {
-      errors.push('META_APP_SECRET is required for webhook verification');
+
+    if (!this.gupshup.appId) {
+      errors.push('GUPSHUP_APP_ID is required');
     }
-    
-    if (!this.webhookVerifyToken) {
-      errors.push('META_VERIFY_TOKEN or BSP_WEBHOOK_VERIFY_TOKEN is required');
-    }
-    
+
     return {
       valid: errors.length === 0,
       errors
@@ -191,7 +178,7 @@ const bspConfig = {
    * Check if BSP mode is enabled
    */
   isEnabled() {
-    return !!(this.parentWabaId && this.systemUserToken);
+    return !!(this.gupshup.partnerToken && this.gupshup.apiKey && this.gupshup.appId);
   }
 };
 

@@ -44,7 +44,7 @@ const PLAN_LIMITS = {
   free: {
     messagesDaily: 1000,
     messagesMonthly: 30000,
-    templates: 5,
+    templates: 15,
     campaigns: 5,
     contacts: 1000,
     automations: 3,
@@ -53,7 +53,7 @@ const PLAN_LIMITS = {
   basic: {
     messagesDaily: 10000,
     messagesMonthly: 300000,
-    templates: 25,
+    templates: 50,
     campaigns: 10,
     contacts: 10000,
     automations: 10,
@@ -62,7 +62,7 @@ const PLAN_LIMITS = {
   premium: {
     messagesDaily: 100000,
     messagesMonthly: 3000000,
-    templates: 100,
+    templates: 200,
     campaigns: -1,
     contacts: 100000,
     automations: 50,

@@ -244,7 +244,7 @@ const StepIndicator = ({ steps, currentStep, onStepClick }) => (
                 ? 'bg-green-600 text-white shadow-lg scale-105' 
                 : isCompleted 
                   ? 'bg-green-100 text-green-700 hover:bg-green-200 cursor-pointer'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-muted text-gray-400 cursor-not-allowed'
             }`}
           >
             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
@@ -315,7 +315,7 @@ const Step1Details = ({ template, updateTemplate, validation }) => (
             <p className="text-sm text-gray-500">{cat.description}</p>
             <div className="mt-2 flex flex-wrap gap-1">
               {cat.examples.map((ex, i) => (
-                <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                <span key={i} className="text-xs bg-muted text-gray-600 px-2 py-0.5 rounded">
                   {ex}
                 </span>
               ))}
@@ -394,7 +394,7 @@ const Step2Content = ({ template, updateTemplate, validation }) => {
                 onChange={(e) => updateTemplate('header.enabled', e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+              <div className="w-11 h-6 bg-border rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
             </label>
           </div>
 
@@ -538,7 +538,7 @@ const Step2Content = ({ template, updateTemplate, validation }) => {
               onChange={(e) => updateTemplate('footer.enabled', e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+            <div className="w-11 h-6 bg-border rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
           </label>
         </div>
 
@@ -620,7 +620,7 @@ const Step3Buttons = ({ template, updateTemplate, validation }) => {
               onChange={(e) => updateTemplate('buttons.enabled', e.target.checked)}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+            <div className="w-11 h-6 bg-border rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
           </label>
         </div>
       </div>
@@ -943,7 +943,7 @@ const TemplateStepBuilder = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <div className="min-h-screen bg-muted py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Step Indicator */}
         <StepIndicator 
@@ -986,7 +986,7 @@ const TemplateStepBuilder = ({
               type="button"
               onClick={handleSave}
               disabled={isSaving || !template.name}
-              className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-3 bg-muted text-gray-700 rounded-xl font-medium hover:bg-border transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <FaSave />
               {isSaving ? 'Saving...' : 'Save Draft'}

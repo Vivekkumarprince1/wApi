@@ -57,7 +57,7 @@ const CampaignList = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'draft':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
       case 'scheduled':
         return 'bg-blue-100 text-blue-800';
       case 'running':
@@ -67,7 +67,7 @@ const CampaignList = () => {
       case 'failed':
         return 'bg-red-100 text-red-800';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-gray-800';
     }
   };
 
@@ -149,11 +149,11 @@ const CampaignList = () => {
       {loading ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading campaigns...</p>
+          <p className="mt-2 text-muted-foreground">Loading campaigns...</p>
         </div>
       ) : campaigns.length === 0 ? (
         <div className="text-center py-8">
-          <p className="text-gray-500">No campaigns found.</p>
+          <p className="text-muted-foreground">No campaigns found.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -172,7 +172,7 @@ const CampaignList = () => {
                     {campaign.message}
                   </p>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-gray-500">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                     <div>
                       <span className="font-medium">Total Contacts:</span> {campaign.totalContacts}
                     </div>
@@ -188,7 +188,7 @@ const CampaignList = () => {
                   </div>
 
                   {campaign.template && (
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mt-2 text-xs text-muted-foreground">
                       Template: {campaign.template.name}
                     </div>
                   )}
@@ -235,7 +235,7 @@ const CampaignList = () => {
               Previous
             </button>
             
-            <span className="px-3 py-2 text-gray-600">
+            <span className="px-3 py-2 text-muted-foreground">
               Page {currentPage} of {totalPages}
             </span>
             
