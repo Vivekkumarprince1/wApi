@@ -70,11 +70,18 @@ async function resolveOrCreateWorkspaceApp(userId) {
   let appId;
   let appName;
 
-  if (user.workspace && user.workspace.gupshupAppId) {
-    appId = user.workspace.gupshupAppId;
+  // Check both fields for existing app (one-time creation policy)
+  const existingAppId = user.workspace?.gupshupAppId || user.workspace?.gupshupIdentity?.partnerAppId;
+
+  if (existingAppId) {
+    // Returning user — reuse existing app
+    appId = existingAppId;
     appName = user.workspace.name || `workspace-${userId}`;
+    console.log(`[BSP-V2] Reusing existing app: ${appId}`);
   } else {
-    appName = `waba${userId.toString().substring(0, 10)}${Date.now().toString().substring(8)}`;
+    // New user — create a fresh app
+    const uniqueSuffix = Date.now().toString(36).substring(4);
+    appName = `waba${userId.toString().substring(0, 10)}${uniqueSuffix}`;
     try {
       const newApp = await gupshupService.createPartnerApp(appName);
       if (!newApp || !newApp.appId) {
@@ -83,12 +90,17 @@ async function resolveOrCreateWorkspaceApp(userId) {
       appId = newApp.appId;
 
       if (user.workspace) {
-        await Workspace.findByIdAndUpdate(user.workspace._id, { gupshupAppId: appId });
+        user.workspace.gupshupAppId = appId;
+        if (!user.workspace.gupshupIdentity) user.workspace.gupshupIdentity = {};
+        user.workspace.gupshupIdentity.partnerAppId = appId;
+        user.workspace.markModified('gupshupIdentity');
+        await user.workspace.save();
       } else {
         const newWorkspace = await Workspace.create({
           name: `workspace-${userId}`,
           owner: userId,
           gupshupAppId: appId,
+          gupshupIdentity: { partnerAppId: appId },
           onboardingStatus: 'pending_activation'
         });
         await User.findByIdAndUpdate(userId, { workspace: newWorkspace._id });
@@ -177,7 +189,7 @@ async function completeBspOnboarding(codeOrAppId, workspaceId) {
   const selectedAppId = codeOrAppId && codeOrAppId.length > 20 ? codeOrAppId : app.appId;
 
   let finalApp = (partnerApps?.partnerAppsList || []).find((item) => item.id === selectedAppId);
-  
+
   if (!finalApp) {
     // If the app is not in the list yet (e.g. newly created), construct a pending app object
     finalApp = {
@@ -187,6 +199,16 @@ async function completeBspOnboarding(codeOrAppId, workspaceId) {
       phone: null,
       customerId: null
     };
+  }
+
+  if (finalApp.phone && !finalApp.live) {
+    console.log(`[BSP] App ${finalApp.id} has phone but is not live. Triggering Go-Live...`);
+    try {
+      await gupshupService.goLive({ appId: finalApp.id });
+      finalApp.live = true;
+    } catch (err) {
+      console.error(`[BSP] Auto Go-Live failed for ${finalApp.id}:`, err.message);
+    }
   }
 
   return {

@@ -149,7 +149,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
   const actions = {
     phone: {
       label: 'Connect WhatsApp',
-      action: () => router.push('/onboarding/connect-whatsapp'),
+      action: () => router.push('/onboarding/esb'),
     },
     role: {
       label: 'Request Access',
@@ -170,24 +170,24 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
         <div className="w-20 h-20 bg-white dark:bg-muted rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
           {icons[blockType]}
         </div>
-        
+
         <h3 className="text-xl font-bold text-foreground mb-3">
           {blockType === 'phone' && 'WhatsApp Connection Required'}
           {blockType === 'role' && 'Access Restricted'}
           {blockType === 'auth' && 'Authentication Required'}
         </h3>
-        
+
         <p className="text-muted-foreground mb-6">
           {reason}
         </p>
-        
+
         <button
           onClick={actions[blockType].action}
           className="px-6 py-3 bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white rounded-lg font-medium hover:shadow-lg transition-all duration-200"
         >
           {actions[blockType].label}
         </button>
-        
+
         {blockType === 'phone' && (
           <p className="text-sm text-muted-foreground mt-4">
             You need to connect your WhatsApp Business number through the Meta Business Suite
@@ -203,7 +203,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
  */
 export function useFeatureAccess(feature: 'templates' | 'campaigns' | 'messaging' | 'team' | 'billing' | 'admin') {
   const workspace = useWorkspace();
-  
+
   let disabled = false;
   let tooltip = '';
 

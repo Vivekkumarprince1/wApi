@@ -74,7 +74,8 @@ const WorkspaceSchema = new mongoose.Schema({
     whatsappSetupCompleted: { type: Boolean, default: false },
     templateSetupCompleted: { type: Boolean, default: false },
     completed: { type: Boolean, default: false },
-    completedAt: { type: Date }
+    completedAt: { type: Date },
+    accountVerifiedAt: { type: Date }
   },
   // Embedded Signup Business (ESB) Flow - Automated Meta Onboarding
   esbFlow: {
@@ -177,6 +178,7 @@ const WorkspaceSchema = new mongoose.Schema({
   whatsappVerifyToken: { type: String },
   connectedAt: { type: Date },
   whatsappConnected: { type: Boolean, default: false }, // Quick check if WhatsApp is connected
+  wabaStatus: { type: String, enum: ['PENDING', 'VERIFIED', 'REJECTED'] }, // WABA verification status
 
   // Phone metadata (BSP model - synced from Meta)
   /**
@@ -200,6 +202,7 @@ const WorkspaceSchema = new mongoose.Schema({
   gupshupIdentity: {
     partnerAppId: { type: String, sparse: true, unique: true },
     appApiKey: { type: String },
+    appStatus: { type: String, enum: ['pending', 'created', 'active', 'suspended'] },
     source: { type: String } // e.g., source phone number representation mapped by Gupshup
   },
 
@@ -596,8 +599,13 @@ WorkspaceSchema.methods.ensureWorkspaceBspReady = function () {
     throw Object.assign(new Error('Workspace is not configured for WhatsApp. Please complete onboarding.'), { code: 'WORKSPACE_NOT_BSP_MANAGED' });
   }
 
-  const identity = this.gupshupIdentity;
-  if (!identity || !identity.partnerAppId || !identity.appApiKey || !identity.source) {
+  const identity = this.gupshupIdentity || {};
+  const appId = identity.partnerAppId || this.gupshupAppId || process.env.GUPSHUP_APP_ID;
+  const appApiKey = identity.appApiKey || process.env.GUPSHUP_API_KEY;
+  const source = identity.source || this.whatsappPhoneNumber || this.bspDisplayPhoneNumber;
+
+  if (!appId || !appApiKey || !source) {
+    console.error(`[Workspace] BSP Ready check failed: appId=${!!appId}, apiKey=${!!appApiKey}, source=${!!source}`);
     throw Object.assign(new Error('Workspace Gupshup credentials missing. Ensure partnerAppId, appApiKey, and source are all set.'), { code: 'CREDENTIALS_MISSING' });
   }
   return true;

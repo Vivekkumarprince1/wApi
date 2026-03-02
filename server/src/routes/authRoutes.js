@@ -1,14 +1,14 @@
 const express = require('express');
 const { body } = require('express-validator');
-const { 
-  signup, 
-  login, 
-  me, 
+const {
+  signup,
+  login,
+  me,
   logout,
   updateProfile,
-  sendSignupOTP, 
-  verifySignupOTP, 
-  sendLoginOTP, 
+  sendSignupOTP,
+  verifySignupOTP,
+  sendLoginOTP,
   verifyLoginOTP,
   googleOAuthLogin,
   getGoogleDebug,
@@ -40,7 +40,8 @@ router.post('/verify-signup-otp', [
   body('description').optional().isString(),
   body('companyLocation').optional().isString(),
   body('certificationType').optional().isIn(['gst', 'msme', 'pan', 'other']),
-  body('certificationNumber').optional().isString()
+  body('certificationNumber').optional().isString(),
+  body('phone').optional().isString()
 ], validate, verifySignupOTP);
 router.post('/send-login-otp', [body('email').isEmail()], validate, sendLoginOTP);
 router.post('/verify-login-otp', [body('email').isEmail(), body('otp').notEmpty()], validate, verifyLoginOTP);
@@ -58,7 +59,8 @@ router.post('/signup', [
   body('description').optional().isString(),
   body('companyLocation').optional().isString(),
   body('certificationType').optional().isIn(['gst', 'msme', 'pan', 'other']),
-  body('certificationNumber').optional().isString()
+  body('certificationNumber').optional().isString(),
+  body('phone').optional().isString()
 ], validate, signup);
 router.post('/login', [body('email').isEmail(), body('password').notEmpty()], validate, login);
 

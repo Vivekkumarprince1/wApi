@@ -6,9 +6,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GoogleLogin from '@/components/GoogleLogin';
 import FacebookLogin from '@/components/FacebookLogin';
-import { registerUser, getCurrentUser } from '@/lib/api';
+import { sendSignupOTP, verifySignupOTP, getCurrentUser } from '@/lib/api';
 import { FaWhatsapp } from 'react-icons/fa';
-import { Mail, Lock, User, ArrowRight, Sparkles, Zap, Shield, Building2, Briefcase, Globe, FileText, BadgeCheck, MapPin, ChevronLeft, ChevronDown } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sparkles, Zap, Shield, KeyRound, ChevronLeft } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,14 +16,8 @@ export default function RegisterPage() {
     name: '',
     email: '',
     password: '',
-    businessName: '',
-    industry: '',
-    website: '',
-    description: '',
-    companyLocation: '',
-    annualRevenue: '',
-    certificationType: '',
-    certificationNumber: ''
+    phone: '',
+    otp: ''
   });
   const [activePage, setActivePage] = useState(1);
   const [error, setError] = useState('');
@@ -51,28 +45,47 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const data = await registerUser(formData);
+      const data = await verifySignupOTP({
+        email: formData.email,
+        otp: formData.otp,
+        name: formData.name,
+        password: formData.password,
+        phone: formData.phone
+      });
       if (data?.token) {
         localStorage.setItem('token', data.token);
         document.cookie = `auth_token=${data.token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
         window.dispatchEvent(new Event('authChange'));
       }
-      // Always redirect to email verification after registration
-      router.push('/onboarding/verify-email');
+      // Redirect to business info gathering after successful auth
+      router.push('/onboarding/business-info');
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || 'OTP Verification failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleNextPage = () => {
-    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim()) {
-      setError('Please complete name, email, and password to continue.');
+  const handleNextPage = async () => {
+    if (!formData.name.trim() || !formData.email.trim() || !formData.password.trim() || !formData.phone.trim()) {
+      setError('Please complete name, email, password, and phone to continue.');
       return;
     }
     setError('');
-    setActivePage(2);
+    setLoading(true);
+    try {
+      await sendSignupOTP({
+        email: formData.email,
+        name: formData.name,
+        password: formData.password,
+        phone: formData.phone
+      });
+      setActivePage(2);
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSocialSuccess = async (result) => {
@@ -86,9 +99,9 @@ export default function RegisterPage() {
     // Check email verification status
     const user = await getCurrentUser();
     if (!user.emailVerified) {
-      router.push('/onboarding/verify-email');
+      router.push('/dashboard');
     } else {
-      router.push('/onboarding/esb');
+      router.push('/dashboard');
     }
   };
 
@@ -103,9 +116,9 @@ export default function RegisterPage() {
     // Check email verification status
     const user = await getCurrentUser();
     if (!user.emailVerified) {
-      router.push('/onboarding/verify-email');
+      router.push('/dashboard');
     } else {
-      router.push('/onboarding/esb');
+      router.push('/dashboard');
     }
   };
 
@@ -272,6 +285,21 @@ export default function RegisterPage() {
                       />
                     </div>
 
+                    <div className="relative">
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        id="phone"
+                        name="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className="input-premium pl-11"
+                        placeholder="Phone Number (e.g., +1234567890)"
+                        pattern="^\+?[1-9]\d{1,14}$"
+                        required
+                      />
+                    </div>
+
                     <button
                       type="button"
                       onClick={handleNextPage}
@@ -283,139 +311,24 @@ export default function RegisterPage() {
                   </>
                 ) : (
                   <>
-                    <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
-                      <p className="text-sm font-semibold text-foreground">Business Details</p>
-                      <p className="text-xs text-muted-foreground mt-1">These details help personalize your onboarding and templates.</p>
+                    <div className="rounded-xl border border-border/60 bg-muted/30 p-4 mb-6">
+                      <p className="text-sm font-semibold text-foreground">Verify your Email</p>
+                      <p className="text-xs text-muted-foreground mt-1">We sent a 6-digit code to {formData.email}.</p>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="relative sm:col-span-2">
-                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="businessName"
-                          name="businessName"
-                          type="text"
-                          value={formData.businessName}
-                          onChange={handleChange}
-                          className="input-premium pl-11"
-                          placeholder="Business Name"
-                          required
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <select
-                          id="industry"
-                          name="industry"
-                          value={formData.industry}
-                          onChange={handleChange}
-                          className="input-premium pl-11 pr-10 appearance-none text-foreground"
-                          required
-                        >
-                          <option value="">Select industry</option>
-                          <option value="Retail">Retail</option>
-                          <option value="E-commerce">E-commerce</option>
-                          <option value="Healthcare">Healthcare</option>
-                          <option value="Education">Education</option>
-                          <option value="Travel">Travel</option>
-                          <option value="Hospitality">Hospitality</option>
-                          <option value="Real Estate">Real Estate</option>
-                          <option value="Finance">Finance</option>
-                          <option value="Other">Other</option>
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      </div>
-
-                      <div className="relative">
-                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="companyLocation"
-                          name="companyLocation"
-                          type="text"
-                          value={formData.companyLocation}
-                          onChange={handleChange}
-                          className="input-premium pl-11"
-                          placeholder="Company Location"
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <BadgeCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <select
-                          id="certificationType"
-                          name="certificationType"
-                          value={formData.certificationType}
-                          onChange={handleChange}
-                          className="input-premium pl-11 pr-10 appearance-none text-foreground"
-                          required
-                        >
-                          <option value="">Certification type (GST/MSME/PAN)</option>
-                          <option value="gst">GST</option>
-                          <option value="msme">MSME</option>
-                          <option value="pan">PAN</option>
-                          <option value="other">Other Certification</option>
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      </div>
-
-                      <div className="relative">
-                        <BadgeCheck className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="certificationNumber"
-                          name="certificationNumber"
-                          type="text"
-                          value={formData.certificationNumber}
-                          onChange={handleChange}
-                          className="input-premium pl-11"
-                          placeholder="Certification Number"
-                          required
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="website"
-                          name="website"
-                          type="url"
-                          value={formData.website}
-                          onChange={handleChange}
-                          className="input-premium pl-11"
-                          placeholder="Website (optional)"
-                        />
-                      </div>
-
-                      <div className="relative sm:col-span-2">
-                        <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <select
-                          id="annualRevenue"
-                          name="annualRevenue"
-                          value={formData.annualRevenue}
-                          onChange={handleChange}
-                          className="input-premium pl-11 pr-10 appearance-none text-foreground"
-                        >
-                          <option value="">Annual Revenue (optional)</option>
-                          <option value="under_10_lakh">Under ₹10 Lakh</option>
-                          <option value="10_lakh_to_1_cr">₹10 Lakh - ₹1 Cr</option>
-                          <option value="1_cr_to_10_cr">₹1 Cr - ₹10 Cr</option>
-                          <option value="10_cr_plus">₹10 Cr+</option>
-                        </select>
-                        <ChevronDown className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      </div>
-
-                      <div className="relative sm:col-span-2">
-                        <FileText className="absolute left-4 top-4 h-4 w-4 text-muted-foreground" />
-                        <textarea
-                          id="description"
-                          name="description"
-                          value={formData.description}
-                          onChange={handleChange}
-                          className="input-premium pl-11 min-h-[88px] resize-none"
-                          placeholder="What does your business do?"
-                          maxLength={250}
-                        />
-                      </div>
+                    <div className="relative mb-6">
+                      <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        id="otp"
+                        name="otp"
+                        type="text"
+                        maxLength="6"
+                        value={formData.otp}
+                        onChange={handleChange}
+                        className="input-premium pl-11 text-center font-mono tracking-widest text-lg"
+                        placeholder="000000"
+                        required
+                      />
                     </div>
 
                     <div className="flex gap-3">

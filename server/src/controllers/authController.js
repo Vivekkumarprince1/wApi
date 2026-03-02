@@ -10,6 +10,7 @@ const { jwtSecret, googleClientId, facebookAppId, facebookAppSecret } = require(
 const { googleClientSecret } = require('../config');
 const { getRedis, setJson, getJson, deleteKey } = require('../config/redis');
 const { sendVerificationEmail, sendPasswordResetEmail, sendSignupOTPEmail, sendLoginOTPEmail } = require('../services/emailService');
+const { processSignupProvisioning } = require('../services/signupProvisioningService');
 
 const googleClient = googleClientId ? new OAuth2Client(googleClientId) : null;
 
@@ -35,7 +36,7 @@ function generateSecureToken() {
 // Send OTP for signup
 async function sendSignupOTP(req, res, next) {
   try {
-    const { email } = req.body;
+    const { email, name, password, phone } = req.body;
     getRedisClient(); // Ensure Redis is available (required for durable OTP)
 
     // Check if user already exists
@@ -49,6 +50,9 @@ async function sendSignupOTP(req, res, next) {
     await setJson(`otp:signup:${email}`, {
       otp,
       email,
+      name,
+      password,
+      phone,
       expiresAt
     }, OTP_EXPIRY_SECONDS);
 
@@ -74,8 +78,6 @@ async function verifySignupOTP(req, res, next) {
     const {
       email,
       otp,
-      name,
-      password,
       businessName,
       industry,
       companySize,
@@ -102,7 +104,8 @@ async function verifySignupOTP(req, res, next) {
       return res.status(400).json({ message: 'Invalid OTP' });
     }
 
-    // OTP verified, create user
+    // OTP verified, extract stored user data
+    const { name, password, phone } = stored;
     await deleteKey(`otp:signup:${email}`);
 
     const normalizedBusinessName = typeof businessName === 'string' ? businessName.trim() : '';
@@ -159,7 +162,8 @@ async function verifySignupOTP(req, res, next) {
       passwordHash,
       workspace: workspace._id,
       role: 'owner',
-      emailVerified: true
+      emailVerified: true,
+      phone: phone || undefined
     });
 
     await Permission.seedOwnerPermissions(workspace._id, user._id);
@@ -256,7 +260,8 @@ async function signup(req, res, next) {
       companyLocation,
       annualRevenue,
       certificationType,
-      certificationNumber
+      certificationNumber,
+      phone
     } = req.body;
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: 'Email already registered' });
@@ -309,8 +314,23 @@ async function signup(req, res, next) {
       }
     });
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, passwordHash, workspace: workspace._id, role: 'owner' });
+    const user = await User.create({
+      name,
+      email,
+      passwordHash,
+      workspace: workspace._id,
+      role: 'owner',
+      phone: phone || undefined
+    });
     await Permission.seedOwnerPermissions(workspace._id, user._id);
+
+    // Trigger background provisioning
+    processSignupProvisioning(user._id, workspace._id, {
+      name,
+      email,
+      phone
+    }).catch(err => console.error('[ProvisioningError] Background signup provisioning failed:', err.message));
+
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
     res.json({ token, user });
   } catch (err) {
@@ -779,6 +799,14 @@ async function googleOAuthCallback(req, res, next) {
     if (!user) {
       const workspace = await Workspace.create({ name: `${name}'s workspace` });
       user = await User.create({ name, email, googleId, workspace: workspace._id, role: 'owner' });
+      await Permission.seedOwnerPermissions(workspace._id, user._id);
+
+      // Trigger background provisioning
+      processSignupProvisioning(user._id, workspace._id, {
+        name,
+        email,
+        phone: null // Can be prompted later or fetched from advanced profile
+      }).catch(err => console.error('[ProvisioningError] Background signup provisioning failed:', err.message));
     } else if (!user.googleId) {
       user.googleId = googleId;
       await user.save();
@@ -908,6 +936,14 @@ async function facebookOAuthLogin(req, res, next) {
         role: 'owner',
         workspace: workspace._id,
       });
+      await Permission.seedOwnerPermissions(workspace._id, user._id);
+
+      // Trigger background provisioning
+      processSignupProvisioning(user._id, workspace._id, {
+        name,
+        email: email || `${facebookId}@facebook.com`,
+        phone: null
+      }).catch(err => console.error('[ProvisioningError] Background signup provisioning failed:', err.message));
     } else if (!user.facebookId) {
       user.facebookId = facebookId;
       if (!user.email && email) {

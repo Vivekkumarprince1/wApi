@@ -19,24 +19,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showCard, setShowCard] = useState(false);
 
-  const redirectAfterLogin = async (emailVerified) => {
-    if (!emailVerified) {
-      router.push('/onboarding/verify-email');
-      return;
-    }
-
-    try {
-      const onboarding = await getOnboardingStatus();
-      const businessInfoDone = onboarding?.status?.steps?.businessInfo === true;
-
-      if (!businessInfoDone) {
-        router.push('/dashboard/settings/whatsapp-profile');
-        return;
-      }
-    } catch (_error) {
-      // If status check fails, continue to dashboard as safe fallback
-    }
-
+  const redirectAfterLogin = async () => {
     router.push('/dashboard');
   };
 

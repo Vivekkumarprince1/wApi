@@ -78,16 +78,16 @@ async function sendTemplateMessage(req, res, next) {
     // ═══════════════════════════════════════════════════════════════════
     // BSP VALIDATION
     // ═══════════════════════════════════════════════════════════════════
-    
+
     if (!workspace.bspManaged) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Workspace is not configured for WhatsApp. Please complete onboarding.',
         code: 'BSP_NOT_CONFIGURED'
       });
     }
-    
+
     if (!workspace.bspPhoneNumberId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'No WhatsApp phone number assigned to this workspace',
         code: 'BSP_PHONE_NOT_ASSIGNED'
       });
@@ -95,7 +95,7 @@ async function sendTemplateMessage(req, res, next) {
 
     // Build components array for Meta API
     const components = buildTemplateComponents(template, variables);
-    
+
     // Use the namespaced template name for Meta API
     const metaTemplateName = template.metaTemplateName || template.name;
 
@@ -117,11 +117,13 @@ async function sendTemplateMessage(req, res, next) {
       }
     });
 
+    console.log(`[MessageController] Sending template ${metaTemplateName} to ${contact.phone}`);
+
     try {
       // ═══════════════════════════════════════════════════════════════════
       // SEND VIA BSP MESSAGING SERVICE (Centralized)
       // ═══════════════════════════════════════════════════════════════════
-      
+
       const result = await bspMessagingService.sendTemplateMessage(
         workspaceId,
         contact.phone,
@@ -131,11 +133,14 @@ async function sendTemplateMessage(req, res, next) {
         { contactId: contact._id }
       );
 
+      console.log(`[MessageController] Template sent successfully: ${result.messageId}`);
+
       // Update message status
       message.status = 'sent';
       message.meta.whatsappId = result.messageId;
       message.meta.whatsappResponses = [result];
       message.sentAt = new Date();
+      message.markModified('meta');
       await message.save();
 
       try {
@@ -158,15 +163,20 @@ async function sendTemplateMessage(req, res, next) {
         console.error('[MessageController] Billing ledger update failed:', ledgerErr.message);
       }
 
-      return res.status(200).json({ 
-        success: true, 
+      return res.status(200).json({
+        success: true,
         message: 'Template message sent successfully',
-        id: message._id, 
-        whatsappId: result.messageId 
+        id: message._id,
+        whatsappId: result.messageId
       });
     } catch (err) {
+      console.error(`[MessageController] FAILED to send template: ${err.message}`);
       message.status = 'failed';
       message.meta.errors = [err.message];
+      if (err.response?.data) {
+        message.meta.rawError = err.response.data;
+      }
+      message.markModified('meta');
       await message.save();
 
       // Handle specific BSP errors
@@ -178,7 +188,7 @@ async function sendTemplateMessage(req, res, next) {
           id: message._id
         });
       }
-      
+
       if (err.message.includes('BSP_DAILY_LIMIT_EXCEEDED')) {
         return res.status(429).json({
           success: false,
@@ -187,10 +197,10 @@ async function sendTemplateMessage(req, res, next) {
           id: message._id
         });
       }
-      
+
       // Handle WABA access issues
-      if (err.message.includes('does not exist') || 
-          err.message.includes('cannot be loaded due to missing permissions')) {
+      if (err.message.includes('does not exist') ||
+        err.message.includes('cannot be loaded due to missing permissions')) {
         return res.status(503).json({
           success: false,
           message: 'WhatsApp Business Account is not properly configured.',
@@ -219,10 +229,10 @@ async function sendTemplateMessage(req, res, next) {
         });
       } catch (retryErr) {
         console.error('[MessageController] Failed to enqueue retry:', retryErr.message);
-        return res.status(500).json({ 
-          success: false, 
+        return res.status(500).json({
+          success: false,
           message: 'Failed to send template message',
-          error: err.message 
+          error: err.message
         });
       }
     }
@@ -258,31 +268,31 @@ async function sendBulkTemplateMessage(req, res, next) {
     // ═══════════════════════════════════════════════════════════════════
     // BSP VALIDATION
     // ═══════════════════════════════════════════════════════════════════
-    
+
     if (!workspace.bspManaged) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Workspace is not configured for WhatsApp',
         code: 'BSP_NOT_CONFIGURED'
       });
     }
-    
+
     if (!workspace.bspPhoneNumberId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'No WhatsApp phone number assigned',
         code: 'BSP_PHONE_NOT_ASSIGNED'
       });
     }
-    
+
     // Pre-check daily/monthly limits
     const plan = workspace.plan || 'free';
-    const dailyLimit = workspace.bspRateLimits?.dailyMessageLimit || 
+    const dailyLimit = workspace.bspRateLimits?.dailyMessageLimit ||
       bspConfig.getRateLimit(plan, 'dailyMessageLimit');
-    const monthlyLimit = workspace.bspRateLimits?.monthlyMessageLimit || 
+    const monthlyLimit = workspace.bspRateLimits?.monthlyMessageLimit ||
       bspConfig.getRateLimit(plan, 'monthlyMessageLimit');
-    
+
     const currentDaily = workspace.bspUsage?.messagesToday || 0;
     const currentMonthly = workspace.bspUsage?.messagesThisMonth || 0;
-    
+
     if (currentDaily + contactIds.length > dailyLimit) {
       return res.status(429).json({
         message: `Bulk send would exceed daily limit (${dailyLimit}). Current: ${currentDaily}, Requested: ${contactIds.length}`,
@@ -292,7 +302,7 @@ async function sendBulkTemplateMessage(req, res, next) {
         requested: contactIds.length
       });
     }
-    
+
     if (currentMonthly + contactIds.length > monthlyLimit) {
       return res.status(429).json({
         message: `Bulk send would exceed monthly limit (${monthlyLimit})`,
@@ -304,15 +314,15 @@ async function sendBulkTemplateMessage(req, res, next) {
     }
 
     // Fetch all contacts
-    const contacts = await Contact.find({ 
-      _id: { $in: contactIds }, 
-      workspace: workspaceId 
+    const contacts = await Contact.find({
+      _id: { $in: contactIds },
+      workspace: workspaceId
     });
 
     if (contacts.length === 0) {
       return res.status(404).json({ message: 'No valid contacts found' });
     }
-    
+
     // Use namespaced template name
     const metaTemplateName = template.metaTemplateName || template.name;
 
@@ -328,7 +338,7 @@ async function sendBulkTemplateMessage(req, res, next) {
       try {
         // Get variables for this contact
         const variables = variablesMap[contact._id.toString()] || variablesMap.default || [];
-        
+
         // Build components
         const components = buildTemplateComponents(template, variables);
 
@@ -354,7 +364,7 @@ async function sendBulkTemplateMessage(req, res, next) {
         // ═══════════════════════════════════════════════════════════════════
         // SEND VIA BSP MESSAGING SERVICE
         // ═══════════════════════════════════════════════════════════════════
-        
+
         const result = await bspMessagingService.sendTemplateMessage(
           workspaceId,
           contact.phone,
@@ -390,7 +400,7 @@ async function sendBulkTemplateMessage(req, res, next) {
           status: 'failed',
           error: error.message
         });
-        
+
         // If rate limited, stop bulk send
         if (error.message.includes('BSP_RATE_LIMIT') || error.message.includes('DAILY_LIMIT') || error.message.includes('MONTHLY_LIMIT')) {
           results.details.push({
@@ -418,35 +428,69 @@ async function sendBulkTemplateMessage(req, res, next) {
 function buildTemplateComponents(template, variables) {
   const components = [];
 
-  // Find HEADER component
-  const headerComponent = template.components?.find(c => c.type === 'HEADER');
-  if (headerComponent && variables.header) {
-    components.push({
-      type: 'header',
-      parameters: Array.isArray(variables.header) 
-        ? variables.header.map(v => ({ type: 'text', text: v }))
-        : [{ type: 'text', text: variables.header }]
-    });
-  }
+  // Version 1: Use components array (recommended format)
+  if (template.components && template.components.length > 0) {
+    // Find HEADER component
+    const headerComponent = template.components?.find(c => c.type === 'HEADER');
+    if (headerComponent && variables.header) {
+      components.push({
+        type: 'header',
+        parameters: Array.isArray(variables.header)
+          ? variables.header.map(v => ({ type: 'text', text: v }))
+          : [{ type: 'text', text: variables.header }]
+      });
+    }
 
-  // Find BODY component
-  const bodyComponent = template.components?.find(c => c.type === 'BODY');
-  if (bodyComponent && variables.body && variables.body.length > 0) {
-    components.push({
-      type: 'body',
-      parameters: variables.body.map(v => ({ type: 'text', text: v }))
-    });
-  }
+    // Find BODY component
+    const bodyComponent = template.components?.find(c => c.type === 'BODY');
+    if (bodyComponent && variables.body && variables.body.length > 0) {
+      components.push({
+        type: 'body',
+        parameters: variables.body.map(v => ({ type: 'text', text: v }))
+      });
+    }
 
-  // Find BUTTON components
-  const buttonComponents = template.components?.filter(c => c.type === 'BUTTONS');
-  if (buttonComponents && variables.buttons && variables.buttons.length > 0) {
-    components.push({
-      type: 'button',
-      sub_type: 'url',
-      index: 0,
-      parameters: variables.buttons.map(v => ({ type: 'text', text: v }))
-    });
+    // Find BUTTON components
+    const buttonComponents = template.components?.filter(c => c.type === 'BUTTONS');
+    if (buttonComponents && variables.buttons && variables.buttons.length > 0) {
+      components.push({
+        type: 'button',
+        sub_type: 'url',
+        index: 0,
+        parameters: variables.buttons.map(v => ({ type: 'text', text: v }))
+      });
+    }
+  }
+  // Version 2: Fallback to structured objects (legacy/interakt format)
+  else {
+    // Header params
+    if (template.header?.enabled && template.header.format === 'TEXT' && variables.header) {
+      components.push({
+        type: 'header',
+        parameters: Array.isArray(variables.header)
+          ? variables.header.map(v => ({ type: 'text', text: v }))
+          : [{ type: 'text', text: variables.header }]
+      });
+    }
+
+    // Body params
+    if (variables.body && variables.body.length > 0) {
+      components.push({
+        type: 'body',
+        parameters: variables.body.map(v => ({ type: 'text', text: v }))
+      });
+    }
+
+    // Button params
+    if (template.buttons?.enabled && variables.buttons && variables.buttons.length > 0) {
+      // Logic for button parameters depends on button type, but usually it's the first URL button
+      components.push({
+        type: 'button',
+        sub_type: 'url',
+        index: 0,
+        parameters: variables.buttons.map(v => ({ type: 'text', text: v }))
+      });
+    }
   }
 
   return components;

@@ -11,11 +11,11 @@ const sendQueue = createQueue('whatsapp-sends');
 async function enqueueSend(messageId, opts = {}) {
   // job options can include attempts and backoff
   await sendQueue.add(
-    'send', 
-    { messageId }, 
-    { 
+    'send',
+    { messageId },
+    {
       jobId: `send:${messageId}`, // Idempotency key
-      attempts: opts.attempts || 5, 
+      attempts: opts.attempts || 5,
       backoff: { type: 'exponential', delay: 2000 },
       removeOnComplete: 100,
       removeOnFail: 1000
@@ -25,53 +25,59 @@ async function enqueueSend(messageId, opts = {}) {
 
 async function processSendJob(job) {
   const { messageId, campaignId, contactId } = job.data;
-  
+
   // Handle campaign messages
   if (campaignId && contactId && !messageId) {
     return await processCampaignMessage(job);
   }
-  
+
   // Handle regular messages
   if (!messageId) {
     throw new Error('Message ID required');
   }
-  
+
   const message = await Message.findById(messageId).populate('contact').populate('workspace');
   if (!message) throw new Error('Message not found');
-  
+
   const workspace = await Workspace.findById(message.workspace);
   if (!workspace) throw new Error('Workspace not found');
-  
+
   const to = message.meta?.to || (message.contact && message.contact.phone);
   if (!to) throw new Error('No recipient phone');
-  
+
   const source = workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || bspConfig.gupshup.sourceNumber;
   if (!source) {
     throw new Error('GUPSHUP_SOURCE_NUMBER_NOT_CONFIGURED');
   }
 
+  const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId || process.env.GUPSHUP_APP_ID;
+  if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
+  const appApiKey = workspace.gupshupIdentity?.appApiKey;
+
   try {
     const result = await gupshupService.sendText({
+      appId,
       source,
       destination: to,
-      text: message.body
+      text: message.body,
+      appApiKey
     });
-    
-    await Message.findByIdAndUpdate(messageId, { 
-      status: 'sent', 
+
+    await Message.findByIdAndUpdate(messageId, {
+      status: 'sent',
       $push: { 'meta.whatsappResponses': result },
       $set: { 'meta.whatsappId': result.messageId }
     });
-    
+
     // Increment usage
     workspace.usage.messagesSent += 1;
     await workspace.save();
-    
+
     return result;
   } catch (err) {
-    await Message.findByIdAndUpdate(messageId, { 
-      status: 'failed', 
-      $push: { 'meta.errors': err.message } 
+    await Message.findByIdAndUpdate(messageId, {
+      status: 'failed',
+      $push: { 'meta.errors': err.message }
     });
     throw err; // allow BullMQ to handle retries/backoff
   }
@@ -89,19 +95,19 @@ async function processCampaignMessage(job) {
   const CampaignMessage = require('../models/CampaignMessage');
   const Template = require('../models/Template');
   const { checkShouldPauseCampaign } = require('./campaignValidationService');
-  
+
   const campaign = await Campaign.findById(campaignId).populate('workspace template');
   if (!campaign) throw new Error('Campaign not found');
-  
+
   const contact = await Contact.findById(contactId);
   if (!contact) throw new Error('Contact not found');
-  
+
   const workspace = await Workspace.findById(campaign.workspace);
   if (!workspace) throw new Error('Workspace not found');
-  
+
   const template = await Template.findById(templateId);
   if (!template) throw new Error('Template not found');
-  
+
   // ✅ Check if campaign should auto-pause
   const { shouldPause, reason } = await checkShouldPauseCampaign(campaign);
   if (shouldPause) {
@@ -111,19 +117,24 @@ async function processCampaignMessage(job) {
     await campaign.save();
     throw new Error(`CAMPAIGN_AUTO_PAUSED: ${reason}`);
   }
-  
+
   const source = workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || bspConfig.gupshup.sourceNumber;
   if (!source) {
     throw new Error('GUPSHUP_SOURCE_NUMBER_NOT_CONFIGURED');
   }
-  
+
+  const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId || process.env.GUPSHUP_APP_ID;
+  if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
+  const appApiKey = workspace.gupshupIdentity?.appApiKey;
+  const appName = workspace.gupshupIdentity?.appName || workspace.gupshupAppName || workspace.name || undefined;
+
   // ✅ Get or create message record (idempotency)
-  let message = await Message.findOne({ 
+  let message = await Message.findOne({
     workspace: workspace._id,
     contact: contactId,
     meta: { campaignId: campaign._id }
   });
-  
+
   if (!message) {
     message = await Message.create({
       workspace: workspace._id,
@@ -132,14 +143,14 @@ async function processCampaignMessage(job) {
       type: 'template',
       body: template.bodyText || template.name,
       status: 'queued',
-      meta: { 
+      meta: {
         campaignId: campaign._id,
         campaignMessageId: campaignMessageId,
         templateId: templateId
       }
     });
   }
-  
+
   try {
     // ✅ Build template parameters using variable mapping
     let templateParams = [];
@@ -150,22 +161,25 @@ async function processCampaignMessage(job) {
         return { type: 'text', text: String(value) };
       }) || [];
     }
-    
+
     const result = await gupshupService.sendTemplate({
+      appId,
       source,
       destination: contact.phone,
       templateId: template.metaTemplateId || template.name,
       languageCode: template.language || 'en',
-      params: templateParams.map((param) => param.text)
+      params: templateParams.map((param) => param.text),
+      appApiKey,
+      appName
     });
-    
+
     // ✅ Update Message
     message.status = 'sent';
     message.sentAt = new Date();
     message.meta.whatsappId = result.messageId;
     message.meta.whatsappResponses = [result];
     await message.save();
-    
+
     // ✅ Update CampaignMessage (idempotency record)
     await CampaignMessage.findByIdAndUpdate(
       campaignMessageId,
@@ -176,7 +190,7 @@ async function processCampaignMessage(job) {
         message: message._id
       }
     );
-    
+
     // ✅ Update Campaign stats atomically
     await Campaign.findByIdAndUpdate(
       campaignId,
@@ -185,18 +199,18 @@ async function processCampaignMessage(job) {
         $set: { updatedAt: new Date() }
       }
     );
-    
+
     // ✅ Increment workspace usage atomically
     workspace.usage.messages = (workspace.usage.messages || 0) + 1;
     workspace.usage.messagesDaily = (workspace.usage.messagesDaily || 0) + 1;
     workspace.usage.messagesThisMonth = (workspace.usage.messagesThisMonth || 0) + 1;
     await workspace.save();
-    
+
     return result;
   } catch (err) {
     // ✅ Handle provider errors
     const errorMessage = err.message || '';
-    
+
     // Check for token expiry
     if (errorMessage.includes('TOKEN_EXPIRED') || errorMessage.includes('401')) {
       campaign.status = 'paused';
@@ -205,7 +219,7 @@ async function processCampaignMessage(job) {
       await campaign.save();
       throw new Error('TOKEN_EXPIRED');
     }
-    
+
     // Check for blocked account
     if (errorMessage.includes('ACCOUNT_BLOCKED') || errorMessage.includes('DISABLED')) {
       campaign.status = 'paused';
@@ -214,13 +228,13 @@ async function processCampaignMessage(job) {
       await campaign.save();
       throw new Error('ACCOUNT_BLOCKED');
     }
-    
+
     // Update Message status
     message.status = 'failed';
     message.meta.errors = message.meta.errors || [];
     message.meta.errors.push(errorMessage);
     await message.save();
-    
+
     // ✅ Update CampaignMessage status
     await CampaignMessage.findByIdAndUpdate(
       campaignMessageId,
@@ -231,7 +245,7 @@ async function processCampaignMessage(job) {
         attempts: (await CampaignMessage.findById(campaignMessageId))?.attempts + 1
       }
     );
-    
+
     // ✅ Update Campaign stats
     await Campaign.findByIdAndUpdate(
       campaignId,
@@ -240,7 +254,7 @@ async function processCampaignMessage(job) {
         $set: { updatedAt: new Date() }
       }
     );
-    
+
     throw err; // Let BullMQ handle retries
   }
 }
@@ -256,61 +270,66 @@ async function processCampaignBatch(job) {
   const Contact = require('../models/Contact');
   const CampaignMessage = require('../models/CampaignMessage');
   const Template = require('../models/Template');
-  
+
   const campaign = await Campaign.findById(campaignId).populate('workspace');
   if (!campaign || (campaign.status !== 'sending' && campaign.status !== 'queued')) {
     // Campaign paused or stopped - acknowledge job but don't send
     return { status: 'skipped', reason: 'Campaign not running' };
   }
-  
+
   // Rate Limit Check (Per Workspace)
   const workspaceId = campaign.workspace._id.toString();
   const { checkWorkspaceRateLimit } = require('./rateLimiter');
   const rateLimitResponse = await checkWorkspaceRateLimit(workspaceId, 1000); // 1000 msg/min default
-  
+
   if (!rateLimitResponse.allowed) {
     const delay = rateLimitResponse.retryAfter * 1000;
     // Throw error to retry later (BullMQ will use backoff)
     throw new Error(`RATE_LIMIT_EXCEEDED:${delay}`);
   }
-  
+
   // Load Template & Workspace Details
   const template = await Template.findById(templateId);
   if (!template) throw new Error('Template not found');
-  
+
   const workspace = await Workspace.findById(workspaceId);
   const source = workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || bspConfig.gupshup.sourceNumber;
-  
+
   if (!source) throw new Error('GUPSHUP_SOURCE_NUMBER_NOT_CONFIGURED');
+
+  const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId || process.env.GUPSHUP_APP_ID;
+  if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
+  const appApiKey = workspace.gupshupIdentity?.appApiKey;
+  const appName = workspace.gupshupIdentity?.appName || workspace.gupshupAppName || workspace.name || undefined;
 
   // Process contacts sequentially in the batch
   const results = [];
-  
+
   for (const contactId of contactIds) {
     try {
       // 1. Idempotency Check & Record Creation
       let campaignMessage = await CampaignMessage.findOne({
-          campaign: campaignId,
-          contact: contactId
+        campaign: campaignId,
+        contact: contactId
       });
-      
+
       if (!campaignMessage) {
-         campaignMessage = await CampaignMessage.create({
-             workspace: workspaceId,
-             campaign: campaignId,
-             contact: contactId,
-             status: 'queued'
-         });
+        campaignMessage = await CampaignMessage.create({
+          workspace: workspaceId,
+          campaign: campaignId,
+          contact: contactId,
+          status: 'queued'
+        });
       }
-      
+
       if (['sent', 'delivered', 'read', 'failed'].includes(campaignMessage.status)) {
-         results.push({ contactId, status: 'already_processed' });
-         continue; 
+        results.push({ contactId, status: 'already_processed' });
+        continue;
       }
-      
+
       const contact = await Contact.findById(contactId);
       if (!contact) continue; // Skip if contact deleted
-      
+
       // 2. Prepare Template Params
       let templateParams = [];
       if (variableMapping && Object.keys(variableMapping).length > 0) {
@@ -320,63 +339,66 @@ async function processCampaignBatch(job) {
           return { type: 'text', text: String(value) };
         }) || [];
       }
-      
+
       const result = await gupshupService.sendTemplate({
+        appId,
         source,
         destination: contact.phone,
         templateId: template.metaTemplateId || template.name,
         languageCode: template.language || 'en',
-        params: templateParams.map((param) => param.text)
+        params: templateParams.map((param) => param.text),
+        appApiKey,
+        appName
       });
-      
+
       // 4. Update Success
       await CampaignMessage.findByIdAndUpdate(campaignMessage._id, {
-          status: 'sent',
-          sentAt: new Date(),
-          whatsappMessageId: result.messageId
+        status: 'sent',
+        sentAt: new Date(),
+        whatsappMessageId: result.messageId
       });
-      
+
       await Campaign.findByIdAndUpdate(campaignId, { $inc: { sentCount: 1 } });
-      
+
       // Create Message record for consistency
       await Message.create({
-         workspace: workspaceId,
-         contact: contactId,
-         direction: 'outbound',
-         type: 'template',
-         body: template.name,
-         status: 'sent',
-         meta: { campaignId, campaignMessageId: campaignMessage._id, whatsappId: result.messageId }
+        workspace: workspaceId,
+        contact: contactId,
+        direction: 'outbound',
+        type: 'template',
+        body: template.name,
+        status: 'sent',
+        meta: { campaignId, campaignMessageId: campaignMessage._id, whatsappId: result.messageId }
       });
-      
+
       results.push({ contactId, status: 'sent', id: result.messageId });
     } catch (err) {
-       console.error(`Failed to send to contact ${contactId}:`, err.message);
-       // Update Failure
-       await CampaignMessage.findOneAndUpdate(
-           { campaign: campaignId, contact: contactId },
-           { status: 'failed', failedAt: new Date(), lastError: err.message }
-       );
-       await Campaign.findByIdAndUpdate(campaignId, { $inc: { failedCount: 1 } });
-       
-       results.push({ contactId, status: 'failed', error: err.message });
-       
-       if (err.message.includes('(#80007)') || err.message.includes('429')) {
-           throw err; // Stop batch and retry later
-       }
+      console.error(`Failed to send to contact ${contactId}:`, err.message);
+      // Update Failure
+      await CampaignMessage.findOneAndUpdate(
+        { campaign: campaignId, contact: contactId },
+        { status: 'failed', failedAt: new Date(), lastError: err.message }
+      );
+      await Campaign.findByIdAndUpdate(campaignId, { $inc: { failedCount: 1 } });
+
+      results.push({ contactId, status: 'failed', error: err.message });
+
+      if (err.message.includes('(#80007)') || err.message.includes('429')) {
+        throw err; // Stop batch and retry later
+      }
     }
-    
+
     // Tiny delay between messages in batch
-    await new Promise(r => setTimeout(r, 50)); 
+    await new Promise(r => setTimeout(r, 50));
   }
 
   // Check for campaign completion
   const freshCampaign = await Campaign.findById(campaignId);
   const processed = (freshCampaign.sentCount || 0) + (freshCampaign.failedCount || 0);
   if (processed >= (freshCampaign.totalContacts || 0)) {
-     await Campaign.findByIdAndUpdate(campaignId, { status: 'completed', completedAt: new Date() });
+    await Campaign.findByIdAndUpdate(campaignId, { status: 'completed', completedAt: new Date() });
   }
-  
+
   return { batchIndex, totalProcessed: results.length };
 }
 

@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaWhatsapp, FaCheckCircle, FaExclamationCircle, FaSpinner, FaShieldAlt } from 'react-icons/fa';
 import { getCurrentUser } from '@/lib/api';
-import { bspRegisterPhone } from '@/lib/api';
+import { bspStart, bspSync } from '@/lib/api';
 import * as api from '@/lib/api';
 
 export default function ESBOnboardingPage() {
@@ -20,6 +20,7 @@ export default function ESBOnboardingPage() {
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [onboardingState, setOnboardingState] = useState('idle'); // idle | provisioning | waiting_for_meta
 
   useEffect(() => {
     // CRITICAL: Email verification gate
@@ -56,12 +57,12 @@ export default function ESBOnboardingPage() {
 
   // Poll for status if not connected (useful when onboarding in a new tab)
   useEffect(() => {
-    if (checkingAuth) return;
+    if (checkingAuth || onboardingState === 'idle') return;
 
     const checkStatus = async () => {
       try {
         const statusRes = await api.get('/onboarding/bsp/status');
-        if (statusRes?.connected) {
+        if (statusRes?.connected || statusRes?.status === 'LIVE' || statusRes?.status === 'completed') {
           router.push('/dashboard');
         }
       } catch (err) {
@@ -69,16 +70,41 @@ export default function ESBOnboardingPage() {
       }
     };
 
-    const interval = setInterval(checkStatus, 5000); // Check every 5 seconds
-    return () => clearInterval(interval);
-  }, [checkingAuth, router]);
+    const interval = setInterval(checkStatus, 3000); // Check every 3 seconds for faster detection
+
+    // Listen for postMessage from Gupshup embed window (if it signals success)
+    const handleMessage = (event) => {
+      // Allow any origin for Gupshup cross-domain communication
+      try {
+        const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (data?.type === 'gupshup_onboarding_completed' || data?.status === 'success' || data?.appId) {
+          console.log('Gupshup onboarding success message received:', data);
+          // Force an immediate status check and wait short period to allow webhook sync
+          setTimeout(() => checkStatus(), 1000);
+          setOnboardingState('verifying_connection');
+        }
+      } catch (e) {
+        // Ignore non-JSON messages
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [checkingAuth, onboardingState, router]);
 
   const handleConnectWhatsApp = async () => {
     try {
       setLoading(true);
+      setOnboardingState('provisioning');
       setError('');
 
-      const response = await bspRegisterPhone({ connectionType: 'business_app' });
+      const response = await bspStart({
+        callbackUrl: `${window.location.origin}/dashboard`
+      });
       const signupUrl = response?.esbUrl || response?.url;
 
       if (!signupUrl) {
@@ -87,12 +113,56 @@ export default function ESBOnboardingPage() {
 
       // Open Gupshup onboarding embed in a new tab
       window.open(signupUrl, '_blank');
-      
-      // Stop loading so the user can click again if needed
+
+      setOnboardingState('waiting_for_meta');
       setLoading(false);
     } catch (err) {
       console.error('ESB start failed:', err);
       setError(err.message || 'Failed to start WhatsApp connection');
+      setOnboardingState('idle');
+      setLoading(false);
+    }
+  };
+
+  const handleManualSync = async () => {
+    try {
+      setLoading(true);
+      setOnboardingState('verifying_connection');
+      setError('');
+
+      const syncRes = await bspSync();
+
+      // Check if sync itself confirmed connection
+      if (syncRes?.connected || syncRes?.stage1?.complete) {
+        router.push('/dashboard');
+        return;
+      }
+
+      if (syncRes?.success) {
+        // Sync succeeded but connection not confirmed yet - wait and re-check
+        setTimeout(async () => {
+          try {
+            const statusRes = await api.get('/onboarding/bsp/status');
+            if (statusRes?.connected || statusRes?.status === 'LIVE' || statusRes?.status === 'completed') {
+              router.push('/dashboard');
+            } else {
+              setError("Your phone number is still being activated by Gupshup. This can take a few minutes. Please try again shortly.");
+              setOnboardingState('waiting_for_meta');
+              setLoading(false);
+            }
+          } catch (err) {
+            setError("We couldn't confirm your connection yet. Please make sure you completed the Facebook setup successfully.");
+            setOnboardingState('waiting_for_meta');
+            setLoading(false);
+          }
+        }, 2000);
+      } else {
+        throw new Error("Sync returned false");
+      }
+    } catch (err) {
+      console.error('Manual sync failed:', err);
+      setError("We could not confirm your connection. Please ensure you finished the Gupshup steps.");
+      setOnboardingState('waiting_for_meta');
       setLoading(false);
     }
   };
@@ -157,39 +227,92 @@ export default function ESBOnboardingPage() {
           </div>
         )}
 
+        {onboardingState === 'provisioning' && (
+          <div className="mb-6 p-6 bg-blue-50 border border-blue-200 rounded-lg flex flex-col items-center justify-center text-center space-y-4">
+            <FaSpinner className="animate-spin text-4xl text-blue-600" />
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Provisioning Workspace</h3>
+              <p className="text-sm text-gray-600 mt-1">Creating your isolated partner app, securing API tokens, and registering webhook subscriptions...</p>
+            </div>
+          </div>
+        )}
+
+        {onboardingState === 'waiting_for_meta' && (
+          <div className="mb-6 p-6 bg-yellow-50 border border-yellow-200 rounded-lg flex flex-col items-center justify-center text-center space-y-4">
+            <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center animate-pulse">
+              <FaWhatsapp className="text-3xl text-yellow-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Finish setup in the new tab</h3>
+              <p className="text-sm text-gray-600 mt-1 mb-6">We are waiting for Meta to verify your account connection. Please complete the setup in the Gupshup window.</p>
+
+              <button
+                onClick={handleManualSync}
+                disabled={loading}
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <FaSpinner className="animate-spin" />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    <FaCheckCircle />
+                    I have completed the setup
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {onboardingState === 'verifying_connection' && (
+          <div className="mb-6 p-6 bg-green-50 border border-green-200 rounded-lg flex flex-col items-center justify-center text-center space-y-4">
+            <FaSpinner className="animate-spin text-4xl text-green-600" />
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Almost there!</h3>
+              <p className="text-sm text-gray-600 mt-1">Gupshup signaled completion. Verifying webhooks and finishing setup...</p>
+            </div>
+          </div>
+        )}
+
         {/* What happens next */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
-            <FaShieldAlt className="text-blue-600" />
-            What happens next?
-          </h3>
-          <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
-            <li>You'll be redirected to Gupshup Partner onboarding</li>
-            <li>Confirm your partner app/business details</li>
-            <li>Complete WhatsApp setup under your partner account</li>
-            <li>Grant required onboarding permissions</li>
-            <li>Return here to complete setup</li>
-          </ol>
-        </div>
+        {onboardingState === 'idle' && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <FaShieldAlt className="text-blue-600" />
+              What happens next?
+            </h3>
+            <ol className="text-sm text-gray-700 space-y-1 list-decimal list-inside">
+              <li>We provision your Enterprise Partner App</li>
+              <li>You'll be redirected to Meta / Facebook Platform</li>
+              <li>Confirm your business details & phone number</li>
+              <li>Return here to complete setup</li>
+            </ol>
+          </div>
+        )}
 
         {/* CTA Button */}
-        <button
-          onClick={handleConnectWhatsApp}
-          disabled={loading}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <FaSpinner className="animate-spin" />
-              Connecting...
-            </>
-          ) : (
-            <>
-              <FaWhatsapp />
-              Continue to Gupshup
-            </>
-          )}
-        </button>
+        {onboardingState === 'idle' && (
+          <button
+            onClick={handleConnectWhatsApp}
+            disabled={loading}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <FaSpinner className="animate-spin" />
+                Connecting...
+              </>
+            ) : (
+              <>
+                <FaWhatsapp />
+                Connect WhatsApp
+              </>
+            )}
+          </button>
+        )}
 
         {/* Security notice */}
         <p className="mt-4 text-xs text-center text-gray-500">

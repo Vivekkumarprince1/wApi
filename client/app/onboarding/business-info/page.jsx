@@ -109,7 +109,7 @@ export default function BusinessInfoPage() {
 
       await saveBusinessInfo(payload);
 
-      router.push('/dashboard/profile');
+      router.push('/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to save business info.');
     } finally {

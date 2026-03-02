@@ -72,13 +72,13 @@ function getAccessLevel(phoneStatus) {
       message: null
     };
   }
-  
+
   if (READ_ONLY_STATUSES.includes(phoneStatus)) {
     const messages = {
       [PHONE_STATUS.RESTRICTED]: 'Your account is restricted. Messaging is temporarily disabled.',
       [PHONE_STATUS.FLAGGED]: 'Your account has been flagged for review. Messaging is paused.'
     };
-    
+
     return {
       level: 'read-only',
       canSend: false,
@@ -87,7 +87,7 @@ function getAccessLevel(phoneStatus) {
       message: messages[phoneStatus] || 'Account is in degraded mode.'
     };
   }
-  
+
   // All other statuses block sending
   const messages = {
     [PHONE_STATUS.DISCONNECTED]: 'Phone is disconnected. Please reconnect.',
@@ -95,7 +95,7 @@ function getAccessLevel(phoneStatus) {
     [PHONE_STATUS.RATE_LIMITED]: 'You have been rate limited. Please wait.',
     [PHONE_STATUS.PENDING]: 'Phone activation is pending. Please wait.'
   };
-  
+
   return {
     level: 'blocked',
     canSend: false,
@@ -120,7 +120,7 @@ async function requirePhoneActivation(req, res, next) {
   try {
     // Get workspace from request (set by auth middleware)
     const workspaceId = req.user?.workspace;
-    
+
     if (!workspaceId) {
       return res.status(403).json({
         success: false,
@@ -132,7 +132,7 @@ async function requirePhoneActivation(req, res, next) {
     }
 
     const workspace = await Workspace.findById(workspaceId);
-    
+
     if (!workspace) {
       return res.status(403).json({
         success: false,
@@ -194,7 +194,7 @@ async function requirePhoneActivation(req, res, next) {
 
     // TASK E: Use degradation mode for access control
     const accessLevel = getAccessLevel(phoneStatus);
-    
+
     // Check if phone is permanently blocked (BANNED)
     if (BLOCKED_STATUSES.includes(phoneStatus)) {
       const messages = {
@@ -229,7 +229,7 @@ async function requirePhoneActivation(req, res, next) {
           return next();
         }
       }
-      
+
       return res.status(403).json({
         success: false,
         message: accessLevel.message || 'Phone number is not yet activated',
@@ -247,7 +247,7 @@ async function requirePhoneActivation(req, res, next) {
           isActivated: false,
           accessLevel: accessLevel.level
         },
-        hint: phoneStatus === PHONE_STATUS.PENDING 
+        hint: phoneStatus === PHONE_STATUS.PENDING
           ? 'Your phone number is being provisioned. This usually takes a few minutes.'
           : accessLevel.message
       });
@@ -278,7 +278,7 @@ async function requirePhoneActivation(req, res, next) {
 async function softPhoneActivationCheck(req, res, next) {
   try {
     const workspaceId = req.user?.workspace;
-    
+
     if (!workspaceId) {
       req.stage1Complete = false;
       req.stage1Status = { error: 'no_workspace' };
@@ -286,7 +286,7 @@ async function softPhoneActivationCheck(req, res, next) {
     }
 
     const workspace = await Workspace.findById(workspaceId);
-    
+
     if (!workspace) {
       req.stage1Complete = false;
       req.stage1Status = { error: 'workspace_not_found' };
@@ -330,7 +330,7 @@ async function softPhoneActivationCheck(req, res, next) {
 async function getStage1Status(workspaceId) {
   try {
     const workspace = await Workspace.findById(workspaceId);
-    
+
     if (!workspace) {
       return {
         complete: false,
@@ -343,7 +343,7 @@ async function getStage1Status(workspaceId) {
     const wabaId = workspace.wabaId || workspace.bspWabaId;
     const businessId = workspace.businessId;
     const isConnected = ACTIVE_STATUSES.includes(phoneStatus);
-    
+
     // TASK E: Get access level for degradation state
     const accessLevel = getAccessLevel(phoneStatus);
 
@@ -353,11 +353,13 @@ async function getStage1Status(workspaceId) {
       wabaIdFetched: !!wabaId,
       phoneNumberIdFetched: !!phoneNumberId,
       phoneConnected: isConnected,
-      webhooksSubscribed: workspace.esbFlow?.status === 'completed'
+      webhooksSubscribed: workspace.esbFlow?.status === 'completed' || workspace.onboardingStatus === 'LIVE'
     };
 
-    const allComplete = Object.values(checklist).every(v => v === true);
-    
+    // Core gate: phone connected + WABA + phone number ID
+    // businessId and webhooksSubscribed are nice-to-haves, not blockers
+    const allComplete = !!wabaId && !!phoneNumberId && isConnected;
+
     // TASK E: Determine blocked features based on access level
     let blockedFeatures = [];
     if (!allComplete || !accessLevel.canSend) {
@@ -373,10 +375,10 @@ async function getStage1Status(workspaceId) {
       details: {
         businessId: businessId || null,
         wabaId: wabaId || null,
-        phoneNumberId: phoneNumberId || null,
-        phoneNumber: workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || null,
+        phoneNumberId: phoneNumberId || workspace.phoneNumbers?.[0]?.id || null,
+        phoneNumber: workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || workspace.phoneNumbers?.[0]?.displayPhoneNumber || null,
         phoneStatus,
-        verifiedName: workspace.verifiedName || workspace.bspVerifiedName || null,
+        verifiedName: workspace.verifiedName || workspace.bspVerifiedName || workspace.gupshupAppName || workspace.phoneNumbers?.[0]?.verifiedName || null,
         qualityRating: workspace.qualityRating || workspace.bspQualityRating || 'UNKNOWN',
         messagingTier: workspace.messagingLimitTier || workspace.bspMessagingTier || 'TIER_NOT_SET',
         onboardingStatus: workspace.esbFlow?.status || 'not_started',

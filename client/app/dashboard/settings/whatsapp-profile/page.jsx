@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaWhatsapp, FaEdit, FaSave, FaImage } from 'react-icons/fa';
+import { FaWhatsapp, FaEdit, FaSave, FaImage, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import * as api from '@/lib/api';
 
@@ -29,10 +29,27 @@ export default function WhatsAppProfilePage() {
     profilePictureUrl: ''
   });
   const [savedSnapshot, setSavedSnapshot] = useState(null);
+  const [deregistering, setDeregistering] = useState(false);
+  const [confirmDeregister, setConfirmDeregister] = useState(false);
 
   useEffect(() => {
     loadPageData();
   }, []);
+
+  const handleDeregister = async () => {
+    try {
+      setDeregistering(true);
+      await api.bspDisconnect();
+      toast.success('WhatsApp number deregistered successfully!');
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Deregister failed:', error);
+      toast.error(error?.message || 'Failed to deregister number');
+      setConfirmDeregister(false);
+    } finally {
+      setDeregistering(false);
+    }
+  };
 
   const isPhoneConnected = (stage1) => {
     return stage1?.details?.phoneStatus === 'CONNECTED' || stage1?.checklist?.phoneConnected === true;
@@ -280,6 +297,41 @@ export default function WhatsAppProfilePage() {
                     <span className="text-muted-foreground">QR Code</span>
                     <div className="font-medium text-foreground">Not required in BSP Embedded Signup</div>
                   </div>
+                </div>
+
+                {/* Deregister Button */}
+                <div className="mt-4 pt-4 border-t border-border">
+                  {!deregistering ? (
+                    !confirmDeregister ? (
+                      <button
+                        onClick={() => setConfirmDeregister(true)}
+                        className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 border border-red-300 dark:border-red-600 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        Deregister Number
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-red-600 dark:text-red-400 font-medium">Are you sure? This will disconnect your WhatsApp number.</span>
+                        <button
+                          onClick={handleDeregister}
+                          className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors"
+                        >
+                          Yes, Deregister
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeregister(false)}
+                          className="px-4 py-2 text-sm font-medium text-foreground border border-border rounded-xl hover:bg-accent transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                      Deregistering...
+                    </div>
+                  )}
                 </div>
               </div>
             )}

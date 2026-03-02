@@ -24,6 +24,8 @@ const { logger } = require('../utils/logger');
 const { log: auditLog } = require('../services/auditService');
 const { getStage1Status } = require('../middlewares/phoneActivation');
 const { getRedis, setJson, getJson, deleteKey } = require('../config/redis');
+const crypto = require('crypto');
+const { provisionPartnerApp } = require('../services/gupshupProvisioningService');
 const {
   getBspConfig,
   generateBspSignupUrl,
@@ -84,18 +86,27 @@ async function startBspOnboarding(req, res) {
       });
     }
 
-    // Generate Gupshup embed URL
-    const result = await generateBspSignupUrl(userId, {
+    const state = crypto.randomBytes(24).toString('hex');
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+    const backendUrl = process.env.API_URL || 'http://localhost:5001/api/v1';
+    const callbackUrl = `${backendUrl}/onboarding/bsp/callback?state=${state}`;
+
+    // Orchestrate Gupshup Setup (App Creation, Contact, DB Update, Subscriptions, Embed Link)
+    const result = await provisionPartnerApp(userId, {
       businessName: req.body.businessName,
-      phone: req.body.phone
+      phone: req.body.phone,
+      callbackUrl: callbackUrl,
+      connectionType: req.body.connectionType || 'business_app',
+      region: req.body.region
     });
 
     // Store state for callback verification (Redis-backed)
-    await setEsbState(result.state, {
+    await setEsbState(state, {
       userId,
       workspaceId: result.workspaceId || user?.workspace?._id?.toString(),
       createdAt: new Date().toISOString(),
-      expiresAt: new Date(result.expiresAt).toISOString()
+      expiresAt: expiresAt
     });
 
     logger.info(`[BSP] Onboarding started for user ${userId}`);
@@ -112,8 +123,8 @@ async function startBspOnboarding(req, res) {
     res.json({
       success: true,
       url: result.url,
-      state: result.state,
-      expiresAt: result.expiresAt
+      state: state,
+      expiresAt: expiresAt
     });
   } catch (error) {
     logger.error('[BSP] Start onboarding error:', error.message);
@@ -554,7 +565,7 @@ async function disconnect(req, res) {
     const userId = req.user._id;
     const user = await User.findById(userId).populate('workspace');
 
-    if (!user?.workspace?.whatsappConnected) {
+    if (!user?.workspace?.whatsappConnected && !user?.workspace?.gupshupAppId) {
       return res.status(400).json({
         success: false,
         message: 'WhatsApp not connected',
@@ -562,15 +573,58 @@ async function disconnect(req, res) {
       });
     }
 
-    const workspaceId = user.workspace._id;
+    const ws = user.workspace;
+    const workspaceId = ws._id;
 
-    // Clear WhatsApp connection (keep workspace for data retention)
+    // Try to stop the Gupshup app
+    if (ws.gupshupAppId) {
+      try {
+        const gupshupService = require('../services/gupshupService');
+        await gupshupService.stopApp(ws.gupshupAppId);
+        logger.info(`[BSP] Stopped Gupshup app ${ws.gupshupAppId}`);
+      } catch (stopErr) {
+        logger.warn(`[BSP] Failed to stop Gupshup app ${ws.gupshupAppId}:`, stopErr.message);
+        // Continue with local disconnect anyway
+      }
+    }
+
+    // Clear ALL WhatsApp connection data
     await Workspace.findByIdAndUpdate(workspaceId, {
-      whatsappConnected: false,
-      accessToken: null,
-      tokenExpiresAt: null,
-      'esbFlow.status': 'disconnected',
-      'esbFlow.disconnectedAt': new Date()
+      $set: {
+        whatsappConnected: false,
+        accessToken: null,
+        tokenExpiresAt: null,
+        'esbFlow.status': 'disconnected',
+        'esbFlow.disconnectedAt': new Date(),
+        bspPhoneStatus: 'DISCONNECTED',
+        onboardingStatus: 'disconnected',
+        isOfficialAccount: false,
+        gupshupAppLive: false,
+        gupshupAppHealth: null,
+        bspManaged: false,
+        bspSyncStatus: 'INACTIVE'
+      },
+      $unset: {
+        gupshupAppId: '',
+        gupshupAppName: '',
+        wabaId: '',
+        wabaName: '',
+        phoneNumberId: '',
+        bspPhoneNumberId: '',
+        whatsappPhoneNumber: '',
+        whatsappPhoneNumberId: '',
+        activePhoneNumberId: '',
+        verifiedName: '',
+        qualityRating: '',
+        bspQualityRating: '',
+        messagingLimitTier: '',
+        bspMessagingTier: '',
+        phoneNumbers: '',
+        connectedAt: '',
+        bspOnboardedAt: '',
+        'gupshupIdentity.partnerAppId': '',
+        'gupshupIdentity.appApiKey': ''
+      }
     });
 
     // Audit log
@@ -579,14 +633,14 @@ async function disconnect(req, res) {
       userId.toString(),
       'bsp_disconnected',
       'workspace',
-      { phoneNumber: user.workspace.whatsappPhoneNumber }
+      { phoneNumber: ws.whatsappPhoneNumber || ws.phoneNumbers?.[0]?.displayPhoneNumber }
     );
 
-    logger.info(`[BSP] Disconnected workspace ${workspaceId}`);
+    logger.info(`[BSP] Fully disconnected and deregistered workspace ${workspaceId}`);
 
     res.json({
       success: true,
-      message: 'WhatsApp disconnected'
+      message: 'WhatsApp number deregistered successfully. You can now connect a new number.'
     });
   } catch (error) {
     logger.error('[BSP] Disconnect error:', error.message);
@@ -712,12 +766,28 @@ async function triggerSync(req, res) {
 
     const result = await triggerWorkspaceSync(user.workspace._id);
 
+    // After sync, ensure wabaId is set if the app has one
+    const updatedWorkspace = await Workspace.findById(user.workspace._id);
+    if (updatedWorkspace && updatedWorkspace.whatsappConnected && !updatedWorkspace.wabaId) {
+      // Use gupshupAppId as wabaId (Gupshup's Partner API model)
+      if (updatedWorkspace.gupshupAppId || updatedWorkspace.gupshupIdentity?.partnerAppId) {
+        const appId = updatedWorkspace.gupshupAppId || updatedWorkspace.gupshupIdentity?.partnerAppId;
+        await Workspace.findByIdAndUpdate(updatedWorkspace._id, {
+          $set: {
+            wabaId: appId,
+            bspWabaId: appId
+          }
+        });
+      }
+    }
+
     // Get updated stage 1 status
     const stage1Status = await getStage1Status(user.workspace._id);
 
     res.json({
       success: true,
       message: 'Sync triggered',
+      connected: stage1Status.complete,
       syncResult: result,
       stage1: stage1Status
     });

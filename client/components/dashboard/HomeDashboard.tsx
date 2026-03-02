@@ -64,20 +64,20 @@ const HomeDashboard = () => {
           console.error('Failed to fetch analytics:', err);
           return { data: null };
         });
-        
+
         const overview = response?.data;
-        
-          if (overview) {
-            setStats({
-              totalContacts: overview.totalContacts || overview.contacts?.total || 0,
-              messagesSent: overview.messages?.totalOutbound || 0,
-              deliveryRate: overview.messages?.deliveryRate || 0,
-              openRate: overview.messages?.readRate || 0,
-              activeCampaigns: overview.activeCampaigns || 0,
-              totalTemplates: overview.totalTemplates || 0,
-              conversions: overview.conversations?.resolved || 0,
-              responseRate: overview.campaigns?.replyRate || 0
-            });
+
+        if (overview) {
+          setStats({
+            totalContacts: overview.totalContacts || overview.contacts?.total || 0,
+            messagesSent: overview.messages?.totalOutbound || 0,
+            deliveryRate: overview.messages?.deliveryRate || 0,
+            openRate: overview.messages?.readRate || 0,
+            activeCampaigns: overview.activeCampaigns || 0,
+            totalTemplates: overview.totalTemplates || 0,
+            conversions: overview.conversations?.resolved || 0,
+            responseRate: overview.campaigns?.replyRate || 0
+          });
 
           if (overview.recentActivity && overview.recentActivity.length > 0) {
             setRecentActivity(overview.recentActivity.map((activity: any) => ({
@@ -88,12 +88,12 @@ const HomeDashboard = () => {
             setRecentActivity([]);
           }
         } else {
-            // Fallback for empty state or error
-             setStats({
-                totalContacts: 0, messagesSent: 0, deliveryRate: 0, openRate: 0,
-                activeCampaigns: 0, totalTemplates: 0, conversions: 0, responseRate: 0
-              });
-              setRecentActivity([]);
+          // Fallback for empty state or error
+          setStats({
+            totalContacts: 0, messagesSent: 0, deliveryRate: 0, openRate: 0,
+            activeCampaigns: 0, totalTemplates: 0, conversions: 0, responseRate: 0
+          });
+          setRecentActivity([]);
         }
 
         if (authUser?.trialEndsAt) {
@@ -116,7 +116,7 @@ const HomeDashboard = () => {
     const date = new Date(dateString);
     const now = new Date();
     const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    
+
     if (seconds < 60) return 'Just now';
     const minutes = Math.floor(seconds / 60);
     if (minutes < 60) return `${minutes} min ago`;
@@ -226,25 +226,6 @@ const HomeDashboard = () => {
 
   return (
     <div className="animate-fade-in-up">
-      {/* WhatsApp Not Connected Banner */}
-      {!workspace.loading && !workspace.stage1Complete && (
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
-              <div>
-                <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">WhatsApp Not Connected</p>
-                <p className="text-xs text-amber-700 dark:text-amber-300">Connect your WhatsApp Business account to unlock messaging features</p>
-              </div>
-            </div>
-            <button onClick={() => router.push('/onboarding/esb')}
-              className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors flex items-center gap-2">
-              <FaWhatsapp /> Connect Now
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Hero Header */}
       <div className="relative overflow-hidden bg-gradient-to-r from-primary via-[#0fb07e] to-primary/80 rounded-2xl mb-8 shadow-premium">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIgMS44LTQgNC00czQgMS44IDQgNC0xLjggNC00IDQtNC0xLjgtNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30" />
@@ -328,11 +309,10 @@ const HomeDashboard = () => {
                   <button
                     onClick={() => !isWhatsAppConnected && setConnectNumberModalOpen(true)}
                     disabled={isWhatsAppConnected}
-                    className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md ${
-                      isWhatsAppConnected
-                        ? 'bg-emerald-100 text-emerald-700 cursor-default dark:bg-emerald-900/30 dark:text-emerald-300'
-                        : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white hover:shadow-lg'
-                    }`}
+                    className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md ${isWhatsAppConnected
+                      ? 'bg-emerald-100 text-emerald-700 cursor-default dark:bg-emerald-900/30 dark:text-emerald-300'
+                      : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white hover:shadow-lg'
+                      }`}
                   >
                     {isWhatsAppConnected ? 'Connected' : 'Connect Now'}
                   </button>

@@ -10,6 +10,7 @@ const answerBotService = require('../services/answerbotService');
 const bspMessagingService = require('../services/bspMessagingService');
 const { automationEvents, AUTOMATION_EVENTS } = require('../services/automationEventEmitter');
 const { getIO } = require('../utils/socket');
+const { runPostOnboardingAutomations } = require('../services/gupshupProvisioningService');
 
 function verify(req, res) {
   return res.status(200).json({ ok: true, provider: 'gupshup' });
@@ -43,6 +44,34 @@ async function processWebhookPayload(payload, deliveryId, sourceIp) {
   });
 
   try {
+    // 1. Account / System Events (Onboarding flow completion)
+    const isAccountEvent = payload.type === 'account-event' || payload.type === 'app_event' || payload.object === 'whatsapp_business_account' || payload.event === 'ACCOUNT_VERIFIED';
+    if (isAccountEvent && workspace) {
+      const isVerified = payload.status === 'ACCOUNT_VERIFIED' || payload.event === 'ACCOUNT_VERIFIED' || payload?.entry?.[0]?.changes?.[0]?.value?.event === 'APPROVED';
+
+      if (isVerified) {
+        workspace.onboardingStatus = 'LIVE';
+        workspace.wabaStatus = 'VERIFIED';
+        workspace.whatsappConnected = true;
+        workspace.connectedAt = new Date();
+        workspace.bspPhoneStatus = 'CONNECTED';
+
+        // Ensure esbFlow is marked complete
+        if (workspace.esbFlow) {
+          workspace.esbFlow.status = 'completed';
+          workspace.esbFlow.completedAt = new Date();
+        }
+
+        await workspace.save();
+
+        // Fire and forget post-onboarding sync tasks to prevent webhook timeout
+        runPostOnboardingAutomations(workspace).catch(err => {
+          console.error('[Webhooks] Post-onboarding automation failed:', err);
+        });
+      }
+    }
+
+    // 2. Status Delivery Receipts
     const statuses = extractStatuses(payload);
     if (statuses.length > 0) {
       await processStatuses(statuses, workspace?._id || null);
@@ -105,7 +134,7 @@ async function processInbound(incoming, workspace) {
     try {
       const igUsername = incoming.sender?.name || 'Instagram User';
       let triggerType = 'dm';
-      
+
       if (incoming.type === 'comment') {
         triggerType = 'comment';
       } else if (incoming.payload?.reply_to?.story || incoming.reply_to?.story) {
@@ -113,7 +142,7 @@ async function processInbound(incoming, workspace) {
       } else if (incoming.type === 'mention') {
         triggerType = 'mention';
       }
-      
+
       const qfResult = await instagramQuickflowService.checkInstagramQuickflow(
         from,
         igUsername,

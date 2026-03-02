@@ -54,11 +54,13 @@ async function sendTextMessage(workspaceId, to, text, options = {}) {
   await checkRateLimit(workspace);
 
   const source = getWorkspaceSourceNumber(workspace);
-  const appApiKey = workspace.gupshupIdentity?.appApiKey;
-  if (!appApiKey) throw new Error('GUPSHUP_APP_API_KEY_MISSING');
+  const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId || process.env.GUPSHUP_APP_ID;
+  const appApiKey = workspace.gupshupIdentity?.appApiKey || process.env.GUPSHUP_API_KEY;
+  if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
   try {
     const response = await gupshupService.sendText({
+      appId,
       source,
       destination: to,
       text,
@@ -125,8 +127,10 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
   await checkRateLimit(workspace);
 
   const source = getWorkspaceSourceNumber(workspace);
-  const appApiKey = workspace.gupshupIdentity?.appApiKey;
-  if (!appApiKey) throw new Error('GUPSHUP_APP_API_KEY_MISSING');
+  const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId || process.env.GUPSHUP_APP_ID;
+  const appApiKey = workspace.gupshupIdentity?.appApiKey || process.env.GUPSHUP_API_KEY;
+  const appName = workspace.gupshupIdentity?.appName || workspace.gupshupAppName || workspace.name || undefined;
+  if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
   try {
     const params = components
@@ -135,12 +139,14 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
       .filter(Boolean);
 
     const response = await gupshupService.sendTemplate({
+      appId,
       source,
       destination: to,
       templateId: templateName,
       languageCode,
       params,
-      appApiKey
+      appApiKey,
+      appName
     });
 
     await logMessage(workspace._id, {
@@ -199,11 +205,13 @@ async function sendMediaMessage(workspaceId, to, mediaType, media, caption = '',
   await checkRateLimit(workspace);
 
   const source = getWorkspaceSourceNumber(workspace);
-  const appApiKey = workspace.gupshupIdentity?.appApiKey;
-  if (!appApiKey) throw new Error('GUPSHUP_APP_API_KEY_MISSING');
+  const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId || process.env.GUPSHUP_APP_ID;
+  const appApiKey = workspace.gupshupIdentity?.appApiKey || process.env.GUPSHUP_API_KEY;
+  if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
   try {
     const response = await gupshupService.sendMedia({
+      appId,
       source,
       destination: to,
       mediaType,
@@ -266,14 +274,15 @@ async function sendInteractiveMessage(workspaceId, to, interactive, options = {}
   await checkRateLimit(workspace);
 
   const source = getWorkspaceSourceNumber(workspace);
-  const appApiKey = workspace.gupshupIdentity?.appApiKey;
-  if (!appApiKey) throw new Error('GUPSHUP_APP_API_KEY_MISSING');
+  const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId || process.env.GUPSHUP_APP_ID;
+  const appApiKey = workspace.gupshupIdentity?.appApiKey || process.env.GUPSHUP_API_KEY;
+  if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
   try {
-    const response = await gupshupService.sendText({
-      source,
+    const response = await gupshupService.sendInteractiveV3({
+      appId,
       destination: to,
-      text: interactive.body?.text || '[Interactive Message]',
+      interactive,
       appApiKey
     });
 
@@ -640,7 +649,7 @@ function verifyWebhookSignature() {
  */
 
 function getWorkspaceSourceNumber(workspace) {
-  const source = workspace.gupshupIdentity?.source;
+  const source = workspace.gupshupIdentity?.source || workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber || process.env.GUPSHUP_SOURCE_NUMBER;
   if (!source) {
     throw new Error('GUPSHUP_SOURCE_NUMBER_NOT_CONFIGURED');
   }

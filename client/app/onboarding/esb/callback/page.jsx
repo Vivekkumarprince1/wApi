@@ -23,6 +23,13 @@ function ESBCallbackContent() {
       try {
         const code = searchParams.get('code');
         const state = searchParams.get('state');
+        const errorParam = searchParams.get('error');
+
+        if (errorParam) {
+          setStatus('error');
+          setMessage(searchParams.get('message') || 'Signup was cancelled or failed.');
+          return;
+        }
 
         if (!code || !state) {
           setStatus('error');
@@ -35,12 +42,25 @@ function ESBCallbackContent() {
 
         if (response?.success) {
           setStatus('success');
-          setMessage('WhatsApp connected via Gupshup successfully!');
+          setMessage('🎉 Congratulations! WhatsApp connected successfully!');
 
-          // Redirect to dashboard after 2 seconds
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 2000);
+          // If opened as popup, notify parent and auto-close
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage(
+              { type: 'GUPSHUP_ONBOARDING_COMPLETE', success: true },
+              window.location.origin
+            );
+
+            // Auto-close the popup after showing congratulations
+            setTimeout(() => {
+              window.close();
+            }, 2000);
+          } else {
+            // Not a popup — redirect to dashboard
+            setTimeout(() => {
+              router.push('/dashboard');
+            }, 2000);
+          }
         } else {
           setStatus('error');
           setMessage(response?.message || 'Failed to complete WhatsApp connection');
@@ -79,13 +99,13 @@ function ESBCallbackContent() {
               <FaCheckCircle className="text-5xl text-green-600" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              All Set!
+              Congratulations! 🎉
             </h1>
             <p className="text-gray-600 text-center mb-4">
               {message}
             </p>
             <p className="text-sm text-gray-500">
-              Redirecting to dashboard...
+              This window will close automatically...
             </p>
           </>
         )}

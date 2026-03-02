@@ -1021,7 +1021,7 @@ export const getAnalyticsDashboardOverview = async (params: { startDate?: string
   if (params.startDate) queryParams.append('startDate', params.startDate);
   if (params.endDate) queryParams.append('endDate', params.endDate);
   if (params.days) queryParams.append('days', params.days.toString());
-  
+
   const response = await fetch(`${API_URL}/analytics/dashboard/overview?${queryParams}`, {
     headers: getAuthHeaders(),
     credentials: 'include',
@@ -1038,7 +1038,7 @@ export const getAnalyticsDashboardConversations = async (params: { startDate?: s
   if (params.startDate) queryParams.append('startDate', params.startDate);
   if (params.endDate) queryParams.append('endDate', params.endDate);
   if (params.days) queryParams.append('days', params.days.toString());
-  
+
   const response = await fetch(`${API_URL}/analytics/dashboard/conversations?${queryParams}`, {
     headers: getAuthHeaders(),
     credentials: 'include',
@@ -1055,7 +1055,7 @@ export const getAnalyticsDashboardAgents = async (params: { startDate?: string; 
   if (params.startDate) queryParams.append('startDate', params.startDate);
   if (params.endDate) queryParams.append('endDate', params.endDate);
   if (params.days) queryParams.append('days', params.days.toString());
-  
+
   const response = await fetch(`${API_URL}/analytics/dashboard/agents?${queryParams}`, {
     headers: getAuthHeaders(),
     credentials: 'include',
@@ -1072,7 +1072,7 @@ export const getAnalyticsDashboardMessages = async (params: { startDate?: string
   if (params.startDate) queryParams.append('startDate', params.startDate);
   if (params.endDate) queryParams.append('endDate', params.endDate);
   if (params.days) queryParams.append('days', params.days.toString());
-  
+
   const response = await fetch(`${API_URL}/analytics/dashboard/messages?${queryParams}`, {
     headers: getAuthHeaders(),
     credentials: 'include',
@@ -1399,11 +1399,16 @@ export const completeOnboarding = async () => {
  * REQUIRES: emailVerified === true (enforced on frontend)
  * RETURNS: { esbUrl: string, state: string }
  */
-export const bspStart = async () => {
+export const bspStart = async (payload: {
+  businessName?: string;
+  phone?: string;
+  callbackUrl?: string;
+} = {}) => {
   const response = await fetch(`${API_URL}/onboarding/bsp/start`, {
     method: 'POST',
     headers: getAuthHeaders(),
-    credentials: 'include'
+    credentials: 'include',
+    body: JSON.stringify(payload)
   });
   if (!response.ok) {
     const error = await response.json();
@@ -1498,6 +1503,23 @@ export const bspSync = async () => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to sync BSP workspace');
+  }
+  return response.json();
+};
+
+/**
+ * Disconnect/deregister WhatsApp number from workspace
+ * POST /onboarding/bsp/disconnect
+ */
+export const bspDisconnect = async () => {
+  const response = await fetch(`${API_URL}/onboarding/bsp/disconnect`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to disconnect WhatsApp');
   }
   return response.json();
 };

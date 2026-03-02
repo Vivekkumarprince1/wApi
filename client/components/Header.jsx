@@ -468,36 +468,6 @@ const Header = ({ onMenuClick }) => {
                       </span>
                     </div>
 
-                    {/* Verification Status */}
-                    {workspaceData?.verification && (
-                      <div className="flex items-center justify-between py-2 border-t border-border/50">
-                        <div className="flex items-center gap-2.5">
-                          {workspaceData.verification.isVerified ? (
-                            <CheckCircle className="h-4 w-4 text-emerald-500" />
-                          ) : (
-                            <AlertCircle className="h-4 w-4 text-amber-500" />
-                          )}
-                          <div>
-                            <div className="text-sm font-medium text-foreground">Business Status</div>
-                            <div className={`text-xs ${workspaceData.verification.isVerified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'
-                              }`}>
-                              {workspaceData.verification.isVerified ? 'Verified Business' :
-                                workspaceData.verification.status === 'pending' ? 'Verification Pending' :
-                                  workspaceData.verification.status === 'in_review' ? 'Under Review' :
-                                    'Verification Required'}
-                            </div>
-                          </div>
-                        </div>
-                        {!workspaceData.verification.isVerified && workspaceData.verification.status !== 'pending' && workspaceData.verification.status !== 'in_review' && (
-                          <button
-                            onClick={() => router.push('/onboarding/esb')}
-                            className="px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-colors"
-                          >
-                            Verify
-                          </button>
-                        )}
-                      </div>
-                    )}
                   </div>
 
                   {/* Actions */}

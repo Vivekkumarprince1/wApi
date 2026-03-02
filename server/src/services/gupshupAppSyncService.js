@@ -108,37 +108,135 @@ async function syncWorkspace(workspace) {
       codeVerificationStatus: undefined
     };
 
-    const unsetFields = {
-      qualityRating: 1,
-      bspQualityRating: 1,
-      messagingLimitTier: 1,
-      bspMessagingTier: 1,
-      nameStatus: 1,
-      codeVerificationStatus: 1
-    };
+    const unsetFields = {};
 
+    // NEVER unset connection data if we already manually confirmed it live!
     if (mapped.phoneId) {
       updates.bspPhoneNumberId = mapped.phoneId;
       updates.activePhoneNumberId = mapped.phoneId;
       updates.whatsappPhoneNumberId = mapped.phoneId;
       updates.phoneNumberId = mapped.phoneId;
+      updates.whatsappConnected = true;
+      updates.bspPhoneStatus = 'CONNECTED';
+      updates.isOfficialAccount = true;
+      updates.gupshupAppLive = true;
+    } else if (!workspace.phoneNumberId && !workspace.whatsappConnected) {
+      // Only set to false/pending if it was NEVER connected in the first place
+      updates.whatsappConnected = false;
+      updates.isOfficialAccount = false;
+      updates.gupshupAppLive = false;
     } else {
-      unsetFields.bspPhoneNumberId = 1;
-      unsetFields.activePhoneNumberId = 1;
-      unsetFields.whatsappPhoneNumberId = 1;
-      unsetFields.phoneNumberId = 1;
+      // It is currently connected in DB, but Gupshup API cache is lagging and returned null.
+      // DONT update connection fields to void!
+      delete updates.whatsappConnected;
+      delete updates.isOfficialAccount;
+      delete updates.gupshupAppLive;
+      delete updates.bspPhoneStatus;
     }
 
     if (app) {
+      console.log(`\n======================================================`);
+      console.log(`[GupshupSync] 📥 FETCHED APP DATA FOR: ${workspace.name}`);
+      console.log(`[GupshupSync] App Name:      ${app.name}`);
+      console.log(`[GupshupSync] Phone Number:  ${app.phone || 'N/A'}`);
+      console.log(`[GupshupSync] Customer ID:   ${app.customerId || 'N/A'}`);
+      console.log(`[GupshupSync] App ID:        ${app.id}`);
+      console.log(`[GupshupSync] Status:        Live: ${app.live}, Healthy: ${app.healthy}`);
+      console.log(`======================================================\n`);
+
       updates.phoneNumbers = app.phone
         ? [{ id: app.phone, displayPhoneNumber: app.phone, verifiedName: app.name, qualityRating: null, status: mapped.bspPhoneStatus }]
-        : [];
+        : (workspace.phoneNumbers || []);
       updates.connectedAt = workspace.connectedAt || (mapped.whatsappConnected ? new Date() : null);
       updates.bspOnboardedAt = workspace.bspOnboardedAt || (mapped.whatsappConnected ? new Date() : null);
-    } else {
+
+      // Save App Name
+      updates.gupshupAppName = app.name;
+
+      // Save businessId from Gupshup's customerId
+      if (app.customerId && !workspace.businessId) {
+        updates.businessId = app.customerId;
+      }
+
+      // ===== FETCH WABA INFO (Meta WABA ID, verified name, quality, etc.) =====
+      if (mapped.bspPhoneStatus === 'CONNECTED' || app.live) {
+        try {
+          const wabaResponse = await gupshupService.getWabaInfo(app.id);
+          const wabaInfo = wabaResponse?.wabaInfo;
+
+          if (wabaInfo) {
+            console.log(`\n======================================================`);
+            console.log(`[GupshupSync] 🏢 WABA INFO FOR: ${workspace.name}`);
+            console.log(`[GupshupSync] WABA ID:          ${wabaInfo.wabaId}`);
+            console.log(`[GupshupSync] WABA Name:        ${wabaInfo.wabaName}`);
+            console.log(`[GupshupSync] Verified Name:    ${wabaInfo.verifiedName}`);
+            console.log(`[GupshupSync] Phone:            ${wabaInfo.phone}`);
+            console.log(`[GupshupSync] Messaging Limit:  ${wabaInfo.messagingLimit}`);
+            console.log(`[GupshupSync] Phone Quality:    ${wabaInfo.phoneQuality}`);
+            console.log(`[GupshupSync] Account Status:   ${wabaInfo.accountStatus}`);
+            console.log(`[GupshupSync] MM Lite Status:   ${wabaInfo.mmLiteStatus}`);
+            console.log(`[GupshupSync] Ownership:        ${wabaInfo.ownershipType}`);
+            console.log(`[GupshupSync] Full WABA Data:\n`, JSON.stringify(wabaInfo, null, 2));
+            console.log(`======================================================\n`);
+
+            // Save the Meta WABA ID
+            if (wabaInfo.wabaId) {
+              updates.wabaId = wabaInfo.wabaId;
+            }
+            // Save verified name from Meta
+            if (wabaInfo.verifiedName) {
+              updates.verifiedName = wabaInfo.verifiedName;
+            }
+            // Save WABA display name
+            if (wabaInfo.wabaName) {
+              updates.wabaName = wabaInfo.wabaName;
+            }
+            // Save phone number (formatted from Meta)
+            if (wabaInfo.phone) {
+              updates.whatsappPhoneNumber = wabaInfo.phone;
+            }
+            // Save quality rating
+            if (wabaInfo.phoneQuality) {
+              updates.qualityRating = wabaInfo.phoneQuality;
+              updates.bspQualityRating = wabaInfo.phoneQuality;
+            }
+            // Save messaging tier
+            if (wabaInfo.messagingLimit) {
+              updates.messagingLimitTier = wabaInfo.messagingLimit;
+              updates.bspMessagingTier = wabaInfo.messagingLimit;
+            }
+          }
+        } catch (wabaErr) {
+          console.warn(`[GupshupSync] ⚠️ Failed to fetch WABA info for app ${app.id}:`, wabaErr.message);
+          // Non-fatal — continue with whatever data we have
+        }
+      }
+
+      // If phone is connected, mark esbFlow as completed so features unlock 
+      if (mapped.bspPhoneStatus === 'CONNECTED') {
+        updates['esbFlow.status'] = 'completed';
+        updates['esbFlow.completedAt'] = workspace.esbFlow?.completedAt || new Date();
+        updates.onboardingStatus = 'LIVE';
+        updates.bspManaged = true;
+
+        // CRITICAL: If Gupshup says it's not live yet, tell it to go live!
+        if (app.live === false) {
+          console.log(`[GupshupSync] App ${app.id} is connected but NOT LIVE. Triggering Go-Live...`);
+          gupshupService.goLive({ appId: app.id }).catch(err => {
+            console.error(`[GupshupSync] Failed to trigger auto Go-Live for ${app.id}:`, err.message);
+          });
+        }
+      }
+    } else if (!workspace.whatsappConnected) {
+      // Only reset phone numbers if workspace was never connected
       updates.phoneNumbers = [];
       updates.connectedAt = null;
     }
+
+    console.log(`\n======================================================`);
+    console.log(`[GupshupSync] 💾 SAVING TO WORKSPACE DB:`);
+    console.log(`[GupshupSync] Data: \n`, JSON.stringify(updates, null, 2));
+    console.log(`======================================================\n`);
 
     await Workspace.findByIdAndUpdate(workspace._id, {
       $set: updates,

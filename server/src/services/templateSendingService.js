@@ -26,6 +26,7 @@ const Message = require('../models/Message');
 const Contact = require('../models/Contact');
 const Conversation = require('../models/Conversation');
 const bspMessagingService = require('./bspMessagingService');
+const gupshupService = require('./gupshupService');
 const { isOptedOutByPhone, isOptedOut } = require('./optOutService');
 const billingLedgerService = require('./billingLedgerService');
 const { enforceWorkspaceBilling } = require('./billingEnforcementService');
@@ -108,7 +109,7 @@ async function sendTemplate(params) {
     throw createError(ERROR_CODES.WORKSPACE_NOT_CONFIGURED, 'Workspace not found');
   }
 
-    await enforceWorkspaceBilling(workspaceId);
+  await enforceWorkspaceBilling(workspaceId);
 
   // Compliance: enforce opt-out BEFORE any outbound send (Interakt requirement)
   // WHY: Meta policy requires honoring STOP across all outbound channels
@@ -145,7 +146,7 @@ async function sendTemplate(params) {
   // STEP 4: Build Meta API payload with variables
   // ─────────────────────────────────────────────────────────────────────────────
   const { payload, validationResult } = buildTemplatePayload(template, normalizedPhone, variables);
-  
+
   if (!validationResult.valid) {
     throw createError(
       ERROR_CODES.VARIABLE_COUNT_MISMATCH,
@@ -154,14 +155,44 @@ async function sendTemplate(params) {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
-  // STEP 5: Send via Meta API
+  // STEP 5: Send via Gupshup V2 Partner Template API
   // ─────────────────────────────────────────────────────────────────────────────
-  const url = `${bspConfig.baseUrl}/${phoneNumberId}/messages`;
-  
+  const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId || process.env.GUPSHUP_APP_ID;
+  if (!appId) {
+    throw createError(ERROR_CODES.WORKSPACE_NOT_CONFIGURED, 'Gupshup App ID not configured');
+  }
+
+  const source = workspace.gupshupIdentity?.source || workspace.whatsappPhoneNumber || workspace.bspDisplayPhoneNumber;
+  if (!source) {
+    throw createError(ERROR_CODES.PHONE_NOT_CONFIGURED, 'Source phone number not configured');
+  }
+
+  const appApiKey = workspace.gupshupIdentity?.appApiKey;
+  const appName = workspace.gupshupIdentity?.appName || workspace.gupshupAppName || workspace.name || undefined;
+
+  // Extract body params from Meta-format payload for the V2 API
+  const bodyParams = payload.template?.components
+    ?.find(c => c.type === 'body')
+    ?.parameters?.map(p => p.text) || [];
+
   let response;
   try {
-    // Use BSP service for all outbound Meta API calls (centralized token + safety)
-    response = await bspMessagingService.makeMetaApiCall('POST', url, payload);
+    // Use gupshupService V2 Partner Template API
+    response = await gupshupService.sendTemplate({
+      appId,
+      source,
+      destination: normalizedPhone,
+      templateId: template.metaTemplateId || template.metaTemplateName || template.name,
+      languageCode: template.language || 'en',
+      params: bodyParams,
+      appApiKey,
+      appName
+    });
+
+    // Normalize response to match expected format
+    if (!response.messages) {
+      response.messages = [{ id: response.messageId || response.id }];
+    }
   } catch (apiError) {
     // Log failed attempt
     await logTemplateSend({
@@ -173,7 +204,7 @@ async function sendTemplate(params) {
       error: apiError.message,
       meta
     });
-    
+
     throw createError(ERROR_CODES.META_API_ERROR, apiError.message, apiError);
   }
 
@@ -196,26 +227,26 @@ async function sendTemplate(params) {
     }
   });
 
-    // ─────────────────────────────────────────────────────────────────────────────
-    // STEP 8: Usage ledger for conversation billing
-    // ─────────────────────────────────────────────────────────────────────────────
-    try {
-      await billingLedgerService.startBusinessConversation({
-        workspaceId,
-        conversationId: conversation?._id || null,
-        contactId: contact?._id,
-        phoneNumber: normalizedPhone,
-        templateId: template._id,
-        templateName: template.name,
-        templateCategory: template.category,
-        source: meta?.campaignId ? 'CAMPAIGN' : 'INBOX',
-        messageId: messageLog?._id,
-        whatsappMessageId: response.messages?.[0]?.id,
-        isBillable: true
-      });
-    } catch (ledgerErr) {
-      console.error('[TemplateSending] Billing ledger update failed:', ledgerErr.message);
-    }
+  // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 8: Usage ledger for conversation billing
+  // ─────────────────────────────────────────────────────────────────────────────
+  try {
+    await billingLedgerService.startBusinessConversation({
+      workspaceId,
+      conversationId: conversation?._id || null,
+      contactId: contact?._id,
+      phoneNumber: normalizedPhone,
+      templateId: template._id,
+      templateName: template.name,
+      templateCategory: template.category,
+      source: meta?.campaignId ? 'CAMPAIGN' : 'INBOX',
+      messageId: messageLog?._id,
+      whatsappMessageId: response.messages?.[0]?.id,
+      isBillable: true
+    });
+  } catch (ledgerErr) {
+    console.error('[TemplateSending] Billing ledger update failed:', ledgerErr.message);
+  }
 
   if (conversation && contact) {
     await billingLedgerService.startBusinessConversation({
@@ -271,7 +302,7 @@ async function sendTemplateBulk(params) {
 
   // Validate template once for all recipients
   const template = await getAndValidateTemplate(workspaceId, templateId, templateName);
-  
+
   const results = [];
   let sent = 0;
   let failed = 0;
@@ -286,7 +317,7 @@ async function sendTemplateBulk(params) {
         contactId: recipient.contactId,
         meta: { ...meta, bulkSend: true }
       });
-      
+
       results.push({
         to: recipient.to,
         success: true,
@@ -605,11 +636,11 @@ async function logTemplateSend(params) {
     sentAt: status === 'sent' ? new Date() : null,
     failedAt: status === 'failed' ? new Date() : null,
     failureReason: error,
-    
+
     // WhatsApp identifiers
     whatsappMessageId: whatsappMessageId,
     recipientPhone: recipient,
-    
+
     // Template-specific fields (new structure)
     template: {
       id: template._id,
@@ -619,19 +650,19 @@ async function logTemplateSend(params) {
       language: template.language,
       variables: variables || {}
     },
-    
+
     // Conversation billing fields
     conversationBilling: {
       category: CONVERSATION_CATEGORIES[template.category] || 'utility_conversation',
       isNewConversation: false // Will be updated by webhook if needed
     },
-    
+
     // Campaign tracking
     campaign: meta.campaignId ? {
       id: meta.campaignId,
       batchId: meta.batchId
     } : undefined,
-    
+
     // Additional metadata
     meta: {
       ...meta,
@@ -651,7 +682,7 @@ async function logTemplateSend(params) {
  */
 async function updateWorkspaceUsage(workspace, category) {
   const updatePath = `bspUsage.templates.${category.toLowerCase()}`;
-  
+
   await Workspace.findByIdAndUpdate(workspace._id, {
     $inc: {
       'bspUsage.totalMessages': 1,
@@ -715,7 +746,7 @@ async function getOrCreateConversation(workspaceId, contactId, template, meta = 
  */
 async function makeMetaApiCall(method, url, data = null) {
   const token = bspConfig.systemUserToken;
-  
+
   if (!token) {
     throw new Error('BSP system user token not configured');
   }
@@ -780,19 +811,19 @@ function extractVariableNumbers(text) {
  */
 function normalizePhoneNumber(phone) {
   if (!phone) return null;
-  
+
   // Remove all non-digits
   let normalized = phone.replace(/\D/g, '');
-  
+
   // Handle common formats
   if (normalized.startsWith('0')) {
     // Local format, assume India (+91)
     normalized = '91' + normalized.slice(1);
   }
-  
+
   // Validate length (minimum 10 digits)
   if (normalized.length < 10) return null;
-  
+
   return normalized;
 }
 
@@ -839,7 +870,7 @@ async function getTemplateInfo(workspaceId, templateId) {
     variables: {
       header: countVariables(template.header?.text),
       body: countVariables(template.body?.text),
-      buttons: template.buttons?.items?.filter(b => 
+      buttons: template.buttons?.items?.filter(b =>
         b.type === 'URL' && b.urlSuffix || b.type === 'COPY_CODE'
       ).length || 0
     },
@@ -918,26 +949,26 @@ module.exports = {
   // Main sending functions
   sendTemplate,
   sendTemplateBulk,
-  
+
   // Validation
   getAndValidateTemplate,
   validateVariables,
-  
+
   // Payload building
   buildTemplatePayload,
-  
+
   // Logging
   logTemplateSend,
-  
+
   // Info helpers
   getTemplateInfo,
   listSendableTemplates,
-  
+
   // Utilities
   normalizePhoneNumber,
   countVariables,
   extractVariableNumbers,
-  
+
   // Constants
   ERROR_CODES,
   CONVERSATION_CATEGORIES
