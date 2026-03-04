@@ -60,7 +60,7 @@ const HomeDashboard = () => {
       try {
         setIsLoading(true);
         // Fetch dashboard overview directly
-        const response = await get('/analytics/overview').catch((err) => {
+        const response = await get('/analytics/dashboard/overview').catch((err) => {
           console.error('Failed to fetch analytics:', err);
           return { data: null };
         });

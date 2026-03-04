@@ -9,16 +9,18 @@ const rateLimit = require('express-rate-limit');
 const { initSocket } = require('./utils/socket');
 const { connectRedis } = require('./config/redis');
 const { mongoUri, port, env } = require('./config');
-const errorHandler = require('./middlewares/errorHandler');
-const { enforceTenantIsolation } = require('./middlewares/bspTenantRouter');
+const errorHandler = require('./middlewares/error/errorHandler');
+const { enforceTenantIsolation } = require('./middlewares/infrastructure/bspTenantRouter');
+const { installGupshupHttpLogging } = require('./utils/gupshupHttpLogger');
 
 const BSP_ONLY = process.env.BSP_ONLY !== 'false';
+installGupshupHttpLogging();
 
 // Routes
-const authRoutes = require('./routes/authRoutes');
-const contactRoutes = require('./routes/contactRoutes');
-const messageRoutes = require('./routes/messageRoutes');
-const webhookRoutes = require('./routes/webhookRoutes');
+const authRoutes = require('./routes/auth/authRoutes');
+const contactRoutes = require('./routes/messaging/contactRoutes');
+const messageRoutes = require('./routes/messaging/messageRoutes');
+const webhookRoutes = require('./routes/bsp/webhookRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -92,7 +94,7 @@ app.use(express.urlencoded({ extended: true }));
 if (env === 'development') app.use(morgan('dev'));
 
 // Import init service
-const { initializeDefaultWABA } = require('./services/initService');
+const { initializeDefaultWABA } = require('./services/infrastructure/initService');
 
 // Connect to MongoDB (supports in-memory for local dev)
 async function startDB() {
@@ -107,7 +109,7 @@ async function startDB() {
     try {
       await mongoose.connect(mongoUri);
       console.log('MongoDB connected');
-      
+
       // Initialize WABA credentials for workspaces after DB connection
       // await initializeDefaultWABA(); // Disabled to prevent E11000 duplicate key errors in multi-tenant setup
     } catch (err) {
@@ -122,12 +124,12 @@ let redisConnection = null;
 connectRedis().then(conn => {
   redisConnection = conn;
   console.log('[Server] Redis connected - initializing queues');
-  
+
   // Initialize webhook queue
   try {
-    const { initializeWebhookQueue, startWebhookWorker } = require('./services/webhookQueue');
+    const { initializeWebhookQueue, startWebhookWorker } = require('./services/infrastructure/webhookQueue');
     initializeWebhookQueue(redisConnection);
-    
+
     if (process.env.START_WEBHOOK_WORKER === 'true') {
       startWebhookWorker(redisConnection);
       console.log('[Server] ✅ Webhook worker started');
@@ -138,9 +140,9 @@ connectRedis().then(conn => {
 
   // Initialize message retry queue (Week 2 addition)
   try {
-    const { initializeMessageRetryQueue, startMessageRetryWorker } = require('./services/messageRetryQueue');
+    const { initializeMessageRetryQueue, startMessageRetryWorker } = require('./services/infrastructure/messageRetryQueue');
     initializeMessageRetryQueue(redisConnection);
-    
+
     if (process.env.START_MESSAGE_RETRY_WORKER === 'true') {
       startMessageRetryWorker(redisConnection);
       console.log('[Server] ✅ Message retry worker started');
@@ -152,7 +154,7 @@ connectRedis().then(conn => {
 
 // Start token refresh cron (Week 2 addition)
 try {
-  const tokenRefreshCron = require('./services/tokenRefreshCron');
+  const tokenRefreshCron = require('./services/bsp/tokenRefreshCron');
   tokenRefreshCron.start();
   console.log('[Server] ✅ Token refresh cron started (every 6 hours)');
 } catch (err) {
@@ -161,7 +163,7 @@ try {
 
 // Start Usage Ledger nightly snapshot (BSP billing)
 try {
-  const usageLedgerCron = require('./services/usageLedgerCron');
+  const usageLedgerCron = require('./services/billing/usageLedgerCron');
   usageLedgerCron.start();
   console.log('[Server] ✅ Usage ledger cron started (daily)');
 } catch (err) {
@@ -171,7 +173,7 @@ try {
 // Start Gupshup app autosync service
 if (process.env.START_WABA_AUTOSYNC !== 'false') {
   try {
-    const { startAutosync } = require('./services/gupshupAppSyncService');
+    const { startAutosync } = require('./services/bsp/gupshupAppSyncService');
     startAutosync();
     console.log('[Server] ✅ Gupshup app autosync service started');
   } catch (err) {
@@ -190,40 +192,40 @@ app.use('/api/v1/messages', messageRoutes);
 app.use('/api/v1/webhook', webhookRoutes);
 
 // Additional modules
-const campaignRoutes = require('./routes/campaignRoutes');
-const adsRoutes = require('./routes/adsRoutes');
-const automationRoutes = require('./routes/automationRoutes');
-const autoReplyRoutes = require('./routes/autoReplyRoutes');
-const instagramQuickflowRoutes = require('./routes/instagramQuickflowRoutes');
-const whatsappFormRoutes = require('./routes/whatsappFormRoutes');
-const analyticsRoutes = require('./routes/analyticsRoutes');
-const paymentRoutes = require('./routes/paymentRoutes');
-const settingsRoutes = require('./routes/settingsRoutes');
-const billingRoutes = require('./routes/billingRoutes'); // Week 2 addition
-const templateRoutes = require('./routes/templateRoutes');
-const conversationRoutes = require('./routes/conversationRoutes');
-const inboxRoutes = require('./routes/inboxRoutes'); // Stage 4: Shared Inbox
-const internalNotesRoutes = require('./routes/internalNotesRoutes'); // Stage 4 Hardening: Internal Notes
-const metricsRoutes = require('./routes/metricsRoutes');
-const onboardingRoutes = require('./routes/onboardingRoutes');
-const bspOnboardingRoutes = require('./routes/bspOnboardingRoutes'); // BSP Interakt model
-const adminRoutes = require('./routes/adminRoutes');
-const bspAdminRoutes = require('./routes/bspAdminRoutes'); // BSP multi-tenant admin
-const internalRoutes = require('./routes/internalRoutes'); // Internal BSP health
-const usageRoutes = require('./routes/usageRoutes');
-const dealRoutes = require('./routes/dealRoutes');
-const pipelineRoutes = require('./routes/pipelineRoutes');
-const reportsRoutes = require('./routes/reportsRoutes');
-const productRoutes = require('./routes/productRoutes');
-const checkoutBotRoutes = require('./routes/checkoutBotRoutes');
-const integrationsRoutes = require('./routes/integrationsRoutes');
-const widgetRoutes = require('./routes/widgetRoutes');
-const dataDeletionRoutes = require('./routes/dataDeletionRoutes');
-const billingReportsRoutes = require('./routes/billingReportsRoutes'); // Stage 5: Billing Reports
-const tagRoutes = require('./routes/tagRoutes'); // Stage 5: CRM Tags
-const analyticsDashboardRoutes = require('./routes/analyticsDashboardRoutes'); // Stage 5: Analytics Dashboard
-const automationEngineRoutes = require('./routes/automationEngineRoutes'); // Stage 6: Automation Engine
-const auditRoutes = require('./routes/auditRoutes'); // Stage 5: Audit Logs
+const campaignRoutes = require('./routes/campaign/campaignRoutes');
+const adsRoutes = require('./routes/analytics/adsRoutes');
+const automationRoutes = require('./routes/automation/automationRoutes');
+const autoReplyRoutes = require('./routes/automation/autoReplyRoutes');
+const instagramQuickflowRoutes = require('./routes/integration/instagramQuickflowRoutes');
+const whatsappFormRoutes = require('./routes/messaging/whatsappFormRoutes');
+const analyticsRoutes = require('./routes/analytics/analyticsRoutes');
+const paymentRoutes = require('./routes/commerce/paymentRoutes');
+const settingsRoutes = require('./routes/workspace/settingsRoutes');
+const billingRoutes = require('./routes/billing/billingRoutes'); // Week 2 addition
+const templateRoutes = require('./routes/template/templateRoutes');
+const conversationRoutes = require('./routes/messaging/conversationRoutes');
+const inboxRoutes = require('./routes/messaging/inboxRoutes'); // Stage 4: Shared Inbox
+const internalNotesRoutes = require('./routes/workspace/internalNotesRoutes'); // Stage 4 Hardening: Internal Notes
+const metricsRoutes = require('./routes/analytics/metricsRoutes');
+const onboardingRoutes = require('./routes/workspace/onboardingRoutes');
+const bspOnboardingRoutes = require('./routes/bsp/bspOnboardingRoutes'); // BSP Interakt model
+const adminRoutes = require('./routes/admin/adminRoutes');
+const bspAdminRoutes = require('./routes/bsp/bspAdminRoutes'); // BSP multi-tenant admin
+const internalRoutes = require('./routes/workspace/internalRoutes'); // Internal BSP health
+const usageRoutes = require('./routes/analytics/usageRoutes');
+const dealRoutes = require('./routes/commerce/dealRoutes');
+const pipelineRoutes = require('./routes/commerce/pipelineRoutes');
+const reportsRoutes = require('./routes/analytics/reportsRoutes');
+const productRoutes = require('./routes/commerce/productRoutes');
+const checkoutBotRoutes = require('./routes/commerce/checkoutBotRoutes');
+const integrationsRoutes = require('./routes/integration/integrationsRoutes');
+const widgetRoutes = require('./routes/integration/widgetRoutes');
+const dataDeletionRoutes = require('./routes/workspace/dataDeletionRoutes');
+const billingReportsRoutes = require('./routes/billing/billingReportsRoutes'); // Stage 5: Billing Reports
+const tagRoutes = require('./routes/messaging/tagRoutes'); // Stage 5: CRM Tags
+const analyticsDashboardRoutes = require('./routes/analytics/analyticsDashboardRoutes'); // Stage 5: Analytics Dashboard
+const automationEngineRoutes = require('./routes/automation/automationEngineRoutes'); // Stage 6: Automation Engine
+const auditRoutes = require('./routes/admin/auditRoutes'); // Stage 5: Audit Logs
 
 app.use('/api/v1/campaigns', campaignRoutes);
 app.use('/api/v1/ads', adsRoutes);
@@ -263,7 +265,7 @@ app.use('/api/v1/audit-logs', auditRoutes); // Stage 5: Audit Logs
 // Start Automation Engine (Stage 6)
 if (process.env.ENABLE_AUTOMATION_ENGINE !== 'false') {
   try {
-    const { startEngine } = require('./services/automationEngine');
+    const { startEngine } = require('./services/automation/automationEngine');
     startEngine();
     console.log('[Server] ✅ Automation engine started');
   } catch (err) {
@@ -288,12 +290,12 @@ server.listen(serverPort, () => console.log(`Server running on port http://local
 
 // Optionally start the worker from the same process during development (recommended to run separately in prod)
 if (process.env.START_WORKER === 'true') {
-  const { runWorker, scheduleCartExpiryCleanup } = require('./services/queueWorker');
+  const { runWorker, scheduleCartExpiryCleanup } = require('./services/infrastructure/queueWorker');
   runWorker().catch((err) => console.error('Worker failed:', err));
   scheduleCartExpiryCleanup().catch((err) => console.error('Cart expiry scheduler failed:', err));
-  
+
   // ✅ Initialize workflow worker
-  const { initWorkflowWorker } = require('./services/workflowExecutionService');
+  const { initWorkflowWorker } = require('./services/automation/workflowExecutionService');
   initWorkflowWorker();
 }
 
@@ -303,7 +305,7 @@ if (process.env.START_WORKER === 'true') {
 // ═══════════════════════════════════════════════════════════════════════════════
 if (process.env.START_CAMPAIGN_SCHEDULER !== 'false') {
   try {
-    const { startScheduler } = require('./services/campaignSchedulerService');
+    const { startScheduler } = require('./services/campaign/campaignSchedulerService');
     startScheduler();
     console.log('[Server] ✅ Campaign scheduler started');
   } catch (err) {
@@ -314,7 +316,7 @@ if (process.env.START_CAMPAIGN_SCHEDULER !== 'false') {
 // Simple analytics cron (daily) - can be expanded to a separate worker/cron service
 if (process.env.START_ANALYTICS_CRON === 'true') {
   const cron = require('node-cron');
-  const { aggregateDailyStats } = require('./services/analyticsService');
+  const { aggregateDailyStats } = require('./services/analytics/analyticsService');
   cron.schedule('0 0 * * *', () => {
     aggregateDailyStats().catch((e) => console.error('Analytics cron failed', e));
   });
@@ -325,7 +327,7 @@ if (process.env.START_ANALYTICS_CRON === 'true') {
 // BSP system token health monitor (Interakt-grade operational hardening)
 if (process.env.START_BSP_HEALTH_MONITOR !== 'false') {
   try {
-    const { startBspHealthMonitor } = require('./services/bspHealthService');
+    const { startBspHealthMonitor } = require('./services/bsp/bspHealthService');
     startBspHealthMonitor();
     console.log('[Server] ✅ BSP health monitor started');
   } catch (err) {
@@ -340,6 +342,6 @@ process.on('SIGINT', async () => {
   try {
     await mongoose.disconnect();
     if (mongod) await mongod.stop();
-  } catch (e) {}
+  } catch (e) { }
   process.exit(0);
 });

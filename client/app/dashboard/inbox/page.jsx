@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { 
+import {
   fetchContacts,
   getDealsByContact,
   moveDealStage,
@@ -12,11 +12,11 @@ import {
 } from '@/lib/api';
 import { useSocket, useSocketEvent } from '@/lib/SocketContext';
 import { toast } from 'react-toastify';
-import { 
-  FaPaperPlane, 
-  FaSearch, 
-  FaCircle, 
-  FaUser, 
+import {
+  FaPaperPlane,
+  FaSearch,
+  FaCircle,
+  FaUser,
   FaSpinner,
   FaCheckCircle,
   FaCheck,
@@ -29,7 +29,9 @@ import {
   FaChevronDown,
   FaPlus,
   FaTrash,
-  FaTimes
+  FaTimes,
+  FaPlayCircle,
+  FaExternalLinkAlt
 } from 'react-icons/fa';
 import { useWorkspace } from '@/lib/useWorkspace';
 
@@ -51,7 +53,7 @@ export default function InboxPage() {
   const [startMessage, setStartMessage] = useState('');
   const [startingConversation, setStartingConversation] = useState(false);
   const messagesEndRef = useRef(null);
-  
+
   // CRM State
   const [activeDeal, setActiveDeal] = useState(null);
   const [crmLoading, setCrmLoading] = useState(false);
@@ -59,21 +61,23 @@ export default function InboxPage() {
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
   const [pipelines, setPipelines] = useState([]);
-  
+
   const { socket, connected } = useSocket();
 
-  // Load conversations on mount
+  const [currentView, setCurrentView] = useState('all');
+
+  // Load conversations on mount or when view changes
   useEffect(() => {
     loadConversations();
-  }, []);
+  }, [currentView]);
 
   // Listen for real-time message events
   useSocketEvent('message.received', (data) => {
     console.log('New message received:', data);
-    
+
     // Update conversation list
     loadConversations();
-    
+
     // If this message is for the currently selected contact, add it to messages
     if (selectedContact && data.contact._id === selectedContact._id) {
       setMessages(prev => [...prev, data.message]);
@@ -84,10 +88,10 @@ export default function InboxPage() {
   // Listen for message status updates
   useSocketEvent('message.status', (data) => {
     console.log('Message status updated:', data);
-    
+
     // Update message status in current thread
-    setMessages(prev => prev.map(msg => 
-      msg._id === data.messageId 
+    setMessages(prev => prev.map(msg =>
+      msg._id === data.messageId
         ? { ...msg, status: data.status }
         : msg
     ));
@@ -102,7 +106,7 @@ export default function InboxPage() {
   const loadConversations = async () => {
     try {
       setLoading(true);
-      const response = await get('/inbox?view=mine&limit=100');
+      const response = await get(`/inbox?view=${currentView}&limit=100`);
       setConversations(response.data || []);
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -115,17 +119,17 @@ export default function InboxPage() {
     try {
       const response = await get(`/inbox/${conversationId}/messages?limit=100`);
       setMessages(response.data || []);
-      
+
       // Mark as read
       await post(`/inbox/${conversationId}/read`, {});
-      
+
       // Update conversation unread count
-      setConversations(prev => prev.map(conv => 
+      setConversations(prev => prev.map(conv =>
         conv._id === conversationId
           ? { ...conv, myUnreadCount: 0, unreadCount: 0 }
           : conv
       ));
-      
+
       scrollToBottom();
     } catch (error) {
       console.error('Error loading messages:', error);
@@ -147,7 +151,7 @@ export default function InboxPage() {
     setStartMessage('');
     try {
       const contactsRes = await fetchContacts(1, 50, '');
-      setContactOptions(contactsRes?.contacts || []);
+      setContactOptions(contactsRes?.data || contactsRes?.contacts || []);
     } catch (error) {
       console.error('Failed to load contacts for start conversation:', error);
       setContactOptions([]);
@@ -158,7 +162,7 @@ export default function InboxPage() {
     setContactSearch(value);
     try {
       const contactsRes = await fetchContacts(1, 50, value);
-      setContactOptions(contactsRes?.contacts || []);
+      setContactOptions(contactsRes?.data || contactsRes?.contacts || []);
     } catch (error) {
       console.error('Failed to search contacts:', error);
     }
@@ -174,7 +178,9 @@ export default function InboxPage() {
     try {
       setStartingConversation(true);
       await post('/messages/send', {
-        contactId: selectedStartContact._id,
+        contactId: selectedStartContact._id || selectedStartContact.id,
+        phone: selectedStartContact.phone,
+        name: selectedStartContact.name,
         body: startMessage.trim()
       });
 
@@ -223,7 +229,7 @@ export default function InboxPage() {
   const handleAddNote = async (e) => {
     e.preventDefault();
     if (!newNote.trim() || !activeDeal) return;
-    
+
     try {
       setAddingNote(true);
       const updated = await addDealNote(activeDeal._id, newNote);
@@ -239,13 +245,13 @@ export default function InboxPage() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    
+
     if (!newMessage.trim() || !selectedContact) return;
     if (!bspReady) {
       toast?.error?.('Connect WhatsApp to send messages') || alert('Connect WhatsApp to send messages');
       return;
     }
-    
+
     try {
       setSending(true);
 
@@ -256,13 +262,15 @@ export default function InboxPage() {
         });
       } else {
         data = await post('/messages/send', {
-          contactId: selectedContact._id,
+          contactId: selectedContact._id || selectedContact.id,
+          phone: selectedContact.phone,
+          name: selectedContact.name,
           body: newMessage
         });
       }
 
       const sentMessage = data?.data?.message || null;
-      
+
       // Optimistically add message to UI
       const optimisticMessage = {
         _id: sentMessage?._id || data?.id || `tmp-${Date.now()}`,
@@ -272,14 +280,21 @@ export default function InboxPage() {
         createdAt: new Date().toISOString(),
         contact: selectedContact._id
       };
-      
+
       setMessages(prev => [...prev, optimisticMessage]);
       setNewMessage('');
       scrollToBottom();
-      
+
       // Reload conversation to update preview
       loadConversations();
-      toast?.success?.('Message sent!');
+      if (data?.data?.fallbackUsed) {
+        const templateName = data?.data?.fallbackTemplateName;
+        toast?.success?.(templateName
+          ? `24h window was closed, sent template: ${templateName}`
+          : '24h window was closed, sent fallback template');
+      } else {
+        toast?.success?.('Message sent!');
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       toast?.error?.(error.message || 'Failed to send message') || alert('Failed to send message');
@@ -294,9 +309,9 @@ export default function InboxPage() {
     }, 100);
   };
 
-  const filteredConversations = conversations.filter(conv => 
-    conv.contact?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    conv.contact?.phone?.includes(searchTerm)
+  const filteredConversations = conversations.filter(conv =>
+    (conv.contact?.name && conv.contact.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (conv.contact?.phone && conv.contact.phone.includes(searchTerm))
   );
 
   const getStatusIcon = (status) => {
@@ -323,6 +338,15 @@ export default function InboxPage() {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-bold text-white">Inbox</h1>
             <div className="flex items-center gap-2">
+              <select
+                value={currentView}
+                onChange={(e) => setCurrentView(e.target.value)}
+                className="bg-white/20 border-0 rounded-lg text-white text-xs font-semibold py-1.5 px-2 outline-none cursor-pointer focus:ring-0 [&>option]:text-foreground"
+              >
+                <option value="mine">Mine</option>
+                <option value="unassigned">Unassigned</option>
+                <option value="all">All</option>
+              </select>
               <button
                 onClick={openStartConversationModal}
                 className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-white text-xs font-semibold"
@@ -334,7 +358,7 @@ export default function InboxPage() {
               </button>
             </div>
           </div>
-          
+
           {/* Socket Connection Status */}
           <div className="flex items-center gap-2 mb-4 text-sm bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
             <FaCircle className={connected ? 'text-green-400' : 'text-red-400'} style={{ fontSize: '8px' }} />
@@ -342,7 +366,7 @@ export default function InboxPage() {
               {connected ? 'Live' : 'Reconnecting...'}
             </span>
           </div>
-          
+
           {/* Search */}
           <div className="relative">
             <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
@@ -375,11 +399,10 @@ export default function InboxPage() {
               <div
                 key={conversation._id}
                 onClick={() => handleSelectContact(conversation)}
-                className={`p-4 border-b border-gray-100 dark:border-border cursor-pointer transition-all hover:shadow-md ${
-                  selectedContact?._id === conversation.contact._id 
-                    ? 'bg-gradient-to-r from-primary/10 to-primary/80/10 border-l-4 border-l-primary' 
-                    : 'hover:bg-accent/50'
-                }`}
+                className={`p-4 border-b border-gray-100 dark:border-border cursor-pointer transition-all hover:shadow-md ${selectedContact?._id === conversation.contact._id
+                  ? 'bg-gradient-to-r from-primary/10 to-primary/80/10 border-l-4 border-l-primary'
+                  : 'hover:bg-accent/50'
+                  }`}
               >
                 <div className="flex items-start gap-3">
                   <div className="relative">
@@ -392,7 +415,7 @@ export default function InboxPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
                       <h3 className="font-semibold text-foreground truncate">
@@ -400,19 +423,19 @@ export default function InboxPage() {
                       </h3>
                       {conversation.lastMessageAt && (
                         <span className="text-xs text-muted-foreground flex-shrink-0">
-                          {new Date(conversation.lastMessageAt).toLocaleTimeString('en-US', { 
-                            hour: 'numeric', 
+                          {new Date(conversation.lastMessageAt).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
                             minute: '2-digit',
-                            hour12: true 
+                            hour12: true
                           })}
                         </span>
                       )}
                     </div>
-                    
+
                     <p className="text-sm text-muted-foreground truncate mb-1">
                       {conversation.lastMessagePreview || 'No messages yet'}
                     </p>
-                    
+
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground dark:text-muted-foreground">
                         {conversation.contact?.phone}
@@ -458,7 +481,7 @@ export default function InboxPage() {
                     <p className="text-sm text-muted-foreground">{selectedContact.phone}</p>
                   </div>
                 </div>
-                
+
                 {/* Action Buttons */}
                 <div className="flex items-center gap-2">
                   <button className="p-3 hover:bg-accent rounded-lg transition-colors">
@@ -484,13 +507,13 @@ export default function InboxPage() {
               <div className="px-4 py-4 bg-blue-50 border-b border-blue-200">
                 <div className="text-sm">
                   <h3 className="font-semibold text-foreground mb-2">Sales Pipeline</h3>
-                  
+
                   {/* Pipeline & Stage */}
                   <div className="mb-3">
                     <label className="text-xs font-medium text-muted-foreground block mb-1">Pipeline</label>
                     <p className="text-sm font-medium text-foreground">{activeDeal.pipelineName || 'Unknown'}</p>
                   </div>
-                  
+
                   <div className="mb-3">
                     <label className="text-xs font-medium text-muted-foreground block mb-1">Stage</label>
                     <select
@@ -505,7 +528,7 @@ export default function InboxPage() {
                       ))}
                     </select>
                   </div>
-                  
+
                   {/* Deal Value & Agent */}
                   {activeDeal.value && (
                     <div className="mb-2 text-sm">
@@ -513,13 +536,13 @@ export default function InboxPage() {
                       <span className="font-semibold">${activeDeal.value}</span>
                     </div>
                   )}
-                  
+
                   {activeDeal.assignedAgent && (
                     <div className="text-sm text-muted-foreground mb-3">
                       <span>Agent: {activeDeal.assignedAgent}</span>
                     </div>
                   )}
-                  
+
                   {/* Quick Note Add */}
                   <form onSubmit={handleAddNote} className="mt-3">
                     <div className="flex gap-2">
@@ -540,7 +563,7 @@ export default function InboxPage() {
                       </button>
                     </div>
                   </form>
-                  
+
                   {/* Notes List */}
                   {activeDeal.notes && activeDeal.notes.length > 0 && (
                     <div className="mt-3 max-h-32 overflow-y-auto">
@@ -560,7 +583,7 @@ export default function InboxPage() {
             ) : null}
 
             {/* Messages */}
-            <div 
+            <div
               className="flex-1 overflow-y-auto p-6 space-y-4"
               style={{
                 backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%2313c18d\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
@@ -570,30 +593,92 @@ export default function InboxPage() {
               {messages.map((message) => (
                 <div
                   key={message._id}
-                  className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'}`}
+                  className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'} w-full mb-3`}
                 >
                   <div
-                    className={`max-w-md px-4 py-3 rounded-2xl shadow-premium ${
-                      message.direction === 'outbound'
-                        ? 'bg-gradient-to-r from-primary to-primary/80 text-white'
-                        : 'bg-white dark:bg-muted text-foreground'
-                    }`}
+                    className={`max-w-[85%] sm:max-w-[70%] lg:max-w-md overflow-hidden rounded-2xl shadow-premium border transition-all duration-200 ${message.direction === 'outbound'
+                        ? message.type === 'template'
+                          ? 'bg-blue-50/10 dark:bg-blue-900/10 border-blue-200/50 dark:border-blue-800/50'
+                          : 'bg-white dark:bg-muted border-border/50'
+                        : 'bg-white dark:bg-muted text-foreground border-border/50'
+                      }`}
                   >
-                    <p className="break-words leading-relaxed">{message.body}</p>
-                    <div className={`flex items-center gap-2 justify-end mt-2 text-xs ${
-                      message.direction === 'outbound' ? 'text-white/80' : 'text-muted-foreground'
-                    }`}>
-                      <span>
-                        {new Date(message.createdAt).toLocaleTimeString('en-US', {
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          hour12: true
-                        })}
-                      </span>
-                      {message.direction === 'outbound' && (
-                        <span className="ml-1">{getStatusIcon(message.status)}</span>
-                      )}
+                    {/* Media Header */}
+                    {message.template?.header?.format === 'IMAGE' && message.template.header.mediaUrl && (
+                      <div className="relative aspect-[1.91/1] w-full bg-muted overflow-hidden border-b border-border/50">
+                        <img
+                          src={message.template.header.mediaUrl}
+                          alt="Template Header"
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                          onError={(e) => { e.target.style.display = 'none'; }}
+                        />
+                      </div>
+                    )}
+                    {message.template?.header?.format === 'VIDEO' && message.template.header.mediaUrl && (
+                      <div className="relative aspect-video w-full bg-slate-900 flex items-center justify-center group cursor-pointer border-b border-border/50">
+                        <video
+                          src={message.template.header.mediaUrl}
+                          className="w-full h-full object-contain"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+                          <FaPlayCircle className="text-white text-5xl opacity-80 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Meta Label for Outbound Templates */}
+                    {message.type === 'template' && message.direction === 'outbound' && (
+                      <div className="px-4 pt-3 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.1em]">
+                          Template <FaCheckCircle className="text-[9px]" />
+                        </div>
+                        <span className="text-[10px] py-0.5 px-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full font-bold">
+                          Official
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Message Body Content */}
+                    <div className="px-4 py-3">
+                      <p className="break-words leading-relaxed text-[15px] whitespace-pre-wrap text-foreground font-medium">
+                        {message.body}
+                      </p>
+
+                      <div className="flex items-center gap-2 justify-end mt-1.5">
+                        <span className="text-[10px] text-muted-foreground font-medium opacity-80">
+                          {new Date(message.createdAt).toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                          })}
+                        </span>
+                        {message.direction === 'outbound' && (
+                          <div className="flex items-center scale-75 opacity-90">
+                            {getStatusIcon(message.status)}
+                          </div>
+                        )}
+                      </div>
                     </div>
+
+                    {/* Template Buttons (Grid Layout) */}
+                    {message.template?.buttons?.length > 0 && (
+                      <div className="border-t border-border/60 bg-muted/20 flex flex-col">
+                        {message.template.buttons.map((btn, idx) => (
+                          <button
+                            key={idx}
+                            className="w-full py-2.5 px-4 text-[13px] font-bold text-blue-600 dark:text-blue-400 hover:bg-muted/50 flex items-center justify-center gap-2 border-b last:border-b-0 border-border/40 transition-all active:bg-muted"
+                            onClick={() => {
+                              if (btn.type === 'URL' && btn.url) window.open(btn.url, '_blank');
+                              if (btn.type === 'PHONE_NUMBER' && btn.phoneNumber) window.location.href = `tel:${btn.phoneNumber}`;
+                            }}
+                          >
+                            {btn.type === 'URL' && <FaExternalLinkAlt className="text-[10px] opacity-70" />}
+                            {btn.type === 'PHONE_NUMBER' && <FaPhoneAlt className="text-[10px] opacity-70" />}
+                            {btn.text}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -677,17 +762,23 @@ export default function InboxPage() {
                   className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
                 />
                 <div className="mt-2 max-h-44 overflow-y-auto border border-border rounded-lg">
-                  {contactOptions.map((contact) => (
-                    <button
-                      key={contact._id}
-                      type="button"
-                      onClick={() => setSelectedStartContact(contact)}
-                      className={`w-full text-left px-3 py-2 border-b last:border-b-0 border-border hover:bg-accent ${selectedStartContact?._id === contact._id ? 'bg-primary/10' : ''}`}
-                    >
-                      <p className="text-sm font-medium text-foreground">{contact.name || contact.phone}</p>
-                      <p className="text-xs text-muted-foreground">{contact.phone}</p>
-                    </button>
-                  ))}
+                  {contactOptions.length > 0 ? (
+                    contactOptions.map((contact) => (
+                      <button
+                        key={contact._id}
+                        type="button"
+                        onClick={() => setSelectedStartContact(contact)}
+                        className={`w-full text-left px-3 py-2 border-b last:border-b-0 border-border hover:bg-accent ${selectedStartContact?._id === contact._id ? 'bg-primary/10' : ''}`}
+                      >
+                        <p className="text-sm font-medium text-foreground">{contact.name || contact.phone}</p>
+                        <p className="text-xs text-muted-foreground">{contact.phone}</p>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="p-4 text-center text-sm text-muted-foreground">
+                      No contacts found. Please add a contact first in the Sales CRM tab, or verify your search.
+                    </div>
+                  )}
                 </div>
               </div>
 

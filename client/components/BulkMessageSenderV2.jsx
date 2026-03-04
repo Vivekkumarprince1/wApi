@@ -48,7 +48,7 @@ export default function BulkMessageSender() {
   const loadContacts = async () => {
     try {
       const response = await fetchContacts(1, 1000, searchTerm);
-      setContacts(response.contacts || []);
+      setContacts(response.data || []);
     } catch (error) {
       console.error('Error loading contacts:', error);
     }

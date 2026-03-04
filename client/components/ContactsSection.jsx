@@ -23,7 +23,7 @@ const ContactsSection = () => {
     setLoading(true);
     try {
       const res = await fetchContacts();
-      setContacts(res.contacts || []);
+      setContacts(res.data || []);
     } catch (err) {
       setContacts([]);
     }

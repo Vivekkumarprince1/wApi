@@ -18,6 +18,13 @@ function resolveApiUrl() {
 const API_URL = resolveApiUrl();
 console.log('🔗 Backend API connected to:', API_URL);
 
+const TEMPLATE_SYNC_MIN_INTERVAL_MS = 45 * 1000;
+let templateSyncInFlight: Promise<any> | null = null;
+let templateSyncLastRunAt = 0;
+
+// Template creation dedupe
+let templateCreationInFlight: Promise<any> | null = null;
+
 // Helper function to get token from localStorage
 const getToken = () => {
   if (typeof window !== 'undefined') {
@@ -525,19 +532,33 @@ export const fetchTemplate = async (templateId) => {
 
 // Create new template
 export const createTemplate = async (templateData) => {
-  const response = await fetch(`${API_URL}/templates`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify(templateData)
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to create template');
+  // Dedupe: if a creation is already in flight, wait for it
+  if (templateCreationInFlight) {
+    console.log('[API] Template creation already in flight, waiting...');
+    return templateCreationInFlight;
   }
 
-  return await response.json();
+  templateCreationInFlight = (async () => {
+    try {
+      const response = await fetch(`${API_URL}/templates`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify(templateData)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create template');
+      }
+
+      return await response.json();
+    } finally {
+      templateCreationInFlight = null;
+    }
+  })();
+
+  return templateCreationInFlight;
 };
 
 // Update existing template
@@ -602,19 +623,44 @@ export const submitTemplateToGupshup = async (templateId) => {
 };
 
 // Sync templates from Gupshup (your own templates)
-export const syncTemplatesFromGupshup = async () => {
-  const response = await fetch(`${API_URL}/templates/sync`, {
-    method: 'GET',
-    headers: getAuthHeaders(),
-    credentials: 'include'
-  });
+export const syncTemplatesFromGupshup = async (options: { force?: boolean } = {}) => {
+  const force = Boolean(options.force);
+  const now = Date.now();
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to sync templates');
+  if (!force && templateSyncInFlight) {
+    return templateSyncInFlight;
   }
 
-  return await response.json();
+  if (!force && now - templateSyncLastRunAt < TEMPLATE_SYNC_MIN_INTERVAL_MS) {
+    return {
+      success: true,
+      skipped: true,
+      reason: 'CLIENT_SYNC_THROTTLED'
+    };
+  }
+
+  templateSyncInFlight = (async () => {
+    const response = await fetch(`${API_URL}/templates/sync`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to sync templates');
+    }
+
+    const result = await response.json();
+    templateSyncLastRunAt = Date.now();
+    return result;
+  })();
+
+  try {
+    return await templateSyncInFlight;
+  } finally {
+    templateSyncInFlight = null;
+  }
 };
 
 // Backward compatibility aliases (scheduled for cleanup)
@@ -767,6 +813,8 @@ export const markTemplateReviewed = async (templateId: string, notes?: string) =
 
 // Send template message
 export const sendTemplateMessage = async (data) => {
+  console.log('[API] sendTemplateMessage called with:', JSON.stringify(data, null, 2));
+
   const response = await fetch(`${API_URL}/messages/template`, {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -776,6 +824,7 @@ export const sendTemplateMessage = async (data) => {
 
   if (!response.ok) {
     const error = await response.json();
+    console.error('[API] sendTemplateMessage error response:', error);
     throw new Error(error.message || 'Failed to send template message');
   }
 
@@ -1278,19 +1327,33 @@ export const getTemplate = async (templateId) => {
 
 // Create new template
 export const createNewTemplate = async (templateData) => {
-  const response = await fetch(`${API_URL}/templates`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    credentials: 'include',
-    body: JSON.stringify(templateData)
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || 'Failed to create template');
+  // Dedupe: if a creation is already in flight, wait for it
+  if (templateCreationInFlight) {
+    console.log('[API] Template creation already in flight, waiting...');
+    return templateCreationInFlight;
   }
 
-  return await response.json();
+  templateCreationInFlight = (async () => {
+    try {
+      const response = await fetch(`${API_URL}/templates`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        credentials: 'include',
+        body: JSON.stringify(templateData)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create template');
+      }
+
+      return await response.json();
+    } finally {
+      templateCreationInFlight = null;
+    }
+  })();
+
+  return templateCreationInFlight;
 };
 
 // Update existing template

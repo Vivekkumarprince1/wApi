@@ -1,53 +1,261 @@
-# WhatsApp Business API SaaS Backend
+# WhatsApp SaaS Backend - Refactored Architecture
 
-A complete backend for building a WhatsApp Business API provider platform (like Interakt, Wati, etc.)
+A scalable, enterprise-grade backend for WhatsApp Business SaaS platform with clean architecture and comprehensive testing.
 
-## 📁 Project Structure
+## 🏗️ Architecture Overview
+
+### Directory Structure
 
 ```
-/src
-  /config       - Environment configuration
-  /controllers  - Request handlers
-  /models       - MongoDB models
-  /routes       - API routes
-  /middlewares  - Auth, validation, etc.
-  /services     - Business logic & Meta API integration
-  /utils        - Helper functions
+server/src/
+├── config/                    # Configuration management
+│   ├── database.js           # MongoDB connection
+│   ├── redis.js             # Redis configuration
+│   ├── env.js               # Environment validation
+│   └── bspConfig.js         # BSP-specific config
+│
+├── constants/                # Application constants
+│   ├── errors.js            # Error codes and messages
+│   ├── messages.js          # Success/info messages
+│   ├── limits.js            # Rate limits and quotas
+│   └── templates.js         # Template configurations
+│
+├── middlewares/              # Express middlewares
+│   ├── auth/                # Authentication middlewares
+│   ├── rate-limits/         # Rate limiting
+│   ├── validation/          # Input validation
+│   ├── error/               # Error handling
+│   └── security/            # Security middlewares
+│
+├── models/                  # Mongoose models (domain-organized)
+│   ├── user/                # User domain models
+│   ├── workspace/           # Workspace domain models
+│   ├── messaging/           # Messaging domain models
+│   ├── commerce/            # Commerce domain models
+│   ├── automation/          # Automation domain models
+│   ├── analytics/           # Analytics domain models
+│   ├── admin/               # Admin domain models
+│   └── shared/              # Shared models
+│
+├── repositories/            # Data access layer
+│   ├── baseRepository.js    # Abstract base repository
+│   ├── contactRepository.js # Contact-specific repository
+│   └── ...                  # Other domain repositories
+│
+├── services/                # Business logic layer
+│   ├── auth/                # Authentication services
+│   ├── messaging/           # Messaging services
+│   ├── bsp/                 # BSP integration services
+│   ├── commerce/            # Commerce services
+│   ├── workspace/           # Workspace services
+│   ├── analytics/           # Analytics services
+│   ├── integration/         # External integrations
+│   └── admin/               # Admin services
+│
+├── controllers/             # HTTP request handlers
+│   └── messaging/           # Domain-organized controllers
+│
+├── routes/                  # Route definitions
+│   └── messaging/           # Domain-organized routes
+│
+├── utils/                   # Utility functions
+│   ├── logger.js           # Structured logging
+│   ├── errorFormatter.js   # Error formatting
+│   ├── validation.js       # Input validation helpers
+│   ├── transformers.js     # Data transformation
+│   └── crypto.js           # Encryption utilities
+│
+├── types/                   # Type definitions (future JSDoc)
+├── tests/                   # Test suites
+│   ├── unit/               # Unit tests
+│   ├── integration/        # Integration tests
+│   └── e2e/                # End-to-end tests
+│
+├── cron/                    # Scheduled jobs
+├── webhooks/                # Webhook handlers
+├── queue/                   # Background job queues
+└── server.js                # Application entry point
 ```
 
-## 🚀 Quick Start
+## 🚀 Key Improvements
 
+### 1. **Separation of Concerns**
+- **Controllers**: Only handle HTTP requests/responses
+- **Services**: Contain business logic
+- **Repositories**: Handle data access
+- **Models**: Define data schemas
+
+### 2. **Domain-Driven Design**
+- Organized by business domains (messaging, commerce, automation, etc.)
+- Clear boundaries between different areas of functionality
+- Easier to maintain and extend
+
+### 3. **Comprehensive Testing**
+- Unit tests for services and utilities
+- Integration tests for API endpoints
+- E2E tests for critical user flows
+- 70%+ code coverage target
+
+### 4. **Structured Logging**
+- Winston-based structured logging
+- Different log levels (error, warn, info, debug)
+- Specialized logging for API requests, BSP operations, etc.
+
+### 5. **Error Handling**
+- Centralized error formatting
+- Consistent error responses
+- Proper HTTP status codes
+
+### 6. **Input Validation**
+- Request validation with express-validator
+- Centralized validation rules
+- Consistent error messages
+
+### 7. **Security & Encryption**
+- Environment variable validation
+- Sensitive data encryption
+- API key hashing
+
+## 🛠️ Development Setup
+
+### Prerequisites
+- Node.js 16+
+- MongoDB
+- Redis
+- npm or yarn
+
+### Installation
 ```bash
-# Install dependencies
+cd server
 npm install
-
-# Copy environment file
-cp .env.example .env
-
-# Edit .env with your credentials (see setup guide below)
-
-# Start development server
-npm run dev
 ```
 
-## 📜 Available Scripts
+### Environment Configuration
+Create a `.env` file with required variables:
+```env
+NODE_ENV=development
+PORT=5000
+JWT_SECRET=your-jwt-secret-here
+ENCRYPTION_KEY=64-character-hex-string
+REDIS_URL=redis://localhost:6379
+MONGO_URI=mongodb://localhost:27017/wapi_development
+```
 
-- `npm run dev` - Start server with hot reload (nodemon)
-- `npm start` - Start production server
-- `npm run worker` - Start queue worker for WhatsApp message processing
+### Running the Application
+```bash
+# Development with auto-reload
+npm run dev
 
-## 🔧 Environment Variables
+# Development with in-memory DB
+npm run dev:local
 
-See `.env.example` for all available options. Key variables:
+# Production
+npm start
+```
 
-| Variable | Description |
-|----------|-------------|
-| `MONGODB_URI` | MongoDB connection string |
-| `JWT_SECRET` | Secret for JWT tokens |
-| `META_APP_ID` | Your Meta App ID |
-| `META_APP_SECRET` | Your Meta App Secret |
-| `META_ACCESS_TOKEN` | System User access token |
-| `META_PHONE_NUMBER_ID` | Your WhatsApp phone number ID |
+### Running Tests
+```bash
+# All tests
+npm test
+
+# Unit tests only
+npm run test:unit
+
+# Integration tests only
+npm run test:integration
+
+# E2E tests only
+npm run test:e2e
+
+# With coverage
+npm run test:coverage
+
+# Watch mode
+npm run test:watch
+```
+
+## 📊 Testing Strategy
+
+### Unit Tests
+- Test individual functions and methods
+- Mock external dependencies
+- Focus on business logic
+
+### Integration Tests
+- Test API endpoints
+- Use test database
+- Verify data flow between components
+
+### E2E Tests
+- Test complete user workflows
+- Use real database (separate from dev)
+- Verify system integration
+
+## 🔒 Security Features
+
+- **Environment Validation**: Required variables checked at startup
+- **Input Sanitization**: All inputs validated and sanitized
+- **Rate Limiting**: Configurable rate limits by endpoint and user
+- **Encryption**: Sensitive data encrypted at rest
+- **CORS**: Configurable cross-origin policies
+- **Helmet**: Security headers
+
+## 📈 Performance Optimizations
+
+- **Connection Pooling**: MongoDB and Redis connection pools
+- **Indexing**: Proper database indexes
+- **Caching**: Redis-based caching for frequently accessed data
+- **Background Jobs**: Asynchronous processing for heavy operations
+- **Pagination**: Efficient data pagination for large datasets
+
+## 🔄 Migration Guide
+
+### From Legacy Architecture
+
+1. **Dead Code Removal**: Removed old files and unused dependencies
+2. **Service Extraction**: Moved business logic from controllers to services
+3. **Repository Pattern**: Introduced data access layer
+4. **Domain Organization**: Reorganized files by business domain
+5. **Testing Framework**: Added comprehensive test suite
+
+### Breaking Changes
+- Some API response formats may have changed for consistency
+- Error response structure standardized
+- Validation rules more strict
+
+## 📚 API Documentation
+
+### Response Format
+```json
+{
+  "success": true,
+  "data": { ... },
+  "pagination": { ... }
+}
+```
+
+### Error Response
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable message",
+    "timestamp": "2024-01-01T00:00:00.000Z"
+  }
+}
+```
+
+## 🤝 Contributing
+
+1. Follow the established patterns and conventions
+2. Write tests for new functionality
+3. Update documentation as needed
+4. Ensure code coverage remains above 70%
+
+## 📝 License
+
+This project is proprietary software.
 | `META_WABA_ID` | WhatsApp Business Account ID |
 | `META_CONFIG_ID` | Embedded Signup config ID (for multi-tenant) |
 | `GUPSHUP_PARTNER_TOKEN` | Partner token for Gupshup partner APIs |

@@ -1,0 +1,80 @@
+/**
+ * TEMPLATE CONSTANTS
+ * Centralized template-related constants and configurations
+ */
+
+const TEMPLATE_CATEGORIES = {
+  MARKETING: 'MARKETING',
+  UTILITY: 'UTILITY',
+  AUTHENTICATION: 'AUTHENTICATION'
+};
+
+const TEMPLATE_STATUSES = {
+  DRAFT: 'DRAFT',
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+  PAUSED: 'PAUSED',
+  DISABLED: 'DISABLED'
+};
+
+const TEMPLATE_TYPES = {
+  TEXT: 'TEXT',
+  IMAGE: 'IMAGE',
+  DOCUMENT: 'DOCUMENT',
+  VIDEO: 'VIDEO',
+  AUDIO: 'AUDIO',
+  LOCATION: 'LOCATION',
+  CONTACT: 'CONTACT',
+  INTERACTIVE: 'INTERACTIVE'
+};
+
+const COMPONENT_TYPES = {
+  HEADER: 'HEADER',
+  BODY: 'BODY',
+  FOOTER: 'FOOTER',
+  BUTTONS: 'BUTTONS'
+};
+
+const BUTTON_TYPES = {
+  QUICK_REPLY: 'QUICK_REPLY',
+  URL: 'URL',
+  PHONE_NUMBER: 'PHONE_NUMBER',
+  COPY_CODE: 'COPY_CODE'
+};
+
+const VARIABLE_TYPES = {
+  TEXT: 'TEXT',
+  CURRENCY: 'CURRENCY',
+  DATE_TIME: 'DATE_TIME',
+  IMAGE: 'IMAGE',
+  DOCUMENT: 'DOCUMENT',
+  VIDEO: 'VIDEO',
+  LOCATION: 'LOCATION'
+};
+
+const TEMPLATE_LIMITS = {
+  MAX_VARIABLES: 10,
+  MAX_BUTTONS: 10,
+  MAX_HEADER_LENGTH: 60,
+  MAX_BODY_LENGTH: 1024,
+  MAX_FOOTER_LENGTH: 60,
+  MAX_BUTTON_TEXT_LENGTH: 25
+};
+
+const VALID_LANGUAGES = [
+  'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ar', 'hi', 'zh',
+  'ja', 'ko', 'th', 'vi', 'id', 'ms', 'tl', 'tr', 'pl', 'nl',
+  'sv', 'da', 'no', 'fi', 'he', 'fa', 'ur', 'bn', 'ta', 'te'
+];
+
+module.exports = {
+  TEMPLATE_CATEGORIES,
+  TEMPLATE_STATUSES,
+  TEMPLATE_TYPES,
+  COMPONENT_TYPES,
+  BUTTON_TYPES,
+  VARIABLE_TYPES,
+  TEMPLATE_LIMITS,
+  VALID_LANGUAGES
+};

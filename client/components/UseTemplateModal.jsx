@@ -33,7 +33,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
     setLoading(true);
     try {
       const res = await fetchContacts(1, 100, '');
-      setContacts(res.contacts || []);
+      setContacts(res.data || []);
     } catch (err) {
       console.error('Error loading contacts:', err);
     } finally {
@@ -43,39 +43,39 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
 
   const extractVariables = () => {
     if (!template) return;
-    
+
     // Extract variables from template components
     const bodyComponent = template.components?.find(c => c.type === 'BODY');
     const headerComponent = template.components?.find(c => c.type === 'HEADER');
-    
+
     const bodyText = bodyComponent?.text || normalizeTemplateText(template.body) || template.content || '';
     const headerText = headerComponent?.text || normalizeTemplateText(template.header) || '';
-    
+
     const regex = /\{\{(\d+)\}\}/g;
     const bodyMatches = [...bodyText.matchAll(regex)];
     const headerMatches = [...headerText.matchAll(regex)];
-    
+
     const bodyVarNumbers = [...new Set(bodyMatches.map(m => parseInt(m[1])))].sort();
     const headerVarNumbers = [...new Set(headerMatches.map(m => parseInt(m[1])))].sort();
-    
+
     const initialVars = {
       body: {},
       header: {}
     };
-    
+
     bodyVarNumbers.forEach(num => {
       initialVars.body[num] = '';
     });
-    
+
     headerVarNumbers.forEach(num => {
       initialVars.header[num] = '';
     });
-    
+
     setVariables(initialVars);
   };
 
   const toggleContact = (contactId) => {
-    setSelectedContacts(prev => 
+    setSelectedContacts(prev =>
       prev.includes(contactId)
         ? prev.filter(id => id !== contactId)
         : [...prev, contactId]
@@ -86,7 +86,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
     if (selectedContacts.length === filteredContacts.length) {
       setSelectedContacts([]);
     } else {
-      setSelectedContacts(filteredContacts.map(c => c._id));
+      setSelectedContacts(filteredContacts.map(c => c.id || c._id));
     }
   };
 
@@ -109,9 +109,19 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
     // Check if all variables are filled
     const allBodyVars = Object.values(variables.body || {});
     const allHeaderVars = Object.values(variables.header || {});
-    
+
     if (allBodyVars.some(v => !v) || allHeaderVars.some(v => !v)) {
       alert('Please fill in all variables');
+      return;
+    }
+
+    // Validate that all selectedContacts have valid IDs
+    const validContactIds = selectedContacts.filter(id => id != null && id !== '');
+    console.log('[UseTemplateModal] selectedContacts:', selectedContacts);
+    console.log('[UseTemplateModal] validContactIds:', validContactIds);
+
+    if (validContactIds.length === 0) {
+      alert('No valid contacts selected. Please re-select contacts.');
       return;
     }
 
@@ -127,24 +137,40 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
           .map(key => variables.header[key])
       };
 
-      // Send to each selected contact
-      const promises = selectedContacts.map(contactId => 
-        sendTemplateMessage({
+      let succeeded = 0;
+      let failed = 0;
+      const total = validContactIds.length;
+
+      // Sequential sending with delay to avoid rate limits
+      for (let i = 0; i < total; i++) {
+        const cId = validContactIds[i];
+        const payload = {
+          contactId: cId,
           templateId: template._id,
-          contactId,
           variables: formattedVariables,
           language: template.language || 'en'
-        })
-      );
+        };
 
-      const results = await Promise.allSettled(promises);
-      const succeeded = results.filter(r => r.status === 'fulfilled').length;
-      const failed = results.filter(r => r.status === 'rejected').length;
-      
+        console.log(`[UseTemplateModal] Sending (${i + 1}/${total}):`, JSON.stringify(payload));
+
+        try {
+          await sendTemplateMessage(payload);
+          succeeded++;
+        } catch (err) {
+          console.error(`[UseTemplateModal] Failed to send to contact ${cId}:`, err);
+          failed++;
+        }
+
+        // Add a 500ms delay between requests (except after the last one)
+        if (i < total - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
+
       if (failed > 0) {
-        alert(`Sent to ${succeeded} contact(s). ${failed} failed.`);
+        alert(`Sent to ${succeeded} contact(s). ${failed} failed. Check console for details.`);
       } else {
-        alert(`Template sent to ${succeeded} contact(s) successfully!`);
+        alert(`Template sent to all ${succeeded} contact(s) successfully!`);
       }
       onClose();
     } catch (err) {
@@ -156,7 +182,9 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
 
   const filteredContacts = contacts.filter(c => {
     const term = searchTerm.toLowerCase();
+    const contactName = c.name || `${c.metadata?.firstName || ''} ${c.metadata?.lastName || ''}`.trim() || '';
     return (
+      contactName.toLowerCase().includes(term) ||
       c.firstName?.toLowerCase().includes(term) ||
       c.lastName?.toLowerCase().includes(term) ||
       c.phone?.toLowerCase().includes(term)
@@ -165,9 +193,9 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
 
   const previewMessage = () => {
     if (!template) return '';
-    
+
     let message = '';
-    
+
     // Add header
     const headerComponent = template.components?.find(c => c.type === 'HEADER');
     const rawHeaderText = headerComponent?.text || normalizeTemplateText(template.header);
@@ -178,7 +206,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
       });
       message += headerText + '\n\n';
     }
-    
+
     // Add body
     const bodyComponent = template.components?.find(c => c.type === 'BODY');
     let bodyText = bodyComponent?.text || normalizeTemplateText(template.body) || template.content || '';
@@ -186,17 +214,17 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
       bodyText = bodyText.replace(new RegExp(`\\{\\{${num}\\}\\}`, 'g'), value || `{{${num}}}`);
     });
     message += bodyText;
-    
+
     // Add footer
     const footerComponent = template.components?.find(c => c.type === 'FOOTER');
     const footerText = footerComponent?.text || normalizeTemplateText(template.footer);
     if (footerText) {
       message += '\n\n' + footerText;
     }
-    
+
     return message;
   };
-  
+
   const hasBodyVars = Object.keys(variables.body || {}).length > 0;
   const hasHeaderVars = Object.keys(variables.header || {}).length > 0;
   const hasAnyVars = hasBodyVars || hasHeaderVars;
@@ -254,7 +282,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                       ))}
                     </div>
                   )}
-                  
+
                   {/* Body Variables */}
                   {hasBodyVars && (
                     <div className="space-y-3">
@@ -325,18 +353,18 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                   ) : (
                     filteredContacts.map(contact => (
                       <label
-                        key={contact._id}
+                        key={contact.id || contact._id}
                         className="flex items-center gap-3 p-2 hover:bg-muted dark:hover:bg-gray-700/50 rounded cursor-pointer"
                       >
                         <input
                           type="checkbox"
-                          checked={selectedContacts.includes(contact._id)}
-                          onChange={() => toggleContact(contact._id)}
+                          checked={selectedContacts.includes(contact.id || contact._id)}
+                          onChange={() => toggleContact(contact.id || contact._id)}
                           className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
                         <div className="flex-1">
                           <p className="text-sm font-medium text-foreground">
-                            {contact.firstName} {contact.lastName}
+                            {contact.name || `${contact.metadata?.firstName || ''} ${contact.metadata?.lastName || ''}`.trim() || contact.phone}
                           </p>
                           <p className="text-xs text-muted-foreground">{contact.phone}</p>
                         </div>
@@ -353,7 +381,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
             <h3 className="text-lg font-semibold text-foreground mb-4 flex-shrink-0">
               Preview
             </h3>
-            
+
             {/* WhatsApp-like Preview */}
             <div className="bg-white dark:bg-card rounded-lg shadow-lg p-4 border border-gray-200 dark:border-border">
               <div className="bg-[#dcf8c6] dark:bg-green-900/30 rounded-lg p-3 max-w-sm">
@@ -365,7 +393,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                     {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 16 16">
-                    <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"/>
+                    <path d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z" />
                   </svg>
                 </div>
               </div>
@@ -391,9 +419,8 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                 <span>Template: {template.name}</span>
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-muted-foreground">
-                <span className={`w-2 h-2 rounded-full ${
-                  template.status === 'APPROVED' ? 'bg-green-500' : 'bg-yellow-500'
-                }`}></span>
+                <span className={`w-2 h-2 rounded-full ${template.status === 'APPROVED' ? 'bg-green-500' : 'bg-yellow-500'
+                  }`}></span>
                 <span>Status: {template.status}</span>
               </div>
             </div>
@@ -421,8 +448,8 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
             ) : (
               <>
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z"/>
-                  <path fillRule="evenodd" d="M3 7a1 1 0 000 2h14a1 1 0 100-2H3z"/>
+                  <path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5z" />
+                  <path fillRule="evenodd" d="M3 7a1 1 0 000 2h14a1 1 0 100-2H3z" />
                 </svg>
                 Send to {selectedContacts.length} Contact{selectedContacts.length !== 1 ? 's' : ''}
               </>

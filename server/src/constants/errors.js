@@ -1,0 +1,77 @@
+/**
+ * ERROR CODES AND MESSAGES
+ * Centralized error definitions for consistent API responses
+ */
+
+const ERROR_CODES = {
+  // Authentication & Authorization
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  TOKEN_EXPIRED: 'TOKEN_EXPIRED',
+  INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
+
+  // Validation
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  REQUIRED_FIELD: 'REQUIRED_FIELD',
+  INVALID_FORMAT: 'INVALID_FORMAT',
+
+  // Business Logic
+  NOT_FOUND: 'NOT_FOUND',
+  ALREADY_EXISTS: 'ALREADY_EXISTS',
+  LIMIT_EXCEEDED: 'LIMIT_EXCEEDED',
+  INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
+
+  // External Services
+  EXTERNAL_API_ERROR: 'EXTERNAL_API_ERROR',
+  BSP_ERROR: 'BSP_ERROR',
+  RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
+
+  // System
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+  DATABASE_ERROR: 'DATABASE_ERROR',
+  NETWORK_ERROR: 'NETWORK_ERROR'
+};
+
+const ERROR_MESSAGES = {
+  [ERROR_CODES.UNAUTHORIZED]: 'Authentication required',
+  [ERROR_CODES.FORBIDDEN]: 'Access denied',
+  [ERROR_CODES.TOKEN_EXPIRED]: 'Token has expired',
+  [ERROR_CODES.INVALID_CREDENTIALS]: 'Invalid credentials provided',
+
+  [ERROR_CODES.VALIDATION_ERROR]: 'Validation failed',
+  [ERROR_CODES.REQUIRED_FIELD]: 'This field is required',
+  [ERROR_CODES.INVALID_FORMAT]: 'Invalid format provided',
+
+  [ERROR_CODES.NOT_FOUND]: 'Resource not found',
+  [ERROR_CODES.ALREADY_EXISTS]: 'Resource already exists',
+  [ERROR_CODES.LIMIT_EXCEEDED]: 'Usage limit exceeded',
+  [ERROR_CODES.INSUFFICIENT_PERMISSIONS]: 'Insufficient permissions',
+
+  [ERROR_CODES.EXTERNAL_API_ERROR]: 'External service error',
+  [ERROR_CODES.BSP_ERROR]: 'Business service provider error',
+  [ERROR_CODES.RATE_LIMIT_EXCEEDED]: 'Rate limit exceeded',
+
+  [ERROR_CODES.INTERNAL_ERROR]: 'Internal server error',
+  [ERROR_CODES.DATABASE_ERROR]: 'Database operation failed',
+  [ERROR_CODES.NETWORK_ERROR]: 'Network connection error'
+};
+
+const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  NO_CONTENT: 204,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  UNPROCESSABLE_ENTITY: 422,
+  TOO_MANY_REQUESTS: 429,
+  INTERNAL_SERVER_ERROR: 500
+};
+
+module.exports = {
+  ERROR_CODES,
+  ERROR_MESSAGES,
+  HTTP_STATUS
+};

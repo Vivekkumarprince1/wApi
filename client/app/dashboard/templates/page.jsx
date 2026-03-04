@@ -41,26 +41,14 @@ const TemplatesDashboard = () => {
   const [activeTemplates, setActiveTemplates] = useState([]);
   const [deletedTemplates, setDeletedTemplates] = useState([]);
   const [libraryStats, setLibraryStats] = useState(null);
+  const [initialSyncAttempted, setInitialSyncAttempted] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    const hasPendingTemplates = templates.some(template => template.status === 'PENDING');
-    if (!hasPendingTemplates) return;
-
-    const interval = setInterval(async () => {
-      try {
-        await syncTemplatesFromGupshup();
-        await loadData(true);
-      } catch (_error) {
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [templates]);
-
+  // Removed auto-sync useEffects to prevent automatic syncing
+  
   const loadData = async (isBackground = false) => {
     try {
       if (!isBackground) {
@@ -463,6 +451,22 @@ const TemplatesDashboard = () => {
             <p className="text-muted-foreground">Create and manage WhatsApp message templates</p>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                const toastId = toast.loading('Syncing templates...');
+                try {
+                  await syncTemplatesFromGupshup();
+                  await loadData(true);
+                  toast.success('Templates synced successfully', { id: toastId });
+                } catch (error) {
+                  toast.error('Failed to sync templates', { id: toastId });
+                }
+              }}
+              className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-premium hover:shadow-xl"
+            >
+              <span className="text-lg">↻</span>
+              <span>Sync</span>
+            </button>
             <button
               onClick={handleGenerateSamples}
               disabled={generatingSamples}

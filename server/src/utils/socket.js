@@ -34,7 +34,7 @@ function initSocket(server) {
       }
       
       const payload = jwt.verify(token, jwtSecret);
-      const User = require('../models/User');
+      const { User } = require('../models');
       const user = await User.findById(payload.id).select('-passwordHash');
       
       if (!user) {

@@ -42,11 +42,11 @@ const bspConfig = {
   get webhookVerifyToken() {
     return null;
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // API CONFIGURATION
   // ═══════════════════════════════════════════════════════════════════
-  
+
   get partnerBaseUrl() {
     return this.gupshup.partnerBaseUrl;
   },
@@ -54,28 +54,28 @@ const bspConfig = {
   get apiBaseUrl() {
     return this.gupshup.apiBaseUrl;
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // RATE LIMITING CONFIGURATION (Per Workspace)
   // ═══════════════════════════════════════════════════════════════════
-  
+
   rateLimits: {
     // Messages per second per workspace by plan
     messagesPerSecond: {
-      free: 1,        // 1 msg/sec = 3600/hour
+      free: 10,       // Increased from 1 for testing
       basic: 10,      // 10 msg/sec = 36000/hour
       premium: 50,    // 50 msg/sec = 180000/hour
       enterprise: 200 // 200 msg/sec = 720000/hour
     },
-    
+
     // Daily message limits per workspace by plan
     dailyMessageLimit: {
-      free: 100,
+      free: 1000,     // Increased from 100 for testing
       basic: 1000,
       premium: 10000,
       enterprise: 100000
     },
-    
+
     // Monthly message limits per workspace by plan
     monthlyMessageLimit: {
       free: 1000,
@@ -83,7 +83,7 @@ const bspConfig = {
       premium: 250000,
       enterprise: 2500000
     },
-    
+
     // Template submissions per day per workspace
     templateSubmissionsPerDay: {
       free: 3,
@@ -91,7 +91,7 @@ const bspConfig = {
       premium: 50,
       enterprise: 200
     },
-    
+
     // API requests per minute per workspace
     apiRequestsPerMinute: {
       free: 100,
@@ -100,47 +100,47 @@ const bspConfig = {
       enterprise: 10000
     }
   },
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // TENANT ISOLATION SETTINGS
   // ═══════════════════════════════════════════════════════════════════
-  
+
   /**
    * Enable strict tenant isolation
    * When true, all queries are scoped to workspace
    */
   strictTenantIsolation: true,
-  
+
   /**
    * Log all cross-tenant access attempts
    */
   logCrossTenantAttempts: true,
-  
+
   /**
    * Enable workspace-level message encryption
    */
   enableMessageEncryption: process.env.ENABLE_MESSAGE_ENCRYPTION === 'true',
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // PHONE NUMBER PROVISIONING
   // ═══════════════════════════════════════════════════════════════════
-  
+
   /**
    * Method for assigning phone numbers to tenants
    * 'manual' - Admin assigns phone numbers manually
    * 'pool' - Auto-assign from a pool of available numbers
    */
   phoneAssignmentMode: process.env.BSP_PHONE_ASSIGNMENT_MODE || 'manual',
-  
+
   /**
    * Pool of available phone number IDs for auto-assignment
    */
   phoneNumberPool: (process.env.BSP_PHONE_NUMBER_POOL || '').split(',').filter(Boolean),
-  
+
   // ═══════════════════════════════════════════════════════════════════
   // HELPER METHODS
   // ═══════════════════════════════════════════════════════════════════
-  
+
   /**
    * Validate BSP configuration
    */
@@ -164,7 +164,7 @@ const bspConfig = {
       errors
     };
   },
-  
+
   /**
    * Get rate limit for a specific plan and limit type
    */
@@ -173,12 +173,13 @@ const bspConfig = {
     const limits = this.rateLimits[limitType];
     return limits ? (limits[planKey] || limits.free) : null;
   },
-  
+
   /**
    * Check if BSP mode is enabled
    */
   isEnabled() {
-    return !!(this.gupshup.partnerToken && this.gupshup.apiKey && this.gupshup.appId);
+    return !!(process.env.GUPSHUP_PARTNER_EMAIL && process.env.GUPSHUP_PARTNER_CLIENT_SECRET) || 
+           !!(this.gupshup.partnerToken && this.gupshup.apiKey && this.gupshup.appId);
   }
 };
 
