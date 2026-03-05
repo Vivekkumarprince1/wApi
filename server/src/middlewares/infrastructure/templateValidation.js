@@ -17,26 +17,26 @@ const LIMITS = {
   // Template name
   NAME_MIN_LENGTH: 1,
   NAME_MAX_LENGTH: 512,
-  
+
   // Header
   HEADER_TEXT_MAX_LENGTH: 60,
   HEADER_VARIABLES_MAX: 1,
-  
+
   // Body
   BODY_MIN_LENGTH: 1,
   BODY_MAX_LENGTH: 1024,
   BODY_VARIABLES_MAX: 99,
-  
+
   // Footer
   FOOTER_MAX_LENGTH: 60,
-  
+
   // Buttons
   BUTTONS_MAX_COUNT: 10,
   BUTTON_TEXT_MAX_LENGTH: 25,
   QUICK_REPLY_BUTTONS_MAX: 10,
   URL_BUTTONS_MAX: 2,
   PHONE_BUTTONS_MAX: 1,
-  
+
   // URL
   URL_MAX_LENGTH: 2000,
   URL_SUFFIX_MAX_LENGTH: 500
@@ -92,7 +92,7 @@ class TemplateValidationError extends Error {
     this.errors = errors;
     this.statusCode = 400;
   }
-  
+
   toJSON() {
     return {
       success: false,
@@ -111,36 +111,36 @@ class TemplateValidationError extends Error {
  */
 function validateName(name) {
   const errors = [];
-  
+
   if (!name) {
     errors.push({ field: 'name', message: 'Template name is required' });
     return errors;
   }
-  
+
   if (name.length < LIMITS.NAME_MIN_LENGTH) {
     errors.push({ field: 'name', message: 'Template name is too short' });
   }
-  
+
   if (name.length > LIMITS.NAME_MAX_LENGTH) {
     errors.push({ field: 'name', message: `Template name cannot exceed ${LIMITS.NAME_MAX_LENGTH} characters` });
   }
-  
+
   if (!PATTERNS.TEMPLATE_NAME.test(name)) {
-    errors.push({ 
-      field: 'name', 
-      message: 'Template name can only contain lowercase letters, numbers, and underscores' 
+    errors.push({
+      field: 'name',
+      message: 'Template name can only contain lowercase letters, numbers, and underscores'
     });
   }
-  
+
   // Check for reserved prefixes
   const reservedPrefixes = ['test_', 'sample_', 'example_'];
   if (reservedPrefixes.some(prefix => name.startsWith(prefix))) {
-    errors.push({ 
-      field: 'name', 
-      message: 'Template name cannot start with reserved prefixes (test_, sample_, example_)' 
+    errors.push({
+      field: 'name',
+      message: 'Template name cannot start with reserved prefixes (test_, sample_, example_)'
     });
   }
-  
+
   return errors;
 }
 
@@ -149,19 +149,19 @@ function validateName(name) {
  */
 function validateLanguage(language) {
   const errors = [];
-  
+
   if (!language) {
     errors.push({ field: 'language', message: 'Language is required' });
     return errors;
   }
-  
+
   if (!SUPPORTED_LANGUAGES[language]) {
-    errors.push({ 
-      field: 'language', 
-      message: `Unsupported language: ${language}. Supported: ${Object.keys(SUPPORTED_LANGUAGES).join(', ')}` 
+    errors.push({
+      field: 'language',
+      message: `Unsupported language: ${language}. Supported: ${Object.keys(SUPPORTED_LANGUAGES).join(', ')}`
     });
   }
-  
+
   return errors;
 }
 
@@ -170,21 +170,21 @@ function validateLanguage(language) {
  */
 function validateCategory(category) {
   const errors = [];
-  
+
   if (!category) {
     errors.push({ field: 'category', message: 'Category is required' });
     return errors;
   }
-  
+
   const normalizedCategory = CATEGORY_ALIASES[String(category).toUpperCase()] || category;
 
   if (!VALID_META_CATEGORIES.includes(normalizedCategory)) {
-    errors.push({ 
-      field: 'category', 
-      message: `Invalid category: ${category}. Must be one of: ${VALID_META_CATEGORIES.join(', ')}` 
+    errors.push({
+      field: 'category',
+      message: `Invalid category: ${category}. Must be one of: ${VALID_META_CATEGORIES.join(', ')}`
     });
   }
-  
+
   return errors;
 }
 
@@ -193,51 +193,51 @@ function validateCategory(category) {
  */
 function validateVariables(text, componentName, maxVariables = LIMITS.BODY_VARIABLES_MAX) {
   const errors = [];
-  
+
   if (!text) return errors;
-  
+
   const matches = text.match(PATTERNS.VARIABLE) || [];
   const variableNumbers = matches.map(m => parseInt(m.replace(/[{}]/g, '')));
-  
+
   // Check for sequential numbering starting from 1
   const sortedVars = [...variableNumbers].sort((a, b) => a - b);
   for (let i = 0; i < sortedVars.length; i++) {
     if (sortedVars[i] !== i + 1) {
-      errors.push({ 
-        field: componentName, 
-        message: `Variables must be sequential starting from 1. Found: ${sortedVars.join(', ')}` 
+      errors.push({
+        field: componentName,
+        message: `Variables must be sequential starting from 1. Found: ${sortedVars.join(', ')}`
       });
       break;
     }
   }
-  
+
   // Check max variables
   if (variableNumbers.length > maxVariables) {
-    errors.push({ 
-      field: componentName, 
-      message: `Maximum ${maxVariables} variables allowed in ${componentName}` 
+    errors.push({
+      field: componentName,
+      message: `Maximum ${maxVariables} variables allowed in ${componentName}`
     });
   }
-  
+
   // Check for duplicates
   const uniqueVars = new Set(variableNumbers);
   if (uniqueVars.size !== variableNumbers.length) {
-    errors.push({ 
-      field: componentName, 
-      message: 'Duplicate variables detected' 
+    errors.push({
+      field: componentName,
+      message: 'Duplicate variables detected'
     });
   }
-  
+
   // Check for invalid variable formats
   const invalidFormats = text.match(/\{[^{]*\}|\{[^}]*$/g) || [];
   const validFormats = text.match(PATTERNS.VARIABLE) || [];
   if (invalidFormats.length > validFormats.length) {
-    errors.push({ 
-      field: componentName, 
-      message: 'Invalid variable format detected. Use {{1}}, {{2}}, etc.' 
+    errors.push({
+      field: componentName,
+      message: 'Invalid variable format detected. Use {{1}}, {{2}}, etc.'
     });
   }
-  
+
   return errors;
 }
 
@@ -246,80 +246,80 @@ function validateVariables(text, componentName, maxVariables = LIMITS.BODY_VARIA
  */
 function validateHeader(header, category) {
   const errors = [];
-  
+
   if (!header || !header.enabled) {
     return errors;
   }
-  
+
   const categoryRules = CATEGORY_RULES[category];
-  
+
   // Check if header is allowed for this category
   if (!categoryRules.headerAllowed) {
-    errors.push({ 
-      field: 'header', 
-      message: `Header is not allowed for ${category} templates` 
+    errors.push({
+      field: 'header',
+      message: `Header is not allowed for ${category} templates`
     });
     return errors;
   }
-  
+
   if (!header.format || header.format === 'NONE') {
     errors.push({ field: 'header.format', message: 'Header format is required when header is enabled' });
     return errors;
   }
-  
+
   const validFormats = ['TEXT', 'IMAGE', 'VIDEO', 'DOCUMENT'];
   if (!validFormats.includes(header.format)) {
-    errors.push({ 
-      field: 'header.format', 
-      message: `Invalid header format. Must be one of: ${validFormats.join(', ')}` 
+    errors.push({
+      field: 'header.format',
+      message: `Invalid header format. Must be one of: ${validFormats.join(', ')}`
     });
   }
-  
+
   // Text header validation
   if (header.format === 'TEXT') {
     if (!header.text) {
       errors.push({ field: 'header.text', message: 'Header text is required for TEXT format' });
     } else {
       if (header.text.length > LIMITS.HEADER_TEXT_MAX_LENGTH) {
-        errors.push({ 
-          field: 'header.text', 
-          message: `Header text cannot exceed ${LIMITS.HEADER_TEXT_MAX_LENGTH} characters` 
+        errors.push({
+          field: 'header.text',
+          message: `Header text cannot exceed ${LIMITS.HEADER_TEXT_MAX_LENGTH} characters`
         });
       }
-      
+
       // Validate header variables
       const varErrors = validateVariables(header.text, 'header.text', LIMITS.HEADER_VARIABLES_MAX);
       errors.push(...varErrors);
-      
+
       // Check if example is provided for variables
       const hasVariables = PATTERNS.VARIABLE.test(header.text);
       if (hasVariables && !header.example) {
-        errors.push({ 
-          field: 'header.example', 
-          message: 'Example value is required for header variables' 
+        errors.push({
+          field: 'header.example',
+          message: 'Example value is required for header variables'
         });
       }
     }
   }
-  
+
   // Media header validation
   if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(header.format)) {
     if (!header.mediaUrl && !header.mediaHandle) {
-      errors.push({ 
-        field: 'header.media', 
-        message: 'Media URL or handle is required for media headers' 
+      errors.push({
+        field: 'header.media',
+        message: 'Media URL or handle is required for media headers'
       });
     }
-    
+
     // Validate media URL format
     if (header.mediaUrl && !PATTERNS.URL.test(header.mediaUrl)) {
-      errors.push({ 
-        field: 'header.mediaUrl', 
-        message: 'Media URL must be a valid HTTPS URL' 
+      errors.push({
+        field: 'header.mediaUrl',
+        message: 'Media URL must be a valid HTTPS URL'
       });
     }
   }
-  
+
   return errors;
 }
 
@@ -328,58 +328,58 @@ function validateHeader(header, category) {
  */
 function validateBody(body) {
   const errors = [];
-  
+
   if (!body || !body.text) {
     errors.push({ field: 'body.text', message: 'Body text is required' });
     return errors;
   }
-  
+
   // Length validation
   if (body.text.length < LIMITS.BODY_MIN_LENGTH) {
     errors.push({ field: 'body.text', message: 'Body text is too short' });
   }
-  
+
   if (body.text.length > LIMITS.BODY_MAX_LENGTH) {
-    errors.push({ 
-      field: 'body.text', 
-      message: `Body text cannot exceed ${LIMITS.BODY_MAX_LENGTH} characters` 
+    errors.push({
+      field: 'body.text',
+      message: `Body text cannot exceed ${LIMITS.BODY_MAX_LENGTH} characters`
     });
   }
-  
+
   // Variable validation
   const varErrors = validateVariables(body.text, 'body.text', LIMITS.BODY_VARIABLES_MAX);
   errors.push(...varErrors);
-  
+
   // Check if examples are provided for variables
   const matches = body.text.match(PATTERNS.VARIABLE) || [];
   const variableCount = matches.length;
-  
+
   if (variableCount > 0) {
     if (!body.examples || body.examples.length < variableCount) {
-      errors.push({ 
-        field: 'body.examples', 
-        message: `Example values required for all ${variableCount} variables` 
+      errors.push({
+        field: 'body.examples',
+        message: `Example values required for all ${variableCount} variables`
       });
     }
   }
-  
+
   // Check for prohibited content patterns
   const prohibitedPatterns = [
     { pattern: /\b(free|win|winner|prize|congratulations)\b/i, message: 'Avoid spam-triggering words' },
     { pattern: /https?:\/\/bit\.ly/i, message: 'URL shorteners are not recommended' },
     { pattern: /\b(click here|act now|limited time)\b/i, message: 'Avoid urgency phrases that may trigger rejection' }
   ];
-  
+
   for (const { pattern, message } of prohibitedPatterns) {
     if (pattern.test(body.text)) {
-      errors.push({ 
-        field: 'body.text', 
+      errors.push({
+        field: 'body.text',
         message: `Warning: ${message}`,
         severity: 'warning'
       });
     }
   }
-  
+
   return errors;
 }
 
@@ -388,31 +388,31 @@ function validateBody(body) {
  */
 function validateFooter(footer) {
   const errors = [];
-  
+
   if (!footer || !footer.enabled) {
     return errors;
   }
-  
+
   if (!footer.text) {
     errors.push({ field: 'footer.text', message: 'Footer text is required when footer is enabled' });
     return errors;
   }
-  
+
   if (footer.text.length > LIMITS.FOOTER_MAX_LENGTH) {
-    errors.push({ 
-      field: 'footer.text', 
-      message: `Footer text cannot exceed ${LIMITS.FOOTER_MAX_LENGTH} characters` 
+    errors.push({
+      field: 'footer.text',
+      message: `Footer text cannot exceed ${LIMITS.FOOTER_MAX_LENGTH} characters`
     });
   }
-  
+
   // Footer cannot have variables
   if (PATTERNS.VARIABLE.test(footer.text)) {
-    errors.push({ 
-      field: 'footer.text', 
-      message: 'Variables are not allowed in footer' 
+    errors.push({
+      field: 'footer.text',
+      message: 'Variables are not allowed in footer'
     });
   }
-  
+
   return errors;
 }
 
@@ -421,13 +421,13 @@ function validateFooter(footer) {
  */
 function validateButtons(buttons, category) {
   const errors = [];
-  
+
   if (!buttons || !buttons.enabled || !buttons.items || buttons.items.length === 0) {
     return errors;
   }
-  
+
   const categoryRules = CATEGORY_RULES[category];
-  
+
   // Count button types
   const buttonCounts = {
     QUICK_REPLY: 0,
@@ -435,44 +435,44 @@ function validateButtons(buttons, category) {
     PHONE_NUMBER: 0,
     COPY_CODE: 0
   };
-  
+
   // Validate total count
   if (buttons.items.length > categoryRules.maxButtons) {
-    errors.push({ 
-      field: 'buttons', 
-      message: `Maximum ${categoryRules.maxButtons} buttons allowed for ${category} templates` 
+    errors.push({
+      field: 'buttons',
+      message: `Maximum ${categoryRules.maxButtons} buttons allowed for ${category} templates`
     });
   }
-  
+
   // Validate each button
   buttons.items.forEach((button, index) => {
     const fieldPrefix = `buttons.items[${index}]`;
-    
+
     // Check button type is valid
     if (!button.type) {
       errors.push({ field: `${fieldPrefix}.type`, message: 'Button type is required' });
       return;
     }
-    
+
     if (!categoryRules.allowedButtonTypes.includes(button.type)) {
-      errors.push({ 
-        field: `${fieldPrefix}.type`, 
-        message: `Button type ${button.type} is not allowed for ${category} templates` 
+      errors.push({
+        field: `${fieldPrefix}.type`,
+        message: `Button type ${button.type} is not allowed for ${category} templates`
       });
     }
-    
+
     buttonCounts[button.type]++;
-    
+
     // Validate button text
     if (!button.text) {
       errors.push({ field: `${fieldPrefix}.text`, message: 'Button text is required' });
     } else if (button.text.length > LIMITS.BUTTON_TEXT_MAX_LENGTH) {
-      errors.push({ 
-        field: `${fieldPrefix}.text`, 
-        message: `Button text cannot exceed ${LIMITS.BUTTON_TEXT_MAX_LENGTH} characters` 
+      errors.push({
+        field: `${fieldPrefix}.text`,
+        message: `Button text cannot exceed ${LIMITS.BUTTON_TEXT_MAX_LENGTH} characters`
       });
     }
-    
+
     // Type-specific validation
     switch (button.type) {
       case 'URL':
@@ -486,7 +486,7 @@ function validateButtons(buttons, category) {
             errors.push({ field: `${fieldPrefix}.url`, message: 'URL is too long' });
           }
         }
-        
+
         // Check for dynamic URL suffix
         if (button.urlSuffix) {
           if (button.urlSuffix.length > LIMITS.URL_SUFFIX_MAX_LENGTH) {
@@ -497,52 +497,52 @@ function validateButtons(buttons, category) {
           }
         }
         break;
-        
+
       case 'PHONE_NUMBER':
         if (!button.phoneNumber) {
           errors.push({ field: `${fieldPrefix}.phoneNumber`, message: 'Phone number is required' });
         } else if (!PATTERNS.PHONE_NUMBER.test(button.phoneNumber)) {
-          errors.push({ 
-            field: `${fieldPrefix}.phoneNumber`, 
-            message: 'Phone number must be in international format (e.g., +1234567890)' 
+          errors.push({
+            field: `${fieldPrefix}.phoneNumber`,
+            message: 'Phone number must be in international format (e.g., +1234567890)'
           });
         }
         break;
-        
+
       case 'COPY_CODE':
         if (!button.example) {
           errors.push({ field: `${fieldPrefix}.example`, message: 'Example OTP code is required' });
         }
         break;
-        
+
       case 'QUICK_REPLY':
         // Quick reply only needs text, which is already validated
         break;
     }
   });
-  
+
   // Validate button type counts
   if (buttonCounts.QUICK_REPLY > LIMITS.QUICK_REPLY_BUTTONS_MAX) {
-    errors.push({ 
-      field: 'buttons', 
-      message: `Maximum ${LIMITS.QUICK_REPLY_BUTTONS_MAX} quick reply buttons allowed` 
+    errors.push({
+      field: 'buttons',
+      message: `Maximum ${LIMITS.QUICK_REPLY_BUTTONS_MAX} quick reply buttons allowed`
     });
   }
-  
+
   if (buttonCounts.URL > LIMITS.URL_BUTTONS_MAX) {
-    errors.push({ 
-      field: 'buttons', 
-      message: `Maximum ${LIMITS.URL_BUTTONS_MAX} URL buttons allowed` 
+    errors.push({
+      field: 'buttons',
+      message: `Maximum ${LIMITS.URL_BUTTONS_MAX} URL buttons allowed`
     });
   }
-  
+
   if (buttonCounts.PHONE_NUMBER > LIMITS.PHONE_BUTTONS_MAX) {
-    errors.push({ 
-      field: 'buttons', 
-      message: `Maximum ${LIMITS.PHONE_BUTTONS_MAX} phone number button allowed` 
+    errors.push({
+      field: 'buttons',
+      message: `Maximum ${LIMITS.PHONE_BUTTONS_MAX} phone number button allowed`
     });
   }
-  
+
   // Mixed button types validation
   if (buttonCounts.QUICK_REPLY > 0 && (buttonCounts.URL > 0 || buttonCounts.PHONE_NUMBER > 0)) {
     // This is actually allowed, but warn for UX
@@ -552,7 +552,7 @@ function validateButtons(buttons, category) {
       severity: 'warning'
     });
   }
-  
+
   return errors;
 }
 
@@ -561,43 +561,43 @@ function validateButtons(buttons, category) {
  */
 function validateAuthenticationTemplate(template) {
   const errors = [];
-  
+
   if (template.category !== 'AUTHENTICATION') {
     return errors;
   }
-  
+
   // Authentication templates have special requirements
-  
+
   // Must have OTP code variable in body
   if (!template.body?.text?.includes('{{1}}')) {
-    errors.push({ 
-      field: 'body.text', 
-      message: 'Authentication templates must include {{1}} for the OTP code' 
+    errors.push({
+      field: 'body.text',
+      message: 'Authentication templates must include {{1}} for the OTP code'
     });
   }
-  
+
   // Should have COPY_CODE button or URL button
   if (template.buttons?.enabled) {
     const hasCopyCode = template.buttons.items?.some(b => b.type === 'COPY_CODE');
     const hasUrlButton = template.buttons.items?.some(b => b.type === 'URL');
-    
+
     if (!hasCopyCode && !hasUrlButton) {
-      errors.push({ 
-        field: 'buttons', 
+      errors.push({
+        field: 'buttons',
         message: 'Authentication templates should have a Copy Code or URL button',
         severity: 'warning'
       });
     }
   }
-  
+
   // Header not allowed
   if (template.header?.enabled) {
-    errors.push({ 
-      field: 'header', 
-      message: 'Header is not allowed in authentication templates' 
+    errors.push({
+      field: 'header',
+      message: 'Header is not allowed in authentication templates'
     });
   }
-  
+
   return errors;
 }
 
@@ -613,27 +613,27 @@ function validateAuthenticationTemplate(template) {
 function validateTemplate(template) {
   const errors = [];
   const warnings = [];
-  
+
   // Basic validations
   errors.push(...validateName(template.name));
   errors.push(...validateLanguage(template.language));
   errors.push(...validateCategory(template.category));
-  
+
   // Component validations
   errors.push(...validateHeader(template.header, template.category));
   errors.push(...validateBody(template.body));
   errors.push(...validateFooter(template.footer));
   errors.push(...validateButtons(template.buttons, template.category));
-  
+
   // Category-specific validations
   if (template.category === 'AUTHENTICATION') {
     errors.push(...validateAuthenticationTemplate(template));
   }
-  
+
   // Separate warnings from errors
   const actualErrors = errors.filter(e => e.severity !== 'warning');
   const actualWarnings = errors.filter(e => e.severity === 'warning');
-  
+
   return {
     valid: actualErrors.length === 0,
     errors: actualErrors,
@@ -646,17 +646,17 @@ function validateTemplate(template) {
  */
 function buildMetaPayload(template, namespacedName) {
   const components = [];
-  
+
   // Header
   if (template.header?.enabled && template.header.format !== 'NONE') {
     const headerComponent = {
       type: 'HEADER',
       format: template.header.format
     };
-    
+
     if (template.header.format === 'TEXT') {
       headerComponent.text = template.header.text;
-      
+
       // Add example if variables present
       const hasVariables = PATTERNS.VARIABLE.test(template.header.text);
       if (hasVariables && template.header.example) {
@@ -669,16 +669,16 @@ function buildMetaPayload(template, namespacedName) {
         header_handle: [template.header.mediaHandle]
       };
     }
-    
+
     components.push(headerComponent);
   }
-  
+
   // Body (required)
   const bodyComponent = {
     type: 'BODY',
     text: template.body.text
   };
-  
+
   // Add body examples if variables present
   const bodyMatches = template.body.text.match(PATTERNS.VARIABLE) || [];
   if (bodyMatches.length > 0 && template.body.examples?.length > 0) {
@@ -686,9 +686,9 @@ function buildMetaPayload(template, namespacedName) {
       body_text: [template.body.examples]
     };
   }
-  
+
   components.push(bodyComponent);
-  
+
   // Footer
   if (template.footer?.enabled && template.footer.text) {
     components.push({
@@ -696,7 +696,7 @@ function buildMetaPayload(template, namespacedName) {
       text: template.footer.text
     });
   }
-  
+
   // Buttons
   if (template.buttons?.enabled && template.buttons.items?.length > 0) {
     const buttons = template.buttons.items.map(btn => {
@@ -704,7 +704,7 @@ function buildMetaPayload(template, namespacedName) {
         type: btn.type,
         text: btn.text
       };
-      
+
       switch (btn.type) {
         case 'URL':
           button.url = btn.url;
@@ -720,16 +720,16 @@ function buildMetaPayload(template, namespacedName) {
           button.example = btn.example;
           break;
       }
-      
+
       return button;
     });
-    
+
     components.push({
       type: 'BUTTONS',
       buttons
     });
   }
-  
+
   return {
     name: namespacedName,
     language: template.language,
@@ -749,6 +749,51 @@ function normalizeTemplatePayload(payload = {}) {
   }
 
   // Legacy flat fields
+  // EditTemplateModal sends flat fields like headerFormat, headerText, mediaHandle, mediaThumbnail
+  // Reconstruct structured header/body/footer from them
+  if (normalized.headerFormat && !normalized.header) {
+    const fmt = normalized.headerFormat;
+    if (fmt === 'NONE') {
+      normalized.header = { enabled: false, format: 'NONE' };
+    } else {
+      normalized.header = {
+        enabled: true,
+        format: fmt,
+        text: normalized.headerText || '',
+        mediaUrl: normalized.mediaUrl || '',
+        mediaHandle: normalized.mediaHandle || '',
+        mediaThumbnail: normalized.mediaThumbnail || '',
+        example: ''
+      };
+    }
+    // Clean up flat fields
+    delete normalized.headerFormat;
+    delete normalized.headerText;
+    delete normalized.mediaHandle;
+    delete normalized.mediaUrl;
+    delete normalized.mediaThumbnail;
+  }
+
+  if (normalized.bodyText && !normalized.body) {
+    normalized.body = { text: normalized.bodyText, examples: normalized.variables || [] };
+    delete normalized.bodyText;
+  }
+
+  if (normalized.footerText !== undefined && !normalized.footer) {
+    normalized.footer = normalized.footerText
+      ? { enabled: true, text: normalized.footerText }
+      : { enabled: false, text: '' };
+    delete normalized.footerText;
+  }
+
+  if (normalized.buttonLabels && !normalized.buttons) {
+    normalized.buttons = {
+      enabled: normalized.buttonLabels.length > 0,
+      items: normalized.buttonLabels.map(text => ({ type: 'QUICK_REPLY', text }))
+    };
+    delete normalized.buttonLabels;
+  }
+
   if (typeof normalized.body === 'string') {
     normalized.body = { text: normalized.body, examples: [] };
   }
@@ -775,13 +820,14 @@ function normalizeTemplatePayload(payload = {}) {
     normalized.header = headerType === 'NONE'
       ? { enabled: false, format: 'NONE' }
       : {
-          enabled: true,
-          format: headerType,
-          text: normalized.header.text || '',
-          mediaUrl: normalized.header.mediaUrl || normalized.header.media_url || '',
-          mediaHandle: normalized.header.mediaHandle || normalized.header.media_handle || '',
-          example: normalized.header.example || ''
-        };
+        enabled: true,
+        format: headerType,
+        text: normalized.header.text || '',
+        mediaUrl: normalized.header.mediaUrl || normalized.header.media_url || '',
+        mediaHandle: normalized.header.mediaHandle || normalized.header.media_handle || '',
+        mediaThumbnail: normalized.header.mediaThumbnail || '',
+        example: normalized.header.example || ''
+      };
   }
 
   if (
@@ -812,7 +858,8 @@ function normalizeTemplatePayload(payload = {}) {
             text: component.text || '',
             example: component.example?.header_text?.[0] || '',
             mediaUrl: component.example?.header_url?.[0] || '',
-            mediaHandle: component.example?.header_handle?.[0] || ''
+            mediaHandle: component.example?.header_handle?.[0] || '',
+            mediaThumbnail: component.mediaThumbnail || ''
           };
           break;
         case 'BODY':
@@ -875,10 +922,10 @@ function validateTemplateCreate(req, res, next) {
   req.body = { ...req.body, ...normalized };
 
   const { name, language, category, header, body, footer, buttons } = normalized;
-  
+
   const template = { name, language, category, header, body, footer, buttons };
   const result = validateTemplate(template);
-  
+
   if (!result.valid) {
     return res.status(400).json({
       success: false,
@@ -887,7 +934,7 @@ function validateTemplateCreate(req, res, next) {
       warnings: result.warnings
     });
   }
-  
+
   // Attach warnings to request for logging
   req.templateWarnings = result.warnings;
   next();
@@ -909,7 +956,7 @@ function validateTemplateUpdate(req, res, next) {
   req.body = { ...req.body, ...normalized };
 
   const { name, language, category, header, body, footer, buttons, expectedVersion, expectedStatus } = normalized;
-  
+
   // Build template object for validation (only include provided fields)
   const template = {};
   if (name !== undefined) template.name = name;
@@ -919,10 +966,10 @@ function validateTemplateUpdate(req, res, next) {
   if (body !== undefined) template.body = body;
   if (footer !== undefined) template.footer = footer;
   if (buttons !== undefined) template.buttons = buttons;
-  
+
   // Partial validation for updates
   const errors = [];
-  
+
   if (template.name) errors.push(...validateName(template.name));
   if (template.language) errors.push(...validateLanguage(template.language));
   if (template.category) errors.push(...validateCategory(template.category));
@@ -960,9 +1007,9 @@ function validateTemplateUpdate(req, res, next) {
       req.body.expectedStatus = normalizedStatus;
     }
   }
-  
+
   const actualErrors = errors.filter(e => e.severity !== 'warning');
-  
+
   if (actualErrors.length > 0) {
     return res.status(400).json({
       success: false,
@@ -970,7 +1017,7 @@ function validateTemplateUpdate(req, res, next) {
       errors: actualErrors
     });
   }
-  
+
   next();
 }
 
@@ -981,7 +1028,7 @@ function validateTemplateUpdate(req, res, next) {
 module.exports = {
   // Main validation function
   validateTemplate,
-  
+
   // Individual validators
   validateName,
   validateLanguage,
@@ -992,18 +1039,18 @@ module.exports = {
   validateFooter,
   validateButtons,
   validateAuthenticationTemplate,
-  
+
   // Payload builder
   buildMetaPayload,
-  
+
   // Express middlewares
   validateTemplateCreate,
   validateTemplateUpdate,
   validateTemplateSubmit,
-  
+
   // Error class
   TemplateValidationError,
-  
+
   // Constants
   LIMITS,
   PATTERNS,

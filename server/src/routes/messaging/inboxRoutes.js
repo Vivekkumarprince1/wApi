@@ -10,10 +10,10 @@ const express = require('express');
 const router = express.Router();
 const inboxController = require('../../controllers/messaging/inboxController');
 const auth = require('../../middlewares/auth');
-const { 
-  requireRole, 
-  requirePermission, 
-  requireConversationAccess 
+const {
+  requireRole,
+  requirePermission,
+  requireConversationAccess
 } = require('../../middlewares/infrastructure/rbac');
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -37,9 +37,9 @@ router.get('/stats', auth, inboxController.getInboxStats);
  * GET /api/inbox/agents
  * Get available agents for assignment (managers only)
  */
-router.get('/agents', 
-  auth, 
-  requireRole(['owner', 'manager']), 
+router.get('/agents',
+  auth,
+  requireRole(['owner', 'manager']),
   inboxController.getAvailableAgents
 );
 
@@ -48,8 +48,8 @@ router.get('/agents',
  * Get single conversation details
  * Agents can only access their assigned conversations
  */
-router.get('/:conversationId', 
-  auth, 
+router.get('/:conversationId',
+  auth,
   requireConversationAccess('conversationId'),
   inboxController.getConversation
 );
@@ -114,8 +114,8 @@ router.post('/:conversationId/messages/media',
  * Assign conversation to an agent
  * Body: { agentId: string }
  */
-router.post('/:conversationId/assign', 
-  auth, 
+router.post('/:conversationId/assign',
+  auth,
   requirePermission('assignConversations'),
   inboxController.assignConversation
 );
@@ -124,8 +124,8 @@ router.post('/:conversationId/assign',
  * POST /api/inbox/:conversationId/unassign
  * Remove assignment from conversation
  */
-router.post('/:conversationId/unassign', 
-  auth, 
+router.post('/:conversationId/unassign',
+  auth,
   requirePermission('assignConversations'),
   inboxController.unassignConversation
 );
@@ -134,7 +134,7 @@ router.post('/:conversationId/unassign',
  * POST /api/inbox/:conversationId/claim
  * Agent self-assigns from unassigned pool
  */
-router.post('/:conversationId/claim', 
+router.post('/:conversationId/claim',
   auth,
   requirePermission('sendMessages'), // Any agent who can send messages can claim
   inboxController.claimConversation
@@ -149,8 +149,8 @@ router.post('/:conversationId/claim',
  * Close a conversation
  * Body: { resolution?: string }
  */
-router.post('/:conversationId/close', 
-  auth, 
+router.post('/:conversationId/close',
+  auth,
   requireConversationAccess('conversationId'),
   inboxController.closeConversation
 );
@@ -159,8 +159,8 @@ router.post('/:conversationId/close',
  * POST /api/inbox/:conversationId/reopen
  * Reopen a closed conversation
  */
-router.post('/:conversationId/reopen', 
-  auth, 
+router.post('/:conversationId/reopen',
+  auth,
   requireConversationAccess('conversationId'),
   inboxController.reopenConversation
 );
@@ -170,8 +170,8 @@ router.post('/:conversationId/reopen',
  * Snooze conversation until specified time
  * Body: { snoozedUntil: ISO date string }
  */
-router.post('/:conversationId/snooze', 
-  auth, 
+router.post('/:conversationId/snooze',
+  auth,
   requireConversationAccess('conversationId'),
   inboxController.snoozeConversation
 );
@@ -181,8 +181,8 @@ router.post('/:conversationId/snooze',
  * Set conversation priority
  * Body: { priority: 'low' | 'normal' | 'high' | 'urgent' }
  */
-router.put('/:conversationId/priority', 
-  auth, 
+router.put('/:conversationId/priority',
+  auth,
   requireConversationAccess('conversationId'),
   inboxController.setPriority
 );
@@ -195,8 +195,8 @@ router.put('/:conversationId/priority',
  * POST /api/inbox/:conversationId/read
  * Mark conversation as read for current agent
  */
-router.post('/:conversationId/read', 
-  auth, 
+router.post('/:conversationId/read',
+  auth,
   requireConversationAccess('conversationId'),
   inboxController.markAsRead
 );

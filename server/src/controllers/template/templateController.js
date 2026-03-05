@@ -1044,13 +1044,13 @@ async function syncTemplates(req, res, next) {
 
       // Map Gupshup fields to local model
       const previousStatus = localTemplate.status;
-      
+
       // If we manually marked it DELETED locally, do NOT let Gupshup revert it to APPROVED during their cache lag
       if (previousStatus === 'DELETED') {
         syncStats.skipped++;
         continue;
       }
-      
+
       localTemplate.status = gTemplate.status || localTemplate.status;
       localTemplate.metaTemplateId = gTemplate.externalId || gTemplate.id || localTemplate.metaTemplateId;
       localTemplate.metaTemplateName = templateName;
@@ -1113,23 +1113,23 @@ async function uploadTemplateMedia(req, res, next) {
     if (!workspace) {
       return res.status(404).json({ success: false, message: 'Workspace not found' });
     }
-    
+
     // Fast fallback strategy as seen in syncTemplates
     let appId = workspace?.gupshupIdentity?.partnerAppId || workspace?.gupshupAppId;
     let appApiKey = workspace?.gupshupIdentity?.appApiKey || workspace?.gupshupApiKey || workspace?.whatsappAccessToken;
-    
+
     if (!appId || !appApiKey) {
       return res.status(400).json({ success: false, message: 'Gupshup app credentials missing.' });
     }
-    
+
     const gupshupService = require('../../services/bsp/gupshupService');
     const result = await gupshupService.uploadTemplateMediaForApp({
-      appId, appApiKey, 
-      fileBuffer: req.file.buffer, 
-      fileName: req.file.originalname, 
+      appId, appApiKey,
+      fileBuffer: req.file.buffer,
+      fileName: req.file.originalname,
       mimeType: req.file.mimetype
     });
-    
+
     // Gupshup response can be:
     //   { status, message: "handle" }           – older/direct API
     //   { status, handleId: "handle" }           – partner API (string)
@@ -1138,39 +1138,44 @@ async function uploadTemplateMedia(req, res, next) {
       || (typeof result.handleId === 'string' ? result.handleId : null)
       || result.handleId?.message
       || '';
-    
+
     // Gupshup may return multiple handles separated by newlines; use the first
     if (handleId.includes('\n')) {
       handleId = handleId.split('\n')[0].trim();
     }
-    
+
     if (!handleId) {
       console.error('[uploadTemplateMedia] Could not extract handleId from Gupshup response:', JSON.stringify(result));
       return res.status(502).json({ success: false, message: 'Media uploaded but no handle ID returned from provider' });
     }
 
-    // Try to upload to Cloudinary to get an immediate preview URL
-    let cloudUrl = '';
+    // Generate a small base64 thumbnail for preview purposes
+    let thumbnail = '';
     try {
-      if (process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_URL) {
-        const { uploadBufferToCloudinary } = require('../../utils/cloudinary');
-        let resourceType = 'auto';
-        if (req.file.mimetype.startsWith('video/')) resourceType = 'video';
-        else if (req.file.mimetype.startsWith('image/')) resourceType = 'image';
-        else resourceType = 'raw';
-        
-        const cloudResult = await uploadBufferToCloudinary(req.file.buffer, resourceType);
-        cloudUrl = cloudResult.secure_url;
+      if (req.file.mimetype.startsWith('image/')) {
+        const sharp = require('sharp');
+        const thumbBuffer = await sharp(req.file.buffer)
+          .resize(200, null, { withoutEnlargement: true })
+          .jpeg({ quality: 60 })
+          .toBuffer();
+        thumbnail = `data:image/jpeg;base64,${thumbBuffer.toString('base64')}`;
+      } else if (req.file.mimetype.startsWith('video/')) {
+        // For video, we can't easily generate a frame thumbnail without ffmpeg
+        // Store a type indicator so the frontend knows media exists
+        thumbnail = 'video_attached';
+      } else {
+        thumbnail = 'document_attached';
       }
-    } catch (cloudErr) {
-      console.warn('[uploadTemplateMedia] Cloudinary upload failed (preview URL not available):', cloudErr.message);
-      // We don't fail the request here since Gupshup upload succeeded
+    } catch (thumbErr) {
+      console.warn('[uploadTemplateMedia] Thumbnail generation failed:', thumbErr.message);
+      // Non-critical, continue without thumbnail
     }
-    
-    return res.status(200).json({ 
-      success: true, 
-      handleId, 
-      url: cloudUrl 
+
+    return res.status(200).json({
+      success: true,
+      handleId,
+      thumbnail,
+      url: ''
     });
   } catch (error) {
     next(error);
@@ -1900,7 +1905,7 @@ module.exports = {
 
   // Webhook handler
   handleTemplateStatusWebhook,
-  
+
   // Media upload
   uploadTemplateMedia
 };

@@ -31,7 +31,12 @@ import {
   FaTrash,
   FaTimes,
   FaPlayCircle,
-  FaExternalLinkAlt
+  FaExternalLinkAlt,
+  FaInfoCircle,
+  FaTags,
+  FaArchive,
+  FaClock,
+  FaUserCircle
 } from 'react-icons/fa';
 import { useWorkspace } from '@/lib/useWorkspace';
 
@@ -317,130 +322,128 @@ export default function InboxPage() {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'sent':
-        return <FaCheck className="text-muted-foreground text-xs" />;
+        return <FaCheck className="text-gray-400 text-[10px]" />;
       case 'delivered':
-        return <><FaCheck className="text-muted-foreground text-xs" /><FaCheck className="text-muted-foreground text-xs -ml-2" /></>;
+        return <><FaCheck className="text-gray-400 text-[10px]" /><FaCheck className="text-gray-400 text-[10px] -ml-1.5" /></>;
       case 'read':
-        return <><FaCheck className="text-blue-500 text-xs" /><FaCheck className="text-blue-500 text-xs -ml-2" /></>;
+        return <><FaCheck className="text-blue-500 text-[10px]" /><FaCheck className="text-blue-500 text-[10px] -ml-1.5" /></>;
       case 'failed':
-        return <FaCircle className="text-red-500 text-xs" />;
+        return <FaCircle className="text-red-500 text-[10px]" />;
+      case 'queued':
       default:
-        return <FaCircle className="text-gray-300 text-xs" />;
+        return <FaClock className="text-gray-400 text-[10px]" />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Conversation List Sidebar */}
-      <div className="w-96 bg-card border-r border-border flex flex-col shadow-xl">
-        {/* Header */}
-        <div className="p-6 border-b border-border bg-gradient-to-r from-primary to-primary/80">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-2xl font-bold text-white">Inbox</h1>
-            <div className="flex items-center gap-2">
-              <select
-                value={currentView}
-                onChange={(e) => setCurrentView(e.target.value)}
-                className="bg-white/20 border-0 rounded-lg text-white text-xs font-semibold py-1.5 px-2 outline-none cursor-pointer focus:ring-0 [&>option]:text-foreground"
-              >
-                <option value="mine">Mine</option>
-                <option value="unassigned">Unassigned</option>
-                <option value="all">All</option>
-              </select>
-              <button
-                onClick={openStartConversationModal}
-                className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors text-white text-xs font-semibold"
-              >
-                Start
-              </button>
-              <button className="p-2 hover:bg-white/20 rounded-lg transition-colors">
-                <FaFilter className="text-white" />
-              </button>
-            </div>
+    <div className="flex h-screen bg-white text-gray-800 font-sans overflow-hidden">
+      {/* 1. Conversations List Sidebar (Left Pane) */}
+      <div className="w-[340px] flex-shrink-0 border-r border-gray-200 bg-white flex flex-col z-10">
+        {/* Sidebar Header */}
+        <div className="pt-4 pb-2 px-4 flex items-center justify-between border-b border-gray-100">
+          <h1 className="text-[22px] font-bold text-gray-800">Inbox</h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={openStartConversationModal}
+              className="p-2 hover:bg-green-50 rounded-full transition-colors text-green-600 tooltip group relative"
+              title="New Message"
+            >
+              <FaPlus className="text-sm" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
+              <FaFilter className="text-sm" />
+            </button>
           </div>
+        </div>
 
-          {/* Socket Connection Status */}
-          <div className="flex items-center gap-2 mb-4 text-sm bg-white/10 backdrop-blur-sm rounded-lg px-3 py-2">
-            <FaCircle className={connected ? 'text-green-400' : 'text-red-400'} style={{ fontSize: '8px' }} />
-            <span className="text-white font-medium">
-              {connected ? 'Live' : 'Reconnecting...'}
-            </span>
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+        {/* Search Bar */}
+        <div className="px-4 py-3 bg-white">
+          <div className="relative bg-gray-100 rounded-lg flex items-center px-3 py-2 border border-transparent focus-within:border-green-500 focus-within:bg-white transition-all">
+            <FaSearch className="text-gray-400 text-sm flex-shrink-0" />
             <input
               type="text"
-              placeholder="Search conversations..."
+              placeholder="Search or start new chat"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white dark:bg-muted border-0 rounded-xl focus:ring-2 focus:ring-white shadow-premium text-foreground placeholder-gray-500"
+              className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-sm ml-2 text-gray-700 placeholder-gray-500"
             />
           </div>
         </div>
 
-        {/* Conversations List */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Tabs */}
+        <div className="flex px-4 gap-2 mb-2">
+          {['all', 'mine', 'unassigned'].map(view => (
+            <button
+              key={view}
+              onClick={() => setCurrentView(view)}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-full capitalize transition-all ${currentView === view
+                ? 'bg-green-100 text-green-700'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+            >
+              {view}
+            </button>
+          ))}
+        </div>
+
+        {/* Socket Status */}
+        <div className="px-4 py-1 text-[11px] font-medium flex items-center gap-1.5 border-b border-gray-100">
+          <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
+          <span className="text-gray-500">{connected ? 'Connected' : 'Disconnected'}</span>
+        </div>
+
+        {/* Chat List */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
           {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <FaSpinner className="animate-spin text-3xl text-primary" />
+            <div className="flex items-center justify-center p-8">
+              <FaSpinner className="animate-spin text-2xl text-green-500" />
             </div>
           ) : filteredConversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
-                <FaUser className="text-3xl text-muted-foreground" />
-              </div>
-              <p className="font-semibold text-lg">No conversations yet</p>
-              <p className="text-sm text-center mt-2">Your messages will appear here when customers reach out</p>
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 p-6 text-center">
+              <FaArchive className="text-4xl mb-3 opacity-50" />
+              <p className="text-sm font-medium">No conversations found</p>
             </div>
           ) : (
             filteredConversations.map((conversation) => (
               <div
                 key={conversation._id}
                 onClick={() => handleSelectContact(conversation)}
-                className={`p-4 border-b border-gray-100 dark:border-border cursor-pointer transition-all hover:shadow-md ${selectedContact?._id === conversation.contact._id
-                  ? 'bg-gradient-to-r from-primary/10 to-primary/80/10 border-l-4 border-l-primary'
-                  : 'hover:bg-accent/50'
+                className={`px-4 py-3 border-b border-gray-50 cursor-pointer transition-colors flex items-start gap-3 hover:bg-gray-50 ${selectedContact?._id === conversation.contact._id ? 'bg-gray-100' : ''
                   }`}
               >
-                <div className="flex items-start gap-3">
-                  <div className="relative">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                      <FaUser className="text-white text-lg" />
-                    </div>
-                    {(conversation.myUnreadCount || conversation.unreadCount || 0) > 0 && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                        {conversation.myUnreadCount || conversation.unreadCount}
-                      </div>
+                {/* Avatar */}
+                <div className="relative flex-shrink-0 pt-1">
+                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                    <FaUser className="text-gray-400 text-lg" />
+                  </div>
+                </div>
+
+                {/* Chat Preview */}
+                <div className="flex-1 min-w-0 pr-1">
+                  <div className="flex justify-between items-baseline mb-0.5">
+                    <h3 className="font-semibold text-gray-900 truncate text-[15px]">
+                      {conversation.contact?.name || conversation.contact?.phone}
+                    </h3>
+                    {conversation.lastMessageAt && (
+                      <span className="text-[11px] text-gray-500 flex-shrink-0 ml-2">
+                        {new Date(conversation.lastMessageAt).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </span>
                     )}
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-semibold text-foreground truncate">
-                        {conversation.contact?.name || conversation.contact?.phone}
-                      </h3>
-                      {conversation.lastMessageAt && (
-                        <span className="text-xs text-muted-foreground flex-shrink-0">
-                          {new Date(conversation.lastMessageAt).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          })}
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-sm text-muted-foreground truncate mb-1">
-                      {conversation.lastMessagePreview || 'No messages yet'}
+                  <div className="flex justify-between items-center">
+                    <p className="text-[13px] text-gray-500 truncate pr-2">
+                      {conversation.lastMessagePreview || 'No messages'}
                     </p>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground dark:text-muted-foreground">
-                        {conversation.contact?.phone}
-                      </span>
-                    </div>
+                    {(conversation.myUnreadCount || conversation.unreadCount || 0) > 0 && (
+                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                        {conversation.myUnreadCount || conversation.unreadCount}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -449,367 +452,466 @@ export default function InboxPage() {
         </div>
       </div>
 
-      {/* Message Thread */}
-      <div className="flex-1 flex flex-col bg-card">
+      {/* 2. Message Thread Area (Center Pane) */}
+      <div className="flex-1 flex flex-col bg-[#efeae2] relative border-r border-gray-200 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20">
         {!workspace.loading && !bspReady && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-800 px-6 py-3 flex items-center justify-between">
-            <div>
-              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">WhatsApp not connected</p>
-              <p className="text-xs text-amber-700 dark:text-amber-300">Connect your WhatsApp account to send messages.</p>
+          <div className="absolute top-0 left-0 right-0 z-50 bg-yellow-100 border-b border-yellow-200 px-4 py-2 flex items-center justify-between shadow-sm">
+            <div className="flex items-center gap-2 text-yellow-800">
+              <FaInfoCircle />
+              <p className="text-sm font-medium">WhatsApp not connected. Connect account to send messages.</p>
             </div>
             <button
               onClick={() => (window.location.href = '/onboarding/esb')}
-              className="bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold px-3 py-1.5 rounded transition-colors"
             >
-              Connect Now
+              Connect App
             </button>
           </div>
         )}
+
         {selectedContact ? (
           <>
-            {/* Chat Header */}
-            <div className="p-6 border-b border-border bg-card shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center shadow-lg">
-                    <FaUser className="text-white text-lg" />
-                  </div>
-                  <div>
-                    <h2 className="font-bold text-lg text-foreground">
-                      {selectedContact.name || selectedContact.phone}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">{selectedContact.phone}</p>
-                  </div>
+            {/* Chat Thread Header */}
+            <div className={`px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between shadow-sm z-10 ${!bspReady ? 'mt-10' : ''}`}>
+              <div className="flex items-center gap-4 cursor-pointer">
+                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                  <FaUser className="text-gray-500" />
                 </div>
+                <div>
+                  <h2 className="font-semibold text-gray-900 text-base leading-tight">
+                    {selectedContact.name || selectedContact.phone}
+                  </h2>
+                  <p className="text-xs text-green-600 font-medium">Click for contact info</p>
+                </div>
+              </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2">
-                  <button className="p-3 hover:bg-accent rounded-lg transition-colors">
-                    <FaPhoneAlt className="text-muted-foreground" />
-                  </button>
-                  <button className="p-3 hover:bg-accent rounded-lg transition-colors">
-                    <FaVideo className="text-muted-foreground" />
-                  </button>
-                  <button className="p-3 hover:bg-accent rounded-lg transition-colors">
-                    <FaEllipsisV className="text-muted-foreground" />
-                  </button>
-                </div>
+              <div className="flex items-center gap-1.5 text-gray-500">
+                <button className="p-2 hover:bg-gray-200 rounded-full transition-colors" title="Resolve">
+                  <FaArchive className="text-sm" />
+                </button>
+                <button className="p-2 hover:bg-gray-200 rounded-full transition-colors" title="More options">
+                  <FaEllipsisV className="text-sm" />
+                </button>
               </div>
             </div>
 
-            {/* CRM Section */}
-            {crmLoading ? (
-              <div className="px-4 py-3 bg-muted border-b border-border flex items-center gap-2">
-                <FaSpinner className="animate-spin text-green-500 text-sm" />
-                <span className="text-sm text-muted-foreground">Loading CRM data...</span>
-              </div>
-            ) : activeDeal ? (
-              <div className="px-4 py-4 bg-blue-50 border-b border-blue-200">
-                <div className="text-sm">
-                  <h3 className="font-semibold text-foreground mb-2">Sales Pipeline</h3>
-
-                  {/* Pipeline & Stage */}
-                  <div className="mb-3">
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Pipeline</label>
-                    <p className="text-sm font-medium text-foreground">{activeDeal.pipelineName || 'Unknown'}</p>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="text-xs font-medium text-muted-foreground block mb-1">Stage</label>
-                    <select
-                      value={activeDeal.stage || ''}
-                      onChange={(e) => handleMoveStage(e.target.value)}
-                      disabled={updatingStage}
-                      className="w-full px-2 py-1 border border-border rounded text-sm bg-white"
-                    >
-                      <option value="">Select stage...</option>
-                      {activeDeal.pipelineStages && activeDeal.pipelineStages.map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Deal Value & Agent */}
-                  {activeDeal.value && (
-                    <div className="mb-2 text-sm">
-                      <span className="text-muted-foreground">Deal Value: </span>
-                      <span className="font-semibold">${activeDeal.value}</span>
-                    </div>
-                  )}
-
-                  {activeDeal.assignedAgent && (
-                    <div className="text-sm text-muted-foreground mb-3">
-                      <span>Agent: {activeDeal.assignedAgent}</span>
-                    </div>
-                  )}
-
-                  {/* Quick Note Add */}
-                  <form onSubmit={handleAddNote} className="mt-3">
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder="Add a note..."
-                        value={newNote}
-                        onChange={(e) => setNewNote(e.target.value)}
-                        disabled={addingNote}
-                        className="flex-1 px-2 py-1 text-sm border border-border rounded"
-                      />
-                      <button
-                        type="submit"
-                        disabled={addingNote || !newNote.trim()}
-                        className="px-2 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 disabled:opacity-50"
-                      >
-                        <FaPlus />
-                      </button>
-                    </div>
-                  </form>
-
-                  {/* Notes List */}
-                  {activeDeal.notes && activeDeal.notes.length > 0 && (
-                    <div className="mt-3 max-h-32 overflow-y-auto">
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Notes:</p>
-                      {activeDeal.notes.map((note, idx) => (
-                        <div key={idx} className="text-xs bg-white p-2 rounded mb-1 border border-border">
-                          <p className="text-foreground">{note.text}</p>
-                          <p className="text-muted-foreground text-xs mt-1">
-                            {new Date(note.createdAt).toLocaleString()}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : null}
-
-            {/* Messages */}
+            {/* Chat Messages */}
             <div
-              className="flex-1 overflow-y-auto p-6 space-y-4"
+              className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 relative"
               style={{
-                backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%2313c18d\' fill-opacity=\'0.05\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
-                backgroundColor: '#f8faf9'
+                backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
+                backgroundRepeat: 'repeat',
+                backgroundSize: '400px',
+                backgroundBlendMode: 'overlay',
+                backgroundColor: '#efeae2'
               }}
             >
-              {messages.map((message) => (
-                <div
-                  key={message._id}
-                  className={`flex ${message.direction === 'outbound' ? 'justify-end' : 'justify-start'} w-full mb-3`}
-                >
-                  <div
-                    className={`max-w-[85%] sm:max-w-[70%] lg:max-w-md overflow-hidden rounded-2xl shadow-premium border transition-all duration-200 ${message.direction === 'outbound'
-                        ? message.type === 'template'
-                          ? 'bg-blue-50/10 dark:bg-blue-900/10 border-blue-200/50 dark:border-blue-800/50'
-                          : 'bg-white dark:bg-muted border-border/50'
-                        : 'bg-white dark:bg-muted text-foreground border-border/50'
-                      }`}
-                  >
-                    {/* Media Header */}
-                    {message.template?.header?.format === 'IMAGE' && message.template.header.mediaUrl && (
-                      <div className="relative aspect-[1.91/1] w-full bg-muted overflow-hidden border-b border-border/50">
-                        <img
-                          src={message.template.header.mediaUrl}
-                          alt="Template Header"
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                          onError={(e) => { e.target.style.display = 'none'; }}
-                        />
-                      </div>
-                    )}
-                    {message.template?.header?.format === 'VIDEO' && message.template.header.mediaUrl && (
-                      <div className="relative aspect-video w-full bg-slate-900 flex items-center justify-center group cursor-pointer border-b border-border/50">
-                        <video
-                          src={message.template.header.mediaUrl}
-                          className="w-full h-full object-contain"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
-                          <FaPlayCircle className="text-white text-5xl opacity-80 group-hover:opacity-100 transition-opacity" />
+              {messages.map((message) => {
+                const isOutbound = message.direction === 'outbound';
+                const isTemplate = message.type === 'template';
+
+                return (
+                  <div key={message._id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} w-full`}>
+                    <div
+                      className={`relative max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] rounded-lg shadow-sm ${isOutbound
+                        ? 'bg-[#dcf8c6] rounded-tr-none'
+                        : 'bg-white rounded-tl-none'
+                        }`}
+                    >
+                      {/* Triangle tail */}
+                      <span className={`absolute top-0 w-4 h-4 
+                        ${isOutbound ? '-right-3 text-[#dcf8c6]' : '-left-3 text-white'}`}
+                      >
+                        <svg viewBox="0 0 8 13" width="8" height="13" fill="currentColor">
+                          {isOutbound
+                            ? <path d="M5.188 1H0v11.156L7.969 4.343z" />
+                            : <path d="M1.533 3.568L8 12.193V1H2.812z" />
+                          }
+                        </svg>
+                      </span>
+
+                      {/* Header Media */}
+                      {message.template?.header?.format === 'IMAGE' && message.template.header.mediaUrl && (
+                        <div className="p-1 pb-0">
+                          <div className="relative w-full overflow-hidden rounded-md bg-black/5">
+                            <img
+                              src={message.template.header.mediaUrl}
+                              alt="Image"
+                              className="w-full h-auto max-h-[250px] object-cover"
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Meta Label for Outbound Templates */}
-                    {message.type === 'template' && message.direction === 'outbound' && (
-                      <div className="px-4 pt-3 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-[0.1em]">
-                          Template <FaCheckCircle className="text-[9px]" />
+                      {message.template?.header?.format === 'VIDEO' && message.template.header.mediaUrl && (
+                        <div className="p-1 pb-0">
+                          <div className="relative w-full aspect-video bg-black rounded-md flex items-center justify-center overflow-hidden group border border-black/10">
+                            <video src={message.template.header.mediaUrl} className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
+                              <FaPlayCircle className="text-white text-4xl opacity-90" />
+                            </div>
+                          </div>
                         </div>
-                        <span className="text-[10px] py-0.5 px-2 bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-full font-bold">
-                          Official
-                        </span>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Message Body Content */}
-                    <div className="px-4 py-3">
-                      <p className="break-words leading-relaxed text-[15px] whitespace-pre-wrap text-foreground font-medium">
-                        {message.body}
-                      </p>
-
-                      <div className="flex items-center gap-2 justify-end mt-1.5">
-                        <span className="text-[10px] text-muted-foreground font-medium opacity-80">
-                          {new Date(message.createdAt).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true
-                          })}
-                        </span>
-                        {message.direction === 'outbound' && (
-                          <div className="flex items-center scale-75 opacity-90">
-                            {getStatusIcon(message.status)}
+                      <div className="p-2 pt-1.5 px-2.5 pb-2">
+                        {isTemplate && isOutbound && (
+                          <div className="mb-1 flex items-center justify-between gap-2 border-b border-black/10 pb-1">
+                            <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1">
+                              <FaInfoCircle /> Template
+                            </span>
                           </div>
                         )}
-                      </div>
-                    </div>
 
-                    {/* Template Buttons (Grid Layout) */}
-                    {message.template?.buttons?.length > 0 && (
-                      <div className="border-t border-border/60 bg-muted/20 flex flex-col">
-                        {message.template.buttons.map((btn, idx) => (
-                          <button
-                            key={idx}
-                            className="w-full py-2.5 px-4 text-[13px] font-bold text-blue-600 dark:text-blue-400 hover:bg-muted/50 flex items-center justify-center gap-2 border-b last:border-b-0 border-border/40 transition-all active:bg-muted"
-                            onClick={() => {
-                              if (btn.type === 'URL' && btn.url) window.open(btn.url, '_blank');
-                              if (btn.type === 'PHONE_NUMBER' && btn.phoneNumber) window.location.href = `tel:${btn.phoneNumber}`;
-                            }}
-                          >
-                            {btn.type === 'URL' && <FaExternalLinkAlt className="text-[10px] opacity-70" />}
-                            {btn.type === 'PHONE_NUMBER' && <FaPhoneAlt className="text-[10px] opacity-70" />}
-                            {btn.text}
-                          </button>
-                        ))}
+                        <div className="text-[14.5px] leading-[1.35] text-[#111b21] whitespace-pre-wrap font-normal drop-words">
+                          {message.body}
+                        </div>
+
+                        {/* Timestamp & Status */}
+                        <div className={`flex items-center justify-end gap-1 mt-1 -mb-1 float-right clear-both 
+                          ${(message.body || '').length < 30 ? 'ml-4' : 'w-full'}`}
+                        >
+                          <span className="text-[10.5px] text-gray-500 opacity-90 relative top-[1px]">
+                            {new Date(message.createdAt).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </span>
+                          {isOutbound && (
+                            <div className="ml-1 -mr-1">
+                              {getStatusIcon(message.status)}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    )}
+
+                      {/* Action Buttons */}
+                      {message.template?.buttons?.length > 0 && (
+                        <div className="flex flex-col border-t border-black/5">
+                          {message.template.buttons.map((btn, idx) => (
+                            <button
+                              key={idx}
+                              className="w-full py-2.5 px-3 text-[13.5px] font-medium text-[#00a884] flex justify-center items-center gap-2 border-b border-black/5 last:border-b-0 hover:bg-black/5 active:bg-black/10 transition-colors"
+                              onClick={() => {
+                                if (btn.type === 'URL' && btn.url) window.open(btn.url, '_blank');
+                                if (btn.type === 'PHONE_NUMBER' && btn.phoneNumber) window.location.href = `tel:${btn.phoneNumber}`;
+                              }}
+                            >
+                              {btn.type === 'URL' && <FaExternalLinkAlt className="text-[11px]" />}
+                              {btn.type === 'PHONE_NUMBER' && <FaPhoneAlt className="text-[11px]" />}
+                              {btn.text}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
+                );
+              })}
+              <div ref={messagesEndRef} className="h-2" />
             </div>
 
-            {/* Message Input */}
-            <form onSubmit={handleSendMessage} className="p-6 border-t border-border bg-card">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  className="p-3 hover:bg-accent rounded-lg transition-colors"
-                >
-                  <FaSmile className="text-muted-foreground text-xl" />
-                </button>
-                <button
-                  type="button"
-                  className="p-3 hover:bg-accent rounded-lg transition-colors"
-                >
-                  <FaPaperclip className="text-muted-foreground text-xl" />
-                </button>
-                <input
-                  type="text"
+            {/* Compose Input Box */}
+            <div className="bg-[#f0f2f5] px-4 py-3 flex items-end gap-3 justify-center">
+              <button type="button" className="p-2.5 text-gray-500 hover:text-gray-700 transition-colors">
+                <FaSmile className="text-xl" />
+              </button>
+              <button type="button" className="p-2.5 text-gray-500 hover:text-gray-700 transition-colors">
+                <FaPaperclip className="text-xl" />
+              </button>
+
+              <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 focus-within:border-gray-300 transition-colors">
+                <textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (newMessage.trim()) handleSendMessage(e);
+                    }
+                  }}
                   placeholder="Type a message..."
-                  className="flex-1 px-5 py-3 bg-muted border-0 rounded-xl focus:ring-2 focus:ring-ring text-foreground placeholder-gray-500"
+                  className="w-full max-h-32 min-h-[44px] bg-transparent border-none py-3 px-4 text-[15px] focus:ring-0 resize-none text-gray-700 placeholder-gray-400 block"
+                  rows={1}
                   disabled={sending}
                 />
-                <button
-                  type="submit"
-                  disabled={!bspReady || sending || !newMessage.trim()}
-                  className="px-6 py-3 bg-gradient-to-r from-primary to-primary/80 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 font-semibold transition-all transform hover:scale-105"
-                >
-                  {sending ? (
-                    <FaSpinner className="animate-spin" />
-                  ) : (
-                    <FaPaperPlane />
-                  )}
-                  Send
-                </button>
               </div>
-            </form>
+
+              <button
+                onClick={handleSendMessage}
+                disabled={!bspReady || sending || !newMessage.trim()}
+                className={`p-3 rounded-full flex-shrink-0 flex items-center justify-center transition-all ${newMessage.trim() && !sending && bspReady
+                  ? 'bg-[#00a884] hover:bg-[#008f6f] text-white shadow-md'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  }`}
+              >
+                {sending ? <FaSpinner className="animate-spin text-lg" /> : <FaPaperPlane className="text-lg translate-x-[-1px] translate-y-[1px]" />}
+              </button>
+            </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-            <div className="w-32 h-32 bg-gradient-to-br from-primary/20 to-primary/80/20 rounded-full flex items-center justify-center mb-6">
-              <FaUser className="text-6xl text-primary" />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#f0f2f5] border-l border-gray-200">
+            <div className="w-[280px] text-center">
+              <div className="mx-auto w-[250px] aspect-square bg-[#e2e8f0] rounded-full flex items-center justify-center mb-8 shadow-inner overflow-hidden relative">
+                <FaUserCircle className="text-[260px] text-gray-300 absolute -bottom-5" />
+              </div>
+              <h3 className="text-[32px] font-light text-[#41525d] mb-4">Interakt Inbox</h3>
+              <p className="text-[14px] text-[#8696a0] leading-relaxed">
+                Send and receive messages without keeping your phone online.<br />
+                Use WhatsApp on up to 4 linked devices and 1 phone at the same time.
+              </p>
             </div>
-            <h3 className="text-2xl font-bold text-foreground mb-2">
-              Welcome to Inbox
-            </h3>
-            <p className="text-lg text-muted-foreground text-center max-w-md">
-              Select a conversation from the left to view messages and start chatting with your customers
-            </p>
           </div>
         )}
       </div>
 
+      {/* 3. Right Sidebar: Context Panel (Smart Card / Details) */}
+      {selectedContact && (
+        <div className="w-[320px] lg:w-[350px] flex-shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-y-auto z-30 hidden md:flex">
+
+          {/* Contact Header Card */}
+          <div className="p-6 flex flex-col items-center justify-center bg-[#f0f2f5] border-b border-gray-200 text-center">
+            <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center mb-4 overflow-hidden border-2 border-white shadow-sm">
+              <FaUserCircle className="text-[100px] text-white" />
+            </div>
+            <h2 className="text-xl font-medium text-gray-900 mb-1">
+              {selectedContact.name || selectedContact.phone}
+            </h2>
+            <p className="text-sm text-gray-500 font-medium tracking-wide">
+              {selectedContact.phone}
+            </p>
+          </div>
+
+          {/* CRM / Deal Pipeline Section */}
+          <div className="p-0 flex-1 bg-white">
+
+            <div className="border-b border-gray-100 last:border-b-0">
+              <button className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group">
+                <span className="flex items-center gap-2"><FaInfoCircle className="text-gray-400 group-hover:text-green-500" /> Personal Details</span>
+                <FaChevronDown className="text-xs text-gray-400" />
+              </button>
+              <div className="px-5 pb-4 text-sm text-gray-600 bg-white">
+                <div className="grid grid-cols-[100px_1fr] gap-y-2">
+                  <span className="text-gray-400">Name</span>
+                  <span className="font-medium text-gray-800">{selectedContact.name || '-'}</span>
+                  <span className="text-gray-400">Phone</span>
+                  <span className="font-medium text-gray-800">{selectedContact.phone}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-b border-gray-100">
+              <button className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group">
+                <span className="flex items-center gap-2"><FaTags className="text-gray-400 group-hover:text-green-500" /> Tags</span>
+                <FaChevronDown className="text-xs text-gray-400" />
+              </button>
+              <div className="px-5 pb-4">
+                <div className="flex flex-wrap gap-2">
+                  {/* Placeholder tags */}
+                  <span className="px-2 py-1 bg-gray-100 text-gray-600 text-[11px] font-bold uppercase rounded-md border border-gray-200">Customer</span>
+                  <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[11px] font-bold uppercase rounded-md border border-blue-100">WhatsApped</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sales Pipeline Data */}
+            <div className="border-b border-gray-100">
+              <button className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group">
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-gray-400 group-hover:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm12-3c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zM3 19V6l12-3v13M3 19c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" />
+                  </svg>
+                  Sales Pipeline
+                </span>
+                <FaChevronDown className="text-xs text-gray-400" />
+              </button>
+              <div className="px-5 pb-4 bg-white">
+                {crmLoading ? (
+                  <div className="flex items-center justify-center p-4">
+                    <FaSpinner className="animate-spin text-green-500 text-lg" />
+                  </div>
+                ) : activeDeal ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Pipeline</label>
+                      <p className="text-sm font-medium text-gray-900 bg-gray-50 px-3 py-2 border border-gray-200 rounded-md">
+                        {activeDeal.pipelineName || 'Default Pipeline'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Stage</label>
+                      <select
+                        value={activeDeal.stage || ''}
+                        onChange={(e) => handleMoveStage(e.target.value)}
+                        disabled={updatingStage}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 focus:bg-white focus:border-green-500 outline-none transition-colors"
+                      >
+                        <option value="">Select stage...</option>
+                        {activeDeal.pipelineStages && activeDeal.pipelineStages.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {activeDeal.value && (
+                      <div className="flex justify-between items-center py-2 border-t border-gray-100">
+                        <span className="text-sm text-gray-500">Value</span>
+                        <span className="text-sm font-bold text-gray-900">${activeDeal.value}</span>
+                      </div>
+                    )}
+
+                    {/* Notes Section within CRM */}
+                    <div className="pt-2 border-t border-gray-100">
+                      <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Internal Notes</label>
+
+                      <form onSubmit={handleAddNote} className="mb-3">
+                        <div className="flex items-center border border-gray-200 rounded-md bg-gray-50 focus-within:bg-white focus-within:border-green-400 overflow-hidden pr-1">
+                          <input
+                            type="text"
+                            placeholder="Add a note..."
+                            value={newNote}
+                            onChange={(e) => setNewNote(e.target.value)}
+                            disabled={addingNote}
+                            className="flex-1 px-3 py-2 text-sm bg-transparent border-none focus:ring-0 outline-none placeholder-gray-400"
+                          />
+                          <button
+                            type="submit"
+                            disabled={addingNote || !newNote.trim()}
+                            className="p-1.5 bg-green-100 text-green-600 rounded flex items-center justify-center hover:bg-green-200 disabled:opacity-50 transition-colors"
+                          >
+                            {addingNote ? <FaSpinner className="animate-spin" /> : <FaPlus className="text-xs" />}
+                          </button>
+                        </div>
+                      </form>
+
+                      {activeDeal.notes && activeDeal.notes.length > 0 && (
+                        <div className="space-y-2 mt-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
+                          {activeDeal.notes.map((note, idx) => (
+                            <div key={idx} className="bg-yellow-50 px-3 py-2 rounded-md border border-yellow-100/50">
+                              <p className="text-[13px] text-gray-800 leading-snug">{note.text}</p>
+                              <p className="text-[10px] text-gray-400 mt-1">
+                                {new Date(note.createdAt).toLocaleString(undefined, {
+                                  month: 'short', day: 'numeric',
+                                  hour: '2-digit', minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 bg-gray-50 border border-gray-100 rounded-lg border-dashed">
+                    <p className="text-sm text-gray-500 px-4">No active pipeline deal found for this contact.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Start Conversation Modal */}
       {startModalOpen && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-xl">
-            <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-foreground">Start Conversation</h3>
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+              <h3 className="text-lg font-bold text-gray-900">Start New Conversation</h3>
               <button
                 onClick={() => setStartModalOpen(false)}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-200 rounded-full transition-colors"
               >
                 <FaTimes />
               </button>
             </div>
 
-            <div className="p-4 space-y-4">
+            <div className="p-6 space-y-5 overflow-y-auto">
               <div>
-                <label className="text-sm font-medium text-foreground block mb-2">Select Contact</label>
-                <input
-                  type="text"
-                  value={contactSearch}
-                  onChange={(e) => handleSearchStartContacts(e.target.value)}
-                  placeholder="Search contact by name or phone"
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
-                />
-                <div className="mt-2 max-h-44 overflow-y-auto border border-border rounded-lg">
+                <label className="text-sm font-semibold text-gray-700 block mb-2">Select Contact</label>
+                <div className="relative">
+                  <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                  <input
+                    type="text"
+                    value={contactSearch}
+                    onChange={(e) => handleSearchStartContacts(e.target.value)}
+                    placeholder="Search by name or phone"
+                    className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm transition-all"
+                  />
+                </div>
+
+                <div className="mt-3 max-h-48 overflow-y-auto border border-gray-100 rounded-lg shadow-inner bg-gray-50">
                   {contactOptions.length > 0 ? (
                     contactOptions.map((contact) => (
                       <button
                         key={contact._id}
                         type="button"
                         onClick={() => setSelectedStartContact(contact)}
-                        className={`w-full text-left px-3 py-2 border-b last:border-b-0 border-border hover:bg-accent ${selectedStartContact?._id === contact._id ? 'bg-primary/10' : ''}`}
+                        className={`w-full text-left px-4 py-3 border-b last:border-b-0 border-gray-100 transition-colors flex justify-between items-center ${selectedStartContact?._id === contact._id
+                          ? 'bg-green-50 border-green-100'
+                          : 'hover:bg-white bg-white'
+                          }`}
                       >
-                        <p className="text-sm font-medium text-foreground">{contact.name || contact.phone}</p>
-                        <p className="text-xs text-muted-foreground">{contact.phone}</p>
+                        <div>
+                          <p className={`font-semibold text-sm ${selectedStartContact?._id === contact._id ? 'text-green-800' : 'text-gray-800'}`}>
+                            {contact.name || contact.phone}
+                          </p>
+                          {contact.name && (
+                            <p className="text-xs text-gray-500 mt-0.5">{contact.phone}</p>
+                          )}
+                        </div>
+                        {selectedStartContact?._id === contact._id && (
+                          <FaCheckCircle className="text-green-500" />
+                        )}
                       </button>
                     ))
                   ) : (
-                    <div className="p-4 text-center text-sm text-muted-foreground">
-                      No contacts found. Please add a contact first in the Sales CRM tab, or verify your search.
+                    <div className="p-6 text-center text-sm text-gray-500 bg-white">
+                      No contacts found. Please add a contact in the Sales CRM tab first.
                     </div>
                   )}
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-foreground block mb-2">First Message</label>
+                <label className="text-sm font-semibold text-gray-700 block mb-2">First Message</label>
                 <textarea
                   value={startMessage}
                   onChange={(e) => setStartMessage(e.target.value)}
-                  rows={3}
-                  placeholder="Type first message..."
-                  className="w-full px-3 py-2 border border-border rounded-lg bg-background text-foreground"
+                  rows={4}
+                  placeholder="Type your message here..."
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm transition-all resize-none"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Note: this sends via outbound queue and the conversation appears in inbox after processing.
-                </p>
+                <div className="flex items-start gap-2 mt-2 px-1">
+                  <FaInfoCircle className="text-blue-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-600/80 leading-snug">
+                    Sending a message to a new contact outside the 24h window will use standard template pricing.
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div className="p-4 border-t border-border flex justify-end gap-2">
+            <div className="p-5 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
               <button
                 onClick={() => setStartModalOpen(false)}
-                className="px-3 py-2 text-sm rounded-lg border border-border text-foreground hover:bg-accent"
+                className="px-4 py-2 text-sm font-semibold rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleStartConversation}
                 disabled={startingConversation || !selectedStartContact || !startMessage.trim()}
-                className="px-4 py-2 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="px-6 py-2 text-sm font-bold rounded-lg bg-[#00a884] text-white hover:bg-[#008f6f] focus:ring-4 focus:ring-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm"
               >
-                {startingConversation ? 'Starting...' : 'Start Conversation'}
+                {startingConversation ? (
+                  <><FaSpinner className="animate-spin" /> Sending...</>
+                ) : (
+                  <><FaPaperPlane /> Send Message</>
+                )}
               </button>
             </div>
           </div>

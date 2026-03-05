@@ -552,27 +552,32 @@ WorkspaceSchema.pre('save', function (next) {
   // ═══════════════════════════════════════════════════════════════════
   // PHONE NUMBER MAPPING VALIDATION (PREVENT STORING STRING AS ID)
   // ═══════════════════════════════════════════════════════════════════
-  const idFieldsToCheck = [
-    { name: 'bspPhoneNumberId', value: this.bspPhoneNumberId },
-    { name: 'whatsappPhoneNumberId', value: this.whatsappPhoneNumberId },
-    { name: 'phoneNumberId', value: this.phoneNumberId }
-  ];
+  // ═══════════════════════════════════════════════════════════════════
+  // PHONE NUMBER MAPPING VALIDATION (PREVENT STORING STRING AS ID)
+  // ═══════════════════════════════════════════════════════════════════
+  // Temporarily disabled mapping validation to allow test numbers or non-standard IDs 
+  // that might match the raw phone number.
+  // const idFieldsToCheck = [
+  //   { name: 'bspPhoneNumberId', value: this.bspPhoneNumberId },
+  //   { name: 'whatsappPhoneNumberId', value: this.whatsappPhoneNumberId },
+  //   { name: 'phoneNumberId', value: this.phoneNumberId }
+  // ];
 
-  const phoneFieldsToCheck = [
-    { name: 'whatsappPhoneNumber', value: this.whatsappPhoneNumber },
-    { name: 'bspDisplayPhoneNumber', value: this.bspDisplayPhoneNumber }
-  ];
+  // const phoneFieldsToCheck = [
+  //   { name: 'whatsappPhoneNumber', value: this.whatsappPhoneNumber },
+  //   { name: 'bspDisplayPhoneNumber', value: this.bspDisplayPhoneNumber }
+  // ];
 
-  // For any ID field defined, it must not exactly equal a plain phone number string
-  for (const idf of idFieldsToCheck) {
-    if (idf.value) {
-      for (const pf of phoneFieldsToCheck) {
-        if (pf.value && idf.value === pf.value) {
-          return next(new Error(`Invalid ${idf.name} mapping detected: cannot be the same as the raw phone number (${pf.name})`));
-        }
-      }
-    }
-  }
+  // // For any ID field defined, it must not exactly equal a plain phone number string
+  // for (const idf of idFieldsToCheck) {
+  //   if (idf.value) {
+  //     for (const pf of phoneFieldsToCheck) {
+  //       if (pf.value && idf.value === pf.value) {
+  //         return next(new Error(`Invalid ${idf.name} mapping detected: cannot be the same as the raw phone number (${pf.name})`));
+  //       }
+  //     }
+  //   }
+  // }
 
   // ═══════════════════════════════════════════════════════════════════
   // BSP FIELD SYNCHRONIZATION

@@ -149,7 +149,7 @@ const TemplateSchema = new mongoose.Schema({
   // ─────────────────────────────────────────────────────────────────────────────
   // STRUCTURED COMPONENTS (Interakt-style)
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   /**
    * Header component (optional)
    * Can be TEXT, IMAGE, VIDEO, or DOCUMENT
@@ -164,6 +164,7 @@ const TemplateSchema = new mongoose.Schema({
     text: { type: String, maxlength: 60 },
     mediaUrl: { type: String },
     mediaHandle: { type: String }, // Meta asset handle
+    mediaThumbnail: { type: String }, // Base64 data URI thumbnail for preview
     variables: [String],
     example: { type: String }
   },
@@ -222,12 +223,12 @@ const TemplateSchema = new mongoose.Schema({
   // ─────────────────────────────────────────────────────────────────────────────
   // META/BSP IDENTIFIERS
   // ─────────────────────────────────────────────────────────────────────────────
-  
+
   /**
    * Meta template ID (returned after creation)
    */
   metaTemplateId: { type: String },
-  
+
   /**
    * Legacy field for backward compatibility
    */
@@ -342,7 +343,7 @@ const TemplateSchema = new mongoose.Schema({
     type: Number,
     default: 1
   },
-  
+
   /**
    * Last edit metadata
    */
@@ -363,7 +364,7 @@ const TemplateSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Template'
   },
-  
+
   /**
    * Whether this template is the currently active approved version
    * Used when multiple versions exist (original + forks)
@@ -400,7 +401,7 @@ const TemplateSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  
+
   /**
    * Last time template was used for sending
    */
@@ -414,7 +415,7 @@ const TemplateSchema = new mongoose.Schema({
    * Used for idempotency and race condition prevention
    */
   lastWebhookUpdate: { type: Date },
-  
+
   /**
    * Event ID from last webhook for deduplication
    */
@@ -428,7 +429,7 @@ const TemplateSchema = new mongoose.Schema({
     enum: ['META', 'LOCAL', 'BSP'],
     default: 'LOCAL'
   },
-  
+
   duplicatedFrom: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Template'
@@ -460,33 +461,33 @@ TemplateSchema.index({ createdAt: -1 });
 // PRE-SAVE HOOKS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-TemplateSchema.pre('save', function(next) {
+TemplateSchema.pre('save', function (next) {
   this.updatedAt = new Date();
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // VERSION INCREMENT (Stage 2 Enhancement)
   // Increment version on content changes for DRAFT/REJECTED templates
   // ─────────────────────────────────────────────────────────────────────────────
-  if (this.isModified('body.text') || this.isModified('header') || 
-      this.isModified('footer') || this.isModified('buttons')) {
+  if (this.isModified('body.text') || this.isModified('header') ||
+    this.isModified('footer') || this.isModified('buttons')) {
     if (this.status === 'DRAFT' || this.status === 'REJECTED') {
       this.version = (this.version || 0) + 1;
       this.lastEditedAt = new Date();
     }
   }
-  
+
   // Extract variables from body
   if (this.body?.text) {
     const bodyVars = this.body.text.match(/\{\{(\d+)\}\}/g) || [];
     this.body.variables = bodyVars.map(v => v.replace(/[{}]/g, ''));
   }
-  
+
   // Extract variables from header if TEXT
   if (this.header?.enabled && this.header?.format === 'TEXT' && this.header?.text) {
     const headerVars = this.header.text.match(/\{\{(\d+)\}\}/g) || [];
     this.header.variables = headerVars.map(v => v.replace(/[{}]/g, ''));
   }
-  
+
   // Combine all variables
   const allVars = new Set([
     ...(this.body?.variables || []),
@@ -494,22 +495,22 @@ TemplateSchema.pre('save', function(next) {
   ]);
   this.variables = Array.from(allVars).sort((a, b) => parseInt(a) - parseInt(b));
   this.variableCount = this.variables.length;
-  
+
   // Update preview fields
   this.headerText = this.header?.enabled ? this.header.text : null;
   this.bodyText = this.body?.text;
   this.footerText = this.footer?.enabled ? this.footer.text : null;
-  this.buttonLabels = this.buttons?.enabled 
-    ? this.buttons.items.map(b => b.text) 
+  this.buttonLabels = this.buttons?.enabled
+    ? this.buttons.items.map(b => b.text)
     : [];
-  
+
   // Build full preview
   let preview = '';
   if (this.headerText) preview += `[Header] ${this.headerText}\n`;
   preview += this.bodyText || '';
   if (this.footerText) preview += `\n[Footer] ${this.footerText}`;
   this.preview = preview;
-  
+
   // Sync providerId with metaTemplateId for backward compatibility
   if (this.metaTemplateId && !this.providerId) {
     this.providerId = this.metaTemplateId;
@@ -517,7 +518,7 @@ TemplateSchema.pre('save', function(next) {
   if (this.providerId && !this.metaTemplateId) {
     this.metaTemplateId = this.providerId;
   }
-  
+
   next();
 });
 
@@ -528,7 +529,7 @@ TemplateSchema.pre('save', function(next) {
 /**
  * Get valid Meta category
  */
-TemplateSchema.statics.getValidMetaCategory = function(category) {
+TemplateSchema.statics.getValidMetaCategory = function (category) {
   if (VALID_META_CATEGORIES.includes(category)) {
     return category;
   }
@@ -538,31 +539,31 @@ TemplateSchema.statics.getValidMetaCategory = function(category) {
 /**
  * Get supported languages
  */
-TemplateSchema.statics.getSupportedLanguages = function() {
+TemplateSchema.statics.getSupportedLanguages = function () {
   return SUPPORTED_LANGUAGES;
 };
 
 /**
  * Find template by Meta template name (for webhook routing)
  */
-TemplateSchema.statics.findByMetaTemplateName = async function(metaTemplateName) {
+TemplateSchema.statics.findByMetaTemplateName = async function (metaTemplateName) {
   return this.findOne({ metaTemplateName });
 };
 
 /**
  * Find templates by workspace with status filter
  */
-TemplateSchema.statics.findByWorkspace = async function(workspaceId, options = {}) {
+TemplateSchema.statics.findByWorkspace = async function (workspaceId, options = {}) {
   const query = { workspace: workspaceId };
-  
+
   if (options.status) {
     query.status = options.status;
   }
-  
+
   if (options.category) {
     query.category = options.category;
   }
-  
+
   if (options.search) {
     query.$or = [
       { name: { $regex: options.search, $options: 'i' } },
@@ -570,7 +571,7 @@ TemplateSchema.statics.findByWorkspace = async function(workspaceId, options = {
       { bodyText: { $regex: options.search, $options: 'i' } }
     ];
   }
-  
+
   return this.find(query)
     .sort({ createdAt: -1 })
     .populate('createdBy', 'name email');
@@ -587,20 +588,20 @@ TemplateSchema.statics.findByWorkspace = async function(workspaceId, options = {
  * @param {Object} options - Filter options { category, search }
  * @returns {Promise<Array>} Array of approved templates
  */
-TemplateSchema.statics.getApprovedTemplates = async function(workspaceId, options = {}) {
+TemplateSchema.statics.getApprovedTemplates = async function (workspaceId, options = {}) {
   const query = {
     workspace: workspaceId,
     status: 'APPROVED'
   };
-  
+
   if (options.category) {
     query.category = options.category;
   }
-  
+
   if (options.language) {
     query.language = options.language;
   }
-  
+
   if (options.search) {
     query.$or = [
       { name: { $regex: options.search, $options: 'i' } },
@@ -608,7 +609,7 @@ TemplateSchema.statics.getApprovedTemplates = async function(workspaceId, option
       { bodyText: { $regex: options.search, $options: 'i' } }
     ];
   }
-  
+
   return this.find(query)
     .select('name displayName language category variableCount preview metaTemplateName qualityScore')
     .sort({ approvedAt: -1 })
@@ -622,13 +623,13 @@ TemplateSchema.statics.getApprovedTemplates = async function(workspaceId, option
  * @param {ObjectId} workspaceId - The workspace ID (for security)
  * @returns {Promise<Object|null>} Template if approved, null otherwise
  */
-TemplateSchema.statics.getApprovedTemplateById = async function(templateId, workspaceId) {
+TemplateSchema.statics.getApprovedTemplateById = async function (templateId, workspaceId) {
   const template = await this.findOne({
     _id: templateId,
     workspace: workspaceId,
     status: 'APPROVED'
   });
-  
+
   return template;
 };
 
@@ -640,19 +641,19 @@ TemplateSchema.statics.getApprovedTemplateById = async function(templateId, work
  * @returns {Promise<Object>} Approved template document
  * @throws {Error} If template not found, not owned by workspace, or not approved
  */
-TemplateSchema.statics.requireApprovedTemplate = async function(templateId, workspaceId) {
+TemplateSchema.statics.requireApprovedTemplate = async function (templateId, workspaceId) {
   const template = await this.findOne({
     _id: templateId,
     workspace: workspaceId
   });
-  
+
   if (!template) {
     const error = new Error('TEMPLATE_NOT_FOUND: Template does not exist or is not accessible');
     error.code = 'TEMPLATE_NOT_FOUND';
     error.statusCode = 404;
     throw error;
   }
-  
+
   if (template.status !== 'APPROVED') {
     const statusMessages = {
       'DRAFT': 'Template has not been submitted for approval. Submit it first.',
@@ -663,7 +664,7 @@ TemplateSchema.statics.requireApprovedTemplate = async function(templateId, work
       'DELETED': 'Template has been deleted.',
       'LIMIT_EXCEEDED': 'Template quality limit exceeded.'
     };
-    
+
     const error = new Error(`TEMPLATE_NOT_APPROVED: ${statusMessages[template.status] || 'Template is not approved for sending.'}`);
     error.code = 'TEMPLATE_NOT_APPROVED';
     error.statusCode = 400;
@@ -671,7 +672,7 @@ TemplateSchema.statics.requireApprovedTemplate = async function(templateId, work
     error.templateName = template.name;
     throw error;
   }
-  
+
   return template;
 };
 
@@ -681,12 +682,12 @@ TemplateSchema.statics.requireApprovedTemplate = async function(templateId, work
  * @param {ObjectId} workspaceId - The workspace ID
  * @returns {Promise<Object>} Counts by status
  */
-TemplateSchema.statics.getStatusCounts = async function(workspaceId) {
+TemplateSchema.statics.getStatusCounts = async function (workspaceId) {
   const counts = await this.aggregate([
     { $match: { workspace: workspaceId } },
     { $group: { _id: '$status', count: { $sum: 1 } } }
   ]);
-  
+
   return counts.reduce((acc, { _id, count }) => {
     acc[_id] = count;
     return acc;
@@ -713,19 +714,19 @@ TemplateSchema.statics.getStatusCounts = async function(workspaceId) {
  * @returns {Promise<Object>} New template in DRAFT status
  * @throws {Error} If template is not approved or not found
  */
-TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId, options = {}) {
+TemplateSchema.statics.cloneApprovedTemplate = async function (templateId, userId, options = {}) {
   const Template = this;
   const { alwaysNew = false } = options;
-  
+
   const originalTemplate = await Template.findById(templateId);
-  
+
   if (!originalTemplate) {
     const error = new Error('TEMPLATE_NOT_FOUND: Template does not exist');
     error.code = 'TEMPLATE_NOT_FOUND';
     error.statusCode = 404;
     throw error;
   }
-  
+
   if (originalTemplate.status !== 'APPROVED') {
     const error = new Error('TEMPLATE_NOT_APPROVED: Only approved templates can be forked for editing');
     error.code = 'TEMPLATE_NOT_APPROVED';
@@ -733,7 +734,7 @@ TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId
     error.templateStatus = originalTemplate.status;
     throw error;
   }
-  
+
   // Generate new name with version suffix
   const newVersion = (originalTemplate.version || 1) + 1;
   const baseName = originalTemplate.name.replace(/_v\d+$/, ''); // Remove existing version suffix
@@ -744,27 +745,27 @@ TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId
     const uniqueName = `${newName}_${timestamp}`;
     return createClone(originalTemplate, uniqueName, newVersion, userId);
   }
-  
+
   // Check if name already exists
   const existingClone = await Template.findOne({
     workspace: originalTemplate.workspace,
     name: newName
   });
-  
+
   if (existingClone) {
     // Return existing draft if available
     if (existingClone.status === 'DRAFT') {
       return { template: existingClone, wasExisting: true };
     }
-    
+
     // Otherwise generate unique name
     const timestamp = Date.now().toString().slice(-4);
     const uniqueName = `${baseName}_v${newVersion}_${timestamp}`;
     return createClone(originalTemplate, uniqueName, newVersion, userId);
   }
-  
+
   return createClone(originalTemplate, newName, newVersion, userId);
-  
+
   async function createClone(original, name, version, creatorId) {
     const clonedTemplate = new Template({
       workspace: original.workspace,
@@ -787,9 +788,9 @@ TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId
       lastEditedBy: creatorId,
       source: 'LOCAL'
     });
-    
+
     await clonedTemplate.save();
-    
+
     return { template: clonedTemplate, wasExisting: false };
   }
 };
@@ -799,15 +800,15 @@ TemplateSchema.statics.cloneApprovedTemplate = async function(templateId, userId
  * @param {ObjectId} templateId - Any version of the template
  * @returns {Promise<Array>} All versions sorted by version number
  */
-TemplateSchema.statics.getTemplateVersions = async function(templateId) {
+TemplateSchema.statics.getTemplateVersions = async function (templateId) {
   const Template = this;
-  
+
   const template = await Template.findById(templateId);
   if (!template) return [];
-  
+
   // Get the original template ID
   const originalId = template.originalTemplateId || template._id;
-  
+
   // Find all versions (original + forks)
   const versions = await Template.find({
     $or: [
@@ -818,7 +819,7 @@ TemplateSchema.statics.getTemplateVersions = async function(templateId) {
     .sort({ version: 1 })
     .select('name displayName version status approvedAt createdAt isActiveVersion')
     .lean();
-  
+
   return versions;
 };
 
@@ -832,7 +833,7 @@ TemplateSchema.statics.getTemplateVersions = async function(templateId) {
  * @param {ObjectId} templateId - Template ID
  * @returns {Promise<Object>} Updated template
  */
-TemplateSchema.statics.incrementUsage = async function(templateId) {
+TemplateSchema.statics.incrementUsage = async function (templateId) {
   return this.findByIdAndUpdate(
     templateId,
     {
@@ -849,7 +850,7 @@ TemplateSchema.statics.incrementUsage = async function(templateId) {
  * @param {ObjectId} templateId - Template ID
  * @returns {Promise<Object>} Updated template
  */
-TemplateSchema.statics.decrementUsage = async function(templateId) {
+TemplateSchema.statics.decrementUsage = async function (templateId) {
   return this.findByIdAndUpdate(
     templateId,
     {
@@ -871,13 +872,13 @@ TemplateSchema.statics.decrementUsage = async function(templateId) {
  * @param {ObjectId} templateId - Template ID
  * @returns {Promise<Object>} { canDelete: boolean, reason?: string, usedInCampaigns?: number }
  */
-TemplateSchema.statics.canDeleteTemplate = async function(templateId) {
+TemplateSchema.statics.canDeleteTemplate = async function (templateId) {
   const template = await this.findById(templateId);
-  
+
   if (!template) {
     return { canDelete: false, reason: 'Template not found' };
   }
-  
+
   if (template.usedInCampaigns > 0) {
     return {
       canDelete: false,
@@ -885,7 +886,7 @@ TemplateSchema.statics.canDeleteTemplate = async function(templateId) {
       usedInCampaigns: template.usedInCampaigns
     };
   }
-  
+
   return { canDelete: true };
 };
 
@@ -896,28 +897,28 @@ TemplateSchema.statics.canDeleteTemplate = async function(templateId) {
 /**
  * Check if template can be edited
  */
-TemplateSchema.methods.canEdit = function() {
+TemplateSchema.methods.canEdit = function () {
   return this.status === 'DRAFT' || this.status === 'REJECTED';
 };
 
 /**
  * Check if template can be submitted
  */
-TemplateSchema.methods.canSubmit = function() {
+TemplateSchema.methods.canSubmit = function () {
   return this.status === 'DRAFT' || this.status === 'REJECTED';
 };
 
 /**
  * Check if template can be used for messaging
  */
-TemplateSchema.methods.canSend = function() {
+TemplateSchema.methods.canSend = function () {
   return this.status === 'APPROVED';
 };
 
 /**
  * Add status update to history
  */
-TemplateSchema.methods.addStatusUpdate = function(status, reason = null, metaEventId = null, rawEvent = null) {
+TemplateSchema.methods.addStatusUpdate = function (status, reason = null, metaEventId = null, rawEvent = null) {
   this.approvalHistory.push({
     status,
     reason,
@@ -925,27 +926,27 @@ TemplateSchema.methods.addStatusUpdate = function(status, reason = null, metaEve
     rawEvent,
     timestamp: new Date()
   });
-  
+
   this.status = status;
-  
+
   if (status === 'APPROVED') {
     this.approvedAt = new Date();
     this.rejectionReason = null;
     this.rejectionDetails = null;
   }
-  
+
   if (status === 'REJECTED') {
     this.rejectedAt = new Date();
     this.rejectionReason = reason;
   }
-  
+
   return this;
 };
 
 /**
  * Build Meta API components from structured data
  */
-TemplateSchema.methods.buildMetaComponents = function() {
+TemplateSchema.methods.buildMetaComponents = function () {
   const components = [];
 
   const extractVariableIndexes = (text) => {
@@ -954,14 +955,14 @@ TemplateSchema.methods.buildMetaComponents = function() {
     indexes.sort((a, b) => a - b);
     return indexes;
   };
-  
+
   // Header component
   if (this.header?.enabled && this.header.format !== 'NONE') {
     const headerComponent = {
       type: 'HEADER',
       format: this.header.format
     };
-    
+
     if (this.header.format === 'TEXT') {
       headerComponent.text = this.header.text;
       const headerVariableIndexes = extractVariableIndexes(this.header.text);
@@ -980,10 +981,10 @@ TemplateSchema.methods.buildMetaComponents = function() {
         };
       }
     }
-    
+
     components.push(headerComponent);
   }
-  
+
   // Body component (required)
   const bodyComponent = {
     type: 'BODY',
@@ -1004,9 +1005,9 @@ TemplateSchema.methods.buildMetaComponents = function() {
       body_text: [examples]
     };
   }
-  
+
   components.push(bodyComponent);
-  
+
   // Footer component
   if (this.footer?.enabled && this.footer.text) {
     components.push({
@@ -1014,7 +1015,7 @@ TemplateSchema.methods.buildMetaComponents = function() {
       text: this.footer.text
     });
   }
-  
+
   // Buttons component
   if (this.buttons?.enabled && this.buttons.items?.length > 0) {
     const buttons = this.buttons.items.map(btn => {
@@ -1022,40 +1023,40 @@ TemplateSchema.methods.buildMetaComponents = function() {
         type: btn.type,
         text: btn.text
       };
-      
+
       if (btn.type === 'URL' && btn.url) {
         button.url = btn.url;
         if (btn.urlSuffix) {
           button.example = [btn.example || 'example'];
         }
       }
-      
+
       if (btn.type === 'PHONE_NUMBER' && btn.phoneNumber) {
         button.phone_number = btn.phoneNumber;
       }
-      
+
       if (btn.type === 'COPY_CODE') {
         button.example = btn.example || '123456';
       }
-      
+
       return button;
     });
-    
+
     components.push({
       type: 'BUTTONS',
       buttons
     });
   }
-  
+
   return components;
 };
 
 /**
  * Create a duplicate of this template
  */
-TemplateSchema.methods.duplicate = async function(newName, workspaceId = null) {
+TemplateSchema.methods.duplicate = async function (newName, workspaceId = null) {
   const Template = mongoose.model('Template');
-  
+
   const duplicateData = {
     workspace: workspaceId || this.workspace,
     name: newName,
@@ -1070,7 +1071,7 @@ TemplateSchema.methods.duplicate = async function(newName, workspaceId = null) {
     source: 'LOCAL',
     duplicatedFrom: this._id
   };
-  
+
   return Template.create(duplicateData);
 };
 

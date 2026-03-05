@@ -205,6 +205,7 @@ const billingRoutes = require('./routes/billing/billingRoutes'); // Week 2 addit
 const templateRoutes = require('./routes/template/templateRoutes');
 const conversationRoutes = require('./routes/messaging/conversationRoutes');
 const inboxRoutes = require('./routes/messaging/inboxRoutes'); // Stage 4: Shared Inbox
+const inboxSendRoutes = require('./routes/messaging/inboxSendRoutes'); // WhatsApp Inbox: flat send endpoint
 const internalNotesRoutes = require('./routes/workspace/internalNotesRoutes'); // Stage 4 Hardening: Internal Notes
 const metricsRoutes = require('./routes/analytics/metricsRoutes');
 const onboardingRoutes = require('./routes/workspace/onboardingRoutes');
@@ -240,6 +241,7 @@ app.use('/api/v1/billing', billingRoutes); // Week 2 addition
 app.use('/api/v1/templates', templateRoutes);
 app.use('/api/v1/conversations', conversationRoutes);
 app.use('/api/v1/inbox', inboxRoutes); // Stage 4: Shared Inbox
+app.use('/api/v1/inbox', inboxSendRoutes); // WhatsApp Inbox: flat send POST /api/v1/inbox/messages
 app.use('/api/v1/inbox', internalNotesRoutes); // Stage 4 Hardening: Internal Notes
 app.use('/api/v1/metrics', metricsRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);

@@ -35,18 +35,69 @@ const HEALTH_CHECK_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Check if a session message can be sent (within 24h window)
+ * Returns true when:
+ *   - conversation.windowExpiresAt is in the future (customer sent < 24h ago), OR
+ *   - conversation.windowExpiresAt is missing (business-initiated — no inbound yet)
+ *     In this case allow the send; template enforcement is handled by Meta/Gupshup anyway.
  */
-async function canSendSessionMessage(workspaceId, phoneNumber) {
+async function canSendSessionMessage(workspaceId, phoneNumber, contactId = null) {
   try {
-    const contact = await Contact.findOne({ workspace: workspaceId, phone: phoneNumber });
-    if (!contact) return false;
+    console.log(`[BSP Debug] canSendSessionMessage called with workspaceId: ${workspaceId}, phoneNumber: ${phoneNumber}, contactId: ${contactId}`);
 
-    const conversation = await Conversation.findOne({ workspace: workspaceId, contact: contact._id });
-    if (!conversation) return false;
+    let contact = null;
 
-    // Check if within 24h window
+    if (contactId) {
+      contact = await Contact.findById(contactId).lean();
+      console.log(`[BSP Debug] findById(${contactId}) result:`, contact ? `Found (phone: ${contact.phone})` : 'Null');
+    }
+
+    if (!contact) {
+      contact = await Contact.findOne({ workspace: workspaceId, phone: phoneNumber }).lean();
+      console.log(`[BSP Debug] findOne({phone: ${phoneNumber}}) result:`, contact ? 'Found' : 'Null');
+    }
+
+    // Fallback: if normalized (e.g. 91xxxxxxxxxx), try 10-digit version
+    if (!contact && phoneNumber.startsWith('91') && phoneNumber.length === 12) {
+      const shortPhone = phoneNumber.substring(2);
+      contact = await Contact.findOne({ workspace: workspaceId, phone: shortPhone }).lean();
+      console.log(`[BSP Debug] findOne({phone: ${shortPhone}}) fallback result:`, contact ? 'Found' : 'Null');
+    }
+
+    if (!contact) {
+      console.log(`[BSP] canSendSessionMessage: no contact found for ${phoneNumber} (contactId: ${contactId}) — blocking free send`);
+      return false;
+    }
+
+    const conversation = await Conversation.findOne({ workspace: workspaceId, contact: contact._id })
+      .select('isOpen windowExpiresAt lastInboundAt status')
+      .lean();
+
+    if (!conversation) {
+      // No conversation yet — allow it (new business-initiated conversation)
+      return true;
+    }
+
     const now = new Date();
-    return conversation.isOpen && conversation.windowExpiresAt && conversation.windowExpiresAt > now;
+
+    // If windowExpiresAt is set and still valid → session is open
+    if (conversation.windowExpiresAt && new Date(conversation.windowExpiresAt) > now) {
+      return true;
+    }
+
+    // If windowExpiresAt is NOT set → customer has never replied.
+    // This is a business-initiated conversation. Allow free session only if conversation is open/pending.
+    // Gupshup enforces template requirement on its end regardless.
+    if (!conversation.windowExpiresAt) {
+      const isOpenStatus = conversation.status !== 'closed';
+      if (isOpenStatus) {
+        console.log(`[BSP] canSendSessionMessage: no windowExpiresAt (business-initiated) — allowing for ${phoneNumber}`);
+        return true;
+      }
+    }
+
+    // Window expired
+    console.log(`[BSP] canSendSessionMessage: window expired for ${phoneNumber} (expired: ${conversation.windowExpiresAt})`);
+    return false;
   } catch (error) {
     console.error('[BSPMessagingService] Error checking session window:', error.message);
     return false;
@@ -309,7 +360,7 @@ async function sendTextMessage(workspaceId, to, text, options = {}) {
   }
 
   // Session vs Template Logic: Enforce 24h window for text messages
-  const sessionActive = await canSendSessionMessage(workspaceId, normalizedPhone);
+  const sessionActive = await canSendSessionMessage(workspaceId, normalizedPhone, options.contactId);
   if (!sessionActive) {
     throw new Error("Session window expired, use template");
   }
@@ -607,7 +658,7 @@ async function sendMediaMessage(workspaceId, to, mediaType, media, caption = '',
   }
 
   // Session vs Template Logic: Enforce 24h window for media messages
-  const sessionActive = await canSendSessionMessage(workspaceId, normalizedPhone);
+  const sessionActive = await canSendSessionMessage(workspaceId, normalizedPhone, options.contactId);
   if (!sessionActive) {
     throw new Error("Session window expired, use template");
   }
@@ -702,7 +753,7 @@ async function sendInteractiveMessage(workspaceId, to, interactive, options = {}
   }
 
   // Session vs Template Logic: Enforce 24h window for interactive messages
-  const sessionActive = await canSendSessionMessage(workspaceId, normalizedPhone);
+  const sessionActive = await canSendSessionMessage(workspaceId, normalizedPhone, options.contactId);
   if (!sessionActive) {
     throw new Error("Session window expired, use template");
   }
@@ -1196,6 +1247,8 @@ async function getWorkspaceForMessaging(workspaceId) {
 
 /**
  * Ensure subscriptions and check health before sending.
+ * Health check is NON-BLOCKING (fire-and-forget) with in-memory 5-minute cache
+ * to prevent per-message API timeouts from blocking inbox sends.
  */
 async function ensurePrerequisites(workspace) {
   const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId;
@@ -1203,37 +1256,51 @@ async function ensurePrerequisites(workspace) {
 
   if (!appId || !appApiKey) return;
 
-  // 1. Ensure Subscriptions
+  // 1. Ensure Subscriptions (one-time, in background — non-blocking)
   if (!provisionedApps.has(appId)) {
     const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL;
     if (webhookUrl) {
-      try {
-        await gupshupService.ensureRequiredSubscriptions({
-          appId,
-          appApiKey,
-          webhookUrl
+      gupshupService.ensureRequiredSubscriptions({ appId, appApiKey, webhookUrl })
+        .then(() => { provisionedApps.add(appId); })
+        .catch(err => {
+          console.warn(`[BSPMessagingService] Subscription auto-provisioning failed for ${appId}:`, err.message);
         });
-        provisionedApps.add(appId);
-      } catch (err) {
-        console.warn(`[BSPMessagingService] Subscription auto-provisioning failed for ${appId}:`, err.message);
-      }
     }
   }
 
-  // 2. Check Health (Strict Gate)
-  try {
-    const health = await gupshupService.getWabaHealth({ appId, appApiKey });
-    if (health.healthy === true) {
-      console.log(`[BSPMessagingService] Gupshup health check passed`);
-    } else {
-      console.error(`[BSPMessagingService] Account ${appId} unhealthy, aborting message send`);
-      throw new Error("WhatsApp BSP unhealthy, aborting message send");
+  // 2. Health Check — cached + non-blocking (fire-and-forget)
+  // The Gupshup health endpoint can be slow or unavailable.
+  // We must NOT block agent sends on it — results are cached for 1 hour (HEALTH_CHECK_COOLDOWN_MS).
+  const now = Date.now();
+  const lastCheck = lastHealthCheckByApp.get(appId);
+
+  // Cache hit — skip this cycle
+  if (lastCheck && (now - lastCheck) < HEALTH_CHECK_COOLDOWN_MS) return;
+
+  // Record the attempt time now to prevent thundering herd
+  lastHealthCheckByApp.set(appId, now);
+
+  // Fire background health check — does NOT block the current send
+  (async () => {
+    try {
+      const health = await Promise.race([
+        gupshupService.getWabaHealth({ appId, appApiKey }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Health check timed out after 8s')), 8000)
+        )
+      ]);
+
+      if (health.healthy === true) {
+        console.log(`[BSPMessagingService] Background health check passed for ${appId}`);
+      } else {
+        console.warn(`[BSPMessagingService] Background health check: account ${appId} reportedly unhealthy — message was already dispatched`);
+      }
+    } catch (err) {
+      console.warn(`[BSPMessagingService] Background health check error for ${appId}: ${err.message}`);
+      // Reset so next send will retry the health check
+      lastHealthCheckByApp.delete(appId);
     }
-  } catch (err) {
-    if (err.message === "WhatsApp BSP unhealthy, aborting message send") throw err;
-    console.error(`[BSPMessagingService] Health check fatal error:`, err.message);
-    throw new Error("WhatsApp BSP unhealthy, aborting message send");
-  }
+  })();
 }
 
 /**

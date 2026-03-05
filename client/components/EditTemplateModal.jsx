@@ -20,6 +20,7 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
     variableSamples: {},
     mediaHandle: '',
     mediaUrl: '',
+    mediaThumbnail: '',
   });
   const [variables, setVariables] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,21 +42,21 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
       // that responds to scroll and screen height changes
       const scrollY = window.scrollY;
       const viewportHeight = window.innerHeight;
-      
+
       // Default centered approach roughly 5vh from top with max 100px limitation
       const baseGap = Math.max(10, Math.min(viewportHeight * 0.05, 100));
-      
+
       // Compute final top
       setTopPosition(scrollY + baseGap);
     };
 
     // Calculate immediately
     calculatePosition();
-    
+
     // Setup event listeners
     window.addEventListener('resize', calculatePosition);
     window.addEventListener('scroll', calculatePosition);
-    
+
     // Cleanup
     return () => {
       window.removeEventListener('resize', calculatePosition);
@@ -128,6 +129,7 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
         variableSamples: samples,
         mediaHandle: template.header?.mediaHandle || '',
         mediaUrl: template.header?.mediaUrl || '',
+        mediaThumbnail: template.header?.mediaThumbnail || '',
       });
       setVariables(allVars);
       setActiveStep(1);
@@ -202,7 +204,7 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
     } else {
       setHeaderFilePreview(null);
     }
-    setFormData(prev => ({ ...prev, mediaHandle: '', mediaUrl: '' }));
+    setFormData(prev => ({ ...prev, mediaHandle: '', mediaUrl: '', mediaThumbnail: '' }));
   };
 
   const handleAddButton = () => {
@@ -231,13 +233,22 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
     try {
       let finalMediaHandle = formData.mediaHandle;
       let finalMediaUrl = formData.mediaUrl;
+      let finalMediaThumbnail = formData.mediaThumbnail;
 
       if (headerFile && MEDIA_FORMATS.includes(formData.headerFormat)) {
         setUploadingMedia(true);
         try {
           const uploadResult = await uploadTemplateMedia(headerFile, formData.headerFormat.toLowerCase());
-          finalMediaHandle = uploadResult.handleId || uploadResult.handle || uploadResult.message || '';
+          let rawHandle = uploadResult.handleId || uploadResult.handle || uploadResult.message || '';
+          if (typeof rawHandle === 'object') {
+            rawHandle = rawHandle.message || Object.values(rawHandle)[0] || '';
+          }
+          if (typeof rawHandle === 'string' && rawHandle.includes('\n')) {
+            rawHandle = rawHandle.split('\n')[0].trim();
+          }
+          finalMediaHandle = typeof rawHandle === 'string' ? rawHandle.trim() : rawHandle;
           finalMediaUrl = uploadResult.url || '';
+          finalMediaThumbnail = uploadResult.thumbnail || '';
         } catch (err) {
           setUploadError(err.message || 'Media upload failed');
           return;
@@ -254,6 +265,7 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
         headerText: formData.headerFormat === 'TEXT' ? formData.headerText : '',
         mediaHandle: finalMediaHandle,
         mediaUrl: finalMediaUrl,
+        mediaThumbnail: finalMediaThumbnail,
         bodyText: formData.bodyText,
         footerText: formData.footerText,
         buttonLabels: formData.buttons,
@@ -271,20 +283,20 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-[60] p-4 sm:p-6 md:p-8 flex justify-center pointer-events-none"
     >
       {/* Background Overlay */}
-      <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto transition-opacity" 
+      <div
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto transition-opacity"
         onClick={onClose}
       />
-      
+
       {/* Modal Content */}
-      <div 
+      <div
         ref={modalRef}
         className="bg-card w-full max-w-5xl rounded-xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto transition-all duration-200 ease-in-out relative z-10"
-        style={{ 
+        style={{
           maxHeight: 'min(90vh, 800px)',
           marginTop: `${topPosition}px`,
           position: 'absolute'
@@ -304,7 +316,7 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
               ×
             </button>
           </div>
-          
+
           {/* Steps Indicator */}
           <div className="flex items-center mt-4 gap-4">
             {[
@@ -313,14 +325,13 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
               { num: 3, label: 'Submit for Review' }
             ].map((step, index) => (
               <div key={step.num} className="flex items-center">
-                <div 
+                <div
                   className={`flex items-center cursor-pointer ${activeStep >= step.num ? 'opacity-100' : 'opacity-50'}`}
                   onClick={() => setActiveStep(step.num)}
                 >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm ${
-                    activeStep > step.num ? 'bg-green-400 text-white' : 
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm ${activeStep > step.num ? 'bg-green-400 text-white' :
                     activeStep === step.num ? 'bg-white text-teal-600' : 'bg-teal-500 text-white'
-                  }`}>
+                    }`}>
                     {activeStep > step.num ? '✓' : step.num}
                   </div>
                   <span className="ml-2 text-sm">{step.label}</span>
@@ -417,11 +428,10 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
                           key={fmt}
                           type="button"
                           onClick={() => handleHeaderFormatChange(fmt)}
-                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                            formData.headerFormat === fmt
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-muted text-muted-foreground border-border hover:bg-accent'
-                          }`}
+                          className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${formData.headerFormat === fmt
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted text-muted-foreground border-border hover:bg-accent'
+                            }`}
                         >
                           <span>{HEADER_FORMAT_ICONS[fmt]}</span> {fmt}
                         </button>
@@ -461,14 +471,21 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
                                 </a>
                               </div>
                             )}
-                            {!formData.mediaUrl && (
-                              <div className="flex items-center justify-center py-6">
-                                <span className="text-3xl">{HEADER_FORMAT_ICONS[formData.headerFormat]}</span>
+                            {!formData.mediaUrl && formData.mediaHandle && (
+                              <div className="flex flex-col items-center justify-center py-4 gap-2">
+                                {formData.mediaThumbnail && formData.mediaThumbnail.startsWith('data:') ? (
+                                  <img src={formData.mediaThumbnail} alt="Preview" className="w-full h-40 object-cover" />
+                                ) : (
+                                  <>
+                                    <span className="text-4xl">{HEADER_FORMAT_ICONS[formData.headerFormat]}</span>
+                                    <span className="text-xs text-green-700 dark:text-green-300 font-medium">Uploaded to WhatsApp</span>
+                                  </>
+                                )}
                               </div>
                             )}
-                            <div className="flex items-center gap-2 p-3 text-sm">
-                              <span className="text-green-700 dark:text-green-300 flex-1">
-                                {formData.headerFormat} media attached
+                            <div className="flex items-center gap-2 p-3 text-sm border-t border-green-200 dark:border-green-800">
+                              <span className="text-green-700 dark:text-green-300 flex-1 font-medium">
+                                ✅ {formData.headerFormat} media attached
                               </span>
                               <button
                                 type="button"
@@ -543,7 +560,7 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
                         <button className="p-1 hover:bg-accent rounded font-bold">B</button>
                         <button className="p-1 hover:bg-accent rounded italic">I</button>
                         <button className="p-1 hover:bg-accent rounded line-through">S</button>
-                        <button 
+                        <button
                           className="text-xs text-teal-600 hover:text-teal-700"
                           onClick={() => {
                             const nextVar = variables.length > 0 ? Math.max(...variables.map(v => parseInt(v))) + 1 : 1;
@@ -561,10 +578,10 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
                     <div className="bg-muted/50 rounded-lg p-4">
                       <h4 className="font-medium text-foreground mb-2">Variable samples</h4>
                       <p className="text-xs text-gray-500 mb-4">
-                        Include samples of all variables in your message to help Meta review your template. 
+                        Include samples of all variables in your message to help Meta review your template.
                         Remember not to include any customer information to protect your customer's privacy.
                       </p>
-                      
+
                       <div className="space-y-3">
                         <div className="text-sm font-medium text-foreground">Body</div>
                         {variables.map(varNum => (
@@ -711,7 +728,7 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
                   ▶
                 </button>
               </h3>
-              
+
               {/* Phone Preview */}
               <div className="bg-[#e5ddd5] dark:bg-muted rounded-lg p-4 min-h-[300px]">
                 <div className="bg-white dark:bg-gray-600 rounded-lg shadow-sm p-3 max-w-[90%]">
@@ -736,10 +753,16 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
                           <span className="text-3xl">📄</span>
                           <span className="text-xs">Document</span>
                         </div>
-                      ) : (formData.mediaHandle || formData.mediaUrl) ? (
-                        <div className="flex flex-col items-center justify-center gap-1 py-4 text-muted-foreground">
-                          <span className="text-2xl">{HEADER_FORMAT_ICONS[formData.headerFormat]}</span>
-                          <span className="text-[10px]">Media attached</span>
+                      ) : formData.mediaHandle ? (
+                        <div className="flex flex-col items-center justify-center gap-2 py-2 bg-green-50 dark:bg-green-900/20 overflow-hidden">
+                          {formData.mediaThumbnail && formData.mediaThumbnail.startsWith('data:') ? (
+                            <img src={formData.mediaThumbnail} alt="Header" className="w-full h-auto max-h-40 object-cover" />
+                          ) : (
+                            <>
+                              <span className="text-3xl">{HEADER_FORMAT_ICONS[formData.headerFormat]}</span>
+                              <span className="text-[11px] font-medium text-green-700 dark:text-green-300">✅ Media uploaded</span>
+                            </>
+                          )}
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center gap-1 py-6 text-muted-foreground">
@@ -749,24 +772,24 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
                       )}
                     </div>
                   )}
-                  
+
                   {/* Body */}
                   <div className="text-foreground text-sm whitespace-pre-wrap">
                     {getPreviewText(formData.bodyText)}
                   </div>
-                  
+
                   {/* Footer */}
                   {formData.footerText && (
                     <div className="text-muted-foreground text-xs mt-2">
                       {formData.footerText}
                     </div>
                   )}
-                  
+
                   {/* Time */}
                   <div className="text-right text-xs text-gray-400 mt-1">
                     {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
-                  
+
                   {/* Buttons */}
                   {formData.buttons.length > 0 && (
                     <div className="mt-3 border-t border-gray-200 dark:border-gray-500 pt-2 space-y-2">
@@ -794,7 +817,7 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
           >
             {activeStep > 1 ? 'Previous' : 'Cancel'}
           </button>
-          
+
           {activeStep < 3 ? (
             <button
               onClick={() => setActiveStep(activeStep + 1)}

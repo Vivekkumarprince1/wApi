@@ -122,7 +122,7 @@ exports.assignConversation = async (req, res) => {
 
     // Use the model method for assignment
     conversation.assignTo(agentId, assignedById);
-    
+
     // Reopen if closed
     if (conversation.status === 'closed') {
       conversation.updateStatus('open', assignedById);
@@ -286,7 +286,7 @@ exports.claimConversation = async (req, res) => {
 
     // Assign to self
     conversation.assignTo(agentId, agentId);
-    
+
     if (conversation.status === 'closed') {
       conversation.updateStatus('open', agentId);
     }
@@ -366,8 +366,8 @@ exports.closeConversation = async (req, res) => {
         code: 'NO_PERMISSIONS'
       });
     }
-    if (permission.role === 'agent' && 
-        conversation.assignedTo?.toString() !== closedById.toString()) {
+    if (permission.role === 'agent' &&
+      conversation.assignedTo?.toString() !== closedById.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Agents can only close their assigned conversations',
@@ -376,7 +376,7 @@ exports.closeConversation = async (req, res) => {
     }
 
     conversation.updateStatus('closed', closedById);
-    
+
     if (resolution) {
       conversation.notes = (conversation.notes || '') + `\n[Closed] ${resolution}`;
     }
@@ -737,8 +737,8 @@ exports.getInbox = async (req, res) => {
       query.assignedTo = null;
     } else if (view === 'all') {
       // Only owners/admins/managers can view all
-      if (permission.role !== 'owner' && permission.role !== 'admin' && permission.role !== 'manager' && 
-          !permission.permissions?.viewAllConversations) {
+      if (permission.role !== 'owner' && permission.role !== 'admin' && permission.role !== 'manager' &&
+        !permission.permissions?.viewAllConversations) {
         return res.status(403).json({
           success: false,
           message: 'Insufficient permissions to view all conversations',
@@ -771,14 +771,14 @@ exports.getInbox = async (req, res) => {
           { phone: { $regex: search, $options: 'i' } }
         ]
       }).select('_id').limit(100);
-      
+
       contactIds = contacts.map(c => c._id);
       query.contact = { $in: contactIds };
     }
 
     // Execute query
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [conversations, total] = await Promise.all([
       Conversation.find(query)
         .populate('contact', 'name phone email profilePicture')
@@ -847,10 +847,10 @@ exports.getInboxStats = async (req, res) => {
       Conversation.countDocuments({ workspace: workspaceId, assignedTo: agentId, status: 'open' }),
       Conversation.countDocuments({ workspace: workspaceId, assignedTo: agentId, status: 'pending' }),
       Conversation.countDocuments({ workspace: workspaceId, assignedTo: agentId, status: 'closed' }),
-      Conversation.countDocuments({ 
-        workspace: workspaceId, 
-        assignedTo: agentId, 
-        [`agentUnreadCounts.${agentId}`]: { $gt: 0 } 
+      Conversation.countDocuments({
+        workspace: workspaceId,
+        assignedTo: agentId,
+        [`agentUnreadCounts.${agentId}`]: { $gt: 0 }
       })
     ]);
 
@@ -971,18 +971,18 @@ exports.getAvailableAgents = async (req, res) => {
 
     // Get conversation counts per agent
     const agentCounts = await Conversation.aggregate([
-      { 
-        $match: { 
+      {
+        $match: {
           workspace: workspaceId,
           assignedTo: { $ne: null },
           status: { $in: ['open', 'pending'] }
-        } 
+        }
       },
-      { 
-        $group: { 
-          _id: '$assignedTo', 
-          count: { $sum: 1 } 
-        } 
+      {
+        $group: {
+          _id: '$assignedTo',
+          count: { $sum: 1 }
+        }
       }
     ]);
 
@@ -1058,15 +1058,17 @@ exports.sendMessage = async (req, res) => {
     });
 
   } catch (err) {
-    if (err.message.includes('24-hour window') || err.message.includes('Session window expired')) {
+    // Session window expired — agent must use a template
+    if (err.message?.includes('24-hour window') || err.message?.includes('Session window expired')) {
       return res.status(400).json({
         success: false,
-        message: err.message,
-        code: 'WINDOW_EXPIRED'
+        message: '24-hour session window expired. Please send a template to re-engage this contact.',
+        code: 'WINDOW_EXPIRED',
+        requiresTemplate: true
       });
     }
 
-    if (err.message.startsWith('PERMISSION_DENIED')) {
+    if (err.message?.startsWith('PERMISSION_DENIED')) {
       return res.status(403).json({
         success: false,
         message: err.message.replace('PERMISSION_DENIED: ', ''),
@@ -1074,14 +1076,46 @@ exports.sendMessage = async (req, res) => {
       });
     }
 
-    console.error('[INBOX] Send message error:', err);
+    if (err.message?.startsWith('RATE_LIMITED')) {
+      return res.status(429).json({
+        success: false,
+        message: 'Too many messages. Please slow down.',
+        code: 'RATE_LIMITED'
+      });
+    }
 
-    if (err.message.includes('Callback Billing must be enabled')) {
+    if (err.message?.includes('opted out') || err.message?.includes('BSP_USER_OPTED_OUT')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Contact has opted out of messages.',
+        code: 'CONTACT_OPTED_OUT'
+      });
+    }
+
+    if (err.message?.includes('BSP_MESSAGING_BLOCKED') || err.message?.includes('BSP_GLOBAL_MESSAGING_DISABLED')) {
+      return res.status(503).json({
+        success: false,
+        message: 'WhatsApp messaging is currently unavailable. Please try again later.',
+        code: 'BSP_UNAVAILABLE'
+      });
+    }
+
+    console.error('[INBOX] Send message error:', err.message);
+
+    if (err.message?.includes('Callback Billing must be enabled')) {
       return res.status(400).json({
         success: false,
         message: 'Callback Billing must be enabled for this Gupshup app before session text sends.',
         code: 'GUPSHUP_CALLBACK_BILLING_REQUIRED',
         action: 'Enable Callback Billing in Gupshup partner app settings'
+      });
+    }
+
+    if (err.message?.includes('GUPSHUP_SOURCE_NUMBER_NOT_CONFIGURED')) {
+      return res.status(500).json({
+        success: false,
+        message: 'WhatsApp phone number not configured for this workspace.',
+        code: 'PHONE_NOT_CONFIGURED'
       });
     }
 
@@ -1133,7 +1167,7 @@ exports.sendTemplateMessage = async (req, res) => {
 
   } catch (err) {
     console.error('[INBOX] Send template error:', err);
-    
+
     if (err.message.startsWith('PERMISSION_DENIED')) {
       return res.status(403).json({
         success: false,
@@ -1254,7 +1288,7 @@ exports.getMessages = async (req, res) => {
 
   } catch (err) {
     console.error('[INBOX] Get messages error:', err);
-    
+
     if (err.message.startsWith('PERMISSION_DENIED')) {
       return res.status(403).json({
         success: false,
