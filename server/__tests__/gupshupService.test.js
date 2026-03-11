@@ -50,4 +50,33 @@ describe('gupshupService partner V3 sends', () => {
     expect(options.headers.Authorization).toBe('token-123');
     expect(result.messageId).toBe('gs-msg-123');
   });
+
+  test('createSubscription sends documented callbackUrl payload for required messaging subscriptions', async () => {
+    axios.post.mockResolvedValue({
+      data: {
+        status: 'success',
+        subscriptionId: 'sub-123'
+      }
+    });
+
+    const result = await gupshupService.createSubscription({
+      appId: 'app-123',
+      appApiKey: 'token-123',
+      callbackUrl: 'https://wapi-5al1.onrender.com/api/v1/webhook/gupshup',
+      name: 'message_events',
+      type: 'v3',
+      mode: 'MESSAGE'
+    });
+
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    const [url, formBody, options] = axios.post.mock.calls[0];
+
+    expect(url).toBe('https://partner.gupshup.io/partner/app/app-123/subscription');
+    expect(formBody).toContain('callbackUrl=https%3A%2F%2Fwapi-5al1.onrender.com%2Fapi%2Fv1%2Fwebhook%2Fgupshup');
+    expect(formBody).toContain('name=message_events');
+    expect(formBody).toContain('type=v3');
+    expect(formBody).toContain('mode=MESSAGE');
+    expect(options.headers.Authorization).toBe('token-123');
+    expect(result.subscriptionId).toBe('sub-123');
+  });
 });

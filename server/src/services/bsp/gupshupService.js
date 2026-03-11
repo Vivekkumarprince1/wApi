@@ -1795,21 +1795,51 @@ async function listSubscriptions({ appId, appApiKey }) {
  */
 async function createSubscription({ appId, appApiKey, callbackUrl, name, type, mode }) {
   const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/subscription`;
-  const headers = {
-    'Authorization': appApiKey,
-    'token': appApiKey,
-    'Accept': 'application/json',
-    'Content-Type': 'application/x-www-form-urlencoded'
-  };
+  const formVariants = [];
 
-  const form = new URLSearchParams();
-  form.set('callbackUrl', callbackUrl);
-  form.set('name', name);
-  form.set('type', type || 'v3');
-  form.set('mode', mode);
+  const documentedForm = new URLSearchParams();
+  documentedForm.set('callbackUrl', callbackUrl);
+  documentedForm.set('name', name);
+  documentedForm.set('type', type || 'v3');
+  documentedForm.set('mode', mode);
+  formVariants.push(documentedForm);
 
-  const response = await axios.post(url, form.toString(), { headers, timeout: 15000 });
-  return response.data;
+  const compatibilityForm = new URLSearchParams();
+  compatibilityForm.set('webhookUrl', callbackUrl);
+  compatibilityForm.set('name', name);
+  compatibilityForm.set('type', type || 'v3');
+  compatibilityForm.set('mode', mode);
+  formVariants.push(compatibilityForm);
+
+  let lastError = null;
+  for (const form of formVariants) {
+    for (const headers of [
+      {
+        Authorization: appApiKey,
+        token: appApiKey,
+        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      {
+        Authorization: `Bearer ${appApiKey}`,
+        token: appApiKey,
+        Accept: 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    ]) {
+      try {
+        const response = await axios.post(url, form.toString(), { headers, timeout: 15000 });
+        return response.data;
+      } catch (error) {
+        lastError = error;
+        if (!isAuthRejectedError(error) && Number(error?.response?.status || 0) !== 400) {
+          break;
+        }
+      }
+    }
+  }
+
+  throw lastError || new Error('GUPSHUP_SUBSCRIPTION_FAILED');
 }
 
 /**

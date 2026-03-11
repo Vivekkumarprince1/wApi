@@ -36,10 +36,8 @@ const missingWebhookWarningByApp = new Set();
 
 /**
  * Check if a session message can be sent (within 24h window)
- * Returns true when:
- *   - conversation.windowExpiresAt is in the future (customer sent < 24h ago), OR
- *   - conversation.windowExpiresAt is missing (business-initiated — no inbound yet)
- *     In this case allow the send; template enforcement is handled by Meta/Gupshup anyway.
+ * Returns true only when the customer-initiated 24h service window is open.
+ * Business-initiated conversations with no inbound activity must use a template.
  */
 async function canSendSessionMessage(workspaceId, phoneNumber, contactId = null) {
   try {
@@ -74,8 +72,8 @@ async function canSendSessionMessage(workspaceId, phoneNumber, contactId = null)
       .lean();
 
     if (!conversation) {
-      // No conversation yet — allow it (new business-initiated conversation)
-      return true;
+      console.log(`[BSP] canSendSessionMessage: no conversation found for ${phoneNumber} — template required`);
+      return false;
     }
 
     const now = new Date();
@@ -85,15 +83,11 @@ async function canSendSessionMessage(workspaceId, phoneNumber, contactId = null)
       return true;
     }
 
-    // If windowExpiresAt is NOT set → customer has never replied.
-    // This is a business-initiated conversation. Allow free session only if conversation is open/pending.
-    // Gupshup enforces template requirement on its end regardless.
+    // If windowExpiresAt is NOT set, there is no active customer-initiated session.
+    // Business-initiated conversations must use templates.
     if (!conversation.windowExpiresAt) {
-      const isOpenStatus = conversation.status !== 'closed';
-      if (isOpenStatus) {
-        console.log(`[BSP] canSendSessionMessage: no windowExpiresAt (business-initiated) — allowing for ${phoneNumber}`);
-        return true;
-      }
+      console.log(`[BSP] canSendSessionMessage: no windowExpiresAt for ${phoneNumber} — template required`);
+      return false;
     }
 
     // Window expired

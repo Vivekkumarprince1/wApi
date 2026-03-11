@@ -7,6 +7,112 @@ const MEDIA_FORMATS = ['IMAGE', 'VIDEO', 'DOCUMENT'];
 const HEADER_FORMAT_ICONS = { TEXT: '📝', IMAGE: '🖼️', VIDEO: '🎬', DOCUMENT: '📄', NONE: '' };
 const HEADER_FORMAT_ACCEPT = { IMAGE: 'image/jpeg,image/png', VIDEO: 'video/mp4', DOCUMENT: 'application/pdf' };
 
+const isDataUrl = (value) => typeof value === 'string' && value.startsWith('data:');
+
+const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+  reader.onerror = () => reject(new Error('Failed to read media file'));
+  reader.readAsDataURL(file);
+});
+
+const createVideoThumbnail = (file) => new Promise((resolve, reject) => {
+  const objectUrl = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.muted = true;
+  video.playsInline = true;
+
+  const cleanup = () => {
+    URL.revokeObjectURL(objectUrl);
+    video.src = '';
+  };
+
+  video.onloadeddata = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const targetWidth = 320;
+      const safeWidth = Math.max(video.videoWidth || targetWidth, 1);
+      const safeHeight = Math.max(video.videoHeight || targetWidth, 1);
+      const scale = targetWidth / safeWidth;
+      canvas.width = targetWidth;
+      canvas.height = Math.max(Math.round(safeHeight * scale), 180);
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        cleanup();
+        reject(new Error('Failed to prepare video preview context'));
+        return;
+      }
+
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const thumbnail = canvas.toDataURL('image/jpeg', 0.72);
+      cleanup();
+      resolve(thumbnail);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  };
+
+  video.onerror = () => {
+    cleanup();
+    reject(new Error('Failed to load video for preview'));
+  };
+
+  video.src = objectUrl;
+});
+
+const buildStoredMediaThumbnail = async (file, mediaType, uploadedThumbnail = '') => {
+  if (isDataUrl(uploadedThumbnail)) {
+    return uploadedThumbnail;
+  }
+
+  if (!file) {
+    return uploadedThumbnail || '';
+  }
+
+  if (mediaType === 'IMAGE') {
+    return uploadedThumbnail || fileToDataUrl(file);
+  }
+
+  if (mediaType === 'VIDEO') {
+    try {
+      return await createVideoThumbnail(file);
+    } catch (_) {
+      return uploadedThumbnail || 'video_attached';
+    }
+  }
+
+  if (mediaType === 'DOCUMENT') {
+    return uploadedThumbnail || 'document_attached';
+  }
+
+  return uploadedThumbnail || '';
+};
+
+const StoredMediaFallback = ({ format }) => {
+  if (format === 'VIDEO') {
+    return (
+      <div className="flex h-40 flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 text-white">
+        <span className="text-4xl">🎬</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-white/75">Video Header</span>
+      </div>
+    );
+  }
+
+  if (format === 'DOCUMENT') {
+    return (
+      <div className="flex h-40 flex-col items-center justify-center gap-2 bg-stone-100 text-stone-700">
+        <span className="text-4xl">📄</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Document Header</span>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -248,7 +354,11 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
           }
           finalMediaHandle = typeof rawHandle === 'string' ? rawHandle.trim() : rawHandle;
           finalMediaUrl = uploadResult.url || '';
-          finalMediaThumbnail = uploadResult.thumbnail || '';
+          finalMediaThumbnail = await buildStoredMediaThumbnail(
+            headerFile,
+            formData.headerFormat,
+            uploadResult.thumbnail || ''
+          );
         } catch (err) {
           setUploadError(err.message || 'Media upload failed');
           return;
@@ -473,13 +583,10 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
                             )}
                             {!formData.mediaUrl && formData.mediaHandle && (
                               <div className="flex flex-col items-center justify-center py-4 gap-2">
-                                {formData.mediaThumbnail && formData.mediaThumbnail.startsWith('data:') ? (
+                                {isDataUrl(formData.mediaThumbnail) ? (
                                   <img src={formData.mediaThumbnail} alt="Preview" className="w-full h-40 object-cover" />
                                 ) : (
-                                  <>
-                                    <span className="text-4xl">{HEADER_FORMAT_ICONS[formData.headerFormat]}</span>
-                                    <span className="text-xs text-green-700 dark:text-green-300 font-medium">Uploaded to WhatsApp</span>
-                                  </>
+                                  <StoredMediaFallback format={formData.headerFormat} />
                                 )}
                               </div>
                             )}
@@ -754,14 +861,11 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
                           <span className="text-xs">Document</span>
                         </div>
                       ) : formData.mediaHandle ? (
-                        <div className="flex flex-col items-center justify-center gap-2 py-2 bg-green-50 dark:bg-green-900/20 overflow-hidden">
-                          {formData.mediaThumbnail && formData.mediaThumbnail.startsWith('data:') ? (
+                        <div className="overflow-hidden">
+                          {isDataUrl(formData.mediaThumbnail) ? (
                             <img src={formData.mediaThumbnail} alt="Header" className="w-full h-auto max-h-40 object-cover" />
                           ) : (
-                            <>
-                              <span className="text-3xl">{HEADER_FORMAT_ICONS[formData.headerFormat]}</span>
-                              <span className="text-[11px] font-medium text-green-700 dark:text-green-300">✅ Media uploaded</span>
-                            </>
+                            <StoredMediaFallback format={formData.headerFormat} />
                           )}
                         </div>
                       ) : (

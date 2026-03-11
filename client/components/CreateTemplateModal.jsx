@@ -7,6 +7,90 @@ import {
   FaWhatsapp, FaCheck, FaExclamationCircle, FaInfoCircle, FaSpinner
 } from 'react-icons/fa';
 
+const isDataUrl = (value) => typeof value === 'string' && value.startsWith('data:');
+
+const fileToDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+  reader.onerror = () => reject(new Error('Failed to read media file'));
+  reader.readAsDataURL(file);
+});
+
+const createVideoThumbnail = (file) => new Promise((resolve, reject) => {
+  const objectUrl = URL.createObjectURL(file);
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.muted = true;
+  video.playsInline = true;
+
+  const cleanup = () => {
+    URL.revokeObjectURL(objectUrl);
+    video.src = '';
+  };
+
+  video.onloadeddata = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const targetWidth = 320;
+      const safeWidth = Math.max(video.videoWidth || targetWidth, 1);
+      const safeHeight = Math.max(video.videoHeight || targetWidth, 1);
+      const scale = targetWidth / safeWidth;
+      canvas.width = targetWidth;
+      canvas.height = Math.max(Math.round(safeHeight * scale), 180);
+      const context = canvas.getContext('2d');
+
+      if (!context) {
+        cleanup();
+        reject(new Error('Failed to prepare video preview context'));
+        return;
+      }
+
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const thumbnail = canvas.toDataURL('image/jpeg', 0.72);
+      cleanup();
+      resolve(thumbnail);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  };
+
+  video.onerror = () => {
+    cleanup();
+    reject(new Error('Failed to load video for preview'));
+  };
+
+  video.src = objectUrl;
+});
+
+const buildStoredMediaThumbnail = async (file, mediaType, uploadedThumbnail = '') => {
+  if (isDataUrl(uploadedThumbnail)) {
+    return uploadedThumbnail;
+  }
+
+  if (!file) {
+    return uploadedThumbnail || '';
+  }
+
+  if (mediaType === 'IMAGE') {
+    return uploadedThumbnail || fileToDataUrl(file);
+  }
+
+  if (mediaType === 'VIDEO') {
+    try {
+      return await createVideoThumbnail(file);
+    } catch (_) {
+      return uploadedThumbnail || 'video_attached';
+    }
+  }
+
+  if (mediaType === 'DOCUMENT') {
+    return uploadedThumbnail || 'document_attached';
+  }
+
+  return uploadedThumbnail || '';
+};
+
 const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
   const [step, setStep] = useState(1); // 1: Details, 2: Content
   const [formData, setFormData] = useState({
@@ -178,7 +262,7 @@ const CreateTemplateModal = ({ isOpen, onClose, onSuccess }) => {
               exampleMedia = typeof rawHandle === 'string' ? rawHandle.trim() : rawHandle;
             }
             if (uploadRes.url) exampleMediaUrl = uploadRes.url;
-            if (uploadRes.thumbnail) mediaThumbnail = uploadRes.thumbnail;
+            mediaThumbnail = await buildStoredMediaThumbnail(headerFile, mediaType, uploadRes.thumbnail || '');
           }
         } catch (uploadErr) {
           throw new Error('Media upload failed: ' + uploadErr.message);
