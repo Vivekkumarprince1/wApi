@@ -13,12 +13,12 @@
 
 const bspConfig = require('../../config/bspConfig');
 const gupshupService = require('./gupshupService');
-const { Workspace, Message, Contact, Conversation } = require('../../models');
+const { Workspace, Message, Contact, Conversation, User } = require('../../models');
 const { isOptedOutByPhone, isOptedOut } = require('../messaging/optOutService');
 const { enforceWorkspaceBilling } = require('../billing/billingEnforcementService');
 const billingLedgerService = require('../billing/billingLedgerService');
 const auditService = require('../admin/auditService');
-const { decryptToken } = require('./gupshupProvisioningService');
+const { decryptToken, resolveWhatsAppWebhookUrl } = require('./gupshupProvisioningService');
 
 // In-memory rate limiter (use Redis in production for distributed systems)
 const rateLimiters = new Map();
@@ -32,6 +32,7 @@ const appTokenResolveStateByApp = new Map();
 const provisionedApps = new Set();
 const lastHealthCheckByApp = new Map();
 const HEALTH_CHECK_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+const missingWebhookWarningByApp = new Set();
 
 /**
  * Check if a session message can be sent (within 24h window)
@@ -490,7 +491,6 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
   // Run diagnostics logger before sending
   let user = null;
   if (workspace.owner) {
-    const User = require('../../models/User');
     user = await User.findById(workspace.owner).catch(() => null);
   }
   let contact = null;
@@ -931,10 +931,8 @@ async function submitTemplate(workspaceId, templateData) {
       throw lastError || new Error('GUPSHUP_PROVIDER_AUTH_FAILED');
     }
 
-    // Increment template submission counter
-    await Workspace.findByIdAndUpdate(workspace._id, {
-      $inc: { 'bspUsage.templateSubmissionsToday': 1 }
-    });
+    // Increment template submission counter (with daily reset handled in the model)
+    await workspace.incrementTemplateSubmissionUsage();
 
     return {
       success: true,
@@ -1232,6 +1230,23 @@ async function getWorkspaceForMessaging(workspaceId) {
 
   workspace.ensureWorkspaceBspReady();
 
+  const capabilityState = typeof workspace.getMessagingCapabilityState === 'function'
+    ? workspace.getMessagingCapabilityState()
+    : { blocked: Boolean(workspace.esbFlow?.capabilityBlocked), stale: false, reason: workspace.esbFlow?.capabilityBlockedReason || null };
+
+  if (capabilityState.stale && workspace.esbFlow?.capabilityBlocked) {
+    workspace.esbFlow.capabilityBlocked = false;
+    workspace.esbFlow.capabilityBlockedReason = null;
+    workspace.markModified('esbFlow');
+
+    try {
+      await workspace.save();
+      console.warn(`[BSPMessagingService] Cleared stale capability block for workspace ${workspaceId}`);
+    } catch (error) {
+      console.warn(`[BSPMessagingService] Failed to clear stale capability block for workspace ${workspaceId}:`, error.message);
+    }
+  }
+
   if (!workspace.canSendMessage()) {
     throw new Error('BSP_MESSAGING_BLOCKED');
   }
@@ -1258,13 +1273,21 @@ async function ensurePrerequisites(workspace) {
 
   // 1. Ensure Subscriptions (one-time, in background — non-blocking)
   if (!provisionedApps.has(appId)) {
-    const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL;
+    const webhookUrl = resolveWhatsAppWebhookUrl();
     if (webhookUrl) {
       gupshupService.ensureRequiredSubscriptions({ appId, appApiKey, webhookUrl })
-        .then(() => { provisionedApps.add(appId); })
+        .then(() => {
+          provisionedApps.add(appId);
+          missingWebhookWarningByApp.delete(appId);
+        })
         .catch(err => {
           console.warn(`[BSPMessagingService] Subscription auto-provisioning failed for ${appId}:`, err.message);
         });
+    } else if (!missingWebhookWarningByApp.has(appId)) {
+      missingWebhookWarningByApp.add(appId);
+      console.warn(
+        `[BSPMessagingService] Subscription auto-provisioning skipped for ${appId}: configure a public HTTPS WHATSAPP_WEBHOOK_URL (or RENDER_EXTERNAL_URL/API_BASE_URL) because localhost callbacks are not reachable by Gupshup`
+      );
     }
   }
 
@@ -1444,6 +1467,7 @@ async function logMessage(workspaceId, messageData) {
       contact: messageData.contactId,
       conversation: messageData.conversationId || undefined,
       sentBy: messageData.sentBy || undefined,
+      recipientPhone: messageData.recipientPhone || messageData.to || undefined,
       direction: messageData.direction,
       type: messageData.type,
       body: messageData.body,
@@ -1455,6 +1479,7 @@ async function logMessage(workspaceId, messageData) {
       template: messageData.template,
       conversationBilling: messageData.conversationBilling,
       campaign: messageData.campaign,
+      media: messageData.media || messageData.meta?.media,
 
       meta: {
         whatsappId: messageData.whatsappMessageId,
@@ -1486,7 +1511,7 @@ async function logMessage(workspaceId, messageData) {
 }
 
 // Periodic cleanup of rate limiter memory
-setInterval(() => {
+const rateLimiterCleanupTimer = setInterval(() => {
   const now = Date.now();
   for (const [key, data] of rateLimiters.entries()) {
     if (now - data.windowStart > 60000) {
@@ -1494,6 +1519,10 @@ setInterval(() => {
     }
   }
 }, 60000);
+
+if (typeof rateLimiterCleanupTimer.unref === 'function') {
+  rateLimiterCleanupTimer.unref();
+}
 
 /**
  * Trigger Gupshup-side template sync for an app.

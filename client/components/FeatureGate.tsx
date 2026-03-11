@@ -149,7 +149,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
   const actions = {
     phone: {
       label: 'Connect WhatsApp',
-      action: () => router.push('/onboarding/esb'),
+      action: () => router.push('/dashboard?connectWhatsApp=1'),
     },
     role: {
       label: 'Request Access',
@@ -190,7 +190,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon }:
 
         {blockType === 'phone' && (
           <p className="text-sm text-muted-foreground mt-4">
-            You need to connect your WhatsApp Business number through the Meta Business Suite
+            Connect your WhatsApp Business number from the dashboard to continue
           </p>
         )}
       </div>

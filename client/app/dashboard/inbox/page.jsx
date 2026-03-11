@@ -461,7 +461,7 @@ export default function InboxPage() {
               <p className="text-sm font-medium">WhatsApp not connected. Connect account to send messages.</p>
             </div>
             <button
-              onClick={() => (window.location.href = '/onboarding/esb')}
+              onClick={() => (window.location.href = '/dashboard?connectWhatsApp=1')}
               className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold px-3 py-1.5 rounded transition-colors"
             >
               Connect App

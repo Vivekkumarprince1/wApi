@@ -15,6 +15,33 @@ function normalizePhoneNumber(phone, defaultCountryCode = '91') {
   return digits;
 }
 
+function getWorkspacePartnerAppId(workspace) {
+  return String(
+    workspace?.gupshupIdentity?.partnerAppId ||
+    workspace?.gupshupAppId ||
+    ''
+  ).trim() || null;
+}
+
+function validateTemplateForCurrentApp(template, workspace) {
+  const currentPartnerAppId = getWorkspacePartnerAppId(workspace);
+
+  if (!currentPartnerAppId || !template?.partnerAppId) {
+    return null;
+  }
+
+  if (String(template.partnerAppId).trim() !== currentPartnerAppId) {
+    return {
+      message: 'This template belongs to a previous WhatsApp connection and cannot be sent from the current connected number. Please resync or recreate the template for the active Gupshup app.',
+      code: 'TEMPLATE_APP_MISMATCH',
+      currentPartnerAppId,
+      templatePartnerAppId: String(template.partnerAppId).trim()
+    };
+  }
+
+  return null;
+}
+
 async function resolveOutboundContact(workspaceId, payload = {}) {
   const rawContactId = payload.contactId || payload.id || payload.contact?._id || payload.contact?.id;
   const rawPhone = payload.phone || payload.to || payload.contact?.phone;
@@ -149,7 +176,7 @@ module.exports = { sendMessage, webhookHandler };
 async function sendTemplateMessage(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
-    const { contactId, templateId, variables = {}, language = 'en' } = req.body;
+    const { contactId, templateId, variables = {}, language = 'en', headerMediaUrl = '' } = req.body;
 
     if (!contactId || !templateId) {
       console.log("[MessageController] 400 ERROR: Missing required fields");
@@ -196,8 +223,16 @@ async function sendTemplateMessage(req, res, next) {
       });
     }
 
+    const templateAppMismatch = validateTemplateForCurrentApp(template, workspace);
+    if (templateAppMismatch) {
+      return res.status(409).json({
+        success: false,
+        ...templateAppMismatch
+      });
+    }
+
     // Build components array for Meta API
-    const components = buildTemplateComponents(template, variables);
+    const components = buildTemplateComponents(template, variables, { headerMediaUrl });
 
     console.log(`[MessageController] Template components built:`, JSON.stringify(components, null, 2));
     console.log(`[MessageController] Template object:`, JSON.stringify(template, null, 2));
@@ -215,16 +250,26 @@ async function sendTemplateMessage(req, res, next) {
       workspace: workspaceId,
       contact: contact._id,
       conversation: conversation?._id || undefined,
+      recipientPhone: contact.phone,
       direction: 'outbound',
       type: 'template',
       body: renderTemplatePreview(template, variables),
       status: 'queued', // Store as queued initially, update via webhook
+      template: {
+        id: template._id,
+        name: template.name,
+        metaTemplateName: metaTemplateName,
+        category: template.category,
+        language,
+        variables
+      },
       meta: {
         templateId: template._id,
         templateName: template.name,
         metaTemplateName: metaTemplateName,
         variables,
         language,
+        components,
         bspSent: true
       }
     });
@@ -242,7 +287,7 @@ async function sendTemplateMessage(req, res, next) {
         metaTemplateName,
         language,
         components,
-        { contactId: contact._id, skipMessageLog: true, conversationId: conversation?._id }
+        { contactId: contact._id, skipMessageLog: true, conversationId: conversation?._id, headerMediaUrl }
       );
 
       console.log(`[MessageController] Template sent successfully: ${result.messageId}`);
@@ -393,6 +438,14 @@ async function sendBulkTemplateMessage(req, res, next) {
       });
     }
 
+    const templateAppMismatch = validateTemplateForCurrentApp(template, workspace);
+    if (templateAppMismatch) {
+      return res.status(409).json({
+        success: false,
+        ...templateAppMismatch
+      });
+    }
+
     // Pre-check daily/monthly limits
     const plan = workspace.plan || 'free';
     const dailyLimit = workspace.bspRateLimits?.dailyMessageLimit ||
@@ -540,8 +593,9 @@ async function sendBulkTemplateMessage(req, res, next) {
 }
 
 // Helper function to build template components for Meta API
-function buildTemplateComponents(template, variables) {
+function buildTemplateComponents(template, variables, options = {}) {
   const components = [];
+  const resolvedHeaderMediaUrl = String(options.headerMediaUrl || '').trim();
 
   // Version 1: Use components array (recommended format)
   if (template.components && template.components.length > 0) {
@@ -559,15 +613,19 @@ function buildTemplateComponents(template, variables) {
             : [{ type: 'text', text: variables.header }]
         });
       } else if (['image', 'document', 'video'].includes(headerType)) {
-        components.push({
-          type: 'header',
-          parameters: [{
-            type: headerType,
-            [headerType]: {
-              link: Array.isArray(variables.header) ? variables.header[0] : variables.header
-            }
-          }]
-        });
+        const mediaLink = resolvedHeaderMediaUrl || (Array.isArray(variables.header) ? variables.header[0] : variables.header) || template.header?.mediaUrl || '';
+
+        if (mediaLink) {
+          components.push({
+            type: 'header',
+            parameters: [{
+              type: headerType,
+              [headerType]: {
+                link: mediaLink
+              }
+            }]
+          });
+        }
       }
     }
 
@@ -606,15 +664,19 @@ function buildTemplateComponents(template, variables) {
         });
       } else if (['IMAGE', 'DOCUMENT', 'VIDEO'].includes(headerFormat)) {
         const type = headerFormat.toLowerCase();
-        components.push({
-          type: 'header',
-          parameters: [{
-            type: type,
-            [type]: {
-              link: Array.isArray(variables.header) ? variables.header[0] : variables.header
-            }
-          }]
-        });
+        const mediaLink = resolvedHeaderMediaUrl || (Array.isArray(variables.header) ? variables.header[0] : variables.header) || template.header?.mediaUrl || '';
+
+        if (mediaLink) {
+          components.push({
+            type: 'header',
+            parameters: [{
+              type: type,
+              [type]: {
+                link: mediaLink
+              }
+            }]
+          });
+        }
       }
     }
 

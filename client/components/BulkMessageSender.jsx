@@ -152,7 +152,7 @@ const BulkMessageSender = () => {
             <p className="text-sm">Connect your WhatsApp account to send bulk messages.</p>
           </div>
           <button
-            onClick={() => (window.location.href = '/onboarding/esb')}
+            onClick={() => (window.location.href = '/dashboard?connectWhatsApp=1')}
             className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
           >
             Connect Now

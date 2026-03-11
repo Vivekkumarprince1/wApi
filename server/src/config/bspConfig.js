@@ -62,42 +62,42 @@ const bspConfig = {
   rateLimits: {
     // Messages per second per workspace by plan
     messagesPerSecond: {
-      free: 10,       // Increased from 1 for testing
-      basic: 10,      // 10 msg/sec = 36000/hour
-      premium: 50,    // 50 msg/sec = 180000/hour
-      enterprise: 200 // 200 msg/sec = 720000/hour
+      free: 1000,
+      basic: 1000,
+      premium: 1000,
+      enterprise: 1000
     },
 
     // Daily message limits per workspace by plan
     dailyMessageLimit: {
-      free: 1000,     // Increased from 100 for testing
-      basic: 1000,
-      premium: 10000,
-      enterprise: 100000
+      free: 1000000,
+      basic: 1000000,
+      premium: 1000000,
+      enterprise: 1000000
     },
 
     // Monthly message limits per workspace by plan
     monthlyMessageLimit: {
-      free: 1000,
-      basic: 25000,
-      premium: 250000,
-      enterprise: 2500000
+      free: 100000000,
+      basic: 100000000,
+      premium: 100000000,
+      enterprise: 100000000
     },
 
     // Template submissions per day per workspace
     templateSubmissionsPerDay: {
-      free: 3,
-      basic: 10,
-      premium: 50,
-      enterprise: 200
+      free: 10000,
+      basic: 10000,
+      premium: 10000,
+      enterprise: 10000
     },
 
     // API requests per minute per workspace
     apiRequestsPerMinute: {
-      free: 100,
-      basic: 500,
-      premium: 2000,
-      enterprise: 10000
+      free: 100000,
+      basic: 100000,
+      premium: 100000,
+      enterprise: 100000
     }
   },
 
@@ -178,8 +178,8 @@ const bspConfig = {
    * Check if BSP mode is enabled
    */
   isEnabled() {
-    return !!(process.env.GUPSHUP_PARTNER_EMAIL && process.env.GUPSHUP_PARTNER_CLIENT_SECRET) || 
-           !!(this.gupshup.partnerToken && this.gupshup.apiKey && this.gupshup.appId);
+    return !!(process.env.GUPSHUP_PARTNER_EMAIL && process.env.GUPSHUP_PARTNER_CLIENT_SECRET) ||
+      !!(this.gupshup.partnerToken && this.gupshup.apiKey && this.gupshup.appId);
   }
 };
 

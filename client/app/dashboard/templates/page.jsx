@@ -39,6 +39,7 @@ const TemplatesDashboard = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [useTemplateModal, setUseTemplateModal] = useState({ isOpen: false, template: null });
+  const [syncWarning, setSyncWarning] = useState(null);
 
   // Data from backend
   const [templates, setTemplates] = useState([]);
@@ -55,6 +56,9 @@ const TemplatesDashboard = () => {
         setLoading(true);
       }
       setError('');
+      if (!isBackground) {
+        setSyncWarning(null);
+      }
 
       const [templatesData, deletedTemplatesData, categoriesData, statsData] = await Promise.all([
         fetchTemplates(),
@@ -125,11 +129,30 @@ const TemplatesDashboard = () => {
   const handleSyncTemplates = async () => {
     const toastId = toast.loading('Syncing templates from WhatsApp...');
     try {
-      await syncTemplatesFromGupshup();
+      const result = await syncTemplatesFromGupshup({ force: true });
       await loadData(true);
-      toast.success('Templates synced successfully', { id: toastId });
+
+      if (result?.warning?.code === 'NO_PROVIDER_TEMPLATES' || result?.warning?.code === 'ACTIVE_APP_HAS_NO_TEMPLATES') {
+        setSyncWarning({
+          code: result.warning.code,
+          message: result.message,
+          suggestedAction: result.warning?.suggestedAction || null,
+          activePartnerAppId: result.warning?.activePartnerAppId || null
+        });
+        toast.warn(result.message || 'No templates were found for the currently connected WhatsApp app.', { id: toastId });
+        return;
+      }
+
+      setSyncWarning(null);
+
+      if (result?.skipped && result?.reason === 'CLIENT_SYNC_THROTTLED') {
+        toast('Template sync was recently run. Try again in a moment.', { id: toastId });
+        return;
+      }
+
+      toast.success(result?.message || 'Templates synced successfully', { id: toastId });
     } catch (error) {
-      toast.error('Failed to sync templates', { id: toastId });
+      toast.error(error.message || 'Failed to sync templates', { id: toastId });
     }
   };
 
@@ -225,6 +248,24 @@ const TemplatesDashboard = () => {
 
       <div className="max-w-[1400px] mx-auto px-8 py-6 flex flex-col gap-6">
 
+        {syncWarning ? (
+          <div className="bg-[#fff8e6] border border-[#f4d58d] rounded-lg px-5 py-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <FaClock className="text-[#b06000] mt-0.5 shrink-0" />
+              <div>
+                <h2 className="text-sm font-semibold text-[#7a4b00]">WhatsApp app has no synced templates</h2>
+                <p className="text-sm text-[#8a5a12] mt-1">{syncWarning.message}</p>
+                {syncWarning.suggestedAction ? (
+                  <p className="text-sm text-[#8a5a12] mt-2">{syncWarning.suggestedAction}</p>
+                ) : null}
+                {syncWarning.activePartnerAppId ? (
+                  <p className="text-xs text-[#9a6b22] mt-2">Active app: {syncWarning.activePartnerAppId}</p>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {/* Filters and Tabs Row */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
 
@@ -302,7 +343,7 @@ const TemplatesDashboard = () => {
           <div className="bg-white rounded-lg border border-gray-200 p-16 text-center shadow-sm">
             <FaFileAlt className="text-gray-300 text-6xl mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No templates found</h3>
-            <p className="text-gray-500 mb-6">There are no templates matching your current filters.</p>
+            <p className="text-gray-500 mb-6">{syncWarning?.suggestedAction || 'There are no templates matching your current filters.'}</p>
             <button
               onClick={() => { setSearchQuery(''); setSelectedCategories(['ALL']); setActiveTab('active'); }}
               className="text-[#00a884] font-medium hover:underline"

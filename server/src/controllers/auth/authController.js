@@ -163,6 +163,8 @@ async function verifySignupOTP(req, res, next) {
       emailVerified: true,
       phone: phone || undefined
     });
+    workspace.owner = user._id;
+    await workspace.save();
 
     await Permission.seedOwnerPermissions(workspace._id, user._id);
 
@@ -320,6 +322,8 @@ async function signup(req, res, next) {
       role: 'owner',
       phone: phone || undefined
     });
+    workspace.owner = user._id;
+    await workspace.save();
     await Permission.seedOwnerPermissions(workspace._id, user._id);
 
     // Trigger background provisioning
@@ -797,6 +801,8 @@ async function googleOAuthCallback(req, res, next) {
     if (!user) {
       const workspace = await Workspace.create({ name: `${name}'s workspace` });
       user = await User.create({ name, email, googleId, workspace: workspace._id, role: 'owner' });
+      workspace.owner = user._id;
+      await workspace.save();
       await Permission.seedOwnerPermissions(workspace._id, user._id);
 
       // Trigger background provisioning
@@ -877,6 +883,8 @@ async function googleOAuthLogin(req, res, next) {
         workspace: workspace._id,
         role: 'owner',
       });
+      workspace.owner = user._id;
+      await workspace.save();
     } else if (!user.googleId) {
       user.googleId = googleId;
       await user.save();
@@ -934,6 +942,8 @@ async function facebookOAuthLogin(req, res, next) {
         role: 'owner',
         workspace: workspace._id,
       });
+      workspace.owner = user._id;
+      await workspace.save();
       await Permission.seedOwnerPermissions(workspace._id, user._id);
 
       // Trigger background provisioning

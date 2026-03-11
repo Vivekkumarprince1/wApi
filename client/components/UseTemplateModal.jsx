@@ -15,6 +15,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
   const [sending, setSending] = useState(false);
   const [sendProgress, setSendProgress] = useState({ current: 0, total: 0, succeeded: 0, failed: 0 });
   const [sendComplete, setSendComplete] = useState(false);
+  const [headerMediaUrl, setHeaderMediaUrl] = useState('');
   const modalRef = useRef(null);
 
   // ─── Text helpers ──────────────────────────────────────────────────────────
@@ -63,6 +64,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
       setSearchTerm('');
       setSending(false);
       setSendComplete(false);
+      setHeaderMediaUrl(template?.header?.mediaUrl || '');
       setSendProgress({ current: 0, total: 0, succeeded: 0, failed: 0 });
     }
   }, [isOpen, template]);
@@ -174,7 +176,8 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
           contactId: validIds[i],
           templateId: template._id,
           variables: formattedVars,
-          language: template.language || 'en'
+          language: template.language || 'en',
+          headerMediaUrl: headerMediaUrl.trim()
         });
         succeeded++;
       } catch (err) {
@@ -198,6 +201,7 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
   const buttons = getButtonLabels();
   const mediaThumbnail = template.header?.mediaThumbnail || '';
   const isMediaHeader = ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerFormat);
+  const effectiveHeaderMediaUrl = headerMediaUrl.trim() || template.header?.mediaUrl || '';
 
   const steps = [
     { num: 1, label: 'Fill Variables' },
@@ -328,6 +332,27 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                     <span className="text-3xl">✅</span>
                     <p className="text-foreground font-medium mt-2">No variables to fill</p>
                     <p className="text-sm text-muted-foreground mt-1">This template has no dynamic variables. Proceed to select recipients.</p>
+                  </div>
+                )}
+
+                {isMediaHeader && (
+                  <div>
+                    <h4 className="font-medium text-foreground mb-3 flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+                      Header Media
+                    </h4>
+                    <div className="space-y-2">
+                      <input
+                        type="url"
+                        value={headerMediaUrl}
+                        onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                        placeholder="Optional: replace header media with a public file URL at send time"
+                        className="w-full px-3 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Leave this unchanged to use the media saved with the approved template. Enter a public image, video, or document URL to replace it for this send.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -508,6 +533,15 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                         </div>
                       )}
 
+                      {isMediaHeader && (
+                        <div className="border-t border-border pt-3">
+                          <span className="text-xs text-gray-500">Header media</span>
+                          <p className="font-medium text-foreground break-all mt-1">
+                            {effectiveHeaderMediaUrl || 'Using the approved template media sample'}
+                          </p>
+                        </div>
+                      )}
+
                       {/* Selected contacts list */}
                       <div className="border-t border-border pt-3">
                         <span className="text-xs text-gray-500 mb-2 block">Recipients</span>
@@ -547,7 +581,16 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                 {/* Media Header */}
                 {isMediaHeader && (
                   <div className="mb-2 rounded overflow-hidden bg-gray-100 dark:bg-gray-700" style={{ minHeight: '80px' }}>
-                    {mediaThumbnail && mediaThumbnail.startsWith('data:') ? (
+                    {headerFormat === 'IMAGE' && effectiveHeaderMediaUrl ? (
+                      <img src={effectiveHeaderMediaUrl} alt="Header" className="w-full h-auto max-h-36 object-cover" />
+                    ) : headerFormat === 'VIDEO' && effectiveHeaderMediaUrl ? (
+                      <video src={effectiveHeaderMediaUrl} controls className="w-full max-h-36 object-contain bg-black" />
+                    ) : headerFormat === 'DOCUMENT' && effectiveHeaderMediaUrl ? (
+                      <div className="flex flex-col items-center justify-center gap-2 py-6 text-muted-foreground">
+                        <span className="text-3xl">{HEADER_FORMAT_ICONS[headerFormat]}</span>
+                        <span className="text-xs text-center break-all px-3">{effectiveHeaderMediaUrl}</span>
+                      </div>
+                    ) : mediaThumbnail && mediaThumbnail.startsWith('data:') ? (
                       <img src={mediaThumbnail} alt="Header" className="w-full h-auto max-h-36 object-cover" />
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-1 py-6 text-muted-foreground">

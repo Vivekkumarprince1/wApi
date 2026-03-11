@@ -20,6 +20,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api';
 
+const ACTIVE_PHONE_STATUSES = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VERIFIED'];
+
 export default function BspOnboarding() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,6 +29,7 @@ export default function BspOnboarding() {
   // State
   const [status, setStatus] = useState(null);
   const [stage1Status, setStage1Status] = useState(null);
+  const [runtimeProfile, setRuntimeProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -48,7 +51,7 @@ export default function BspOnboarding() {
       setError(errorMessage || 'Signup was cancelled or failed');
       setLoading(false);
       // Clear URL params
-      router.replace('/onboarding/esb');
+      router.replace('/dashboard?connectWhatsApp=1');
       return;
     }
 
@@ -91,15 +94,17 @@ export default function BspOnboarding() {
 
   const loadStatus = async () => {
     try {
-      const [statusRes, stage1Res] = await Promise.all([
-        api.get('/onboarding/bsp/status'),
-        api.get('/onboarding/bsp/stage1-status').catch(() => null)
+      const [statusRes, stage1Res, runtimeRes] = await Promise.all([
+        api.bspStatus(),
+        api.bspStage1Status().catch(() => null),
+        api.bspRuntimeProfile().catch(() => null)
       ]);
       
       setStatus(statusRes);
       if (stage1Res) {
         setStage1Status(stage1Res.stage1);
       }
+      setRuntimeProfile(runtimeRes?.profile || null);
       
       // If already connected AND Stage 1 complete, redirect to dashboard
       if (statusRes.connected && stage1Res?.stage1?.complete) {
@@ -118,7 +123,7 @@ export default function BspOnboarding() {
     setError(null);
 
     try {
-      const response = await api.post('/onboarding/bsp/start', {});
+      const response = await api.bspStart({});
 
       if (response.success && response.url) {
         // Open Meta's ESB page in a new tab
@@ -147,7 +152,7 @@ export default function BspOnboarding() {
 
       if (response.success) {
         // Clear URL params
-        router.replace('/onboarding/esb');
+        router.replace('/dashboard?connectWhatsApp=1');
         
         // Update status
         setStatus({
@@ -159,6 +164,9 @@ export default function BspOnboarding() {
         if (response.stage1) {
           setStage1Status(response.stage1);
         }
+
+        const runtimeRes = await api.bspRuntimeProfile().catch(() => null);
+        setRuntimeProfile(runtimeRes?.profile || null);
         
         // If Stage 1 is complete, redirect to dashboard
         if (response.stage1?.complete) {
@@ -171,7 +179,7 @@ export default function BspOnboarding() {
       console.error('Failed to complete onboarding:', err);
       setError(err.message);
       // Clear URL params on error
-      router.replace('/onboarding/esb');
+      router.replace('/dashboard?connectWhatsApp=1');
     } finally {
       setProcessing(false);
     }
@@ -182,7 +190,7 @@ export default function BspOnboarding() {
     
     setSyncing(true);
     try {
-      const response = await api.post('/onboarding/bsp/sync', {});
+      const response = await api.bspSync();
       
       if (response.stage1) {
         setStage1Status(response.stage1);
@@ -192,6 +200,9 @@ export default function BspOnboarding() {
           setTimeout(() => router.push('/dashboard'), 2000);
         }
       }
+
+      const runtimeRes = await api.bspRuntimeProfile().catch(() => null);
+      setRuntimeProfile(runtimeRes?.profile || null);
     } catch (err) {
       console.error('Sync failed:', err);
     } finally {
@@ -252,6 +263,52 @@ export default function BspOnboarding() {
     );
   };
 
+  const renderRuntimeCard = () => {
+    if (!runtimeProfile) return null;
+
+    const persisted = runtimeProfile.persisted || {};
+    const liveApp = runtimeProfile.live?.app;
+    const liveWaba = runtimeProfile.live?.waba;
+    const templateSummary = runtimeProfile.live?.templates?.data;
+    const subscriptionSummary = runtimeProfile.live?.subscriptions;
+
+    return (
+      <div className="bg-muted rounded-lg p-4 mb-6">
+        <h3 className="font-medium text-gray-900 mb-3">Live Provider Runtime</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Partner App ID</span>
+            <span className="font-medium text-right break-all">{persisted.gupshupAppId || persisted.gupshupIdentity?.partnerAppId || 'N/A'}</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Runtime Status</span>
+            <span className="font-medium text-right">{persisted.phoneStatus || liveApp?.data?.status || 'PENDING'}</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">WABA</span>
+            <span className="font-medium text-right break-all">{persisted.wabaId || liveWaba?.data?.id || liveWaba?.data?.wabaId || 'Pending sync'}</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Approved Templates</span>
+            <span className="font-medium text-right">{typeof templateSummary?.total === 'number' ? templateSummary.total : 'N/A'}</span>
+          </div>
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">Webhook Subscriptions</span>
+            <span className="font-medium text-right">
+              {subscriptionSummary?.ok
+                ? Array.isArray(subscriptionSummary.data?.subscriptions)
+                  ? subscriptionSummary.data.subscriptions.length
+                  : Array.isArray(subscriptionSummary.data)
+                    ? subscriptionSummary.data.length
+                    : 'Active'
+                : 'Unavailable'}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // ==========================================================================
   // RENDER STATES
   // ==========================================================================
@@ -280,6 +337,8 @@ export default function BspOnboarding() {
 
   // Phone pending activation (Stage 1 incomplete)
   if (status?.workspace && stage1Status && !stage1Status.complete) {
+    const phoneStatus = String(stage1Status.details?.phoneStatus || '').toUpperCase();
+
     return (
       <div className="min-h-screen bg-muted flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
@@ -299,6 +358,8 @@ export default function BspOnboarding() {
           {/* Stage 1 Checklist */}
           {renderStage1Checklist()}
 
+          {renderRuntimeCard()}
+
           {/* Phone Details */}
           <div className="bg-muted rounded-lg p-4 mb-6">
             <div className="space-y-2">
@@ -309,7 +370,7 @@ export default function BspOnboarding() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status</span>
                 <span className={`font-medium ${
-                  stage1Status.details?.phoneStatus === 'CONNECTED' ? 'text-green-600' : 'text-yellow-600'
+                  ACTIVE_PHONE_STATUSES.includes(phoneStatus) ? 'text-green-600' : 'text-yellow-600'
                 }`}>
                   {stage1Status.details?.phoneStatus || 'PENDING'}
                 </span>
@@ -377,6 +438,8 @@ export default function BspOnboarding() {
             </div>
           </div>
 
+          {renderRuntimeCard()}
+
           {/* Actions */}
           <div className="space-y-3">
             <button
@@ -420,6 +483,8 @@ export default function BspOnboarding() {
             <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
+
+        {renderRuntimeCard()}
 
         {/* Benefits */}
         <div className="mb-8 space-y-3">

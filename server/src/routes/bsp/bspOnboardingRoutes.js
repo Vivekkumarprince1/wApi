@@ -26,6 +26,7 @@ const {
   handleCallback,
   completeOnboarding,
   getStatus,
+  getRuntimeProfile,
   disconnect,
   getConfig,
   getStage1StatusEndpoint,
@@ -48,6 +49,9 @@ router.get('/config', authenticate, getConfig);
 
 // Get onboarding status
 router.get('/status', authenticate, getStatus);
+
+// Get live provider state without persisting redundant snapshots
+router.get('/runtime-profile', authenticate, getRuntimeProfile);
 
 // Get Stage 1 completion status (for feature gating)
 router.get('/stage1-status', authenticate, getStage1StatusEndpoint);

@@ -32,9 +32,9 @@ export default function VerifyEmailPage() {
         if (user) {
           setEmail(user.email);
 
-          // Check if already verified - redirect to Connect WhatsApp onboarding
+          // Check if already verified - redirect to the dashboard connection flow
           if (user.emailVerified) {
-            router.push('/onboarding/esb');
+            router.push('/dashboard?connectWhatsApp=1');
             return;
           }
 
@@ -99,8 +99,8 @@ export default function VerifyEmailPage() {
 
       await verifyEmailOTP(otp);
 
-      // Navigate to BSP onboarding
-      router.push('/onboarding/esb');
+      // Navigate to the single dashboard-based WhatsApp connection flow
+      router.push('/dashboard?connectWhatsApp=1');
     } catch (err) {
       setError(err.message || 'Invalid OTP');
     } finally {

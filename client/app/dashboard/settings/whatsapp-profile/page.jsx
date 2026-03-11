@@ -6,6 +6,8 @@ import { FaWhatsapp, FaEdit, FaSave, FaImage, FaTrash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import * as api from '@/lib/api';
 
+const ACTIVE_PHONE_STATUSES = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VERIFIED'];
+
 export default function WhatsAppProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef(null);
@@ -13,6 +15,8 @@ export default function WhatsAppProfilePage() {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
   const [stage1Status, setStage1Status] = useState(null);
+  const [runtimeProfile, setRuntimeProfile] = useState(null);
+  const [runtimeLoading, setRuntimeLoading] = useState(false);
   const [formData, setFormData] = useState({
     businessName: '',
     industry: '',
@@ -52,7 +56,20 @@ export default function WhatsAppProfilePage() {
   };
 
   const isPhoneConnected = (stage1) => {
-    return stage1?.details?.phoneStatus === 'CONNECTED' || stage1?.checklist?.phoneConnected === true;
+    return ACTIVE_PHONE_STATUSES.includes(String(stage1?.details?.phoneStatus || '').toUpperCase()) || stage1?.checklist?.phoneConnected === true;
+  };
+
+  const loadRuntimeProfile = async () => {
+    try {
+      setRuntimeLoading(true);
+      const response = await api.bspRuntimeProfile();
+      setRuntimeProfile(response?.profile || null);
+    } catch (error) {
+      console.error('Failed to fetch runtime profile:', error);
+      setRuntimeProfile(null);
+    } finally {
+      setRuntimeLoading(false);
+    }
   };
 
   const buildFormPayload = (workspaceProfile, wabaProfile) => {
@@ -93,6 +110,7 @@ export default function WhatsAppProfilePage() {
 
       const stage1 = stage1Response?.stage1 || null;
       setStage1Status(stage1);
+      await loadRuntimeProfile();
 
       const ws = sessionResponse?.workspace || null;
       const loadedForm = buildFormPayload(ws || {}, loadedWabaProfile);
@@ -100,7 +118,7 @@ export default function WhatsAppProfilePage() {
       setSavedSnapshot(loadedForm);
 
       if (stage1 && !isPhoneConnected(stage1)) {
-        router.replace('/onboarding/esb');
+        router.replace('/dashboard?connectWhatsApp=1');
       }
     } catch (error) {
       console.error('Failed to fetch profile:', error);
@@ -202,6 +220,23 @@ export default function WhatsAppProfilePage() {
     };
     reader.readAsDataURL(file);
   };
+
+  const handleRefreshRuntime = async () => {
+    try {
+      await api.bspSync();
+      await Promise.all([loadRuntimeProfile(), api.bspStage1Status().then((response) => setStage1Status(response?.stage1 || null)).catch(() => null)]);
+      toast.success('Runtime status refreshed from Gupshup.');
+    } catch (error) {
+      console.error('Runtime refresh failed:', error);
+      toast.error(error?.message || 'Failed to refresh runtime status');
+    }
+  };
+
+  const runtimePersisted = runtimeProfile?.persisted || {};
+  const runtimeLive = runtimeProfile?.live || {};
+  const templateSummary = runtimeLive?.templates?.data;
+  const wabaLiveData = runtimeLive?.waba?.data || {};
+  const storageBoundary = runtimeProfile?.storageBoundary || {};
 
   return (
     <div className="p-6">
@@ -335,6 +370,79 @@ export default function WhatsAppProfilePage() {
                 </div>
               </div>
             )}
+
+            <div className="border border-border rounded-xl p-4 bg-card">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-foreground">Live Gupshup Runtime</h2>
+                  <p className="text-xs text-muted-foreground mt-1">Lean workspace data is combined with live provider reads for health, templates and subscription visibility.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleRefreshRuntime}
+                  disabled={runtimeLoading}
+                  className="px-3 py-2 text-sm border border-border rounded-xl hover:bg-accent transition-colors disabled:opacity-50"
+                >
+                  {runtimeLoading ? 'Refreshing...' : 'Refresh Runtime'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm mb-4">
+                <div>
+                  <span className="text-muted-foreground">Partner App ID</span>
+                  <div className="font-medium text-foreground break-all">{runtimePersisted.gupshupAppId || runtimePersisted.gupshupIdentity?.partnerAppId || 'N/A'}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">App Source</span>
+                  <div className="font-medium text-foreground">{runtimePersisted.gupshupIdentity?.source || stage1Status?.details?.phoneNumber || 'N/A'}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Persisted Phone Status</span>
+                  <div className="font-medium text-foreground">{runtimePersisted.phoneStatus || stage1Status?.details?.phoneStatus || 'PENDING'}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Runtime Connection</span>
+                  <div className={`font-medium ${runtimeProfile?.connected ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    {runtimeProfile?.connected ? 'Connected to provider APIs' : 'Provider app not linked yet'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Live WABA</span>
+                  <div className="font-medium text-foreground break-all">{runtimePersisted.wabaId || wabaLiveData?.id || wabaLiveData?.wabaId || 'Pending sync'}</div>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Approved Templates</span>
+                  <div className="font-medium text-foreground">{typeof templateSummary?.total === 'number' ? templateSummary.total : 'N/A'}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="rounded-xl border border-border p-3 bg-muted/40">
+                  <div className="font-semibold text-foreground mb-2">Stored locally</div>
+                  <ul className="space-y-1 text-muted-foreground list-disc pl-4">
+                    {(storageBoundary.persist || []).slice(0, 4).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-border p-3 bg-muted/40">
+                  <div className="font-semibold text-foreground mb-2">Fetched live</div>
+                  <ul className="space-y-1 text-muted-foreground list-disc pl-4">
+                    {(storageBoundary.liveFetch || []).slice(0, 4).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-border p-3 bg-muted/40">
+                  <div className="font-semibold text-foreground mb-2">Avoid duplicated storage</div>
+                  <ul className="space-y-1 text-muted-foreground list-disc pl-4">
+                    {(storageBoundary.avoidDuplicating || []).slice(0, 4).map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
 
             {/* Unified Production Form */}
             <div className="border border-border rounded-xl p-4 bg-card">

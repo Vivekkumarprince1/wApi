@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Users,
   Send,
@@ -32,6 +32,7 @@ import CreateContactPanel from '@/components/CreateContactPanel';
 
 const HomeDashboard = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const workspace = useWorkspace();
   const { user: authUser } = useAuth();
   const [trialDaysLeft, setTrialDaysLeft] = useState(null);
@@ -46,14 +47,59 @@ const HomeDashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const activePhoneStatuses = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VERIFIED'];
+  const callbackPayload = useMemo(() => {
+    const code = searchParams.get('code');
+    const state = searchParams.get('state');
+    const error = searchParams.get('error');
+    const message = searchParams.get('message');
+
+    if (!code && !state && !error && !message) {
+      return null;
+    }
+
+    return {
+      code: code || undefined,
+      state: state || undefined,
+      error: error || undefined,
+      message: message || undefined,
+    };
+  }, [searchParams]);
 
   const canUseMessaging = workspace.stage1Complete;
-  const isWhatsAppConnected = workspace.stage1Complete || ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus || '');
+  const isWhatsAppConnected = workspace.stage1Complete || activePhoneStatuses.includes(String(workspace.phoneStatus || '').toUpperCase());
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const shouldOpenConnect = searchParams.get('connectWhatsApp') === '1' || !!callbackPayload;
+
+    if (!shouldOpenConnect) return;
+
+    if (isWhatsAppConnected && !callbackPayload?.error) {
+      router.replace('/dashboard');
+      return;
+    }
+
+    setConnectNumberModalOpen(true);
+  }, [searchParams, callbackPayload, isWhatsAppConnected, router]);
+
+  const handleCloseConnectModal = () => {
+    setConnectNumberModalOpen(false);
+
+    if (
+      searchParams.get('connectWhatsApp') === '1'
+      || searchParams.get('code')
+      || searchParams.get('state')
+      || searchParams.get('error')
+      || searchParams.get('message')
+    ) {
+      router.replace('/dashboard');
+    }
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -165,7 +211,7 @@ const HomeDashboard = () => {
     const isLockedAction = !canUseMessaging && ['Send Campaign', 'Create Template', 'View Inbox'].includes(title);
     return (
       <button
-        onClick={isLockedAction ? () => router.push('/onboarding/esb') : onClick}
+        onClick={isLockedAction ? () => router.push('/dashboard?connectWhatsApp=1') : onClick}
         disabled={isLockedAction}
         className={`group relative flex flex-col items-start p-4 bg-card rounded-2xl border border-border/50 hover:shadow-premium transition-all duration-300 hover:-translate-y-0.5 text-left w-full overflow-hidden ${isLockedAction ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
@@ -304,7 +350,9 @@ const HomeDashboard = () => {
                 <div className="flex-1">
                   <h3 className="text-sm font-bold text-foreground mb-1">WhatsApp Business</h3>
                   <p className="text-xs text-muted-foreground mb-3">
-                    {isWhatsAppConnected ? 'Your number is connected' : 'Connect your number to start'}
+                    {isWhatsAppConnected
+                      ? (workspace.phoneNumber ? `Connected: ${workspace.phoneNumber}` : 'Your number is connected')
+                      : 'Connect your number to start'}
                   </p>
                   <button
                     onClick={() => !isWhatsAppConnected && setConnectNumberModalOpen(true)}
@@ -456,7 +504,7 @@ const HomeDashboard = () => {
       </div>
 
       {/* Modals */}
-      <ConnectNumberModal isOpen={connectNumberModalOpen} onClose={() => setConnectNumberModalOpen(false)} />
+      <ConnectNumberModal isOpen={connectNumberModalOpen} onClose={handleCloseConnectModal} callbackPayload={callbackPayload} />
       <ConnectInstagramModal isOpen={connectInstagramModalOpen} onClose={() => setConnectInstagramModalOpen(false)} />
       <CreateContactPanel isOpen={createContactPanelOpen} onClose={() => setCreateContactPanelOpen(false)} />
     </div>

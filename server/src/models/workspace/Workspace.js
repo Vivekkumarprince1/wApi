@@ -5,6 +5,11 @@ const WorkspaceSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    index: true
+  },
   plan: {
     type: String,
     enum: ['free', 'basic', 'premium', 'enterprise'],
@@ -344,11 +349,11 @@ const WorkspaceSchema = new mongoose.Schema({
   }],
 
   planLimits: {
-    maxContacts: { type: Number, default: 100 },
-    maxMessages: { type: Number, default: 1000 },
-    maxTemplates: { type: Number, default: 10 },
-    maxCampaigns: { type: Number, default: 5 },
-    maxAutomations: { type: Number, default: 3 }
+    maxContacts: { type: Number, default: 1000000 },
+    maxMessages: { type: Number, default: 1000000 },
+    maxTemplates: { type: Number, default: 1000000 },
+    maxCampaigns: { type: Number, default: 1000000 },
+    maxAutomations: { type: Number, default: 1000000 }
   },
   usage: {
     contacts: { type: Number, default: 0 },
@@ -507,10 +512,15 @@ const WorkspaceSchema = new mongoose.Schema({
     }
   },
   createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now }
+  updatedAt: { type: Date, default: Date.now },
+
+  // Lean Gupshup storage migration metadata
+  dataModelVersion: { type: Number, default: 2 },
+  leanMigrationAppliedAt: { type: Date }
 });
 
 WorkspaceSchema.index({ createdAt: 1 });
+WorkspaceSchema.index({ owner: 1, updatedAt: -1 });
 
 // ═══════════════════════════════════════════════════════════════════
 // BSP MULTI-TENANT INDEXES & INVARIANTS
@@ -646,6 +656,57 @@ WorkspaceSchema.methods.ensureWorkspaceBspReady = function () {
   }
 
   return true;
+};
+
+WorkspaceSchema.methods.getMessagingCapabilityState = function () {
+  const esbFlow = this.esbFlow || {};
+  const reason = esbFlow.capabilityBlockedReason || null;
+  const normalizedReason = String(reason || '').toLowerCase();
+  const normalizedNameStatus = String(this.nameStatus || '').toUpperCase();
+  const normalizedDecisionStatus = String(esbFlow.metaDecisionStatus || '').toUpperCase();
+  const phoneStatus = String(this.bspPhoneStatus || '').toUpperCase();
+  const phoneOperational = phoneStatus === 'CONNECTED' || this.whatsappConnected === true;
+
+  const enforcementStatuses = ['DISABLED', 'PENDING_DELETION', 'UNDER_REVIEW'];
+  if (enforcementStatuses.includes(normalizedDecisionStatus)) {
+    return {
+      blocked: true,
+      stale: false,
+      reason: reason || `Meta enforcement status is ${normalizedDecisionStatus}`
+    };
+  }
+
+  const nameReviewBlockingStatuses = ['PENDING', 'REJECTED', 'DECLINED'];
+  if (nameReviewBlockingStatuses.includes(normalizedNameStatus)) {
+    return {
+      blocked: true,
+      stale: false,
+      reason: reason || `Display name approval is ${normalizedNameStatus}`
+    };
+  }
+
+  if (!esbFlow.capabilityBlocked) {
+    return { blocked: false, stale: false, reason: null };
+  }
+
+  const looksLikeStaleDisplayNameBlock =
+    phoneOperational &&
+    !normalizedNameStatus &&
+    (normalizedReason.includes('131037') || normalizedReason.includes('display name approval'));
+
+  if (looksLikeStaleDisplayNameBlock) {
+    return {
+      blocked: false,
+      stale: true,
+      reason
+    };
+  }
+
+  return {
+    blocked: true,
+    stale: false,
+    reason: reason || 'Messaging capability is blocked'
+  };
 };
 
 // Method to check if workspace has reached limit
@@ -822,8 +883,10 @@ WorkspaceSchema.methods.getPhoneNumberId = function () {
 WorkspaceSchema.methods.canSendMessage = function () {
   if (!this.bspManaged) return true;
 
+  const capabilityState = this.getMessagingCapabilityState();
+
   // Meta enforcement checks (Interakt-grade safety)
-  if (this.esbFlow?.accountBlocked || this.esbFlow?.capabilityBlocked) {
+  if (this.esbFlow?.accountBlocked || capabilityState.blocked) {
     return false;
   }
 
@@ -868,6 +931,7 @@ WorkspaceSchema.methods.incrementBspMessageUsage = async function () {
 
   if (shouldResetDaily) {
     updateOps.$set['bspUsage.messagesToday'] = 1;
+    updateOps.$set['bspUsage.templateSubmissionsToday'] = 0; // Reset template submissions too
     updateOps.$set['bspUsage.lastUsageReset'] = today;
     delete updateOps.$inc['bspUsage.messagesToday'];
   }
@@ -876,6 +940,35 @@ WorkspaceSchema.methods.incrementBspMessageUsage = async function () {
     updateOps.$set['bspUsage.messagesThisMonth'] = 1;
     updateOps.$set['bspUsage.lastMonthlyReset'] = thisMonth;
     delete updateOps.$inc['bspUsage.messagesThisMonth'];
+  }
+
+  return await this.constructor.findByIdAndUpdate(this._id, updateOps, { new: true });
+};
+
+/**
+ * Increment BSP template submission usage atomically
+ */
+WorkspaceSchema.methods.incrementTemplateSubmissionUsage = async function () {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Check if we need to reset daily counter
+  const lastReset = this.bspUsage?.lastUsageReset || new Date(0);
+  const shouldResetDaily = lastReset < today;
+
+  const updateOps = {
+    $inc: {
+      'bspUsage.templateSubmissionsToday': 1
+    }
+  };
+
+  if (shouldResetDaily) {
+    updateOps.$set = {
+      'bspUsage.templateSubmissionsToday': 1,
+      'bspUsage.messagesToday': 0, // Reset messages too if daily reset occurs here
+      'bspUsage.lastUsageReset': today
+    };
+    delete updateOps.$inc['bspUsage.templateSubmissionsToday'];
   }
 
   return await this.constructor.findByIdAndUpdate(this._id, updateOps, { new: true });

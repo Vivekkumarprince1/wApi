@@ -19,6 +19,39 @@ const bspConfig = require('../../config/bspConfig');
 const { validateTemplate, buildMetaPayload, LIMITS } = require('../../middlewares/infrastructure/templateValidation');
 const usageLedgerService = require('../../services/billing/usageLedgerService');
 
+function buildActiveTemplateScope(workspace) {
+  const activePartnerAppId = String(
+    workspace?.gupshupIdentity?.partnerAppId ||
+    workspace?.gupshupAppId ||
+    ''
+  ).trim();
+
+  if (!activePartnerAppId) {
+    return null;
+  }
+
+  return {
+    $or: [
+      { partnerAppId: activePartnerAppId },
+      { partnerAppId: { $exists: false } },
+      { partnerAppId: null },
+      { partnerAppId: '' }
+    ]
+  };
+}
+
+function applyActiveTemplateScope(baseMatch, workspace) {
+  const activeTemplateScope = buildActiveTemplateScope(workspace);
+
+  if (!activeTemplateScope) {
+    return baseMatch;
+  }
+
+  return {
+    $and: [baseMatch, activeTemplateScope]
+  };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // CREATE TEMPLATE (DRAFT)
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -116,6 +149,7 @@ async function createTemplate(req, res, next) {
 async function listTemplates(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
+    const workspace = await Workspace.findById(workspaceId).select('gupshupIdentity gupshupAppId');
 
     const {
       status,
@@ -130,6 +164,11 @@ async function listTemplates(req, res, next) {
 
     // Build query
     const query = { workspace: workspaceId };
+    const activeTemplateScope = buildActiveTemplateScope(workspace);
+    if (activeTemplateScope) {
+      query.$and = query.$and || [];
+      query.$and.push(activeTemplateScope);
+    }
 
     if (status) {
       const statuses = status.toUpperCase().split(',');
@@ -148,10 +187,13 @@ async function listTemplates(req, res, next) {
     }
 
     if (search) {
-      query.$or = [
+      const searchScope = [
         { name: { $regex: search, $options: 'i' } },
         { 'body.text': { $regex: search, $options: 'i' } }
       ];
+
+      query.$and = query.$and || [];
+      query.$and.push({ $or: searchScope });
     }
 
     // Calculate pagination
@@ -171,7 +213,13 @@ async function listTemplates(req, res, next) {
 
     // Calculate status counts
     const statusCounts = await Template.aggregate([
-      { $match: { workspace: workspaceId, status: { $ne: 'DELETED' } } },
+      {
+        $match: {
+          workspace: workspaceId,
+          status: { $ne: 'DELETED' },
+          ...(activeTemplateScope || {})
+        }
+      },
       { $group: { _id: '$status', count: { $sum: 1 } } }
     ]);
 
@@ -213,13 +261,15 @@ async function listTemplates(req, res, next) {
 async function getTemplateLibraryStats(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
+    const workspace = await Workspace.findById(workspaceId).select('gupshupIdentity gupshupAppId');
+    const baseMatch = applyActiveTemplateScope({ workspace: workspaceId }, workspace);
 
     // Total templates
-    const total = await Template.countDocuments({ workspace: workspaceId });
+    const total = await Template.countDocuments(baseMatch);
 
     // By category
     const byCategoryAgg = await Template.aggregate([
-      { $match: { workspace: workspaceId } },
+      { $match: baseMatch },
       { $group: { _id: '$category', count: { $sum: 1 } } }
     ]);
 
@@ -230,7 +280,7 @@ async function getTemplateLibraryStats(req, res, next) {
 
     // By status
     const byStatusAgg = await Template.aggregate([
-      { $match: { workspace: workspaceId } },
+      { $match: baseMatch },
       { $group: { _id: '$status', count: { $sum: 1 } } }
     ]);
 
@@ -818,7 +868,7 @@ async function submitTemplate(req, res, next) {
  * Gupshup returns: elementName, data, containerMeta, languageCode, category,
  * status, quality, reason, externalId, id, templateType, etc.
  */
-function parseGupshupTemplate(gTemplate) {
+function parseGupshupTemplate(gTemplate, existingTemplate = null) {
   const result = {
     header: { enabled: false, format: 'NONE' },
     body: { text: '', examples: [] },
@@ -846,6 +896,36 @@ function parseGupshupTemplate(gTemplate) {
     } catch (_) { /* ignore parse errors */ }
   }
 
+  const existingHeader = existingTemplate?.header || {};
+  const snapshotHeaderComponent = Array.isArray(existingTemplate?.metaPayloadSnapshot?.components)
+    ? existingTemplate.metaPayloadSnapshot.components.find((component) => component.type === 'HEADER')
+    : null;
+  const templateType = String(gTemplate.templateType || existingHeader.format || 'TEXT').toUpperCase();
+  const isMediaHeaderType = ['IMAGE', 'VIDEO', 'DOCUMENT', 'LOCATION'].includes(templateType);
+  const providerMediaHandle =
+    gTemplate.exampleMedia ||
+    gTemplate.mediaId ||
+    meta.exampleMedia ||
+    containerMeta.exampleMedia ||
+    containerMeta.headerHandle ||
+    snapshotHeaderComponent?.example?.header_handle?.[0] ||
+    existingHeader.mediaHandle ||
+    '';
+  const providerMediaUrl =
+    gTemplate.mediaUrl ||
+    meta.mediaUrl ||
+    containerMeta.mediaUrl ||
+    containerMeta.headerMediaUrl ||
+    snapshotHeaderComponent?.example?.header_url?.[0] ||
+    existingHeader.mediaUrl ||
+    '';
+  const providerExampleHeader =
+    containerMeta.exampleHeader ||
+    meta.exampleHeader ||
+    snapshotHeaderComponent?.example?.header_text?.[0] ||
+    existingHeader.example ||
+    '';
+
   // Body text: use containerMeta.data first, fallback to gTemplate.data
   const rawData = containerMeta.data || gTemplate.data || '';
   // Gupshup concatenates body + "\n" + footer in the `data` field
@@ -865,14 +945,16 @@ function parseGupshupTemplate(gTemplate) {
   }
 
   // Header
-  if (containerMeta.header) {
-    const headerFormat = String(gTemplate.templateType || 'TEXT').toUpperCase();
+  if (containerMeta.header || isMediaHeaderType) {
+    const headerFormat = isMediaHeaderType ? templateType : 'TEXT';
     result.header = {
       enabled: true,
       format: headerFormat === 'TEXT' ? 'TEXT' : headerFormat,
       text: typeof containerMeta.header === 'string' ? containerMeta.header : '',
-      example: containerMeta.exampleHeader || '',
-      mediaUrl: containerMeta.headerMediaUrl || ''
+      example: providerExampleHeader,
+      mediaUrl: providerMediaUrl,
+      mediaHandle: providerMediaHandle,
+      mediaThumbnail: existingHeader.mediaThumbnail || snapshotHeaderComponent?.mediaThumbnail || ''
     };
   }
 
@@ -996,6 +1078,85 @@ async function syncTemplates(req, res, next) {
       return res.status(bspErr.statusCode).json(bspErr);
     }
 
+    if (!Array.isArray(result.templates) || result.templates.length === 0) {
+      const activeLocalMatch = applyActiveTemplateScope(
+        { workspace: workspaceId, status: { $ne: 'DELETED' } },
+        workspace
+      );
+
+      const foreignTemplateMatch = {
+        workspace: workspaceId,
+        status: { $ne: 'DELETED' },
+        partnerAppId: {
+          $nin: [partnerAppId, null, '']
+        }
+      };
+
+      const [activeLocalTemplateCount, foreignTemplateCount] = await Promise.all([
+        Template.countDocuments(activeLocalMatch),
+        partnerAppId ? Template.countDocuments(foreignTemplateMatch) : 0
+      ]);
+
+      const warning = {
+        code: 'NO_PROVIDER_TEMPLATES',
+        activePartnerAppId: partnerAppId,
+        activeLocalTemplateCount,
+        foreignTemplateCount,
+        details: result.warning || null
+      };
+
+      if (activeLocalTemplateCount > 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'Gupshup returned no templates for the active app, so existing local templates were kept unchanged.',
+          stats: {
+            synced: 0,
+            new: 0,
+            updated: 0,
+            skipped: 0
+          },
+          totalFromProvider: 0,
+          warning
+        });
+      }
+
+      if (foreignTemplateCount > 0) {
+        return res.status(200).json({
+          success: true,
+          message: 'The currently connected Gupshup app has no templates. This workspace still contains templates from an older app connection, so reconnect the correct app or recreate and approve templates on the active app.',
+          stats: {
+            synced: 0,
+            new: 0,
+            updated: 0,
+            skipped: 0
+          },
+          totalFromProvider: 0,
+          warning: {
+            ...warning,
+            code: 'ACTIVE_APP_HAS_NO_TEMPLATES',
+            suggestedAction: 'Reconnect the workspace to the app that owns the old templates, or create and approve templates on the current app before syncing again.'
+          }
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'The currently connected Gupshup app has no templates yet. Create and approve templates on this app, then sync again.',
+        stats: {
+          synced: 0,
+          new: 0,
+          updated: 0,
+          skipped: 0
+        },
+        totalFromProvider: 0,
+        warning: {
+          ...warning,
+          code: 'ACTIVE_APP_HAS_NO_TEMPLATES',
+          suggestedAction: 'Create a template in this workspace, submit it for approval, and sync again after Gupshup approves it.'
+        }
+      });
+    }
+
     // Step 3: Upsert Gupshup-format templates into local DB
     let syncStats = {
       synced: 0,
@@ -1040,7 +1201,7 @@ async function syncTemplates(req, res, next) {
       }
 
       // Parse Gupshup structured data
-      const parsed = parseGupshupTemplate(gTemplate);
+      const parsed = parseGupshupTemplate(gTemplate, localTemplate);
 
       // Map Gupshup fields to local model
       const previousStatus = localTemplate.status;
@@ -1062,6 +1223,7 @@ async function syncTemplates(req, res, next) {
       localTemplate.body = parsed.body;
       localTemplate.footer = parsed.footer;
       localTemplate.buttons = parsed.buttons;
+      localTemplate.components = localTemplate.buildMetaComponents();
       localTemplate.qualityScore = gTemplate.quality || 'UNKNOWN';
       localTemplate.rejectionReason = gTemplate.reason || null;
       localTemplate.lastSyncedAt = new Date();
@@ -1268,9 +1430,14 @@ async function validateTemplatePreview(req, res, next) {
 async function getTemplateCategories(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
+    const workspace = await Workspace.findById(workspaceId).select('gupshupIdentity gupshupAppId');
+    const match = applyActiveTemplateScope(
+      { workspace: workspaceId, status: { $ne: 'DELETED' } },
+      workspace
+    );
 
     const categories = await Template.aggregate([
-      { $match: { workspace: workspaceId, status: { $ne: 'DELETED' } } },
+      { $match: match },
       {
         $group: {
           _id: '$category',

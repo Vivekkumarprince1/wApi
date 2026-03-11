@@ -533,7 +533,7 @@ const TemplateManager = () => {
             <p className="text-sm">Connect your WhatsApp account to submit templates for approval.</p>
           </div>
           <button
-            onClick={() => router.push('/onboarding/esb')}
+            onClick={() => router.push('/dashboard?connectWhatsApp=1')}
             className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
           >
             Connect Now

@@ -32,6 +32,8 @@ import { FaWhatsapp, FaInstagram } from 'react-icons/fa';
 import * as api from '@/lib/api';
 import { useAuth } from '@/lib/AuthProvider';
 
+const ACTIVE_PHONE_STATUSES = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VERIFIED'];
+
 const Header = ({ onMenuClick }) => {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -54,7 +56,7 @@ const Header = ({ onMenuClick }) => {
     name: workspace.name,
     wabaId: workspace.wabaId,
     whatsapp: {
-      isConnected: phoneStatus === 'CONNECTED',
+      isConnected: ACTIVE_PHONE_STATUSES.includes(String(phoneStatus || '').toUpperCase()),
       phoneNumber: phoneNumber
     },
     verification,
@@ -65,7 +67,7 @@ const Header = ({ onMenuClick }) => {
     verification: workspace.verification
   } : null;
 
-  const isWhatsAppConnected = waStage1?.details?.phoneStatus === 'CONNECTED' || waStage1?.checklist?.phoneConnected === true || workspaceData?.whatsapp?.isConnected;
+  const isWhatsAppConnected = ACTIVE_PHONE_STATUSES.includes(String(waStage1?.details?.phoneStatus || '').toUpperCase()) || waStage1?.checklist?.phoneConnected === true || workspaceData?.whatsapp?.isConnected;
   const whatsappDisplayNumber = waStage1?.details?.phoneNumber || workspaceData?.whatsapp?.phoneNumber;
 
   const notifRef = useRef(null);
@@ -192,7 +194,7 @@ const Header = ({ onMenuClick }) => {
   };
 
   const handleWhatsAppClick = () => {
-    router.push(isWhatsAppConnected ? '/dashboard/settings/whatsapp-profile' : '/onboarding/esb');
+    router.push(isWhatsAppConnected ? '/dashboard/settings/whatsapp-profile' : '/dashboard?connectWhatsApp=1');
   };
 
   const getPlanName = () => {

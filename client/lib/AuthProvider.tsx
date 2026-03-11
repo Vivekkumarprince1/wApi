@@ -29,13 +29,16 @@ export interface AuthWorkspace {
     id: string;
     name: string;
     wabaId?: string;
+    owner?: string;
     gupshupIdentity?: {
         partnerAppId: string;
-        appApiKey: string;
-        source: string;
+        appApiKey?: string;
+        source?: string;
+        appStatus?: string;
     } | null;
     businessVerified: boolean;
     verification?: any;
+    onboardingStatus?: string;
 }
 
 export interface AuthSession {
@@ -154,9 +157,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         id: typeof userWorkspace === 'string' ? userWorkspace : (userWorkspace._id || userWorkspace.id),
                         name: userWorkspace.name || 'My Workspace',
                         wabaId: userWorkspace.wabaId,
+                        owner: userWorkspace.owner,
                         gupshupIdentity: userWorkspace.gupshupIdentity || null,
                         businessVerified: userWorkspace.businessVerified || false,
                         verification: userWorkspace.verification,
+                        onboardingStatus: userWorkspace.onboarding?.status || userWorkspace.onboardingStatus,
                     });
                 }
 

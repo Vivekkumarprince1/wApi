@@ -262,7 +262,11 @@ async function checkShouldPauseAd(workspace, ad) {
   }
 
   // 5. Capability revoked?
-  if (freshWorkspace.esbFlow?.capabilityBlocked) {
+  const capabilityState = typeof freshWorkspace.getMessagingCapabilityState === 'function'
+    ? freshWorkspace.getMessagingCapabilityState()
+    : { blocked: Boolean(freshWorkspace.esbFlow?.capabilityBlocked) };
+
+  if (capabilityState.blocked) {
     checks.capabilityRevoked = true;
   }
 

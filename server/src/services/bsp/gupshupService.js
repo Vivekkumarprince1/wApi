@@ -1803,6 +1803,10 @@ async function createSubscription({ appId, appApiKey, callbackUrl, name, type, m
  */
 async function ensureRequiredSubscriptions({ appId, appApiKey, webhookUrl }) {
   try {
+    if (!webhookUrl) {
+      throw new Error('PUBLIC_GUPSHUP_WEBHOOK_URL_MISSING');
+    }
+
     const res = await listSubscriptions({ appId, appApiKey });
     const subscriptions = res.subscriptions || [];
 

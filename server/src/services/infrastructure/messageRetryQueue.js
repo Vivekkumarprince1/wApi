@@ -1,6 +1,7 @@
 const Queue = require('bull');
 const logger = require('../../utils/logger');
-const { AuditLog } = require('../../models');
+const { AuditLog, Message } = require('../../models');
+const bspMessagingService = require('../bsp/bspMessagingService');
 
 /**
  * MESSAGE RETRY QUEUE SERVICE
@@ -177,6 +178,111 @@ async function enqueueRetry(messageData, lastError, retryCount = 0) {
   }
 }
 
+function buildTemplateRetryComponents(message) {
+  if (Array.isArray(message?.meta?.components) && message.meta.components.length > 0) {
+    return message.meta.components;
+  }
+
+  const variables = message?.template?.variables || message?.meta?.variables || {};
+  const components = [];
+
+  if (Array.isArray(variables.header) && variables.header.length > 0) {
+    components.push({
+      type: 'header',
+      parameters: variables.header.map((value) => ({ type: 'text', text: value }))
+    });
+  }
+
+  if (Array.isArray(variables.body) && variables.body.length > 0) {
+    components.push({
+      type: 'body',
+      parameters: variables.body.map((value) => ({ type: 'text', text: value }))
+    });
+  }
+
+  if (Array.isArray(variables.buttons) && variables.buttons.length > 0) {
+    variables.buttons.forEach((value, index) => {
+      components.push({
+        type: 'button',
+        sub_type: 'quick_reply',
+        index: String(index),
+        parameters: [{ type: 'payload', payload: value }]
+      });
+    });
+  }
+
+  return components;
+}
+
+function buildRetryRequestFromMessage(message, fallbackData = {}) {
+  if (!message) {
+    throw new Error('MESSAGE_REQUIRED_FOR_RETRY');
+  }
+
+  const workspaceId = String(message.workspace || fallbackData.workspaceId || '');
+  const recipientPhone = message.recipientPhone || fallbackData.recipientPhone;
+
+  if (!workspaceId) throw new Error('WORKSPACE_REQUIRED_FOR_RETRY');
+  if (!recipientPhone) throw new Error('RECIPIENT_REQUIRED_FOR_RETRY');
+
+  const options = {
+    contactId: message.contact || undefined,
+    conversationId: message.conversation || undefined,
+    sentBy: message.sentBy || undefined,
+    skipMessageLog: true
+  };
+
+  if (message.type === 'template') {
+    const templateName =
+      message.template?.metaTemplateName ||
+      message.meta?.metaTemplateName ||
+      message.template?.name ||
+      message.meta?.templateName;
+
+    if (!templateName) {
+      throw new Error('TEMPLATE_NAME_MISSING_FOR_RETRY');
+    }
+
+    return {
+      method: 'sendTemplateMessage',
+      args: [
+        workspaceId,
+        recipientPhone,
+        templateName,
+        message.template?.language || message.meta?.language || 'en',
+        buildTemplateRetryComponents(message),
+        options
+      ]
+    };
+  }
+
+  if (['image', 'video', 'document', 'audio'].includes(message.type)) {
+    const mediaUrl = message.media?.url || message.meta?.media?.url || fallbackData.mediaUrl;
+    if (!mediaUrl) {
+      throw new Error('MEDIA_URL_MISSING_FOR_RETRY');
+    }
+
+    const caption = message.media?.caption || message.meta?.media?.caption || message.body || '';
+
+    return {
+      method: 'sendMediaMessage',
+      args: [
+        workspaceId,
+        recipientPhone,
+        message.type,
+        { url: mediaUrl, link: mediaUrl },
+        caption.startsWith('[') ? '' : caption,
+        options
+      ]
+    };
+  }
+
+  return {
+    method: 'sendTextMessage',
+    args: [workspaceId, recipientPhone, message.body || fallbackData.messageBody || '', options]
+  };
+}
+
 /**
  * INTERNAL: Process individual retry job
  * Called by worker
@@ -192,56 +298,37 @@ async function processMessageRetry(job) {
   });
 
   try {
-    // Get metaAutomationService to send message
-    const metaAutomationService = require('./metaAutomationService');
-    const { Workspace } = require('../../models');
-
-    // Get workspace and token
-    const workspace = await Workspace.findById(workspaceId).select('esbFlow phoneNumbers');
-    if (!workspace) {
-      throw new Error('Workspace not found');
+    const message = await Message.findById(messageId);
+    if (!message) {
+      throw new Error('Message not found');
     }
 
-    const secretsManager = require('./secretsManager');
-    const accessToken = await secretsManager.retrieveToken(
-      workspaceId.toString()
-    );
-
-    if (!accessToken) {
-      throw new Error('Access token not found');
+    if (['sent', 'delivered', 'read'].includes(message.status) && message.whatsappMessageId) {
+      logger.info('[MessageRetryQueue] Skipping retry for already-sent message', {
+        messageId,
+        status: message.status,
+        whatsappMessageId: message.whatsappMessageId
+      });
+      return { success: true, skipped: true, reason: 'already_sent' };
     }
 
-    // Retry sending message
-    const phoneNumberId = workspace.phoneNumbers[0]?.phone_number_id;
-    let result;
+    const retryRequest = buildRetryRequestFromMessage(message, data);
+    const result = await bspMessagingService[retryRequest.method](...retryRequest.args);
 
-    if (data.templateId) {
-      // Template-based message
-      result = await metaAutomationService.sendTemplateMessage(
-        accessToken,
-        phoneNumberId,
-        recipientPhone,
-        data.templateId
-      );
-    } else {
-      // Text message
-      result = await metaAutomationService.sendTextMessage(
-        accessToken,
-        phoneNumberId,
-        recipientPhone,
-        data.messageBody
-      );
-    }
-
-    // Mark message as sent
-    const { Message } = require('../../models');
-    await Message.findByIdAndUpdate(messageId, {
-      $set: {
-        status: 'sent',
-        sentAt: new Date(),
-        metaMessageId: result.messages[0].id,
-      },
-    });
+    message.status = 'queued';
+    message.sentAt = new Date();
+    message.failedAt = null;
+    message.failureReason = null;
+    message.whatsappMessageId = result.messageId;
+    message.meta = {
+      ...(message.meta || {}),
+      whatsappId: result.messageId,
+      retryCount: data.retryCount + 1,
+      retryLastAttemptAt: new Date(),
+      retryLastError: null
+    };
+    message.markModified('meta');
+    await message.save();
 
     // Audit log
     await AuditLog.create({
@@ -253,7 +340,7 @@ async function processMessageRetry(job) {
       },
       details: {
         retryCount: data.retryCount,
-        metaMessageId: result.messages[0].id,
+        whatsappMessageId: result.messageId,
         status: 'success',
       }
     });
@@ -261,11 +348,23 @@ async function processMessageRetry(job) {
     logger.info(`[MessageRetryQueue] Message sent successfully on retry:`, {
       messageId,
       retryCount: data.retryCount,
-      metaMessageId: result.messages[0].id,
+      whatsappMessageId: result.messageId,
     });
 
     return { success: true, retryCount: data.retryCount };
   } catch (error) {
+    await Message.findByIdAndUpdate(messageId, {
+      $set: {
+        status: 'failed',
+        failureReason: error.message,
+        failedAt: new Date(),
+        'meta.retryLastAttemptAt': new Date(),
+        'meta.retryLastError': error.message
+      }
+    }).catch((updateErr) => {
+      logger.warn('[MessageRetryQueue] Failed to update message retry error state:', updateErr.message);
+    });
+
     logger.warn(`[MessageRetryQueue] Retry attempt failed:`, {
       messageId,
       retryCount: data.retryCount,
@@ -372,4 +471,6 @@ module.exports = {
   startMessageRetryWorker,
   enqueueRetry,
   getQueueStats,
+  buildRetryRequestFromMessage,
+  calculateBackoffDelay,
 };

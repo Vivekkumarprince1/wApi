@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FaTimes } from 'react-icons/fa';
-import { bspStart, bspStage1Status, bspSync } from '@/lib/api';
+import { bspComplete, bspStart, bspStage1Status, bspSync } from '@/lib/api';
 import { useWorkspace } from '@/lib/useWorkspace';
+
+const ACTIVE_PHONE_STATUSES = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VERIFIED'];
 
 /**
  * ConnectNumberModal
@@ -12,13 +14,14 @@ import { useWorkspace } from '@/lib/useWorkspace';
  * Polls stage1-status every 5s to detect when onboarding completes.
  * When complete → closes popup, refetches workspace, closes modal.
  */
-const ConnectNumberModal = ({ isOpen, onClose }) => {
+const ConnectNumberModal = ({ isOpen, onClose, callbackPayload = null }) => {
   const [loadingType, setLoadingType] = useState(null);
   const [error, setError] = useState('');
   const [waitingForCompletion, setWaitingForCompletion] = useState(false);
   const popupRef = useRef(null);
   const popupPollRef = useRef(null);
   const statusPollRef = useRef(null);
+  const processedCallbackRef = useRef(null);
   const { refetch } = useWorkspace();
 
   // Cleanup all timers and popup
@@ -44,6 +47,33 @@ const ConnectNumberModal = ({ isOpen, onClose }) => {
     refetch();
     onClose();
   }, [cleanup, refetch, onClose]);
+
+  const handleCallbackCompletion = useCallback(async (payload = {}) => {
+    const code = payload?.code;
+    const state = payload?.state;
+    const providerError = payload?.error;
+    const providerMessage = payload?.message;
+
+    if (providerError) {
+      cleanup();
+      setError(providerMessage || 'WhatsApp signup was cancelled or failed.');
+      return;
+    }
+
+    if (!code || !state) {
+      return;
+    }
+
+    try {
+      setError('');
+      setWaitingForCompletion(true);
+      await bspComplete({ code, state });
+      await handleOnboardingComplete();
+    } catch (err) {
+      cleanup();
+      setError(err.message || 'Failed to complete WhatsApp onboarding');
+    }
+  }, [cleanup, handleOnboardingComplete]);
 
   // Open URL in a centered popup window
   const openPopup = useCallback((url) => {
@@ -86,9 +116,10 @@ const ConnectNumberModal = ({ isOpen, onClose }) => {
       try {
         const result = await bspStage1Status();
         const stage1 = result?.stage1;
+        const phoneStatus = String(stage1?.details?.phoneStatus || stage1?.phoneStatus || '').toUpperCase();
 
         // If phone is connected or stage1 is complete, onboarding succeeded
-        if (stage1?.complete || stage1?.phoneStatus === 'CONNECTED' || stage1?.checklist?.phoneConnected) {
+        if (stage1?.complete || ACTIVE_PHONE_STATUSES.includes(phoneStatus) || stage1?.checklist?.phoneConnected) {
           console.log('[ConnectNumberModal] Onboarding complete detected via polling!');
           handleOnboardingComplete();
         }
@@ -106,6 +137,9 @@ const ConnectNumberModal = ({ isOpen, onClose }) => {
       if (event.data?.type === 'GUPSHUP_ONBOARDING_COMPLETE') {
         handleOnboardingComplete();
       }
+      if (event.data?.type === 'GUPSHUP_ONBOARDING_CALLBACK') {
+        handleCallbackCompletion(event.data?.payload || {});
+      }
     };
 
     if (isOpen) {
@@ -115,7 +149,17 @@ const ConnectNumberModal = ({ isOpen, onClose }) => {
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [isOpen, handleOnboardingComplete]);
+  }, [isOpen, handleOnboardingComplete, handleCallbackCompletion]);
+
+  useEffect(() => {
+    if (!isOpen || !callbackPayload) return;
+
+    const payloadKey = JSON.stringify(callbackPayload);
+    if (processedCallbackRef.current === payloadKey) return;
+
+    processedCallbackRef.current = payloadKey;
+    handleCallbackCompletion(callbackPayload);
+  }, [isOpen, callbackPayload, handleCallbackCompletion]);
 
   // Cleanup on unmount
   useEffect(() => {

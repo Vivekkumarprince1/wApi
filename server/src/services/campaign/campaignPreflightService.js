@@ -283,10 +283,14 @@ async function validateAccountHealth(workspace) {
   }
   
   // Check capability blocked
-  if (workspace.esbFlow?.capabilityBlocked) {
+  const capabilityState = typeof workspace.getMessagingCapabilityState === 'function'
+    ? workspace.getMessagingCapabilityState()
+    : { blocked: Boolean(workspace.esbFlow?.capabilityBlocked), reason: workspace.esbFlow?.capabilityBlockedReason || 'Messaging capability is blocked' };
+
+  if (capabilityState.blocked) {
     result.error = { 
       code: 'CAPABILITY_BLOCKED', 
-      message: workspace.esbFlow?.capabilityBlockedReason || 'Messaging capability is blocked'
+      message: capabilityState.reason || 'Messaging capability is blocked'
     };
     return result;
   }

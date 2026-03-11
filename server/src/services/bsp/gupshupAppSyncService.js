@@ -2,6 +2,7 @@ const { Workspace } = require('../../models');
 const logger = require('../../utils/logger');
 const gupshupService = require('./gupshupService');
 const { getIO } = require('../../utils/socket');
+const { buildLeanWorkspaceProjection } = require('./gupshupDataBoundaryService');
 
 const PENDING_SYNC_INTERVAL = 15 * 60 * 1000;
 const CONNECTED_SYNC_INTERVAL = 60 * 60 * 1000;
@@ -296,6 +297,21 @@ async function syncWorkspace(workspace) {
     }
 
     logger.debug(`\n======================================================`);
+    const leanUpdates = buildLeanWorkspaceProjection({
+      ...workspace.toObject(),
+      ...updates,
+      gupshupIdentity: {
+        ...(workspace.gupshupIdentity || {}),
+        partnerAppId: workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId,
+        appApiKey: workspace.gupshupIdentity?.appApiKey,
+        source: updates.bspDisplayPhoneNumber || workspace.gupshupIdentity?.source || workspace.whatsappPhoneNumber
+      }
+    }, { currentWorkspace: workspace });
+
+    Object.assign(updates, leanUpdates);
+    delete updates.phoneNumbers;
+    unsetFields.phoneNumbers = 1;
+
     logger.debug(`[GupshupSync] 💾 SAVING TO WORKSPACE DB:`);
     logger.debug(`[GupshupSync] Data: \n`, JSON.stringify(updates, null, 2));
     logger.debug(`======================================================\n`);

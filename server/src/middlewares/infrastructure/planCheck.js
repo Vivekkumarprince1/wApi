@@ -7,19 +7,19 @@ const { Workspace } = require('../../models');
 async function checkTokenExpiry(req, res, next) {
   try {
     const workspace = await Workspace.findById(req.user.workspace);
-    
+
     if (!workspace) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         message: 'Workspace not found',
         code: 'WORKSPACE_NOT_FOUND'
       });
     }
-    
+
     // Check if ESB flow is completed (has tokens)
     if (workspace.esbFlow?.status === 'completed' && workspace.esbFlow?.systemUserTokenExpiry) {
       const now = new Date();
       const tokenExpiry = new Date(workspace.esbFlow.systemUserTokenExpiry);
-      
+
       if (now > tokenExpiry) {
         return res.status(403).json({
           message: 'WhatsApp Business Account token has expired. Please reconnect your account.',
@@ -28,11 +28,11 @@ async function checkTokenExpiry(req, res, next) {
         });
       }
     }
-    
+
     next();
   } catch (err) {
     console.error('Token expiry check error:', err);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: 'Error checking token expiry',
       code: 'TOKEN_CHECK_ERROR'
     });
@@ -42,31 +42,31 @@ async function checkTokenExpiry(req, res, next) {
 // Centralized plan limits configuration
 const PLAN_LIMITS = {
   free: {
-    messagesDaily: 1000,
-    messagesMonthly: 30000,
-    templates: 15,
-    campaigns: 5,
-    contacts: 1000,
-    automations: 3,
-    products: 10
+    messagesDaily: -1,
+    messagesMonthly: -1,
+    templates: -1,
+    campaigns: -1,
+    contacts: -1,
+    automations: -1,
+    products: -1
   },
   basic: {
-    messagesDaily: 10000,
-    messagesMonthly: 300000,
-    templates: 50,
-    campaigns: 10,
-    contacts: 10000,
-    automations: 10,
-    products: 50
+    messagesDaily: -1,
+    messagesMonthly: -1,
+    templates: -1,
+    campaigns: -1,
+    contacts: -1,
+    automations: -1,
+    products: -1
   },
   premium: {
-    messagesDaily: 100000,
-    messagesMonthly: 3000000,
-    templates: 200,
+    messagesDaily: -1,
+    messagesMonthly: -1,
+    templates: -1,
     campaigns: -1,
-    contacts: 100000,
-    automations: 50,
-    products: 500
+    contacts: -1,
+    automations: -1,
+    products: -1
   },
   enterprise: {
     messagesDaily: -1,
@@ -88,9 +88,9 @@ function planCheck(resource = 'messages', amount = 1) {
   return async (req, res, next) => {
     try {
       const workspace = await Workspace.findById(req.user.workspace);
-      
+
       if (!workspace) {
-        return res.status(403).json({ 
+        return res.status(403).json({
           message: 'Workspace not found',
           code: 'WORKSPACE_NOT_FOUND'
         });
@@ -132,7 +132,7 @@ function planCheck(resource = 'messages', amount = 1) {
       // Get plan-based limits
       const plan = workspace.plan || 'free';
       const planLimits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
-      
+
       // Determine limit based on resource type
       let limit;
       let currentUsage;
@@ -145,7 +145,7 @@ function planCheck(resource = 'messages', amount = 1) {
           limit = planLimits.messagesDaily;
           currentUsage = workspace.usage.messagesDaily || 0;
           limitType = 'daily messages';
-          
+
           // Enterprise has unlimited (-1)
           if (limit === -1) {
             req.remainingQuota = 999999;
@@ -157,7 +157,7 @@ function planCheck(resource = 'messages', amount = 1) {
           limit = planLimits.templates;
           currentUsage = workspace.usage.templates || 0;
           limitType = 'templates';
-          
+
           if (limit === -1) {
             req.remainingQuota = 999999;
             return next();
@@ -168,7 +168,7 @@ function planCheck(resource = 'messages', amount = 1) {
           limit = planLimits.campaigns;
           currentUsage = workspace.usage.campaigns || 0;
           limitType = 'campaigns';
-          
+
           if (limit === -1) {
             req.remainingQuota = 999999;
             return next();
@@ -179,7 +179,7 @@ function planCheck(resource = 'messages', amount = 1) {
           limit = planLimits.contacts;
           currentUsage = workspace.usage.contacts || 0;
           limitType = 'contacts';
-          
+
           if (limit === -1) {
             req.remainingQuota = 999999;
             return next();
@@ -190,7 +190,7 @@ function planCheck(resource = 'messages', amount = 1) {
           limit = planLimits.automations;
           currentUsage = workspace.usage.automations || 0;
           limitType = 'automations';
-          
+
           if (limit === -1) {
             req.remainingQuota = 999999;
             return next();
@@ -201,7 +201,7 @@ function planCheck(resource = 'messages', amount = 1) {
           limit = planLimits.products;
           currentUsage = workspace.usage.products || 0;
           limitType = 'products';
-          
+
           if (limit === -1) {
             req.remainingQuota = 999999;
             return next();
@@ -209,7 +209,7 @@ function planCheck(resource = 'messages', amount = 1) {
           break;
 
         default:
-          return res.status(400).json({ 
+          return res.status(400).json({
             message: 'Invalid resource type',
             code: 'INVALID_RESOURCE'
           });
@@ -236,7 +236,7 @@ function planCheck(resource = 'messages', amount = 1) {
       next();
     } catch (err) {
       console.error('Plan check error:', err);
-      return res.status(500).json({ 
+      return res.status(500).json({
         message: 'Error checking plan limits',
         code: 'PLAN_CHECK_ERROR'
       });
@@ -252,7 +252,7 @@ function bulkPlanCheck(resource = 'messages') {
   return async (req, res, next) => {
     try {
       const workspace = await Workspace.findById(req.user.workspace);
-      
+
       if (!workspace) {
         return res.status(403).json({ message: 'Workspace not found' });
       }

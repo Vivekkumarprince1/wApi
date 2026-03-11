@@ -27,6 +27,10 @@ const { getRedis, setJson, getJson, deleteKey } = require('../../config/redis');
 const crypto = require('crypto');
 const { provisionPartnerApp } = require('../../services/bsp/gupshupProvisioningService');
 const {
+  buildLeanWorkspaceProjection,
+  getWorkspaceRuntimeProfile
+} = require('../../services/bsp/gupshupDataBoundaryService');
+const {
   getBspConfig,
   generateBspSignupUrl,
   completeBspOnboarding,
@@ -54,6 +58,61 @@ async function getEsbState(state) {
 async function deleteEsbState(state) {
   getRedisClient();
   return deleteKey(`esb:state:${state}`);
+}
+
+function renderCallbackBridge({ frontendUrl, payload, title, heading, message }) {
+  const safePayload = JSON.stringify(payload || {});
+  const fallbackParams = new URLSearchParams();
+
+  fallbackParams.set('connectWhatsApp', '1');
+  if (payload?.code) fallbackParams.set('code', String(payload.code));
+  if (payload?.state) fallbackParams.set('state', String(payload.state));
+  if (payload?.error) fallbackParams.set('error', String(payload.error));
+  if (payload?.message) fallbackParams.set('message', String(payload.message));
+
+  const fallbackUrl = `${frontendUrl}/dashboard?${fallbackParams.toString()}`;
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${title}</title>
+    <style>
+      body { margin: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #f0fdf4, #eff6ff); min-height: 100vh; display: flex; align-items: center; justify-content: center; color: #111827; }
+      .card { width: min(460px, calc(100vw - 32px)); background: #fff; border-radius: 24px; box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12); padding: 32px; text-align: center; }
+      .spinner { width: 52px; height: 52px; border: 4px solid #a7f3d0; border-top-color: #059669; border-radius: 999px; margin: 0 auto 16px; animation: spin 1s linear infinite; }
+      p { color: #4b5563; line-height: 1.6; margin: 0; }
+      h1 { margin: 0 0 12px; font-size: 24px; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="spinner"></div>
+      <h1>${heading}</h1>
+      <p>${message}</p>
+    </div>
+    <script>
+      (function () {
+        var payload = ${safePayload};
+        var fallbackUrl = ${JSON.stringify(fallbackUrl)};
+
+        try {
+          if (window.opener && !window.opener.closed) {
+            window.opener.postMessage({ type: 'GUPSHUP_ONBOARDING_CALLBACK', payload: payload }, ${JSON.stringify(frontendUrl)});
+            window.close();
+            return;
+          }
+        } catch (error) {
+          console.error('Failed to bridge onboarding callback:', error);
+        }
+
+        window.location.replace(fallbackUrl);
+      })();
+    </script>
+  </body>
+</html>`;
 }
 
 // =============================================================================
@@ -254,34 +313,62 @@ async function handleCallback(req, res) {
       error,
       errorDescription: error_description
     });
-    return res.redirect(
-      `${frontendUrl}/onboarding/esb/callback?error=${encodeURIComponent(error)}&message=${encodeURIComponent(error_description || 'Signup cancelled')}`
-    );
+    return res.status(200).send(renderCallbackBridge({
+      frontendUrl,
+      payload: {
+        error,
+        message: error_description || 'Signup cancelled'
+      },
+      title: 'WhatsApp connection failed',
+      heading: 'Connection failed',
+      message: error_description || 'Signup cancelled. Returning to dashboard...'
+    }));
   }
 
   // Validate state exists
   if (!state || !(await getEsbState(state))) {
     logger.error('[BSP] Invalid or expired state', { state });
-    return res.redirect(
-      `${frontendUrl}/onboarding/esb/callback?error=invalid_state&message=${encodeURIComponent('Session expired. Please try again.')}`
-    );
+    return res.status(200).send(renderCallbackBridge({
+      frontendUrl,
+      payload: {
+        error: 'invalid_state',
+        message: 'Session expired. Please try again.'
+      },
+      title: 'WhatsApp session expired',
+      heading: 'Session expired',
+      message: 'Your onboarding session expired. Returning to dashboard...'
+    }));
   }
 
   // Accept either appId or code from callback
   const callbackToken = appId || code;
   if (!callbackToken) {
     logger.error('[BSP] No appId/code in callback');
-    return res.redirect(
-      `${frontendUrl}/onboarding/esb/callback?error=no_app&message=${encodeURIComponent('No onboarding app identifier received.')}`
-    );
+    return res.status(200).send(renderCallbackBridge({
+      frontendUrl,
+      payload: {
+        error: 'no_app',
+        message: 'No onboarding app identifier received.'
+      },
+      title: 'Missing onboarding data',
+      heading: 'Missing onboarding data',
+      message: 'No onboarding app identifier was received. Returning to dashboard...'
+    }));
   }
 
-  // Redirect to frontend, which calls /complete to persist workspace mapping
-  logger.info('[BSP] Callback received, redirecting to frontend');
+  // Send payload back to the dashboard flow so the modal can complete onboarding.
+  logger.info('[BSP] Callback received, bridging to dashboard flow');
 
-  res.redirect(
-    `${frontendUrl}/onboarding/esb/callback?code=${encodeURIComponent(callbackToken)}&state=${encodeURIComponent(state)}`
-  );
+  return res.status(200).send(renderCallbackBridge({
+    frontendUrl,
+    payload: {
+      code: callbackToken,
+      state
+    },
+    title: 'Finishing WhatsApp setup',
+    heading: 'Finishing WhatsApp setup',
+    message: 'Returning to your dashboard to finish the connection...'
+  }));
 }
 
 // =============================================================================
@@ -350,49 +437,20 @@ async function completeOnboarding(req, res) {
     // Create or update workspace
     let workspace;
 
+    const currentWorkspace = stateData.workspaceId
+      ? await Workspace.findById(stateData.workspaceId).lean()
+      : null;
+    const leanProjection = buildLeanWorkspaceProjection(result, { currentWorkspace });
+
     const updateData = {
-      // Business identifiers
-      businessId: result.businessId,
-      wabaId: result.wabaId,
-
-      // Phone details
-      whatsappPhoneNumber: result.displayPhoneNumber,
-      bspDisplayPhoneNumber: result.displayPhoneNumber,
-      verifiedName: result.verifiedName,
-      bspVerifiedName: result.verifiedName,
-
-      // Phone status (CRITICAL for Stage 1)
-      bspPhoneStatus: result.phoneStatus,
-
-      // Status
-      whatsappConnected: result.phoneStatus === 'CONNECTED',
-      connectedAt: result.connectedAt,
-
-      // Phone metadata
-      qualityRating: result.qualityRating,
-      bspQualityRating: result.qualityRating,
-      messagingLimitTier: result.messagingLimit,
-      bspMessagingTier: result.messagingLimit,
-      codeVerificationStatus: result.codeVerificationStatus,
-      nameStatus: result.nameStatus,
-      isOfficialAccount: result.isOfficialAccount,
+      ...leanProjection,
 
       // Token is stored in vault only (no workspace token storage)
       tokenExpiresAt: result.tokenExpiresAt,
-
-      // BSP context
-      bspManaged: true,
-      bspWabaId: result.bspWabaId,
-      gupshupAppId: result.gupshupAppId,
-      onboardingStatus: result.onboardingStatus,
-      phoneStatus: result.phoneStatus,
       bspOnboardedAt: new Date(),
 
-      // Business profile
+      // Optional editable business profile cache
       businessProfile: result.businessProfile,
-
-      // All phones
-      phoneNumbers: result.allPhones,
 
       // ESB flow tracking
       'esbFlow.status': result.phoneStatus === 'CONNECTED' ? 'completed' : 'phone_pending',
@@ -405,15 +463,14 @@ async function completeOnboarding(req, res) {
 
     const unsetData = {};
 
-    if (result.phoneNumberId) {
-      updateData.phoneNumberId = result.phoneNumberId;
-      updateData.bspPhoneNumberId = result.phoneNumberId;
-      updateData.whatsappPhoneNumberId = result.phoneNumberId;
-    } else {
+    if (!result.phoneNumberId) {
       unsetData.phoneNumberId = 1;
       unsetData.bspPhoneNumberId = 1;
       unsetData.whatsappPhoneNumberId = 1;
     }
+
+    // Lean boundary: do not keep duplicated phone arrays after onboarding.
+    unsetData.phoneNumbers = 1;
 
     if (stateData.workspaceId) {
       // Update existing workspace
@@ -550,6 +607,35 @@ async function getStatus(req, res) {
     res.status(500).json({
       success: false,
       message: 'Failed to get status'
+    });
+  }
+}
+
+async function getRuntimeProfile(req, res) {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).populate('workspace');
+
+    if (!user?.workspace) {
+      return res.status(404).json({
+        success: false,
+        message: 'No workspace found',
+        code: 'NO_WORKSPACE'
+      });
+    }
+
+    const runtimeProfile = await getWorkspaceRuntimeProfile(user.workspace);
+
+    return res.json({
+      success: true,
+      profile: runtimeProfile
+    });
+  } catch (error) {
+    logger.error('[BSP] Runtime profile error', { error: error.message, stack: error.stack });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to load runtime profile',
+      code: 'RUNTIME_PROFILE_ERROR'
     });
   }
 }
@@ -814,6 +900,7 @@ module.exports = {
   handleCallback,
   completeOnboarding,
   getStatus,
+  getRuntimeProfile,
   disconnect,
   getConfig,
   getStage1StatusEndpoint,

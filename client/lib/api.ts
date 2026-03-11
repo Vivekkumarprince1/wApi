@@ -1466,6 +1466,8 @@ export const bspStart = async (payload: {
   businessName?: string;
   phone?: string;
   callbackUrl?: string;
+  connectionType?: 'business_app' | 'new_number';
+  region?: string;
 } = {}) => {
   const response = await fetch(`${API_URL}/onboarding/bsp/start`, {
     method: 'POST',
@@ -1550,6 +1552,22 @@ export const bspStage1Status = async () => {
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.message || 'Failed to fetch stage1 status');
+  }
+  return response.json();
+};
+
+/**
+ * Get live runtime profile from Gupshup-backed provider APIs
+ * RETURNS: { profile: { connected, persisted, live, storageBoundary } }
+ */
+export const bspRuntimeProfile = async () => {
+  const response = await fetch(`${API_URL}/onboarding/bsp/runtime-profile`, {
+    headers: getAuthHeaders(),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch runtime profile');
   }
   return response.json();
 };

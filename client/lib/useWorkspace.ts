@@ -20,13 +20,21 @@ export interface WorkspaceStatus {
     trialEndsAt?: string;
   } | null;
   stage1Complete: boolean;
-  phoneStatus: 'NOT_CONNECTED' | 'PENDING' | 'CONNECTED';
+  phoneStatus: string;
   phoneNumber?: string;
   workspace: {
     id: string;
     name: string;
     wabaId?: string;
     businessVerified: boolean;
+    owner?: string;
+    onboardingStatus?: string;
+    gupshupIdentity?: {
+      partnerAppId: string;
+      appApiKey?: string;
+      source?: string;
+      appStatus?: string;
+    } | null;
   } | null;
   loading: boolean;
   error: string | null;

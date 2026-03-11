@@ -5,6 +5,67 @@ const { Workspace, User } = require('../../models');
 const ALGORITHM = 'aes-256-cbc';
 const ENCRYPTION_KEY = process.env.INTEGRATION_ENCRYPTION_KEY || process.env.JWT_SECRET || 'fallback_secret_key_32_chars_long!!';
 
+function buildWebhookUrlFromBase(baseUrl) {
+    const normalizedBase = String(baseUrl || '').trim().replace(/\/$/, '');
+    if (!normalizedBase) return null;
+
+    if (/\/api\/v1\/webhook\/(gupshup|whatsapp)$/i.test(normalizedBase)) {
+        return normalizedBase;
+    }
+
+    if (/\/api\/v1$/i.test(normalizedBase)) {
+        return `${normalizedBase}/webhook/gupshup`;
+    }
+
+    if (/\/api$/i.test(normalizedBase)) {
+        return `${normalizedBase}/v1/webhook/gupshup`;
+    }
+
+    return `${normalizedBase}/api/v1/webhook/gupshup`;
+}
+
+function isPublicWebhookUrl(candidateUrl) {
+    if (!candidateUrl) return false;
+
+    try {
+        const parsed = new URL(candidateUrl);
+        const hostname = String(parsed.hostname || '').toLowerCase();
+
+        if (parsed.protocol !== 'https:') return false;
+        if (!hostname) return false;
+        if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || hostname === '::1') {
+            return false;
+        }
+        if (hostname.endsWith('.local')) return false;
+
+        return true;
+    } catch (_error) {
+        return false;
+    }
+}
+
+function resolveWhatsAppWebhookUrl() {
+    const directWebhookUrl = String(process.env.WHATSAPP_WEBHOOK_URL || '').trim();
+    if (isPublicWebhookUrl(directWebhookUrl)) {
+        return directWebhookUrl;
+    }
+
+    const candidateBases = [
+        process.env.RENDER_EXTERNAL_URL,
+        process.env.API_BASE_URL,
+        process.env.APP_URL
+    ];
+
+    for (const baseUrl of candidateBases) {
+        const derivedWebhookUrl = buildWebhookUrlFromBase(baseUrl);
+        if (isPublicWebhookUrl(derivedWebhookUrl)) {
+            return derivedWebhookUrl;
+        }
+    }
+
+    return null;
+}
+
 // Utility to encrypt the token before storing
 function encryptToken(token) {
     if (!token) return null;
@@ -123,13 +184,17 @@ async function provisionPartnerApp(userId, options = {}) {
     // STEP 5: Set Webhook Subscriptions (Automated V3)
     console.log(`[Provisioning] Step 5: Setting Webhook Subscriptions for App ${appId}`);
     try {
-        const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL || `${process.env.API_BASE_URL || 'https://api.yourdomain.com'}/api/v1/webhook/gupshup`;
-        await gupshupService.ensureRequiredSubscriptions({
-            appId,
-            appApiKey: appToken,
-            webhookUrl
-        });
-        console.log(`[Provisioning] Successfully ensured required V3 subscriptions`);
+        const webhookUrl = resolveWhatsAppWebhookUrl();
+        if (!webhookUrl) {
+            console.warn('[Provisioning] Skipping subscription setup because no public WHATSAPP webhook URL is configured');
+        } else {
+            await gupshupService.ensureRequiredSubscriptions({
+                appId,
+                appApiKey: appToken,
+                webhookUrl
+            });
+            console.log(`[Provisioning] Successfully ensured required V3 subscriptions`);
+        }
     } catch (err) {
         console.warn(`[Provisioning] Failed to ensure required subscriptions (non-blocking):`, err.message);
     }
@@ -210,13 +275,17 @@ async function runPostOnboardingAutomations(workspace) {
 
     // 3. Ensure Subscriptions (Verification step after connection)
     try {
-        const webhookUrl = process.env.WHATSAPP_WEBHOOK_URL || `${process.env.API_BASE_URL || 'https://api.yourdomain.com'}/api/v1/webhook/gupshup`;
-        await gupshupService.ensureRequiredSubscriptions({
-            appId,
-            appApiKey,
-            webhookUrl
-        });
-        console.log(`[Provisioning Automations] Verified subscriptions for App ${appId}`);
+        const webhookUrl = resolveWhatsAppWebhookUrl();
+        if (!webhookUrl) {
+            console.warn(`[Provisioning Automations] Skipping subscription verification for App ${appId} because no public webhook URL is configured`);
+        } else {
+            await gupshupService.ensureRequiredSubscriptions({
+                appId,
+                appApiKey,
+                webhookUrl
+            });
+            console.log(`[Provisioning Automations] Verified subscriptions for App ${appId}`);
+        }
     } catch (error) {
         console.warn(`[Provisioning Automations] Failed to verify subscriptions for App ${appId}:`, error.message);
     }
@@ -226,5 +295,7 @@ module.exports = {
     provisionPartnerApp,
     runPostOnboardingAutomations,
     encryptToken,
-    decryptToken
+    decryptToken,
+    resolveWhatsAppWebhookUrl,
+    isPublicWebhookUrl
 };
