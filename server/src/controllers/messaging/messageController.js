@@ -292,11 +292,11 @@ async function sendTemplateMessage(req, res, next) {
 
       console.log(`[MessageController] Template sent successfully: ${result.messageId}`);
 
-      // Update message status
-      message.status = 'sent';
+      // Keep as queued until provider webhooks confirm sent/delivered/read
+      message.status = 'queued';
       message.meta.whatsappId = result.messageId;
       message.meta.whatsappResponses = [result];
-      message.sentAt = new Date();
+      message.meta.providerAcceptedAt = new Date();
       message.markModified('meta');
       await message.save();
 
@@ -320,7 +320,7 @@ async function sendTemplateMessage(req, res, next) {
 
       return res.status(200).json({
         success: true,
-        message: 'Template message sent successfully',
+        message: 'Template message accepted by provider and queued for delivery tracking',
         id: message._id,
         whatsappId: result.messageId
       });
@@ -517,7 +517,7 @@ async function sendBulkTemplateMessage(req, res, next) {
           direction: 'outbound',
           type: 'template',
           body: renderTemplatePreview(template, variables),
-          status: 'sending',
+          status: 'queued',
           meta: {
             templateId: template._id,
             templateName: template.name,
@@ -542,17 +542,18 @@ async function sendBulkTemplateMessage(req, res, next) {
           { contactId: contact._id, skipMessageLog: true, conversationId: conversation?._id }
         );
 
-        // Update message status
-        message.status = 'sent';
+        // Keep as queued until webhook confirmation
+        message.status = 'queued';
         message.meta.whatsappId = result.messageId;
-        message.sentAt = new Date();
+        message.meta.providerAcceptedAt = new Date();
+        message.markModified('meta');
         await message.save();
 
         results.sent++;
         results.details.push({
           contactId: contact._id,
           phone: contact.phone,
-          status: 'sent',
+          status: 'queued',
           messageId: message._id,
           whatsappId: result.messageId
         });

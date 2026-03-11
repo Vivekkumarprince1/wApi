@@ -8,6 +8,7 @@ const { automationEvents, AUTOMATION_EVENTS } = require('../../services/automati
 const { getIO } = require('../../utils/socket');
 const { runPostOnboardingAutomations } = require('../../services/bsp/gupshupProvisioningService');
 const inboxSocketService = require('../../services/messaging/inboxSocketService');
+const { enqueueRetry } = require('../../services/infrastructure/messageRetryQueue');
 
 function verify(req, res) {
   return res.status(200).json({ ok: true, provider: 'gupshup' });
@@ -51,19 +52,24 @@ async function processWebhookPayload(payload, deliveryId, sourceIp) {
   });
 
   try {
-    console.log(`[GupshupWebhook] Processing webhook for appId: ${appId}, workspace: ${workspace?._id || 'unknown'}`);
+    // Gupshup V3 / Meta Passthrough detection
+    const entry = payload?.entry?.[0];
+    const change = entry?.changes?.[0];
+    const v3Value = change?.value;
+    const isV3Passthrough = !!v3Value;
 
-    // Handle V3 format: value.messages and value.statuses
-    const v3Messages = extractV3Messages(payload);
-    const v3Statuses = extractV3Statuses(payload);
-
-    // Handle V2 format: payload.statuses and payload.messages (legacy)
-    const v2Statuses = extractStatuses(payload);
-    const v2Incoming = extractIncomingMessage(payload);
+    console.log(`[GupshupWebhook] Processing webhook for appId: ${appId}, workspace: ${workspace?._id || 'unknown'}. V3 Passthrough: ${isV3Passthrough}`);
 
     // Combine V3 and V2 data
-    const allStatuses = [...v3Statuses, ...v2Statuses];
+    // 1. Messages
+    const v3Messages = extractV3Messages(payload);
+    const v2Incoming = extractIncomingMessage(payload);
     const allMessages = [...v3Messages, ...(v2Incoming ? [v2Incoming] : [])];
+
+    // 2. Statuses
+    const v3Statuses = extractV3Statuses(payload);
+    const v2Statuses = extractStatuses(payload);
+    const allStatuses = [...v3Statuses, ...v2Statuses];
 
     console.log(`[GupshupWebhook] Found ${allStatuses.length} status updates and ${allMessages.length} messages`);
 
@@ -153,9 +159,19 @@ function extractStatuses(payload) {
 function extractV3Messages(payload) {
   const messages = [];
 
-  // V3 format: payload.value.messages
+  // Format 1: payload.value.messages (Gupshup native V3)
   if (payload.value?.messages && Array.isArray(payload.value.messages)) {
     messages.push(...payload.value.messages);
+  }
+
+  // Format 2: entry.changes.value.messages (Meta/Passthrough V3)
+  const changes = payload?.entry?.[0]?.changes;
+  if (Array.isArray(changes)) {
+    for (const change of changes) {
+      if (change.value?.messages && Array.isArray(change.value.messages)) {
+        messages.push(...change.value.messages);
+      }
+    }
   }
 
   return messages;
@@ -164,9 +180,19 @@ function extractV3Messages(payload) {
 function extractV3Statuses(payload) {
   const statuses = [];
 
-  // V3 format: payload.value.statuses
+  // Format 1: payload.value.statuses (Gupshup native V3)
   if (payload.value?.statuses && Array.isArray(payload.value.statuses)) {
     statuses.push(...payload.value.statuses);
+  }
+
+  // Format 2: entry.changes.value.statuses (Meta/Passthrough V3)
+  const changes = payload?.entry?.[0]?.changes;
+  if (Array.isArray(changes)) {
+    for (const change of changes) {
+      if (change.value?.statuses && Array.isArray(change.value.statuses)) {
+        statuses.push(...change.value.statuses);
+      }
+    }
   }
 
   return statuses;
@@ -412,10 +438,13 @@ async function processStatuses(statuses, workspaceId) {
     }
 
     const oldStatus = message.status;
+    const normalizedStatus = String(nextStatus).toLowerCase();
 
     // Normalize string to match enum
     const statusMap = {
       'enqueued': 'queued',
+      'accepted': 'queued',
+      'submitted': 'queued',
       'sent': 'sent',
       'delivered': 'delivered',
       'read': 'read',
@@ -423,7 +452,11 @@ async function processStatuses(statuses, workspaceId) {
       'deleted': 'failed' // WhatsApp sometimes emits deleted for failed sends
     };
 
-    message.status = statusMap[String(nextStatus).toLowerCase()] || String(nextStatus).toLowerCase();
+    message.status = statusMap[normalizedStatus] || normalizedStatus;
+    message.meta = message.meta || {};
+    message.meta.lastProviderStatus = normalizedStatus;
+    message.meta.lastProviderStatusPayload = status;
+    message.meta.lastProviderStatusAt = timestamp;
 
     // Set timestamps based on normalized status
     if (message.status === 'sent') message.sentAt = timestamp;
@@ -445,16 +478,35 @@ async function processStatuses(statuses, workspaceId) {
       console.error(`[GupshupWebhook] Delivery failed: ${message.failureReason}`);
     }
 
+    message.markModified('meta');
     await message.save();
 
-    // Emit socket event (Requirement 4)
+    if (message.direction === 'outbound' && message.status === 'failed' && oldStatus !== 'failed') {
+      try {
+        const retryCount = Number(message.meta?.retryCount || 0);
+        await enqueueRetry({
+          _id: message._id,
+          workspaceId: String(message.workspace || workspaceId),
+          recipientPhone: message.recipientPhone,
+          messageBody: message.body,
+          templateId: message.template?.id,
+          mediaUrl: message.media?.url || message.meta?.media?.url,
+          timestamp
+        }, message.failureReason || 'PROVIDER_DELIVERY_FAILED', retryCount);
+      } catch (retryError) {
+        console.error('[GupshupWebhook] Failed to enqueue retry after delivery failure:', retryError.message);
+      }
+    }
+
+    // Emit socket event via Inbox Socket Service
     if (workspaceId || message.workspace) {
-      getIO()?.to(`workspace:${workspaceId || message.workspace}`).emit('message:status_update', {
-        messageId: message._id,
-        oldStatus,
-        newStatus: message.status,
-        timestamp: timestamp
-      });
+      await inboxSocketService.emitMessageStatus(
+        workspaceId || message.workspace,
+        message.conversation,
+        message._id,
+        message.status,
+        timestamp
+      );
     }
   }
 }
@@ -568,5 +620,6 @@ async function processTemplateWebhook(payload, workspace) {
 module.exports = {
   verify,
   handler,
-  processWebhookPayload
+  processWebhookPayload,
+  processStatuses
 };

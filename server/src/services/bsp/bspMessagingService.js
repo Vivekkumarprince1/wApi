@@ -121,6 +121,22 @@ async function checkMessageStatusTimeout(workspaceId, whatsappMessageId) {
       message.meta = message.meta || {};
       message.meta.timeoutAt = new Date();
       await message.save();
+
+       try {
+        const { enqueueRetry } = require('../infrastructure/messageRetryQueue');
+        const retryCount = Number(message.meta?.retryCount || 0);
+        await enqueueRetry({
+          _id: message._id,
+          workspaceId: String(message.workspace),
+          recipientPhone: message.recipientPhone,
+          messageBody: message.body,
+          templateId: message.template?.id,
+          mediaUrl: message.media?.url || message.meta?.media?.url,
+          timestamp: new Date()
+        }, 'STATUS_TIMEOUT', retryCount);
+      } catch (retryError) {
+        console.warn('[BSPMessagingService] Failed to enqueue timeout retry:', retryError.message);
+      }
     }
   } catch (error) {
     console.error('[BSPMessagingService] Error checking message timeout:', error.message);
@@ -481,11 +497,13 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
 
   const payload = {
     appId,
+    source,
     destination: normalizedPhone,
     templateName,
     languageCode,
     components,
-    appApiKey
+    appApiKey,
+    sourceName: workspace.gupshupIdentity?.appName || workspace.gupshupAppName || workspace.name || appId
   };
 
   // Run diagnostics logger before sending
@@ -670,7 +688,7 @@ async function sendMediaMessage(workspaceId, to, mediaType, media, caption = '',
 
   const source = getWorkspaceSourceNumber(workspace);
   const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId;
-  const appApiKey = workspace.gupshupIdentity?.appApiKey;
+  const appApiKey = await ensureWorkspaceAppApiKey(workspace);
   if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
   const payload = {
@@ -765,14 +783,16 @@ async function sendInteractiveMessage(workspaceId, to, interactive, options = {}
 
   const source = getWorkspaceSourceNumber(workspace);
   const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId;
-  const appApiKey = workspace.gupshupIdentity?.appApiKey;
+  const appApiKey = await ensureWorkspaceAppApiKey(workspace);
   if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
   const payload = {
     appId,
+    source,
     destination: normalizedPhone,
     interactive,
-    appApiKey
+    appApiKey,
+    sourceName: workspace.gupshupIdentity?.appName || workspace.gupshupAppName || workspace.name || appId
   };
 
   console.log(`[BSPMessagingService] Sending interactive message to ${normalizedPhone}`);
@@ -1473,7 +1493,7 @@ async function logMessage(workspaceId, messageData) {
       body: messageData.body,
       status: messageData.status,
       whatsappMessageId: messageData.whatsappMessageId,
-      sentAt: messageData.status === 'queued' || messageData.status === 'sent' ? new Date() : null,
+      sentAt: messageData.status === 'sent' ? new Date() : null,
 
       // Rich metadata for templates/campaigns/billing
       template: messageData.template,
@@ -1486,6 +1506,7 @@ async function logMessage(workspaceId, messageData) {
         templateName: messageData.templateName || messageData.template?.name,
         campaignId: messageData.campaignId || messageData.campaign?.id,
         error: messageData.error,
+        providerAcceptedAt: messageData.status === 'queued' ? new Date() : undefined,
         bspLogged: true,
         ...messageData.meta
       }
@@ -1494,7 +1515,11 @@ async function logMessage(workspaceId, messageData) {
     auditService.log(
       workspaceId,
       messageData.sentBy || null,
-      messageData.status === 'sent' ? 'message.outbound.sent' : 'message.outbound.failed',
+      messageData.status === 'failed'
+        ? 'message.outbound.failed'
+        : messageData.status === 'queued'
+          ? 'message.outbound.queued'
+          : 'message.outbound.sent',
       { type: 'message', id: message._id },
       {
         templateName: messageData.templateName,

@@ -134,44 +134,97 @@ function buildAppAuthHeaders(token) {
   };
 }
 
+function buildPartnerHeaderVariants(token) {
+  const normalizedToken = String(token || '').trim();
+  return [
+    {
+      Authorization: normalizedToken,
+      token: normalizedToken,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    {
+      Authorization: `Bearer ${normalizedToken}`,
+      token: normalizedToken,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    },
+    {
+      token: normalizedToken,
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
+    }
+  ];
+}
+
+function extractPartnerMessageId(data) {
+  return data?.messageId || data?.message?.id || data?.messages?.[0]?.id || data?.id || null;
+}
+
+function buildPartnerV3Envelope({ appId, source, destination, message, sourceName }) {
+  const resolvedSource = normalizePhoneNumber(source || '');
+  const resolvedDestination = normalizePhoneNumber(destination || '');
+
+  if (!resolvedSource) throw new Error('GUPSHUP_SOURCE_MISSING');
+  if (!resolvedDestination) throw new Error('GUPSHUP_DESTINATION_MISSING');
+
+  return {
+    channel: 'whatsapp',
+    source: resolvedSource,
+    destination: resolvedDestination,
+    'src.name': String(sourceName || appId || resolvedSource),
+    message
+  };
+}
+
+async function postPartnerV3Message({ appId, appApiKey, payload }) {
+  if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
+  if (!appApiKey) throw new Error('GUPSHUP_API_KEY_MISSING');
+
+  const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/v3/message`;
+  let lastError = null;
+
+  for (const headers of buildPartnerHeaderVariants(appApiKey)) {
+    try {
+      const response = await axios.post(url, payload, { headers, timeout: 15000 });
+      return response.data;
+    } catch (error) {
+      lastError = error;
+      if (!isAuthRejectedError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError || new Error('GUPSHUP_PARTNER_AUTH_FAILED');
+}
+
 async function sendText({ appId, destination, text, appApiKey, source }) {
   if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
-  const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/v3/message`;
-
-  // Normalize phone: if 10 digits, prepend 91
-  let normalized = String(destination).replace(/\D/g, "");
-  if (normalized.length === 10) {
-    normalized = "91" + normalized;
-  }
-
-  if (!normalized) throw new Error('GUPSHUP_DESTINATION_MISSING');
-
-  const payload = {
-    messaging_product: 'whatsapp',
-    recipient_type: 'individual',
-    to: normalized,
-    type: 'text',
-    text: { body: text, preview_url: false }
-  };
-
-  const token = appApiKey;
-  const headers = {
-    Authorization: token,
-    token: token,
-    'Content-Type': 'application/json',
-    Accept: 'application/json'
-  };
+  const normalized = normalizePhoneNumber(destination);
+  const payload = buildPartnerV3Envelope({
+    appId,
+    source,
+    destination: normalized,
+    sourceName: appId,
+    message: {
+      type: 'text',
+      text: {
+        body: text
+      }
+    }
+  });
 
   console.info("[GupshupService] Sending text message", {
     appId,
-    to: normalized
+    to: normalized,
+    source: payload.source
   });
 
   try {
-    const response = await axios.post(url, payload, { headers, timeout: 15000 });
-    const data = response.data;
-    const messageId = data.messages?.[0]?.id || data.messageId || data.id;
+    const data = await postPartnerV3Message({ appId, appApiKey, payload });
+    const messageId = extractPartnerMessageId(data);
 
     console.info("[GupshupService] Text message sent", {
       messageId,
@@ -201,50 +254,38 @@ async function sendTemplateV3({
   templateName,
   languageCode = 'en',
   components = [],
-  appApiKey
+  appApiKey,
+  source,
+  sourceName
 }) {
-  const token = appApiKey;
   try {
-    // Normalize phone: if 10 digits, prepend 91 (Requirement 4)
-    let normalized = String(destination).replace(/\D/g, "");
-    if (normalized.length === 10) {
-      normalized = "91" + normalized;
-    }
-
-    const payload = {
-      messaging_product: "whatsapp",
-      recipient_type: "individual",
-      to: normalized,
-      type: "template",
-      template: {
-        name: templateName,
-        language: { code: languageCode || 'en' },
-        components
+    const normalized = normalizePhoneNumber(destination);
+    const payload = buildPartnerV3Envelope({
+      appId,
+      source,
+      destination: normalized,
+      sourceName,
+      message: {
+        type: 'template',
+        template: {
+          name: templateName,
+          languagePolicy: 'deterministic',
+          language: languageCode || 'en',
+          components
+        }
       }
-    };
+    });
 
     // Requirement 5: Log request safely
     console.info("[GupshupService] Sending template message", {
       appId,
       to: normalized,
-      templateName
+      templateName,
+      source: payload.source
     });
 
-    const response = await axios.post(
-      `https://partner.gupshup.io/partner/app/${appId}/v3/message`,
-      payload,
-      {
-        headers: {
-          Authorization: token,
-          token: token,
-          "Content-Type": "application/json",
-          Accept: "application/json"
-        },
-        timeout: 15000
-      }
-    );
-
-    const messageId = response?.data?.messages?.[0]?.id;
+    const data = await postPartnerV3Message({ appId, appApiKey, payload });
+    const messageId = extractPartnerMessageId(data);
 
     // Requirement 6: Log response message id
     console.info("[GupshupService] Template sent", {
@@ -254,8 +295,8 @@ async function sendTemplateV3({
 
     return {
       success: true,
-      messageId: messageId || response.data?.messageId || response.data?.id,
-      ...response.data
+      messageId,
+      ...data
     };
 
   } catch (error) {
@@ -271,15 +312,7 @@ async function sendTemplateV3({
 async function sendMedia({ appId, destination, mediaType, mediaUrl, caption, appApiKey, source }) {
   if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
-  const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/v3/message`;
-
-  // Normalize phone: if 10 digits, prepend 91
-  let normalized = String(destination).replace(/\D/g, "");
-  if (normalized.length === 10) {
-    normalized = "91" + normalized;
-  }
-
-  if (!normalized) throw new Error('GUPSHUP_DESTINATION_MISSING');
+  const normalized = normalizePhoneNumber(destination);
 
   const mediaObject = { link: mediaUrl };
   if (caption && ['image', 'video', 'document'].includes(mediaType)) {
@@ -289,31 +322,26 @@ async function sendMedia({ appId, destination, mediaType, mediaUrl, caption, app
     mediaObject.filename = 'document';
   }
 
-  const payload = {
-    messaging_product: 'whatsapp',
-    recipient_type: 'individual',
-    to: normalized,
-    type: mediaType,
-    [mediaType]: mediaObject
-  };
-
-  const token = appApiKey;
-  const headers = {
-    Authorization: token,
-    token: token,
-    'Content-Type': 'application/json',
-    Accept: 'application/json'
-  };
+  const payload = buildPartnerV3Envelope({
+    appId,
+    source,
+    destination: normalized,
+    sourceName: appId,
+    message: {
+      type: mediaType,
+      [mediaType]: mediaObject
+    }
+  });
 
   console.info(`[GupshupService] Sending ${mediaType} message`, {
     appId,
-    to: normalized
+    to: normalized,
+    source: payload.source
   });
 
   try {
-    const response = await axios.post(url, payload, { headers, timeout: 15000 });
-    const data = response.data;
-    const messageId = data.messages?.[0]?.id || data.messageId || data.id;
+    const data = await postPartnerV3Message({ appId, appApiKey, payload });
+    const messageId = extractPartnerMessageId(data);
 
     console.info(`[GupshupService] ${mediaType} message sent`, {
       messageId,
@@ -334,44 +362,30 @@ async function sendMedia({ appId, destination, mediaType, mediaUrl, caption, app
   }
 }
 
-async function sendInteractiveV3({ appId, destination, interactive, appApiKey }) {
+async function sendInteractiveV3({ appId, destination, interactive, appApiKey, source, sourceName }) {
   if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
-  const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/v3/message`;
-
-  // Normalize phone: if 10 digits, prepend 91
-  let normalized = String(destination).replace(/\D/g, "");
-  if (normalized.length === 10) {
-    normalized = "91" + normalized;
-  }
-
-  if (!normalized) throw new Error('GUPSHUP_DESTINATION_MISSING');
-
-  const payload = {
-    messaging_product: 'whatsapp',
-    recipient_type: 'individual',
-    to: normalized,
-    type: 'interactive',
-    interactive
-  };
-
-  const token = appApiKey;
-  const headers = {
-    Authorization: token,
-    token: token,
-    'Content-Type': 'application/json',
-    Accept: 'application/json'
-  };
+  const normalized = normalizePhoneNumber(destination);
+  const payload = buildPartnerV3Envelope({
+    appId,
+    source,
+    destination: normalized,
+    sourceName: sourceName || appId,
+    message: {
+      type: 'interactive',
+      interactive
+    }
+  });
 
   console.info("[GupshupService] Sending interactive message", {
     appId,
-    to: normalized
+    to: normalized,
+    source: payload.source
   });
 
   try {
-    const response = await axios.post(url, payload, { headers, timeout: 15000 });
-    const data = response.data;
-    const messageId = data.messages?.[0]?.id || data.messageId || data.id;
+    const data = await postPartnerV3Message({ appId, appApiKey, payload });
+    const messageId = extractPartnerMessageId(data);
 
     console.info("[GupshupService] Interactive message sent", {
       messageId,
@@ -1848,6 +1862,8 @@ async function ensureRequiredSubscriptions({ appId, appApiKey, webhookUrl }) {
 
 module.exports = {
   normalizePhoneNumber,
+  buildPartnerV3Envelope,
+  extractPartnerMessageId,
   sendText,
   sendTextMessage,
   createPartnerApp,

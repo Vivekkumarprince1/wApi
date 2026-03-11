@@ -76,8 +76,8 @@ export default function InboxPage() {
     loadConversations();
   }, [currentView]);
 
-  // Listen for real-time message events
-  useSocketEvent('message.received', (data) => {
+  // Listen for real-time message events (Synchronized with backend)
+  useSocketEvent('inbox:new-message', (data) => {
     console.log('New message received:', data);
 
     // Update conversation list
@@ -90,8 +90,8 @@ export default function InboxPage() {
     }
   });
 
-  // Listen for message status updates
-  useSocketEvent('message.status', (data) => {
+  // Listen for message status updates (Synchronized with backend)
+  useSocketEvent('inbox:message-status', (data) => {
     console.log('Message status updated:', data);
 
     // Update message status in current thread

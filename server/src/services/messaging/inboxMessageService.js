@@ -202,9 +202,11 @@ async function sendTextMessage(options) {
       type: 'text',
       body: text,
       whatsappMessageId: result.messageId,
-      status: 'sent',
+      status: 'queued',
       sentBy: agentId,
-      sentAt: new Date()
+      meta: {
+        providerAcceptedAt: new Date()
+      }
     });
   }
 
@@ -554,9 +556,11 @@ async function sendMediaMessage(options) {
       type: mediaType,
       body: caption || `[${mediaType}]`,
       whatsappMessageId: result.messageId,
-      status: 'sent',
+      status: 'queued',
       sentBy: agentId,
-      sentAt: new Date()
+      meta: {
+        providerAcceptedAt: new Date()
+      }
     });
   }
 

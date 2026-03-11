@@ -1,5 +1,112 @@
-const { Message } = require('../../models');
-const { Template } = require('../../models');
+const { Message, Template, Workspace } = require('../../models');
+const { getQueueStats } = require('../../services/infrastructure/messageRetryQueue');
+const { resolveWhatsAppWebhookUrl } = require('../../services/bsp/gupshupProvisioningService');
+
+const COUNTRY_CODES = [
+  { code: '1', country: 'US/CA' },
+  { code: '7', country: 'RU/KZ' },
+  { code: '20', country: 'EG' },
+  { code: '27', country: 'ZA' },
+  { code: '30', country: 'GR' },
+  { code: '31', country: 'NL' },
+  { code: '32', country: 'BE' },
+  { code: '33', country: 'FR' },
+  { code: '34', country: 'ES' },
+  { code: '39', country: 'IT' },
+  { code: '44', country: 'UK' },
+  { code: '49', country: 'DE' },
+  { code: '52', country: 'MX' },
+  { code: '55', country: 'BR' },
+  { code: '60', country: 'MY' },
+  { code: '61', country: 'AU' },
+  { code: '62', country: 'ID' },
+  { code: '63', country: 'PH' },
+  { code: '65', country: 'SG' },
+  { code: '66', country: 'TH' },
+  { code: '81', country: 'JP' },
+  { code: '82', country: 'KR' },
+  { code: '84', country: 'VN' },
+  { code: '86', country: 'CN' },
+  { code: '90', country: 'TR' },
+  { code: '91', country: 'IN' },
+  { code: '92', country: 'PK' },
+  { code: '93', country: 'AF' },
+  { code: '94', country: 'LK' },
+  { code: '95', country: 'MM' },
+  { code: '98', country: 'IR' }
+].sort((left, right) => right.code.length - left.code.length);
+
+function detectCountryFromPhone(phone) {
+  const normalized = String(phone || '').replace(/\D/g, '');
+  if (!normalized) return 'Unknown';
+
+  const match = COUNTRY_CODES.find((entry) => normalized.startsWith(entry.code));
+  return match ? match.country : 'Other';
+}
+
+async function buildDeliveryHealth(workspace, since) {
+  const recentOutbound = await Message.find({
+    workspace,
+    direction: 'outbound',
+    createdAt: { $gte: since }
+  }).select('recipientPhone status type failureReason createdAt meta').lean();
+
+  const byCountry = recentOutbound.reduce((acc, item) => {
+    const country = detectCountryFromPhone(item.recipientPhone);
+    acc[country] = (acc[country] || 0) + 1;
+    return acc;
+  }, {});
+
+  const byType = recentOutbound.reduce((acc, item) => {
+    const messageType = item.type || 'unknown';
+    acc[messageType] = (acc[messageType] || 0) + 1;
+    return acc;
+  }, {});
+
+  const stuckQueued = recentOutbound.filter((item) => {
+    if (item.status !== 'queued') return false;
+    const ageMs = Date.now() - new Date(item.createdAt).getTime();
+    return ageMs > 5 * 60 * 1000;
+  }).length;
+
+  const topFailures = Object.entries(
+    recentOutbound
+      .filter((item) => item.status === 'failed' && item.failureReason)
+      .reduce((acc, item) => {
+        acc[item.failureReason] = (acc[item.failureReason] || 0) + 1;
+        return acc;
+      }, {})
+  )
+    .sort((left, right) => right[1] - left[1])
+    .slice(0, 10)
+    .map(([reason, count]) => ({ reason, count }));
+
+  const queueStats = await getQueueStats().catch((error) => ({ error: error.message }));
+  const workspaceDoc = await Workspace.findById(workspace)
+    .select('bspManaged bspPhoneNumberId gupshupIdentity gupshupAppId whatsappConnected wabaStatus metaAccountStatus')
+    .lean();
+
+  const webhookUrl = resolveWhatsAppWebhookUrl();
+  const webhookConfigured = Boolean(webhookUrl && /^https:\/\//i.test(webhookUrl));
+
+  return {
+    byCountry,
+    byType,
+    topFailures,
+    stuckQueued,
+    queueStats,
+    providerChecks: {
+      bspManaged: Boolean(workspaceDoc?.bspManaged),
+      whatsappConnected: Boolean(workspaceDoc?.whatsappConnected),
+      partnerAppIdPresent: Boolean(workspaceDoc?.gupshupIdentity?.partnerAppId || workspaceDoc?.gupshupAppId),
+      appApiKeyPresent: Boolean(workspaceDoc?.gupshupIdentity?.appApiKey),
+      phoneNumberIdPresent: Boolean(workspaceDoc?.bspPhoneNumberId),
+      businessVerified: ['VERIFIED', 'APPROVED', 'LIVE'].includes(String(workspaceDoc?.wabaStatus || workspaceDoc?.metaAccountStatus || '').toUpperCase()),
+      webhookConfigured,
+      webhookUrl: webhookConfigured ? webhookUrl : null
+    }
+  };
+}
 
 // Get template metrics
 async function getTemplateMetrics(req, res, next) {
@@ -77,10 +184,13 @@ async function getMessageMetrics(req, res, next) {
     
     // Total counts
     const total = await Message.countDocuments({ workspace });
+    const totalOutbound = await Message.countDocuments({ workspace, direction: 'outbound' });
     const sent = await Message.countDocuments({ workspace, status: 'sent' });
     const delivered = await Message.countDocuments({ workspace, status: 'delivered' });
     const read = await Message.countDocuments({ workspace, status: 'read' });
     const failed = await Message.countDocuments({ workspace, status: 'failed' });
+    const queued = await Message.countDocuments({ workspace, status: 'queued' });
+    const unknown = await Message.countDocuments({ workspace, status: 'unknown' });
     
     // Recent counts
     const recentTotal = await Message.countDocuments({
@@ -112,14 +222,30 @@ async function getMessageMetrics(req, res, next) {
       { $match: { workspace, createdAt: { $gte: since } } },
       { $group: { _id: '$status', count: { $sum: 1 } } }
     ]);
+
+    const deliveryHealth = await buildDeliveryHealth(workspace, since);
+    const accepted = queued + sent + delivered + read;
+    const confirmedDelivered = delivered + read;
+    const deliveryRate = accepted > 0 ? Math.round((confirmedDelivered / accepted) * 100) : 0;
+    const failureRate = accepted > 0 ? Math.round((failed / accepted) * 100) : 0;
     
     res.json({
       total,
+      totalOutbound,
       byStatus: {
+        queued,
         sent,
         delivered,
         read,
-        failed
+        failed,
+        unknown
+      },
+      deliveryHealth: {
+        accepted,
+        confirmedDelivered,
+        deliveryRate,
+        failureRate,
+        ...deliveryHealth
       },
       byDirection: {
         inbound,

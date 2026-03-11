@@ -390,15 +390,16 @@ async function executeAction(action, eventData, workspaceId) {
       direction: 'outbound',
       type: 'template',
       body: template.name,
-      status: 'sent',
+      status: 'queued',
       meta: {
         whatsappId: result.messageId,
         templateName: template.name,
-        workflowTriggered: true
+        workflowTriggered: true,
+        providerAcceptedAt: new Date()
       }
     });
     
-    return { messageId: result.messageId, status: 'sent' };
+    return { messageId: result.messageId, status: 'queued' };
   }
   
   // Assign agent

@@ -328,7 +328,7 @@ async function processBatch(job) {
       });
       
       if (existingMessage) {
-        recipient.status = 'sent';
+        recipient.status = existingMessage.status === 'failed' ? 'failed' : 'queued';
         recipient.messageId = existingMessage.whatsappMessageId;
         continue;
       }
@@ -351,7 +351,7 @@ async function processBatch(job) {
       });
       
       // Update recipient status
-      recipient.status = 'sent';
+      recipient.status = 'queued';
       recipient.messageId = result.messageId;
       recipient.processedAt = new Date();
       results.sent++;
@@ -362,8 +362,7 @@ async function processBatch(job) {
         {
           $set: {
             workspace: workspaceId,
-            status: 'sent',
-            sentAt: new Date(),
+            status: 'queued',
             whatsappMessageId: result.messageId
           },
           $setOnInsert: {
