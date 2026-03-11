@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-import CreateTemplateModal from '../../../components/CreateTemplateModal';
-import EditTemplateModal from '../../../components/EditTemplateModal';
-import UseTemplateModal from '../../../components/UseTemplateModal';
+import CreateTemplateModal from '@/components/modals/CreateTemplateModal';
+import EditTemplateModal from '@/components/modals/EditTemplateModal';
+import UseTemplateModal from '@/components/modals/UseTemplateModal';
 import {
   fetchTemplates,
   getTemplateCategories,
@@ -16,7 +16,7 @@ import {
   updateTemplate,
   fetchTemplatesFromLibrary,
   createTemplate
-} from '../../../lib/api';
+} from '@/lib/api';
 import {
   FaSync, FaPlus, FaSearch, FaFilter, FaList, FaThLarge,
   FaEllipsisV, FaCheckCircle, FaClock, FaTimesCircle,

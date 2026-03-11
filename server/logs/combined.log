@@ -4676,3 +4676,16 @@
 {"level":"info","message":"[AppTokenService] Found cached app token for appId: 5292c853-01ba-4522-b06a-003d3c7ec059","service":"whatsapp-saas","timestamp":"2026-03-12 01:07:04"}
 {"level":"info","message":"[AppTokenService] Found cached app token for appId: 5292c853-01ba-4522-b06a-003d3c7ec059","service":"whatsapp-saas","timestamp":"2026-03-12 01:07:04"}
 {"level":"info","message":"[AppTokenService] Found cached app token for appId: 5292c853-01ba-4522-b06a-003d3c7ec059","service":"whatsapp-saas","timestamp":"2026-03-12 01:07:05"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-03-12 01:57:45"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-03-12 01:57:45"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-03-12 01:57:45"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-03-12 01:57:45"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-03-12 01:57:45"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-03-12 01:57:46"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 5292c853-01ba-4522-b06a-003d3c7ec059","service":"whatsapp-saas","timestamp":"2026-03-12 02:16:07"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 5292c853-01ba-4522-b06a-003d3c7ec059","service":"whatsapp-saas","timestamp":"2026-03-12 02:57:31"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 5292c853-01ba-4522-b06a-003d3c7ec059","service":"whatsapp-saas","timestamp":"2026-03-12 02:57:31"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 5292c853-01ba-4522-b06a-003d3c7ec059","service":"whatsapp-saas","timestamp":"2026-03-12 02:57:32"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 5292c853-01ba-4522-b06a-003d3c7ec059","service":"whatsapp-saas","timestamp":"2026-03-12 02:57:32"}
+{"level":"warn","message":"[GupshupSync] Failed to fetch full app details for 5292c853-01ba-4522-b06a-003d3c7ec059: Request failed with status code 403","service":"whatsapp-saas","timestamp":"2026-03-12 02:57:46"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 5292c853-01ba-4522-b06a-003d3c7ec059","service":"whatsapp-saas","timestamp":"2026-03-12 02:57:46"}

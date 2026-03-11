@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { FaUsersCog, FaPlus, FaTrash, FaSpinner } from 'react-icons/fa';
 import { get, post, del } from '@/lib/api';
 import { toast } from 'react-toastify';
-import FeatureGate from '@/components/FeatureGate';
+import FeatureGate from '@/components/features/FeatureGate';
 
 function TeamsContent() {
   const [teams, setTeams] = useState([]);

@@ -1,0 +1,1559 @@
+
+> waapi-frontend@1.0.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/57) ...
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/auth/reset". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/answerbot". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/auto-replies/create". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/admin". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/auto-replies". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/instagram-quickflows". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/instagram-quickflows/create". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/interaktive-list". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/workflows". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/_not-found". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/whatsapp-forms/create". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/workflows/create". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/auth/login". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/automation/whatsapp-forms". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+   Generating static pages (14/57) 
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/commerce/catalog". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/ads". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/auth/google/callback". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/commerce/settings". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/audit-logs". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/commerce/order-panel". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/ads/create". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/contacts". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/billing". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/agents". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/campaign". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/auth/register". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+   Generating static pages (28/57) 
+
+Error occurred prerendering page "/commerce/checkout-bot". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/events". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/campaign/new". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/member-profile". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/developer". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/contacts". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/roles". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/teams". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/integrations". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/onboarding/verify-email". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/tags". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/inbox". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/templates". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/channels". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/onboarding/business-info". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+   Generating static pages (42/57) 
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/quick-replies". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/sales-crm/reports". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/sales-crm/pipeline". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/support/chat-assignment". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/dashboard/settings/whatsapp-profile". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+
+Error occurred prerendering page "/sales-crm/tasks". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/admin/whatsapp-requests". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/privacy/data-deletion-instructions". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+
+Error occurred prerendering page "/widget". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+
+Error occurred prerendering page "/privacy". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011) {
+  digest: '2503204414'
+}
+
+Error occurred prerendering page "/support/chat-analytics". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: React is not defined
+    at 18391 (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/chunks/2517.js:1:15026)
+    at Object.t [as require] (/Users/vivek/devlopment projects/wApi/wApi-new/client/.next/server/webpack-runtime.js:1:127)
+    at require (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:16:18839)
+    at I (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:94364)
+    at C (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:92915)
+    at rR (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:33975)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:62305)
+    at nM (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:61157)
+    at nN (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:64547)
+    at nI (/Users/vivek/devlopment projects/wApi/wApi-new/client/node_modules/next/dist/compiled/next-server/app-page.runtime.prod.js:12:47011)
+ ✓ Generating static pages (57/57)
+
+> Export encountered errors on following paths:
+	/_not-found/page: /_not-found
+	/admin/page: /admin
+	/admin/whatsapp-requests/page: /admin/whatsapp-requests
+	/auth/google/callback/page: /auth/google/callback
+	/auth/login/page: /auth/login
+	/auth/register/page: /auth/register
+	/auth/reset/page: /auth/reset
+	/automation/answerbot/page: /automation/answerbot
+	/automation/auto-replies/create/page: /automation/auto-replies/create
+	/automation/auto-replies/page: /automation/auto-replies
+	/automation/instagram-quickflows/create/page: /automation/instagram-quickflows/create
+	/automation/instagram-quickflows/page: /automation/instagram-quickflows
+	/automation/interaktive-list/page: /automation/interaktive-list
+	/automation/whatsapp-forms/create/page: /automation/whatsapp-forms/create
+	/automation/whatsapp-forms/page: /automation/whatsapp-forms
+	/automation/workflows/create/page: /automation/workflows/create
+	/automation/workflows/page: /automation/workflows
+	/commerce/catalog/page: /commerce/catalog
+	/commerce/checkout-bot/page: /commerce/checkout-bot
+	/commerce/order-panel/page: /commerce/order-panel
+	/commerce/settings/page: /commerce/settings
+	/dashboard/ads/create/page: /dashboard/ads/create
+	/dashboard/ads/page: /dashboard/ads
+	/dashboard/audit-logs/page: /dashboard/audit-logs
+	/dashboard/billing/page: /dashboard/billing
+	/dashboard/campaign/new/page: /dashboard/campaign/new
+	/dashboard/campaign/page: /dashboard/campaign
+	/dashboard/contacts/page: /dashboard/contacts
+	/dashboard/inbox/page: /dashboard/inbox
+	/dashboard/page: /dashboard
+	/dashboard/settings/agents/page: /dashboard/settings/agents
+	/dashboard/settings/channels/page: /dashboard/settings/channels
+	/dashboard/settings/contacts/page: /dashboard/settings/contacts
+	/dashboard/settings/developer/page: /dashboard/settings/developer
+	/dashboard/settings/events/page: /dashboard/settings/events
+	/dashboard/settings/member-profile/page: /dashboard/settings/member-profile
+	/dashboard/settings/page: /dashboard/settings
+	/dashboard/settings/quick-replies/page: /dashboard/settings/quick-replies
+	/dashboard/settings/roles/page: /dashboard/settings/roles
+	/dashboard/settings/tags/page: /dashboard/settings/tags
+	/dashboard/settings/teams/page: /dashboard/settings/teams
+	/dashboard/settings/whatsapp-profile/page: /dashboard/settings/whatsapp-profile
+	/dashboard/templates/page: /dashboard/templates
+	/integrations/page: /integrations
+	/onboarding/business-info/page: /onboarding/business-info
+	/onboarding/verify-email/page: /onboarding/verify-email
+	/page: /
+	/privacy/data-deletion-instructions/page: /privacy/data-deletion-instructions
+	/privacy/page: /privacy
+	/sales-crm/pipeline/page: /sales-crm/pipeline
+	/sales-crm/reports/page: /sales-crm/reports
+	/sales-crm/tasks/page: /sales-crm/tasks
+	/support/chat-analytics/page: /support/chat-analytics
+	/support/chat-assignment/page: /support/chat-assignment
+	/widget/page: /widget

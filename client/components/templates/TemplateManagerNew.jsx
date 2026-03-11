@@ -24,7 +24,7 @@ import {
 import TemplateList from './TemplateList';
 import TemplateBuilder from './TemplateBuilder';
 import WhatsAppPreview from './WhatsAppPreview';
-import { get, post, put, del } from '../../lib/api';
+import { get, post, put, del } from '@/lib/api';
 import { useWorkspace } from '../../lib/useWorkspace';
 
 // ═══════════════════════════════════════════════════════════════════════════════

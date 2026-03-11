@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaPlus, FaPause, FaPlay, FaTrash, FaEye } from 'react-icons/fa';
-import { checkAdsEligibility, listAds, pauseAd, resumeAd, deleteAd } from '../../../lib/api';
+import { checkAdsEligibility, listAds, pauseAd, resumeAd, deleteAd } from '@/lib/api';
 
 export default function AdsPage() {
   const router = useRouter();

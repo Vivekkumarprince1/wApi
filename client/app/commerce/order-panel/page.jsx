@@ -4,7 +4,7 @@ import { FaShoppingCart, FaSearch, FaFilter, FaEye, FaCheck, FaTruck, FaSpinner 
 import { useState, useEffect } from 'react';
 import { get, put } from '@/lib/api';
 import { toast } from 'react-toastify';
-import FeatureGate from '@/components/FeatureGate';
+import FeatureGate from '@/components/features/FeatureGate';
 
 function OrderPanelContent() {
   const [orders, setOrders] = useState([]);

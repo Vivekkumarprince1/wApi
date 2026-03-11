@@ -4,7 +4,7 @@ import { FaShoppingBag, FaPlus, FaSearch, FaFilter, FaEdit, FaTrash, FaEye, FaSp
 import { useState, useEffect } from 'react';
 import { get, post, put, del } from '@/lib/api';
 import { toast } from 'react-toastify';
-import FeatureGate from '@/components/FeatureGate';
+import FeatureGate from '@/components/features/FeatureGate';
 
 function CatalogContent(){
   const [products, setProducts] = useState([]);

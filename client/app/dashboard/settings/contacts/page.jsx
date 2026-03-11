@@ -1,6 +1,6 @@
 'use client';
 
-import FeatureGate from '@/components/FeatureGate';
+import FeatureGate from '@/components/features/FeatureGate';
 import { FaAddressBook } from 'react-icons/fa';
 
 function ContactsSettingsContent() {
