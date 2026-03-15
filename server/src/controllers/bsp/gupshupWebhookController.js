@@ -9,6 +9,7 @@ const { getIO } = require('../../utils/socket');
 const { runPostOnboardingAutomations } = require('../../services/bsp/gupshupProvisioningService');
 const inboxSocketService = require('../../services/messaging/inboxSocketService');
 const { enqueueRetry } = require('../../services/infrastructure/messageRetryQueue');
+const { normalizePhone } = require('../../utils/phoneUtils');
 
 function verify(req, res) {
   return res.status(200).json({ ok: true, provider: 'gupshup' });
@@ -211,7 +212,7 @@ async function processInbound(incoming, workspace) {
   }
 
   // 1. Strict Normalization (Match sendTemplateV3 logic)
-  const from = String(rawFrom).replace(/\D/g, "");
+  const from = normalizePhone(rawFrom);
 
   // 2. Prevent Duplicates (Requirement 8)
   if (messageId) {
@@ -277,13 +278,14 @@ async function processInbound(incoming, workspace) {
   // Find or create contact
   let contact = await Contact.findOne({ workspace: workspace._id, phone: from });
   if (!contact) {
+    const profileName = incoming.contacts?.[0]?.profile?.name || incoming.sender?.name;
     contact = await Contact.create({
       workspace: workspace._id,
       phone: from,
-      name: incoming.sender?.name || incoming.contacts?.[0]?.profile?.name || 'Unknown',
+      name: profileName || 'Unknown',
       isColdContact: false, // Inbound message means they are no longer cold
       metadata: {
-        whatsappName: incoming.sender?.name || incoming.contacts?.[0]?.profile?.name
+        whatsappName: profileName
       }
     });
     console.log(`[GupshupWebhook] Created new contact (warm): ${contact._id}`);

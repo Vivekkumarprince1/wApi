@@ -8,7 +8,10 @@ import {
   addDealNote,
   getPipelines,
   get,
-  post
+  post,
+  put,
+  del,
+  uploadInboxMedia
 } from '@/lib/api';
 import { useSocket, useSocketEvent } from '@/lib/SocketContext';
 import { toast } from 'react-toastify';
@@ -36,7 +39,9 @@ import {
   FaTags,
   FaArchive,
   FaClock,
-  FaUserCircle
+  FaUserCircle,
+  FaFileAlt,
+  FaHeadphones
 } from 'react-icons/fa';
 import { useWorkspace } from '@/lib/useWorkspace';
 
@@ -58,6 +63,13 @@ export default function InboxPage() {
   const [startMessage, setStartMessage] = useState('');
   const [startingConversation, setStartingConversation] = useState(false);
   const messagesEndRef = useRef(null);
+  
+  // File upload state
+  const fileInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedMedia, setSelectedMedia] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
 
   // CRM State
   const [activeDeal, setActiveDeal] = useState(null);
@@ -70,6 +82,33 @@ export default function InboxPage() {
   const { socket, connected } = useSocket();
 
   const [currentView, setCurrentView] = useState('all');
+  const [currentUser, setCurrentUser] = useState(null);
+  const [availableTags, setAvailableTags] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [expandedSections, setExpandedSections] = useState({
+    details: true,
+    tags: true,
+    pipeline: true
+  });
+
+  // Load initial data (User & Tags)
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const [userRes, tagsRes, agentsRes] = await Promise.all([
+          get('/auth/me'),
+          get('/tags'),
+          get('/inbox/agents').catch(() => ({ agents: [] }))
+        ]);
+        setCurrentUser(userRes.user || userRes.data || null);
+        setAvailableTags(tagsRes.tags || tagsRes.data || []);
+        setAgents(agentsRes.agents || agentsRes.data || []);
+      } catch (err) {
+        console.error('Error fetching initial inbox data:', err);
+      }
+    };
+    fetchInitialData();
+  }, []);
 
   // Load conversations on mount or when view changes
   useEffect(() => {
@@ -248,63 +287,255 @@ export default function InboxPage() {
     }
   };
 
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
+  const handleMediaSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-    if (!newMessage.trim() || !selectedContact) return;
+    // Check size limit (e.g., 16MB for WhatsApp typical)
+    if (file.size > 16 * 1024 * 1024) {
+      toast.error('File size too large. Maximum size is 16MB.');
+      return;
+    }
+
+    setSelectedMedia(file);
+    const objectUrl = URL.createObjectURL(file);
+    setMediaPreview({
+      url: objectUrl,
+      type: file.type,
+      name: file.name
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = null; // reset input
+    }
+  };
+
+  const handleAssignConversation = async (agentId) => {
+    if (!selectedConversationId) return;
+    try {
+      if (!agentId) {
+        await post(`/inbox/${selectedConversationId}/unassign`);
+        toast.info('Conversation unassigned');
+      } else {
+        await post(`/inbox/${selectedConversationId}/assign`, { agentId });
+        const agentName = agents.find(a => a._id === agentId)?.name || 'agent';
+        toast.success(`Assigned to ${agentName}`);
+      }
+      loadConversations();
+    } catch (error) {
+      console.error('Error assigning conversation:', error);
+      toast.error('Assignment failed');
+    }
+  };
+
+  const handleResolveConversation = async () => {
+    if (!selectedConversationId) return;
+    try {
+      setSending(true);
+      await post(`/inbox/${selectedConversationId}/close`, { resolution: 'Resolved manually' });
+      toast.success('Conversation resolved');
+      setSelectedContact(null);
+      setSelectedConversationId(null);
+      loadConversations();
+    } catch (error) {
+      console.error('Error resolving conversation:', error);
+      toast.error('Failed to resolve conversation');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const handleAddTag = async (tagName) => {
+    if (!selectedConversationId) return;
+    try {
+      await post(`/conversations/${selectedConversationId}/tags`, { tags: [tagName] });
+      toast.success(`Tag "${tagName}" added`);
+      // Update local contact state if needed, or reload messages/convs
+      loadConversations();
+    } catch (error) {
+      console.error('Error adding tag:', error);
+      toast.error('Failed to add tag');
+    }
+  };
+
+  const handleRemoveTag = async (tagName) => {
+    if (!selectedConversationId) return;
+    try {
+      await del(`/conversations/${selectedConversationId}/tags`, { tags: [tagName] });
+      toast.success(`Tag "${tagName}" removed`);
+      loadConversations();
+    } catch (error) {
+      console.error('Error removing tag:', error);
+      toast.error('Failed to remove tag');
+    }
+  };
+
+  const clearSelectedMedia = () => {
+    setSelectedMedia(null);
+    setMediaPreview(null);
+  };
+
+  const handleSendMessage = async (e) => {
+    if (e) e.preventDefault();
+
+    if (!newMessage.trim() && !selectedMedia) return;
+    if (!selectedContact) return;
+    
     if (!bspReady) {
       toast?.error?.('Connect WhatsApp to send messages') || alert('Connect WhatsApp to send messages');
       return;
     }
 
-    try {
-      setSending(true);
+    // --- Flow for sending Media ---
+    if (selectedMedia) {
+      const savedMedia = selectedMedia;
+      const captionText = newMessage.trim();
+      const savedPreview = mediaPreview?.url || null;
+      const conversationId = selectedConversationId;
 
+      let mediaType = 'document';
+      const mt = savedMedia.type || '';
+      if (mt.startsWith('image/')) mediaType = 'image';
+      else if (mt.startsWith('video/')) mediaType = 'video';
+      else if (mt.startsWith('audio/')) mediaType = 'audio';
+
+      const tmpId = `tmp-${Date.now()}`;
+      const optimisticMessage = {
+        _id: tmpId,
+        type: mediaType,
+        body: captionText || (mediaType === 'document' ? savedMedia.name : ''),
+        direction: 'outbound',
+        status: 'queued',
+        createdAt: new Date().toISOString(),
+        contact: selectedContact._id,
+        media: {
+          url: savedPreview,
+          link: savedPreview,
+          filename: savedMedia.name,
+          caption: captionText
+        }
+      };
+
+      setMessages(prev => [...prev, optimisticMessage]);
+      clearSelectedMedia();
+      setNewMessage('');
+      scrollToBottom();
+
+      try {
+        const uploadRes = await uploadInboxMedia(savedMedia);
+
+        if (uploadRes.success) {
+          if (conversationId) {
+            const messageRes = await post(`/inbox/${conversationId}/messages/media`, {
+              mediaUrl: uploadRes.url,
+              mediaType: mediaType,
+              caption: captionText,
+              filename: uploadRes.filename || savedMedia.name
+            });
+
+            if (messageRes.success) {
+              const finalMsg = messageRes.data?.message || messageRes.message;
+              if (typeof finalMsg === 'object') {
+                 setMessages(prev => prev.map(m => m._id === tmpId ? finalMsg : m));
+              } else {
+                 setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent'} : m));
+              }
+            } else {
+               setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+            }
+          } else {
+            // Handle sending to a contact without an active DB conversation ID yet
+            const dataPayload = {
+              contactId: selectedContact._id,
+              type: mediaType,
+              mediaUrl: uploadRes.url,
+              filename: uploadRes.filename || savedMedia.name,
+              caption: captionText
+            };
+            const messageRes = await post('/messages/send', dataPayload);
+            if (messageRes.success) {
+              const finalMsg = messageRes.data?.message || messageRes.message;
+              if (typeof finalMsg === 'object') {
+                 setMessages(prev => prev.map(m => m._id === tmpId ? finalMsg : m));
+              } else {
+                 setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent'} : m));
+              }
+            } else {
+              setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+            }
+          }
+          // Optional: toast.success('Media sent successfully');
+          loadConversations();
+        } else {
+          setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+          toast.error(uploadRes.message || 'Media upload failed');
+        }
+      } catch (err) {
+        console.error('[INBOX] Media send error:', err);
+        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+        toast.error('Failed to send media');
+      }
+      return;
+    }
+
+    // --- Flow for handling text messages ---
+    const textToSend = newMessage.trim();
+    const contactId = selectedContact._id || selectedContact.id;
+    const conversationId = selectedConversationId;
+    const tmpId = `tmp-${Date.now()}`;
+    
+    // Optimistically add message to UI immediately
+    const optimisticMessage = {
+      _id: tmpId,
+      body: textToSend,
+      direction: 'outbound',
+      status: 'queued',
+      createdAt: new Date().toISOString(),
+      contact: contactId
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
+    setNewMessage('');
+    scrollToBottom();
+
+    try {
       let data;
-      if (selectedConversationId) {
-        data = await post(`/inbox/${selectedConversationId}/messages`, {
-          text: newMessage
+      if (conversationId) {
+        data = await post(`/inbox/${conversationId}/messages`, {
+          text: textToSend
         });
       } else {
         data = await post('/messages/send', {
-          contactId: selectedContact._id || selectedContact.id,
+          contactId: contactId,
           phone: selectedContact.phone,
           name: selectedContact.name,
-          body: newMessage
+          body: textToSend
         });
       }
 
       const sentMessage = data?.data?.message || null;
 
-      // Optimistically add message to UI
-      const optimisticMessage = {
-        _id: sentMessage?._id || data?.id || `tmp-${Date.now()}`,
-        body: newMessage,
-        direction: 'outbound',
-        status: sentMessage?.status || 'queued',
-        createdAt: new Date().toISOString(),
-        contact: selectedContact._id
-      };
-
-      setMessages(prev => [...prev, optimisticMessage]);
-      setNewMessage('');
-      scrollToBottom();
-
-      // Reload conversation to update preview
-      loadConversations();
-      if (data?.data?.fallbackUsed) {
-        const templateName = data?.data?.fallbackTemplateName;
-        toast?.success?.(templateName
-          ? `24h window was closed, sent template: ${templateName}`
-          : '24h window was closed, sent fallback template');
+      if (data?.success || sentMessage) {
+        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, ...sentMessage, status: sentMessage?.status || 'sent' } : m));
+        loadConversations();
+        
+        if (data?.data?.fallbackUsed) {
+          const templateName = data?.data?.fallbackTemplateName;
+          toast?.success?.(templateName
+            ? `24h window was closed, sent template: ${templateName}`
+            : '24h window was closed, sent fallback template');
+        }
       } else {
-        toast?.success?.('Message sent!');
+        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      toast?.error?.(error.message || 'Failed to send message') || alert('Failed to send message');
-    } finally {
-      setSending(false);
+      setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+      toast?.error?.(error.message || 'Failed to send message');
     }
   };
 
@@ -334,11 +565,12 @@ export default function InboxPage() {
         return <FaClock className="text-gray-400 text-[10px]" />;
     }
   };
+  const selectedConversation = conversations.find(c => (c._id || c.id) === selectedConversationId);
 
   return (
-    <div className="flex h-screen bg-white text-gray-800 font-sans overflow-hidden">
+    <div className="fixed top-[60px] left-0 lg:left-[72px] right-0 bottom-0 bg-white text-gray-800 font-sans overflow-hidden flex z-20 transition-all duration-300">
       {/* 1. Conversations List Sidebar (Left Pane) */}
-      <div className="w-[340px] flex-shrink-0 border-r border-gray-200 bg-white flex flex-col z-10">
+      <div className="w-[300px] lg:w-[340px] flex-shrink-0 border-r border-gray-200 bg-white flex flex-col z-10">
         {/* Sidebar Header */}
         <div className="pt-4 pb-2 px-4 flex items-center justify-between border-b border-gray-100">
           <h1 className="text-[22px] font-bold text-gray-800">Inbox</h1>
@@ -408,24 +640,27 @@ export default function InboxPage() {
               <div
                 key={conversation._id}
                 onClick={() => handleSelectContact(conversation)}
-                className={`px-4 py-3 border-b border-gray-50 cursor-pointer transition-colors flex items-start gap-3 hover:bg-gray-50 ${selectedContact?._id === conversation.contact._id ? 'bg-gray-100' : ''
-                  }`}
+                className={`px-4 py-3 border-b-0 cursor-pointer transition-all flex items-start gap-4 mx-2 my-1 rounded-xl ${
+                  selectedContact?._id === conversation.contact._id 
+                    ? 'bg-green-50 shadow-sm border border-green-100/50' 
+                    : 'bg-white hover:bg-gray-50 border border-transparent hover:border-gray-100'
+                }`}
               >
                 {/* Avatar */}
                 <div className="relative flex-shrink-0 pt-1">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                    <FaUser className="text-gray-400 text-lg" />
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center overflow-hidden border-2 ${selectedContact?._id === conversation.contact._id ? 'border-white bg-green-100 text-green-600' : 'border-gray-50 bg-gray-100 text-gray-400'}`}>
+                    <FaUser className="text-lg" />
                   </div>
                 </div>
 
                 {/* Chat Preview */}
-                <div className="flex-1 min-w-0 pr-1">
+                <div className="flex-1 min-w-0 pr-1 py-1">
                   <div className="flex justify-between items-baseline mb-0.5">
-                    <h3 className="font-semibold text-gray-900 truncate text-[15px]">
-                      {conversation.contact?.name || conversation.contact?.phone}
+                    <h3 className={`font-semibold truncate text-[15px] ${selectedContact?._id === conversation.contact._id ? 'text-green-900' : 'text-gray-900'}`}>
+                      {conversation.contact?.displayName || conversation.contact?.name || conversation.contact?.phone}
                     </h3>
                     {conversation.lastMessageAt && (
-                      <span className="text-[11px] text-gray-500 flex-shrink-0 ml-2">
+                      <span className={`text-[11px] flex-shrink-0 ml-2 font-medium ${selectedContact?._id === conversation.contact._id ? 'text-green-600' : 'text-gray-400'}`}>
                         {new Date(conversation.lastMessageAt).toLocaleTimeString('en-US', {
                           hour: 'numeric',
                           minute: '2-digit',
@@ -472,24 +707,56 @@ export default function InboxPage() {
         {selectedContact ? (
           <>
             {/* Chat Thread Header */}
-            <div className={`px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between shadow-sm z-10 ${!bspReady ? 'mt-10' : ''}`}>
-              <div className="flex items-center gap-4 cursor-pointer">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden">
-                  <FaUser className="text-gray-500" />
+            <div className={`px-6 py-3.5 bg-white border-b border-gray-100 flex items-center justify-between shadow-[0_2px_10px_rgba(0,0,0,0.02)] z-10 ${!bspReady ? 'mt-10' : ''}`}>
+              <div className="flex items-center gap-3.5 cursor-pointer">
+                <div className="relative">
+                  <div className="w-11 h-11 bg-gradient-to-tr from-green-100 to-green-50 rounded-full flex items-center justify-center overflow-hidden border border-green-200/50">
+                    {selectedContact.avatarUrl || selectedContact.avatar ? (
+                      <img src={selectedContact.avatarUrl || selectedContact.avatar} alt={selectedContact.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <FaUser className="text-green-600/70 text-lg" />
+                    )}
+                  </div>
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
                 </div>
                 <div>
-                  <h2 className="font-semibold text-gray-900 text-base leading-tight">
-                    {selectedContact.name || selectedContact.phone}
+                  <h2 className="font-bold text-gray-900 text-[15px] leading-tight flex items-center gap-2">
+                    {selectedContact.displayName || selectedContact.name || selectedContact.phone}
+                    <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-md font-medium tracking-wide uppercase">Contact</span>
                   </h2>
-                  <p className="text-xs text-green-600 font-medium">Click for contact info</p>
+                  <p className="text-[13px] text-gray-500 mt-0.5">Online</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 text-gray-500">
-                <button className="p-2 hover:bg-gray-200 rounded-full transition-colors" title="Resolve">
-                  <FaArchive className="text-sm" />
+              <div className="flex items-center gap-3 text-gray-500">
+                <div className="hidden md:block">
+                  <select
+                    value={selectedConversation?.assignedTo?._id || selectedConversation?.assignedTo || ''}
+                    onChange={(e) => handleAssignConversation(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all cursor-pointer font-medium text-gray-700 hover:border-gray-300"
+                  >
+                    <option value="">Unassigned</option>
+                    {agents.map(agent => (
+                      <option key={agent._id} value={agent._id}>
+                        {agent.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="w-px h-5 bg-gray-200 mx-1 hidden md:block"></div>
+                <button
+                  onClick={handleResolveConversation}
+                  disabled={sending}
+                  className="px-3 py-1.5 hover:bg-green-50 text-green-600 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5" title="Resolve"
+                >
+                  {sending ? <FaSpinner className="animate-spin" /> : <FaCheckCircle className="text-sm" />}
+                  <span>Resolve</span>
                 </button>
-                <button className="p-2 hover:bg-gray-200 rounded-full transition-colors" title="More options">
+                <div className="w-px h-5 bg-gray-200 mx-1"></div>
+                <button className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-full transition-colors" title="Delete Conversation" onClick={handleResolveConversation}>
+                  <FaTrash className="text-sm" />
+                </button>
+                <button className="p-2 hover:bg-gray-50 text-gray-400 hover:text-gray-700 rounded-full transition-colors" title="More options">
                   <FaEllipsisV className="text-sm" />
                 </button>
               </div>
@@ -497,43 +764,27 @@ export default function InboxPage() {
 
             {/* Chat Messages */}
             <div
-              className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 relative"
-              style={{
-                backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-                backgroundRepeat: 'repeat',
-                backgroundSize: '400px',
-                backgroundBlendMode: 'overlay',
-                backgroundColor: '#efeae2'
-              }}
+              className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 relative bg-[#f4f6f8]"
             >
               {messages.map((message) => {
                 const isOutbound = message.direction === 'outbound';
                 const isTemplate = message.type === 'template';
+                const hideBodyText = !message.body || message.body === `[${message.type}]` || message.body === '[template]' || (['image', 'video', 'document', 'audio', 'sticker', 'location'].includes(message.type) && message.body === `[${message.type}]`);
 
                 return (
                   <div key={message._id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} w-full`}>
                     <div
-                      className={`relative max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] rounded-lg shadow-sm ${isOutbound
-                        ? 'bg-[#dcf8c6] rounded-tr-none'
-                        : 'bg-white rounded-tl-none'
+                      className={`relative max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] px-1 pt-1 pb-1 shadow-sm border ${isOutbound
+                        ? 'bg-[#e2f7cb] border-[#d3edb9] rounded-2xl rounded-tr-sm'
+                        : 'bg-white border-gray-100 rounded-2xl rounded-tl-sm'
                         }`}
                     >
-                      {/* Triangle tail */}
-                      <span className={`absolute top-0 w-4 h-4 
-                        ${isOutbound ? '-right-3 text-[#dcf8c6]' : '-left-3 text-white'}`}
-                      >
-                        <svg viewBox="0 0 8 13" width="8" height="13" fill="currentColor">
-                          {isOutbound
-                            ? <path d="M5.188 1H0v11.156L7.969 4.343z" />
-                            : <path d="M1.533 3.568L8 12.193V1H2.812z" />
-                          }
-                        </svg>
-                      </span>
+                      {/* Removed triangle tail for modern SaaS look/}
 
                       {/* Header Media */}
                       {message.template?.header?.format === 'IMAGE' && message.template.header.mediaUrl && (
                         <div className="p-1 pb-0">
-                          <div className="relative w-full overflow-hidden rounded-md bg-black/5">
+                          <div className="relative w-full overflow-hidden rounded-lg bg-gray-50">
                             <img
                               src={message.template.header.mediaUrl}
                               alt="Image"
@@ -547,11 +798,43 @@ export default function InboxPage() {
                       {message.template?.header?.format === 'VIDEO' && message.template.header.mediaUrl && (
                         <div className="p-1 pb-0">
                           <div className="relative w-full aspect-video bg-black rounded-md flex items-center justify-center overflow-hidden group border border-black/10">
-                            <video src={message.template.header.mediaUrl} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/50 transition">
-                              <FaPlayCircle className="text-white text-4xl opacity-90" />
-                            </div>
+                            <video src={message.template.header.mediaUrl} className="w-full h-full object-cover" controls />
                           </div>
+                        </div>
+                      )}
+
+                      {/* Generic Media (Non-Template) */}
+                      {['image', 'video', 'document', 'audio', 'sticker'].includes(message.type) && (message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link) && (
+                        <div className="p-1 pb-0">
+                          {['image', 'sticker'].includes(message.type) && (
+                            <div className="relative w-full overflow-hidden rounded-lg bg-gray-50">
+                              <img
+                                src={message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link}
+                                alt={message.media?.caption || message.meta?.media?.caption || 'Image'}
+                                className="w-full h-auto max-h-[250px] object-cover"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            </div>
+                          )}
+                          {message.type === 'video' && (
+                            <div className="relative w-full aspect-video bg-black rounded-md flex items-center justify-center overflow-hidden group border border-black/10">
+                              <video src={message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link} controls className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          {message.type === 'document' && (
+                            <a href={message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-black/5 rounded-md hover:bg-black/10 transition mt-1 mx-1">
+                              <FaFileAlt className="text-gray-500 text-2xl" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm text-gray-800 font-medium truncate">{message.media?.filename || message.meta?.media?.filename || 'Document'}</p>
+                                <p className="text-[10px] text-gray-500 truncate mt-0.5">Click to view/download</p>
+                              </div>
+                            </a>
+                          )}
+                          {message.type === 'audio' && (
+                            <div className="px-1 py-2">
+                              <audio src={message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link} controls className="w-full max-w-[250px] h-10" />
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -564,13 +847,15 @@ export default function InboxPage() {
                           </div>
                         )}
 
-                        <div className="text-[14.5px] leading-[1.35] text-[#111b21] whitespace-pre-wrap font-normal drop-words">
-                          {message.body}
-                        </div>
+                        {!hideBodyText && (
+                          <div className="text-[14.5px] leading-[1.35] text-[#111b21] whitespace-pre-wrap font-normal drop-words">
+                            {message.body}
+                          </div>
+                        )}
 
                         {/* Timestamp & Status */}
-                        <div className={`flex items-center justify-end gap-1 mt-1 -mb-1 float-right clear-both 
-                          ${(message.body || '').length < 30 ? 'ml-4' : 'w-full'}`}
+                        <div className={`flex items-center justify-end gap-1 mt-1 -mb-1 float-right clear-both
+                          ${(!hideBodyText && message.body && message.body.length >= 30) ? 'w-full' : 'ml-4'}`}
                         >
                           <span className="text-[10.5px] text-gray-500 opacity-90 relative top-[1px]">
                             {new Date(message.createdAt).toLocaleTimeString('en-US', {
@@ -614,22 +899,61 @@ export default function InboxPage() {
             </div>
 
             {/* Compose Input Box */}
-            <div className="bg-[#f0f2f5] px-4 py-3 flex items-end gap-3 justify-center">
-              <button type="button" className="p-2.5 text-gray-500 hover:text-gray-700 transition-colors">
-                <FaSmile className="text-xl" />
-              </button>
-              <button type="button" className="p-2.5 text-gray-500 hover:text-gray-700 transition-colors">
-                <FaPaperclip className="text-xl" />
-              </button>
+            <div className="bg-white px-4 py-4 flex items-end gap-3 justify-center border-t border-gray-100 z-10 w-full relative drop-shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+              {/* Media Preview Overlay */}
+              {mediaPreview && (
+                <div className="absolute bottom-[calc(100%+8px)] left-4 p-2 bg-white rounded-xl shadow-[0_-4px_15px_rgba(0,0,0,0.05)] border border-gray-100 z-20 flex animate-fadeIn max-w-[250px]">
+                  <div className="relative inline-block w-full">
+                    <button
+                      onClick={clearSelectedMedia}
+                      className="absolute -top-3 -right-3 bg-gray-600 text-white rounded-full p-1.5 hover:bg-gray-800 z-10 transition-colors"
+                      title="Remove Media"
+                    >
+                      <FaTimes className="text-[10px]" />
+                    </button>
+                    {mediaPreview.type.startsWith('image/') ? (
+                      <img src={mediaPreview.url} alt="preview" className="h-32 w-full object-cover rounded-lg border border-gray-200" />
+                    ) : mediaPreview.type.startsWith('video/') ? (
+                      <video src={mediaPreview.url} className="h-32 w-full object-cover rounded-lg border border-gray-200" controls />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-6 h-32 w-full bg-gray-50 rounded-lg text-gray-500 border border-gray-200">
+                        <FaFileAlt className="text-4xl mb-3 text-green-500" />
+                        <span className="text-xs text-center truncate w-full px-2 font-medium" title={mediaPreview.name}>
+                          {mediaPreview.name}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-              <div className="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 focus-within:border-gray-300 transition-colors">
+              <button type="button" className="p-2 text-gray-400 hover:text-green-600 transition-colors bg-gray-50 rounded-full hover:bg-green-50 mb-0.5">
+                <FaSmile className="text-lg" />
+              </button>
+              <button 
+                type="button" 
+                className={`p-2 transition-colors rounded-full mb-0.5 ${selectedMedia ? 'text-green-600 bg-green-50' : isUploading ? 'text-blue-500 bg-blue-50 animate-pulse' : 'text-gray-400 bg-gray-50 hover:text-green-600 hover:bg-green-50'}`}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                <FaPaperclip className="text-lg" />
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleMediaSelect}
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+              />
+
+              <div className="flex-1 bg-gray-50 rounded-2xl shadow-inner border border-gray-200 focus-within:border-green-400 focus-within:bg-white transition-all overflow-hidden relative">
                 <textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      if (newMessage.trim()) handleSendMessage(e);
+                      if (newMessage.trim() || selectedMedia) handleSendMessage(e);
                     }
                   }}
                   placeholder="Type a message..."
@@ -641,10 +965,11 @@ export default function InboxPage() {
 
               <button
                 onClick={handleSendMessage}
-                disabled={!bspReady || sending || !newMessage.trim()}
-                className={`p-3 rounded-full flex-shrink-0 flex items-center justify-center transition-all ${newMessage.trim() && !sending && bspReady
-                  ? 'bg-[#00a884] hover:bg-[#008f6f] text-white shadow-md'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                disabled={!bspReady || sending || (!newMessage.trim() && !selectedMedia)}
+                className={`p-3 rounded-full flex-shrink-0 flex items-center justify-center transition-all cursor-pointer ${
+                  (newMessage.trim() || selectedMedia) && !sending && bspReady
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   }`}
               >
                 {sending ? <FaSpinner className="animate-spin text-lg" /> : <FaPaperPlane className="text-lg translate-x-[-1px] translate-y-[1px]" />}
@@ -652,15 +977,14 @@ export default function InboxPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#f0f2f5] border-l border-gray-200">
-            <div className="w-[280px] text-center">
-              <div className="mx-auto w-[250px] aspect-square bg-[#e2e8f0] rounded-full flex items-center justify-center mb-8 shadow-inner overflow-hidden relative">
-                <FaUserCircle className="text-[260px] text-gray-300 absolute -bottom-5" />
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#f4f6f8] border-l border-gray-100">
+            <div className="w-[320px] text-center flex flex-col items-center">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100 text-green-500">
+                <FaPaperPlane className="text-4xl translate-x-[-2px] translate-y-[2px]" />
               </div>
-              <h3 className="text-[32px] font-light text-[#41525d] mb-4">Interakt Inbox</h3>
-              <p className="text-[14px] text-[#8696a0] leading-relaxed">
-                Send and receive messages without keeping your phone online.<br />
-                Use WhatsApp on up to 4 linked devices and 1 phone at the same time.
+              <h3 className="text-2xl font-semibold text-gray-800 mb-3 tracking-tight">Shared Inbox</h3>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-[280px]">
+                Select a conversation from the left menu to start messaging, or start a new chat above.
               </p>
             </div>
           </div>
@@ -669,65 +993,116 @@ export default function InboxPage() {
 
       {/* 3. Right Sidebar: Context Panel (Smart Card / Details) */}
       {selectedContact && (
-        <div className="w-[320px] lg:w-[350px] flex-shrink-0 bg-white border-l border-gray-200 flex flex-col overflow-y-auto z-30 hidden md:flex">
+        <div className="w-[300px] lg:w-[330px] flex-shrink-0 bg-white border-l border-gray-100 flex flex-col overflow-y-auto z-30 hidden xl:flex shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.02)] transition-all">
 
           {/* Contact Header Card */}
-          <div className="p-6 flex flex-col items-center justify-center bg-[#f0f2f5] border-b border-gray-200 text-center">
-            <div className="w-24 h-24 bg-gray-300 rounded-full flex items-center justify-center mb-4 overflow-hidden border-2 border-white shadow-sm">
-              <FaUserCircle className="text-[100px] text-white" />
+          <div className="p-8 flex flex-col items-center justify-center bg-white border-b border-gray-100 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-br from-green-50 to-emerald-50 opacity-80"></div>
+            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-3 overflow-hidden border-[3px] border-white shadow-md relative z-10 text-gray-300">
+              {selectedContact.avatarUrl || selectedContact.avatar ? (
+                <img src={selectedContact.avatarUrl || selectedContact.avatar} alt={selectedContact.name} className="w-full h-full object-cover" />
+              ) : (
+                <FaUserCircle className="text-[90px]" />
+              )}
             </div>
-            <h2 className="text-xl font-medium text-gray-900 mb-1">
+            <h2 className="text-[18px] font-bold text-gray-900 mb-0.5 relative z-10 mt-1">
               {selectedContact.name || selectedContact.phone}
             </h2>
-            <p className="text-sm text-gray-500 font-medium tracking-wide">
+            <p className="text-[13px] text-gray-500 font-medium tracking-wide relative z-10">
               {selectedContact.phone}
             </p>
+            {selectedContact.email && (
+              <p className="text-[11px] text-gray-400 mt-0.5 relative z-10">{selectedContact.email}</p>
+            )}
           </div>
 
           {/* CRM / Deal Pipeline Section */}
           <div className="p-0 flex-1 bg-white">
 
             <div className="border-b border-gray-100 last:border-b-0">
-              <button className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group">
+              <button 
+                onClick={() => toggleSection('details')}
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group"
+              >
                 <span className="flex items-center gap-2"><FaInfoCircle className="text-gray-400 group-hover:text-green-500" /> Personal Details</span>
-                <FaChevronDown className="text-xs text-gray-400" />
+                <FaChevronDown className={`text-xs text-gray-400 transition-transform ${expandedSections.details ? 'rotate-180' : ''}`} />
               </button>
-              <div className="px-5 pb-4 text-sm text-gray-600 bg-white">
-                <div className="grid grid-cols-[100px_1fr] gap-y-2">
-                  <span className="text-gray-400">Name</span>
-                  <span className="font-medium text-gray-800">{selectedContact.name || '-'}</span>
-                  <span className="text-gray-400">Phone</span>
-                  <span className="font-medium text-gray-800">{selectedContact.phone}</span>
+              {expandedSections.details && (
+                <div className="px-5 pb-4 text-sm text-gray-600 bg-white">
+                  <div className="grid grid-cols-[100px_1fr] gap-y-2">
+                    <span className="text-gray-400">Name</span>
+                    <span className="font-medium text-gray-800">{selectedContact.name || '-'}</span>
+                    <span className="text-gray-400">Phone</span>
+                    <span className="font-medium text-gray-800">{selectedContact.phone}</span>
+                    <span className="text-gray-400">Email</span>
+                    <span className="font-medium text-gray-800">{selectedContact.email || '-'}</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="border-b border-gray-100">
-              <button className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group">
+              <button 
+                onClick={() => toggleSection('tags')}
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group"
+              >
                 <span className="flex items-center gap-2"><FaTags className="text-gray-400 group-hover:text-green-500" /> Tags</span>
-                <FaChevronDown className="text-xs text-gray-400" />
+                <FaChevronDown className={`text-xs text-gray-400 transition-transform ${expandedSections.tags ? 'rotate-180' : ''}`} />
               </button>
-              <div className="px-5 pb-4">
-                <div className="flex flex-wrap gap-2">
-                  {/* Placeholder tags */}
-                  <span className="px-2 py-1 bg-gray-100 text-gray-600 text-[11px] font-bold uppercase rounded-md border border-gray-200">Customer</span>
-                  <span className="px-2 py-1 bg-blue-50 text-blue-600 text-[11px] font-bold uppercase rounded-md border border-blue-100">WhatsApped</span>
+              {expandedSections.tags && (
+                <div className="px-5 pb-4">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {selectedContact.tags && selectedContact.tags.length > 0 ? (
+                      selectedContact.tags.map(tag => (
+                        <span key={tag} className="px-2 py-1 bg-green-50 text-green-600 text-[11px] font-bold uppercase rounded-md border border-green-100 flex items-center gap-1 group/tag">
+                          {tag}
+                          <button onClick={() => handleRemoveTag(tag)} className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500"><FaTimes className="text-[9px]" /></button>
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-xs text-gray-400 italic">No tags assigned</span>
+                    )}
+                  </div>
+                  
+                  {availableTags.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-gray-50">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Available Tags</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableTags
+                          .filter(tag => !selectedContact.tags?.includes(tag.name || tag))
+                          .map(tag => (
+                            <button
+                              key={tag._id || tag}
+                              onClick={() => handleAddTag(tag.name || tag)}
+                              className="px-2 py-1 bg-gray-50 text-gray-500 text-[10px] font-medium rounded hover:bg-green-50 hover:text-green-600 hover:border-green-100 border border-gray-100 transition-all"
+                            >
+                              + {tag.name || tag}
+                            </button>
+                          ))
+                        }
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Sales Pipeline Data */}
             <div className="border-b border-gray-100">
-              <button className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group">
+              <button 
+                onClick={() => toggleSection('pipeline')}
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group"
+              >
                 <span className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-gray-400 group-hover:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm12-3c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zM3 19V6l12-3v13M3 19c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" />
                   </svg>
                   Sales Pipeline
                 </span>
-                <FaChevronDown className="text-xs text-gray-400" />
+                <FaChevronDown className={`text-xs text-gray-400 transition-transform ${expandedSections.pipeline ? 'rotate-180' : ''}`} />
               </button>
-              <div className="px-5 pb-4 bg-white">
+              {expandedSections.pipeline && (
+                <div className="px-5 pb-4 bg-white">
                 {crmLoading ? (
                   <div className="flex items-center justify-center p-4">
                     <FaSpinner className="animate-spin text-green-500 text-lg" />
@@ -809,7 +1184,8 @@ export default function InboxPage() {
                     <p className="text-sm text-gray-500 px-4">No active pipeline deal found for this contact.</p>
                   </div>
                 )}
-              </div>
+                </div>
+              )}
             </div>
 
           </div>

@@ -1,4 +1,4 @@
-import { post, get, put } from './client';
+import { post, get, put, API_URL } from './client';
 
 export const sendTemplateMessage = async (data) => post('/messages/template', data);
 
@@ -28,6 +28,27 @@ export const fetchAvailableAgents = async () => get('/admin/team/members');
 
 // Internal Notes
 export const getConversationNotes = async (conversationId) => get(`/conversations/${conversationId}/notes`);
+
+export const uploadInboxMedia = async (file) => {
+  const token = localStorage.getItem('token');
+  const formData = new FormData();
+  formData.append('file', file);
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_URL}/inbox/upload-media`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: formData
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to upload media');
+  }
+  return await response.json();
+};
 export const createConversationNote = async (conversationId, content) => post(`/conversations/${conversationId}/notes`, { content });
 export const updateConversationNote = async (conversationId, noteId, content) => put(`/conversations/${conversationId}/notes/${noteId}`, { content });
 export const deleteConversationNote = async (conversationId, noteId) => del(`/conversations/${conversationId}/notes/${noteId}`);

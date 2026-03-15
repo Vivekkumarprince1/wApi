@@ -15,6 +15,7 @@
 
 const { Conversation, Message, Contact, User, Permission } = require('../../models');
 const { getIO } = require('../../utils/socket');
+const { uploadBufferToCloudinary } = require('../../utils/cloudinary');
 
 // Hardening services
 const softLockService = require('../../services/infrastructure/softLockService');
@@ -1255,6 +1256,47 @@ exports.sendMediaMessage = async (req, res) => {
       success: false,
       message: err.message || 'Failed to send media',
       code: 'MEDIA_SEND_ERROR'
+    });
+  }
+};
+
+/**
+ * Upload media for inbox explicitly
+ * POST /api/inbox/upload-media
+ */
+exports.uploadMedia = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No media file provided' });
+    }
+
+    const mimeType = req.file.mimetype;
+    let resourceType = 'auto';
+
+    if (mimeType.startsWith('image/')) {
+      resourceType = 'image';
+    } else if (mimeType.startsWith('video/')) {
+      resourceType = 'video';
+    } else if (mimeType.startsWith('audio/')) {
+      resourceType = 'video'; // Cloudinary treats audio as video resource type
+    } else {
+      resourceType = 'raw'; // for documents
+    }
+
+    const result = await uploadBufferToCloudinary(req.file.buffer, resourceType);
+
+    res.json({
+      success: true,
+      url: result.secure_url,
+      filename: req.file.originalname,
+      mimeType: req.file.mimetype
+    });
+  } catch (error) {
+    console.error('[INBOX] Media upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload media',
+      error: error.message
     });
   }
 };

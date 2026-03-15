@@ -5,6 +5,7 @@
 
 const BaseRepository = require('./baseRepository');
 const { Contact } = require('../models');
+const { normalizePhone } = require('../utils/phoneUtils');
 
 class ContactRepository extends BaseRepository {
   constructor() {
@@ -15,8 +16,9 @@ class ContactRepository extends BaseRepository {
    * Find contact by phone number and workspace
    */
   async findByPhone(phone, workspaceId) {
+    const normalizedPhone = normalizePhone(phone);
     return this.findOne({
-      phone: phone,
+      phone: normalizedPhone,
       workspace: workspaceId
     });
   }
@@ -44,11 +46,13 @@ class ContactRepository extends BaseRepository {
    * Search contacts by name or phone
    */
   async search(workspaceId, query, options = {}) {
+    const normalizedQuery = normalizePhone(query);
     const conditions = {
       workspace: workspaceId,
       $or: [
         { name: new RegExp(query, 'i') },
         { phone: new RegExp(query, 'i') },
+        { phone: new RegExp(normalizedQuery, 'i') },
         { 'metadata.email': new RegExp(query, 'i') }
       ]
     };

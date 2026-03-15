@@ -13,6 +13,7 @@ function transformContact(contact, options = {}) {
     id: contact._id,
     phone: contact.phone,
     name: contact.name,
+    displayName: contact.displayName || contact.name || contact.phone,
     tags: contact.tags || [],
     metadata: contact.metadata || {},
     optOut: contact.optOut || { status: false },

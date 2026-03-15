@@ -558,6 +558,11 @@ async function sendMediaMessage(options) {
       whatsappMessageId: result.messageId,
       status: 'queued',
       sentBy: agentId,
+      media: {
+        url: mediaUrl,
+        filename,
+        caption
+      },
       meta: {
         providerAcceptedAt: new Date()
       }

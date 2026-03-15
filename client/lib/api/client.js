@@ -127,14 +127,20 @@ export const put = async (endpoint, data) => {
   }
 };
 
-export const del = async (endpoint) => {
+export const del = async (endpoint, data = null) => {
   loadingStore.startRequest();
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const config = {
       method: 'DELETE',
       headers: getAuthHeaders(),
       credentials: 'include',
-    });
+    };
+    
+    if (data) {
+      config.body = JSON.stringify(data);
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, config);
 
     if (!response.ok) {
       if (response.status === 401) {

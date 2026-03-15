@@ -717,6 +717,11 @@ async function sendMediaMessage(workspaceId, to, mediaType, media, caption = '',
       body: caption || `[${mediaType}]`,
       status: 'queued',
       whatsappMessageId: response.messageId || response.id,
+      media: {
+        url: media.link || media.url,
+        filename: media.filename,
+        caption: caption
+      },
       meta: { media },
       ...options
     });
@@ -741,6 +746,11 @@ async function sendMediaMessage(workspaceId, to, mediaType, media, caption = '',
       type: mediaType,
       to: normalizedPhone,
       status: 'failed',
+      media: {
+        url: media.link || media.url,
+        filename: media.filename,
+        caption: caption
+      },
       error: error.message,
       ...options
     });

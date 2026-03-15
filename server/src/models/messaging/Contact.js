@@ -40,6 +40,17 @@ const ContactSchema = new mongoose.Schema({
   
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
+}, {
+  timestamps: true,
+  toObject: { virtuals: true },
+  toJSON: { virtuals: true }
+});
+
+// Virtual for display name
+ContactSchema.virtual('displayName').get(function() {
+  if (this.name && this.name !== 'Unknown') return this.name;
+  if (this.metadata?.whatsappName && this.metadata.whatsappName !== 'Unknown') return this.metadata.whatsappName;
+  return this.phone;
 });
 
 ContactSchema.index({ workspace: 1, phone: 1 }, { unique: true });

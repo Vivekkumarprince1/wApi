@@ -16,6 +16,9 @@ const {
   requireConversationAccess
 } = require('../../middlewares/infrastructure/rbac');
 
+const multer = require('multer');
+const upload = multer();
+
 // ═══════════════════════════════════════════════════════════════════════════
 // INBOX QUERIES (All authenticated users)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -103,6 +106,17 @@ router.post('/:conversationId/messages/media',
   requireConversationAccess('conversationId'),
   requirePermission('sendMessages'),
   inboxController.sendMediaMessage
+);
+
+/**
+ * POST /api/inbox/upload-media
+ * Upload media for inbox messages via Cloudinary
+ */
+router.post('/upload-media',
+  auth,
+  requirePermission('sendMessages'),
+  upload.single('file'),
+  inboxController.uploadMedia
 );
 
 // ═══════════════════════════════════════════════════════════════════════════
