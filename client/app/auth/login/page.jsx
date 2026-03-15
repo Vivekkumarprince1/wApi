@@ -19,7 +19,15 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showCard, setShowCard] = useState(false);
 
-  const redirectAfterLogin = async () => {
+  const redirectAfterLogin = async (sessionData) => {
+    const workspace = sessionData?.workspace || null;
+    const needsBusinessInfo = sessionData?.needsBusinessInfo ?? !workspace?.businessInfo?.name;
+
+    if (needsBusinessInfo) {
+      router.push('/onboarding/business-info');
+      return;
+    }
+
     router.push('/dashboard');
   };
 
@@ -43,8 +51,7 @@ export default function LoginPage() {
       }
 
       // Use login response data
-      const user = data?.user || data;
-      await redirectAfterLogin(user?.emailVerified !== false);
+      await redirectAfterLogin(data);
     } catch (err) {
       setError(err.message || 'Login failed');
     } finally {
@@ -61,8 +68,11 @@ export default function LoginPage() {
     setSocialError('');
 
     // Use result data
-    const user = result?.user || result;
-    await redirectAfterLogin(user?.emailVerified !== false);
+    const onboarding = await getOnboardingStatus().catch(() => null);
+    await redirectAfterLogin({
+      workspace: onboarding?.workspace || null,
+      needsBusinessInfo: !(onboarding?.status?.steps?.businessInfo),
+    });
   };
 
   const handleFacebookSuccess = async (result) => {
@@ -74,8 +84,11 @@ export default function LoginPage() {
     setSocialError('');
 
     // Use result data
-    const user = result?.user || result;
-    await redirectAfterLogin(user?.emailVerified !== false);
+    const onboarding = await getOnboardingStatus().catch(() => null);
+    await redirectAfterLogin({
+      workspace: onboarding?.workspace || null,
+      needsBusinessInfo: !(onboarding?.status?.steps?.businessInfo),
+    });
   };
 
   return (

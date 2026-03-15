@@ -32,6 +32,7 @@ const {
   getStage1StatusEndpoint,
   triggerSync
 } = require('../../controllers/bsp/bspOnboardingController');
+const { repairConnection } = require('../../controllers/bsp/connectionController');
 
 // =============================================================================
 // PUBLIC ROUTES (No auth required)
@@ -83,5 +84,8 @@ router.post('/sync', authenticate, triggerSync);
 
 // Disconnect WhatsApp
 router.post('/disconnect', authenticate, disconnect);
+
+// Repair WhatsApp connection (Finalization + Webhooks)
+router.post('/repair', authenticate, repairConnection);
 
 module.exports = router;

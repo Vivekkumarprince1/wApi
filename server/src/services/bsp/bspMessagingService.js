@@ -18,6 +18,7 @@ const { isOptedOutByPhone, isOptedOut } = require('../messaging/optOutService');
 const { enforceWorkspaceBilling } = require('../billing/billingEnforcementService');
 const billingLedgerService = require('../billing/billingLedgerService');
 const auditService = require('../admin/auditService');
+const { isUrl, isMediaHandle } = require('../../utils/mediaUtils');
 const { decryptToken, resolveWhatsAppWebhookUrl } = require('./gupshupProvisioningService');
 
 // In-memory rate limiter (use Redis in production for distributed systems)
@@ -30,9 +31,17 @@ const templateSyncTriggerStateByApp = new Map();
 const APP_TOKEN_RESOLVE_TTL_MS = 30 * 1000;
 const appTokenResolveStateByApp = new Map();
 const provisionedApps = new Set();
+const finalizedWabas = new Set(); // Track Apps that have been finalized (whitelist + credit line)
+const finalizationFailedApps = new Map(); // Track failures to avoid spamming BSP
+const provisionFailedApps = new Map();   // Track proxy/webhook failures
 const lastHealthCheckByApp = new Map();
 const HEALTH_CHECK_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 const missingWebhookWarningByApp = new Set();
+const FAILED_RETRY_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+
+// In-flight promise tracking to prevent dual setup for same app
+const provisioningPromises = new Map();
+const finalizationPromises = new Map();
 
 /**
  * Check if a session message can be sent (within 24h window)
@@ -78,20 +87,15 @@ async function canSendSessionMessage(workspaceId, phoneNumber, contactId = null)
 
     const now = new Date();
 
-    // If windowExpiresAt is set and still valid → session is open
-    if (conversation.windowExpiresAt && new Date(conversation.windowExpiresAt) > now) {
+    // If windowExpiresAt is missing but conversation is open, or it's set and valid → session is open
+    const windowOpen = conversation.isOpen && (!conversation.windowExpiresAt || new Date(conversation.windowExpiresAt) > now);
+    
+    if (windowOpen) {
       return true;
     }
 
-    // If windowExpiresAt is NOT set, there is no active customer-initiated session.
-    // Business-initiated conversations must use templates.
-    if (!conversation.windowExpiresAt) {
-      console.log(`[BSP] canSendSessionMessage: no windowExpiresAt for ${phoneNumber} — template required`);
-      return false;
-    }
-
-    // Window expired
-    console.log(`[BSP] canSendSessionMessage: window expired for ${phoneNumber} (expired: ${conversation.windowExpiresAt})`);
+    // Windows with no inbound activity or expired activity must use templates
+    console.log(`[BSP] canSendSessionMessage: window closed or expired for ${phoneNumber} (isOpen: ${conversation.isOpen}, expires: ${conversation.windowExpiresAt})`);
     return false;
   } catch (error) {
     console.error('[BSPMessagingService] Error checking session window:', error.message);
@@ -202,7 +206,8 @@ async function logWhatsAppSendDiagnostics({
   normalizedPhone,
   payload,
   appId,
-  appApiKey
+  appApiKey,
+  ...options
 }) {
   console.log("\n========== [DIAGNOSTICS] PRE-FLIGHT TEMPLATE DELIVERY CHECK ==========");
 
@@ -260,7 +265,10 @@ async function logWhatsAppSendDiagnostics({
     approved: templateStatus === "APPROVED",
     variableCount,
     variablesSent: payload?.components || [],
-    ...(marketingColdContact && { marketingColdContact: true })
+    ...(marketingColdContact && { 
+      marketingColdContact: true,
+      policyWarning: "Meta often blocks marketing templates to contacts who haven't messaged the business first, especially for TIER_250 accounts."
+    })
   });
 
   // 6️⃣ MESSAGE PAYLOAD
@@ -532,15 +540,15 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
   // Handle Header Media Requirement
   const headerSchema = templateDb.metaPayloadSnapshot?.components?.find(c => c.type === 'HEADER');
   if (headerSchema && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerSchema.format)) {
-    // Priority: options.headerMediaUrl > options.mediaUrl > template example header_handle
+    // Priority: options.headerMediaUrl > options.mediaUrl > template header.mediaUrl
     const mediaUrl =
       options.headerMediaUrl ||
       options.mediaUrl ||
-      headerSchema.example?.header_handle?.[0] ||
+      (templateDb.header && templateDb.header.mediaUrl) ||
       null;
 
-    if (!mediaUrl) {
-      throw new Error("Template requires header media");
+    if (!mediaUrl || (!isUrl(mediaUrl) && !isMediaHandle(mediaUrl))) {
+      throw new Error(`Template requires a valid HTTP/HTTPS URL or Media Handle for sending. Got: ${mediaUrl || 'null'}`);
     }
 
     console.log(`[TemplateSend] Header media: ${mediaUrl}`);
@@ -553,24 +561,23 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
       parameters: [
         {
           type: mediaTypeLower,
-          [mediaTypeLower]: {
-            link: mediaUrl
-          }
+          [mediaTypeLower]: isMediaHandle(mediaUrl)
+            ? { id: mediaUrl }
+            : { link: mediaUrl }
         }
       ]
     });
   }
 
-  // Handle Marketing Cold Contact Warning
+  // Handle Marketing Cold Contact Protection (BYPASSED per user request)
   let marketingColdContact = false;
   if (templateDb.category === 'MARKETING') {
-    // Check: existing conversation OR opt-in
-    // Future improvement: explicitly store and check opt-in status.
-    const hasInteracted = contact && (contact.lastInboundAt || contact.lastOutboundAt);
+    // A contact is cold if isColdContact is true (never messaged us)
+    marketingColdContact = !!contact?.isColdContact;
 
-    if (!hasInteracted) {
-      console.warn(`[Messaging] Marketing template to cold contact: ${normalizedPhone}`);
-      marketingColdContact = true;
+    if (marketingColdContact) {
+      console.warn(`[Messaging] ALLOWING MARKETING message to cold contact per policy override: ${normalizedPhone}`);
+      // We still log it as a warning but no longer throw an error
     }
   }
 
@@ -624,7 +631,7 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
       data: response
     };
   } catch (error) {
-    console.error(`[BSPMessagingService] Error sending template ${templateName}:`, error.message);
+    console.error(`[Messaging] Error sending template ${templateName}:`, error.message);
 
     await logMessage(workspace._id, {
       direction: 'outbound',
@@ -953,11 +960,13 @@ async function submitTemplate(workspaceId, templateData) {
       templateId: response.templateId || response.id || response.template?.id || namespacedName,
       status: response.status || response.template?.status || 'PENDING',
       namespacedName,
+      partnerAppId: appId,
       data: response,
       rawResponse: response
     };
   } catch (error) {
-    console.error(`[BSP] Template submission failed: ${error.message}`);
+    const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : (error.stack || error.message);
+    console.error(`[BSP] Template submission failed for workspace ${workspaceId}: ${error.message} - Details: ${errorDetails}`);
     throw error;
   }
 }
@@ -1282,33 +1291,106 @@ async function getWorkspaceForMessaging(workspaceId) {
 async function ensurePrerequisites(workspace) {
   const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId;
   const appApiKey = await ensureWorkspaceAppApiKey(workspace);
+  const now = Date.now();
 
   if (!appId || !appApiKey) return;
 
-  // 1. Ensure Subscriptions (one-time, in background — non-blocking)
+  // 1. Ensure Finalization (Whitelisting) - BLOCKING & VERIFY FIRST
+  if (!finalizedWabas.has(appId)) {
+    const lastFailureAt = finalizationFailedApps.get(appId);
+    if (lastFailureAt && now - lastFailureAt < FAILED_RETRY_COOLDOWN_MS) {
+        throw new Error(`BSP_WHITELIST_PENDING_COOLDOWN: WABA whitelisting failed recently. Retry in ${Math.ceil((FAILED_RETRY_COOLDOWN_MS - (now - lastFailureAt))/1000)}s`);
+    }
+
+    if (!finalizationPromises.has(appId)) {
+      console.log(`[Messaging] Checking/Finalizing WABA whitelisting for ${appId}...`);
+      const promise = (async () => {
+        try {
+          // STEP 1: Verify if already whitelisted (GET)
+          try {
+            const verifyRes = await gupshupService.verifyAndAttachCreditLine(appId, appApiKey);
+            if (verifyRes.status === 'success') {
+              console.log(`[Messaging] ✅ WABA already whitelisted/verified for ${appId}`);
+              finalizedWabas.add(appId);
+              finalizationFailedApps.delete(appId);
+              finalizationPromises.delete(appId);
+              return;
+            }
+          } catch (vErr) {
+             const errMsg = vErr.response?.data?.message || vErr.message;
+             // If not migrated yet, we proceed to POST whitelist
+             if (!errMsg.includes('not migrated to embed') && !errMsg.includes('Ownership Type: ON_BEHALF_OF')) {
+               throw vErr; 
+             }
+             console.log(`[Messaging] WABA ${appId} not yet whitelisted (OBO status). Proceeding to whitelist...`);
+          }
+
+          // STEP 2: Trigger Whitelist (POST) - Only if not already verified
+          await gupshupService.whitelistWaba(appId, appApiKey);
+          
+          // STEP 3: Final Verify/Attach Credit Line (GET)
+          await gupshupService.verifyAndAttachCreditLine(appId, appApiKey);
+          
+          finalizedWabas.add(appId);
+          finalizationFailedApps.delete(appId);
+          finalizationPromises.delete(appId);
+          console.log(`[Messaging] ✅ WABA finalized for ${appId}`);
+        } catch (err) {
+          finalizationFailedApps.set(appId, Date.now());
+          finalizationPromises.delete(appId);
+          throw err;
+        }
+      })();
+      finalizationPromises.set(appId, promise);
+    }
+
+    // Await finalization
+    try {
+      await finalizationPromises.get(appId);
+    } catch (err) {
+      throw new Error(`BSP_WHITELIST_FAILED: ${err.message}`);
+    }
+  }
+
+  // 1.5. Ensure Subscriptions (BLOCKING)
   if (!provisionedApps.has(appId)) {
+    const lastFailureAt = provisionFailedApps.get(appId);
+    if (lastFailureAt && now - lastFailureAt < FAILED_RETRY_COOLDOWN_MS) {
+        throw new Error(`BSP_SUBSCRIPTION_PENDING_COOLDOWN: Webhook subscription failed recently. Retry in ${Math.ceil((FAILED_RETRY_COOLDOWN_MS - (now - lastFailureAt))/1000)}s`);
+    }
+
     const webhookUrl = resolveWhatsAppWebhookUrl();
-    if (webhookUrl) {
-      gupshupService.ensureRequiredSubscriptions({ appId, appApiKey, webhookUrl })
+    if (!webhookUrl) {
+      throw new Error('BSP_WEBHOOK_URL_MISSING: Configure a public HTTPS WHATSAPP_WEBHOOK_URL to enable messaging.');
+    }
+
+    // Use in-flight promise if available
+    if (!provisioningPromises.has(appId)) {
+      console.log(`[Messaging] Provisioning subscriptions for ${appId}...`);
+      const promise = gupshupService.ensureRequiredSubscriptions({ appId, appApiKey, webhookUrl })
         .then(() => {
           provisionedApps.add(appId);
-          missingWebhookWarningByApp.delete(appId);
+          provisionFailedApps.delete(appId);
+          provisioningPromises.delete(appId);
+          console.log(`[Messaging] ✅ Subscriptions provisioned for ${appId}`);
         })
         .catch(err => {
-          console.warn(`[BSPMessagingService] Subscription auto-provisioning failed for ${appId}:`, err.message);
+          provisionFailedApps.set(appId, Date.now());
+          provisioningPromises.delete(appId);
+          throw err;
         });
-    } else if (!missingWebhookWarningByApp.has(appId)) {
-      missingWebhookWarningByApp.add(appId);
-      console.warn(
-        `[BSPMessagingService] Subscription auto-provisioning skipped for ${appId}: configure a public HTTPS WHATSAPP_WEBHOOK_URL (or RENDER_EXTERNAL_URL/API_BASE_URL) because localhost callbacks are not reachable by Gupshup`
-      );
+      provisioningPromises.set(appId, promise);
+    }
+
+    // Await the provisioning
+    try {
+      await provisioningPromises.get(appId);
+    } catch (err) {
+      throw new Error(`BSP_SUBSCRIPTION_FAILED: ${err.message}`);
     }
   }
 
   // 2. Health Check — cached + non-blocking (fire-and-forget)
-  // The Gupshup health endpoint can be slow or unavailable.
-  // We must NOT block agent sends on it — results are cached for 1 hour (HEALTH_CHECK_COOLDOWN_MS).
-  const now = Date.now();
   const lastCheck = lastHealthCheckByApp.get(appId);
 
   // Cache hit — skip this cycle

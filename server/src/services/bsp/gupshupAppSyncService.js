@@ -195,9 +195,11 @@ async function syncWorkspace(workspace) {
         }
 
         if (phone_number_id && phone_number_id !== updates.whatsappPhoneNumber) {
-          updates.phoneNumberId = phone_number_id;
-          updates.whatsappPhoneNumberId = phone_number_id;
-          updates.bspPhoneNumberId = phone_number_id;
+          if (!workspace.phoneNumberId || workspace.phoneNumberId === phone_number_id) {
+            updates.phoneNumberId = phone_number_id;
+            updates.whatsappPhoneNumberId = phone_number_id;
+            updates.bspPhoneNumberId = phone_number_id;
+          }
         }
       } catch (appErr) {
         logger.warn(`[GupshupSync] Failed to fetch full app details for ${app.id}: ${appErr.message}`);
@@ -223,7 +225,6 @@ async function syncWorkspace(workspace) {
             logger.debug(`[GupshupSync] Ownership:        ${wabaInfo.ownershipType}`);
             logger.debug(`[GupshupSync] Full WABA Data:\n`, JSON.stringify(wabaInfo, null, 2));
             logger.debug(`======================================================\n`);
-
             // Save the Meta WABA ID (Fallback to wabaInfo if explicit fetch failed)
             if (wabaInfo.wabaId && !updates.wabaId) {
               updates.wabaId = wabaInfo.wabaId;
@@ -244,8 +245,8 @@ async function syncWorkspace(workspace) {
               updates.bspDisplayPhoneNumber = wabaInfo.phone;
             }
             // Extract the TRUE phone_number_id from Meta (Fallback)
-            if (!updates.phoneNumberId && (wabaInfo.phoneNumberId || wabaInfo.phone_number_id || wabaInfo.id)) {
-              const trueId = wabaInfo.phoneNumberId || wabaInfo.phone_number_id || wabaInfo.id;
+            if (!updates.phoneNumberId && !workspace.phoneNumberId && (wabaInfo.phoneNumberId || wabaInfo.phone_number_id)) {
+              const trueId = wabaInfo.phoneNumberId || wabaInfo.phone_number_id;
               if (trueId !== updates.whatsappPhoneNumber) { // Prevent strings like "1555..." from being saved
                 updates.phoneNumberId = trueId;
                 updates.whatsappPhoneNumberId = trueId;

@@ -25,7 +25,7 @@ const { log: auditLog } = require('../../services/admin/auditService');
 const { getStage1Status } = require('../../middlewares/infrastructure/phoneActivation');
 const { getRedis, setJson, getJson, deleteKey } = require('../../config/redis');
 const crypto = require('crypto');
-const { provisionPartnerApp } = require('../../services/bsp/gupshupProvisioningService');
+const { provisionPartnerApp, runPostOnboardingAutomations } = require('../../services/bsp/gupshupProvisioningService');
 const {
   buildLeanWorkspaceProjection,
   getWorkspaceRuntimeProfile
@@ -496,6 +496,13 @@ async function completeOnboarding(req, res) {
 
     // Clean up state
     await deleteEsbState(state);
+
+    // Trigger post-onboarding automations (sync, finalization, etc.)
+    if (workspace.whatsappConnected || result.phoneStatus === 'CONNECTED') {
+      runPostOnboardingAutomations(workspace).catch(err => {
+        logger.error(`[BSP] Post-onboarding automations failure for workspace ${workspace._id}:`, err.message);
+      });
+    }
 
     // Audit log
     await auditLog(

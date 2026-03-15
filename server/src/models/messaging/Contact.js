@@ -31,6 +31,13 @@ const ContactSchema = new mongoose.Schema({
     optedBackInAt: { type: Date }
   },
   
+  /**
+   * Cold contact detection:
+   * true if the contact hasn't messaged the business yet.
+   * false if we have received at least one inbound message.
+   */
+  isColdContact: { type: Boolean, default: true },
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

@@ -63,6 +63,9 @@ async function sendText(workspace, destination, text) {
         destination: String(destination).replace(/\D/g, ''),
         'src.name': workspace.name || appId,
         message: {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: String(destination).replace(/\D/g, ''),
             type: 'text',
             text: { body: text }
         }
@@ -134,6 +137,9 @@ async function sendMedia(workspace, destination, mediaType, mediaUrl, caption = 
         destination: String(destination).replace(/\D/g, ''),
         'src.name': workspace.name || appId,
         message: {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: String(destination).replace(/\D/g, ''),
             type: mediaType,
             [mediaType]: mediaPayload
         }
@@ -186,11 +192,15 @@ async function sendTemplate(workspace, destination, templateName, languageCode =
         destination: String(destination).replace(/\D/g, ''),
         'src.name': workspace.name || appId,
         message: {
+            messaging_product: 'whatsapp',
+            recipient_type: 'individual',
+            to: String(destination).replace(/\D/g, ''),
             type: 'template',
             template: {
                 name: templateName,
-                languagePolicy: 'deterministic',
-                language: languageCode,
+                language: {
+                    code: languageCode
+                },
                 components
             }
         }

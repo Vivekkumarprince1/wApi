@@ -69,7 +69,19 @@ const SUPPORTED_LANGUAGES = {
 const ApprovalHistorySchema = new mongoose.Schema({
   status: {
     type: String,
-    enum: ['PENDING', 'APPROVED', 'REJECTED', 'PAUSED', 'DISABLED', 'IN_APPEAL'],
+    enum: [
+      'DRAFT',
+      'PENDING',
+      'APPROVED',
+      'REJECTED',
+      'PAUSED',
+      'DISABLED',
+      'IN_APPEAL',
+      'PENDING_DELETION',
+      'DELETED',
+      'LIMIT_EXCEEDED',
+      'FAILED'
+    ],
     required: true
   },
   reason: { type: String },
@@ -274,7 +286,8 @@ const TemplateSchema = new mongoose.Schema({
       'IN_APPEAL',       // Rejection appealed
       'PENDING_DELETION', // Deletion requested
       'DELETED',         // Deleted from Meta
-      'LIMIT_EXCEEDED'   // Quality limit exceeded
+      'LIMIT_EXCEEDED',  // Quality limit exceeded
+      'FAILED'           // Template sync/submission failed
     ],
     default: 'DRAFT',
     index: true
@@ -905,7 +918,7 @@ TemplateSchema.methods.canEdit = function () {
  * Check if template can be submitted
  */
 TemplateSchema.methods.canSubmit = function () {
-  return this.status === 'DRAFT' || this.status === 'REJECTED';
+  return this.status === 'DRAFT' || this.status === 'REJECTED' || this.status === 'FAILED';
 };
 
 /**

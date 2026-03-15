@@ -88,3 +88,31 @@ Avoid storing or repeatedly syncing these as durable snapshots:
 - Keep webhook logs time-bound with TTL.
 - Never duplicate `phone_number_id` mappings across tenants.
 - Prefer live reads for provider status screens; prefer local reads for inbox and analytics.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+https://partner-docs.gupshup.io/reference/get_partner-app-appid-subscription
+https://partner-docs.gupshup.io/reference/get_partner-app-appid-subscription-subscriptionid
+https://partner-docs.gupshup.io/reference/setsubscription-api-v3
+https://partner-docs.gupshup.io/reference/put_partner-app-appid-subscription-subscriptionid
+https://partner-docs.gupshup.io/reference/delete_partner-app-appid-subscription-subscriptionid
+https://partner-docs.gupshup.io/reference/delete_partner-app-appid-subscription
+https://partner-docs.gupshup.io/reference/passthrough-apis
+https://partner-docs.gupshup.io/reference/post_partner-app-appid-v3-message-12
+https://partner-docs.gupshup.io/reference/post_partner-app-appid-v3-message-14
+
+https://partner-docs.gupshup.io/reference/post_partner-app-appid-obotoembed-whitelist
+
+https://partner-docs.gupshup.io/reference/get_partner-app-appid-obotoembed-verify
+https://partner-docs.gupshup.io/reference/post_partner-app-appid-v3-message-14

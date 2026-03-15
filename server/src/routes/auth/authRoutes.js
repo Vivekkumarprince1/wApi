@@ -7,8 +7,10 @@ const {
   logout,
   updateProfile,
   sendSignupOTP,
+  resendSignupOTP,
   verifySignupOTP,
   sendLoginOTP,
+  resendLoginOTP,
   verifyLoginOTP,
   googleOAuthLogin,
   getGoogleDebug,
@@ -27,6 +29,7 @@ const router = express.Router();
 
 // OTP-based authentication
 router.post('/send-signup-otp', [body('email').isEmail()], validate, sendSignupOTP);
+router.post('/resend-signup-otp', [body('email').isEmail()], validate, resendSignupOTP);
 router.post('/verify-signup-otp', [
   body('email').isEmail(),
   body('otp').notEmpty(),
@@ -44,6 +47,7 @@ router.post('/verify-signup-otp', [
   body('phone').optional().isString()
 ], validate, verifySignupOTP);
 router.post('/send-login-otp', [body('email').isEmail()], validate, sendLoginOTP);
+router.post('/resend-login-otp', [body('email').isEmail()], validate, resendLoginOTP);
 router.post('/verify-login-otp', [body('email').isEmail(), body('otp').notEmpty()], validate, verifyLoginOTP);
 
 // Traditional email/password authentication

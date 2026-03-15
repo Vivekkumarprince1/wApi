@@ -784,6 +784,71 @@ async function updateInboxSettings(req, res, next) {
   }
 }
 
+/**
+ * Update legal business information for the workspace
+ */
+async function updateBusinessInfo(req, res, next) {
+  try {
+    const {
+      name,
+      industry,
+      companySize,
+      annualRevenue,
+      website,
+      address,
+      city,
+      state,
+      country,
+      zipCode,
+      description,
+      businessDocuments
+    } = req.body;
+
+    const workspace = await Workspace.findById(req.user.workspace);
+    if (!workspace) {
+      return res.status(404).json({ success: false, message: 'Workspace not found' });
+    }
+
+    // Update basic info
+    if (name) workspace.name = name;
+    if (industry) workspace.industry = industry;
+    if (companySize) workspace.companySize = companySize;
+    if (annualRevenue) workspace.annualRevenue = annualRevenue;
+    if (website) workspace.website = website;
+    if (address) workspace.address = address;
+    if (city) workspace.city = city;
+    if (state) workspace.state = state;
+    if (country) workspace.country = country;
+    if (zipCode) workspace.zipCode = zipCode;
+    if (description) workspace.description = description;
+
+    // Update business documents if provided
+    if (businessDocuments) {
+      workspace.businessDocuments = {
+        ...workspace.businessDocuments,
+        ...businessDocuments,
+        updatedAt: new Date()
+      };
+    }
+
+    await workspace.save();
+
+    res.json({
+      success: true,
+      message: 'Business information updated successfully',
+      businessInfo: {
+        name: workspace.name,
+        industry: workspace.industry,
+        website: workspace.website,
+        address: workspace.address,
+        documents: workspace.businessDocuments
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getWhatsAppNumberStatus,
   getWABASettings,
@@ -792,6 +857,7 @@ module.exports = {
   testWABAConnection,
   initializeWABAFromEnv,
   debugMetaCredentials,
+  updateBusinessInfo,
   getCommerceSettings,
   updateCommerceSettings,
   validateCommerceConfig,

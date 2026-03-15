@@ -2,6 +2,19 @@ const axios = require('axios');
 const bspConfig = require('../../config/bspConfig');
 const partnerTokenService = require('./partnerTokenService');
 
+// Add global error interceptor for Gupshup API
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 400 || error.response?.status === 422) {
+      console.error(`[GupshupAPI][ERROR] ${error.config?.method?.toUpperCase()} ${error.config?.url} - Status: ${error.response.status} - Data: ${JSON.stringify(error.response.data)}`);
+    }
+    return Promise.reject(error);
+  }
+);
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 function normalizeRawToken(token) {
   return String(token || '').replace(/^Bearer\s+/i, '').trim();
 }
@@ -168,13 +181,16 @@ function buildPartnerV3Envelope({ appId, source, destination, message, sourceNam
   if (!resolvedSource) throw new Error('GUPSHUP_SOURCE_MISSING');
   if (!resolvedDestination) throw new Error('GUPSHUP_DESTINATION_MISSING');
 
-  return {
-    channel: 'whatsapp',
-    source: resolvedSource,
-    destination: resolvedDestination,
-    'src.name': String(sourceName || appId || resolvedSource),
-    message
+  // Inject messaging_product required by Meta Cloud API when using Gupshup V3 Partner API
+  const finalMessage = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to: resolvedDestination,
+    ...message
   };
+
+  // The Gupshup Partner V3 Passthrough API expects the raw Meta payload
+  return finalMessage;
 }
 
 async function postPartnerV3Message({ appId, appApiKey, payload }) {
@@ -219,7 +235,7 @@ async function sendText({ appId, destination, text, appApiKey, source }) {
   console.info("[GupshupService] Sending text message", {
     appId,
     to: normalized,
-    source: payload.source
+    type: 'text'
   });
 
   try {
@@ -269,8 +285,9 @@ async function sendTemplateV3({
         type: 'template',
         template: {
           name: templateName,
-          languagePolicy: 'deterministic',
-          language: languageCode || 'en',
+          language: {
+            code: languageCode || 'en'
+          },
           components
         }
       }
@@ -280,8 +297,7 @@ async function sendTemplateV3({
     console.info("[GupshupService] Sending template message", {
       appId,
       to: normalized,
-      templateName,
-      source: payload.source
+      templateName
     });
 
     const data = await postPartnerV3Message({ appId, appApiKey, payload });
@@ -335,8 +351,7 @@ async function sendMedia({ appId, destination, mediaType, mediaUrl, caption, app
 
   console.info(`[GupshupService] Sending ${mediaType} message`, {
     appId,
-    to: normalized,
-    source: payload.source
+    to: normalized
   });
 
   try {
@@ -379,8 +394,7 @@ async function sendInteractiveV3({ appId, destination, interactive, appApiKey, s
 
   console.info("[GupshupService] Sending interactive message", {
     appId,
-    to: normalized,
-    source: payload.source
+    to: normalized
   });
 
   try {
@@ -723,6 +737,7 @@ async function createTemplateForApp({ appId, appApiKey, template }) {
       lastError = error;
 
       if (!isAuthRejectedError(error)) {
+        // Detailed logging already handled by interceptor
         throw error;
       }
     }
@@ -965,6 +980,7 @@ async function updateTemplateForApp({ appId, appApiKey, templateId, template }) 
       lastError = error;
 
       if (!isAuthRejectedError(error)) {
+        // Detailed logging already handled by interceptor
         throw error;
       }
     }
@@ -1675,31 +1691,23 @@ async function lookupContactProfile(_accessToken, _wabaPhoneNumberId, phone) {
   };
 }
 
-async function getWabaInfo(appId) {
+async function getWabaInfo(appId, appApiKey) {
   if (!appId) throw new Error('GUPSHUP_APP_ID_REQUIRED');
 
   const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/waba/info`;
-  const appToken = await getPartnerAppAccessToken(appId);
-
-  if (!appToken) throw new Error('FAILED_TO_GET_APP_TOKEN');
-
-  const headerVariants = [
-    { Authorization: appToken, token: appToken, Accept: 'application/json' },
-    { Authorization: `Bearer ${appToken}`, Accept: 'application/json' },
-    { token: appToken, Accept: 'application/json' }
-  ];
-
-  let lastError = null;
-  for (const headers of headerVariants) {
-    try {
+  
+  try {
+    return await withPartnerAuth(async (headers) => {
+      // Dual Authentication: Partner JWT (Authorization) + App API Key (token)
+      headers['token'] = appApiKey;
+      console.log(`[GupshupService] Getting WABA info for App ${appId}`);
       const response = await axios.get(url, { headers, timeout: 15000 });
       return response.data;
-    } catch (error) {
-      lastError = error;
-      if (!isAuthRejectedError(error)) throw error;
-    }
+    });
+  } catch (error) {
+    console.error(`[GupshupService] Get WABA Info failed for ${appId}:`, error.response?.data || error.message);
+    throw error;
   }
-  throw lastError;
 }
 
 async function stopApp(appId) {
@@ -1720,25 +1728,42 @@ async function stopApp(appId) {
  * Whitelist WABA ID for embedded onboarding
  * Finalization Step 1
  */
-async function whitelistWaba(appId) {
-  return withPartnerAuth(async (headers) => {
-    const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/obotoembed/whitelist`;
-    // Try sending without body first, then with WABA ID if needed
-    const response = await axios.post(url, {}, { headers });
-    return response.data;
-  });
+async function whitelistWaba(appId, appApiKey) {
+  const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/obotoembed/whitelist`;
+  
+  try {
+    return await withPartnerAuth(async (headers) => {
+      // MANDATORY: For whitelisting, Authorization is Partner JWT, but 'token' MUST be the App API Key
+      headers['token'] = appApiKey;
+      console.log(`[GupshupService] Whitelisting WABA associated with App ${appId} (App API Key: ${appApiKey?.substring(0, 5)}...)`);
+      
+      const response = await axios.post(url, {}, { headers, timeout: 20000 });
+      return response.data;
+    });
+  } catch (error) {
+    console.error(`[GupshupService] Whitelist failed for ${appId}:`, error.response?.data || error.message);
+    throw error;
+  }
 }
 
 /**
  * Verify and attach credit line for WABA
  * Finalization Step 2
  */
-async function verifyAndAttachCreditLine(appId) {
-  return withPartnerAuth(async (headers) => {
-    const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/obotoembed/verify`;
-    const response = await axios.get(url, { headers });
-    return response.data;
-  });
+async function verifyAndAttachCreditLine(appId, appApiKey) {
+  const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/obotoembed/verify`;
+  
+  try {
+    return await withPartnerAuth(async (headers) => {
+      // Dual Authentication: Partner JWT (Authorization) + App API Key (token)
+      headers['token'] = appApiKey;
+      console.log(`[GupshupService] Verifying/Attaching Credit Line for App ${appId}`);
+      return (await axios.get(url, { headers })).data;
+    });
+  } catch (error) {
+    console.error(`[GupshupService] Verify/Attach Credit Line failed for ${appId}:`, error.response?.data || error.message);
+    throw error;
+  }
 }
 
 /**
@@ -1750,15 +1775,14 @@ async function getWabaHealth({ appId, appApiKey }) {
   }
 
   const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/health`;
-  const headers = {
-    'Authorization': appApiKey,
-    'token': appApiKey,
-    'Accept': 'application/json'
-  };
 
   try {
-    const response = await axios.get(url, { headers, timeout: 15000 });
-    const data = response.data;
+    const data = await withPartnerAuth(async (headers) => {
+      // Dual Authentication: Partner JWT (Authorization) + App API Key (token)
+      headers['token'] = appApiKey;
+      const response = await axios.get(url, { headers, timeout: 15000 });
+      return response.data;
+    });
 
     // Correct interpretation per requirements:
     if (data?.healthy === "true") {
@@ -1795,51 +1819,36 @@ async function listSubscriptions({ appId, appApiKey }) {
  */
 async function createSubscription({ appId, appApiKey, callbackUrl, name, type, mode }) {
   const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/subscription`;
-  const formVariants = [];
+  
+  // V3 specific parameters as per documentation
+  const form = new URLSearchParams();
+  form.set('url', callbackUrl);
+  form.set('tag', name);
+  form.set('version', '3');
+  form.set('modes', mode); // Documentation says 'modes' is comma-separated list
+  
+  // LOGIC: Logs show listSubscriptions working with App API Key.
+  // We'll use the App API Key headers here instead of Partner JWT to avoid 403s.
+  const headers = {
+    'Authorization': appApiKey,
+    'token': appApiKey,
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Accept': 'application/json'
+  };
 
-  const documentedForm = new URLSearchParams();
-  documentedForm.set('callbackUrl', callbackUrl);
-  documentedForm.set('name', name);
-  documentedForm.set('type', type || 'v3');
-  documentedForm.set('mode', mode);
-  formVariants.push(documentedForm);
-
-  const compatibilityForm = new URLSearchParams();
-  compatibilityForm.set('webhookUrl', callbackUrl);
-  compatibilityForm.set('name', name);
-  compatibilityForm.set('type', type || 'v3');
-  compatibilityForm.set('mode', mode);
-  formVariants.push(compatibilityForm);
-
-  let lastError = null;
-  for (const form of formVariants) {
-    for (const headers of [
-      {
-        Authorization: appApiKey,
-        token: appApiKey,
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      {
-        Authorization: `Bearer ${appApiKey}`,
-        token: appApiKey,
-        Accept: 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    ]) {
-      try {
-        const response = await axios.post(url, form.toString(), { headers, timeout: 15000 });
-        return response.data;
-      } catch (error) {
-        lastError = error;
-        if (!isAuthRejectedError(error) && Number(error?.response?.status || 0) !== 400) {
-          break;
-        }
-      }
+  try {
+    console.log(`[GupshupService] Creating V3 subscription for ${appId} (mode: ${mode}) using App API Key`);
+    const response = await axios.post(url, form.toString(), { headers, timeout: 15000 });
+    return response.data;
+  } catch (error) {
+    const status = error.response?.status;
+    if (status === 403) {
+      console.warn(`[GupshupService] Subscription access forbidden (403) for ${appId} even with App API Key.`);
+      return { success: false, warning: 'ACCESS_FORBIDDEN', details: error.response?.data };
     }
+    console.error(`[GupshupService] Subscription failed for ${appId}:`, error.response?.data || error.message);
+    throw error;
   }
-
-  throw lastError || new Error('GUPSHUP_SUBSCRIPTION_FAILED');
 }
 
 /**
@@ -1863,8 +1872,20 @@ async function ensureRequiredSubscriptions({ appId, appApiKey, webhookUrl }) {
     const results = [];
 
     for (const sub of requiredSubscriptions) {
-      const exists = subscriptions.find(s => s.mode === sub.mode && s.type === 'v3');
+      // Improved matching logic: Gupshup returns numeric 'mode' but 'modes' array has strings. 
+      // We also check 'tag' (name) as a fallback since Gupshup errors on "Duplicate component tag".
+      const exists = subscriptions.find(s => 
+        (Array.isArray(s.modes) && s.modes.includes(sub.mode)) || 
+        s.tag === sub.name
+      );
+
       if (!exists) {
+        // Add a more generous delay to avoid Gupshup 429 rate limits
+        if (results.length > 0) {
+          console.log(`[GupshupService] Waiting for rate-limit cooldown (2s)...`);
+          await sleep(2000);
+        }
+
         const createRes = await createSubscription({
           appId,
           appApiKey,
@@ -1873,7 +1894,12 @@ async function ensureRequiredSubscriptions({ appId, appApiKey, webhookUrl }) {
           type: 'v3',
           mode: sub.mode
         });
-        console.log(`[GupshupService] ${sub.mode} subscription created`);
+
+        if (createRes.success === false) {
+           throw new Error(`Failed to create mandatory ${sub.mode} subscription: ${createRes.warning || 'Unknown error'}`);
+        }
+
+        console.log(`[GupshupService] ${sub.mode} subscription created successfully`);
         results.push({ mode: sub.mode, status: 'created', data: createRes });
       } else {
         if (sub.mode === 'MESSAGE') {

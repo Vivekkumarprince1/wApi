@@ -1,0 +1,74 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: waapi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+          
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        cache-dependency-path: backend/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: ./backend
+      run: npm ci
+      
+    - name: Run ESLint
+      working-directory: ./backend
+      run: npm run lint
+      continue-on-error: true # Warning only for now
+      
+    - name: Run Jest Tests & Coverage
+      working-directory: ./backend
+      env:
+        NODE_ENV: test
+        POSTGRES_URI: postgresql://postgres:postgrespassword@localhost:5432/waapi_test
+        MONGO_URI: mongodb://localhost:27017/waapi_test
+        REDIS_URI: redis://localhost:6379
+        JWT_SECRET: test_secret
+        GUPSHUP_PARTNER_EMAIL: test@example.com
+        GUPSHUP_PARTNER_PASSWORD: test
+      run: npx jest --passWithNoTests
+
+    - name: Build Docker Image
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        docker build -t waapi-backend ./backend
+        # Here you would typically push to ECR/DockerHub

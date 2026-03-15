@@ -8,6 +8,7 @@ const {
   initializeWABAFromEnv,
   testWABAConnection,
   debugMetaCredentials,
+  updateBusinessInfo,
   getCommerceSettings,
   updateCommerceSettings,
   validateCommerceConfig,
@@ -27,6 +28,7 @@ router.post('/waba', createWABASettings);
 router.post('/waba/init-from-env', initializeWABAFromEnv);
 router.post('/waba/test', testWABAConnection);
 router.get('/waba/debug', debugMetaCredentials);
+router.patch('/business-info', updateBusinessInfo);
 
 // Inbox & Assignment Settings Routes
 router.get('/inbox', getInboxSettings);

@@ -55,8 +55,12 @@ export const get = async (endpoint) => {
         localStorage.removeItem('token');
         throw new Error('Unauthorized');
       }
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      const errorData = await response.json();
+      const error = new Error(errorData.message || 'Request failed');
+      error.errors = errorData.errors;
+      error.code = errorData.code;
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();
@@ -80,8 +84,12 @@ export const post = async (endpoint, data) => {
         localStorage.removeItem('token');
         throw new Error('Unauthorized');
       }
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      const errorData = await response.json();
+      const error = new Error(errorData.message || 'Request failed');
+      error.errors = errorData.errors;
+      error.code = errorData.code;
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();
@@ -105,8 +113,12 @@ export const put = async (endpoint, data) => {
         localStorage.removeItem('token');
         throw new Error('Unauthorized');
       }
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      const errorData = await response.json();
+      const error = new Error(errorData.message || 'Request failed');
+      error.errors = errorData.errors;
+      error.code = errorData.code;
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();
@@ -129,8 +141,12 @@ export const del = async (endpoint) => {
         localStorage.removeItem('token');
         throw new Error('Unauthorized');
       }
-      const error = await response.json();
-      throw new Error(error.message || 'Request failed');
+      const errorData = await response.json();
+      const error = new Error(errorData.message || 'Request failed');
+      error.errors = errorData.errors;
+      error.code = errorData.code;
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();

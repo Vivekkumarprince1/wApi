@@ -350,6 +350,34 @@ function validateBody(body) {
   const varErrors = validateVariables(body.text, 'body.text', LIMITS.BODY_VARIABLES_MAX);
   errors.push(...varErrors);
 
+  // Check for consecutive newlines (Meta allows max 2)
+  if (body.text.includes('\n\n\n')) {
+    errors.push({
+      field: 'body.text',
+      message: 'Body cannot contain more than two consecutive newline characters.'
+    });
+  }
+
+  // Check for emoji count (Meta allows max 10)
+  const emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
+  const emojiCount = (body.text.match(emojiRegex) || []).length;
+  if (emojiCount > 10) {
+    errors.push({
+      field: 'body.text',
+      message: `Body cannot contain more than 10 emojis. Found ${emojiCount}.`
+    });
+  }
+
+  // Check if body only contains parameters
+  const variableMatches = body.text.match(PATTERNS.VARIABLE) || [];
+  const textWithoutVariables = body.text.replace(PATTERNS.VARIABLE, '').replace(/\s/g, '');
+  if (variableMatches.length > 0 && textWithoutVariables.length === 0) {
+    errors.push({
+      field: 'body.text',
+      message: 'Body cannot consist only of parameters. Add some descriptive text.'
+    });
+  }
+
   // Check if examples are provided for variables
   const matches = body.text.match(PATTERNS.VARIABLE) || [];
   const variableCount = matches.length;

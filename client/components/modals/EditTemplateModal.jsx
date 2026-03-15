@@ -135,40 +135,11 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
   const [headerFilePreview, setHeaderFilePreview] = useState(null);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [topPosition, setTopPosition] = useState(0);
+  const [submissionErrors, setSubmissionErrors] = useState([]);
   const headerFileRef = useRef(null);
   const modalRef = useRef(null);
 
-  // Dynamic positioning effect
-  useEffect(() => {
-    if (!isOpen) return;
 
-    const calculatePosition = () => {
-      // Calculate a comfortable top positioning
-      // that responds to scroll and screen height changes
-      const scrollY = window.scrollY;
-      const viewportHeight = window.innerHeight;
-
-      // Default centered approach roughly 5vh from top with max 100px limitation
-      const baseGap = Math.max(10, Math.min(viewportHeight * 0.05, 100));
-
-      // Compute final top
-      setTopPosition(scrollY + baseGap);
-    };
-
-    // Calculate immediately
-    calculatePosition();
-
-    // Setup event listeners
-    window.addEventListener('resize', calculatePosition);
-    window.addEventListener('scroll', calculatePosition);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', calculatePosition);
-      window.removeEventListener('scroll', calculatePosition);
-    };
-  }, [isOpen]);
 
   const normalizeTemplateText = (value) => {
     if (typeof value === 'string') return value;
@@ -336,6 +307,7 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setUploadError('');
+    setSubmissionErrors([]);
     try {
       let finalMediaHandle = formData.mediaHandle;
       let finalMediaUrl = formData.mediaUrl;
@@ -384,7 +356,14 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
       });
       onClose();
     } catch (error) {
-      alert(error.message || 'Failed to submit template');
+      console.error('Submission error:', error);
+      if (error.errors && Array.isArray(error.errors)) {
+        setSubmissionErrors(error.errors);
+        // Automatically switch back to content step if validation failed
+        setActiveStep(2);
+      } else {
+        alert(error.message || 'Failed to submit template');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -393,24 +372,17 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[60] p-4 sm:p-6 md:p-8 flex justify-center pointer-events-none"
-    >
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6 md:p-8">
       {/* Background Overlay */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto transition-opacity"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Content */}
       <div
         ref={modalRef}
-        className="bg-card w-full max-w-5xl rounded-xl shadow-2xl overflow-hidden flex flex-col pointer-events-auto transition-all duration-200 ease-in-out relative z-10"
-        style={{
-          maxHeight: 'min(90vh, 800px)',
-          marginTop: `${topPosition}px`,
-          position: 'absolute'
-        }}
+        className="bg-card w-full max-w-5xl max-h-[90vh] rounded-xl shadow-2xl overflow-hidden flex flex-col relative z-20 transition-all duration-200 ease-in-out"
       >
         {/* Header */}
         <div className="bg-primary text-primary-foreground px-6 py-4 shrink-0 z-20">
@@ -460,6 +432,17 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
               {/* Step 1: Setup */}
               {activeStep === 1 && (
                 <div className="space-y-6">
+                  {template?.rejectionReason && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                      <h4 className="text-sm font-bold text-red-800 dark:text-red-200 flex items-center gap-2">
+                        <span className="text-lg">❌</span> Rejection Reason
+                      </h4>
+                      <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                        {template.rejectionReason}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-4 flex items-start gap-3">
                     <span className="text-2xl">📝</span>
                     <div>
@@ -527,6 +510,21 @@ const EditTemplateModal = ({ isOpen, onClose, template, onSubmit }) => {
               {/* Step 2: Edit Content */}
               {activeStep === 2 && (
                 <div className="space-y-6">
+                  {submissionErrors.length > 0 && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <h4 className="text-sm font-bold text-red-800 dark:text-red-200 flex items-center gap-2 mb-2">
+                        <span className="text-lg">⚠️</span> Submission Failed
+                      </h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {submissionErrors.map((err, i) => (
+                          <li key={i} className="text-sm text-red-700 dark:text-red-300">
+                            {err.message || err}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
                   {/* Header Format Selector */}
                   <div>
                     <label className="block text-sm font-medium text-foreground mb-2">

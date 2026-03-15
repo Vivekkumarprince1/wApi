@@ -161,7 +161,7 @@ const TemplatesDashboard = () => {
     switch (tabName) {
       case 'active': return templates.filter(t => t.status === 'APPROVED').length;
       case 'pending': return templates.filter(t => t.status === 'PENDING' || t.status === 'IN_APPEAL').length;
-      case 'rejected': return templates.filter(t => t.status === 'REJECTED').length;
+      case 'rejected': return templates.filter(t => t.status === 'REJECTED' || t.status === 'FAILED').length;
       case 'drafts': return templates.filter(t => t.status === 'DRAFT').length;
       case 'deleted': return templates.filter(t => t.status === 'DELETED').length;
       default: return templates.length;
@@ -172,7 +172,7 @@ const TemplatesDashboard = () => {
     // Tab Filter
     if (activeTab === 'active' && t.status !== 'APPROVED') return false;
     if (activeTab === 'pending' && !['PENDING', 'IN_APPEAL'].includes(t.status)) return false;
-    if (activeTab === 'rejected' && t.status !== 'REJECTED') return false;
+    if (activeTab === 'rejected' && !['REJECTED', 'FAILED'].includes(t.status)) return false;
     if (activeTab === 'drafts' && t.status !== 'DRAFT') return false;
     if (activeTab === 'deleted' && t.status !== 'DELETED') return false;
 
@@ -193,7 +193,8 @@ const TemplatesDashboard = () => {
       case 'IN_APPEAL':
         return <span className="bg-[#fef7e0] text-[#b06000] px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaClock /> Pending</span>;
       case 'REJECTED':
-        return <span className="bg-[#fce8e6] text-[#c5221f] px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaTimesCircle /> Rejected</span>;
+      case 'FAILED':
+        return <span className="bg-[#fce8e6] text-[#c5221f] px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaTimesCircle /> {status === 'FAILED' ? 'Failed' : 'Rejected'}</span>;
       case 'DRAFT':
         return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaFileAlt /> Draft</span>;
       default:
@@ -401,7 +402,7 @@ const TemplatesDashboard = () => {
                       </td>
                       <td className="px-6 py-4 align-middle text-right">
                         <div className="flex justify-end gap-2 items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          {['DRAFT', 'REJECTED'].includes(template.status) && (
+                          {['DRAFT', 'REJECTED', 'FAILED'].includes(template.status) && (
                             <button onClick={() => handleSubmitTemplate(template._id)} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded transition-colors">Submit</button>
                           )}
                           {template.status === 'APPROVED' && (
@@ -459,7 +460,7 @@ const TemplatesDashboard = () => {
                     <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{template.language}</span>
                   </div>
                   <div className="flex gap-1">
-                    {['DRAFT', 'REJECTED'].includes(template.status) && (
+                    {['DRAFT', 'REJECTED', 'FAILED'].includes(template.status) && (
                       <button onClick={() => handleSubmitTemplate(template._id)} className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors" title="Submit for Approval">
                         <FaPaperPlane className="text-xs" />
                       </button>
@@ -491,8 +492,17 @@ const TemplatesDashboard = () => {
         onClose={() => { setIsEditModalOpen(false); setEditingTemplate(null); }}
         template={editingTemplate}
         onSubmit={async (data) => {
-          // Provide basic bridging until Edit Modal is revamped
-          try { await updateTemplate(editingTemplate._id, data); loadData(); setIsEditModalOpen(false); } catch (e) { }
+          try {
+            // First update the template content
+            await updateTemplate(editingTemplate._id, data);
+            // Then submit for review
+            await submitTemplateToMeta(editingTemplate._id);
+            loadData();
+            setIsEditModalOpen(false);
+          } catch (e) {
+            // Re-throw so the modal can handle validation errors
+            throw e;
+          }
         }}
       />
 

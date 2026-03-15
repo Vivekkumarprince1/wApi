@@ -744,6 +744,7 @@ async function submitTemplateForApproval(template, workspaceId) {
     template.status = 'PENDING';
     template.metaTemplateId = result.templateId;
     template.metaTemplateName = result.namespacedName || namespacedName;
+    template.partnerAppId = result.partnerAppId || resolvedAppId;
     template.submittedAt = new Date();
     template.submittedVia = 'BSP';
     template.rejectionReason = null;
@@ -1176,13 +1177,25 @@ async function syncTemplates(req, res, next) {
         continue;
       }
 
+      // Build search candidates for matching local templates
+      const searchCandidates = [
+        { name: normalizedTemplateName, language: templateLang },
+        { metaTemplateName: templateName, language: templateLang }
+      ];
+
+      // Handle namespaced names: if Gupshup returns {prefix}_{base}, try matching {base}
+      if (templateName.includes('_')) {
+        const parts = templateName.split('_');
+        if (parts[0].length === 8) { // Likely workspaceIdSuffix
+          const baseName = parts.slice(1).join('_').toLowerCase();
+          searchCandidates.push({ name: baseName, language: templateLang });
+        }
+      }
+
       // Find or create local template
       let localTemplate = await Template.findOne({
         workspace: workspaceId,
-        $or: [
-          { name: normalizedTemplateName, language: templateLang },
-          { metaTemplateName: templateName, language: templateLang }
-        ]
+        $or: searchCandidates
       });
 
       if (!localTemplate) {
@@ -1212,6 +1225,7 @@ async function syncTemplates(req, res, next) {
         continue;
       }
 
+      localTemplate.partnerAppId = partnerAppId;
       localTemplate.status = gTemplate.status || localTemplate.status;
       localTemplate.metaTemplateId = gTemplate.externalId || gTemplate.id || localTemplate.metaTemplateId;
       localTemplate.metaTemplateName = templateName;
@@ -1228,6 +1242,7 @@ async function syncTemplates(req, res, next) {
       localTemplate.rejectionReason = gTemplate.reason || null;
       localTemplate.lastSyncedAt = new Date();
       localTemplate.submittedVia = 'BSP';
+      localTemplate.partnerAppId = partnerAppId;
 
       // Add to approval history if status changed
       if (previousStatus && previousStatus !== gTemplate.status) {

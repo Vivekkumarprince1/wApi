@@ -281,11 +281,16 @@ async function processInbound(incoming, workspace) {
       workspace: workspace._id,
       phone: from,
       name: incoming.sender?.name || incoming.contacts?.[0]?.profile?.name || 'Unknown',
+      isColdContact: false, // Inbound message means they are no longer cold
       metadata: {
         whatsappName: incoming.sender?.name || incoming.contacts?.[0]?.profile?.name
       }
     });
-    console.log(`[GupshupWebhook] Created new contact: ${contact._id}`);
+    console.log(`[GupshupWebhook] Created new contact (warm): ${contact._id}`);
+  } else if (contact.isColdContact) {
+    contact.isColdContact = false;
+    await contact.save();
+    console.log(`[GupshupWebhook] Contact ${contact._id} is now WARM (isColdContact: false)`);
   }
 
   // Find or create conversation with 24h window management
@@ -410,7 +415,9 @@ async function processInbound(incoming, workspace) {
 
 async function processStatuses(statuses, workspaceId) {
   for (const status of statuses) {
-    const providerMessageId = status.messageId || status.id || status.gsId || status.message?.id;
+    // Prioritize gs_id / gsId from Gupshup over Meta's internal id, 
+    // because our DB saves the Gupshup messageId (which is the gs_id).
+    const providerMessageId = status.gs_id || status.gsId || status.messageId || status.id || status.message?.id;
     let nextStatus = status.status || status.eventType || status.type || 'unknown';
     const timestamp = status.timestamp ? new Date(status.timestamp * 1000) : new Date();
 

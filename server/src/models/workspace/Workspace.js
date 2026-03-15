@@ -252,6 +252,19 @@ const WorkspaceSchema = new mongoose.Schema({
    */
   bspPhoneNumberId: { type: String, unique: true, sparse: true },
 
+  // Fallback Metadata for Messaging (Interakt-style)
+  // Used when template variables or contact fields are missing
+  fallbackMetadata: {
+    type: Map,
+    of: String,
+    default: {
+      'name': 'Customer',
+      'first_name': 'Customer',
+      'last_name': '',
+      'business_name': 'our team'
+    }
+  },
+
   /**
    * Display phone number for this workspace (e.g., +919876543210)
    */

@@ -27,12 +27,33 @@ function buildWebhookUrlFromBase(baseUrl) {
 function isPublicWebhookUrl(candidateUrl) {
     if (!candidateUrl) return false;
 
+    // Allow local development via environment flag
+    if (process.env.DEBUG_ALLOW_LOCALHOST_WEBHOOK === 'true') {
+        return true;
+    }
+
     try {
         const parsed = new URL(candidateUrl);
         const hostname = String(parsed.hostname || '').toLowerCase();
 
-        if (parsed.protocol !== 'https:') return false;
+        if (parsed.protocol !== 'https:') {
+            // Only allow HTTP if explicit debug flag is set
+            return process.env.DEBUG_ALLOW_LOCALHOST_WEBHOOK === 'true';
+        }
+
         if (!hostname) return false;
+
+        // Trust common local tunnel providers automatically
+        const trustedTunnelDomains = [
+            'loca.lt',
+            'ngrok.io',
+            'ngrok-free.app',
+            'trycloudflare.com'
+        ];
+        if (trustedTunnelDomains.some(domain => hostname.endsWith(domain))) {
+            return true;
+        }
+
         if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || hostname === '::1') {
             return false;
         }

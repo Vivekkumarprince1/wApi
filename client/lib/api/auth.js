@@ -191,5 +191,5 @@ export const verifyEmailOTP = async (otp) => {
 };
 
 export const deleteAccount = async () => {
-  return del('/privacy/delete-account');
+  return del('/auth/account');
 };

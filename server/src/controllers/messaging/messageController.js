@@ -4,6 +4,7 @@ const bspMessagingService = require('../../services/bsp/bspMessagingService');
 const bspConfig = require('../../config/bspConfig');
 const { enqueueRetry } = require('../../services/infrastructure/messageRetryQueue');
 const billingLedgerService = require('../../services/billing/billingLedgerService');
+const { isMediaHandle } = require('../../utils/mediaUtils');
 const mongoose = require('mongoose');
 
 function normalizePhoneNumber(phone, defaultCountryCode = '91') {
@@ -617,13 +618,14 @@ function buildTemplateComponents(template, variables, options = {}) {
         const mediaLink = resolvedHeaderMediaUrl || (Array.isArray(variables.header) ? variables.header[0] : variables.header) || template.header?.mediaUrl || '';
 
         if (mediaLink) {
+          const isHandle = isMediaHandle(mediaLink);
           components.push({
             type: 'header',
             parameters: [{
               type: headerType,
-              [headerType]: {
-                link: mediaLink
-              }
+              [headerType]: isHandle 
+                ? { id: mediaLink } 
+                : { link: mediaLink }
             }]
           });
         }
@@ -668,13 +670,14 @@ function buildTemplateComponents(template, variables, options = {}) {
         const mediaLink = resolvedHeaderMediaUrl || (Array.isArray(variables.header) ? variables.header[0] : variables.header) || template.header?.mediaUrl || '';
 
         if (mediaLink) {
+          const isHandle = isMediaHandle(mediaLink);
           components.push({
             type: 'header',
             parameters: [{
               type: type,
-              [type]: {
-                link: mediaLink
-              }
+              [type]: isHandle 
+                ? { id: mediaLink } 
+                : { link: mediaLink }
             }]
           });
         }

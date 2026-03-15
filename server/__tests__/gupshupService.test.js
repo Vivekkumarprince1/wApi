@@ -41,8 +41,9 @@ describe('gupshupService partner V3 sends', () => {
         type: 'template',
         template: {
           name: 'order_update',
-          languagePolicy: 'deterministic',
-          language: 'en',
+          language: {
+            code: 'en'
+          },
           components: [{ type: 'body', parameters: [{ type: 'text', text: 'John' }] }]
         }
       }

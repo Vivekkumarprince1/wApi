@@ -140,6 +140,36 @@ async function sendTemplate(params) {
   const template = await getAndValidateTemplate(workspaceId, templateId, templateName);
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // STEP 3.5: Apply Fallback Metadata (Interakt-style)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const fallbacks = workspace.fallbackMetadata || new Map();
+  
+  // Body fallbacks
+  if (template.body?.variables?.length > 0) {
+    if (!variables.body) variables.body = [];
+    template.body.variables.forEach((varName, idx) => {
+      if (variables.body[idx] === undefined || variables.body[idx] === null || variables.body[idx] === '') {
+        // Try to find a global fallback by name (if positional, we might need a map of index to names)
+        // For Interakt-style, we often map {{1}} to 'name' etc. 
+        // Here we'll check if the template has variable names defined
+        const mappedName = template.body.variableNames?.[idx] || varName;
+        variables.body[idx] = fallbacks.get(mappedName) || fallbacks.get(String(idx + 1)) || template.body.examples?.[idx] || 'there';
+      }
+    });
+  }
+
+  // Header fallbacks
+  if (template.header?.variables?.length > 0) {
+    if (!variables.header) variables.header = [];
+    template.header.variables.forEach((varName, idx) => {
+      if (variables.header[idx] === undefined || variables.header[idx] === null || variables.header[idx] === '') {
+        const mappedName = template.header.variableNames?.[idx] || varName;
+        variables.header[idx] = fallbacks.get(mappedName) || fallbacks.get(`header_${idx + 1}`) || template.header.examples?.[idx] || '';
+      }
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // STEP 4: Build Meta API payload with variables
   // ─────────────────────────────────────────────────────────────────────────────
   const { payload, validationResult } = buildTemplatePayload(template, normalizedPhone, variables);

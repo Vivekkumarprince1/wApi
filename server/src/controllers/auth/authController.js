@@ -51,7 +51,8 @@ async function sendSignupOTP(req, res, next) {
       name,
       password,
       phone,
-      expiresAt
+      expiresAt,
+      lastSentAt: Date.now()
     }, OTP_EXPIRY_SECONDS);
 
     // Send OTP email
@@ -65,6 +66,45 @@ async function sendSignupOTP(req, res, next) {
     }
 
     res.json({ message: 'OTP sent successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Resend OTP for signup
+async function resendSignupOTP(req, res, next) {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+    
+    getRedisClient();
+
+    const stored = await getJson(`otp:signup:${email}`);
+    if (!stored) {
+      return res.status(400).json({ message: 'Signup session not found. Please start over.' });
+    }
+
+    // Rate limit: 60 seconds
+    if (stored.lastSentAt && (Date.now() - stored.lastSentAt < 60000)) {
+      return res.status(429).json({ message: 'Please wait 60 seconds before requesting a new OTP' });
+    }
+
+    const otp = generateOTP();
+    stored.otp = otp;
+    stored.lastSentAt = Date.now();
+    stored.expiresAt = Date.now() + OTP_EXPIRY_SECONDS * 1000;
+
+    await setJson(`otp:signup:${email}`, stored, OTP_EXPIRY_SECONDS);
+
+    // Send OTP email
+    try {
+      await sendSignupOTPEmail(email, otp);
+      console.log(`📧 Signup OTP resent to ${email}`);
+    } catch (emailError) {
+      console.error(`Failed to resend signup OTP: ${emailError.message}`);
+    }
+
+    res.json({ message: 'OTP resent successfully' });
   } catch (err) {
     next(err);
   }
@@ -191,7 +231,8 @@ async function sendLoginOTP(req, res, next) {
     await setJson(`otp:login:${email}`, {
       otp,
       email,
-      expiresAt
+      expiresAt,
+      lastSentAt: Date.now()
     }, OTP_EXPIRY_SECONDS);
 
     // Send OTP email
@@ -205,6 +246,46 @@ async function sendLoginOTP(req, res, next) {
     }
 
     res.json({ message: 'OTP sent successfully' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Resend OTP for login
+async function resendLoginOTP(req, res, next) {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: 'Email is required' });
+
+    getRedisClient();
+
+    const stored = await getJson(`otp:login:${email}`);
+    if (!stored) {
+      return res.status(400).json({ message: 'Login session not found. Please start over.' });
+    }
+
+    // Rate limit: 60 seconds
+    if (stored.lastSentAt && (Date.now() - stored.lastSentAt < 60000)) {
+      return res.status(429).json({ message: 'Please wait 60 seconds before requesting a new OTP' });
+    }
+
+    const otp = generateOTP();
+    stored.otp = otp;
+    stored.lastSentAt = Date.now();
+    stored.expiresAt = Date.now() + OTP_EXPIRY_SECONDS * 1000;
+
+    await setJson(`otp:login:${email}`, stored, OTP_EXPIRY_SECONDS);
+
+    // Send OTP email
+    try {
+      const user = await User.findOne({ email });
+      await sendLoginOTPEmail(email, otp, user?.name || 'User');
+      console.log(`📧 Login OTP resent to ${email}`);
+    } catch (emailError) {
+      console.error(`Failed to resend login OTP: ${emailError.message}`);
+    }
+
+    res.json({ message: 'OTP resent successfully' });
   } catch (err) {
     next(err);
   }
@@ -974,8 +1055,10 @@ module.exports = {
   logout,
   updateProfile,
   sendSignupOTP,
+  resendSignupOTP,
   verifySignupOTP,
   sendLoginOTP,
+  resendLoginOTP,
   verifyLoginOTP,
   googleOAuthLogin,
   // New helper endpoints
