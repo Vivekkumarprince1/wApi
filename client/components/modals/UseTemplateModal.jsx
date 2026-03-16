@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { fetchContacts, sendTemplateMessage } from '@/lib/api';
+import { fetchContacts, sendTemplateMessage, uploadInboxMedia } from '@/lib/api';
 
 const HEADER_FORMAT_ICONS = { TEXT: '📝', IMAGE: '🖼️', VIDEO: '🎬', DOCUMENT: '📄', NONE: '' };
 
@@ -16,7 +16,36 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
   const [sendProgress, setSendProgress] = useState({ current: 0, total: 0, succeeded: 0, failed: 0 });
   const [sendComplete, setSendComplete] = useState(false);
   const [headerMediaUrl, setHeaderMediaUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const modalRef = useRef(null);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const format = getHeaderFormat();
+    if (format === 'IMAGE' && !file.type.startsWith('image/')) {
+      alert('Please upload an image file format.');
+      return;
+    }
+    if (format === 'VIDEO' && !file.type.startsWith('video/') && !file.type.startsWith('audio/')) {
+      alert('Please upload a video or audio file.');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const res = await uploadInboxMedia(file);
+      if (res.url) {
+        setHeaderMediaUrl(res.url);
+      }
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Failed to upload media. Please try again or provide a URL directly.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // ─── Text helpers ──────────────────────────────────────────────────────────
   const normalizeText = (v) => {
@@ -341,16 +370,44 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
                       <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
                       Header Media
                     </h4>
-                    <div className="space-y-2">
-                      <input
-                        type="url"
-                        value={headerMediaUrl}
-                        onChange={(e) => setHeaderMediaUrl(e.target.value)}
-                        placeholder="Optional: replace header media with a public file URL at send time"
-                        className="w-full px-3 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
-                      />
+                    <div className="space-y-4">
+                      {/* File Upload Option */}
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-foreground">Upload New Media</label>
+                        <input
+                          type="file"
+                          accept={
+                            headerFormat === 'IMAGE' ? 'image/*' : 
+                            headerFormat === 'VIDEO' ? 'video/*,audio/*' : 
+                            '*/*'
+                          }
+                          onChange={handleFileUpload}
+                          disabled={isUploading}
+                          className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 disabled:opacity-50"
+                        />
+                        {isUploading && <p className="text-xs text-teal-600 font-medium animate-pulse">Uploading file, please wait...</p>}
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <div className="h-px bg-border flex-1" />
+                        <span className="text-xs text-muted-foreground uppercase">Or</span>
+                        <div className="h-px bg-border flex-1" />
+                      </div>
+
+                      {/* Direct URL Option */}
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-medium text-foreground">Or Provide a Public URL</label>
+                        <input
+                          type="url"
+                          value={headerMediaUrl}
+                          onChange={(e) => setHeaderMediaUrl(e.target.value)}
+                          placeholder="https://example.com/media.jpg"
+                          className="w-full px-3 py-2 border border-border rounded-lg bg-white dark:bg-muted text-foreground text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none"
+                        />
+                      </div>
+                      
                       <p className="text-xs text-muted-foreground">
-                        Leave this unchanged to use the media saved with the approved template. Enter a public image, video, or document URL to replace it for this send.
+                        Leave empty to use the approved template's default media. Or, upload a file / provide a URL to replace it.
                       </p>
                     </div>
                   </div>

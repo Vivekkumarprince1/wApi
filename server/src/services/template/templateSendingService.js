@@ -21,6 +21,7 @@
 const axios = require('axios');
 const bspConfig = require('../../config/bspConfig');
 const { Template, Workspace, Message, Contact, Conversation } = require('../../models');
+const { isUrl, isMediaHandle } = require('../../utils/mediaUtils');
 const bspMessagingService = require('../bsp/bspMessagingService');
 const gupshupService = require('../bsp/gupshupService');
 const { isOptedOutByPhone, isOptedOut } = require('../messaging/optOutService');
@@ -526,11 +527,11 @@ function buildTemplatePayload(template, to, variables = {}) {
       }
     } else if (['IMAGE', 'VIDEO', 'DOCUMENT'].includes(template.header.format)) {
       // Media header
+      const mediaLink = variables.headerMedia || template.header.mediaUrl;
+      const isHandle = isMediaHandle(mediaLink);
       headerComponent.parameters = [{
         type: template.header.format.toLowerCase(),
-        [template.header.format.toLowerCase()]: {
-          link: variables.headerMedia || template.header.mediaUrl
-        }
+        [template.header.format.toLowerCase()]: isHandle ? { id: mediaLink } : { link: mediaLink }
       }];
     }
 

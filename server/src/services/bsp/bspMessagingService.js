@@ -540,23 +540,26 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
   // Handle Header Media Requirement
   const headerSchema = templateDb.metaPayloadSnapshot?.components?.find(c => c.type === 'HEADER');
   if (headerSchema && ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(headerSchema.format)) {
-    // Priority: options.headerMediaUrl > options.mediaUrl > template header.mediaUrl
+    // Priority: options.headerMediaUrl > options.mediaUrl > template header.mediaUrl > template header.mediaHandle
     const mediaUrl =
       options.headerMediaUrl ||
       options.mediaUrl ||
       (templateDb.header && templateDb.header.mediaUrl) ||
+
       null;
 
     if (!mediaUrl || (!isUrl(mediaUrl) && !isMediaHandle(mediaUrl))) {
-      throw new Error(`Template requires a valid HTTP/HTTPS URL or Media Handle for sending. Got: ${mediaUrl || 'null'}`);
+      throw new Error(`Template requires a valid public HTTP/HTTPS URL for sending media. The example media used during approval cannot be reused for sending.. Got: ${mediaUrl || 'null'}`);
     }
 
     console.log(`[TemplateSend] Header media: ${mediaUrl}`);
 
     const mediaTypeLower = headerSchema.format.toLowerCase();
 
-    // Unshift to ensure header is first in components array
-    payload.components.unshift({
+    // Ensure header is first in components array and deduplicate if necessary
+    const existingHeaderIdx = payload.components.findIndex(c => c.type === 'header' || c.type === 'HEADER');
+    
+    const headerComponent = {
       type: "header",
       parameters: [
         {
@@ -566,7 +569,14 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
             : { link: mediaUrl }
         }
       ]
-    });
+    };
+
+    if (existingHeaderIdx !== -1) {
+      // Overwrite the existing one to ensure accurate media format/URL
+      payload.components[existingHeaderIdx] = headerComponent;
+    } else {
+      payload.components.unshift(headerComponent);
+    }
   }
 
   // Handle Marketing Cold Contact Protection (BYPASSED per user request)
