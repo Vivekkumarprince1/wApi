@@ -1095,7 +1095,7 @@ export default function InboxPage() {
                         </div>
                       )}
 
-                      <div className="p-2 pt-1.5 px-2.5 pb-2">
+                      <div className="p-2 pt-1.5 px-2.5 pb-2 flow-root">
                         {isTemplate && isOutbound && (
                           <div className="mb-1 flex items-center justify-between gap-2 border-b border-black/10 pb-1">
                             <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1">
@@ -1131,19 +1131,19 @@ export default function InboxPage() {
 
                       {/* Action Buttons */}
                       {message.template?.buttons?.length > 0 && (
-                        <div className="flex flex-col border-t border-black/5">
+                        <div className="flex flex-col border-t border-black/5 mt-1">
                           {message.template.buttons.map((btn, idx) => (
                             <button
                               key={idx}
-                              className="w-full py-2.5 px-3 text-[13.5px] font-medium text-[#00a884] flex justify-center items-center gap-2 border-b border-black/5 last:border-b-0 hover:bg-black/5 active:bg-black/10 transition-colors"
+                              className="w-full py-3 px-3 text-[14px] leading-tight font-medium text-[#00a884] flex justify-center items-center gap-2 border-b border-black/5 last:border-b-0 hover:bg-black/5 active:bg-black/10 transition-colors whitespace-nowrap"
                               onClick={() => {
                                 if (btn.type === 'URL' && btn.url) window.open(btn.url, '_blank');
                                 if (btn.type === 'PHONE_NUMBER' && btn.phoneNumber) window.location.href = `tel:${btn.phoneNumber}`;
                               }}
                             >
-                              {btn.type === 'URL' && <FaExternalLinkAlt className="text-[11px]" />}
-                              {btn.type === 'PHONE_NUMBER' && <FaPhoneAlt className="text-[11px]" />}
-                              {btn.text}
+                              {btn.type === 'URL' && <FaExternalLinkAlt className="text-[12px]" />}
+                              {btn.type === 'PHONE_NUMBER' && <FaPhoneAlt className="text-[12px]" />}
+                              <span className="truncate">{btn.text}</span>
                             </button>
                           ))}
                         </div>
