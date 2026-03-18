@@ -22,10 +22,7 @@ const { redisUrl } = require('../../config');
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-const redis = new IORedis(redisUrl, {
-  maxRetriesPerRequest: 3,
-  retryStrategy: (times) => Math.min(times * 50, 1000)
-});
+const { sharedConnection: redis } = require('../infrastructure/redisClient');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIGURATION

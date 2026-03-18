@@ -62,7 +62,9 @@ export default function InboxPage() {
   const [selectedStartContact, setSelectedStartContact] = useState(null);
   const [startMessage, setStartMessage] = useState('');
   const [startingConversation, setStartingConversation] = useState(false);
+  const [typingUsers, setTypingUsers] = useState({});
   const messagesEndRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
   
   // File upload state
   const fileInputRef = useRef(null);
@@ -119,13 +121,62 @@ export default function InboxPage() {
   useSocketEvent('inbox:new-message', (data) => {
     console.log('New message received:', data);
 
-    // Update conversation list
-    loadConversations();
+    setConversations(prev => {
+      const idx = prev.findIndex(c => c._id === data.conversationId || (c.contact && c.contact._id === data.contact._id));
+      if (idx !== -1) {
+        const conv = { ...prev[idx] };
+        conv.lastMessageAt = data.message.createdAt;
+        conv.lastMessage = data.message;
+        conv.lastMessagePreview = data.message.body || data.message.type || 'New message';
+        
+        // Increase unread count if it's not the currently active conversation
+        if (!selectedContact || data.contact._id !== selectedContact._id) {
+          conv.unreadCount = (conv.unreadCount || 0) + 1;
+        }
+
+        const newConversations = [...prev];
+        newConversations.splice(idx, 1);
+        return [conv, ...newConversations];
+      } else {
+        // Fetch conversations once to grab the new fully populated document
+        setTimeout(() => loadConversations(), 500);
+        return prev;
+      }
+    });
 
     // If this message is for the currently selected contact, add it to messages
     if (selectedContact && data.contact._id === selectedContact._id) {
-      setMessages(prev => [...prev, data.message]);
+      setMessages(prev => {
+        if (prev.some(m => m._id === data.message._id)) return prev;
+        return [...prev, data.message];
+      });
       scrollToBottom();
+      
+      // Mark as read immediately since the conversation is open
+      if (data.conversationId) {
+        post(`/inbox/${data.conversationId}/read`, {}).catch(err => console.error('Failed to mark read:', err));
+      }
+    }
+  });
+
+  useSocketEvent('inbox:new-conversation', (data) => {
+    console.log('New conversation received:', data);
+    loadConversations();
+    
+    if (selectedContact && data.contact._id === selectedContact._id) {
+      if (data.firstMessage) {
+        setMessages(prev => {
+          if (prev.some(m => m._id === data.firstMessage._id)) return prev;
+          return [...prev, data.firstMessage];
+        });
+        scrollToBottom();
+        
+        // Mark as read immediately
+        if (data.conversationId || data.conversation?._id) {
+          const cid = data.conversationId || data.conversation._id;
+          post(`/inbox/${cid}/read`, {}).catch(err => console.error('Failed to mark read:', err));
+        }
+      }
     }
   });
 
@@ -139,12 +190,87 @@ export default function InboxPage() {
         ? { ...msg, status: data.status }
         : msg
     ));
+    
+    // Also update in conversations list if it's the last message
+    setConversations(prev => prev.map(conv => {
+      if (conv.lastMessage && conv.lastMessage._id === data.messageId) {
+        return {
+          ...conv,
+          lastMessage: { ...conv.lastMessage, status: data.status }
+        };
+      }
+      return conv;
+    }));
   });
 
-  // Listen for typing indicators
-  useSocketEvent('user.typing', (data) => {
-    console.log('User typing:', data);
-    // Could show typing indicator in UI
+  // Listen for read synchronizations across devices
+  useSocketEvent('conversation:read', (data) => {
+    setConversations(prev => prev.map(conv =>
+      conv._id === data.conversationId
+        ? { ...conv, myUnreadCount: 0, unreadCount: data.unreadCount ?? 0 }
+        : conv
+    ));
+  });
+
+  // Listen for agent typing indicators (via soft lock)
+  useSocketEvent('inbox:agent-typing', (data) => {
+    if (!data.conversationId) return;
+    setTypingUsers(prev => ({
+      ...prev,
+      [data.conversationId]: {
+        isTyping: data.isTyping,
+        agentId: data.agentId
+      }
+    }));
+    
+    // Auto-clear typing after 5 seconds
+    if (data.isTyping) {
+      setTimeout(() => {
+        setTypingUsers(current => {
+          if (current[data.conversationId]?.agentId === data.agentId) {
+            return {
+              ...current,
+              [data.conversationId]: {
+                ...current[data.conversationId],
+                isTyping: false
+              }
+            };
+          }
+          return current;
+        });
+      }, 5000);
+    }
+  });
+
+  // Listen for regular agent typing events over socket
+  useSocketEvent('inbox:typing', (data) => {
+    if (!data.conversationId || !data.agent) return;
+    setTypingUsers(prev => ({
+      ...prev,
+      [data.conversationId]: {
+        isTyping: data.isTyping,
+        agentId: data.agent._id || data.agent.id,
+        agentName: data.agent.name
+      }
+    }));
+    
+    if (data.isTyping) {
+      setTimeout(() => {
+        setTypingUsers(current => {
+          const agentId = data.agent._id || data.agent.id;
+          if (current[data.conversationId]?.agentId === agentId) {
+            return {
+              ...current,
+              [data.conversationId]: {
+                ...current[data.conversationId],
+                isTyping: false
+              }
+            };
+          }
+          return current;
+        });
+      }, 3000);
+    }
   });
 
   const loadConversations = async () => {
@@ -379,6 +505,29 @@ export default function InboxPage() {
     setMediaPreview(null);
   };
 
+  const handleInputChange = (e) => {
+    setNewMessage(e.target.value);
+    
+    if (!selectedConversationId || !socket) return;
+    
+    // Emit typing via socket
+    if (!typingTimeoutRef.current) {
+      socket.emit('typing', {
+        conversationId: selectedConversationId,
+        isTyping: true
+      });
+    } else {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit('typing:stop', {
+        conversationId: selectedConversationId
+      });
+      typingTimeoutRef.current = null;
+    }, 2000);
+  };
+
   const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
 
@@ -438,8 +587,18 @@ export default function InboxPage() {
             });
 
             if (messageRes.success) {
-              const finalMsg = messageRes.data?.message || messageRes.message;
-              if (typeof finalMsg === 'object') {
+              let finalMsg = null;
+              if (messageRes.data?.message) {
+                finalMsg = messageRes.data.message;
+              } else if (messageRes.result?.message) {
+                finalMsg = messageRes.result.message;
+              } else if (messageRes.result) {
+                finalMsg = messageRes.result;
+              } else if (messageRes.message && typeof messageRes.message === 'object') {
+                finalMsg = messageRes.message;
+              }
+
+              if (finalMsg && typeof finalMsg === 'object') {
                  setMessages(prev => prev.map(m => m._id === tmpId ? finalMsg : m));
               } else {
                  setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent'} : m));
@@ -458,8 +617,18 @@ export default function InboxPage() {
             };
             const messageRes = await post('/messages/send', dataPayload);
             if (messageRes.success) {
-              const finalMsg = messageRes.data?.message || messageRes.message;
-              if (typeof finalMsg === 'object') {
+              let finalMsg = null;
+              if (messageRes.data?.message) {
+                finalMsg = messageRes.data.message;
+              } else if (messageRes.result?.message) {
+                finalMsg = messageRes.result.message;
+              } else if (messageRes.result) {
+                finalMsg = messageRes.result;
+              } else if (messageRes.message && typeof messageRes.message === 'object') {
+                finalMsg = messageRes.message;
+              }
+
+              if (finalMsg && typeof finalMsg === 'object') {
                  setMessages(prev => prev.map(m => m._id === tmpId ? finalMsg : m));
               } else {
                  setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent'} : m));
@@ -517,7 +686,17 @@ export default function InboxPage() {
         });
       }
 
-      const sentMessage = data?.data?.message || null;
+      // Try multiple payload structures depending on which endpoint was hit
+      let sentMessage = null;
+      if (data?.data?.message) {
+        sentMessage = data.data.message;
+      } else if (data?.result?.message) {
+        sentMessage = data.result.message;
+      } else if (data?.result) {
+        sentMessage = data.result;
+      } else if (data?.message && typeof data.message === 'object') {
+        sentMessage = data.message;
+      }
 
       if (data?.success || sentMessage) {
         setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, ...sentMessage, status: sentMessage?.status || 'sent' } : m));
@@ -672,7 +851,11 @@ export default function InboxPage() {
 
                   <div className="flex justify-between items-center">
                     <p className="text-[13px] text-gray-500 truncate pr-2">
-                      {conversation.lastMessagePreview || 'No messages'}
+                      {typingUsers[conversation._id]?.isTyping && typingUsers[conversation._id]?.agentId !== currentUser?._id ? (
+                         <span className="text-green-500 italic font-medium">Typing...</span>
+                      ) : (
+                         conversation.lastMessage?.body || conversation.lastMessagePreview || 'No messages'
+                      )}
                     </p>
                     {(conversation.myUnreadCount || conversation.unreadCount || 0) > 0 && (
                       <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
@@ -724,7 +907,15 @@ export default function InboxPage() {
                     {selectedContact.displayName || selectedContact.name || selectedContact.phone}
                     <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-md font-medium tracking-wide uppercase">Contact</span>
                   </h2>
-                  <p className="text-[13px] text-gray-500 mt-0.5">Online</p>
+                  <p className="text-[13px] text-gray-500 mt-0.5">
+                    {typingUsers[selectedConversationId]?.isTyping && typingUsers[selectedConversationId]?.agentId !== currentUser?._id ? (
+                      <span className="text-green-600 animate-pulse font-medium">
+                        {agents.find(a => a._id === typingUsers[selectedConversationId].agentId)?.name || 'An agent'} is typing...
+                      </span>
+                    ) : (
+                      'Online'
+                    )}
+                  </p>
                 </div>
               </div>
 
@@ -949,7 +1140,7 @@ export default function InboxPage() {
               <div className="flex-1 bg-gray-50 rounded-2xl shadow-inner border border-gray-200 focus-within:border-green-400 focus-within:bg-white transition-all overflow-hidden relative">
                 <textarea
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();

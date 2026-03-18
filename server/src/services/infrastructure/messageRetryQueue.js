@@ -24,11 +24,13 @@ const bspMessagingService = require('../bsp/bspMessagingService');
 let messageRetryQueue = null;
 let messageRetryWorker = null;
 
+const { sharedConnection: redisConnection } = require('./redisClient');
+
 /**
  * Initialize message retry queue
  * Called from server.js after Redis connection
  */
-function initializeMessageRetryQueue(redisConnection) {
+function initializeMessageRetryQueue() {
   if (messageRetryQueue) {
     logger.warn('[MessageRetryQueue] Already initialized');
     return messageRetryQueue;
@@ -57,22 +59,23 @@ function initializeMessageRetryQueue(redisConnection) {
 /**
  * Start worker to process retry jobs
  */
-function startMessageRetryWorker(redisConnection) {
+function startMessageRetryWorker() {
   if (messageRetryWorker) {
     logger.warn('[MessageRetryQueue] Worker already started');
     return messageRetryWorker;
   }
 
-  const queueName = `message-retry:${process.env.NODE_ENV || 'dev'}`;
-
-  messageRetryQueue = new Queue(queueName, {
-    redis: redisConnection,
-    settings: {
-      maxStalledCount: 2,
-      lockDuration: 30000,
-      lockRenewTime: 15000,
-    },
-  });
+  // If queue wasn't initialized yet, initialize it
+  if (!messageRetryQueue) {
+    messageRetryQueue = new Queue(`message-retry:${process.env.NODE_ENV || 'dev'}`, {
+      redis: redisConnection,
+      settings: {
+        maxStalledCount: 2,
+        lockDuration: 30000,
+        lockRenewTime: 15000,
+      },
+    });
+  }
 
   // Process jobs with 5 concurrent workers
   messageRetryQueue.process(5, async (job) => {

@@ -28,6 +28,7 @@ const { isOptedOutByPhone, isOptedOut } = require('../messaging/optOutService');
 const billingLedgerService = require('../billing/billingLedgerService');
 const { enforceWorkspaceBilling } = require('../billing/billingEnforcementService');
 const { decryptToken } = require('../bsp/gupshupProvisioningService');
+const inboxSocketService = require('../messaging/inboxSocketService');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -235,7 +236,7 @@ async function sendTemplate(params) {
   // STEP 6: Log successful send (as queued)
   // ─────────────────────────────────────────────────────────────────────────────
   const contact = await resolveContactForSend(workspaceId, contactId, normalizedPhone);
-  const conversation = await getOrCreateConversation(workspaceId, contact?._id, template, meta);
+  const { conversation, isNew: isNewConversation } = await getOrCreateConversation(workspaceId, contact?._id, template, meta);
 
   const messageLog = await logTemplateSend({
     workspaceId,
@@ -249,6 +250,26 @@ async function sendTemplate(params) {
       conversationId: conversation?._id
     }
   });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // EMIT SOCKET EVENT FOR REAL-TIME INBOX UPDATE
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (conversation && contact && messageLog) {
+    try {
+      if (isNewConversation) {
+        // New conversation started via template send
+        await inboxSocketService.emitNewConversation(workspaceId, conversation, contact, messageLog);
+        console.log(`[TemplateSending] Emitted new conversation event for ${contact.phone}`);
+      } else {
+        // Existing conversation received a template message
+        await inboxSocketService.emitNewMessage(workspaceId, conversation, messageLog, contact);
+        console.log(`[TemplateSending] Emitted new message event for conversation ${conversation._id}`);
+      }
+    } catch (socketErr) {
+      console.error('[TemplateSending] Socket event emission failed:', socketErr.message);
+      // Don't fail the overall send if socket emission fails
+    }
+  }
 
   // ─────────────────────────────────────────────────────────────────────────────
   // STEP 8: Usage ledger for conversation billing
@@ -758,26 +779,50 @@ async function resolveContactForSend(workspaceId, contactId, recipientPhone) {
 
 // Create or reuse a conversation for outbound template sends
 async function getOrCreateConversation(workspaceId, contactId, template, meta = {}) {
-  if (!contactId) return null;
+  if (!contactId) return { conversation: null, isNew: false };
 
+  const workspace = await Workspace.findById(workspaceId).select('gupshupIdentity wabaId').lean();
+  
   let conversation = await Conversation.findOne({ workspace: workspaceId, contact: contactId });
+  let isNew = false;
 
   if (!conversation) {
+    // Ensure 24h window is initialized for outbound template sends
+    // This matches the webhook handler's windowExpiresAt logic
+    const windowExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
     conversation = await Conversation.create({
       workspace: workspaceId,
       contact: contactId,
       status: 'open',
+      channel: 'whatsapp', // Match webhook handler
       conversationType: 'business_initiated',
       conversationStartedAt: new Date(),
       lastActivityAt: new Date(),
       lastMessageAt: new Date(),
+      lastInboundAt: null, // No inbound yet (business-initiated)
       lastMessageType: 'template',
       lastMessageDirection: 'outbound',
-      lastMessagePreview: template?.body?.text || template?.bodyText || template?.name
+      lastMessagePreview: template?.body?.text || template?.bodyText || template?.name,
+      isOpen: true, // Match webhook handler
+      windowExpiresAt: windowExpiresAt, // CRITICAL: Track 24h conversation window
+      wabaId: workspace?.gupshupIdentity?.wabaId || workspace?.wabaId // Match webhook handler
     });
+    isNew = true;
+    console.log(`[TemplateSending] Created business-initiated conversation: ${conversation._id} for contact ${contactId}`);
+  } else {
+    // If conversation exists but needs updated window (edge case: conversation exists but window expired)
+    // Don't reset if already has recent activity
+    if (!conversation.windowExpiresAt) {
+      conversation.windowExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      conversation.isOpen = conversation.isOpen !== false; // Ensure isOpen is set
+      conversation.channel = conversation.channel || 'whatsapp';
+      console.log(`[TemplateSending] Updated missing conversation fields for ${conversation._id}`);
+      await conversation.save();
+    }
   }
 
-  return conversation;
+  return { conversation, isNew };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

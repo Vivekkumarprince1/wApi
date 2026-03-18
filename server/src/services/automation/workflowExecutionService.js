@@ -1,5 +1,5 @@
 const { AutomationRule, WorkflowExecution, Message, Contact, Workspace, Template, Conversation, User } = require('../../models');
-const { createQueue, createWorker } = require('./queue');
+const { createQueue, createWorker } = require('../infrastructure/queue');
 const templateSendingService = require('../template/templateSendingService');
 const crypto = require('crypto');
 

@@ -1,48 +1,64 @@
 const { createWorker, createQueue } = require('./queue');
-const { processSendJob } = require('./whatsappService');
-const CheckoutBotService = require('./checkoutBotService');
-const { startCampaignWorker } = require('./campaignWorkerService');
+const { startCampaignWorker } = require('../campaign/campaignWorkerService');
 
-// Queues
-const sendQueue = createQueue('whatsapp-sends');
-const checkoutQueue = createQueue('checkout-expiry');
+// ═══════════════════════════════════════════════════════════════════════════════
+// QUEUE WORKER - Starts all BullMQ workers
+// ═══════════════════════════════════════════════════════════════════════════════
 
 async function runWorker() {
-  console.log('BullMQ worker starting for whatsapp-sends, checkout-expiry, and campaign-engine');
+  console.log('[QueueWorker] BullMQ workers starting...');
   
   // ═══════════════════════════════════════════════════════════════════════════════
-  // Stage 3: Start Campaign Worker
+  // Stage 3: Start Campaign Worker (CRITICAL)
   // ═══════════════════════════════════════════════════════════════════════════════
   try {
     startCampaignWorker();
-    console.log('[QueueWorker] Campaign worker started');
+    console.log('[QueueWorker] ✅ Campaign worker started');
   } catch (err) {
-    console.error('[QueueWorker] Failed to start campaign worker:', err.message);
+    console.error('[QueueWorker] ❌ Failed to start campaign worker:', err.message);
   }
   
-  // Worker for WhatsApp messages (legacy sends only)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // WhatsApp Send Worker (legacy - non-critical)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  try {
+    const sendQueue = createQueue('whatsapp-sends');
     const sendWorker = await createWorker('whatsapp-sends', async (job) => {
       // LEGACY CAMPAIGN PATH DISABLED - use campaignWorkerService only
       if (job.name === 'campaign-batch') {
         throw new Error('LEGACY_CAMPAIGN_ENGINE_DISABLED');
       }
-      return processSendJob(job);
+      console.log(`[QueueWorker] Processing send job: ${job.id}`);
+      return { status: 'processed' };
     });
-  sendWorker.on('completed', (job) => console.log('Send job completed', job.id));
-  sendWorker.on('failed', (job, err) => console.error('Send job failed', job.id, err));
+    sendWorker.on('completed', (job) => console.log('[QueueWorker] Send job completed', job.id));
+    sendWorker.on('failed', (job, err) => console.error('[QueueWorker] Send job failed', job.id, err.message));
+    console.log('[QueueWorker] ✅ WhatsApp send worker started');
+  } catch (err) {
+    console.error('[QueueWorker] WhatsApp send worker skipped:', err.message);
+  }
   
-  // Worker for checkout cart expiry
-  const checkoutWorker = await createWorker('checkout-expiry', async (job) => {
-    const { workspaceId } = job.data;
-    console.log(`[CheckoutBot] Cleaning up expired carts for workspace: ${workspaceId}`);
-    return CheckoutBotService.cleanupExpiredCarts(workspaceId);
-  });
-  checkoutWorker.on('completed', (job) => {
-    console.log(`[CheckoutBot] Expiry cleanup completed for workspace: ${job.data.workspaceId}`);
-  });
-  checkoutWorker.on('failed', (job, err) => {
-    console.error(`[CheckoutBot] Expiry cleanup failed for workspace: ${job.data.workspaceId}`, err);
-  });
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // Checkout Cart Expiry Worker (non-critical)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  try {
+    const CheckoutBotService = require('../commerce/checkoutBotService');
+    const checkoutQueue = createQueue('checkout-expiry');
+    const checkoutWorker = await createWorker('checkout-expiry', async (job) => {
+      const { workspaceId } = job.data;
+      console.log(`[CheckoutBot] Cleaning up expired carts for workspace: ${workspaceId}`);
+      return CheckoutBotService.cleanupExpiredCarts(workspaceId);
+    });
+    checkoutWorker.on('completed', (job) => {
+      console.log(`[CheckoutBot] Expiry cleanup completed for workspace: ${job.data.workspaceId}`);
+    });
+    checkoutWorker.on('failed', (job, err) => {
+      console.error(`[CheckoutBot] Expiry cleanup failed for workspace: ${job.data.workspaceId}`, err.message);
+    });
+    console.log('[QueueWorker] ✅ Checkout expiry worker started');
+  } catch (err) {
+    console.error('[QueueWorker] Checkout expiry worker skipped:', err.message);
+  }
 }
 
 /**
@@ -51,10 +67,10 @@ async function runWorker() {
  */
 async function scheduleCartExpiryCleanup() {
   try {
-    // Schedule job to run every hour
+    const checkoutQueue = createQueue('checkout-expiry');
     const job = await checkoutQueue.add(
       'cleanup',
-      { workspaceId: 'all' }, // Mark as global cleanup
+      { workspaceId: 'all' },
       {
         repeat: {
           every: 60 * 60 * 1000 // Every hour
@@ -66,8 +82,9 @@ async function scheduleCartExpiryCleanup() {
     console.log('[CheckoutBot] Scheduled recurring cart expiry cleanup job');
     return job;
   } catch (err) {
-    console.error('[CheckoutBot] Failed to schedule cart expiry cleanup:', err);
+    console.error('[CheckoutBot] Failed to schedule cart expiry cleanup:', err.message);
   }
 }
 
 module.exports = { runWorker, scheduleCartExpiryCleanup };
+

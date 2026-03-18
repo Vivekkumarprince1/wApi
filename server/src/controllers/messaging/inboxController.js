@@ -16,6 +16,7 @@
 const { Conversation, Message, Contact, User, Permission } = require('../../models');
 const { getIO } = require('../../utils/socket');
 const { uploadBufferToCloudinary } = require('../../utils/cloudinary');
+const inboxSocketService = require('../../services/messaging/inboxSocketService');
 
 // Hardening services
 const softLockService = require('../../services/infrastructure/softLockService');
@@ -792,11 +793,16 @@ exports.getInbox = async (req, res) => {
       Conversation.countDocuments(query)
     ]);
 
-    // Add per-agent unread count
-    const conversationsWithUnread = conversations.map(conv => ({
-      ...conv,
-      myUnreadCount: conv.agentUnreadCounts?.[agentId.toString()] || 0
-    }));
+    // Add per-agent unread count and compute isOpen accurately
+    const now = Date.now();
+    const conversationsWithUnread = conversations.map(conv => {
+      const isExpired = conv.windowExpiresAt && new Date(conv.windowExpiresAt).getTime() <= now;
+      return {
+        ...conv,
+        isOpen: conv.isOpen && !isExpired,
+        myUnreadCount: conv.agentUnreadCounts?.[agentId.toString()] || 0
+      };
+    });
 
     res.json({
       success: true,
@@ -939,6 +945,11 @@ exports.getConversation = async (req, res) => {
 
     // Add agent-specific unread count
     conversation.myUnreadCount = conversation.agentUnreadCounts?.[agentId.toString()] || 0;
+    
+    // dynamically verify isOpen state
+    if (conversation.windowExpiresAt && new Date(conversation.windowExpiresAt).getTime() <= Date.now()) {
+      conversation.isOpen = false;
+    }
 
     res.json({
       success: true,
@@ -1054,7 +1065,9 @@ exports.sendMessage = async (req, res) => {
       data: {
         message: result.message,
         whatsappMessageId: result.whatsappMessageId,
-        isWithin24HourWindow: result.isWithin24HourWindow
+        isWithin24HourWindow: result.isWithin24HourWindow,
+        fallbackUsed: result.fallbackUsed,
+        fallbackTemplateName: result.fallbackTemplateName
       }
     });
 
@@ -1156,6 +1169,25 @@ exports.sendTemplateMessage = async (req, res) => {
       templateLanguage,
       components
     });
+
+    // ═══════════════════════════════════════════════════════════════════
+    // EMIT SOCKET EVENT FOR REAL-TIME INBOX UPDATE
+    // ═══════════════════════════════════════════════════════════════════
+    if (result.message && conversationId) {
+      try {
+        const conversation = await Conversation.findById(conversationId)
+          .populate('contact', 'name phone profilePicture');
+        
+        if (conversation && conversation.contact) {
+          // Emit message update event (conversation already exists)
+          await inboxSocketService.emitNewMessage(workspaceId, conversation, result.message, conversation.contact);
+          console.log(`[Inbox] Emitted template message event for conversation ${conversationId}`);
+        }
+      } catch (socketErr) {
+        console.error('[Inbox] Socket event emission failed:', socketErr.message);
+        // Don't fail the overall send if socket emission fails
+      }
+    }
 
     res.json({
       success: true,

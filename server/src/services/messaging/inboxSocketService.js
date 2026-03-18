@@ -57,7 +57,7 @@ async function emitNewMessage(workspaceId, conversation, message, contact) {
       message: {
         _id: message._id,
         type: message.type,
-        text: message.text,
+        body: message.body,
         direction: 'inbound',
         createdAt: message.createdAt,
         whatsappMessageId: message.whatsappMessageId
@@ -109,7 +109,7 @@ async function emitMessageSent(workspaceId, conversationId, message, sentBy) {
       message: {
         _id: message._id,
         type: message.type,
-        text: message.text,
+        body: message.body,
         template: message.template,
         direction: 'outbound',
         status: message.status,
@@ -285,7 +285,7 @@ async function emitNewConversation(workspaceId, conversation, contact, firstMess
       firstMessage: firstMessage ? {
         _id: firstMessage._id,
         type: firstMessage.type,
-        text: firstMessage.text,
+        body: firstMessage.body,
         createdAt: firstMessage.createdAt
       } : null,
       timestamp: new Date()

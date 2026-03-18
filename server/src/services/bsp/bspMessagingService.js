@@ -96,6 +96,15 @@ async function canSendSessionMessage(workspaceId, phoneNumber, contactId = null)
 
     // Windows with no inbound activity or expired activity must use templates
     console.log(`[BSP] canSendSessionMessage: window closed or expired for ${phoneNumber} (isOpen: ${conversation.isOpen}, expires: ${conversation.windowExpiresAt})`);
+    
+    // Auto-heal the conversation state
+    if (conversation.isOpen) {
+      await Conversation.updateOne(
+        { _id: conversation._id }, 
+        { $set: { isOpen: false, status: 'resolved' } } // Optional: also resolve or just close window
+      ).catch(err => console.error('[BSP] Failed to auto-heal conversation state:', err));
+    }
+
     return false;
   } catch (error) {
     console.error('[BSPMessagingService] Error checking session window:', error.message);
@@ -497,18 +506,7 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
   const appId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId;
   if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
-  const payload = {
-    appId,
-    source,
-    destination: normalizedPhone,
-    templateName,
-    languageCode,
-    components,
-    appApiKey,
-    sourceName: workspace.gupshupIdentity?.appName || workspace.gupshupAppName || workspace.name || appId
-  };
-
-  // Run diagnostics logger before sending
+  // Run diagnostics logger before sending (User/Contact info)
   let user = null;
   if (workspace.owner) {
     user = await User.findById(workspace.owner).catch(() => null);
@@ -523,7 +521,10 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
   // Validating Template Approval Before Dispatch
   const { Template } = require('../../models');
   const templateDb = await Template.findOne({
-    metaTemplateName: templateName,
+    $or: [
+      { metaTemplateName: templateName },
+      { name: templateName }
+    ],
     workspace: workspace._id
   });
 
@@ -536,6 +537,17 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
     console.error(`[Messaging] Template not approved - blocking send: ${templateDb.status}`);
     throw new Error(`Template not approved by WhatsApp: ${templateDb.status}`);
   }
+
+  const payload = {
+    appId,
+    source,
+    destination: normalizedPhone,
+    templateName: templateDb.metaTemplateName || templateDb.name,
+    languageCode,
+    components,
+    appApiKey,
+    sourceName: workspace.gupshupIdentity?.appName || workspace.gupshupAppName || workspace.name || appId
+  };
 
   // Handle Header Media Requirement
   const headerSchema = templateDb.metaPayloadSnapshot?.components?.find(c => c.type === 'HEADER');
@@ -1339,7 +1351,11 @@ async function ensurePrerequisites(workspace) {
           } catch (vErr) {
              const errMsg = vErr.response?.data?.message || vErr.message;
              // If not migrated yet, we proceed to POST whitelist
-             if (!errMsg.includes('not migrated to embed') && !errMsg.includes('Ownership Type: ON_BEHALF_OF')) {
+             if (
+               !errMsg.includes('not migrated to embed') && 
+               !errMsg.includes('Ownership Type: ON_BEHALF_OF') &&
+               !errMsg.includes('Exception while verifying ownership type')
+             ) {
                throw vErr; 
              }
              console.log(`[Messaging] WABA ${appId} not yet whitelisted (OBO status). Proceeding to whitelist...`);

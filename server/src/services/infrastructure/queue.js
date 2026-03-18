@@ -1,16 +1,15 @@
 const { Queue, Worker, QueueScheduler } = require('bullmq');
 const IORedis = require('ioredis');
-const { redisUrl } = require('../config');
+const { redisUrl } = require('../../config');
 
-// BullMQ requires maxRetriesPerRequest to be null
-const connection = new IORedis(redisUrl, {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false
-});
+// Shared connection for non-blocking commands
+const { sharedConnection: connection } = require('./redisClient');
 
 function createQueue(name) {
-  // create scheduler for delayed jobs and retries
-  new QueueScheduler(name, { connection });
+  // QueueScheduler was removed in BullMQ v4+ — only create if available
+  if (QueueScheduler) {
+    try { new QueueScheduler(name, { connection }); } catch (e) { /* v4+ doesn't need it */ }
+  }
   return new Queue(name, { connection });
 }
 
@@ -19,3 +18,4 @@ async function createWorker(name, processor) {
 }
 
 module.exports = { createQueue, createWorker, connection };
+

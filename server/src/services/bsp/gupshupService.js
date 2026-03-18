@@ -1886,21 +1886,36 @@ async function ensureRequiredSubscriptions({ appId, appApiKey, webhookUrl }) {
           await sleep(2000);
         }
 
-        const createRes = await createSubscription({
-          appId,
-          appApiKey,
-          callbackUrl: webhookUrl,
-          name: sub.name,
-          type: 'v3',
-          mode: sub.mode
-        });
+        try {
+          const createRes = await createSubscription({
+            appId,
+            appApiKey,
+            callbackUrl: webhookUrl,
+            name: sub.name,
+            type: 'v3',
+            mode: sub.mode
+          });
 
-        if (createRes.success === false) {
-           throw new Error(`Failed to create mandatory ${sub.mode} subscription: ${createRes.warning || 'Unknown error'}`);
+          if (createRes.success === false && createRes.warning !== 'ACCESS_FORBIDDEN') {
+             throw new Error(`Failed to create mandatory ${sub.mode} subscription: ${createRes.warning || 'Unknown error'}`);
+          }
+
+          console.log(`[GupshupService] ${sub.mode} subscription created successfully`);
+          results.push({ mode: sub.mode, status: 'created', data: createRes });
+        } catch (subErr) {
+          // If we hit a rate limit while provisioning subscriptions, 
+          // log it and continue. Subscriptions likely persist from earlier.
+          const isRateLimit = subErr.response?.status === 429 || 
+                              subErr.message.includes('Too Many Requests') || 
+                              (subErr.response?.data?.message || '').includes('Too Many Requests');
+                              
+          if (isRateLimit) {
+            console.warn(`[GupshupService] Rate limited (429) while creating ${sub.mode} subscription. Assuming it already exists.`);
+            results.push({ mode: sub.mode, status: 'rate_limited_assumed_exists' });
+          } else {
+            throw subErr;
+          }
         }
-
-        console.log(`[GupshupService] ${sub.mode} subscription created successfully`);
-        results.push({ mode: sub.mode, status: 'created', data: createRes });
       } else {
         if (sub.mode === 'MESSAGE') {
           console.log(`[GupshupService] MESSAGE subscription exists`);

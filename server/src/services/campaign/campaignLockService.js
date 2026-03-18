@@ -13,19 +13,7 @@ const { redisUrl } = require('../../config');
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-// Dedicated Redis connection for locks
-const redis = new IORedis(redisUrl, {
-  enableReadyCheck: false,
-  maxRetriesPerRequest: 3,
-  retryStrategy: (times) => {
-    if (times > 5) return null;
-    return Math.min(times * 100, 2000);
-  }
-});
-
-redis.on('error', (err) => {
-  console.error('[CampaignLock] Redis error:', err.message);
-});
+const { sharedConnection: redis } = require('../infrastructure/redisClient');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS

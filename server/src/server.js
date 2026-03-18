@@ -131,10 +131,10 @@ connectRedis().then(conn => {
   // Initialize webhook queue
   try {
     const { initializeWebhookQueue, startWebhookWorker } = require('./services/infrastructure/webhookQueue');
-    initializeWebhookQueue(redisConnection);
+    initializeWebhookQueue();
 
     if (process.env.START_WEBHOOK_WORKER === 'true') {
-      startWebhookWorker(redisConnection);
+      startWebhookWorker();
       console.log('[Server] ✅ Webhook worker started');
     }
   } catch (err) {
@@ -144,10 +144,10 @@ connectRedis().then(conn => {
   // Initialize message retry queue (Week 2 addition)
   try {
     const { initializeMessageRetryQueue, startMessageRetryWorker } = require('./services/infrastructure/messageRetryQueue');
-    initializeMessageRetryQueue(redisConnection);
+    initializeMessageRetryQueue();
 
     if (process.env.START_MESSAGE_RETRY_WORKER === 'true') {
-      startMessageRetryWorker(redisConnection);
+      startMessageRetryWorker();
       console.log('[Server] ✅ Message retry worker started');
     }
   } catch (err) {
@@ -308,15 +308,15 @@ if (process.env.START_WORKER === 'true') {
 // STAGE 3: Campaign Scheduler
 // Checks for scheduled campaigns and starts them at the specified time
 // ═══════════════════════════════════════════════════════════════════════════════
-// if (process.env.START_CAMPAIGN_SCHEDULER !== 'false') {
-//   try {
-//     const { startScheduler } = require('./services/campaign/campaignSchedulerService');
-//     startScheduler();
-//     console.log('[Server] ✅ Campaign scheduler started');
-//   } catch (err) {
-//     console.error('[Server] Failed to start campaign scheduler:', err.message);
-//   }
-// }
+if (process.env.START_CAMPAIGN_SCHEDULER !== 'false') {
+  try {
+    const { startScheduler } = require('./services/campaign/campaignSchedulerService');
+    startScheduler();
+    console.log('[Server] ✅ Campaign scheduler started');
+  } catch (err) {
+    console.error('[Server] Failed to start campaign scheduler:', err.message);
+  }
+}
 
 // Simple analytics cron (daily) - can be expanded to a separate worker/cron service
 if (process.env.START_ANALYTICS_CRON === 'true') {

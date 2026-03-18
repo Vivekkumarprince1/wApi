@@ -17,10 +17,7 @@ const { redisUrl } = require('../../config');
  */
 
 // Redis connection for kill-switch state
-const redis = new IORedis(redisUrl, {
-  enableReadyCheck: false,
-  maxRetriesPerRequest: 3
-});
+const { sharedConnection: redis } = require('../infrastructure/redisClient');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS

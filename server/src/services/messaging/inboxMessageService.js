@@ -172,16 +172,56 @@ async function sendTextMessage(options) {
 //  }
 
   // 5. Send via BSP service (centralized token + safety)
-  const result = await bspMessagingService.sendTextMessage(
-    workspaceId,
-    contact.phone,
-    text,
-    {
-      contactId: contact._id,
-      conversationId: conversationId,
-      sentBy: agentId
+  let result;
+  let fallbackUsed = false;
+  let fallbackTemplateName = null;
+
+  try {
+    result = await bspMessagingService.sendTextMessage(
+      workspaceId,
+      contact.phone,
+      text,
+      {
+        contactId: contact._id,
+        conversationId: conversationId,
+        sentBy: agentId
+      }
+    );
+  } catch (err) {
+    if (err.message && (err.message.includes('Session window expired') || err.message.includes('24-hour window'))) {
+      const Template = require('../../models/template/Template');
+      const fallbackTemplate = await Template.findOne({
+        workspace: workspaceId,
+        status: 'APPROVED',
+        variableCount: 0,
+        'header.format': { $in: ['NONE', 'TEXT'] },
+        'buttons.type': { $ne: 'QUICK_REPLY' } // simple text
+      }).limit(1);
+
+      if (!fallbackTemplate) {
+        throw new Error('24-hour session window expired. Please send a template to re-engage this contact.');
+      }
+
+      console.log(`[InboxMessageService] 24h window closed. Auto-falling back to template: ${fallbackTemplate.name}`);
+      result = await bspMessagingService.sendTemplateMessage(
+        workspaceId,
+        contact.phone,
+        fallbackTemplate.name,
+        fallbackTemplate.language,
+        [],
+        {
+          contactId: contact._id,
+          conversationId: conversationId,
+          sentBy: agentId
+        }
+      );
+      
+      fallbackUsed = true;
+      fallbackTemplateName = fallbackTemplate.name;
+    } else {
+      throw err;
     }
-  );
+  }
 
   if (!result.success) {
     throw new Error(result.error || 'Failed to send message');
@@ -199,13 +239,14 @@ async function sendTextMessage(options) {
       conversation: conversationId,
       contact: contact._id,
       direction: 'outbound',
-      type: 'text',
+      type: fallbackUsed ? 'template' : 'text',
       body: text,
       whatsappMessageId: result.messageId,
       status: 'queued',
       sentBy: agentId,
       meta: {
-        providerAcceptedAt: new Date()
+        providerAcceptedAt: new Date(),
+        ...(fallbackUsed && { fallbackUsed: true, fallbackTemplateName })
       }
     });
   }
@@ -293,7 +334,9 @@ async function sendTextMessage(options) {
     success: true,
     message,
     whatsappMessageId: result.messageId,
-    isWithin24HourWindow: true
+    isWithin24HourWindow: !fallbackUsed,
+    fallbackUsed,
+    fallbackTemplateName
   };
 }
 

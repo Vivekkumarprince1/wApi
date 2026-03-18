@@ -105,11 +105,13 @@ async function markWebhookProcessed(idempotencyKey) {
   }
 }
 
+const { sharedConnection: redisConnection } = require('./redisClient');
+
 /**
  * Initialize webhook queue
  * Must be called after Redis is ready
  */
-async function initializeWebhookQueue(redisConnection) {
+async function initializeWebhookQueue() {
   if (!Queue || !Worker) {
     console.error('[WebhookQueue] BullMQ not available - webhooks will be processed synchronously');
     return null;
@@ -177,7 +179,7 @@ async function enqueueWebhook(payload, signature, priority = 'normal') {
  * Processes queued webhooks with concurrency control
  * TASK C: Includes idempotency checks inside worker
  */
-function startWebhookWorker(redisConnection) {
+function startWebhookWorker() {
   if (!Queue || !Worker) {
     console.error('[WebhookQueue] BullMQ not available - cannot start worker');
     return null;

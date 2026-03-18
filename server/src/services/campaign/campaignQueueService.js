@@ -17,21 +17,7 @@ const { redisUrl } = require('../../config');
  */
 
 // Redis connection for BullMQ (requires maxRetriesPerRequest: null)
-const connection = new IORedis(redisUrl, {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-  retryStrategy: (times) => {
-    if (times > 10) {
-      console.error('[CampaignQueue] Redis connection failed after 10 retries');
-      return null;
-    }
-    return Math.min(times * 100, 3000);
-  }
-});
-
-connection.on('error', (err) => {
-  console.error('[CampaignQueue] Redis error:', err.message);
-});
+const { sharedConnection: connection } = require('../infrastructure/redisClient');
 
 connection.on('connect', () => {
   console.log('[CampaignQueue] Redis connected');

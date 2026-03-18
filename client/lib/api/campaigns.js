@@ -20,3 +20,16 @@ export const updateCampaign = async (campaignId, campaignData) => put(`/campaign
 export const deleteCampaign = async (campaignId) => del(`/campaigns/${campaignId}`);
 
 export const getCampaignStats = async () => get('/campaigns/stats');
+
+export const pauseCampaign = async (campaignId) => post(`/campaigns/${campaignId}/pause`, {});
+
+export const resumeCampaign = async (campaignId) => post(`/campaigns/${campaignId}/resume`, {});
+
+export const getCampaignProgress = async (campaignId) => get(`/campaigns/${campaignId}/progress`);
+
+export const getCampaignSummary = async (campaignId) => get(`/campaigns/${campaignId}/summary`);
+
+export const fetchContactsByTags = async (tags) => {
+  const params = new URLSearchParams({ tags: tags.join(',') });
+  return get(`/tags/filter/contacts?${params}`);
+};

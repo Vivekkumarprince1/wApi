@@ -1,7 +1,4 @@
-const IORedis = require('ioredis');
-const { redisUrl } = require('../config');
-
-const redis = new IORedis(redisUrl);
+const { sharedConnection: redis } = require('./redisClient');
 
 const EXPIRY_SECONDS = 60; // 1 minute window
 

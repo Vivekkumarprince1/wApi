@@ -211,8 +211,8 @@ async function startCampaign(campaignId, workspaceId, userId) {
       throw new Error(`${validation.reason}: ${validation.message}`);
     }
     
-    // Update status to indicate running
-    campaign.status = 'RUNNING';
+    // Update status to indicate queued
+    campaign.status = 'queued';
     campaign.startedAt = new Date();
     campaign.execution.startedBy = userId;
     

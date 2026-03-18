@@ -6,6 +6,7 @@ const { enqueueRetry } = require('../../services/infrastructure/messageRetryQueu
 const billingLedgerService = require('../../services/billing/billingLedgerService');
 const { isMediaHandle } = require('../../utils/mediaUtils');
 const mongoose = require('mongoose');
+const inboxSocketService = require('../../services/messaging/inboxSocketService');
 
 function normalizePhoneNumber(phone, defaultCountryCode = '91') {
   if (!phone) return '';
@@ -116,17 +117,22 @@ async function sendMessage(req, res, next) {
     // Get or create conversation (although should exist if canSend is true)
     let conversation = await Conversation.findOne({ workspace: workspaceId, contact: contact._id });
     if (!conversation) {
+      const windowExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       conversation = await Conversation.create({
         workspace: workspaceId,
         contact: contact._id,
         status: 'open',
+        channel: 'whatsapp', // Match webhook handler
         conversationType: 'business_initiated',
         conversationStartedAt: new Date(),
         lastActivityAt: new Date(),
         lastMessageAt: new Date(),
+        lastInboundAt: null,
         lastMessageType: 'text',
         lastMessageDirection: 'outbound',
-        lastMessagePreview: body.substring(0, 50)
+        lastMessagePreview: body.substring(0, 50),
+        isOpen: true,
+        windowExpiresAt: windowExpiresAt // CRITICAL: Track 24h window
       });
     } else {
       conversation.lastActivityAt = new Date();
@@ -134,6 +140,10 @@ async function sendMessage(req, res, next) {
       conversation.lastMessagePreview = body.substring(0, 50);
       conversation.lastMessageDirection = 'outbound';
       conversation.lastMessageType = 'text';
+      // Refresh window on outbound message (if window expired)
+      if (!conversation.windowExpiresAt || new Date(conversation.windowExpiresAt) <= new Date()) {
+        conversation.windowExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      }
       await conversation.save();
     }
 
@@ -244,7 +254,7 @@ async function sendTemplateMessage(req, res, next) {
     const metaTemplateName = template.metaTemplateName || template.name;
 
     // Get or create conversation first to link message
-    const conversation = await getOrCreateConversation(workspaceId, contact._id, template);
+    const { conversation, isNew: isNewConversation } = await getOrCreateConversation(workspaceId, contact._id, template);
 
     // Create a queued message record for tracking
     const message = await Message.create({
@@ -317,6 +327,22 @@ async function sendTemplateMessage(req, res, next) {
         });
       } catch (ledgerErr) {
         console.error('[MessageController] Billing ledger update failed:', ledgerErr.message);
+      }
+
+      // Emit socket event so frontend sees conversation immediately
+      try {
+        const conversationWithContact = await Conversation.findById(conversation?._id).populate('contact', 'name phone profilePicture');
+        if (conversationWithContact && conversationWithContact.contact) {
+          if (isNewConversation) {
+            await inboxSocketService.emitNewConversation(workspaceId, conversationWithContact, conversationWithContact.contact, message);
+            console.log(`[MessageController] ✅ Socket event emitted: NEW conversation with template`);
+          } else {
+            await inboxSocketService.emitNewMessage(workspaceId, conversationWithContact, message, conversationWithContact.contact);
+            console.log(`[MessageController] ✅ Socket event emitted: NEW message in existing conversation`);
+          }
+        }
+      } catch (socketErr) {
+        console.error('[MessageController] Socket event emission failed:', socketErr.message);
       }
 
       return res.status(200).json({
@@ -508,7 +534,7 @@ async function sendBulkTemplateMessage(req, res, next) {
         const components = buildTemplateComponents(template, variables);
 
         // Get or create conversation to ensure it shows in Inbox
-        const conversation = await getOrCreateConversation(workspaceId, contact._id, template);
+        const { conversation, isNew: isNewConversation } = await getOrCreateConversation(workspaceId, contact._id, template);
 
         // Create message record
         const message = await Message.create({
@@ -549,6 +575,18 @@ async function sendBulkTemplateMessage(req, res, next) {
         message.meta.providerAcceptedAt = new Date();
         message.markModified('meta');
         await message.save();
+
+        // ═══════════════════════════════════════════════════════════════════
+        // EMIT SOCKET EVENT FOR REAL-TIME INBOX UPDATE
+        // ═══════════════════════════════════════════════════════════════════
+        if (conversation && isNewConversation) {
+          try {
+            await inboxSocketService.emitNewConversation(workspaceId, conversation, contact, message);
+            console.log(`[BulkSend] Emitted new conversation event for ${contact.phone}`);
+          } catch (socketErr) {
+            console.error('[BulkSend] Socket event emission failed:', socketErr.message);
+          }
+        }
 
         results.sent++;
         results.details.push({
@@ -751,25 +789,38 @@ function renderTemplatePreview(template, variables) {
 }
 
 async function getOrCreateConversation(workspaceId, contactId, template) {
-  if (!contactId) return null;
+  if (!contactId) return { conversation: null, isNew: false };
 
+  const workspace = await Workspace.findById(workspaceId).select('gupshupIdentity wabaId').lean();
+  
   let conversation = await Conversation.findOne({ workspace: workspaceId, contact: contactId });
+  let isNew = false;
+  
   if (!conversation) {
+    // Ensure 24h window is initialized for business-initiated sends
+    const windowExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
     conversation = await Conversation.create({
       workspace: workspaceId,
       contact: contactId,
       status: 'open',
+      channel: 'whatsapp', // Match webhook handler
       conversationType: 'business_initiated',
       conversationStartedAt: new Date(),
       lastActivityAt: new Date(),
       lastMessageAt: new Date(),
+      lastInboundAt: null, // No inbound yet
       lastMessageType: 'template',
       lastMessageDirection: 'outbound',
-      lastMessagePreview: template?.bodyText || template?.name
+      lastMessagePreview: template?.bodyText || template?.name,
+      isOpen: true, // Match webhook handler
+      windowExpiresAt: windowExpiresAt, // CRITICAL: Track 24h conversation window
+      wabaId: workspace?.gupshupIdentity?.wabaId || workspace?.wabaId // Match webhook handler
     });
+    isNew = true;
   }
 
-  return conversation;
+  return { conversation, isNew };
 }
 
 module.exports.sendTemplateMessage = sendTemplateMessage;

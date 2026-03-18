@@ -4,6 +4,7 @@
   "description": "Backend API for WhatsApp Business SaaS",
   "main": "dist/server.js",
   "scripts": {
+    "tunnel": "node scripts/start-tunnel.js",
     "build": "tsc",
     "start": "node dist/server.js",
     "dev": "nodemon",
@@ -36,6 +37,7 @@
     "helmet": "^7.1.0",
     "ioredis": "^5.10.0",
     "jsonwebtoken": "^9.0.3",
+    "localtunnel": "^2.0.2",
     "mongodb-memory-server": "^8.12.1",
     "mongoose": "^8.23.0",
     "morgan": "^1.10.0",

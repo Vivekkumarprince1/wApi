@@ -84,7 +84,7 @@ export default function CampaignDetailsPage() {
       setActionLoading(true);
       await del(`/campaigns/${campaignId}`);
       toast.success('Campaign deleted successfully');
-      router.push('/dashboard/campaign/campaigns-list');
+      router.push('/dashboard/campaign');
     } catch (err) {
       toast.error(err.message || 'Failed to delete campaign');
     } finally {
@@ -104,7 +104,7 @@ export default function CampaignDetailsPage() {
     return (
       <div className="p-6">
         <button
-          onClick={() => router.push('/dashboard/campaign/campaigns-list')}
+          onClick={() => router.push('/dashboard/campaign')}
           className="mb-4 text-sm text-muted-foreground hover:text-foreground"
         >
           ← Back to campaigns
@@ -125,7 +125,7 @@ export default function CampaignDetailsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push('/dashboard/campaign/campaigns-list')}
+            onClick={() => router.push('/dashboard/campaign')}
             className="p-2 rounded-lg border border-border hover:bg-accent"
           >
             <FaArrowLeft />

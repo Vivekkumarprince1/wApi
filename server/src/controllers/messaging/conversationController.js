@@ -44,10 +44,16 @@ async function getConversationByContact(req, res, next) {
         return res.status(404).json({ message: 'Contact not found' });
       }
       
+      const windowExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
       conversation = await Conversation.create({
         workspace,
         contact: contactId,
-        status: 'open'
+        status: 'open',
+        channel: 'whatsapp',
+        isOpen: true,
+        windowExpiresAt: windowExpiresAt,
+        conversationType: 'business_initiated',
+        lastActivityAt: new Date()
       });
       
       await conversation.populate('contact', 'name phone email metadata');
