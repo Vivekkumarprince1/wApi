@@ -423,7 +423,7 @@ async function sendTextMessage(workspaceId, to, text, options = {}) {
     console.log(`[BSPMessagingService] Provider message ID: ${response.messageId || response.id}`);
 
     // Log message for this tenant
-    await logMessage(workspace._id, {
+    const loggedMessage = await logMessage(workspace._id, {
       direction: 'outbound',
       type: 'text',
       to: normalizedPhone,
@@ -444,13 +444,14 @@ async function sendTextMessage(workspaceId, to, text, options = {}) {
     return {
       success: true,
       messageId: response.messageId || response.id,
-      data: response
+      data: response,
+      message: loggedMessage
     };
   } catch (error) {
     console.error(`[BSPMessagingService] Text send failed:`, error.message);
 
     // Log failed attempt
-    await logMessage(workspace._id, {
+    const loggedMessage = await logMessage(workspace._id, {
       direction: 'outbound',
       type: 'text',
       to: normalizedPhone,
@@ -629,7 +630,7 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
     });
     console.log("=================================\n");
 
-    await logMessage(workspace._id, {
+    const loggedMessage = await logMessage(workspace._id, {
       direction: 'outbound',
       type: 'template',
       to: normalizedPhone,
@@ -650,12 +651,13 @@ async function sendTemplateMessage(workspaceId, to, templateName, languageCode =
     return {
       success: true,
       messageId: response.messageId || response.id,
-      data: response
+      data: response,
+      message: loggedMessage
     };
   } catch (error) {
     console.error(`[Messaging] Error sending template ${templateName}:`, error.message);
 
-    await logMessage(workspace._id, {
+    const loggedMessage = await logMessage(workspace._id, {
       direction: 'outbound',
       type: 'template',
       to: normalizedPhone,
@@ -732,7 +734,7 @@ async function sendMediaMessage(workspaceId, to, mediaType, media, caption = '',
 
     console.log(`[BSPMessagingService] Provider message ID: ${response.messageId || response.id}`);
 
-    await logMessage(workspace._id, {
+    const loggedMessage = await logMessage(workspace._id, {
       direction: 'outbound',
       type: mediaType,
       to: normalizedPhone,
@@ -758,12 +760,13 @@ async function sendMediaMessage(workspaceId, to, mediaType, media, caption = '',
     return {
       success: true,
       messageId: response.messageId || response.id,
-      data: response
+      data: response,
+      message: loggedMessage
     };
   } catch (error) {
     console.error(`[BSPMessagingService] ${mediaType} send failed:`, error.message);
 
-    await logMessage(workspace._id, {
+    const loggedMessage = await logMessage(workspace._id, {
       direction: 'outbound',
       type: mediaType,
       to: normalizedPhone,
@@ -836,7 +839,7 @@ async function sendInteractiveMessage(workspaceId, to, interactive, options = {}
 
     console.log(`[BSPMessagingService] Provider message ID: ${response.messageId || response.id}`);
 
-    await logMessage(workspace._id, {
+    const loggedMessage = await logMessage(workspace._id, {
       direction: 'outbound',
       type: 'interactive',
       to: normalizedPhone,
@@ -857,12 +860,13 @@ async function sendInteractiveMessage(workspaceId, to, interactive, options = {}
     return {
       success: true,
       messageId: response.messageId || response.id,
-      data: response
+      data: response,
+      message: loggedMessage
     };
   } catch (error) {
     console.error(`[BSPMessagingService] Interactive send failed:`, error.message);
 
-    await logMessage(workspace._id, {
+    const loggedMessage = await logMessage(workspace._id, {
       direction: 'outbound',
       type: 'interactive',
       to: normalizedPhone,
@@ -994,6 +998,7 @@ async function submitTemplate(workspaceId, templateData) {
       namespacedName,
       partnerAppId: appId,
       data: response,
+      message: loggedMessage,
       rawResponse: response
     };
   } catch (error) {
@@ -1179,7 +1184,8 @@ async function deleteTemplate(templateName, workspaceId, templateId) {
 
   return {
     success: true,
-    data: response
+    data: response,
+      message: loggedMessage
   };
 }
 

@@ -692,6 +692,7 @@ async function getConversationMessages(options) {
   const [messages, total] = await Promise.all([
     Message.find(query)
       .populate('sentBy', 'name email')
+      .populate('template.id')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -701,6 +702,22 @@ async function getConversationMessages(options) {
 
   // Reverse to get chronological order
   messages.reverse();
+
+  // Inject buttons for templates if missing and clean up populated template object
+  messages.forEach(msg => {
+    if (msg.type === 'template' && msg.template && msg.template.id) {
+       const templateDoc = msg.template.id;
+       // Only process if it was actually populated (is an object with components)
+       if (typeof templateDoc === 'object' && templateDoc.components) {
+           const btnComp = templateDoc.components.find(c => c.type === 'BUTTONS');
+           if (btnComp && btnComp.buttons && btnComp.buttons.length > 0) {
+               msg.template.buttons = btnComp.buttons;
+           }
+           // Revert back to just the ID to avoid sending massive template object
+           msg.template.id = templateDoc._id;
+       }
+    }
+  });
 
   return {
     messages,

@@ -1,0 +1,5 @@
+10817871 | message_events | MESSAGE
+10817872 | failed_events | FAILED
+10817875 | billing_events | BILLING
+10817994 | event_events | 
+10817995 | status_events | 

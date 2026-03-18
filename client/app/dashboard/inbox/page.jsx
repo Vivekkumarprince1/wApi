@@ -65,6 +65,7 @@ export default function InboxPage() {
   const [typingUsers, setTypingUsers] = useState({});
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
+  const statusCacheRef = useRef({});
   
   // File upload state
   const fileInputRef = useRef(null);
@@ -122,7 +123,7 @@ export default function InboxPage() {
     console.log('New message received:', data);
 
     setConversations(prev => {
-      const idx = prev.findIndex(c => c._id === data.conversationId || (c.contact && c.contact._id === data.contact._id));
+      const idx = prev.findIndex(c => String(c._id) === String(data.conversationId) || (c.contact && String(c.contact._id) === String(data.contact._id)));
       if (idx !== -1) {
         const conv = { ...prev[idx] };
         conv.lastMessageAt = data.message.createdAt;
@@ -130,8 +131,11 @@ export default function InboxPage() {
         conv.lastMessagePreview = data.message.body || data.message.type || 'New message';
         
         // Increase unread count if it's not the currently active conversation
-        if (!selectedContact || data.contact._id !== selectedContact._id) {
+        if (!selectedContact || String(data.contact._id) !== String(selectedContact._id)) {
           conv.unreadCount = (conv.unreadCount || 0) + 1;
+        } else {
+          conv.unreadCount = 0;
+          conv.myUnreadCount = 0;
         }
 
         const newConversations = [...prev];
@@ -145,9 +149,9 @@ export default function InboxPage() {
     });
 
     // If this message is for the currently selected contact, add it to messages
-    if (selectedContact && data.contact._id === selectedContact._id) {
+    if (selectedContact && String(data.contact._id) === String(selectedContact._id)) {
       setMessages(prev => {
-        if (prev.some(m => m._id === data.message._id)) return prev;
+        if (prev.some(m => String(m._id) === String(data.message._id))) return prev;
         return [...prev, data.message];
       });
       scrollToBottom();
@@ -163,10 +167,10 @@ export default function InboxPage() {
     console.log('New conversation received:', data);
     loadConversations();
     
-    if (selectedContact && data.contact._id === selectedContact._id) {
+    if (selectedContact && String(data.contact._id) === String(selectedContact._id)) {
       if (data.firstMessage) {
         setMessages(prev => {
-          if (prev.some(m => m._id === data.firstMessage._id)) return prev;
+          if (prev.some(m => String(m._id) === String(data.firstMessage._id))) return prev;
           return [...prev, data.firstMessage];
         });
         scrollToBottom();
@@ -184,16 +188,23 @@ export default function InboxPage() {
   useSocketEvent('inbox:message-status', (data) => {
     console.log('Message status updated:', data);
 
+    // Cache the status in case the POST request hasn't returned yet to prevent race conditions
+    if (data.messageId && data.status) {
+      statusCacheRef.current[data.messageId] = data.status;
+    }
+
     // Update message status in current thread
     setMessages(prev => prev.map(msg =>
-      msg._id === data.messageId
+      String(msg._id) === String(data.messageId) || 
+      String(msg.whatsappMessageId) === String(data.messageId) ||
+      (msg.whatsappMessageId && typeof msg.whatsappMessageId === 'object' && String(msg.whatsappMessageId.id) === String(data.messageId))
         ? { ...msg, status: data.status }
         : msg
     ));
     
     // Also update in conversations list if it's the last message
     setConversations(prev => prev.map(conv => {
-      if (conv.lastMessage && conv.lastMessage._id === data.messageId) {
+      if (conv.lastMessage && (String(conv.lastMessage._id) === String(data.messageId) || String(conv.lastMessage.whatsappMessageId) === String(data.messageId))) {
         return {
           ...conv,
           lastMessage: { ...conv.lastMessage, status: data.status }
@@ -206,7 +217,7 @@ export default function InboxPage() {
   // Listen for read synchronizations across devices
   useSocketEvent('conversation:read', (data) => {
     setConversations(prev => prev.map(conv =>
-      conv._id === data.conversationId
+      String(conv._id) === String(data.conversationId)
         ? { ...conv, myUnreadCount: 0, unreadCount: data.unreadCount ?? 0 }
         : conv
     ));
@@ -309,6 +320,14 @@ export default function InboxPage() {
   const handleSelectContact = async (conversation) => {
     setSelectedContact(conversation.contact);
     setSelectedConversationId(conversation._id || conversation.id || null);
+    
+    // Clear unread counts natively upon viewing
+    setConversations(prev => prev.map(c => 
+      (c._id || c.id) === (conversation._id || conversation.id) 
+        ? { ...c, unreadCount: 0, myUnreadCount: 0 } 
+        : c
+    ));
+
     await loadMessages(conversation._id || conversation.id);
     // Load CRM data
     await loadCRMData(conversation.contact._id);
@@ -599,7 +618,10 @@ export default function InboxPage() {
               }
 
               if (finalMsg && typeof finalMsg === 'object') {
-                 setMessages(prev => prev.map(m => m._id === tmpId ? finalMsg : m));
+                 const finalWamId = typeof finalMsg.whatsappMessageId === 'object' ? finalMsg.whatsappMessageId.id : finalMsg.whatsappMessageId;
+                 const cachedStatus = statusCacheRef.current[finalMsg._id] || statusCacheRef.current[finalWamId];
+                 const realStatus = cachedStatus || finalMsg.status || 'sent';
+                 setMessages(prev => prev.map(m => m._id === tmpId ? { ...finalMsg, status: realStatus } : m));
               } else {
                  setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent'} : m));
               }
@@ -629,7 +651,10 @@ export default function InboxPage() {
               }
 
               if (finalMsg && typeof finalMsg === 'object') {
-                 setMessages(prev => prev.map(m => m._id === tmpId ? finalMsg : m));
+                 const finalWamId = typeof finalMsg.whatsappMessageId === 'object' ? finalMsg.whatsappMessageId.id : finalMsg.whatsappMessageId;
+                 const cachedStatus = statusCacheRef.current[finalMsg._id] || statusCacheRef.current[finalWamId];
+                 const realStatus = cachedStatus || finalMsg.status || 'sent';
+                 setMessages(prev => prev.map(m => m._id === tmpId ? { ...finalMsg, status: realStatus } : m));
               } else {
                  setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent'} : m));
               }
@@ -699,7 +724,16 @@ export default function InboxPage() {
       }
 
       if (data?.success || sentMessage) {
-        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, ...sentMessage, status: sentMessage?.status || 'sent' } : m));
+        // Ensure sentMessage has whatsappMessageId properly mapped
+        if (sentMessage && !sentMessage.whatsappMessageId && sentMessage.messageId) {
+          sentMessage.whatsappMessageId = sentMessage.messageId;
+        }
+        
+        const wamIdToCache = sentMessage ? (typeof sentMessage.whatsappMessageId === 'object' ? sentMessage.whatsappMessageId.id : sentMessage.whatsappMessageId) : null;
+        const cachedStatus = sentMessage ? (statusCacheRef.current[sentMessage._id] || statusCacheRef.current[wamIdToCache]) : null;
+        const realStatus = cachedStatus || sentMessage?.status || 'sent';
+
+        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, ...sentMessage, status: realStatus, whatsappMessageId: wamIdToCache } : m));
         loadConversations();
         
         if (data?.data?.fallbackUsed) {
@@ -962,6 +996,28 @@ export default function InboxPage() {
                 const isTemplate = message.type === 'template';
                 const hideBodyText = !message.body || message.body === `[${message.type}]` || message.body === '[template]' || (['image', 'video', 'document', 'audio', 'sticker', 'location'].includes(message.type) && message.body === `[${message.type}]`);
 
+                let templateHeaderFormat = message.template?.header?.format || null;
+                let templateHeaderMediaUrl = message.template?.header?.mediaUrl || null;
+                let templateHeaderFilename = "Document";
+
+                if (isTemplate && message.meta?.components) {
+                  const headerComponent = message.meta.components.find(c => c.type === 'header');
+                  if (headerComponent && headerComponent.parameters?.length > 0) {
+                    const p = headerComponent.parameters[0];
+                    if (p.type === 'image' && p.image?.link) {
+                      templateHeaderFormat = 'IMAGE';
+                      templateHeaderMediaUrl = p.image.link;
+                    } else if (p.type === 'video' && p.video?.link) {
+                      templateHeaderFormat = 'VIDEO';
+                      templateHeaderMediaUrl = p.video.link;
+                    } else if (p.type === 'document' && p.document?.link) {
+                      templateHeaderFormat = 'DOCUMENT';
+                      templateHeaderMediaUrl = p.document.link;
+                      templateHeaderFilename = p.document.filename || "Document";
+                    }
+                  }
+                }
+
                 return (
                   <div key={message._id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} w-full`}>
                     <div
@@ -973,11 +1029,11 @@ export default function InboxPage() {
                       {/* Removed triangle tail for modern SaaS look/}
 
                       {/* Header Media */}
-                      {message.template?.header?.format === 'IMAGE' && message.template.header.mediaUrl && (
+                      {templateHeaderFormat === 'IMAGE' && templateHeaderMediaUrl && (
                         <div className="p-1 pb-0">
                           <div className="relative w-full overflow-hidden rounded-lg bg-gray-50">
                             <img
-                              src={message.template.header.mediaUrl}
+                              src={templateHeaderMediaUrl}
                               alt="Image"
                               className="w-full h-auto max-h-[250px] object-cover"
                               onError={(e) => { e.target.style.display = 'none'; }}
@@ -986,12 +1042,22 @@ export default function InboxPage() {
                         </div>
                       )}
 
-                      {message.template?.header?.format === 'VIDEO' && message.template.header.mediaUrl && (
+                      {templateHeaderFormat === 'VIDEO' && templateHeaderMediaUrl && (
                         <div className="p-1 pb-0">
                           <div className="relative w-full aspect-video bg-black rounded-md flex items-center justify-center overflow-hidden group border border-black/10">
-                            <video src={message.template.header.mediaUrl} className="w-full h-full object-cover" controls />
+                            <video src={templateHeaderMediaUrl} className="w-full h-full object-cover" controls />
                           </div>
                         </div>
+                      )}
+
+                      {templateHeaderFormat === 'DOCUMENT' && templateHeaderMediaUrl && (
+                        <a href={templateHeaderMediaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-black/5 rounded-md hover:bg-black/10 transition mt-1 mx-1">
+                          <FaFileAlt className="text-gray-500 text-2xl" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-800 font-medium truncate">{templateHeaderFilename}</p>
+                            <p className="text-[10px] text-gray-500 truncate mt-0.5">Click to view/download</p>
+                          </div>
+                        </a>
                       )}
 
                       {/* Generic Media (Non-Template) */}
