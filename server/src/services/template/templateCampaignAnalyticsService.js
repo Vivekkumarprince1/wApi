@@ -42,7 +42,7 @@ async function getTemplateAnalytics(workspaceId, startDate, endDate, options = {
       },
       {
         $group: {
-          _id: '$template',
+          _id: '$template.id',
           totalSent: { $sum: 1 },
           delivered: {
             $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
@@ -81,7 +81,7 @@ async function getTemplateAnalytics(workspaceId, startDate, endDate, options = {
     
     // Merge metrics with template info
     const conversationMap = conversationMetrics.reduce((acc, c) => {
-      acc[c._id.toString()] = c;
+      acc[c._id?.toString() || 'unknown'] = c;
       return acc;
     }, {});
     
@@ -91,11 +91,12 @@ async function getTemplateAnalytics(workspaceId, startDate, endDate, options = {
     }, {});
     
     const analytics = usageMetrics.map(metric => {
-      const template = templateMap[metric._id.toString()] || {};
-      const convMetric = conversationMap[metric._id.toString()] || {};
+      const templateId = metric._id?.toString() || 'unknown';
+      const template = templateMap[templateId] || {};
+      const convMetric = conversationMap[templateId] || {};
       
       return {
-        templateId: metric._id,
+        templateId,
         name: template.name || 'Unknown',
         displayName: template.displayName || template.name || 'Unknown',
         category: template.category || 'UNKNOWN',
@@ -164,7 +165,7 @@ async function getTemplatePerformanceTrend(workspaceId, templateId, startDate, e
       {
         $match: {
           workspace: new ObjectId(workspaceId),
-          template: new ObjectId(templateId),
+          'template.id': new ObjectId(templateId),
           direction: 'outbound',
           type: 'template',
           createdAt: { $gte: startDate, $lte: endDate }

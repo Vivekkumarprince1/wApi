@@ -28,12 +28,27 @@ const {
   createFromLibrary,
   uploadTemplateMedia
 } = require('../../controllers/template/templateController');
+const {
+  getWorkspaceAnalytics,
+  getTopPerformingTemplates,
+  getLowPerformingTemplates,
+  exportAnalyticsReport
+} = require('../../controllers/template/templateAnalyticsController');
 
 const router = express.Router();
 const multer = require('multer');
 const upload = multer();
 
 router.use(auth);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TEMPLATE ANALYTICS ROUTES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+router.get('/analytics/workspace', getWorkspaceAnalytics);
+router.get('/analytics/top-performers', getTopPerformingTemplates);
+router.get('/analytics/low-performers', getLowPerformingTemplates);
+router.get('/analytics/export', exportAnalyticsReport);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TEMPLATE GUARD ROUTES (Stage 2 - Task 6)
