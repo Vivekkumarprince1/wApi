@@ -106,6 +106,7 @@ export const useAuthStore = create((set, get) => ({
                         plan: userWorkspace?.plan || userData.plan || 'free',
                         emailVerified: userData.emailVerified ?? true,
                         trialEndsAt: trialEndsAt,
+                        workspace: userWorkspace ? (typeof userWorkspace === 'string' ? userWorkspace : (userWorkspace._id || userWorkspace.id)) : null,
                     },
                     workspace: userWorkspace ? {
                         id: typeof userWorkspace === 'string' ? userWorkspace : (userWorkspace._id || userWorkspace.id),

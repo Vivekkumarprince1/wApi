@@ -213,13 +213,14 @@ const TemplateSchema = new mongoose.Schema({
     items: [{
       type: {
         type: String,
-        enum: ['QUICK_REPLY', 'URL', 'PHONE_NUMBER', 'COPY_CODE'],
+        enum: ['QUICK_REPLY', 'URL', 'PHONE_NUMBER', 'COPY_CODE', 'OTP'],
         required: true
       },
       text: { type: String, required: true, maxlength: 25 },
       url: { type: String },
       urlSuffix: { type: String }, // Dynamic URL suffix variable
       phoneNumber: { type: String },
+      otp_type: { type: String }, // For OTP buttons
       example: { type: String } // For URL variables or OTP
     }]
   },

@@ -597,6 +597,11 @@ async function createTemplateForApp({ appId, appApiKey, template }) {
         type: button.type,
         text: button.text
       };
+      
+      if (mapped.type === 'COPY_CODE') {
+        mapped.type = 'OTP';
+        mapped.otp_type = 'COPY_CODE';
+      }
 
       if (button.url) mapped.url = button.url;
       if (button.phone_number) mapped.phone_number = button.phone_number;
@@ -671,8 +676,15 @@ async function createTemplateForApp({ appId, appApiKey, template }) {
   }
 
   const mappedButtons = mapButtons(buttonsComponent?.buttons);
-  if (mappedButtons) {
+  if (mappedButtons && mappedButtons.length > 0) {
     templateRequest.buttons = mappedButtons;
+  } else if (String(template?.category || '').toUpperCase() === 'AUTHENTICATION') {
+    templateRequest.buttons = [{
+      type: 'OTP',
+      otp_type: 'COPY_CODE',
+      text: 'Copy Code',
+      example: '623812'
+    }];
   }
 
   const headerVariants = [
@@ -842,6 +854,11 @@ async function updateTemplateForApp({ appId, appApiKey, templateId, template }) 
         type: button.type,
         text: button.text
       };
+      
+      if (mapped.type === 'COPY_CODE') {
+        mapped.type = 'OTP';
+        mapped.otp_type = 'COPY_CODE';
+      }
 
       if (button.url) {
         mapped.url = button.url;
@@ -914,8 +931,15 @@ async function updateTemplateForApp({ appId, appApiKey, templateId, template }) 
   }
 
   const mappedButtons = mapButtons(buttonsComponent?.buttons);
-  if (mappedButtons) {
+  if (mappedButtons && mappedButtons.length > 0) {
     templateRequest.buttons = mappedButtons;
+  } else if (String(template?.category || '').toUpperCase() === 'AUTHENTICATION') {
+    templateRequest.buttons = [{
+      type: 'OTP',
+      otp_type: 'COPY_CODE',
+      text: 'Copy Code',
+      example: '623812'
+    }];
   }
 
   const headerVariants = [
@@ -1004,7 +1028,18 @@ async function getPartnerApps() {
 async function getPartnerApp(appId) {
   if (!appId) throw new Error('GUPSHUP_APP_ID_REQUIRED');
   const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}`;
+  
+  let appApiKey = null;
+  try {
+    appApiKey = await getPartnerAppAccessToken(appId);
+  } catch (e) {
+    // Ignore error, proceed without it if we can't fetch it
+  }
+
   return withPartnerAuth(async (headers) => {
+    if (appApiKey) {
+      headers['token'] = appApiKey;
+    }
     const response = await axios.get(url, {
       headers,
       timeout: 15000
@@ -1694,12 +1729,23 @@ async function lookupContactProfile(_accessToken, _wabaPhoneNumberId, phone) {
 async function getWabaInfo(appId, appApiKey) {
   if (!appId) throw new Error('GUPSHUP_APP_ID_REQUIRED');
 
+  // Auto-fetch if missing
+  if (!appApiKey) {
+    try {
+      appApiKey = await getPartnerAppAccessToken(appId);
+    } catch(e) {
+      console.warn(`[GupshupService] Failed to auto-resolve app token for WABA info: ${e.message}`);
+    }
+  }
+
   const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/waba/info`;
   
   try {
     return await withPartnerAuth(async (headers) => {
       // Dual Authentication: Partner JWT (Authorization) + App API Key (token)
-      headers['token'] = appApiKey;
+      if (appApiKey) {
+        headers['token'] = appApiKey;
+      }
       console.log(`[GupshupService] Getting WABA info for App ${appId}`);
       const response = await axios.get(url, { headers, timeout: 15000 });
       return response.data;

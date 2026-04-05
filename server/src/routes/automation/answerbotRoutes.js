@@ -38,4 +38,22 @@ router.delete('/:workspaceId/faqs/:faqId', answerBotController.deleteFAQ);
  */
 router.get('/:workspaceId/sources', answerBotController.getSources);
 
+/**
+ * POST /api/automation/answerbot/:workspaceId/sources
+ * Add a new KB Source (URL, text, document)
+ */
+router.post('/:workspaceId/sources', answerBotController.addSource);
+
+/**
+ * GET /api/automation/answerbot/:workspaceId/settings
+ * Get bot persona and fallback config
+ */
+router.get('/:workspaceId/settings', answerBotController.getSettings);
+
+/**
+ * PUT /api/automation/answerbot/:workspaceId/settings
+ * Update bot persona and fallback config
+ */
+router.put('/:workspaceId/settings', answerBotController.updateSettings);
+
 module.exports = router;

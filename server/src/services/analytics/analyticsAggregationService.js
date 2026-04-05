@@ -533,115 +533,99 @@ async function computeContactMetrics(workspaceId, startOfDay, endOfDay) {
 /**
  * Compute per-agent metrics
  */
-async function computeAgentMetrics(workspaceId, startOfDay, endOfDay) {
+async function computeAgentMetrics(workspaceId, startDate, endDate) {
   const ObjectId = mongoose.Types.ObjectId;
   
-  // Get all agents who had activity
-  const agentActivity = await Message.aggregate([
-    {
-      $match: {
-        workspace: new ObjectId(workspaceId),
-        direction: 'outbound',
-        sentBy: { $exists: true, $ne: null },
-        createdAt: { $gte: startOfDay, $lte: endOfDay }
-      }
-    },
-    {
-      $group: {
-        _id: '$sentBy',
-        totalReplies: { $sum: 1 },
-        firstActivityAt: { $min: '$createdAt' },
-        lastActivityAt: { $max: '$createdAt' }
-      }
-    }
-  ]);
+  // Get all users in the workspace first to ensure everyone is included
+  const users = await User.find({ 
+    workspace: workspaceId,
+    status: { $ne: 'removed' }
+  }).lean();
   
   const agentMetrics = [];
   
-  for (const activity of agentActivity) {
+  for (const user of users) {
+    const userId = user._id;
+    
+    // Total messages sent by this agent in period
+    const totalReplies = await Message.countDocuments({
+      workspace: workspaceId,
+      direction: 'outbound',
+      sentBy: userId,
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+
     // Get conversation stats for this agent
     const assigned = await Conversation.countDocuments({
       workspace: workspaceId,
-      assignedTo: activity._id,
-      assignedAt: { $gte: startOfDay, $lte: endOfDay }
+      assignedTo: userId,
+      assignedAt: { $gte: startDate, $lte: endDate }
     });
     
     const resolved = await Conversation.countDocuments({
       workspace: workspaceId,
-      assignedTo: activity._id,
+      assignedTo: userId,
       status: 'resolved',
-      statusChangedAt: { $gte: startOfDay, $lte: endOfDay }
+      statusChangedAt: { $gte: startDate, $lte: endDate }
     });
     
     const closed = await Conversation.countDocuments({
       workspace: workspaceId,
-      assignedTo: activity._id,
+      assignedTo: userId,
       status: 'closed',
-      statusChangedAt: { $gte: startOfDay, $lte: endOfDay }
+      statusChangedAt: { $gte: startDate, $lte: endDate }
     });
     
     // First responses by this agent
     const firstResponses = await Conversation.countDocuments({
       workspace: workspaceId,
-      firstResponseBy: activity._id,
-      firstResponseAt: { $gte: startOfDay, $lte: endOfDay }
+      firstResponseBy: userId,
+      firstResponseAt: { $gte: startDate, $lte: endDate }
     });
     
     // SLA metrics
     const slaBreaches = await Conversation.countDocuments({
       workspace: workspaceId,
-      assignedTo: activity._id,
+      assignedTo: userId,
       slaBreached: true,
-      slaBreachedAt: { $gte: startOfDay, $lte: endOfDay }
+      slaBreachedAt: { $gte: startDate, $lte: endDate }
     });
     
-    // Active assigned at end of day
+    // Active assigned at end of period
     const activeAssigned = await Conversation.countDocuments({
       workspace: workspaceId,
-      assignedTo: activity._id,
+      assignedTo: userId,
       status: { $in: ['open', 'pending'] }
     });
+
+    // Get response times from Conversations where this agent gave the first response
+    const convWithResponse = await Conversation.find({
+      workspace: workspaceId,
+      firstResponseBy: userId,
+      firstResponseAt: { $gte: startDate, $lte: endDate }
+    }).select('firstResponseAt createdAt').lean();
+
+    let totalResponseTime = 0;
+    convWithResponse.forEach(c => {
+      if (c.firstResponseAt && c.createdAt) {
+        totalResponseTime += (c.firstResponseAt - c.createdAt) / 1000; // in seconds
+      }
+    });
+
+    const avgResponseTime = convWithResponse.length > 0 ? Math.round(totalResponseTime / convWithResponse.length) : 0;
     
     agentMetrics.push({
-      agentId: activity._id,
-      conversations: {
-        assigned,
-        reassignedFrom: 0,
-        reassignedTo: 0,
-        resolved,
-        closed,
-        activeAssigned
-      },
-      responses: {
-        totalReplies: activity.totalReplies,
-        firstResponses,
-        avgResponseTime: 0, // Would need message-level response tracking
-        minResponseTime: 0,
-        maxResponseTime: 0,
-        medianResponseTime: 0,
-        responseTimeBuckets: {
-          under1min: 0,
-          under5min: 0,
-          under15min: 0,
-          under1hour: 0,
-          over1hour: 0
-        }
-      },
-      sla: {
-        breaches: slaBreaches,
-        met: firstResponses - slaBreaches,
-        complianceRate: firstResponses > 0 
-          ? Math.round(((firstResponses - slaBreaches) / firstResponses) * 100)
-          : 100
-      },
-      activity: {
-        firstActivityAt: activity.firstActivityAt,
-        lastActivityAt: activity.lastActivityAt,
-        activeMinutes: 0,
-        internalNotesAdded: 0,
-        tagsAdded: 0,
-        contactsUpdated: 0
-      }
+      agentId: userId,
+      name: user.name, // Matches frontend
+      totalConversations: assigned,
+      resolvedConversations: resolved,
+      closedConversations: closed,
+      totalReplies: totalReplies,
+      avgResponseTime: avgResponseTime,
+      slaBreaches: slaBreaches,
+      activeConversations: activeAssigned,
+      satisfactionScore: 0, // Placeholder
+      activeMinutes: 0 // Placeholder
     });
   }
   
@@ -741,12 +725,13 @@ async function getAnalyticsOverview(workspaceId, startDate, endDate) {
  * Compute real-time overview when no daily records exist
  */
 async function computeRealTimeOverview(workspaceId, startDate, endDate) {
-  const [conversations, messages, billing, contacts, campaigns] = await Promise.all([
+  const [conversations, messages, billing, contacts, campaigns, trendData] = await Promise.all([
     computeConversationMetrics(workspaceId, startDate, endDate),
     computeMessageMetrics(workspaceId, startDate, endDate),
     computeBillingMetrics(workspaceId, startDate, endDate),
     computeContactMetrics(workspaceId, startDate, endDate),
-    computeCampaignMetrics(workspaceId, startDate, endDate)
+    computeCampaignMetrics(workspaceId, startDate, endDate),
+    computeRealTimeTrend(workspaceId, startDate, endDate)
   ]);
   
   return {
@@ -781,8 +766,69 @@ async function computeRealTimeOverview(workspaceId, startDate, endDate) {
       newContacts: contacts.newContacts,
       total: contacts.totalContacts
     },
-    trend: []
+    trend: trendData
   };
+}
+
+/**
+ * Compute real-time trend data (daily buckets)
+ */
+async function computeRealTimeTrend(workspaceId, startDate, endDate) {
+  const ObjectId = mongoose.Types.ObjectId;
+  
+  // Aggregate daily conversation counts
+  const convTrend = await Conversation.aggregate([
+    {
+      $match: {
+        workspace: new ObjectId(workspaceId),
+        createdAt: { $gte: startDate, $lte: endDate }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+        },
+        count: { $sum: 1 }
+      }
+    }
+  ]);
+  
+  // Aggregate daily message counts
+  const msgTrend = await Message.aggregate([
+    {
+      $match: {
+        workspace: new ObjectId(workspaceId),
+        createdAt: { $gte: startDate, $lte: endDate }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+        },
+        count: { $sum: 1 }
+      }
+    },
+    { $sort: { "_id": 1 } }
+  ]);
+
+  // Map to a combined trend array
+  const trendMap = {};
+  
+  convTrend.forEach(t => {
+    trendMap[t._id] = { date: t._id, conversations: t.count, messages: 0 };
+  });
+  
+  msgTrend.forEach(t => {
+    if (!trendMap[t._id]) {
+      trendMap[t._id] = { date: t._id, conversations: 0, messages: t.count };
+    } else {
+      trendMap[t._id].messages = t.count;
+    }
+  });
+
+  return Object.values(trendMap).sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /**
@@ -844,7 +890,32 @@ async function getAgentAnalytics(workspaceId, startDate, endDate) {
     { $sort: { totalReplies: -1 } }
   ]);
   
-  return agentRecords;
+  if (agentRecords.length > 0) {
+    return agentRecords;
+  }
+
+  // Fallback to real-time agent metrics if no records exist
+  const realTimeAgents = await computeAgentMetrics(workspaceId, startDate, endDate);
+  
+  // Enrich with user details
+  const enriched = await Promise.all(realTimeAgents.map(async (agent) => {
+    const user = await User.findById(agent.agentId).select('name email').lean();
+    return {
+      agentId: agent.agentId,
+      name: user?.name || 'Unknown Agent',
+      email: user?.email || 'unknown@example.com',
+      totalReplies: agent.responses.totalReplies,
+      firstResponses: agent.responses.firstResponses,
+      avgResponseTime: agent.responses.avgResponseTime,
+      conversationsAssigned: agent.conversations.assigned,
+      conversationsResolved: agent.conversations.resolved,
+      slaBreaches: agent.sla.breaches,
+      slaMet: agent.sla.met,
+      slaComplianceRate: agent.sla.complianceRate
+    };
+  }));
+
+  return enriched.sort((a,b) => b.totalReplies - a.totalReplies);
 }
 
 /**

@@ -274,7 +274,9 @@ const TemplateDetailView = ({ template, canSubmitTemplates, onBack, onEdit, onSu
 const TemplateManager = () => {
   const router = useRouter();
   const workspace = useAuthStore(state => state.workspace);
-  const bspReady = workspace.stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus);
+  const stage1Complete = useAuthStore(state => state.stage1Complete);
+  const phoneStatus = useAuthStore(state => state.phoneStatus);
+  const bspReady = stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(phoneStatus);
   // ─────────────────────────────────────────────────────────────────────────────
   // STATE
   // ─────────────────────────────────────────────────────────────────────────────

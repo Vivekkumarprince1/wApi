@@ -96,6 +96,12 @@ const TriggerSchema = new mongoose.Schema({
     }],
     // Keyword filters (any match)
     keywords: [String],
+    // Match mode for keywords
+    keywordMatchMode: {
+      type: String,
+      enum: ['exact', 'contains', 'starts_with'],
+      default: 'contains'
+    },
     // Tag filters (contact must have these tags)
     requiredTags: [String],
     // Exclude contacts with these tags
@@ -129,7 +135,11 @@ const ActionSchema = new mongoose.Schema({
       'send_template_message',   // Send a template (any time)
       'send_text_message',       // Send text (24h window only)
       'send_media_message',      // Send media (24h window only)
+      'send_interactive_message', // Send quick replies/lists (24h window)
+      'send_form',               // Send WhatsApp Flow/Form
+      'save_response',           // Save input to User Trait or Variable
       'assign_conversation',     // Assign to agent/team
+
       'move_pipeline_stage',     // Move deal to stage
       'create_deal',             // Create a deal for contact
       'notify_agent',            // Send notification to agent
@@ -155,6 +165,38 @@ const ActionSchema = new mongoose.Schema({
     mediaUrl: String,
     mediaType: String,
     
+    // For send_interactive_message
+    interactiveConfig: {
+      type: { type: String, enum: ['buttons', 'list'] },
+      header: String,
+      body: String,
+      footer: String,
+      buttons: [{ 
+        id: String, 
+        text: String, 
+        type: { type: String, default: 'reply' } 
+      }],
+      sections: [{
+        title: String,
+        rows: [{ id: String, title: String, description: String }]
+      }]
+    },
+    
+    // For send_form (WhatsApp Flows)
+    formConfig: {
+      flowId: String,
+      flowAction: { type: String, default: 'navigate' },
+      flowMode: { type: String, default: 'draft' },
+      screenId: String,
+      data: mongoose.Schema.Types.Mixed
+    },
+    
+    // For save_response
+    saveAs: {
+      type: { type: String, enum: ['trait', 'variable'] },
+      name: String
+    },
+
     // For assign_conversation / assign_agent
     assignTo: {
       type: {
@@ -164,6 +206,7 @@ const ActionSchema = new mongoose.Schema({
       agentId: mongoose.Schema.Types.ObjectId,
       teamId: mongoose.Schema.Types.ObjectId
     },
+
     agentId: mongoose.Schema.Types.ObjectId, // Legacy
     
     // For add_tag / remove_tag
@@ -264,6 +307,14 @@ const AutomationRuleSchema = new mongoose.Schema({
     maxlength: 100
   },
   
+  // Rule category (Workflow vs Auto Reply)
+  category: {
+    type: String,
+    enum: ['workflow', 'auto_reply'],
+    default: 'workflow',
+    index: true
+  },
+  
   // Description
   description: { 
     type: String,
@@ -311,7 +362,16 @@ const AutomationRuleSchema = new mongoose.Schema({
   actions: { 
     type: [ActionSchema], 
     default: [],
-    validate: [arr => arr.length > 0, 'At least one action is required']
+    // Removing the strict length requirement to allow flowConfig workflows to be saved initially.
+  },
+  
+  // ─────────────────────────────────────────────────────────────────────────
+  // VISUAL WORKFLOW (Stage 6)
+  // ─────────────────────────────────────────────────────────────────────────
+  flowConfig: {
+    nodes: { type: Array, default: [] },
+    edges: { type: Array, default: [] },
+    viewport: { type: Object, default: { x: 0, y: 0, zoom: 1 } }
   },
   
   // ─────────────────────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-const { User, Workspace, Permission, AuditLog } = require('../../models');
+const { User, Workspace, Permission, AuditLog, Conversation } = require('../../models');
 const logger = require('../../utils/logger');
 
 /**
@@ -14,13 +14,37 @@ async function listTeamMembers(req, res, next) {
   try {
     const workspaceId = req.user.workspace;
 
-    const members = await User.find({ workspace: workspaceId })
+    const members = await User.find({ 
+      workspace: workspaceId,
+      status: { $ne: 'removed' }
+    })
       .select('_id name email role status joinedAt')
       .lean();
 
+    // Enrich with permission (online/available) and conversation counts
+    const enrichedMembers = await Promise.all(members.map(async (member) => {
+      const [permission, openCount] = await Promise.all([
+        Permission.findOne({ workspace: workspaceId, user: member._id }).lean(),
+        Conversation.countDocuments({
+          workspace: workspaceId,
+          assignedTo: member._id,
+          status: { $in: ['open', 'pending'] }
+        })
+      ]);
+
+      return {
+        ...member,
+        isOnline: permission?.isOnline || false,
+        isAvailable: permission?.isAvailable || false,
+        openConversations: openCount,
+        maxConcurrentChats: permission?.maxConcurrentChats || 10,
+        status: member.status === 'active' ? (permission?.isOnline ? 'active' : 'offline') : member.status
+      };
+    }));
+
     return res.status(200).json({
       success: true,
-      members,
+      members: enrichedMembers,
     });
   } catch (error) {
     logger.error('[TeamController] listTeamMembers failed:', error);
@@ -282,10 +306,61 @@ async function getPermissionsMatrix(req, res, next) {
   }
 }
 
+/**
+ * Update team member assignment settings
+ * PUT /api/v1/team/members/:memberId/settings
+ * Body: { isAvailable, maxConcurrentChats }
+ */
+async function updateMemberSettings(req, res, next) {
+  try {
+    const workspaceId = req.user.workspace;
+    const { memberId } = req.params;
+    const { isAvailable, maxConcurrentChats } = req.body;
+
+    const permission = await Permission.findOneAndUpdate(
+      { workspace: workspaceId, user: memberId },
+      { 
+        $set: { 
+          ...(isAvailable !== undefined && { isAvailable }),
+          ...(maxConcurrentChats !== undefined && { maxConcurrentChats })
+        } 
+      },
+      { new: true, upsert: true }
+    );
+
+    // Create audit log
+    await AuditLog.create({
+      workspace: workspaceId,
+      action: 'team.member_settings_updated',
+      resource: {
+        type: 'user',
+        id: memberId
+      },
+      details: {
+        isAvailable,
+        maxConcurrentChats,
+        status: 'success',
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      settings: {
+        isAvailable: permission.isAvailable,
+        maxConcurrentChats: permission.maxConcurrentChats
+      },
+    });
+  } catch (error) {
+    logger.error('[TeamController] updateMemberSettings failed:', error);
+    next(error);
+  }
+}
+
 module.exports = {
   listTeamMembers,
   inviteTeamMember,
   updateMemberRole,
   removeTeamMember,
   getPermissionsMatrix,
+  updateMemberSettings,
 };

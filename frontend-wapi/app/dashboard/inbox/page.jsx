@@ -47,7 +47,9 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function InboxPage() {
   const workspace = useAuthStore(state => state.workspace);
-  const bspReady = workspace.stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus);
+  const stage1Complete = useAuthStore(state => state.stage1Complete);
+  const phoneStatus = useAuthStore(state => state.phoneStatus);
+  const bspReady = stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(phoneStatus);
   const [conversations, setConversations] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [selectedConversationId, setSelectedConversationId] = useState(null);

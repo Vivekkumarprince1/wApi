@@ -18,10 +18,10 @@ import { FaLock, FaExclamationTriangle, FaWhatsapp, FaUserShield } from 'react-i
  */
 export default function FeatureGate({ feature, children, fallback, comingSoon }) {
   const router = useRouter();
-  const workspace = useAuthStore(state => state.workspace);
+  const authState = useAuthStore();
 
   // Show loading state while checking permissions
-  if (workspace.loading) {
+  if (authState.loading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#13C18D]" />
@@ -58,7 +58,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
   let blockType = 'role';
 
   // Auth check first
-  if (!workspace.user) {
+  if (!authState.user) {
     blocked = true;
     reason = 'Please log in to access this feature';
     blockType = 'auth';
@@ -67,11 +67,11 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
   else {
     switch (feature) {
       case 'templates':
-        if (!workspace.stage1Complete) {
+        if (!authState.stage1Complete) {
           blocked = true;
           reason = 'Connect your WhatsApp Business number to create and manage templates';
           blockType = 'phone';
-        } else if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
+        } else if (!['owner', 'manager', 'admin'].includes(authState.user.role)) {
           blocked = true;
           reason = 'You need Manager or Owner access to create templates';
           blockType = 'role';
@@ -79,11 +79,11 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
         break;
 
       case 'campaigns':
-        if (!workspace.stage1Complete) {
+        if (!authState.stage1Complete) {
           blocked = true;
           reason = 'Connect your WhatsApp Business number to create and send campaigns';
           blockType = 'phone';
-        } else if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
+        } else if (!['owner', 'manager', 'admin'].includes(authState.user.role)) {
           blocked = true;
           reason = 'You need Manager or Owner access to create campaigns';
           blockType = 'role';
@@ -91,7 +91,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
         break;
 
       case 'messaging':
-        if (!workspace.stage1Complete) {
+        if (!authState.stage1Complete) {
           blocked = true;
           reason = 'Connect your WhatsApp Business number to send messages';
           blockType = 'phone';
@@ -99,7 +99,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
         break;
 
       case 'team':
-        if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
+        if (!['owner', 'manager', 'admin'].includes(authState.user.role)) {
           blocked = true;
           reason = 'You need Manager or Owner access to manage team members';
           blockType = 'role';
@@ -107,7 +107,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
         break;
 
       case 'billing':
-        if (!['owner', 'admin'].includes(workspace.user.role)) {
+        if (!['owner', 'admin'].includes(authState.user.role)) {
           blocked = true;
           reason = 'Only the workspace Owner or Admin can access billing settings';
           blockType = 'role';
@@ -115,7 +115,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
         break;
 
       case 'admin':
-        if (!['owner', 'admin'].includes(workspace.user.role)) {
+        if (!['owner', 'admin'].includes(authState.user.role)) {
           blocked = true;
           reason = 'Only the workspace Owner or Admin can access admin settings';
           blockType = 'role';

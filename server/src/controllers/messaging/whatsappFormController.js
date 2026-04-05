@@ -19,23 +19,24 @@ const {
 async function createWhatsAppForm(req, res) {
   try {
     const workspace = req.user?.workspace || req.body.workspace;
-    const { name, description, questions = [], config = {}, behavior = {} } = req.body;
+    const { name, description, screens = [], rawFlowJson, flowType = 'static', config = {} } = req.body;
 
     // Validation
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Form name is required' });
     }
 
-    if (questions.length === 0) {
-      return res.status(400).json({ error: 'Form must have at least one question' });
+    if (screens.length === 0 && !rawFlowJson) {
+      return res.status(400).json({ error: 'Flow must have at least one screen or raw JSON' });
     }
 
     const result = await createForm(workspace, {
       name,
       description,
-      questions,
+      screens,
+      rawFlowJson,
+      flowType,
       config,
-      behavior,
       createdBy: req.user?._id
     });
 
@@ -111,8 +112,15 @@ async function updateWhatsAppForm(req, res) {
     if (form.workspace.toString() !== workspace.toString()) {
       return res.status(403).json({ error: 'Access denied' });
     }
+    
+    // ENFORCE: Published Native Flows cannot be edited
+    if (form.status === 'published') {
+      return res.status(400).json({ error: 'Published Meta Flows cannot be edited. Please duplicate to create a new version.' });
+    }
 
-    const result = await updateForm(id, req.body);
+    const { questions, ...safeBody } = req.body; // Ignore legacy payload
+    const result = await updateForm(id, safeBody);
+    
     if (!result.success) {
       return res.status(400).json({ error: result.error });
     }

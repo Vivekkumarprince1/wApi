@@ -227,13 +227,23 @@ export default function WhatsAppFormsPage() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Link
-                          href={`/automation/whatsapp-forms/edit/${form._id}`}
-                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors"
-                          title="Edit"
-                        >
-                          <FaEdit />
-                        </Link>
+                        {form.status === 'draft' ? (
+                          <Link
+                            href={`/automation/whatsapp-forms/edit/${form._id}`}
+                            className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-colors"
+                            title="Edit Draft"
+                          >
+                            <FaEdit />
+                          </Link>
+                        ) : (
+                          <button
+                            disabled
+                            className="p-2 text-slate-300 dark:text-slate-600 cursor-not-allowed rounded-xl"
+                            title="Published Flows are locked by Meta"
+                          >
+                            <FaEdit />
+                          </button>
+                        )}
 
                         <button
                           onClick={() => handleSync(form._id)}
@@ -246,16 +256,16 @@ export default function WhatsAppFormsPage() {
                         {form.status === 'draft' ? (
                           <button
                             onClick={() => handlePublish(form._id)}
-                            className="p-2 text-primary dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-xl transition-colors"
-                            title="Publish"
+                            className="px-3 py-1.5 flex items-center gap-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-lg text-xs font-bold transition-colors uppercase"
+                            title="Publish to Meta"
                           >
-                            <FaToggleOff className="rotate-180" />
+                            Publish
                           </button>
                         ) : (
                           <button
                             onClick={() => handleUnpublish(form._id)}
                             className="p-2 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-xl transition-colors"
-                            title="Unpublish"
+                            title="Deprecate Flow"
                           >
                             <FaToggleOn />
                           </button>
@@ -263,7 +273,7 @@ export default function WhatsAppFormsPage() {
 
                         <Link
                           href={`/automation/whatsapp-forms/${form._id}/responses`}
-                          className="p-2 text-primary text-primary hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-xl transition-colors"
+                          className="p-2 text-primary hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-xl transition-colors"
                           title="View Responses"
                         >
                           <FaEye />

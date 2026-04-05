@@ -106,8 +106,17 @@ const actionHandlers = {
     }
     
     // Resolve variables
-    const resolvedVariables = resolveTemplateVariables(templateVariables || config.params, context);
+    const resolvedVariablesRaw = resolveTemplateVariables(templateVariables || config.params, context);
     
+    // Support standard structure { header: [], body: [], buttons: [] }
+    let resolvedVariables = resolvedVariablesRaw;
+
+    if (Array.isArray(resolvedVariablesRaw) || (typeof resolvedVariablesRaw === 'object' && !resolvedVariablesRaw.body && !resolvedVariablesRaw.header && !resolvedVariablesRaw.buttons)) {
+       // Convert flat array or positional map to { body: [] } as a fallback
+       const arr = Array.isArray(resolvedVariablesRaw) ? resolvedVariablesRaw : Object.values(resolvedVariablesRaw);
+       resolvedVariables = { body: arr };
+    }
+
     // Send via WhatsApp service
     const whatsappService = getWhatsAppService();
     const result = await whatsappService.sendTemplateMessage(workspaceId, phone, template.name, templateLanguage || template.language || 'en', resolvedVariables);
@@ -212,6 +221,103 @@ const actionHandlers = {
       messageId: result?.messageId 
     };
   },
+  
+  /**
+   * Send an interactive message (buttons/lists)
+   */
+  async send_interactive_message(config, context) {
+    const { interactiveConfig } = config;
+    const { workspaceId, conversationId, contactId, contact } = context;
+    
+    // Check 24h window
+    if (!await isWithin24hWindow(conversationId)) {
+      throw new Error('NO_24H_WINDOW');
+    }
+    
+    // Get phone number
+    const phone = contact?.phone || (await Contact.findById(contactId))?.phone;
+    if (!phone) {
+      throw new Error('INVALID_PHONE');
+    }
+    
+    // Send via WhatsApp service
+    const whatsappService = getWhatsAppService();
+    const result = await whatsappService.sendInteractiveMessage(workspaceId, phone, interactiveConfig);
+    
+    return { 
+      success: true, 
+      messageId: result?.messageId,
+      interactiveType: interactiveConfig?.type 
+    };
+  },
+  
+  /**
+   * Send WhatsApp Form/Flow
+   */
+  async send_form(config, context) {
+    const { formConfig } = config;
+    const { workspaceId, conversationId, contactId, contact } = context;
+    
+    // Check 24h window
+    if (!await isWithin24hWindow(conversationId)) {
+      throw new Error('NO_24H_WINDOW');
+    }
+    
+    // Get phone number
+    const phone = contact?.phone || (await Contact.findById(contactId))?.phone;
+    if (!phone) {
+      throw new Error('INVALID_PHONE');
+    }
+    
+    // Send via WhatsApp service
+    const whatsappService = getWhatsAppService();
+    const result = await whatsappService.sendFlowMessage(workspaceId, phone, formConfig);
+    
+    return { 
+      success: true, 
+      messageId: result?.messageId,
+      flowId: formConfig?.flowId 
+    };
+  },
+  
+  /**
+   * Save user response to trait or variable
+   */
+  async save_response(config, context) {
+    const { saveAs } = config;
+    const { contactId, message } = context;
+    
+    if (!message) {
+      throw new Error('NO_MESSAGE_CONTEXT');
+    }
+    
+    const responseValue = message.content || message.text;
+    if (responseValue === undefined) {
+      throw new Error('NO_RESPONSE_VALUE');
+    }
+    
+    if (saveAs?.type === 'trait') {
+      if (!contactId) throw new Error('NO_CONTACT');
+      
+      // Save to contact custom fields
+      const update = { [`customFields.${saveAs.name}`]: responseValue };
+      await Contact.findByIdAndUpdate(contactId, { $set: update });
+    } else if (saveAs?.type === 'variable') {
+      // Save to context variables (temporary for this execution)
+      // Note: In a multi-step flow, this would need to be persisted in Conversation state
+      if (!context.workflowVariables) context.workflowVariables = {};
+      context.workflowVariables[saveAs.name] = responseValue;
+    }
+    
+    return { 
+      success: true, 
+      savedAs: saveAs?.type, 
+      name: saveAs?.name,
+      value: responseValue
+    };
+  },
+
+
   
   /**
    * Assign conversation to agent/team

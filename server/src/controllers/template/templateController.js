@@ -665,6 +665,40 @@ async function deleteTemplate(req, res, next) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function submitTemplateForApproval(template, workspaceId) {
+  // Normalize authentication templates specifically to skip user friction
+  if (template.category === 'AUTHENTICATION') {
+    let modified = false;
+    
+    if (template.header?.enabled) {
+      template.header = { enabled: false, format: 'NONE' };
+      modified = true;
+    }
+    
+    if (!template.body?.text?.includes('{{1}}')) {
+      if (!template.body) template.body = { text: 'Your code is {{1}}', examples: ['12345'] };
+      else template.body.text = (template.body.text || '') + '\nOTP: {{1}}';
+      modified = true;
+    }
+    
+    // Force proper button
+    const hasValidButton = template.buttons?.items?.some(b => ['COPY_CODE', 'URL'].includes(b.type));
+    if (!hasValidButton || template.buttons?.items?.some(b => !['COPY_CODE', 'URL'].includes(b.type))) {
+      template.buttons = {
+        enabled: true,
+        items: [{
+          type: 'COPY_CODE',
+          text: 'Copy Code',
+          example: '12345'
+        }]
+      };
+      modified = true;
+    }
+
+    if (modified) {
+      await template.save();
+    }
+  }
+
   // Validate template before submission
   const validation = validateTemplate(template.toObject());
 

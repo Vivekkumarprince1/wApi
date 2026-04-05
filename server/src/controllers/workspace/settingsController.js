@@ -753,7 +753,8 @@ async function updateInboxSettings(req, res, next) {
       agentRateLimitEnabled,
       agentMessagesPerMinute,
       softLockEnabled,
-      softLockTimeoutSeconds
+      softLockTimeoutSeconds,
+      maxConcurrentChats
     } = req.body;
 
     // Initialize if missing
@@ -771,6 +772,7 @@ async function updateInboxSettings(req, res, next) {
     if (agentMessagesPerMinute !== undefined) workspace.inboxSettings.agentMessagesPerMinute = agentMessagesPerMinute;
     if (softLockEnabled !== undefined) workspace.inboxSettings.softLockEnabled = softLockEnabled;
     if (softLockTimeoutSeconds !== undefined) workspace.inboxSettings.softLockTimeoutSeconds = softLockTimeoutSeconds;
+    if (maxConcurrentChats !== undefined) workspace.inboxSettings.maxConcurrentChats = maxConcurrentChats;
 
     await workspace.save();
 

@@ -998,7 +998,7 @@ async function submitTemplate(workspaceId, templateData) {
       namespacedName,
       partnerAppId: appId,
       data: response,
-      message: loggedMessage,
+      message: response.message || 'Template submitted successfully',
       rawResponse: response
     };
   } catch (error) {

@@ -25,7 +25,7 @@ const logger = require('../../utils/logger');
 exports.listRules = async (req, res) => {
   try {
     const workspaceId = req.user.workspace;
-    const { enabled, trigger, page = 1, limit = 50 } = req.query;
+    const { enabled, trigger, category, page = 1, limit = 50 } = req.query;
     
     const query = { 
       workspace: workspaceId,
@@ -34,6 +34,10 @@ exports.listRules = async (req, res) => {
     
     if (enabled !== undefined) {
       query.enabled = enabled === 'true';
+    }
+
+    if (category) {
+      query.category = category;
     }
     
     if (trigger) {
@@ -126,7 +130,10 @@ exports.createRule = async (req, res) => {
   try {
     const workspaceId = req.user.workspace;
     const userId = req.user._id;
-    const { name, description, trigger, conditions, actions, rateLimit, priority, enabled } = req.body;
+    const {
+      name, description, trigger, conditions, actions,
+      rateLimit, priority, enabled, category
+    } = req.body;
     
     // Validate required fields
     if (!name) {
@@ -145,10 +152,10 @@ exports.createRule = async (req, res) => {
       });
     }
     
-    if (!actions || actions.length === 0) {
+    if ((!actions || actions.length === 0) && !req.body.flowConfig) {
       return res.status(400).json({
         success: false,
-        error: 'At least one action is required',
+        error: 'At least one action or a visual workflow config is required',
         code: 'MISSING_ACTIONS'
       });
     }
@@ -165,9 +172,11 @@ exports.createRule = async (req, res) => {
       workspace: workspaceId,
       name,
       description,
+      category: category || 'workflow',
       trigger,
       conditions: conditions || [],
-      actions,
+      actions: actions || [],
+      flowConfig: req.body.flowConfig || undefined,
       rateLimit: rateLimit || {},
       priority: priority || 0,
       enabled: enabled !== false,
@@ -221,9 +230,11 @@ exports.updateRule = async (req, res) => {
     }
     
     // Apply updates
-    const allowedFields = ['name', 'description', 'trigger', 'conditions', 'actions', 'rateLimit', 'priority', 'enabled'];
+    const allowedFields = ['name', 'description', 'category', 'trigger', 'conditions', 'actions', 'flowConfig', 'rateLimit', 'priority', 'enabled'];
     for (const field of allowedFields) {
       if (updates[field] !== undefined) {
+        // For structured fields like trigger or actions, we might want to deep merge or just replace
+        // In the visual builder, we send the full updated object, so replacement is fine
         rule[field] = updates[field];
       }
     }

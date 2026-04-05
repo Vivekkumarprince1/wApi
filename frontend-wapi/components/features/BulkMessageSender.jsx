@@ -12,7 +12,9 @@ import { useAuthStore } from '@/store/authStore';
 
 const BulkMessageSender = () => {
   const workspace = useAuthStore(state => state.workspace);
-  const bspReady = workspace.stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(workspace.phoneStatus);
+  const stage1Complete = useAuthStore(state => state.stage1Complete);
+  const phoneStatus = useAuthStore(state => state.phoneStatus);
+  const bspReady = stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(phoneStatus);
   const [contacts, setContacts] = useState([]);
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [message, setMessage] = useState('');

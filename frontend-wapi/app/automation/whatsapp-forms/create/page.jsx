@@ -2,209 +2,128 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaPlus, FaTrash, FaArrowLeft, FaSave, FaChevronDown, FaCheck } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaArrowLeft, FaSave, FaChevronDown, FaCheck, FaCode, FaMobileAlt } from 'react-icons/fa';
 import Link from 'next/link';
 
-const TEMPLATES = {
-  blank: {
-    name: 'Blank Form',
-    description: 'Start with an empty form',
-    questions: []
-  },
-  feedback: {
-    name: 'Customer Feedback',
-    description: 'Collect customer feedback and suggestions',
-    questions: [
-      {
-        id: 'q_1',
-        type: 'choice',
-        title: 'How would you rate your experience?',
-        required: true,
-        options: [
-          { id: 'opt_1', label: 'Excellent', value: '5' },
-          { id: 'opt_2', label: 'Good', value: '4' },
-          { id: 'opt_3', label: 'Average', value: '3' },
-          { id: 'opt_4', label: 'Poor', value: '1' }
-        ]
-      },
-      {
-        id: 'q_2',
-        type: 'text',
-        title: 'How could we improve?',
-        required: false,
-        options: []
-      }
-    ]
-  },
-  newsletter: {
-    name: 'Newsletter Signup',
-    description: 'Collect emails for your newsletter',
-    questions: [
-      {
-        id: 'q_1',
-        type: 'text',
-        title: 'What is your name?',
-        required: true,
-        options: []
-      },
-      {
-        id: 'q_2',
-        type: 'email',
-        title: 'What is your email?',
-        required: true,
-        options: []
-      }
-    ]
-  },
-  contact: {
-    name: 'Contact Request',
-    description: 'Collect contact information',
-    questions: [
-      {
-        id: 'q_1',
-        type: 'text',
-        title: 'Full Name',
-        required: true,
-        options: []
-      },
-      {
-        id: 'q_2',
-        type: 'email',
-        title: 'Email Address',
-        required: true,
-        options: []
-      },
-      {
-        id: 'q_3',
-        type: 'phone',
-        title: 'Phone Number',
-        required: false,
-        options: []
-      }
-    ]
-  },
-  survey: {
-    name: 'Quick Survey',
-    description: 'Run a quick customer survey',
-    questions: [
-      {
-        id: 'q_1',
-        type: 'choice',
-        title: 'Would you recommend us?',
-        required: true,
-        options: [
-          { id: 'opt_1', label: 'Yes', value: 'yes' },
-          { id: 'opt_2', label: 'No', value: 'no' },
-          { id: 'opt_3', label: 'Maybe', value: 'maybe' }
-        ]
-      },
-      {
-        id: 'q_2',
-        type: 'text',
-        title: 'Why?',
-        required: false,
-        options: []
-      }
-    ]
-  }
-};
-
-export default function CreateFormPage() {
+export default function CreateFlowPage() {
   const router = useRouter();
   const [step, setStep] = useState('template'); // template or builder
-  const [selectedTemplate, setSelectedTemplate] = useState('blank');
+  const [buildMode, setBuildMode] = useState('visual'); // visual or json
+  
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    questions: [],
+    flowType: 'static',
+    screens: [],
+    rawFlowJson: '',
     config: {
-      intro: 'Please answer the following questions:',
-      outro: 'Thank you! Your form has been submitted.',
-      requirePhone: false,
-      saveLead: true,
-      sendConfirmation: true
+      fallbackMessage: 'Please update your WhatsApp to use interactive forms.',
+      saveLead: true
     }
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [expandedQuestion, setExpandedQuestion] = useState(null);
+  const [expandedScreen, setExpandedScreen] = useState(null);
 
-  const startWithTemplate = (templateKey) => {
-    const template = TEMPLATES[templateKey];
+  const startBlankVisual = () => {
+    setBuildMode('visual');
     setFormData({
       ...formData,
-      questions: template.questions.map(q => ({
-        ...q,
-        id: `q_${Date.now()}_${Math.random()}`
-      }))
+      screens: [
+        {
+          id: `SCREEN_${Date.now()}`,
+          title: 'Welcome Screen',
+          terminal: false,
+          layout: {
+            type: 'SingleColumnLayout',
+            children: []
+          }
+        }
+      ]
     });
-    setSelectedTemplate(templateKey);
     setStep('builder');
   };
 
-  const questionTypes = [
-    { value: 'text', label: 'Short Text' },
-    { value: 'email', label: 'Email' },
-    { value: 'phone', label: 'Phone Number' },
-    { value: 'number', label: 'Number' },
-    { value: 'choice', label: 'Multiple Choice' }
+  const startWithJSON = () => {
+    setBuildMode('json');
+    setStep('builder');
+  };
+
+  const elementTypes = [
+    { value: 'TextHeading', label: 'Heading Text' },
+    { value: 'TextSubheading', label: 'Subheading' },
+    { value: 'TextInput', label: 'Text Input Field' },
+    { value: 'TextArea', label: 'Multi-line Text Area' },
+    { value: 'Dropdown', label: 'Dropdown Menu' },
+    { value: 'CheckboxGroup', label: 'Checkbox selection' },
+    { value: 'Footer', label: 'Submit Footer' }
   ];
 
-  const addQuestion = () => {
-    const newQuestion = {
-      id: `q_${Date.now()}`,
-      type: 'text',
-      title: '',
-      required: true,
-      options: [],
-      conditional: {
-        enabled: false,
-        dependsOn: '',
-        dependsOnValue: ''
+  const addScreen = () => {
+    const newScreen = {
+      id: `SCREEN_${Date.now()}`,
+      title: 'New Screen',
+      terminal: false,
+      layout: {
+        type: 'SingleColumnLayout',
+        children: []
       }
     };
     setFormData({
       ...formData,
-      questions: [...formData.questions, newQuestion]
+      screens: [...formData.screens, newScreen]
     });
-    setExpandedQuestion(newQuestion.id);
+    setExpandedScreen(newScreen.id);
   };
 
-  const updateQuestion = (id, updates) => {
+  const deleteScreen = (id) => {
     setFormData({
       ...formData,
-      questions: formData.questions.map(q => q.id === id ? { ...q, ...updates } : q)
+      screens: formData.screens.filter(s => s.id !== id)
     });
   };
 
-  const deleteQuestion = (id) => {
+  const updateScreen = (id, updates) => {
     setFormData({
       ...formData,
-      questions: formData.questions.filter(q => q.id !== id)
+      screens: formData.screens.map(s => s.id === id ? { ...s, ...updates } : s)
     });
   };
 
-  const addOption = (questionId) => {
-    updateQuestion(questionId, {
-      options: [
-        ...formData.questions.find(q => q.id === questionId).options,
-        { id: `opt_${Date.now()}`, label: '', value: '' }
-      ]
+  const addElementToScreen = (screenId) => {
+    const screen = formData.screens.find(s => s.id === screenId);
+    const newElement = {
+      type: 'TextInput',
+      name: `field_${Date.now()}`,
+      label: 'New Question',
+      required: true
+    };
+    
+    updateScreen(screenId, {
+      layout: {
+        ...screen.layout,
+        children: [...screen.layout.children, newElement]
+      }
     });
   };
 
-  const updateOption = (questionId, optionId, updates) => {
-    const question = formData.questions.find(q => q.id === questionId);
-    updateQuestion(questionId, {
-      options: question.options.map(o => o.id === optionId ? { ...o, ...updates } : o)
+  const updateElement = (screenId, elementIndex, updates) => {
+    const screen = formData.screens.find(s => s.id === screenId);
+    const updatedChildren = [...screen.layout.children];
+    updatedChildren[elementIndex] = { ...updatedChildren[elementIndex], ...updates };
+    
+    updateScreen(screenId, {
+      layout: { ...screen.layout, children: updatedChildren }
     });
   };
 
-  const deleteOption = (questionId, optionId) => {
-    const question = formData.questions.find(q => q.id === questionId);
-    updateQuestion(questionId, {
-      options: question.options.filter(o => o.id !== optionId)
+  const deleteElement = (screenId, elementIndex) => {
+    const screen = formData.screens.find(s => s.id === screenId);
+    const updatedChildren = screen.layout.children.filter((_, idx) => idx !== elementIndex);
+    
+    updateScreen(screenId, {
+      layout: { ...screen.layout, children: updatedChildren }
     });
   };
 
@@ -212,18 +131,35 @@ export default function CreateFormPage() {
     e.preventDefault();
     
     if (!formData.name.trim()) {
-      setError('Form name is required');
+      setError('Flow name is required');
       return;
     }
 
-    if (formData.questions.length === 0) {
-      setError('Add at least one question');
+    if (buildMode === 'visual' && formData.screens.length === 0) {
+      setError('Add at least one screen to your Flow');
+      return;
+    }
+    
+    if (buildMode === 'json' && !formData.rawFlowJson.trim()) {
+      setError('Paste valid Match JSON payload');
       return;
     }
 
     try {
       setLoading(true);
       setError('');
+
+      let finalData = { ...formData };
+      
+      // Parse JSON if in code mode
+      if (buildMode === 'json') {
+        try {
+          const parsed = JSON.parse(formData.rawFlowJson);
+          finalData.rawFlowJson = parsed;
+        } catch (e) {
+          throw new Error("Invalid Raw Flow JSON payload. Must be strictly valid mapping.");
+        }
+      }
 
       const token = localStorage.getItem('token');
       const response = await fetch('/api/v1/whatsapp-forms', {
@@ -232,19 +168,18 @@ export default function CreateFormPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(finalData)
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || 'Failed to create form');
+        throw new Error(data.error || data.message || 'Failed to create flow');
       }
 
-      const result = await response.json();
-      router.push(`/automation/whatsapp-forms/edit/${result._id}`);
+      router.push(`/automation/whatsapp-forms`);
     } catch (err) {
       setError(err.message);
-      console.error('Error creating form:', err);
+      console.error('Error creating flow:', err);
     } finally {
       setLoading(false);
     }
@@ -252,51 +187,52 @@ export default function CreateFormPage() {
 
   if (step === 'template') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-        {/* Header */}
-        <div className="bg-card border-b border-border sticky top-0 z-50">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-12">
+        <div className="bg-white border-b border-slate-200 sticky top-0 z-50">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex items-center gap-4">
-              <Link
-                href="/automation/whatsapp-forms"
-                className="p-2 hover:bg-accent rounded-xl transition-colors"
-              >
-                <FaArrowLeft className="text-muted-foreground" />
+              <Link href="/automation/whatsapp-forms" className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+                <FaArrowLeft className="text-slate-500" />
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Create WhatsApp Form</h1>
-                <p className="text-muted-foreground mt-1">Choose a template or start from scratch</p>
+                <h1 className="text-3xl font-bold text-slate-900">Create Native WhatsApp Flow</h1>
+                <p className="text-slate-500 mt-1">Design an interactive App-Like screen inside WhatsApp</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h2 className="text-2xl font-bold text-foreground mb-6">Choose a Template</h2>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <h2 className="text-2xl font-bold text-slate-900 mb-8 text-center text-slate-700">Choose Creation Mode</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(TEMPLATES).map(([key, template]) => (
-              <button
-                key={key}
-                onClick={() => startWithTemplate(key)}
-                className="p-6 border-2 border-border rounded-xl hover:border-green-500 dark:hover:border-green-400 transition-all text-left hover:shadow-premium"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h3 className="font-semibold text-foreground">{template.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{template.description}</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-full border-2 border-green-500 flex items-center justify-center">
-                    <FaCheck className="text-green-500 text-sm" />
-                  </div>
-                </div>
-                <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    {template.questions.length} question{template.questions.length !== 1 ? 's' : ''}
-                  </p>
-                </div>
-              </button>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Visual Builder Option */}
+            <button
+              onClick={startBlankVisual}
+              className="p-8 bg-white border-2 border-slate-200 rounded-3xl hover:border-emerald-500 transition-all text-left group hover:shadow-2xl shadow-sm"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-6 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                <FaMobileAlt className="text-3xl" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Visual Screen Builder</h3>
+              <p className="text-slate-500">
+                Design interactive App-like screens using our no-code drag-and-drop interface. Perfect for lead-gen and feedback flow.
+              </p>
+            </button>
+
+            {/* FB JSON Option */}
+            <button
+              onClick={startWithJSON}
+              className="p-8 bg-white border-2 border-slate-200 rounded-3xl hover:border-blue-500 transition-all text-left group hover:shadow-2xl shadow-sm"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-6 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                <FaCode className="text-3xl" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Import Meta JSON</h3>
+              <p className="text-slate-500">
+                Already designed a Flow in the Facebook Business Playground? Paste the raw JSON mapping directly here.
+              </p>
+            </button>
           </div>
         </div>
       </div>
@@ -304,78 +240,58 @@ export default function CreateFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
-      <div className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pb-20">
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setStep('template')}
-              className="p-2 hover:bg-accent rounded-xl transition-colors"
-            >
-              <FaArrowLeft className="text-muted-foreground" />
+            <button onClick={() => setStep('template')} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+              <FaArrowLeft className="text-slate-500" />
             </button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Create WhatsApp Form</h1>
-              <p className="text-muted-foreground mt-1">{selectedTemplate && TEMPLATES[selectedTemplate]?.name}</p>
+               <h1 className="text-xl font-bold text-slate-900">
+                 {buildMode === 'visual' ? 'Visual Meta Flow Builder' : 'Raw JSON Ingestion'}
+               </h1>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-              <p className="text-red-600 dark:text-red-400">{error}</p>
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-sm text-red-600 font-bold">
+              {error}
             </div>
           )}
 
-          {/* Form Details */}
-          <div className="bg-card rounded-xl shadow p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Form Details</h2>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Form Name *
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Customer Feedback Form"
-                className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Description
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="What is this form for?"
-                rows="3"
-                className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
+          {/* Form Core Details */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+            <h2 className="text-lg font-bold text-slate-900 mb-6">Flow Configuration</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Flow Reference Name *</label>
                 <input
-                  type="checkbox"
-                  checked={formData.config.requirePhone}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    config: { ...formData.config, requirePhone: e.target.checked }
-                  })}
-                  className="rounded"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Summer Lead Gen App"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
                 />
-                <span className="text-sm text-foreground">Require Phone Number</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Description</label>
+                <input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Internal notes..."
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+              </div>
+            </div>
+            
+            <div className="mt-6 flex gap-8">
+              <label className="flex items-center gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={formData.config.saveLead}
@@ -383,171 +299,194 @@ export default function CreateFormPage() {
                     ...formData,
                     config: { ...formData.config, saveLead: e.target.checked }
                   })}
-                  className="rounded"
+                  className="w-5 h-5 accent-emerald-500"
                 />
-                <span className="text-sm text-foreground">Save as Lead</span>
+                <span className="font-bold text-slate-700">Save Submissions as CRM Leads</span>
               </label>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.config.sendConfirmation}
-                  onChange={(e) => setFormData({
-                    ...formData,
-                    config: { ...formData.config, sendConfirmation: e.target.checked }
-                  })}
-                  className="rounded"
-                />
-                <span className="text-sm text-foreground">Send Confirmation</span>
-              </label>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Intro Message
-              </label>
-              <textarea
-                value={formData.config.intro}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  config: { ...formData.config, intro: e.target.value }
-                })}
-                rows="2"
-                className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Outro Message
-              </label>
-              <textarea
-                value={formData.config.outro}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  config: { ...formData.config, outro: e.target.value }
-                })}
-                rows="2"
-                className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
-              />
             </div>
           </div>
 
-          {/* Questions */}
-          <div className="bg-card rounded-xl shadow p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-foreground">Questions ({formData.questions.length})</h2>
-              <button
-                type="button"
-                onClick={addQuestion}
-                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium transition-colors"
-              >
-                <FaPlus /> Add Question
-              </button>
+          {/* JSON MODE */}
+          {buildMode === 'json' && (
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8">
+               <h2 className="text-lg font-bold text-slate-900 mb-4 text-blue-600 flex items-center gap-2">
+                 <FaCode /> Meta Flow JSON
+               </h2>
+               <p className="text-sm text-slate-500 mb-6">Paste the exact JSON export from your Meta Business Manager Playground. We will directly relay this structure via the API.</p>
+               
+               <textarea 
+                 value={formData.rawFlowJson}
+                 onChange={(e) => setFormData({...formData, rawFlowJson: e.target.value})}
+                 className="w-full font-mono text-sm bg-slate-900 text-green-400 p-6 rounded-2xl border-none outline-none focus:ring-4 focus:ring-blue-500/20"
+                 rows={25}
+                 placeholder={`{
+  "version": "3.0",
+  "screens": [...]
+}`}
+               />
+               
+               <div className="mt-4 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-sm font-bold">
+                 * Ensure your routing handles "data_exchange" endpoints manually if setting up a dynamic endpoint here.
+               </div>
             </div>
+          )}
 
-            <div className="space-y-4">
-              {formData.questions.map((question, idx) => (
-                <div key={question.id} className="border border-border rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setExpandedQuestion(expandedQuestion === question.id ? null : question.id)}
-                    className="w-full px-4 py-4 flex items-center justify-between hover:bg-accent/50 transition-colors"
+          {/* VISUAL BUILDER MODE */}
+          {buildMode === 'visual' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mt-8">
+                <h2 className="text-2xl font-bold text-slate-900">App Screens ({formData.screens.length})</h2>
+                <button
+                  type="button"
+                  onClick={addScreen}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold transition-all shadow-md"
+                >
+                  <FaPlus /> Add Screen
+                </button>
+              </div>
+
+              {formData.screens.length === 0 && (
+                <div className="p-12 border-2 border-dashed border-slate-300 rounded-3xl text-center text-slate-500 bg-white">
+                  No screens built. An interactive flow needs at least one screen.
+                </div>
+              )}
+
+              {formData.screens.map((screen, idx) => (
+                <div key={screen.id} className="bg-white border-2 border-slate-200 rounded-3xl shadow-sm overflow-hidden">
+                  <div 
+                    className="w-full px-6 py-5 flex items-center justify-between cursor-pointer hover:bg-slate-50"
+                    onClick={() => setExpandedScreen(expandedScreen === screen.id ? null : screen.id)}
                   >
-                    <div className="text-left flex-1">
-                      <p className="font-medium text-foreground">
-                        {idx + 1}. {question.title || 'Untitled Question'}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {questionTypes.find(t => t.value === question.type)?.label}
-                        {question.required && ' • Required'}
-                      </p>
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        {idx + 1}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-900">{screen.title || 'Untitled Screen'}</h3>
+                        <p className="text-sm text-slate-500">
+                          {screen.layout?.children?.length || 0} UI Elements • ID: {screen.id}
+                        </p>
+                      </div>
                     </div>
-                    <FaChevronDown className={`text-muted-foreground transition-transform ${expandedQuestion === question.id ? 'rotate-180' : ''}`} />
-                  </button>
+                    <div className="flex items-center gap-4">
+                      {screen.terminal && <span className="px-3 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-full">Terminal Screen</span>}
+                      <FaChevronDown className={`text-slate-400 transition-transform ${expandedScreen === screen.id ? 'rotate-180' : ''}`} />
+                    </div>
+                  </div>
 
-                  {expandedQuestion === question.id && (
-                    <div className="border-t border-border px-4 py-4 bg-muted/30 space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
-                          Question Title *
-                        </label>
-                        <input
-                          type="text"
-                          value={question.title}
-                          onChange={(e) => updateQuestion(question.id, { title: e.target.value })}
-                          placeholder="e.g., What is your name?"
-                          className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">
-                          Question Type
-                        </label>
-                        <select
-                          value={question.type}
-                          onChange={(e) => updateQuestion(question.id, { type: e.target.value })}
-                          className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
-                        >
-                          {questionTypes.map(t => (
-                            <option key={t.value} value={t.value}>{t.label}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {question.type === 'choice' && (
+                  {expandedScreen === screen.id && (
+                    <div className="border-t border-slate-200 p-6 bg-slate-50 space-y-8">
+                      <div className="grid grid-cols-2 gap-6 bg-white p-6 rounded-2xl border border-slate-200">
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-2">
-                            Options
-                          </label>
-                          <div className="space-y-2">
-                            {question.options.map((option) => (
-                              <div key={option.id} className="flex gap-2">
-                                <input
-                                  type="text"
-                                  value={option.label}
-                                  onChange={(e) => updateOption(question.id, option.id, { label: e.target.value, value: e.target.value })}
-                                  placeholder="Option text"
-                                  className="flex-1 px-3 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground text-sm"
-                                />
+                          <label className="block text-sm font-bold text-slate-700 mb-2">Screen Title (Header)</label>
+                          <input
+                            type="text"
+                            value={screen.title}
+                            onChange={(e) => updateScreen(screen.id, { title: e.target.value })}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-xl outline-none focus:border-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-2">Screen System ID</label>
+                          <input
+                            type="text"
+                            value={screen.id}
+                            onChange={(e) => updateScreen(screen.id, { id: e.target.value.toUpperCase().replace(/\s+/g,'_') })}
+                            className="w-full px-4 py-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-500 font-mono text-sm"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                           <label className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={screen.terminal}
+                                onChange={(e) => updateScreen(screen.id, { terminal: e.target.checked })}
+                                className="w-5 h-5 accent-amber-500"
+                              />
+                              <span className="font-bold text-slate-700">Terminal Screen (Ends the flow when submitted)</span>
+                            </label>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center pb-2 border-b border-slate-200">
+                           <h4 className="font-bold text-slate-900">UI Elements</h4>
+                           <button
+                              type="button"
+                              onClick={() => addElementToScreen(screen.id)}
+                              className="text-sm text-emerald-600 hover:text-emerald-700 font-bold"
+                           >
+                              + Add Element
+                           </button>
+                        </div>
+
+                        {screen.layout.children.map((el, elIdx) => (
+                           <div key={elIdx} className="bg-white p-5 rounded-2xl border border-slate-200 flex gap-4">
+                              <div className="flex-1 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Element Type</label>
+                                    <select
+                                      value={el.type}
+                                      onChange={(e) => updateElement(screen.id, elIdx, { type: e.target.value })}
+                                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm font-bold bg-slate-50"
+                                    >
+                                      {elementTypes.map(t => (
+                                        <option key={t.value} value={t.value}>{t.label}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Reference Variable (ID)</label>
+                                    <input
+                                      type="text"
+                                      value={el.name}
+                                      onChange={(e) => updateElement(screen.id, elIdx, { name: e.target.value.toLowerCase().replace(/\s+/g,'_') })}
+                                      className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm font-mono text-blue-600"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">Display Label / Text</label>
+                                  <input
+                                    type="text"
+                                    value={el.label || el.text}
+                                    onChange={(e) => updateElement(screen.id, elIdx, { label: e.target.value, text: e.target.value })}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-primary"
+                                    placeholder="Enter label text..."
+                                  />
+                                </div>
+                                <label className="flex items-center gap-2 cursor-pointer pt-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={el.required}
+                                    onChange={(e) => updateElement(screen.id, elIdx, { required: e.target.checked })}
+                                    className="accent-primary"
+                                  />
+                                  <span className="text-sm font-bold text-slate-600">Required Field</span>
+                                </label>
+                              </div>
+                              <div className="pt-6">
                                 <button
                                   type="button"
-                                  onClick={() => deleteOption(question.id, option.id)}
-                                  className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                                  onClick={() => deleteElement(screen.id, elIdx)}
+                                  className="w-10 h-10 rounded-full flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                                 >
                                   <FaTrash />
                                 </button>
                               </div>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={() => addOption(question.id)}
-                              className="text-sm text-primary dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 font-medium"
-                            >
-                              + Add Option
-                            </button>
-                          </div>
-                        </div>
-                      )}
+                           </div>
+                        ))}
+                      </div>
 
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={question.required}
-                          onChange={(e) => updateQuestion(question.id, { required: e.target.checked })}
-                          className="rounded"
-                        />
-                        <span className="text-sm text-foreground">Required Question</span>
-                      </label>
-
-                      <div className="pt-4 border-t border-border">
+                      <div className="pt-4 flex justify-between border-t border-slate-200">
+                        <span className="text-xs text-slate-400 font-mono tracking-widest uppercase">ID: {screen.id}</span>
                         <button
                           type="button"
-                          onClick={() => deleteQuestion(question.id)}
-                          className="w-full px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium"
+                          onClick={() => deleteScreen(screen.id)}
+                          className="text-red-500 hover:text-red-600 font-bold text-sm"
                         >
-                          Delete Question
+                          Delete Entire Screen
                         </button>
                       </div>
                     </div>
@@ -555,22 +494,23 @@ export default function CreateFormPage() {
                 </div>
               ))}
             </div>
-          </div>
+          )}
 
-          {/* Actions */}
-          <div className="flex gap-4 justify-end pb-8">
+          {/* Core Actions */}
+          <div className="flex gap-4 justify-end pt-8 pb-12 border-t border-slate-200">
             <Link
               href="/automation/whatsapp-forms"
-              className="px-6 py-2 border border-border text-foreground rounded-xl hover:bg-accent transition-colors font-medium"
+              className="px-8 py-3 border-2 border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-bold"
             >
               Cancel
             </Link>
             <button
               type="submit"
               disabled={loading}
-              className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-primary/90 disabled:opacity-50 text-white rounded-xl transition-colors font-medium"
+              className="flex items-center gap-3 px-10 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl transition-colors font-bold shadow-lg shadow-emerald-200"
             >
-              <FaSave /> {loading ? 'Creating...' : 'Create Form'}
+              {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FaSave className="text-lg" />} 
+              {loading ? 'Creating Flow...' : 'Save Draft Flow'}
             </button>
           </div>
         </form>

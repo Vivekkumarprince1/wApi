@@ -175,10 +175,97 @@ const getSources = async (req, res) => {
   }
 };
 
+/**
+ * Get AnswerBot Settings
+ * GET /api/automation/answerbot/settings
+ */
+const getSettings = async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const AnswerBotSettings = require('../../models/automation/AnswerBotSettings');
+    let settings = await AnswerBotSettings.findOne({ workspace: workspaceId });
+    
+    if (!settings) {
+      settings = await AnswerBotSettings.create({ workspace: workspaceId });
+    }
+    
+    return res.status(200).json({ success: true, settings });
+  } catch (err) {
+    console.error('[AnswerBot Controller] Error in getSettings:', err);
+    res.status(500).json({ success: false, error: 'Failed to fetch settings' });
+  }
+};
+
+/**
+ * Update AnswerBot Settings
+ * PUT /api/automation/answerbot/settings
+ */
+const updateSettings = async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const updates = req.body;
+    const AnswerBotSettings = require('../../models/automation/AnswerBotSettings');
+    
+    const settings = await AnswerBotSettings.findOneAndUpdate(
+      { workspace: workspaceId },
+      { $set: updates },
+      { new: true, upsert: true }
+    );
+    
+    return res.status(200).json({ success: true, settings });
+  } catch (err) {
+    console.error('[AnswerBot Controller] Error in updateSettings:', err);
+    res.status(500).json({ success: false, error: 'Failed to update settings' });
+  }
+};
+
+/**
+ * Add an AnswerBot Source (URL, Text, Document)
+ * POST /api/automation/answerbot/sources
+ */
+const addSource = async (req, res) => {
+  try {
+    const { workspaceId } = req.params;
+    const { sourceType, title, websiteUrl, textContent, documentData } = req.body;
+    const AnswerBotSource = require('../../models/automation/AnswerBotSource');
+    
+    // Default to 'url' for legacy compatibility
+    const type = sourceType || 'url';
+    
+    if (type === 'url' && !websiteUrl) {
+      return res.status(400).json({ success: false, error: 'Website URL required for URL sources' });
+    }
+    if (type === 'text' && !textContent) {
+      return res.status(400).json({ success: false, error: 'Text content required for Text sources' });
+    }
+    
+    const source = await AnswerBotSource.create({
+      workspace: workspaceId,
+      sourceType: type,
+      title: title || (type === 'url' ? websiteUrl : 'New Source'),
+      websiteUrl,
+      textContent,
+      documentData,
+      crawlStatus: type === 'url' ? 'in_progress' : 'completed',
+      faqCount: 0
+    });
+    
+    // For MVP: we just save it as completed if it's text/doc, 
+    // and wait for background worker for URL.
+    return res.status(201).json({ success: true, source });
+  } catch (err) {
+    console.error('[AnswerBot Controller] Error in addSource:', err);
+    res.status(500).json({ success: false, error: 'Failed to add source' });
+  }
+};
+
 module.exports = {
   generateFAQs,
   getFAQs,
   approveFAQs,
   deleteFAQ,
-  getSources
+  getSources,
+  addSource,
+  getSettings,
+  updateSettings
 };

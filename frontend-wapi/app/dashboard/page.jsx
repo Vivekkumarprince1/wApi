@@ -24,6 +24,9 @@ const DashboardPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const workspace = useAuthStore(state => state.workspace);
+  const stage1Complete = useAuthStore(state => state.stage1Complete);
+  const phoneStatus = useAuthStore(state => state.phoneStatus);
+  const phoneNumber = useAuthStore(state => state.phoneNumber);
   const { user: authUser } = useAuth();
   const [trialDaysLeft, setTrialDaysLeft] = useState(null);
   const [connectNumberModalOpen, setConnectNumberModalOpen] = useState(false);
@@ -49,8 +52,8 @@ const DashboardPage = () => {
     };
   }, [searchParams]);
 
-  const canUseMessaging = workspace?.stage1Complete || false;
-  const isWhatsAppConnected = workspace?.stage1Complete || activePhoneStatuses.includes(String(workspace?.phoneStatus || '').toUpperCase());
+  const canUseMessaging = stage1Complete || false;
+  const isWhatsAppConnected = stage1Complete || activePhoneStatuses.includes(String(phoneStatus || '').toUpperCase());
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -207,7 +210,7 @@ const DashboardPage = () => {
 
           <ConnectionCards
             isWhatsAppConnected={isWhatsAppConnected}
-            workspace={workspace || {}}
+            workspace={{...workspace, phoneNumber}}
             onConnectWhatsApp={() => setConnectNumberModalOpen(true)}
             onConnectInstagram={() => setConnectInstagramModalOpen(true)}
           />

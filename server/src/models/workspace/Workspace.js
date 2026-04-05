@@ -428,7 +428,8 @@ const WorkspaceSchema = new mongoose.Schema({
 
     // Soft lock settings
     softLockEnabled: { type: Boolean, default: true },
-    softLockTimeoutSeconds: { type: Number, default: 60 }
+    softLockTimeoutSeconds: { type: Number, default: 60 },
+    maxConcurrentChats: { type: Number, default: 10 }
   },
 
   // ═══════════════════════════════════════════════════════════════════
@@ -524,6 +525,32 @@ const WorkspaceSchema = new mongoose.Schema({
       postalCode: { type: String }
     }
   },
+  // Developer settings for external API access
+  developerSettings: {
+    apiKey: { 
+      type: String, 
+      unique: true, 
+      sparse: true,
+      index: true 
+    },
+    apiSecret: { type: String }, // Optional: for higher security (e.g. SHA-256 hash)
+    authTemplateName: { type: String }, // Default template for authentication messages
+    isActive: { type: Boolean, default: true },
+    createdAt: { type: Date, default: Date.now }
+  },
+  apiKeys: [{
+    key: { 
+      type: String, 
+      unique: true, 
+      sparse: true,
+      index: true 
+    },
+    name: { type: String, default: 'Default Key' },
+    templateName: { type: String }, // Optional: specific template for this key
+    isActive: { type: Boolean, default: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
+
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 

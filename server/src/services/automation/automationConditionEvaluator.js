@@ -279,12 +279,18 @@ function evaluateTriggerFilters(filters, context) {
   
   // Keyword filter (any match)
   if (filters.keywords && filters.keywords.length > 0) {
-    const messageContent = context.message?.content || context.message?.text || '';
-    const hasKeyword = filters.keywords.some(keyword => 
-      messageContent.toLowerCase().includes(keyword.toLowerCase())
-    );
+    const messageContent = (context.message?.content || context.message?.text || '').toLowerCase().trim();
+    const mode = filters.keywordMatchMode || 'contains';
+    
+    const hasKeyword = filters.keywords.some(keyword => {
+      const kw = keyword.toLowerCase().trim();
+      if (mode === 'exact') return messageContent === kw;
+      if (mode === 'starts_with') return messageContent.startsWith(kw);
+      return messageContent.includes(kw); // default: contains
+    });
+
     if (!hasKeyword) {
-      return { matched: false, reason: 'No keyword match' };
+      return { matched: false, reason: `No keyword match (${mode})` };
     }
   }
   

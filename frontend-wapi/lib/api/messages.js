@@ -24,7 +24,7 @@ export const getInboxSettings = async () => get('/settings/inbox');
 
 export const updateInboxSettings = async (settings) => put('/settings/inbox', settings);
 
-export const fetchAvailableAgents = async () => get('/admin/team/members');
+export const fetchAvailableAgents = async () => get('/team/members');
 
 // Internal Notes
 export const getConversationNotes = async (conversationId) => get(`/inbox/${conversationId}/notes`);

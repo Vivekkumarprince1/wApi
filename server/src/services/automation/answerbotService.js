@@ -16,19 +16,20 @@ async function generateFAQsFromWebsite(workspace, websiteUrl) {
       };
     }
 
-    // Check plan limits (Sandbox = 1 website only)
-    if (workspaceDoc.plan === 'free') {
-      const existingSourceCount = await AnswerBotSource.countDocuments({
-        workspace,
-        crawlStatus: { $in: ['completed', 'in_progress'] }
-      });
+    // Check plan limits (Growth/Free = 4, Advanced/Premium = 6)
+    const plan = workspaceDoc.plan || 'free';
+    const limit = (plan === 'free' || plan === 'trial') ? 4 : 6;
 
-      if (existingSourceCount >= 1) {
-        return {
-          success: false,
-          error: 'Free plan limited to 1 website. Upgrade to create another.'
-        };
-      }
+    const existingSourceCount = await AnswerBotSource.countDocuments({
+      workspace,
+      deletedAt: null
+    });
+
+    if (existingSourceCount >= limit) {
+      return {
+        success: false,
+        error: `Limit reached (${existingSourceCount}/${limit}). Upgrade your plan to add more Knowledge Base sources.`
+      };
     }
 
     // Check if URL already crawled (prevent duplicates)

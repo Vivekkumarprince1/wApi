@@ -58,11 +58,18 @@ const WhatsAppFormResponseSchema = new mongoose.Schema({
   lastActivityAt: Date,
   timeSpent: Number,              // In seconds
 
-  // Session tracking
-  sessionId: {
+  // Native Flow Tracking
+  flowToken: {
     type: String,
     index: true
   },
+  actionName: String,             // Final action emitting response e.g., 'data_exchange'
+  
+  // Decrypted Raw Payload from FB
+  rawFlowPayload: {
+    type: mongoose.Schema.Types.Mixed
+  },
+
   retryCount: { type: Number, default: 0 },
   abandonReason: String,
 

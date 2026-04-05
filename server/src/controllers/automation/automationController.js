@@ -26,7 +26,7 @@ exports.getRules = async (req, res) => {
     const workspaceId = req.user.workspace;
     const { enabled, trigger, page = 1, limit = 50 } = req.query;
 
-    let query = { workspaceId };
+    let query = { workspace: workspaceId };
 
     if (enabled !== undefined) {
       query.enabled = enabled === 'true';
@@ -81,7 +81,7 @@ exports.getRule = async (req, res) => {
 
     const rule = await AutomationRule.findOne({
       _id: ruleId,
-      workspaceId
+      workspace: workspaceId
     });
 
     if (!rule) {
@@ -157,12 +157,18 @@ exports.createRule = async (req, res) => {
     }
 
     const rule = new AutomationRule({
-      workspaceId,
+      workspace: workspaceId,
       name,
       trigger: finalTrigger,
       conditions: conditions || [],
       actions,
-      rateLimit: rateLimit || { perHour: 100, perContact: 10 },
+      rateLimit: rateLimit || { 
+        maxExecutions: 100, 
+        windowSeconds: 3600, 
+        perContactCooldown: 300, 
+        maxPerContactPerDay: 10 
+      },
+
       enabled: enabled !== false,
       createdBy: userId
     });
@@ -194,7 +200,7 @@ exports.updateRule = async (req, res) => {
     const updates = req.body;
 
     const rule = await AutomationRule.findOneAndUpdate(
-      { _id: ruleId, workspaceId },
+      { _id: ruleId, workspace: workspaceId },
       updates,
       { new: true, runValidators: true }
     );
@@ -232,7 +238,7 @@ exports.deleteRule = async (req, res) => {
 
     const rule = await AutomationRule.findOneAndDelete({
       _id: ruleId,
-      workspaceId
+      workspace: workspaceId
     });
 
     if (!rule) {
@@ -276,7 +282,7 @@ exports.toggleRuleEnabled = async (req, res) => {
     }
 
     const rule = await AutomationRule.findOneAndUpdate(
-      { _id: ruleId, workspaceId },
+      { _id: ruleId, workspace: workspaceId },
       { enabled },
       { new: true }
     );
@@ -326,7 +332,7 @@ exports.getLogs = async (req, res) => {
       limit: parseInt(limit)
     };
 
-    const result = await AutomationAuditLog.getLogs(workspaceId, options);
+    const result = await AutomationAuditLog.getLogs(workspace, options);
 
     res.json({
       success: true,
@@ -353,7 +359,7 @@ exports.getLog = async (req, res) => {
 
     const log = await AutomationAuditLog.findOne({
       _id: logId,
-      workspaceId
+      workspace: workspaceId
     });
 
     if (!log) {
@@ -510,10 +516,10 @@ exports.getStatus = async (req, res) => {
       isEnabled: automationEngine.isWorkspaceEnabled(workspaceId),
       globalKillSwitch: automationEngine.getGlobalKillSwitchStatus(),
       enabledRulesCount: await AutomationRule.countDocuments({
-        workspaceId,
+        workspace: workspaceId,
         enabled: true
       }),
-      totalRulesCount: await AutomationRule.countDocuments({ workspaceId }),
+      totalRulesCount: await AutomationRule.countDocuments({ workspace: workspaceId }),
       todayExecutions: await AutomationExecution.countDocuments({
         workspaceId,
         executedAt: {

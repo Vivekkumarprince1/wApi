@@ -11,3 +11,5 @@ export * from './sales';
 export * from './answerbot';
 export * from './integrations';
 export * from './widget';
+export * from './automation';
+export * from './team';

@@ -27,6 +27,7 @@ import {
   FaListAlt,
   FaLock,
   FaUsers,
+  FaCode
 } from "react-icons/fa";
 import { useState, useEffect, memo } from "react";
 import { useRouter } from "next/navigation";
@@ -478,6 +479,24 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
                 <FaThLarge className={`${isActive('/widget') ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
               </div>
               {isHovered && <span className={`font-medium text-sm ${isActive('/widget') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Widget</span>}
+            </div>
+            
+            {/* Developer Settings */}
+            <div
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard/settings/developer')
+                  ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+                }`}
+              onClick={() => navigate("/dashboard/settings/developer")}
+              title="Developer Settings"
+            >
+              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/settings/developer')
+                  ? 'bg-white/20'
+                  : 'bg-gradient-to-br from-indigo-500/10 to-indigo-600/10'
+                }`}>
+                <FaCode className={`${isActive('/dashboard/settings/developer') ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
+              </div>
+              {isHovered && <span className={`font-medium text-sm ${isActive('/dashboard/settings/developer') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Developer</span>}
             </div>
 
             {/* Team Management - Only for owners, admins and managers */}

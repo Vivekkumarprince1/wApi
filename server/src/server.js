@@ -21,6 +21,8 @@ const authRoutes = require('./routes/auth/authRoutes');
 const contactRoutes = require('./routes/messaging/contactRoutes');
 const messageRoutes = require('./routes/messaging/messageRoutes');
 const webhookRoutes = require('./routes/bsp/webhookRoutes');
+const developerRoutes = require('./routes/developer/developerRoutes');
+const externalRoutes = require('./routes/developer/externalRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -193,6 +195,8 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/contacts', contactRoutes);
 app.use('/api/v1/messages', messageRoutes);
 app.use('/api/v1/webhook', webhookRoutes);
+app.use('/api/v1/developer', developerRoutes);
+app.use('/api/v1/external', externalRoutes);
 
 // Additional modules
 const campaignRoutes = require('./routes/campaign/campaignRoutes');
@@ -213,6 +217,7 @@ const internalNotesRoutes = require('./routes/workspace/internalNotesRoutes'); /
 const metricsRoutes = require('./routes/analytics/metricsRoutes');
 const onboardingRoutes = require('./routes/workspace/onboardingRoutes');
 const bspOnboardingRoutes = require('./routes/bsp/bspOnboardingRoutes'); // BSP Interakt model
+const teamRoutes = require('./routes/workspace/teamRoutes');
 const adminRoutes = require('./routes/admin/adminRoutes');
 const bspAdminRoutes = require('./routes/bsp/bspAdminRoutes'); // BSP multi-tenant admin
 const internalRoutes = require('./routes/workspace/internalRoutes'); // Internal BSP health
@@ -240,6 +245,7 @@ app.use('/api/v1/whatsapp-forms', whatsappFormRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/team', teamRoutes);
 app.use('/api/v1/billing', billingRoutes); // Week 2 addition
 app.use('/api/v1/templates', templateRoutes);
 app.use('/api/v1/conversations', conversationRoutes);

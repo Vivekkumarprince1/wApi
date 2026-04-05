@@ -70,7 +70,7 @@ export function RBACTeamManagement() {
     try {
       setLoading(true);
       setError(null);
-      const data = await get('/admin/team/members');
+      const data = await get('/team/members');
       setTeamMembers(data.members || []);
     } catch (err) {
       console.error('Failed to load team members:', err);
@@ -86,7 +86,7 @@ export function RBACTeamManagement() {
 
     try {
       setError(null);
-      await post('/admin/team/invite', {
+      await post('/team/invite', {
         email: newMemberEmail,
         role: selectedRole,
       });
@@ -105,7 +105,7 @@ export function RBACTeamManagement() {
   const handleChangeRole = async (memberId, newRole) => {
     try {
       setError(null);
-      await put(`/admin/team/members/${memberId}/role`, { role: newRole });
+      await put(`/team/members/${memberId}/role`, { role: newRole });
       toast?.success?.('Role updated successfully!');
       await loadTeamMembers();
     } catch (err) {
@@ -120,7 +120,7 @@ export function RBACTeamManagement() {
 
     try {
       setError(null);
-      await del(`/admin/team/members/${memberId}`);
+      await del(`/team/members/${memberId}`);
       toast?.success?.('Team member removed!');
       await loadTeamMembers();
     } catch (err) {

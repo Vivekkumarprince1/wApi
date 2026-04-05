@@ -732,12 +732,28 @@ function buildTemplateComponents(template, variables, options = {}) {
 
     // Button params
     if (template.buttons?.enabled && variables.buttons && variables.buttons.length > 0) {
-      // Logic for button parameters depends on button type, but usually it's the first URL button
-      components.push({
-        type: 'button',
-        sub_type: 'url',
-        index: 0,
-        parameters: variables.buttons.map(v => ({ type: 'text', text: v }))
+      let varIndex = 0;
+      template.buttons.items.forEach((btn, idx) => {
+        if ((btn.type === 'URL' && btn.urlSuffix) || btn.type === 'COPY_CODE') {
+          const btnVars = [];
+          if (btn.variables && btn.variables.length > 0) {
+             const numVars = btn.variables.length;
+             btnVars.push(...variables.buttons.slice(varIndex, varIndex + numVars));
+             varIndex += numVars;
+          } else if (varIndex < variables.buttons.length) {
+              btnVars.push(variables.buttons[varIndex]);
+              varIndex += 1;
+          }
+  
+          if (btnVars.length > 0) {
+            components.push({
+              type: 'button',
+              sub_type: btn.type === 'COPY_CODE' ? 'copy_code' : 'url',
+              index: idx,
+              parameters: btnVars.map(v => ({ type: 'text', text: String(v) }))
+            });
+          }
+        }
       });
     }
   }
@@ -818,6 +834,22 @@ async function getOrCreateConversation(workspaceId, contactId, template) {
       wabaId: workspace?.gupshupIdentity?.wabaId || workspace?.wabaId // Match webhook handler
     });
     isNew = true;
+  } else {
+    // If conversation exists, we MUST update it to be open and update lastActivityAt
+    // so that it shows up in the inbox view.
+    const windowExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
+    conversation.status = 'open';
+    conversation.isOpen = true;
+    conversation.lastActivityAt = new Date();
+    conversation.lastMessageAt = new Date();
+    conversation.lastMessageType = 'template';
+    conversation.lastMessageDirection = 'outbound';
+    conversation.lastMessagePreview = template?.bodyText || template?.name;
+    conversation.windowExpiresAt = windowExpiresAt;
+    
+    await conversation.save();
+    isNew = false;
   }
 
   return { conversation, isNew };

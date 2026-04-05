@@ -162,7 +162,13 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
   const previewText = (text, section) => {
     let result = text;
     Object.entries(variables[section] || {}).forEach(([num, val]) => {
-      result = result.replace(new RegExp(`\\{\\{${num}\\}\\}`, 'g'), val || `{{${num}}}`);
+      let substitutedVal = val || `{{${num}}}`;
+      // Simulate dynamic tags for preview
+      if (substitutedVal.toLowerCase().includes('[name]')) substitutedVal = substitutedVal.replace(/\[name\]/ig, 'John Doe');
+      if (substitutedVal.toLowerCase().includes('[firstname]')) substitutedVal = substitutedVal.replace(/\[firstname\]/ig, 'John');
+      if (substitutedVal.toLowerCase().includes('[phone]')) substitutedVal = substitutedVal.replace(/\[phone\]/ig, '+919876543210');
+      
+      result = result.replace(new RegExp(`\\{\\{${num}\\}\\}`, 'g'), substitutedVal);
     });
     return result;
   };
@@ -191,20 +197,40 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
     const total = validIds.length;
     setSendProgress({ current: 0, total, succeeded: 0, failed: 0 });
 
-    const formattedVars = {
+    const formattedVarsStr = JSON.stringify({
       body: Object.keys(variables.body).sort((a, b) => a - b).map(k => variables.body[k]),
       header: Object.keys(variables.header).sort((a, b) => a - b).map(k => variables.header[k])
-    };
+    });
 
     let succeeded = 0;
     let failed = 0;
 
     for (let i = 0; i < total; i++) {
       try {
+        const c = contacts.find(x => contactId(x) === validIds[i]);
+        const cName = c ? contactName(c) : '';
+        const cPhone = c?.phone || '';
+        const cFirstName = c?.metadata?.firstName || (cName ? cName.split(' ')[0] : '');
+
+        let varsForContact = JSON.parse(formattedVarsStr);
+        
+        const replaceTags = (arr) => {
+          return arr.map(v => 
+            typeof v === 'string' 
+              ? v.replace(/\[name\]/ig, cName || 'there')
+                 .replace(/\[firstname\]/ig, cFirstName || 'there')
+                 .replace(/\[phone\]/ig, cPhone)
+              : v
+          );
+        };
+
+        varsForContact.body = replaceTags(varsForContact.body);
+        varsForContact.header = replaceTags(varsForContact.header);
+
         await sendTemplateMessage({
           contactId: validIds[i],
           templateId: template._id,
-          variables: formattedVars,
+          variables: varsForContact,
           language: template.language || 'en',
           headerMediaUrl: headerMediaUrl.trim()
         });
@@ -302,9 +328,15 @@ const UseTemplateModal = ({ isOpen, onClose, template }) => {
 
                 {hasAnyVars ? (
                   <>
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        💡 Fill in the variable values below. These will be substituted into the template before sending.
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 space-y-1">
+                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200 flex flex-wrap gap-1 items-center">
+                        💡 You can use dynamic variables for recipients: 
+                        <code className="text-xs px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">[name]</code>
+                        <code className="text-xs px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">[firstname]</code>
+                        <code className="text-xs px-1 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">[phone]</code>
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        Fill in the variable values below (e.g. for Name use <span className="font-semibold">[name]</span>, for Discount use <span className="font-semibold">20</span>).
                       </p>
                     </div>
 

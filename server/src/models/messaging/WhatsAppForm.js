@@ -22,64 +22,61 @@ const WhatsAppFormSchema = new mongoose.Schema({
     default: 'draft',
     index: true
   },
-  // Form structure - array of questions
-  questions: [{
-    id: String,                    // Unique ID for this question
-    type: {
-      type: String,
-      enum: ['text', 'choice', 'number', 'email', 'phone'],
-      default: 'text'
+  // Native WhatsApp Flow Support
+  flowType: {
+    type: String,
+    enum: ['static', 'dynamic'],
+    default: 'static'
+  },
+  
+  // Facebook Business Manager integration fields
+  flowId: {
+    type: String,     // Official Meta Flow ID
+    index: true
+  },
+  flowVersion: {
+    type: String,
+    default: '1.0'
+  },
+  
+  // The actual JSON Payload compatible with Meta's Flow JSON model.
+  screens: [{
+    id: String,           // e.g "SIGN_UP_SCREEN"
+    title: String,        // Optional Top Bar title
+    layout: {
+      type: { type: String, enum: ['SingleColumnLayout'], default: 'SingleColumnLayout' },
+      children: [mongoose.Schema.Types.Mixed] // Elements: Text, TextInput, Dropdown, CheckboxGroup, etc.
     },
-    title: String,                 // Question text
-    description: String,           // Optional hint/description
-    required: { type: Boolean, default: true },
-    placeholder: String,
-    // For choice type
-    options: [{
-      id: String,
-      label: String,
-      value: String
-    }],
-    // Validation
-    minLength: Number,
-    maxLength: Number,
-    pattern: String,              // Regex pattern for validation
-    // Logic
-    conditional: {
-      enabled: { type: Boolean, default: false },
-      dependsOn: String,          // Question ID it depends on
-      dependsOnValue: String,     // Value that triggers this question
-    },
-    // UI
-    position: Number
+    // Meta endpoints specify `data` payload here for dynamic screens
+    data: mongoose.Schema.Types.Mixed,
+    terminal: { type: Boolean, default: false }, // Terminal screens end the flow
   }],
 
-  // Form configuration
-  config: {
-    intro: {
-      enabled: { type: Boolean, default: true },
-      title: String,
-      message: String
-    },
-    outro: {
-      enabled: { type: Boolean, default: true },
-      title: String,
-      message: String
-    },
-    requirePhone: { type: Boolean, default: true },
-    saveLead: { type: Boolean, default: true },
-    sendConfirmation: { type: Boolean, default: true },
-    confirmationMessage: String,
-    includeQuestionsSummary: { type: Boolean, default: true }
+  // If they pasted a pure raw Facebook JSON (e.g. from FB Playground)
+  rawFlowJson: {
+    type: mongoose.Schema.Types.Mixed
+  },
+  
+  // Mapping logic from Flow Response to Interakt CRM variables
+  dataMapping: [{
+    flowFieldId: String,  // Checkbox name or Input ID in the flow
+    crmField: String,     // e.g., 'email', 'firstName', 'tags'
+    saveAsTrait: Boolean
+  }],
+
+  // For dynamic forms hitting customer's APIs
+  webhookConfig: {
+    enabled: { type: Boolean, default: false },
+    url: String,
+    method: { type: String, default: 'POST' },
+    headers: mongoose.Schema.Types.Mixed
   },
 
-  // Form behavior
-  behavior: {
-    allowSkip: { type: Boolean, default: false },
-    allowRestart: { type: Boolean, default: true },
-    sessionTimeout: { type: Number, default: 3600 },  // Seconds
-    retryLimit: { type: Number, default: 3 },
-    progressBar: { type: Boolean, default: true }
+  // Form configuration & Fallbacks
+  config: {
+    fallbackMessage: { type: String, default: 'Please update your WhatsApp to use interactive forms.' },
+    sendConfirmationMessage: { type: Boolean, default: true },
+    confirmationText: String
   },
 
   // Statistics
@@ -120,6 +117,7 @@ const WhatsAppFormSchema = new mongoose.Schema({
   },
   deletedAt: Date
 });
+
 
 // Indexes for queries
 WhatsAppFormSchema.index({ workspace: 1, status: 1 });

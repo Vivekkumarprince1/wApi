@@ -569,7 +569,7 @@ function buildTemplateParams(template, variableMapping, contact) {
     return { body: [] };
   }
   
-  const bodyParams = template.variables.map(variable => {
+  const resolveVariable = (variable) => {
     const contactField = variableMapping[variable];
     let value = '';
     
@@ -590,9 +590,29 @@ function buildTemplateParams(template, variableMapping, contact) {
     }
     
     return String(value || '');
-  });
-  
-  return { body: bodyParams };
+  };
+
+  const variables = {};
+
+  if (template.header && template.header.variables && template.header.variables.length > 0) {
+    variables.header = template.header.variables.map(resolveVariable);
+  }
+
+  if (template.body && template.body.variables && template.body.variables.length > 0) {
+    variables.body = template.body.variables.map(resolveVariable);
+  } else {
+    // Fallback: If `template.body.variables` doesn't exist, try resolving the flat `template.variables` array.
+    // This is useful if the older templates only store variables as a flat array.
+    variables.body = template.variables.map(resolveVariable);
+  }
+
+  if (template.buttons && template.buttons.length > 0) {
+    variables.buttons = template.buttons
+      .filter(btn => btn.variables && btn.variables.length > 0)
+      .flatMap(btn => btn.variables.map(resolveVariable));
+  }
+
+  return variables;
 }
 
 /**

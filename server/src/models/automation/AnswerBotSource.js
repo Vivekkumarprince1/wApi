@@ -12,12 +12,26 @@ const AnswerBotSourceSchema = new mongoose.Schema({
     index: true
   },
 
+  // Type of Knowledge Base Source
+  sourceType: {
+    type: String,
+    enum: ['url', 'document', 'text'],
+    default: 'url',
+    index: true
+  },
+  
+  // Custom title to identify the source
+  title: {
+    type: String
+  },
+
   // Website URL to crawl
   websiteUrl: {
     type: String,
-    required: true,
+    required: function() { return this.sourceType === 'url'; },
     validate: {
       validator: function(v) {
+        if (this.sourceType !== 'url') return true;
         try {
           new URL(v);
           return true;
@@ -29,12 +43,25 @@ const AnswerBotSourceSchema = new mongoose.Schema({
     }
   },
 
-  // Status of the crawl
+  // Status of the crawl/processing
   crawlStatus: {
     type: String,
     enum: ['pending', 'in_progress', 'completed', 'failed'],
     default: 'pending',
     index: true
+  },
+
+  // Raw text content for 'text' sources
+  textContent: {
+    type: String
+  },
+
+  // Metadata for 'document' sources
+  documentData: {
+    fileName: String,
+    fileUrl: String,
+    fileSize: Number,
+    mimeType: String
   },
 
   // Number of FAQs generated from this source
@@ -84,6 +111,8 @@ const AnswerBotSourceSchema = new mongoose.Schema({
 // Indexes
 AnswerBotSourceSchema.index({ workspace: 1, crawlStatus: 1 });
 AnswerBotSourceSchema.index({ workspace: 1, createdAt: -1 });
+// Remove the strict unique index on websiteUrl since it might be null for documents/text
+// We can use a compound sparse index if needed.
 AnswerBotSourceSchema.index({ workspace: 1, websiteUrl: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model('AnswerBotSource', AnswerBotSourceSchema);

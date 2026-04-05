@@ -245,8 +245,8 @@ async function syncWorkspace(workspace) {
               updates.bspDisplayPhoneNumber = wabaInfo.phone;
             }
             // Extract the TRUE phone_number_id from Meta (Fallback)
-            if (!updates.phoneNumberId && !workspace.phoneNumberId && (wabaInfo.phoneNumberId || wabaInfo.phone_number_id)) {
-              const trueId = wabaInfo.phoneNumberId || wabaInfo.phone_number_id;
+            if (!updates.phoneNumberId && !workspace.phoneNumberId && (wabaInfo.phoneNumberId || wabaInfo.phone_number_id || wabaInfo.phoneId)) {
+              const trueId = wabaInfo.phoneNumberId || wabaInfo.phone_number_id || wabaInfo.phoneId;
               if (trueId !== updates.whatsappPhoneNumber) { // Prevent strings like "1555..." from being saved
                 updates.phoneNumberId = trueId;
                 updates.whatsappPhoneNumberId = trueId;

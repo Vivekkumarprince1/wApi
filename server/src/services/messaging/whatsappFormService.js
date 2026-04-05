@@ -101,20 +101,24 @@ async function updateForm(formId, updateData) {
  */
 async function publishForm(formId, userId) {
   try {
-    // Validate form has at least one question
+    // Validate form has at least one screen or valid raw json
     const form = await WhatsAppForm.findById(formId);
     if (!form) {
       return { success: false, error: 'Form not found' };
     }
 
-    if (!form.questions || form.questions.length === 0) {
-      return { success: false, error: 'Form must have at least one question' };
+    if ((!form.screens || form.screens.length === 0) && !form.rawFlowJson) {
+      return { success: false, error: 'Flow must have at least one screen or valid JSON payload' };
     }
+
+    // Synthesize flow_id here if it's dynamic
+    const flowId = form.flowId || `fb_flow_${Date.now()}`;
 
     const published = await WhatsAppForm.findByIdAndUpdate(
       formId,
       {
         status: 'published',
+        flowId: flowId,
         publishedAt: new Date(),
         publishedBy: userId,
         updatedAt: new Date()

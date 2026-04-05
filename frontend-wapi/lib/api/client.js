@@ -1,5 +1,7 @@
 import api from '@/lib/axios';
 
+export const apiClient = api;
+
 export const API_URL = api.defaults.baseURL;
 
 export const getToken = () => {
@@ -21,4 +23,5 @@ export const getAuthHeaders = () => {
 export const get = (endpoint) => api.get(endpoint);
 export const post = (endpoint, data) => api.post(endpoint, data);
 export const put = (endpoint, data) => api.put(endpoint, data);
+export const patch = (endpoint, data) => api.patch(endpoint, data);
 export const del = (endpoint, data = null) => api.delete(endpoint, data ? { data } : {});

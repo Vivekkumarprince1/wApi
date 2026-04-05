@@ -1,22 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   FaArrowLeft, FaPlus, FaTrash, FaSave, FaRobot, FaFilter, FaBolt, FaPlusCircle,
-  FaCheckCircle, FaExclamationTriangle, FaClock, FaTag, FaUserPlus, FaLink, FaCommentDots
+  FaCheckCircle, FaExclamationTriangle, FaClock, FaTag, FaUserPlus, FaLink, FaCommentDots,
+  FaSitemap, FaWpforms, FaDatabase
 } from 'react-icons/fa';
 import Link from 'next/link';
 import { post, get } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import { WorkflowCanvas, FlowNode, NodeConnector } from '@/components/features/automation/FlowComponents';
 
 export default function CreateWorkflowPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [templates, setTemplates] = useState([]);
+  const [agents, setAgents] = useState([]);
+  const [tags, setTags] = useState([]);
+  const [selectedNode, setSelectedNode] = useState({ type: 'trigger', index: null });
   
   const [form, setForm] = useState({
+
     name: '',
     description: '',
     trigger: {
@@ -42,7 +48,28 @@ export default function CreateWorkflowPage() {
 
   useEffect(() => {
     loadTemplates();
+    loadAgents();
+    loadTags();
   }, []);
+
+  const loadAgents = async () => {
+    try {
+      const data = await get('/team/members');
+      setAgents(data.members || []);
+    } catch (err) {
+      console.error('Error loading agents:', err);
+    }
+  };
+
+  const loadTags = async () => {
+    try {
+      const data = await get('/tags');
+      setTags(data.data || []);
+    } catch (err) {
+      console.error('Error loading tags:', err);
+    }
+  };
+
 
   const loadTemplates = async () => {
     try {
@@ -60,39 +87,56 @@ export default function CreateWorkflowPage() {
     { value: 'conversation.closed', label: '✅ Conversation Closed', icon: FaCheckCircle },
     { value: 'sla.breached', label: '⚠️ SLA Breached', icon: FaExclamationTriangle },
     { value: 'contact.created', label: '👤 New Contact Created', icon: FaUserPlus },
-    { value: 'contact.tag.added', label: '🏷️ Tag Added to Contact', icon: FaTag }
+    { value: 'contact.tag.added', label: '🏷️ Tag Added to Contact', icon: FaTag },
+    { value: 'deal.stage.changed', label: '📈 Deal Stage Changed', icon: FaBolt },
+    { value: 'campaign.message.sent', label: '📣 Campaign Message Sent', icon: FaLink },
+    { value: 'form.submitted', label: '📝 Form/Flow Submitted', icon: FaSave }
   ];
 
   const actionTypes = [
-    { value: 'send_template_message', label: '💬 Send Template', icon: FaCommentDots },
-    { value: 'send_text_message', label: '✍️ Send Text (24h window)', icon: FaCommentDots },
-    { value: 'assign_conversation', label: '👤 Assign to Agent/Team', icon: FaUserPlus },
-    { value: 'add_tag', label: '🏷️ Add Tag', icon: FaTag },
-    { value: 'remove_tag', label: '❌ Remove Tag', icon: FaTag },
-    { value: 'add_note', label: '📝 Add Internal Note', icon: FaSave },
-    { value: 'mark_as_resolved', label: '✅ Mark Resolved', icon: FaCheckCircle },
-    { value: 'notify_webhook', label: '🔗 External Webhook', icon: FaLink },
-    { value: 'delay', label: '⏱️ Delay Next Action', icon: FaClock }
+    { value: 'send_template_message', label: '💬 Send Template', icon: FaCommentDots, category: 'message' },
+    { value: 'send_text_message', label: '✍️ Send Text (24h)', icon: FaCommentDots, category: 'message' },
+    { value: 'send_interactive_message', label: '🔘 Send Buttons/List', icon: FaFilter, category: 'message' },
+    { value: 'send_form', label: '📝 Send WhatsApp Form', icon: FaSave, category: 'message' },
+    { value: 'save_response', label: '💾 Save User Response', icon: FaSave, category: 'logic' },
+    { value: 'assign_conversation', label: '👤 Assign to Agent/Team', icon: FaUserPlus, category: 'assignment' },
+    { value: 'add_tag', label: '🏷️ Add Tag', icon: FaTag, category: 'crm' },
+    { value: 'remove_tag', label: '❌ Remove Tag', icon: FaTag, category: 'crm' },
+    { value: 'create_deal', label: '💰 Create New Deal', icon: FaBolt, category: 'crm' },
+    { value: 'move_pipeline_stage', label: '➡️ Move Deal Stage', icon: FaBolt, category: 'crm' },
+    { value: 'notify_agent', label: '🔔 Internal Notification', icon: FaBolt, category: 'logic' },
+    { value: 'add_note', label: '📝 Add Internal Note', icon: FaSave, category: 'crm' },
+    { value: 'mark_as_resolved', label: '✅ Mark Resolved', icon: FaCheckCircle, category: 'crm' },
+    { value: 'notify_webhook', label: '🔗 External Webhook', icon: FaLink, category: 'logic' },
+    { value: 'delay', label: '⏱️ Delay Next Action', icon: FaClock, category: 'logic' }
   ];
 
   const conditionFields = [
     { value: 'message.content', label: 'Message Content' },
     { value: 'contact.tags', label: 'Contact Tags' },
     { value: 'contact.name', label: 'Contact Name' },
+    { value: 'contact.email', label: 'Contact Email' },
     { value: 'conversation.status', label: 'Conversation Status' },
     { value: 'conversation.assignedTo', label: 'Assigned Agent' },
-    { value: 'message.type', label: 'Message Type' }
+    { value: 'message.type', label: 'Message Type' },
+    { value: 'current.day_of_week', label: 'Day of Week' },
+    { value: 'current.time_of_day', label: 'Time of Day' }
   ];
 
   const conditionOperators = [
     { value: 'equals', label: 'Equals' },
     { value: 'contains', label: 'Contains' },
+    { value: 'not_contains', label: 'Does not contain' },
     { value: 'starts_with', label: 'Starts with' },
+    { value: 'ends_with', label: 'Ends with' },
+    { value: 'matches_regex', label: 'Matches Regex' },
     { value: 'is_empty', label: 'Is empty' },
     { value: 'is_not_empty', label: 'Is not empty' },
     { value: 'greater_than', label: 'Greater than' },
-    { value: 'less_than', label: 'Less than' }
+    { value: 'less_than', label: 'Less than' },
+    { value: 'time_within', label: 'Within last N hours' }
   ];
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // HANDLERS
@@ -131,6 +175,25 @@ export default function CreateWorkflowPage() {
       newAction.config = { templateId: '', templateLanguage: 'en', templateVariables: {} };
     } else if (type === 'send_text_message') {
       newAction.config = { messageContent: '' };
+    } else if (type === 'send_interactive_message') {
+      newAction.config = { 
+        interactiveConfig: { 
+          type: 'buttons', 
+          header: '', 
+          body: 'Hello! Please select an option:', 
+          buttons: [{ id: 'btn_1', text: 'Yes' }, { id: 'btn_2', text: 'No' }] 
+        } 
+      };
+    } else if (type === 'send_form') {
+      newAction.config = { formConfig: { flowId: '', screenId: 'START' } };
+    } else if (type === 'save_response') {
+      newAction.config = { saveAs: { type: 'trait', name: '' } };
+    } else if (type === 'create_deal') {
+      newAction.config = { pipelineId: '', stageId: '', dealTitle: 'New Deal' };
+    } else if (type === 'move_pipeline_stage') {
+      newAction.config = { pipelineId: '', stageId: '' };
+    } else if (type === 'notify_agent') {
+      newAction.config = { notificationTitle: 'Automation Alert', notificationBody: 'A rule was triggered.' };
     } else if (type === 'assign_conversation') {
       newAction.config = { assignTo: { type: 'round_robin' } };
     } else if (type === 'add_tag' || type === 'remove_tag') {
@@ -142,6 +205,7 @@ export default function CreateWorkflowPage() {
     } else if (type === 'notify_webhook') {
       newAction.config = { webhookUrl: '', method: 'POST' };
     }
+
 
     setForm({
       ...form,
@@ -169,7 +233,7 @@ export default function CreateWorkflowPage() {
 
     setLoading(true);
     try {
-      await post('/automation/rules', form);
+      await post('/automation/engine/rules', form);
       toast.success('Workflow created successfully');
       router.push('/automation/workflows');
     } catch (err) {
@@ -180,417 +244,311 @@ export default function CreateWorkflowPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-slate-50 pb-20">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-50 bg-card/80 backdrop-blur-md border-b border-border mb-8">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-0">
+        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/automation/workflows" className="p-2 hover:bg-muted rounded-full transition-colors">
-              <FaArrowLeft className="text-muted-foreground" />
+            <Link href="/automation/workflows" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+              <FaArrowLeft className="text-slate-500" />
             </Link>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Create New Workflow</h1>
-              <p className="text-xs text-muted-foreground">Automate business logic and replies</p>
+              <h1 className="text-xl font-bold text-slate-900">Visual Workflow Designer</h1>
+              <p className="text-xs text-slate-500">Design your automation flow like Interakt</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button 
-              onClick={() => router.push('/automation/workflows')}
-              className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={handleSubmit}
-              disabled={loading}
-              className="btn-primary flex items-center gap-2 py-2 text-sm shadow-lg shadow-primary/20"
+               onClick={handleSubmit}
+               disabled={loading}
+               className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50"
             >
               {loading ? <FaRobot className="animate-spin" /> : <FaSave />}
-              {loading ? 'Saving...' : 'Save Workflow'}
+              {loading ? 'Publishing...' : 'Save & Publish'}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 space-y-8">
-        {error && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-4 flex items-center gap-3 animate-shake">
-            <FaExclamationTriangle className="text-destructive" />
-            <p className="text-destructive text-sm font-medium">{error}</p>
-          </div>
-        )}
+      <div className="max-w-[1600px] mx-auto px-6 py-8 flex items-start gap-8">
+        {/* Left: Visual Builder Canvas */}
+        <div className="flex-1 flex flex-col gap-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 animate-shake">
+              <FaExclamationTriangle className="text-red-500" />
+              <p className="text-red-700 text-sm font-medium">{error}</p>
+            </div>
+          )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Configuration */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* Step 1: Trigger */}
-            <section className="bg-card rounded-2xl border border-border shadow-premium overflow-hidden">
-              <div className="px-6 py-4 bg-muted/30 border-b border-border flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                  <FaBolt />
-                </div>
-                <h2 className="font-bold text-foreground">1. When this happens...</h2>
+          <WorkflowCanvas>
+            {/* 1. TRIGGER NODE */}
+            <FlowNode 
+              type="trigger" 
+              title="START: TRIGGER" 
+              icon={triggerEvents.find(t => t.value === form.trigger.event)?.icon || FaBolt}
+              onClick={() => setSelectedNode({ type: 'trigger', index: null })}
+              status={form.trigger.event ? 'valid' : 'incomplete'}
+            >
+              <div className="text-slate-700 font-medium">
+                {triggerEvents.find(t => t.value === form.trigger.event)?.label}
               </div>
-              <div className="p-6 space-y-6">
-                <div>
-                  <label className="text-sm font-semibold text-foreground mb-3 block">Trigger Event</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {triggerEvents.map((t) => (
-                      <button
-                        key={t.value}
-                        type="button"
-                        onClick={() => setForm({ ...form, trigger: { ...form.trigger, event: t.value } })}
-                        className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
-                          form.trigger.event === t.value 
-                            ? 'border-primary bg-primary/5 ring-1 ring-primary' 
-                            : 'border-border hover:bg-muted/50'
-                        }`}
-                      >
-                        <t.icon className={`h-5 w-5 ${form.trigger.event === t.value ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <span className={`text-sm font-medium ${form.trigger.event === t.value ? 'text-primary' : 'text-foreground'}`}>
-                          {t.label}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <div className="mt-1 text-[11px] text-slate-500">
+                Filters: {form.trigger.filters.channel} channel, {form.trigger.filters.source} source
+              </div>
+            </FlowNode>
 
-                <div className="pt-4 border-t border-border/50">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <FaFilter className="text-muted-foreground text-xs" />
-                      <h3 className="text-sm font-semibold text-foreground">Trigger Filters</h3>
-                    </div>
+            <NodeConnector />
+
+            {/* 2. CONDITIONS (IF ANY) */}
+            {form.conditions.map((cond, idx) => (
+              <React.Fragment key={`cond-frag-${idx}`}>
+                <FlowNode 
+                  type="condition" 
+                  title={`CONDITION ${idx + 1}`} 
+                  icon={FaFilter}
+                  onRemove={() => removeCondition(idx)}
+                  onClick={() => setSelectedNode({ type: 'condition', index: idx })}
+                >
+                  <div className="text-slate-700 font-medium">
+                    {conditionFields.find(f => f.value === cond.field)?.label} {cond.operator.replace('_', ' ')} "{cond.value}"
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                </FlowNode>
+                <NodeConnector />
+              </React.Fragment>
+            ))}
+
+            {/* ADD CONDITION BUTTON */}
+            <button 
+              onClick={addCondition}
+              className="group flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-dashed border-slate-300 rounded-lg text-slate-500 transition-all active:scale-95 mb-4"
+            >
+              <FaPlusCircle className="text-slate-400 group-hover:text-primary" />
+              <span className="text-xs font-bold uppercase tracking-wider">Add Condition</span>
+            </button>
+
+            {form.conditions.length > 0 && <NodeConnector />}
+
+            {/* 3. ACTIONS */}
+            {form.actions.map((action, idx) => (
+              <React.Fragment key={`action-frag-${idx}`}>
+                <FlowNode 
+                  type="action" 
+                  title={`STEP ${idx + 1}: ${actionTypes.find(a => a.value === action.type)?.label.split(' (')[0]}`} 
+                  icon={actionTypes.find(a => a.value === action.type)?.icon || FaBolt}
+                  onRemove={() => removeAction(idx)}
+                  onClick={() => setSelectedNode({ type: 'action', index: idx })}
+                >
+                  <div className="text-slate-700 font-medium truncate">
+                    {action.type === 'send_text_message' ? action.config.messageContent : 
+                     action.type === 'send_template_message' ? `Template: ${templates.find(t => t._id === action.config.templateId)?.name || '... '}` :
+                     action.type === 'assign_conversation' ? `Assign: ${action.config.assignTo?.type}` :
+                     action.type === 'add_tag' ? `Tag: ${action.config.tagName}` :
+                     action.type === 'save_response' ? `Save: ${action.config.saveAs?.name} (${action.config.saveAs?.type})` :
+                     'Configured'}
+                  </div>
+                </FlowNode>
+                {idx < form.actions.length - 1 && <NodeConnector />}
+              </React.Fragment>
+            ))}
+
+            {/* ADD ACTION DROPDOWN */}
+            <div className="mt-4 flex flex-wrap justify-center gap-2 p-4 bg-white/50 rounded-2xl border border-slate-200 shadow-sm">
+              {actionTypes.map(a => (
+                <button
+                  key={a.value}
+                  onClick={() => addAction(a.value)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 transition-all active:scale-95 shadow-sm"
+                >
+                  <a.icon size={12} className="text-primary" />
+                  {a.label.split(' (')[0]}
+                </button>
+              ))}
+            </div>
+          </WorkflowCanvas>
+        </div>
+
+        {/* Right: Configuration Panel */}
+        <div className="w-96 sticky top-28 h-[calc(100vh-140px)] overflow-y-auto space-y-6 flex flex-col">
+          <section className="bg-white rounded-2x border border-slate-200 shadow-premium p-6 flex-1">
+            <div className="flex items-center justify-between mb-6 border-b pb-4">
+              <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                <FaRobot className="text-primary" /> 
+                {selectedNode.type === 'trigger' ? 'Edit Trigger' : 
+                 selectedNode.type === 'condition' ? `Edit Condition ${selectedNode.index + 1}` : 
+                 `Edit Action ${selectedNode.index + 1}`}
+              </h3>
+            </div>
+
+            {/* TRIGGER CONFIG */}
+            {selectedNode.type === 'trigger' && (
+              <div className="space-y-6">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Workflow Name</label>
+                  <input 
+                    type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 ring-primary/20 outline-none"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Trigger Event</label>
+                  <select 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
+                    value={form.trigger.event}
+                    onChange={(e) => setForm({ ...form, trigger: { ...form.trigger, event: e.target.value } })}
+                  >
+                    {triggerEvents.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div className="pt-4 border-t">
+                  <h4 className="text-xs font-bold text-slate-900 mb-3">Trigger Filters</h4>
+                  <div className="space-y-4">
                     <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Channel</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Channel</label>
                       <select 
-                        className="input-premium py-2 text-sm"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
                         value={form.trigger.filters.channel}
                         onChange={(e) => setForm({ ...form, trigger: { ...form.trigger, filters: { ...form.trigger.filters, channel: e.target.value } } })}
                       >
                         <option value="all">All Channels</option>
-                        <option value="whatsapp">WhatsApp Only</option>
-                        <option value="instagram">Instagram Only</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Source</label>
-                      <select 
-                        className="input-premium py-2 text-sm"
-                        value={form.trigger.filters.source}
-                        onChange={(e) => setForm({ ...form, trigger: { ...form.trigger, filters: { ...form.trigger.filters, source: e.target.value } } })}
-                      >
-                        <option value="all">Any Source</option>
-                        <option value="organic">Organic Only</option>
-                        <option value="campaign">Campaign Replies</option>
-                        <option value="ads">Ad Leads</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="instagram">Instagram</option>
                       </select>
                     </div>
                   </div>
                 </div>
               </div>
-            </section>
+            )}
 
-            {/* Step 2: Conditions */}
-            <section className="bg-card rounded-2xl border border-border shadow-premium overflow-hidden">
-              <div className="px-6 py-4 bg-muted/30 border-b border-border flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500">
-                    <FaFilter />
-                  </div>
-                  <h2 className="font-bold text-foreground">2. And these conditions are met...</h2>
+            {/* CONDITION CONFIG */}
+            {selectedNode.type === 'condition' && selectedNode.index !== null && (
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Field</label>
+                  <select 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
+                    value={form.conditions[selectedNode.index].field}
+                    onChange={(e) => updateCondition(selectedNode.index, 'field', e.target.value)}
+                  >
+                    {conditionFields.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                  </select>
                 </div>
-                <button 
-                  type="button" onClick={addCondition}
-                  className="text-xs font-bold text-primary hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5"
-                >
-                  <FaPlusCircle /> Add Condition
-                </button>
-              </div>
-              <div className="p-6">
-                {form.conditions.length === 0 ? (
-                  <div className="text-center py-8 border-2 border-dashed border-border rounded-2xl bg-muted/20">
-                    <p className="text-sm text-muted-foreground mb-2">No conditions added</p>
-                    <p className="text-xs text-muted-foreground/60">This workflow will trigger for every event.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {form.conditions.map((cond, idx) => (
-                      <div key={idx} className="flex flex-col sm:flex-row items-end gap-3 p-4 bg-muted/30 rounded-xl border border-border/50 relative group">
-                        <div className="flex-1 w-full space-y-3">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Field</label>
-                              <select 
-                                className="input-premium py-1.5 text-xs"
-                                value={cond.field}
-                                onChange={(e) => updateCondition(idx, 'field', e.target.value)}
-                              >
-                                {conditionFields.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Operator</label>
-                              <select 
-                                className="input-premium py-1.5 text-xs"
-                                value={cond.operator}
-                                onChange={(e) => updateCondition(idx, 'operator', e.target.value)}
-                              >
-                                {conditionOperators.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                              </select>
-                            </div>
-                          </div>
-                          {!['is_empty', 'is_not_empty'].includes(cond.operator) && (
-                            <div>
-                              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Value</label>
-                              <input 
-                                type="text" className="input-premium py-1.5 text-xs"
-                                placeholder="Enter value..."
-                                value={cond.value}
-                                onChange={(e) => updateCondition(idx, 'value', e.target.value)}
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <button 
-                          onClick={() => removeCondition(idx)}
-                          className="p-2.5 text-destructive hover:bg-destructive/10 rounded-lg transition-colors sm:mb-0.5"
-                        >
-                          <FaTrash size={12} />
-                        </button>
-                        {idx < form.conditions.length - 1 && (
-                          <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 z-10 px-2 py-0.5 bg-violet-500 text-[10px] font-bold text-white rounded-md shadow-sm">
-                            AND
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                <div>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Operator</label>
+                  <select 
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
+                    value={form.conditions[selectedNode.index].operator}
+                    onChange={(e) => updateCondition(selectedNode.index, 'operator', e.target.value)}
+                  >
+                    {conditionOperators.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                </div>
+                {!['is_empty', 'is_not_empty'].includes(form.conditions[selectedNode.index].operator) && (
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Value</label>
+                    <input 
+                      type="text" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
+                      value={form.conditions[selectedNode.index].value}
+                      onChange={(e) => updateCondition(selectedNode.index, 'value', e.target.value)}
+                    />
                   </div>
                 )}
               </div>
-            </section>
+            )}
 
-            {/* Step 3: Actions */}
-            <section className="bg-card rounded-2xl border border-border shadow-premium overflow-hidden">
-              <div className="px-6 py-4 bg-muted/30 border-b border-border flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                    <FaBolt />
+            {/* ACTION CONFIG */}
+            {selectedNode.type === 'action' && selectedNode.index !== null && (
+              <div className="space-y-6">
+                <p className="text-xs text-slate-500 italic">Configure step behaviors below</p>
+                
+                {form.actions[selectedNode.index].type === 'send_text_message' && (
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Message Content</label>
+                    <textarea 
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
+                      rows="4"
+                      value={form.actions[selectedNode.index].config.messageContent}
+                      onChange={(e) => updateActionConfig(selectedNode.index, { messageContent: e.target.value })}
+                    />
                   </div>
-                  <h2 className="font-bold text-foreground">3. Then execute these actions...</h2>
-                </div>
-              </div>
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {actionTypes.map(a => (
-                    <button
-                      key={a.value}
-                      type="button"
-                      onClick={() => addAction(a.value)}
-                      className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all group"
-                    >
-                      <a.icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                      <span className="text-[10px] font-bold uppercase text-center text-muted-foreground group-hover:text-primary transition-colors leading-tight">
-                        {a.label.split(' (')[0]}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                )}
 
-                <div className="space-y-4 pt-4 border-t border-border/50">
-                  {form.actions.length === 0 ? (
-                    <div className="text-center py-8">
-                      <p className="text-sm text-muted-foreground">No actions added yet.</p>
+                {form.actions[selectedNode.index].type === 'send_template_message' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Template</label>
+                      <select 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
+                        value={form.actions[selectedNode.index].config.templateId}
+                        onChange={(e) => updateActionConfig(selectedNode.index, { templateId: e.target.value })}
+                      >
+                        <option value="">Select template...</option>
+                        {templates.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                      </select>
                     </div>
-                  ) : (
-                    form.actions.map((action, idx) => (
-                      <div key={idx} className="p-5 bg-card border border-border rounded-2xl shadow-sm relative">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold">
-                              {idx + 1}
-                            </div>
-                            <h3 className="text-sm font-bold text-foreground uppercase tracking-wide">
-                              {actionTypes.find(a => a.value === action.type)?.label.split(' (')[0]}
-                            </h3>
-                          </div>
-                          <button onClick={() => removeAction(idx)} className="text-muted-foreground hover:text-destructive transition-colors">
-                            <FaTrash size={14} />
-                          </button>
-                        </div>
+                  </div>
+                )}
 
-                        <div className="space-y-4">
-                          {action.type === 'send_template_message' && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <label className="text-xs font-medium text-muted-foreground mb-1 block">Template</label>
-                                <select 
-                                  className="input-premium py-2 text-sm"
-                                  value={action.config.templateId}
-                                  onChange={(e) => updateActionConfig(idx, { templateId: e.target.value })}
-                                >
-                                  <option value="">Select a template...</option>
-                                  {templates.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-                                </select>
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-muted-foreground mb-1 block">Language</label>
-                                <input 
-                                  type="text" className="input-premium py-2 text-sm"
-                                  value={action.config.templateLanguage}
-                                  onChange={(e) => updateActionConfig(idx, { templateLanguage: e.target.value })}
-                                  placeholder="e.g., en"
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {action.type === 'send_text_message' && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground mb-1 block">Message Body</label>
-                              <textarea 
-                                className="input-premium py-2 text-sm" rows="3"
-                                value={action.config.messageContent}
-                                onChange={(e) => updateActionConfig(idx, { messageContent: e.target.value })}
-                                placeholder="Hi! How can we help you today?"
-                              />
-                              <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
-                                <FaExclamationTriangle /> This will only send if the 24-hour service window is open.
-                              </p>
-                            </div>
-                          )}
-
-                          {action.type === 'assign_conversation' && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground mb-1 block">Assignment Method</label>
-                              <select 
-                                className="input-premium py-2 text-sm"
-                                value={action.config.assignTo?.type}
-                                onChange={(e) => updateActionConfig(idx, { assignTo: { ...action.config.assignTo, type: e.target.value } })}
-                              >
-                                <option value="round_robin">Round Robin</option>
-                                <option value="least_busy">Least Busy Agent</option>
-                                <option value="agent">Specific Agent</option>
-                              </select>
-                            </div>
-                          )}
-
-                          {(action.type === 'add_tag' || action.type === 'remove_tag') && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground mb-1 block">Tag Name</label>
-                              <input 
-                                type="text" className="input-premium py-2 text-sm"
-                                value={action.config.tagName}
-                                onChange={(e) => updateActionConfig(idx, { tagName: e.target.value })}
-                                placeholder="e.g., Lead, Support, Urgent"
-                              />
-                            </div>
-                          )}
-
-                          {action.type === 'delay' && (
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs text-muted-foreground">Wait for</span>
-                              <input 
-                                type="number" className="input-premium py-1.5 px-3 text-xs w-24"
-                                value={action.config.delayMinutes}
-                                onChange={(e) => updateActionConfig(idx, { delayMinutes: parseInt(e.target.value) })}
-                              />
-                              <span className="text-xs text-muted-foreground">minutes before next action</span>
-                            </div>
-                          )}
-
-                          {action.type === 'notify_webhook' && (
-                            <div>
-                              <label className="text-xs font-medium text-muted-foreground mb-1 block">Webhook URL</label>
-                              <input 
-                                type="url" className="input-premium py-2 text-sm"
-                                value={action.config.webhookUrl}
-                                onChange={(e) => updateActionConfig(idx, { webhookUrl: e.target.value })}
-                                placeholder="https://your-api.com/webhook"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                {form.actions[selectedNode.index].type === 'save_response' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Save As</label>
+                      <select 
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
+                        value={form.actions[selectedNode.index].config.saveAs?.type}
+                        onChange={(e) => updateActionConfig(selectedNode.index, { saveAs: { ...form.actions[selectedNode.index].config.saveAs, type: e.target.value } })}
+                      >
+                        <option value="trait">User Trait (Persistent)</option>
+                        <option value="variable">Variables (Temporary)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Name</label>
+                      <input 
+                        type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                        placeholder="e.g., favorite_color"
+                        value={form.actions[selectedNode.index].config.saveAs?.name}
+                        onChange={(e) => updateActionConfig(selectedNode.index, { saveAs: { ...form.actions[selectedNode.index].config.saveAs, name: e.target.value } })}
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {/* Fallback for other types */}
+                {!['send_text_message', 'send_template_message', 'save_response'].includes(form.actions[selectedNode.index].type) && (
+                  <div className="text-center py-8 text-slate-400 italic text-sm">
+                    Additional settings for {form.actions[selectedNode.index].type} coming soon.
+                  </div>
+                )}
               </div>
-            </section>
-          </div>
+            )}
+          </section>
 
-          {/* Sidebar Settings */}
-          <div className="space-y-8">
-            <section className="bg-card rounded-2xl border border-border shadow-premium p-6">
-              <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Workflow Info</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Workflow Name *</label>
-                  <input 
-                    type="text" className="input-premium py-2 text-sm"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g., Welcome New Leads"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Description</label>
-                  <textarea 
-                    className="input-premium py-2 text-sm" rows="3"
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    placeholder="Explain what this workflow does..."
-                  />
-                </div>
-                <div className="flex items-center gap-2 pt-2">
-                  <input 
-                    type="checkbox" id="enabled" 
-                    checked={form.enabled}
-                    onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
-                    className="w-4 h-4 rounded text-primary focus:ring-primary border-border"
-                  />
-                  <label htmlFor="enabled" className="text-sm font-medium text-foreground">Workflow Enabled</label>
-                </div>
+          {/* Rate Limit Settings (Always visible at bottom of sidebar) */}
+          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Limits & Safety</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[9px] font-bold text-slate-400 block mb-1">Max/Hr</label>
+                <input 
+                  type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold"
+                  value={form.rateLimit.maxExecutions}
+                  onChange={(e) => setForm({ ...form, rateLimit: { ...form.rateLimit, maxExecutions: parseInt(e.target.value) }})}
+                />
               </div>
-            </section>
-
-            <section className="bg-card rounded-2xl border border-border shadow-premium p-6">
-              <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider">Safety & Limits</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Max Executions / Hour</label>
-                  <input 
-                    type="number" className="input-premium py-2 text-sm"
-                    value={form.rateLimit.maxExecutions}
-                    onChange={(e) => setForm({ ...form, rateLimit: { ...form.rateLimit, maxExecutions: parseInt(e.target.value) } })}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Contact Cooldown (sec)</label>
-                  <input 
-                    type="number" className="input-premium py-2 text-sm"
-                    value={form.rateLimit.perContactCooldown}
-                    onChange={(e) => setForm({ ...form, rateLimit: { ...form.rateLimit, perContactCooldown: parseInt(e.target.value) } })}
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">Prevents same contact from triggering this rule too often.</p>
-                </div>
+              <div>
+                <label className="text-[9px] font-bold text-slate-400 block mb-1">Cooldown (s)</label>
+                <input 
+                  type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold"
+                  value={form.rateLimit.perContactCooldown}
+                  onChange={(e) => setForm({ ...form, rateLimit: { ...form.rateLimit, perContactCooldown: parseInt(e.target.value) }})}
+                />
               </div>
-            </section>
-
-            <div className="p-4 bg-primary/5 border border-primary/20 rounded-2xl">
-              <h4 className="text-xs font-bold text-primary mb-2 flex items-center gap-2">
-                <FaRobot /> Automation Tip
-              </h4>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Use <b>Conditions</b> to segment your customers. For example, add a tag 'New Lead' only if they haven't contacted you in the last 30 days.
-              </p>
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </div>
   );
+
 }

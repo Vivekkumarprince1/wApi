@@ -56,16 +56,7 @@ router.put('/verification-requests/:workspaceId', updateVerificationStatus);
 router.post('/workspaces/:workspaceId/activate-whatsapp', manuallyActivateWhatsApp);
 router.post('/reinitialize-waba', reinitializeAllWABA);
 
-// ==================
-// TEAM MANAGEMENT (Week 2)
-// ==================
-const teamController = require('../../controllers/workspace/teamController');
-
-router.get('/team/members', teamController.listTeamMembers);
-router.post('/team/invite', teamController.inviteTeamMember);
-router.put('/team/members/:memberId/role', teamController.updateMemberRole);
-router.delete('/team/members/:memberId', teamController.removeTeamMember);
-router.get('/team/permissions', teamController.getPermissionsMatrix);
+// TEAM MANAGEMENT is now handled by /api/v1/team/ routes
 
 // ==================
 // HEALTH & ANALYTICS
