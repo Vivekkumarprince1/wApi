@@ -20,3 +20,27 @@ export const getContactStats = async () => {
 export const deleteContact = async (contactId) => {
   return del(`/contacts/${contactId}`);
 };
+
+export const getContact = async (contactId) => {
+  return get(`/contacts/${contactId}`);
+};
+
+export const updateContact = async (contactId, data) => {
+  return put(`/contacts/${contactId}`, data);
+};
+
+export const getContactSettings = async () => {
+  return get('/contact-settings');
+};
+
+export const updateContactSettings = async (data) => {
+  return put('/contact-settings', data);
+};
+
+export const getContactEvents = async (contactId, limit = 50) => {
+  return get(`/contact-settings/${contactId}/events?limit=${limit}`);
+};
+
+export const logContactEvent = async (contactId, data) => {
+  return post(`/contact-settings/${contactId}/events`, data);
+};

@@ -5,7 +5,7 @@ import {
   FaHome,
   FaInbox,
   FaBullhorn,
-  FaAddressBook,
+  FaAddressBook, FaAddressCard,
   FaStore,
   FaHeadset,
   FaCogs,
@@ -41,7 +41,7 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
   const [openSalesCRM, setOpenSalesCRM] = useState(false);
   const [openWhatsAppCommerce, setOpenWhatsAppCommerce] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  
+
   const { user, stage1Complete, loading } = useAuth();
   const userRole = user?.role || null;
   const loadingRole = loading;
@@ -99,15 +99,15 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
           <div className="mb-6">
             <div
               className={`group flex items-center gap-3 px-3 py-3 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard') && !currentPath?.includes('/dashboard/')
-                  ? 'bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white shadow-lg scale-105'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:scale-105 hover:shadow-md'
+                ? 'bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white shadow-lg scale-105'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 hover:scale-105 hover:shadow-md'
                 }`}
               onClick={() => navigate("/dashboard")}
               title="Dashboard"
             >
               <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all ${isActive('/dashboard') && !currentPath?.includes('/dashboard/')
-                  ? 'bg-white/20'
-                  : 'bg-gradient-to-br from-[#13C18D]/10 to-[#0e8c6c]/10'
+                ? 'bg-white/20'
+                : 'bg-gradient-to-br from-[#13C18D]/10 to-[#0e8c6c]/10'
                 }`}>
                 <FaHome className={`text-lg ${isActive('/dashboard') && !currentPath?.includes('/dashboard/') ? 'text-white' : 'text-[#13C18D]'}`} />
               </div>
@@ -132,15 +132,15 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
           {/* Inbox */}
           <div
             className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer mb-2 transition-all duration-200 ${isActive('/dashboard/inbox')
-                ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
-                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+              ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
               }`}
             onClick={() => navigate("/dashboard/inbox")}
             title="Inbox"
           >
             <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/inbox')
-                ? 'bg-white/20'
-                : 'bg-gradient-to-br from-blue-500/10 to-blue-600/10'
+              ? 'bg-white/20'
+              : 'bg-gradient-to-br from-blue-500/10 to-blue-600/10'
               }`}>
               <FaInbox className={`${isActive('/dashboard/inbox') ? 'text-white' : 'text-blue-600 dark:text-blue-400'}`} />
             </div>
@@ -152,15 +152,15 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {/* Campaigns */}
             <div
               className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard/campaign')
-                  ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+                ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
                 }`}
               onClick={() => navigate("/dashboard/campaign")}
               title="Campaigns"
             >
               <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/campaign')
-                  ? 'bg-white/20'
-                  : 'bg-gradient-to-br from-purple-500/10 to-purple-600/10'
+                ? 'bg-white/20'
+                : 'bg-gradient-to-br from-purple-500/10 to-purple-600/10'
                 }`}>
                 <FaBullhorn className={`${isActive('/dashboard/campaign') ? 'text-white' : 'text-purple-600 dark:text-purple-400'}`} />
               </div>
@@ -170,15 +170,15 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {/* Contacts */}
             <div
               className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard/contacts')
-                  ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+                ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
                 }`}
               onClick={() => navigate("/dashboard/contacts")}
               title="Contacts"
             >
               <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/contacts')
-                  ? 'bg-white/20'
-                  : 'bg-gradient-to-br from-orange-500/10 to-orange-600/10'
+                ? 'bg-white/20'
+                : 'bg-gradient-to-br from-orange-500/10 to-orange-600/10'
                 }`}>
                 <FaAddressBook className={`${isActive('/dashboard/contacts') ? 'text-white' : 'text-orange-600 dark:text-orange-400'}`} />
               </div>
@@ -188,15 +188,15 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {/* Ads */}
             <div
               className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard/ads')
-                  ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+                ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
                 }`}
               onClick={() => navigate("/dashboard/ads")}
               title="Ads"
             >
               <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/ads')
-                  ? 'bg-white/20'
-                  : 'bg-gradient-to-br from-teal-500/10 to-teal-600/10'
+                ? 'bg-white/20'
+                : 'bg-gradient-to-br from-teal-500/10 to-teal-600/10'
                 }`}>
                 <FaChartBar className={`${isActive('/dashboard/ads') ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
               </div>
@@ -212,8 +212,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
               )}
               <div
                 className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openMarket
-                    ? 'bg-gray-100 dark:bg-gray-700/50'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                  ? 'bg-gray-100 dark:bg-gray-700/50'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
                   }`}
                 onClick={() => setOpenMarket(!openMarket)}
                 title="Market"
@@ -236,8 +236,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
               <div className="ml-6 mb-4 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
                 <div
                   className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${isActive('/dashboard/templates')
-                      ? 'bg-[#13C18D]/10 text-[#13C18D] dark:text-[#13C18D] font-medium'
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+                    ? 'bg-[#13C18D]/10 text-[#13C18D] dark:text-[#13C18D] font-medium'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
                     }`}
                   onClick={() => navigate("/dashboard/templates")}
                 >
@@ -246,8 +246,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
                 </div>
                 <div
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/campaign') && currentPath === '/campaign'
-                      ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium'
-                      : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
+                    ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium'
+                    : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'
                     }`}
                   onClick={() => navigate("/dashboard/campaign")}
                 >
@@ -267,8 +267,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {/* Support */}
             <div
               className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openSupport
-                  ? 'bg-gray-100 dark:bg-gray-700/50'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                ? 'bg-gray-100 dark:bg-gray-700/50'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
                 }`}
               onClick={() => setOpenSupport(!openSupport)}
               title="Support"
@@ -306,8 +306,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {/* Automation */}
             <div
               className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openAutomation
-                  ? 'bg-gray-100 dark:bg-gray-700/50'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                ? 'bg-gray-100 dark:bg-gray-700/50'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
                 }`}
               onClick={() => setOpenAutomation(!openAutomation)}
               title="Automation"
@@ -351,8 +351,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {/* Sales CRM */}
             <div
               className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openSalesCRM
-                  ? 'bg-gray-100 dark:bg-gray-700/50'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                ? 'bg-gray-100 dark:bg-gray-700/50'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
                 }`}
               onClick={() => setOpenSalesCRM(!openSalesCRM)}
               title="Sales CRM"
@@ -394,8 +394,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {/* WhatsApp Commerce */}
             <div
               className={`group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${openWhatsAppCommerce
-                  ? 'bg-gray-100 dark:bg-gray-700/50'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                ? 'bg-gray-100 dark:bg-gray-700/50'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50'
                 }`}
               onClick={() => setOpenWhatsAppCommerce(!openWhatsAppCommerce)}
               title="WhatsApp Commerce"
@@ -448,15 +448,15 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {/* Integrations */}
             <div
               className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/integrations')
-                  ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+                ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
                 }`}
               onClick={() => navigate("/integrations")}
               title="Integrations"
             >
               <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/integrations')
-                  ? 'bg-white/20'
-                  : 'bg-gradient-to-br from-red-500/10 to-red-600/10'
+                ? 'bg-white/20'
+                : 'bg-gradient-to-br from-red-500/10 to-red-600/10'
                 }`}>
                 <FaPuzzlePiece className={`${isActive('/integrations') ? 'text-white' : 'text-red-600 dark:text-red-400'}`} />
               </div>
@@ -466,52 +466,36 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {/* Widget */}
             <div
               className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/widget')
-                  ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+                ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
                 }`}
               onClick={() => navigate("/widget")}
               title="Widget"
             >
               <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/widget')
-                  ? 'bg-white/20'
-                  : 'bg-gradient-to-br from-teal-500/10 to-teal-600/10'
+                ? 'bg-white/20'
+                : 'bg-gradient-to-br from-teal-500/10 to-teal-600/10'
                 }`}>
                 <FaThLarge className={`${isActive('/widget') ? 'text-white' : 'text-teal-600 dark:text-teal-400'}`} />
               </div>
               {isHovered && <span className={`font-medium text-sm ${isActive('/widget') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Widget</span>}
             </div>
-            
-            {/* Developer Settings */}
-            <div
-              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard/settings/developer')
-                  ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
-                }`}
-              onClick={() => navigate("/dashboard/settings/developer")}
-              title="Developer Settings"
-            >
-              <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/settings/developer')
-                  ? 'bg-white/20'
-                  : 'bg-gradient-to-br from-indigo-500/10 to-indigo-600/10'
-                }`}>
-                <FaCode className={`${isActive('/dashboard/settings/developer') ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
-              </div>
-              {isHovered && <span className={`font-medium text-sm ${isActive('/dashboard/settings/developer') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Developer</span>}
-            </div>
+
+
 
             {/* Team Management - Only for owners, admins and managers */}
             {!loadingRole && (userRole === 'owner' || userRole === 'admin' || userRole === 'manager') && (
               <div
                 className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard/settings/teams')
-                    ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+                  ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
                   }`}
                 onClick={() => navigate('/dashboard/settings/teams')}
                 title="Team Management"
               >
                 <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/dashboard/settings/teams')
-                    ? 'bg-white/20'
-                    : 'bg-gradient-to-br from-violet-500/10 to-violet-600/10'
+                  ? 'bg-white/20'
+                  : 'bg-gradient-to-br from-violet-500/10 to-violet-600/10'
                   }`}>
                   <FaUsers className={`${isActive('/dashboard/settings/teams') ? 'text-white' : 'text-violet-600 dark:text-violet-400'}`} />
                 </div>
@@ -523,8 +507,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             {!loadingRole && userRole === 'admin' && (
               <div
                 className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${isActive('/admin')
-                    ? 'bg-teal-700 dark:bg-teal-600 text-white'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  ? 'bg-teal-700 dark:bg-teal-600 text-white'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 onClick={() => navigate('/admin')}
                 title="Admin Dashboard"

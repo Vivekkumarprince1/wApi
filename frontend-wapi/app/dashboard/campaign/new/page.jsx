@@ -20,7 +20,8 @@ const STEPS = [
   { id: 2, label: 'Choose Audience', icon: Users },
   { id: 3, label: 'Create Message', icon: Send },
   { id: 4, label: 'Schedule', icon: Clock },
-  { id: 5, label: 'Review & Launch', icon: Rocket },
+  { id: 5, label: 'Optimization', icon: Zap },
+  { id: 6, label: 'Review & Launch', icon: Rocket },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -88,6 +89,19 @@ function CampaignWizard() {
     scheduleType: 'now',
     scheduleDate: '',
     scheduleTime: '',
+    // Delivery Optimization
+    deliveryOptimization: {
+      enabled: false,
+      type: 'NONE', // 'NONE' | 'RCS_FALLBACK' | 'AUTOMATED_RETRY'
+      rcsConfig: {
+        templateId: '',
+        mapping: {}
+      },
+      retryConfig: {
+        maxAttempts: 1,
+        retryDelayHours: 24
+      }
+    }
   });
 
   // ─── Loaded Data ───────────────────────────────────────────────────────────
@@ -259,7 +273,8 @@ function CampaignWizard() {
           return !!(campaignData.scheduleDate && campaignData.scheduleTime);
         }
         return true;
-      case 5: return true;
+      case 5: return true; // Optimization is optional by default
+      case 6: return true;
       default: return true;
     }
   };
@@ -317,6 +332,8 @@ function CampaignWizard() {
         ...(campaignData.scheduleType === 'later' && {
           scheduledAt: new Date(`${campaignData.scheduleDate}T${campaignData.scheduleTime}`).toISOString()
         }),
+        // Delivery Optimization
+        deliveryOptimization: campaignData.deliveryOptimization
       };
 
       const result = await post('/campaigns', payload);
@@ -811,9 +828,146 @@ function CampaignWizard() {
   );
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STEP 5: REVIEW & LAUNCH
+  // STEP 5: DELIVERY OPTIMIZATION
   // ═══════════════════════════════════════════════════════════════════════════
   const renderStep5 = () => (
+    <div className="space-y-6 animate-fade-in-up">
+      <div className={`p-6 rounded-2xl border-2 transition-all duration-300 ${
+        campaignData.deliveryOptimization.enabled 
+          ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' 
+          : 'border-border bg-card'
+      }`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              campaignData.deliveryOptimization.enabled ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+            }`}>
+              <Zap className="h-6 w-6" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-foreground">Delivery Optimization</h3>
+              <p className="text-xs text-muted-foreground">Maximize your reach with automated failover and retries.</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setCampaignData(d => ({
+              ...d,
+              deliveryOptimization: { ...d.deliveryOptimization, enabled: !d.deliveryOptimization.enabled }
+            }))}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+              campaignData.deliveryOptimization.enabled ? 'bg-emerald-500' : 'bg-muted'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              campaignData.deliveryOptimization.enabled ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
+
+        {campaignData.deliveryOptimization.enabled && (
+          <div className="space-y-6 pt-4 border-t border-border/50 animate-fade-in">
+            <label className="block text-sm font-bold text-foreground mb-3">Optimization Method</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {[
+                { 
+                  value: 'AUTOMATED_RETRY', 
+                  label: 'Automated Retry', 
+                  desc: 'Retry via WhatsApp after 24h if Frequency Cap (131051) error occurs.',
+                  icon: Clock
+                },
+                { 
+                  value: 'RCS_FALLBACK', 
+                  label: 'RCS Fallback', 
+                  desc: 'Send via RCS channel if WhatsApp delivery fails for any reason.',
+                  icon: Rocket
+                },
+              ].map(opt => {
+                const isSelected = campaignData.deliveryOptimization.type === opt.value;
+                const Icon = opt.icon;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setCampaignData(d => ({
+                      ...d,
+                      deliveryOptimization: { ...d.deliveryOptimization, type: opt.value }
+                    }))}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      isSelected 
+                        ? 'border-primary bg-primary/10 shadow-sm' 
+                        : 'border-border hover:border-primary/30 bg-card'
+                    }`}
+                  >
+                    <div className="flex flex-col gap-2">
+                       <div className="flex items-center justify-between">
+                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                           <Icon className="h-4 w-4" />
+                         </div>
+                         {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                       </div>
+                       <div className="font-bold text-sm">{opt.label}</div>
+                       <div className="text-[11px] text-muted-foreground leading-relaxed">{opt.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {campaignData.deliveryOptimization.type === 'AUTOMATED_RETRY' && (
+              <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl flex items-start gap-3">
+                <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-blue-700 dark:text-blue-300">
+                  <p className="font-bold mb-1">How it works:</p>
+                  <p>Meta enforces frequency caps. If hit, we wait 24 hours and retry sending the same message automatically. This is ideal for high-volume marketing campaigns.</p>
+                </div>
+              </div>
+            )}
+
+            {campaignData.deliveryOptimization.type === 'RCS_FALLBACK' && (
+              <div className="space-y-4 animate-fade-in-up">
+                 <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex items-start gap-3">
+                  <Rocket className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-xs text-emerald-700 dark:text-emerald-300">
+                    <p className="font-bold mb-1">Unified Reach:</p>
+                    <p>If WhatsApp is unavailable on the recipient's phone, we'll fallback to RCS (Rich Communication Services) automatically using your connected Jio/Carrier channel.</p>
+                  </div>
+                </div>
+                
+                {/* RCS Template Mapping Simplified */}
+                <div className="bg-card border border-border rounded-xl p-4">
+                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">RCS Template Mapping</h4>
+                  <p className="text-[11px] text-muted-foreground mb-4">Select an RCS template to use for fallback. Variables will be mapped automatically based on your WhatsApp template selection.</p>
+                  <select className="input-premium text-sm w-full">
+                    <option>Auto-map from WhatsApp Template (Standard)</option>
+                    <option disabled>Custom RCS Template (Advanced+ Plans)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+              <p className="text-[11px] text-amber-700 dark:text-amber-300 italic">
+                Note: Delivery optimization requires a pre-paid wallet balance. Credits will be "parked" when the campaign starts.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {!campaignData.deliveryOptimization.enabled && (
+        <div className="bg-muted/30 border border-dashed border-border rounded-2xl p-10 text-center">
+            <Zap className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm font-medium text-muted-foreground">Delivery optimization is disabled for this campaign.</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">Standard WhatsApp delivery logic will be applied.</p>
+        </div>
+      )}
+    </div>
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STEP 6: REVIEW & LAUNCH
+  // ═══════════════════════════════════════════════════════════════════════════
+  const renderStep6 = () => (
     <div className="space-y-6 animate-fade-in-up">
       <div className="bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20 rounded-2xl p-6 space-y-5">
         <h3 className="text-lg font-bold text-foreground flex items-center gap-2">
@@ -827,6 +981,13 @@ function CampaignWizard() {
             { label: 'Recipients', value: `${audienceCount} contact${audienceCount !== 1 ? 's' : ''} (${campaignData.audienceMode === 'all' ? 'All Contacts' : campaignData.audienceMode === 'tags' ? 'Filtered by Tags' : 'CSV Upload'})`, icon: Users },
             { label: 'Template', value: selectedTemplate?.name || 'Not selected', icon: FileText },
             { label: 'Schedule', value: campaignData.scheduleType === 'now' ? 'Send immediately' : `${campaignData.scheduleDate} at ${campaignData.scheduleTime}`, icon: Clock },
+            { 
+              label: 'Optimization', 
+              value: campaignData.deliveryOptimization.enabled 
+                ? (campaignData.deliveryOptimization.type === 'RCS_FALLBACK' ? 'RCS Fallback Enabled' : 'Automated Retries Enabled')
+                : 'Disabled', 
+              icon: Zap 
+            },
           ].map((item, i) => {
             const Icon = item.icon;
             return (
@@ -944,7 +1105,8 @@ function CampaignWizard() {
               {step === 2 && 'Choose who will receive this campaign'}
               {step === 3 && 'Select an approved template and map variables'}
               {step === 4 && 'Choose when to send your campaign'}
-              {step === 5 && 'Review everything and launch your campaign'}
+              {step === 5 && 'Configure fallback and retry strategies'}
+              {step === 6 && 'Review everything and launch your campaign'}
             </p>
           </div>
 
@@ -954,6 +1116,7 @@ function CampaignWizard() {
           {step === 3 && renderStep3()}
           {step === 4 && renderStep4()}
           {step === 5 && renderStep5()}
+          {step === 6 && renderStep6()}
 
           {/* Navigation */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
@@ -965,9 +1128,9 @@ function CampaignWizard() {
               ← Back
             </button>
 
-            {step < 5 ? (
+            {step < 6 ? (
               <button
-                onClick={() => setStep(s => Math.min(5, s + 1))}
+                onClick={() => setStep(s => Math.min(6, s + 1))}
                 disabled={!isStepValid(step)}
                 className="btn-primary px-7 py-2.5 text-sm font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >

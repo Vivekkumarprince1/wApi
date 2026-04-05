@@ -161,4 +161,53 @@ router.get('/orders', getOrders);
  */
 router.get('/stats', getCheckoutStats);
 
+/**
+ * @route   PUT /api/v1/checkout-bot/orders/:orderId/status
+ * @desc    Update order status (pending → confirmed → processing → shipped → delivered)
+ * @access  Private
+ * @param   {string} orderId - Order ID
+ * @body    {string} status - New status to apply
+ * @returns {object} Updated order
+ */
+router.put('/orders/:orderId/status', async (req, res, next) => {
+  try {
+    const { Order } = require('../../models');
+    const mongoose = require('mongoose');
+    const workspaceId = req.user.workspace;
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(orderId)) {
+      return res.status(400).json({ message: 'Invalid orderId' });
+    }
+
+    if (!status) {
+      return res.status(400).json({ message: 'status is required' });
+    }
+
+    const order = await Order.findOne({ _id: orderId, workspaceId });
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    try {
+      order.updateStatus(status);
+    } catch (transitionError) {
+      return res.status(400).json({
+        message: transitionError.message
+      });
+    }
+
+    await order.save();
+
+    res.json({
+      success: true,
+      message: `Order status updated to ${status}`,
+      order
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;

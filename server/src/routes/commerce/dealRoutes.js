@@ -25,7 +25,7 @@ router.post(
   [
     body('contactId').notEmpty().withMessage('Contact ID is required'),
     body('pipelineId').notEmpty().withMessage('Pipeline ID is required'),
-    body('title').notEmpty().withMessage('Deal title is required')
+    body('title').optional().isString().withMessage('Deal title must be a string')
   ],
   validate,
   createDeal

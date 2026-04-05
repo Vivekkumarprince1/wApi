@@ -203,11 +203,11 @@ const generateEmbedScript = async (workspaceId) => {
       text: '${config.color.text}'
     },
     greeting: {
-      text: '${this._escapeString(config.greeting.text)}',
-      subtext: '${this._escapeString(config.greeting.subtext || '')}',
+      text: '${_escapeString(config.greeting.text)}',
+      subtext: '${_escapeString(config.greeting.subtext || '')}',
       enabled: ${config.greeting.enabled}
     },
-    defaultMessage: '${this._escapeString(config.defaultMessage)}',
+    defaultMessage: '${_escapeString(config.defaultMessage)}',
     conversation: {
       showHistory: ${config.conversation.showHistory},
       autoCloseAfter: ${config.conversation.autoCloseAfter},
@@ -217,12 +217,12 @@ const generateEmbedScript = async (workspaceId) => {
     },
     behavior: {
       showByDefault: ${config.behavior.showByDefault},
-      buttonLabel: '${this._escapeString(config.behavior.buttonLabel)}',
+      buttonLabel: '${_escapeString(config.behavior.buttonLabel)}',
       delayBeforeShow: ${config.behavior.delayBeforeShow}
     },
     attribution: {
       enabled: ${config.attribution.enabled},
-      customText: '${this._escapeString(config.attribution.customText || '')}'
+      customText: '${_escapeString(config.attribution.customText || '')}'
     }
   };
 
@@ -265,7 +265,7 @@ const generateEmbedScript = async (workspaceId) => {
 `.trim();
 
     // Minify (basic minification)
-    const minified = this._minifyScript(embedScript);
+    const minified = _minifyScript(embedScript);
 
     return minified;
   } catch (error) {
@@ -370,12 +370,13 @@ const setWidgetStatus = async (workspaceId, enabled, userId) => {
       config = new WidgetConfig({ workspace: workspaceId });
     }
 
+    // Clear cache on enable/disable
+    const wasEnabled = config.enabled;
     config.enabled = enabled;
     config.updatedBy = userId;
     config.updatedAt = new Date();
 
-    // Clear cache on enable/disable
-    if (enabled !== config.enabled) {
+    if (enabled !== wasEnabled) {
       await config.clearCache();
     }
 

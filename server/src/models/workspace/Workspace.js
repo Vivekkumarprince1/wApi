@@ -501,6 +501,20 @@ const WorkspaceSchema = new mongoose.Schema({
     blockIssuedAt: { type: Date }
   },
 
+  /**
+   * ═══════════════════════════════════════════════════════════════════
+   * PRE-PAID WALLET (For RCS, SMS & Automated Retries)
+   * ═══════════════════════════════════════════════════════════════════
+   */
+  wallet: {
+    balance: { type: Number, default: 0 },         // Available credits (Pre-paid)
+    parkedBalance: { type: Number, default: 0 },   // Credits reserved for active campaigns
+    currency: { type: String, default: 'INR' },
+    lastRechargeAt: { type: Date },
+    lowBalanceAlertAt: { type: Date },
+    thresholdAmount: { type: Number, default: 500 } // Alert when balance < this
+  },
+
   subscription: {
     status: {
       type: String,

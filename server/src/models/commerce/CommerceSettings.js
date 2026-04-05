@@ -121,13 +121,37 @@ const CommerceSettingsSchema = new mongoose.Schema({
   
   // Business Settings
   business: {
+    storeName: { type: String },
+    logoUrl: { type: String },
+    contactEmail: { type: String },
+    contactPhone: { type: String },
+    address: { type: String },
     storeDescription: { type: String },
-    returnPolicy: { type: String },
-    cancellationPolicy: { type: String },
-    privacyPolicy: { type: String },
-    termsConditions: { type: String }
+    policies: {
+      returnPolicy: { type: String },
+      cancellationPolicy: { type: String },
+      shippingPolicy: { type: String },
+      privacyPolicy: { type: String },
+      termsConditions: { type: String }
+    }
   },
   
+  // Checkout Bot Configuration
+  checkoutBot: {
+    templates: {
+      welcome: { type: String },
+      catalog: { type: String },
+      orderStatus: { type: String },
+      cartRecovery: { type: String }
+    },
+    triggers: {
+      welcome: { type: Boolean, default: true },
+      catalog: { type: Boolean, default: true },
+      order: { type: Boolean, default: true },
+      recovery: { type: Boolean, default: true }
+    }
+  },
+
   // Integration & API
   webhookUrl: { type: String },
   apiKeysEnabled: { type: Boolean, default: false },

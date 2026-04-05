@@ -5,6 +5,16 @@ const ContactSchema = new mongoose.Schema({
   name: { type: String },
   phone: { type: String, required: true },
   tags: [String],
+  
+  // Custom Fields (Unlimited key-value pairs)
+  customFields: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
+  
+  // Lead status mapping for CRM Pipeline
+  leadStatus: { 
+    type: String, 
+    default: 'new' // Typically: new, open, qualified, unqualified
+  },
+
   metadata: { 
     type: Object, 
     default: {},

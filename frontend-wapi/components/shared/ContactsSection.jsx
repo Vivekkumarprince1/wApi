@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FaAddressBook, FaDownload, FaPlus, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaAddressBook, FaDownload, FaPlus, FaSearch, FaFilter, FaTags, FaUserTag } from 'react-icons/fa';
 import CreateContactModal from '@/components/modals/CreateContactModal';
 import ContactDetailModal from '@/components/modals/ContactDetailModal';
 import AddToPipelineModal from '@/components/modals/AddToPipelineModal';
-import { fetchContacts, uploadContacts, get } from '@/lib/api';
+import { fetchContacts, uploadContacts, get, getContactSettings } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import PageHeader from './PageHeader';
 
@@ -19,12 +19,21 @@ const ContactsSection = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isAddToPipelineModalOpen, setIsAddToPipelineModalOpen] = useState(false);
 
+  // Dynamic Contact Settings
+  const [settings, setSettings] = useState(null);
+  const [selectedTag, setSelectedTag] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+
   // Fetch contacts from backend
   const loadContacts = async () => {
     setLoading(true);
     try {
-      const res = await fetchContacts();
-      setContacts(res.data || []);
+      const [contRes, settRes] = await Promise.all([
+        fetchContacts(),
+        getContactSettings()
+      ]);
+      setContacts(contRes.data || []);
+      setSettings(settRes.data || null);
     } catch (err) {
       setContacts([]);
     }
@@ -87,18 +96,30 @@ const ContactsSection = () => {
   const filteredContacts = contacts.filter(c => {
     // Filter by search term
     const term = searchTerm.toLowerCase();
-    const matches =
-      (c.firstName && c.firstName.toLowerCase().includes(term)) ||
-      (c.lastName && c.lastName.toLowerCase().includes(term)) ||
+    const matchesSearch =
+      ((c.firstName || c.metadata?.firstName) && (c.firstName || c.metadata.firstName).toLowerCase().includes(term)) ||
+      ((c.lastName || c.metadata?.lastName) && (c.lastName || c.metadata.lastName).toLowerCase().includes(term)) ||
       (c.phone && c.phone.toLowerCase().includes(term)) ||
-      (c.email && c.email.toLowerCase().includes(term));
-    // Filter by filter dropdown
+      ((c.email || c.metadata?.email) && (c.email || c.metadata.email).toLowerCase().includes(term));
+
+    let matchesFilter = true;
     if (filter === 'withEmail') {
-      return matches && c.email;
+      matchesFilter = !!(c.email || c.metadata?.email);
     } else if (filter === 'withoutEmail') {
-      return matches && !c.email;
+      matchesFilter = !(c.email || c.metadata?.email);
     }
-    return matches;
+
+    let matchesStatus = true;
+    if (selectedStatus) {
+      matchesStatus = c.status === selectedStatus;
+    }
+
+    let matchesTag = true;
+    if (selectedTag) {
+      matchesTag = c.tags?.includes(selectedTag);
+    }
+
+    return matchesSearch && matchesFilter && matchesStatus && matchesTag;
   });
 
   return (
@@ -108,10 +129,40 @@ const ContactsSection = () => {
         title="Contacts"
         subtitle="Manage your customer database"
         extra={
-          <button 
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
+          <div className="flex gap-3">
+            <button 
+              onClick={async () => {
+                try {
+                  const { getAuthHeaders, API_URL } = require('@/lib/api/client');
+                  const response = await fetch(`${API_URL}/contacts/export`, {
+                    headers: getAuthHeaders(),
+                  });
+                  if (!response.ok) throw new Error('Failed to export contacts');
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `contacts_export.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  window.URL.revokeObjectURL(url);
+                  toast?.success?.('Contacts exported successfully!');
+                } catch (err) {
+                  toast?.error?.('Export failed: ' + err.message);
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+              title="Export Contacts as CSV"
+            >
+              <FaDownload className="text-sm" />
+              <span>Export</span>
+            </button>
+
+            <button 
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
               input.accept = '.csv';
               input.onchange = (e) => {
                 const file = e.target.files[0];
@@ -159,6 +210,7 @@ const ContactsSection = () => {
             <FaDownload className="text-sm" />
             <span className="font-medium">Import</span>
           </button>
+          </div>
         }
         actions={
           <button 
@@ -187,12 +239,42 @@ const ContactsSection = () => {
               />
             </div>
             {/* Filter Dropdown */}
+            {settings?.leadStatuses && (
+              <div className="relative">
+                <select
+                  value={selectedStatus}
+                  onChange={e => setSelectedStatus(e.target.value)}
+                  className="py-2.5 pl-4 pr-8 border border-border rounded-xl bg-white dark:bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent appearance-none"
+                >
+                  <option value="">All Statuses</option>
+                  {settings.leadStatuses.map((s, idx) => (
+                    <option key={idx} value={s.key}>{s.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {settings?.tagsOptions && (
+              <div className="relative">
+                <select
+                  value={selectedTag}
+                  onChange={e => setSelectedTag(e.target.value)}
+                  className="py-2.5 pl-4 pr-8 border border-border rounded-xl bg-white dark:bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent appearance-none"
+                >
+                  <option value="">All Tags</option>
+                  {settings.tagsOptions.map((t, idx) => (
+                    <option key={idx} value={t.key}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <select
               value={filter}
               onChange={e => setFilter(e.target.value)}
-              className="py-2.5 px-4 border border-border rounded-xl bg-white dark:bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent"
+              className="py-2.5 pl-4 pr-8 border border-border rounded-xl bg-white dark:bg-muted text-foreground focus:outline-none focus:ring-2 focus:ring-[#13C18D] focus:border-transparent appearance-none"
             >
-              <option value="all">All Contacts</option>
+              <option value="all">Any Email Status</option>
               <option value="withEmail">With Email</option>
               <option value="withoutEmail">Without Email</option>
             </select>
@@ -270,14 +352,16 @@ const ContactsSection = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Tags</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Created</th>
                 </tr>
               </thead>
               <tbody className="bg-card divide-y divide-border">
                 {loading ? (
-                  <tr><td colSpan={4} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
+                  <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
                 ) : filteredContacts.length === 0 ? (
-                  <tr><td colSpan={4} className="text-center py-8 text-muted-foreground">No contacts found.</td></tr>
+                  <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No contacts found.</td></tr>
                 ) : (
                   filteredContacts.slice(0, 20).map((c, idx) => (
                     <tr key={c.id || idx} className="hover:bg-accent">
@@ -287,17 +371,46 @@ const ContactsSection = () => {
                           className="w-full text-left flex items-center hover:opacity-80 transition-opacity"
                         >
                           <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                            <span className="text-white font-medium">{(c.firstName || c.lastName) ? `${(c.firstName||'')[0] || ''}${(c.lastName||'')[0] || ''}`.toUpperCase() : c.phone[0]}</span>
+                            <span className="text-white font-medium">{(c.firstName || c.metadata?.firstName || c.lastName || c.metadata?.lastName) ? `${(c.firstName || c.metadata?.firstName || '')[0] || ''}${(c.lastName || c.metadata?.lastName || '')[0] || ''}`.toUpperCase() : c.phone[0]}</span>
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-foreground">{c.firstName || '-'} {c.lastName || ''}</div>
+                            <div className="text-sm font-medium text-foreground">{c.firstName || c.metadata?.firstName || '-'} {c.lastName || c.metadata?.lastName || ''}</div>
                           </div>
                         </button>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                         <button onClick={() => openWhatsAppProfile(c.phone, c._id)} className="text-left text-blue-600 hover:underline">{c.phone}</button>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{c.email || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">{c.email || c.metadata?.email || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {c.leadStatus ? (
+                          <span 
+                            className="px-2.5 py-1 rounded-full text-xs font-medium"
+                            style={{
+                              backgroundColor: settings?.leadStatuses?.find(s => s.key === c.leadStatus)?.color ? settings.leadStatuses.find(s => s.key === c.leadStatus).color + '20' : '#f3f4f6',
+                              color: settings?.leadStatuses?.find(s => s.key === c.leadStatus)?.color || '#374151'
+                            }}
+                          >
+                            {settings?.leadStatuses?.find(s => s.key === c.leadStatus)?.label || c.leadStatus}
+                          </span>
+                        ) : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex flex-wrap gap-1">
+                          {c.tags && c.tags.length > 0 ? c.tags.map((tag, i) => {
+                            const tagObj = settings?.tagsOptions?.find(t => tag === t.label);
+                            return (
+                              <span 
+                                key={i} 
+                                className="px-2 py-0.5 rounded text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300"
+                                style={tagObj ? { backgroundColor: tagObj.color + '20', color: tagObj.color } : {}}
+                              >
+                                {tag}
+                              </span>
+                            );
+                          }) : '-'}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{new Date(c.createdAt).toLocaleString()}</td>
                     </tr>
                   ))
@@ -312,12 +425,14 @@ const ContactsSection = () => {
       <CreateContactModal 
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+        onContactCreated={loadContacts}
       />
       
       {/* Contact Detail Modal */}
       {selectedContact && (
         <ContactDetailModal
           isOpen={isDetailModalOpen}
+          onUpdate={loadContacts}
           onClose={() => {
             setIsDetailModalOpen(false);
             setSelectedContact(null);

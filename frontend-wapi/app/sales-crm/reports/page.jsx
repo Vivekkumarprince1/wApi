@@ -1,547 +1,365 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Calendar, Download, X } from 'lucide-react';
-import { FaChartLine, FaDollarSign, FaTrophy, FaUsers } from 'react-icons/fa';
-import {
-  getPipelinePerformanceReport,
-  getFunnelReport,
-  getAgentPerformanceReport,
-  getDealVelocityReport,
-  getStageDurationReport,
+import { useState, useEffect } from "react";
+import { 
+  Calendar, 
+  Download, 
+  ChevronDown, 
+  TrendingUp, 
+  DollarSign, 
+  Trophy, 
+  Users, 
+  Filter, 
+  BarChart2, 
+  PieChart as PieIcon, 
+  Activity,
+  ArrowUpRight,
+  ArrowDownRight
+} from "lucide-react";
+import { 
+  getPipelinePerformanceReport, 
+  getFunnelReport, 
+  getAgentPerformanceReport, 
   getPipelines,
-  listDeals,
-} from '@/lib/api';
-
-const stats = [
-  { label: 'Total Revenue', value: '₹12.5L', change: '+18%', icon: FaDollarSign, color: 'from-green-500 to-green-600' },
-  { label: 'Deals Won', value: '47', change: '+12%', icon: FaTrophy, color: 'from-yellow-500 to-yellow-600' },
-  { label: 'Active Leads', value: '234', change: '+8%', icon: FaUsers, color: 'from-blue-500 to-blue-600' },
-  { label: 'Conversion Rate', value: '32.5%', change: '+5%', icon: FaChartLine, color: 'from-purple-500 to-purple-600' },
-];
+  getDefaultPipeline
+} from "@/lib/api/sales";
+import { toast } from "react-hot-toast";
 
 export default function SalesCRMReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pipelines, setPipelines] = useState([]);
-  const [agents, setAgents] = useState([]);
+  const [activePipeline, setActivePipeline] = useState(null);
+  const [dateRange, setDateRange] = useState("last30days");
 
-  // Filter states - Left Panel (Agent Performance)
-  const [agentFilter, setAgentFilter] = useState('');
-  const [agentDateRange, setAgentDateRange] = useState('last7days');
-  const [agentMetric, setAgentMetric] = useState('');
+  // Report Data
+  const [summaryStats, setSummaryStats] = useState({
+    totalRevenue: 0,
+    dealsWon: 0,
+    activeLeads: 0,
+    conversionRate: 0
+  });
+  const [agentPerf, setAgentPerf] = useState([]);
+  const [funnelData, setFunnelData] = useState([]);
+  const [pipelinePerf, setPipelinePerf] = useState([]);
 
-  // Filter states - Right Panel (Sales Funnel)
-  const [funnelAgent, setFunnelAgent] = useState('all');
-  const [funnelPipeline, setFunnelPipeline] = useState('');
-  const [funnelDateRange, setFunnelDateRange] = useState('last7days');
-
-  // Report data
-  const [agentPerf, setAgentPerf] = useState(null);
-  const [funnel, setFunnel] = useState(null);
-  const [pipelinePerf, setPipelinePerf] = useState(null);
-
-  // Load pipelines and agents on mount
   useEffect(() => {
     loadInitialData();
   }, []);
 
+  useEffect(() => {
+    if (activePipeline) {
+      loadReports();
+    }
+  }, [activePipeline, dateRange]);
+
   const loadInitialData = async () => {
     try {
       setLoading(true);
-      const [pipelinesRes, dealsRes] = await Promise.all([
-        getPipelines(),
-        listDeals({ limit: 1000 }),
-      ]);
-
-      setPipelines(pipelinesRes || []);
-      if (pipelinesRes?.length > 0) {
-        setFunnelPipeline(pipelinesRes[0]._id);
+      const pipelinesData = await getPipelines();
+      const pipelinesList = pipelinesData?.pipelines || [];
+      setPipelines(pipelinesList);
+      
+      if (pipelinesList.length > 0) {
+        const defaultPipeline = pipelinesList.find(p => p.isDefault) || pipelinesList[0];
+        setActivePipeline(defaultPipeline);
+      } else {
+        const defaultP = await getDefaultPipeline();
+        if (defaultP) {
+          setPipelines([defaultP]);
+          setActivePipeline(defaultP);
+        }
       }
-
-      // Extract deals array - handle both direct array and wrapped response
-      const dealsArray = Array.isArray(dealsRes) ? dealsRes : (dealsRes?.data || []);
-      const uniqueAgents = [...new Set(dealsArray?.map((d) => d.agent).filter(Boolean))];
-      setAgents(uniqueAgents || []);
-
-      setError(null);
     } catch (err) {
-      setError(err.message);
+      console.error("Initial load failed:", err);
+      setError("Failed to load pipelines");
     } finally {
       setLoading(false);
     }
   };
 
-  // Load reports when filters change
-  useEffect(() => {
-    loadReports();
-  }, [agentFilter, agentDateRange, funnelAgent, funnelPipeline, funnelDateRange]);
-
-  const getDateRange = (rangeType) => {
-    const endDate = new Date();
-    const startDate = new Date();
-
-    switch (rangeType) {
-      case 'last7days':
-        startDate.setDate(endDate.getDate() - 7);
-        break;
-      case 'last30days':
-        startDate.setDate(endDate.getDate() - 30);
-        break;
-      case 'last90days':
-        startDate.setDate(endDate.getDate() - 90);
-        break;
-      default:
-        startDate.setDate(endDate.getDate() - 7);
-    }
-
+  const getDateParams = (range) => {
+    const end = new Date();
+    const start = new Date();
+    if (range === "last7days") start.setDate(end.getDate() - 7);
+    else if (range === "last30days") start.setDate(end.getDate() - 30);
+    else if (range === "last90days") start.setDate(end.getDate() - 90);
+    
     return {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0],
+      startDate: start.toISOString(),
+      endDate: end.toISOString()
     };
   };
 
   const loadReports = async () => {
-    // Skip loading if funnelPipeline is not set yet
-    if (!funnelPipeline) return;
-
     try {
-      setLoading(true);
-      
-      const agentDates = getDateRange(agentDateRange);
-      const funnelDates = getDateRange(funnelDateRange);
+      const dates = getDateParams(dateRange);
+      const params = { ...dates, pipelineId: activePipeline._id };
 
-      const [agentRes, funnelRes, perfRes] = await Promise.all([
-        getAgentPerformanceReport({
-          startDate: agentDates.startDate,
-          endDate: agentDates.endDate,
-          ...(agentFilter && { agent: agentFilter }),
-        }),
-        getFunnelReport(funnelPipeline, {
-          startDate: funnelDates.startDate,
-          endDate: funnelDates.endDate,
-          ...(funnelAgent !== 'all' && { agent: funnelAgent }),
-        }),
-        getPipelinePerformanceReport({
-          startDate: agentDates.startDate,
-          endDate: agentDates.endDate,
-        }),
+      const [perfRes, funnelRes, agentRes] = await Promise.all([
+        getPipelinePerformanceReport(params),
+        getFunnelReport(activePipeline._id, dates),
+        getAgentPerformanceReport(dates)
       ]);
 
-      setAgentPerf(agentRes);
-      setFunnel(funnelRes);
-      setPipelinePerf(perfRes);
-      setError(null);
+      // Process Summary Stats
+      const currentPipelinePerf = perfRes.data?.find(p => p.pipelineId === activePipeline._id) || perfRes.data?.[0];
+      if (currentPipelinePerf) {
+        setSummaryStats({
+          totalRevenue: currentPipelinePerf.totalValue || 0,
+          dealsWon: currentPipelinePerf.wonDeals || 0,
+          activeLeads: currentPipelinePerf.activeDeals || 0,
+          conversionRate: currentPipelinePerf.conversionRate || 0
+        });
+      }
+
+      setPipelinePerf(perfRes.data || []);
+      setFunnelData(funnelRes.funnel || []);
+      setAgentPerf(agentRes.data || []);
+      
     } catch (err) {
-      console.error('Error loading reports:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+      console.error("Report loading failed:", err);
+      toast.error("Failed to refresh reports");
     }
   };
 
-  const clearFilters = (panel) => {
-    if (panel === 'agent') {
-      setAgentFilter('');
-      setAgentDateRange('last7days');
-      setAgentMetric('');
-    } else {
-      setFunnelAgent('all');
-      setFunnelDateRange('last7days');
-    }
-  };
-
-  const downloadReport = (type, panel) => {
-    // Placeholder for download functionality
-    alert(`Downloading ${type} for ${panel} panel`);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className=" p-6">
+    <div className="p-6 bg-background min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-bold">✓</span>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Sales CRM Reports</h1>
-              <p className="text-sm text-muted-foreground">Track your Sales Agent Performance and Sales Funnel in one place</p>
-            </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 mt-2">
+        <div>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight font-outfit">Sales Intelligence</h1>
+          <p className="text-muted-foreground mt-1 font-medium font-inter">Actionable insights to drive your revenue growth</p>
+        </div>
+
+        <div className="flex items-center gap-3 bg-card p-1.5 rounded-2xl border border-border shadow-sm">
+          <div className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-muted-foreground">
+            <Filter className="w-4 h-4" />
+            <span>Range:</span>
           </div>
+          {['last7days', 'last30days', 'last90days'].map((range) => (
+            <button
+              key={range}
+              onClick={() => setDateRange(range)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                dateRange === range 
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105" 
+                  : "hover:bg-muted text-muted-foreground"
+              }`}
+            >
+              {range === 'last7days' ? '1W' : range === 'last30days' ? '1M' : '3M'}
+            </button>
+          ))}
+          <div className="w-px h-6 bg-border mx-1" />
+          <select 
+            value={activePipeline?._id}
+            onChange={(e) => {
+              const p = pipelines.find(p => p._id === e.target.value);
+              if (p) setActivePipeline(p);
+            }}
+            className="bg-transparent text-xs font-bold text-foreground border-none focus:ring-0 pr-8 cursor-pointer"
+          >
+            {pipelines.map((p, idx) => (
+              <option key={p._id || idx} value={p._id}>{p.name}</option>
+            ))}
+          </select>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, idx) => (
-            <div key={idx} className="bg-card rounded-2xl shadow-premium p-6 hover:shadow-xl transition-shadow">
-              <div className="flex items-start justify-between mb-4">
-                <div className={`p-3 bg-gradient-to-br ${stat.color} rounded-xl shadow-md`}>
-                  <stat.icon className="text-white text-xl" />
-                </div>
-                <span className="text-sm font-semibold text-green-500">{stat.change}</span>
+      {/* Primary Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {[
+          { label: 'Total Sales', value: `₹${summaryStats.totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'from-blue-500 to-indigo-600', trend: '+12.5%' },
+          { label: 'Deals Won', value: summaryStats.dealsWon, icon: Trophy, color: 'from-emerald-500 to-teal-600', trend: '+8.2%' },
+          { label: 'Active Pipeline', value: summaryStats.activeLeads, icon: Users, color: 'from-amber-500 to-orange-600', trend: '+15.1%' },
+          { label: 'Lead Win Rate', value: `${summaryStats.conversionRate}%`, icon: TrendingUp, color: 'from-fuchsia-500 to-purple-600', trend: '+2.4%' }
+        ].map((stat, i) => (
+          <div key={i} className="bg-card rounded-[2rem] border border-border p-6 shadow-premium hover:shadow-2xl transition-all group overflow-hidden relative">
+            <div className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.color} opacity-[0.03] rounded-bl-[4rem] group-hover:scale-150 transition-transform duration-500`} />
+            <div className="flex items-start justify-between mb-4">
+              <div className={`p-3.5 bg-gradient-to-br ${stat.color} rounded-2xl shadow-lg shadow-inner ring-4 ring-white/10`}>
+                <stat.icon className="text-white w-6 h-6" />
               </div>
-              <p className="text-muted-foreground text-sm font-medium mb-1">{stat.label}</p>
-              <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 text-[10px] font-extrabold uppercase">
+                <ArrowUpRight className="w-3 h-3" />
+                {stat.trend}
+              </div>
             </div>
-          ))}
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-card rounded-2xl shadow-premium p-6">
-            <h3 className="text-xl font-bold text-foreground mb-4">Revenue Trends</h3>
-            <div className="h-64 flex items-center justify-center border-2 border-dashed border-border rounded-xl">
-              <p className="text-muted-foreground">Revenue chart</p>
-            </div>
+            <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest mb-1 font-inter">{stat.label}</p>
+            <p className="text-3xl font-extrabold font-outfit text-foreground tracking-tight">{stat.value}</p>
           </div>
-          <div className="bg-card rounded-2xl shadow-premium p-6">
-            <h3 className="text-xl font-bold text-foreground mb-4">Pipeline Status</h3>
-            <div className="h-64 flex items-center justify-center border-2 border-dashed border-border rounded-xl">
-              <p className="text-muted-foreground">Pipeline chart</p>
-            </div>
-          </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Top Performers */}
-        <div className="bg-card rounded-2xl shadow-premium p-6">
-          <h3 className="text-xl font-bold text-foreground mb-4">Top Performers</h3>
-          <div className="space-y-4">
-            {[{ name: 'Rahul Sharma', deals: 15, revenue: '₹4.2L' }, { name: 'Priya Patel', deals: 12, revenue: '₹3.8L' }, { name: 'Amit Kumar', deals: 10, revenue: '₹2.9L' }].map((performer, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 bg-muted rounded-xl">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${['from-green-400 to-green-600', 'from-blue-400 to-blue-600', 'from-purple-400 to-purple-600'][idx]} flex items-center justify-center text-white font-bold`}>
-                    {idx + 1}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+        {/* Sales Funnel Analysis */}
+        <div className="lg:col-span-2 bg-card rounded-[2.5rem] border border-border p-8 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-xl font-extrabold text-foreground font-outfit">Conversion Funnel</h3>
+              <p className="text-sm text-muted-foreground font-medium">Stage-by-stage drop-off analysis</p>
+            </div>
+            <button className="p-2.5 bg-muted rounded-xl hover:bg-primary/10 transition-colors">
+              <Download className="w-5 h-5 text-muted-foreground" />
+            </button>
+          </div>
+
+          <div className="space-y-6 relative">
+            {funnelData.length === 0 ? (
+              <div className="py-20 text-center opacity-50 font-medium">No funnel data for this period</div>
+            ) : (
+              funnelData.map((stage, i) => {
+                const maxCount = Math.max(...funnelData.map(s => s.dealCount || 1));
+                const width = (stage.dealCount / maxCount) * 100;
+                return (
+                  <div key={i} className="group flex flex-col gap-2">
+                    <div className="flex items-center justify-between text-xs font-bold uppercase tracking-tighter">
+                      <span className="text-foreground">{stage.stageName}</span>
+                      <span className="text-primary bg-primary/5 px-2 py-0.5 rounded">{stage.dealCount} Deals</span>
+                    </div>
+                    <div className="relative h-10 w-full bg-muted/30 rounded-2xl overflow-hidden border border-border/50">
+                      <div 
+                        className="h-full bg-gradient-to-r from-primary to-primary/60 transition-all duration-1000 ease-out flex items-center justify-end px-4"
+                        style={{ width: `${width}%` }}
+                      >
+                        <span className="text-[10px] text-white font-black">{width > 20 ? `${Math.round(width)}%` : ''}</span>
+                      </div>
+                    </div>
+                    {i < funnelData.length - 1 && (
+                      <div className="flex items-center gap-2 pl-4">
+                        <div className="w-px h-6 bg-border" />
+                        <span className="text-[10px] font-black text-red-500/80 bg-red-500/5 px-2 py-0.5 rounded-full">
+                          ↓ {stage.dropoff}% LEAKAGE
+                        </span>
+                      </div>
+                    )}
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{performer.name}</p>
-                    <p className="text-sm text-muted-foreground">{performer.deals} deals closed</p>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Agent Leaderboard */}
+        <div className="bg-card rounded-[2.5rem] border border-border p-8 shadow-sm flex flex-col">
+          <div className="mb-8">
+            <h3 className="text-xl font-extrabold text-foreground font-outfit">Top Performers</h3>
+            <p className="text-sm text-muted-foreground font-medium">Leading agents by win rate</p>
+          </div>
+
+          <div className="flex-1 space-y-4 overflow-y-auto pr-2 no-scrollbar">
+            {agentPerf.length === 0 ? (
+              <div className="py-20 text-center opacity-50 font-medium">No agent data found</div>
+            ) : (
+              agentPerf.slice(0, 6).map((agent, i) => (
+                <div key={i} className="group bg-muted/30 p-4 rounded-3xl border border-border/50 hover:border-primary/30 hover:bg-card hover:shadow-xl transition-all flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg ${
+                    i === 0 ? 'bg-gradient-to-br from-amber-400 to-orange-500 ring-4 ring-amber-400/20' : 
+                    i === 1 ? 'bg-gradient-to-br from-slate-300 to-slate-500' :
+                    i === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-700' : 'bg-primary/20 text-primary'
+                  }`}>
+                    {i + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-foreground text-sm truncate">{agent.agentName}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{agent.wonDeals} deals won</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-black text-primary font-outfit">{Math.round(agent.winRate)}%</p>
+                    <p className="text-[9px] font-bold text-muted-foreground uppercase opacity-60">Win Rate</p>
                   </div>
                 </div>
-                <p className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">{performer.revenue}</p>
+              ))
+            )}
+          </div>
+          
+          <button className="mt-8 py-4 w-full bg-muted hover:bg-primary hover:text-white rounded-2xl text-xs font-black uppercase tracking-widest transition-all">
+            Full Agent Report
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Pipeline Distribution */}
+        <div className="bg-card rounded-[2.5rem] border border-border p-8 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-xl font-extrabold text-foreground font-outfit">Pipeline Landscape</h3>
+              <p className="text-sm text-muted-foreground font-medium">Distribution across all pipelines</p>
+            </div>
+            <PieIcon className="w-6 h-6 text-muted-foreground opacity-20" />
+          </div>
+
+          <div className="space-y-4">
+            {pipelinePerf.map((p, i) => (
+              <div key={i} className="flex items-center gap-4 group">
+                <div className="w-full">
+                  <div className="flex justify-between text-[11px] font-bold uppercase mb-1.5 px-1">
+                    <span className="text-foreground">{p.pipelineName}</span>
+                    <span className="text-muted-foreground">₹{p.totalValue.toLocaleString()}</span>
+                  </div>
+                  <div className="h-3 w-full bg-muted/40 rounded-full overflow-hidden border border-border/30 p-0.5">
+                    <div 
+                      className="h-full bg-primary rounded-full group-hover:brightness-110 transition-all duration-700"
+                      style={{ width: `${Math.max(10, (p.totalValue / (summaryStats.totalRevenue || 1)) * 100)}%` }}
+                    />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Global Sales Velocity */}
+        <div className="bg-card rounded-[2.5rem] border border-border p-8 shadow-sm">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-xl font-extrabold text-foreground font-outfit">Sales Momentum</h3>
+              <p className="text-sm text-muted-foreground font-medium">Real-time ecosystem activity</p>
+            </div>
+            <Activity className="w-6 h-6 text-primary animate-pulse" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-muted/30 p-6 rounded-[2rem] border border-border/50">
+              <p className="text-[10px] font-black text-muted-foreground uppercase mb-2">Deal Velocity</p>
+              <p className="text-2xl font-black text-foreground font-outfit">18.4 Days</p>
+              <p className="text-[10px] text-emerald-500 font-bold mt-1">Avg to Close</p>
+            </div>
+            <div className="bg-muted/30 p-6 rounded-[2rem] border border-border/50">
+              <p className="text-[10px] font-black text-muted-foreground uppercase mb-2">Avg Deal Size</p>
+              <p className="text-2xl font-black text-foreground font-outfit">₹48,200</p>
+              <p className="text-[10px] text-primary font-bold mt-1">Current Weighted</p>
+            </div>
+          </div>
+          
+          <div className="mt-6 flex flex-col gap-2">
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase text-muted-foreground px-2">
+              <span>System Throughput</span>
+              <span>88% Efficiency</span>
+            </div>
+            <div className="h-2 w-full bg-muted/40 rounded-full overflow-hidden">
+              <div className="h-full w-[88%] bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full" />
+            </div>
+          </div>
+        </div>
       </div>
-      {/* Loading State */}
-      {loading && (
-        <div className="flex items-center justify-center h-96">
-          <div className="text-muted-foreground">Loading reports...</div>
-        </div>
-      )}
 
-      {/* Error State */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6">
-          <p className="text-red-800 dark:text-red-200">Error: {error}</p>
-        </div>
-      )}
-
-      {/* Main Content - Two Panel Layout */}
-      {!loading && !error && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* LEFT PANEL - Agent Performance Report */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            {/* Panel Header */}
-            <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Agent Performance Report</h2>
-
-              {/* Filters */}
-              <div className="space-y-3">
-                <div className="flex gap-3">
-                  <select
-                    value={agentFilter}
-                    onChange={(e) => setAgentFilter(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded bg-white dark:bg-muted text-foreground text-sm"
-                  >
-                    <option value="">All Agents</option>
-                    {agents.map((agent) => (
-                      <option key={agent} value={agent}>
-                        {agent}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={agentDateRange}
-                    onChange={(e) => setAgentDateRange(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded bg-white dark:bg-muted text-foreground text-sm"
-                  >
-                    <option value="last7days">Last 7 days</option>
-                    <option value="last30days">Last 30 days</option>
-                    <option value="last90days">Last 90 days</option>
-                  </select>
-                </div>
-
-                <div className="flex gap-3">
-                  <select
-                    value={agentMetric}
-                    onChange={(e) => setAgentMetric(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded bg-white dark:bg-muted text-foreground text-sm"
-                  >
-                    <option value="">Select Option</option>
-                    <option value="deals">Total Deals</option>
-                    <option value="won">Won Deals</option>
-                    <option value="winrate">Win Rate</option>
-                  </select>
-
-                  <button
-                    onClick={() => clearFilters('agent')}
-                    className="px-4 py-2 text-blue-600 dark:text-blue-400 text-sm font-medium hover:text-blue-700"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Chart Area */}
-            <div className="p-6 h-64 bg-background/50 flex items-center justify-center">
-              {agentPerf?.agents?.length > 0 ? (
-                <div className="w-full h-full flex flex-col space-y-4">
-                  {agentPerf.agents.slice(0, 5).map((agent, idx) => (
-                    <div key={idx} className="flex items-center gap-3">
-                      <span className="text-xs font-medium text-muted-foreground w-24 truncate">
-                        {agent.agentName}
-                      </span>
-                      <div className="flex-1 h-6 bg-border dark:bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-blue-500 dark:bg-blue-600 flex items-center justify-end pr-2"
-                          style={{ width: `${Math.min((agent.totalDeals / 20) * 100, 100)}%` }}
-                        >
-                          <span className="text-xs text-white font-medium">{agent.totalDeals}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center text-muted-foreground">
-                  <p className="text-sm">No data available</p>
-                </div>
-              )}
-            </div>
-
-            {/* Tabular Summary */}
-            <div className="p-6 border-t border-border">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Tabular Summary</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">Agent</th>
-                      <th className="text-right py-2 px-2 font-medium text-muted-foreground">Deals</th>
-                      <th className="text-right py-2 px-2 font-medium text-muted-foreground">Win Rate</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {agentPerf?.agents?.length > 0 ? (
-                      agentPerf.agents.map((agent, idx) => (
-                        <tr key={idx} className="border-b border-gray-100 dark:border-border">
-                          <td className="py-2 px-2 text-foreground">{agent.agentName}</td>
-                          <td className="py-2 px-2 text-right text-foreground">{agent.totalDeals}</td>
-                          <td className="py-2 px-2 text-right">
-                            <span className="inline-block px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                              {Math.round(agent.winRate)}%
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="3" className="py-4 text-center text-muted-foreground text-sm">
-                          No result found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Download Buttons */}
-              <div className="flex gap-2 mt-4">
-                <button
-                  onClick={() => downloadReport('Summary', 'Agent')}
-                  className="flex-1 px-4 py-2 border border-border rounded text-foreground text-sm font-medium hover:bg-accent flex items-center justify-center gap-2"
-                >
-                  <Download size={16} />
-                  Download Summary
-                </button>
-                <button
-                  onClick={() => downloadReport('Detailed', 'Agent')}
-                  className="flex-1 px-4 py-2 border border-border rounded text-foreground text-sm font-medium hover:bg-accent flex items-center justify-center gap-2"
-                >
-                  <Download size={16} />
-                  Download Detailed
-                </button>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
-                <button className="p-1 hover:bg-accent rounded">‹</button>
-                <span>{agentPerf?.agents?.length || 0} / {agentPerf?.agents?.length || 0}</span>
-                <button className="p-1 hover:bg-accent rounded">›</button>
-              </div>
-            </div>
-          </div>
-
-          {/* RIGHT PANEL - Sales Funnel */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            {/* Panel Header */}
-            <div className="p-6 border-b border-border">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Sales Funnel</h2>
-
-              {/* Filters */}
-              <div className="space-y-3">
-                <div className="flex gap-3">
-                  <select
-                    value={funnelAgent}
-                    onChange={(e) => setFunnelAgent(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded bg-white dark:bg-muted text-foreground text-sm"
-                  >
-                    <option value="all">All Agents</option>
-                    {agents.map((agent) => (
-                      <option key={agent} value={agent}>
-                        {agent}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={funnelPipeline}
-                    onChange={(e) => setFunnelPipeline(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded bg-white dark:bg-muted text-foreground text-sm"
-                  >
-                    <option value="">Select Pipeline</option>
-                    {Array.isArray(pipelines) && pipelines.map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex gap-3">
-                  <select
-                    value={funnelDateRange}
-                    onChange={(e) => setFunnelDateRange(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-border rounded bg-white dark:bg-muted text-foreground text-sm"
-                  >
-                    <option value="last7days">Last 7 days</option>
-                    <option value="last30days">Last 30 days</option>
-                    <option value="last90days">Last 90 days</option>
-                  </select>
-
-                  <button
-                    onClick={() => clearFilters('funnel')}
-                    className="px-4 py-2 text-blue-600 dark:text-blue-400 text-sm font-medium hover:text-blue-700"
-                  >
-                    Clear Filters
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Chart Area */}
-            <div className="p-6 h-64 bg-background/50 flex items-center justify-center">
-              {funnel?.stages?.length > 0 ? (
-                <div className="w-full space-y-4">
-                  {funnel.stages.map((stage, idx) => {
-                    const maxWidth = Math.max(...funnel.stages.map(s => s.dealCount || 1));
-                    const width = (stage.dealCount / maxWidth) * 100;
-                    return (
-                      <div key={idx} className="flex flex-col">
-                        <div className="flex justify-between text-xs mb-1">
-                          <span className="font-medium text-foreground">{stage.stageName}</span>
-                          <span className="text-muted-foreground">{stage.dealCount} deals</span>
-                        </div>
-                        <div className="h-6 bg-border dark:bg-muted rounded flex items-center justify-center overflow-hidden">
-                          <div
-                            className="h-full bg-gradient-to-r from-blue-400 to-blue-600 dark:from-blue-500 dark:to-blue-700 flex items-center justify-center text-white text-xs font-medium"
-                            style={{ width: `${width}%` }}
-                          >
-                            {width > 20 && `${stage.dealCount}`}
-                          </div>
-                        </div>
-                        {idx < funnel.stages.length - 1 && (
-                          <div className="text-xs text-red-600 dark:text-red-400 font-medium mt-1">
-                            ↓ {stage.dropoff}% drop-off
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center text-muted-foreground">
-                  <p className="text-sm">No data available</p>
-                </div>
-              )}
-            </div>
-
-            {/* Tabular Summary */}
-            <div className="p-6 border-t border-border">
-              <h3 className="text-sm font-semibold text-foreground mb-4">Tabular Summary</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">Stage</th>
-                      <th className="text-right py-2 px-2 font-medium text-muted-foreground">Count</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {funnel?.stages?.length > 0 ? (
-                      funnel.stages.map((stage, idx) => (
-                        <tr key={idx} className="border-b border-gray-100 dark:border-border">
-                          <td className="py-2 px-2 text-foreground">{stage.stageName}</td>
-                          <td className="py-2 px-2 text-right text-foreground">{stage.dealCount}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="2" className="py-4 text-center text-muted-foreground text-sm">
-                          No result found
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Download Buttons */}
-              <div className="flex gap-2 mt-4">
-                <button
-                  onClick={() => downloadReport('Summary', 'Funnel')}
-                  className="flex-1 px-4 py-2 border border-border rounded text-foreground text-sm font-medium hover:bg-accent flex items-center justify-center gap-2"
-                >
-                  <Download size={16} />
-                  Download Summary
-                </button>
-                <button
-                  onClick={() => downloadReport('Detailed', 'Funnel')}
-                  className="flex-1 px-4 py-2 border border-border rounded text-foreground text-sm font-medium hover:bg-accent flex items-center justify-center gap-2"
-                >
-                  <Download size={16} />
-                  Download Detailed
-                </button>
-              </div>
-
-              {/* Pagination */}
-              <div className="flex items-center justify-center gap-2 mt-4 text-sm text-muted-foreground">
-                <button className="p-1 hover:bg-accent rounded">‹</button>
-                <span>{funnel?.stages?.length || 0} / {funnel?.stages?.length || 0}</span>
-                <button className="p-1 hover:bg-accent rounded">›</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
+        .font-inter { font-family: 'Inter', sans-serif; }
+        .font-outfit { font-family: 'Outfit', sans-serif; }
+        .shadow-premium { box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+      `}</style>
     </div>
   );
 }

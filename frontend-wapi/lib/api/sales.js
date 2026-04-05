@@ -22,6 +22,17 @@ export const updateDeal = async (dealId, data) => put(`/sales/deals/${dealId}`, 
 export const addDealNote = async (dealId, text) => post(`/sales/deals/${dealId}/notes`, { text });
 export const deleteDeal = async (dealId) => del(`/sales/deals/${dealId}`);
 
+// Tasks
+export const createSalesTask = async (data) => post('/sales/tasks', data);
+export const listSalesTasks = async (filters) => {
+  const queryParams = new URLSearchParams(filters);
+  return get(`/sales/tasks?${queryParams}`);
+};
+export const getSalesTask = async (taskId) => get(`/sales/tasks/${taskId}`);
+export const updateSalesTask = async (taskId, data) => put(`/sales/tasks/${taskId}`, data);
+export const toggleSalesTaskStatus = async (taskId) => post(`/sales/tasks/${taskId}/toggle`, {});
+export const deleteSalesTask = async (taskId) => del(`/sales/tasks/${taskId}`);
+
 // Sales Reports
 export const getPipelinePerformanceReport = async (filters) => {
   const queryParams = new URLSearchParams(filters);

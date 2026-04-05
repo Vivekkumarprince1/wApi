@@ -36,6 +36,7 @@
     "google-auth-library": "^10.5.0",
     "helmet": "^7.1.0",
     "ioredis": "^5.10.0",
+    "json2csv": "^6.0.0-alpha.2",
     "jsonwebtoken": "^9.0.3",
     "localtunnel": "^2.0.2",
     "mongodb-memory-server": "^8.12.1",

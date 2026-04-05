@@ -8,6 +8,8 @@ const { createError, ERROR_CODES } = require('../../utils/errorFormatter');
 const { transformContact } = require('../../utils/transformers');
 const logger = require('../../utils/logger');
 
+const autoAssignService = require("./autoAssignService");
+
 class ContactService {
   /**
    * Create a new contact
@@ -28,6 +30,12 @@ class ContactService {
 
       // Normalize contact data
       const normalizedData = this.normalizeContactPayload(contactData);
+      
+      // Handle Auto Assign
+      const assignedAgentId = await autoAssignService.determineAgentForContact(workspaceId, normalizedData);
+      if (assignedAgentId && !normalizedData.assignedAgentId) {
+        normalizedData.assignedAgentId = assignedAgentId;
+      }
 
       // Create contact
       const contact = await contactRepository.create({
@@ -50,7 +58,7 @@ class ContactService {
     try {
       const contact = await contactRepository.findById(contactId);
 
-      if (!contact || contact.workspace.toString() !== workspaceId) {
+      if (!contact || contact.workspace.toString() !== workspaceId.toString()) {
         throw createError(ERROR_CODES.NOT_FOUND, 'Contact not found');
       }
 
@@ -89,7 +97,7 @@ class ContactService {
       });
 
       return {
-        data: result.documents.map(contact => transformContact(contact)),
+        data: result.documents.map(contact => transformContact(contact, { includeSales: true })),
         pagination: result.pagination
       };
     } catch (error) {
@@ -107,7 +115,12 @@ class ContactService {
 
       // Verify contact exists and belongs to workspace
       const contact = await contactRepository.findById(contactId);
-      if (!contact || contact.workspace.toString() !== workspaceId) {
+      if (!contact || contact.workspace.toString() !== workspaceId.toString()) {
+        logger.error('Delete Contact debug:', { 
+          found: !!contact, 
+          contactWorkspace: contact ? contact.workspace.toString() : null, 
+          passedWorkspace: workspaceId ? workspaceId.toString() : null 
+        });
         throw createError(ERROR_CODES.NOT_FOUND, 'Contact not found');
       }
 
@@ -137,7 +150,12 @@ class ContactService {
 
       // Verify contact exists and belongs to workspace
       const contact = await contactRepository.findById(contactId);
-      if (!contact || contact.workspace.toString() !== workspaceId) {
+      if (!contact || contact.workspace.toString() !== workspaceId.toString()) {
+        logger.error('Delete Contact debug:', { 
+          found: !!contact, 
+          contactWorkspace: contact ? contact.workspace.toString() : null, 
+          passedWorkspace: workspaceId ? workspaceId.toString() : null 
+        });
         throw createError(ERROR_CODES.NOT_FOUND, 'Contact not found');
       }
 
@@ -197,7 +215,7 @@ class ContactService {
 
       // Verify contact exists and belongs to workspace
       const contact = await contactRepository.findById(contactId);
-      if (!contact || contact.workspace.toString() !== workspaceId) {
+      if (!contact || contact.workspace.toString() !== workspaceId.toString()) {
         throw createError(ERROR_CODES.NOT_FOUND, 'Contact not found');
       }
 

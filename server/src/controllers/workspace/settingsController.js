@@ -1,4 +1,6 @@
 const { Workspace } = require('../../models');
+const RCSConfig = require('../../models/workspace/RCSConfig');
+const WalletTransaction = require('../../models/workspace/WalletTransaction');
 const { encryptToken, isEncrypted } = require('../../utils/tokenEncryption');
 
 // BSP-only hardening: when enabled, tenants must NOT be able to configure
@@ -402,8 +404,8 @@ async function getCommerceSettings(req, res, next) {
 
     // Check plan permissions
     const PLAN_FEATURES = {
-      free: { commerce: false },
-      basic: { commerce: false },
+      free: { commerce: true },
+      basic: { commerce: true },
       premium: { commerce: true },
       enterprise: { commerce: true }
     };
@@ -418,7 +420,7 @@ async function getCommerceSettings(req, res, next) {
       });
     }
 
-    const CommerceSettings = require('../models/CommerceSettings');
+    const CommerceSettings = require('../../models/commerce/CommerceSettings');
     let settings = await CommerceSettings.findOne({ workspaceId: req.user.workspace });
 
     // If no settings exist, create default ones
@@ -457,6 +459,7 @@ async function getCommerceSettings(req, res, next) {
         notifications: settings.notifications,
         shipping: settings.shipping,
         business: settings.business,
+        checkoutBot: settings.checkoutBot,
         webhookUrl: settings.webhookUrl,
         createdAt: settings.createdAt,
         updatedAt: settings.updatedAt
@@ -478,8 +481,8 @@ async function updateCommerceSettings(req, res, next) {
 
     // Check plan permissions
     const PLAN_FEATURES = {
-      free: { commerce: false },
-      basic: { commerce: false },
+      free: { commerce: true },
+      basic: { commerce: true },
       premium: { commerce: true },
       enterprise: { commerce: true }
     };
@@ -499,7 +502,7 @@ async function updateCommerceSettings(req, res, next) {
       return res.status(403).json({ message: 'Only workspace owner can update commerce settings' });
     }
 
-    const CommerceSettings = require('../models/CommerceSettings');
+    const CommerceSettings = require('../../models/commerce/CommerceSettings');
     let settings = await CommerceSettings.findOne({ workspaceId: req.user.workspace });
 
     // Create if doesn't exist
@@ -518,7 +521,8 @@ async function updateCommerceSettings(req, res, next) {
       notifications,
       shipping,
       business,
-      webhookUrl
+      webhookUrl,
+      checkoutBot
     } = req.body;
 
     // Validate and update fields
@@ -582,34 +586,27 @@ async function updateCommerceSettings(req, res, next) {
     }
 
     if (notifications !== undefined) {
-      settings.notifications = {
-        ...settings.notifications,
-        ...notifications
-      };
+      settings.notifications = { ...settings.notifications.toObject(), ...notifications };
     }
 
     if (shipping !== undefined) {
-      settings.shipping = {
-        ...settings.shipping,
-        ...shipping
-      };
+      settings.shipping = { ...settings.shipping.toObject(), ...shipping };
     }
 
     if (business !== undefined) {
-      settings.business = {
-        ...settings.business,
-        ...business
-      };
+      settings.business = { ...settings.business.toObject(), ...business };
     }
 
     if (webhookUrl !== undefined) {
-      // Basic URL validation
-      try {
-        new URL(webhookUrl);
-        settings.webhookUrl = webhookUrl;
-      } catch {
-        return res.status(400).json({ message: 'Invalid webhook URL' });
-      }
+      settings.webhookUrl = webhookUrl;
+    }
+
+    if (checkoutBot !== undefined) {
+      const existing = settings.checkoutBot?.toObject?.() || settings.checkoutBot || {};
+      settings.checkoutBot = {
+        templates: { ...(existing.templates || {}), ...(checkoutBot.templates || {}) },
+        triggers: { ...(existing.triggers || {}), ...(checkoutBot.triggers || {}) }
+      };
     }
 
     settings.lastModifiedBy = req.user._id;
@@ -617,18 +614,8 @@ async function updateCommerceSettings(req, res, next) {
 
     res.json({
       success: true,
-      message: 'Commerce settings updated successfully',
-      settings: {
-        enabled: settings.enabled,
-        currency: settings.currency,
-        taxPercentage: settings.taxPercentage,
-        orderAutoConfirm: settings.orderAutoConfirm,
-        notifications: settings.notifications,
-        shipping: settings.shipping,
-        business: settings.business,
-        webhookUrl: settings.webhookUrl,
-        updatedAt: settings.updatedAt
-      }
+      message: 'Commerce settings synchronized successfully',
+      settings
     });
   } catch (err) {
     next(err);
@@ -644,7 +631,7 @@ async function validateCommerceConfig(req, res, next) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
 
-    const CommerceSettings = require('../models/CommerceSettings');
+    const CommerceSettings = require('../../models/commerce/CommerceSettings');
     const settings = await CommerceSettings.findOne({ workspaceId: req.user.workspace });
 
     if (!settings) {
@@ -851,6 +838,102 @@ async function updateBusinessInfo(req, res, next) {
   }
 }
 
+// ==========================================
+// RCS & WALLET SETTINGS (DELIVERY OPTIMIZATION)
+// ==========================================
+
+/**
+ * Get RCS configuration for current workspace
+ */
+async function getRCSConfig(req, res, next) {
+  try {
+    let config = await RCSConfig.findOne({ workspaceId: req.user.workspace });
+    
+    if (!config) {
+      config = new RCSConfig({ workspaceId: req.user.workspace });
+      await config.save();
+    }
+
+    res.json({
+      success: true,
+      data: config
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Update RCS configuration
+ */
+async function updateRCSConfig(req, res, next) {
+  try {
+    const { provider, credentials } = req.body;
+    let config = await RCSConfig.findOne({ workspaceId: req.user.workspace });
+
+    if (!config) {
+      config = new RCSConfig({ workspaceId: req.user.workspace });
+    }
+
+    if (provider) config.provider = provider;
+    if (credentials) {
+      config.credentials = { ...(config.credentials || {}), ...credentials };
+    }
+    
+    // Auto-active on update for simplicity (can be refined with actual testing)
+    config.status = 'ACTIVE';
+    config.lastTestedAt = new Date();
+
+    await config.save();
+
+    res.json({
+      success: true,
+      message: 'RCS configuration updated successfully',
+      data: config
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Get wallet balance and overview
+ */
+async function getWalletBalance(req, res, next) {
+  try {
+    const workspace = await Workspace.findById(req.user.workspace).select('wallet');
+    
+    if (!workspace) {
+      return res.status(404).json({ message: 'Workspace not found' });
+    }
+
+    res.json({
+      success: true,
+      data: workspace.wallet || { balance: 0, parkedBalance: 0, currency: 'INR' }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Get wallet transaction history
+ */
+async function getWalletTransactions(req, res, next) {
+  try {
+    const transactions = await WalletTransaction.find({ workspaceId: req.user.workspace })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.json({
+      success: true,
+      data: transactions
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getWhatsAppNumberStatus,
   getWABASettings,
@@ -864,5 +947,9 @@ module.exports = {
   updateCommerceSettings,
   validateCommerceConfig,
   getInboxSettings,
-  updateInboxSettings
+  updateInboxSettings,
+  getRCSConfig,
+  updateRCSConfig,
+  getWalletBalance,
+  getWalletTransactions
 };

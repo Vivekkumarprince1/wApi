@@ -6,6 +6,7 @@ const {
   createContact, 
   bulkImportContacts,
   listContacts, 
+  exportContacts,
   getContactStats,
   getContact, 
   updateContact, 
@@ -18,6 +19,7 @@ const router = express.Router();
 router.use(auth);
 router.post('/', [body('phone').notEmpty()], validate, createContact);
 router.post('/upload', [body('contacts').isArray()], validate, bulkImportContacts);
+router.get('/export', exportContacts);
 router.get('/', listContacts);
 // router.get('/:id/whatsapp-profile', getContactWhatsAppProfile); // TODO: Implement this function
 router.get('/stats', getContactStats);

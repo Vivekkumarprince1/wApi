@@ -109,7 +109,33 @@ const CampaignSchema = new mongoose.Schema({
     delivered: { type: Number, default: 0 },
     read: { type: Number, default: 0 },
     failed: { type: Number, default: 0 },
-    replied: { type: Number, default: 0 }
+    replied: { type: Number, default: 0 },
+    // RCS Fallback totals
+    rcsSent: { type: Number, default: 0 },
+    rcsDelivered: { type: Number, default: 0 },
+    rcsFailed: { type: Number, default: 0 }
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // DELIVERY OPTIMIZATION (RCS Fallback & Automated Retries)
+  // ─────────────────────────────────────────────────────────────────────────────
+  deliveryOptimization: {
+    enabled: { type: Boolean, default: false }, // Overall toggle
+    type: {
+      type: String,
+      enum: ['NONE', 'RCS_FALLBACK', 'AUTOMATED_RETRY'],
+      default: 'NONE'
+    },
+    // Config for RCS Fallback
+    rcsConfig: {
+      template: { type: mongoose.Schema.Types.ObjectId, ref: 'Template' },
+      variableMapping: { type: mongoose.Schema.Types.Mixed, default: {} }
+    },
+    // Config for Automated Retries (Frequency Cap)
+    retryConfig: {
+      maxAttempts: { type: Number, default: 1 },
+      retryDelayHours: { type: Number, default: 24 }
+    }
   },
   
   // Legacy stats fields for backwards compatibility

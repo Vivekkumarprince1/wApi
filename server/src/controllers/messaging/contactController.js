@@ -77,7 +77,7 @@ const updateContact = asyncHandler(async (req, res) => {
  */
 const deleteContact = asyncHandler(async (req, res) => {
   const workspaceId = req.user.workspace;
-  const { contactId } = req.params;
+  const { id: contactId } = req.params;
 
   await contactService.deleteContact(workspaceId, contactId);
 
@@ -149,6 +149,33 @@ const getContactStats = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Export contacts to CSV
+ */
+const exportContacts = asyncHandler(async (req, res) => {
+  const workspaceId = req.user.workspace;
+  const { Parser } = require('json2csv'); // Requires json2csv package
+  
+  const options = { limit: 10000 }; // Maximum export limit
+  const result = await contactService.listContacts(workspaceId, options);
+  
+  if (!result.data || result.data.length === 0) {
+    return res.status(404).json({ success: false, message: 'No contacts found to export' });
+  }
+
+  try {
+    const fields = ['name', 'phone', 'leadStatus', 'createdAt', 'tags', 'assignedAgentId'];
+    const json2csvParser = new Parser({ fields });
+    const csv = json2csvParser.parse(result.data);
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment(`contacts_export_${new Date().toISOString()}.csv`);
+    return res.send(csv);
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to generate CSV' });
+  }
+});
+
 module.exports = {
   createContact,
   getContact,
@@ -156,6 +183,7 @@ module.exports = {
   updateContact,
   deleteContact,
   bulkImportContacts,
+  exportContacts,
   updateOptOut,
   getContactStats
 };

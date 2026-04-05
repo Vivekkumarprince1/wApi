@@ -9,8 +9,13 @@ const UserSchema = new mongoose.Schema({
   phone: { type: String },
   company: { type: String },
   emailVerified: { type: Boolean, default: false },
-  role: { type: String, enum: ['owner', 'admin', 'member'], default: 'member' },
+  role: { type: String, enum: ['owner', 'admin', 'manager', 'agent', 'member', 'viewer'], default: 'member' },
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
+  team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
+  status: { type: String, enum: ['active', 'invited', 'offline', 'removed'], default: 'active' },
+  invitedAt: { type: Date },
+  removedAt: { type: Date },
+  joinedAt: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

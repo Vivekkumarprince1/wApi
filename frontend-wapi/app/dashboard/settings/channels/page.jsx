@@ -7,7 +7,7 @@ export default function ChannelsSettingsPage() {
   const [channels, setChannels] = useState([
     { id: 'whatsapp', name: 'WhatsApp', icon: <FaWhatsapp/>, status: 'connected' },
     { id: 'instagram', name: 'Instagram', icon: <FaInstagram/>, status: 'not-connected' },
-    { id: 'rcs', name: 'RCS (Coming Soon)', icon: <FaToggleOn/>, status: 'disabled' },
+    { id: 'rcs', name: 'RCS (Rich Communication)', icon: <FaToggleOn/>, status: 'not-connected' },
   ]);
 
   return (
@@ -30,8 +30,8 @@ export default function ChannelsSettingsPage() {
               </div>
             </div>
             <div className="mt-4 flex gap-2">
-              <a href={ch.id==='whatsapp'?'/dashboard/settings/whatsapp-profile':'#'} className="px-3 py-2 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{ch.status==='connected'?'Manage':'Connect'}</a>
-              <button className="px-3 py-2 text-sm rounded border border-border text-foreground" disabled>Docs</button>
+              <a href={ch.id==='whatsapp'?'/dashboard/settings/whatsapp-profile':ch.id==='rcs'?'/dashboard/settings/channels/rcs':'#'} className="px-3 py-2 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{ch.status==='connected'?'Manage':'Connect'}</a>
+              <button className="px-3 py-2 text-sm rounded border border-border text-foreground">Docs</button>
             </div>
           </div>
         ))}

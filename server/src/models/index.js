@@ -12,6 +12,7 @@ const Plan = require('./auth/Plan');
 const Workspace = require('./workspace/Workspace');
 const Subscription = require('./workspace/Subscription');
 const InternalNote = require('./workspace/InternalNote');
+const Team = require('./workspace/Team');
 
 // Messaging domain
 const Contact = require('./messaging/Contact');
@@ -29,6 +30,7 @@ const Order = require('./commerce/Order');
 const Deal = require('./commerce/Deal');
 const Invoice = require('./commerce/Invoice');
 const Pipeline = require('./commerce/Pipeline');
+const Task = require('./commerce/Task');
 const CommerceSettings = require('./commerce/CommerceSettings');
 
 // Campaign domain
@@ -82,6 +84,7 @@ module.exports = {
   Workspace,
   Subscription,
   InternalNote,
+  Team,
 
   // Messaging domain
   Contact,
@@ -99,6 +102,7 @@ module.exports = {
   Deal,
   Invoice,
   Pipeline,
+  Task,
   CommerceSettings,
 
   // Campaign domain

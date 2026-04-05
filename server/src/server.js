@@ -21,6 +21,7 @@ const authRoutes = require('./routes/auth/authRoutes');
 const contactRoutes = require('./routes/messaging/contactRoutes');
 const messageRoutes = require('./routes/messaging/messageRoutes');
 const webhookRoutes = require('./routes/bsp/webhookRoutes');
+const contactSettingsRoutes = require('./routes/messaging/contactSettingsRoutes');
 const developerRoutes = require('./routes/developer/developerRoutes');
 const externalRoutes = require('./routes/developer/externalRoutes');
 
@@ -38,9 +39,9 @@ app.use(helmet({
       baseUri: ["'none'"],
       frameAncestors: ["'none'"],
       formAction: ["'none'"],
-      connectSrc: ["'self'"],
-      imgSrc: ["'self'", 'data:'],
-      scriptSrc: ["'self'"],
+      connectSrc: ["'self'", "http://localhost:5001", "http://localhost:3000", "http://10.40.109.51:3000", "http://10.40.109.51:5001", "https://*.onrender.com"],
+      imgSrc: ["'self'", 'data:', "https://*.cloudinary.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
       styleSrc: ["'self'", "'unsafe-inline'"]
     }
   },
@@ -51,6 +52,7 @@ app.use(helmet({
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
+  'http://10.40.109.51:3000',
   'https://waapi-frontend.onrender.com'
 ];
 
@@ -193,6 +195,7 @@ initSocket(server);
 app.use('/api/v1', enforceTenantIsolation);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/contacts', contactRoutes);
+app.use('/api/v1/contact-settings', contactSettingsRoutes);
 app.use('/api/v1/messages', messageRoutes);
 app.use('/api/v1/webhook', webhookRoutes);
 app.use('/api/v1/developer', developerRoutes);
@@ -227,6 +230,7 @@ const pipelineRoutes = require('./routes/commerce/pipelineRoutes');
 const reportsRoutes = require('./routes/analytics/reportsRoutes');
 const productRoutes = require('./routes/commerce/productRoutes');
 const checkoutBotRoutes = require('./routes/commerce/checkoutBotRoutes');
+const taskRoutes = require('./routes/commerce/taskRoutes');
 const integrationsRoutes = require('./routes/integration/integrationsRoutes');
 const widgetRoutes = require('./routes/integration/widgetRoutes');
 const dataDeletionRoutes = require('./routes/workspace/dataDeletionRoutes');
@@ -261,6 +265,7 @@ app.use('/internal', internalRoutes);
 app.use('/api/v1/usage', usageRoutes);
 app.use('/api/v1/sales/deals', dealRoutes);
 app.use('/api/v1/sales/pipelines', pipelineRoutes);
+app.use('/api/v1/sales/tasks', taskRoutes);
 app.use('/api/v1/sales/reports', reportsRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/checkout-bot', checkoutBotRoutes);

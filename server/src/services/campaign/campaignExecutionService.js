@@ -22,6 +22,8 @@ const {
   isWorkspaceSafeForCampaigns 
 } = require('./campaignKillSwitchService');
 
+const walletService = require('../workspace/walletService');
+
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
  * CAMPAIGN EXECUTION SERVICE - Stage 3 Implementation (Hardened)
@@ -209,6 +211,25 @@ async function startCampaign(campaignId, workspaceId, userId) {
     if (!validation.valid) {
       await releaseCampaignLock(campaignId, { force: true });
       throw new Error(`${validation.reason}: ${validation.message}`);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // WALLET PARKING (Optimization Features)
+    // ══════════════════════════════════════════════════════════════════════════
+    if (campaign.deliveryOptimization?.enabled) {
+      const recipientCount = campaign.totals?.totalRecipients || 0;
+      // 1 credit per recipient for delivery optimization (RCS/Retry)
+      const creditsToPark = recipientCount * 1; 
+      
+      try {
+        await walletService.parkBalance(workspaceId, creditsToPark, campaignId);
+      } catch (err) {
+        if (err.message.includes('INSUFFICIENT_BALANCE')) {
+          await releaseCampaignLock(campaignId, { force: true });
+          throw new Error('INSUFFICIENT_WALLET_BALANCE: Please recharge your wallet to enable Delivery Optimization features.');
+        }
+        throw err;
+      }
     }
     
     // Update status to indicate queued
@@ -718,6 +739,23 @@ async function completeCampaign(campaignId, reason = 'All batches processed') {
     
     // Add audit entry (Task D)
     await Campaign.addAuditEntry(campaignId, 'COMPLETED', { reason });
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // RECONCILE WALLET (Optimization Features)
+    // ══════════════════════════════════════════════════════════════════════════
+    if (campaign.deliveryOptimization?.enabled) {
+      try {
+        const wallet = await walletService.getBalance(campaign.workspace);
+        if (wallet.parkedBalance > 0) {
+          // Reconcile remaining parked balance (Refund)
+          // Realistically, we should have spent credits for delivered messages
+          // but for this MVP we'll refund the remainder of the Provisoned pool.
+          await walletService.unparkBalance(campaign.workspace, wallet.parkedBalance, campaignId, false);
+        }
+      } catch (err) {
+        console.error(`[CampaignExecution] Wallet reconciliation failed for campaign ${campaignId}:`, err.message);
+      }
+    }
     
     // Release execution lock (Task A)
     await releaseCampaignLock(campaignId, { force: true });

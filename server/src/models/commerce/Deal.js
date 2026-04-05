@@ -55,7 +55,10 @@ const DealSchema = new mongoose.Schema({
 });
 
 // Indexes for fast queries
-DealSchema.index({ workspace: 1, contact: 1 }, { unique: true }); // One active deal per contact per workspace
+DealSchema.index({ workspace: 1, contact: 1, status: 1 }, { 
+  unique: true, 
+  partialFilterExpression: { status: 'active' } 
+}); // Only one active deal per contact per workspace
 DealSchema.index({ workspace: 1, stage: 1 });
 DealSchema.index({ workspace: 1, assignedAgent: 1 });
 DealSchema.index({ workspace: 1, status: 1 });

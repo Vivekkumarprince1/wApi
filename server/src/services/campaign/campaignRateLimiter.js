@@ -503,6 +503,16 @@ function handleMetaError(error) {
       reason: 'TOKEN_EXPIRED'
     };
   }
+
+  // 131051 - Frequency capping (Requires interakt-style 24h retry)
+  if (errorCode === 131051) {
+    return {
+      action: 'DELAYED_RETRY',
+      retryable: true,
+      backoffMs: 24 * 60 * 60 * 1000,
+      reason: 'FREQUENCY_CAP'
+    };
+  }
   
   // Policy violations
   if (errorCode === 131056 || errorCode === 131048) {

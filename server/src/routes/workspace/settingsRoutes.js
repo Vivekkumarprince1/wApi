@@ -13,7 +13,11 @@ const {
   updateCommerceSettings,
   validateCommerceConfig,
   getInboxSettings,
-  updateInboxSettings
+  updateInboxSettings,
+  getRCSConfig,
+  updateRCSConfig,
+  getWalletBalance,
+  getWalletTransactions
 } = require('../../controllers/workspace/settingsController');
 
 const router = express.Router();
@@ -38,5 +42,13 @@ router.put('/inbox', updateInboxSettings);
 router.get('/commerce', getCommerceSettings);
 router.put('/commerce', updateCommerceSettings);
 router.post('/commerce/validate', validateCommerceConfig);
+
+// RCS Settings Routes
+router.get('/channels/rcs', getRCSConfig);
+router.post('/channels/rcs', updateRCSConfig);
+
+// Wallet Settings Routes
+router.get('/wallet', getWalletBalance);
+router.get('/wallet/transactions', getWalletTransactions);
 
 module.exports = router;
