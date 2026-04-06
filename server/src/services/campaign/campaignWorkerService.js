@@ -11,8 +11,6 @@ const {
 } = require('./campaignRateLimiter');
 const templateSendingService = require('../template/templateSendingService');
 const { enforceWorkspaceBilling } = require('../billing/billingEnforcementService');
-const rcsService = require('../integration/rcsService');
-const walletService = require('../workspace/walletService');
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -57,13 +55,7 @@ const BATCH_CONFIG = {
 async function processCampaignStart(job) {
   const { campaignId, workspaceId } = job.data;
   
-  const { Campaign, CampaignBatch, CampaignMessage, Template, Contact, Workspace } = require('../../models');
-  const walletService = require('../workspace/walletService');
-  const rcsService = require('../integration/rcsService');
-  const { 
-    enqueueCampaignBatch, 
-    updateCampaignBatchStatus 
-  } = require('./campaignQueueService');
+  const { Campaign, CampaignBatch, Template, Contact, Workspace } = require('../../models');
   
   console.log(`[CampaignWorker] Starting campaign: ${campaignId}`);
   
@@ -433,68 +425,6 @@ async function processBatch(job) {
       
       // Track error and check for auto-pause
       const errorHandling = handleMetaError(err);
-
-      // ══════════════════════════════════════════════════════════════════════════
-      // DELIVERY OPTIMIZATION: RCS FALLBACK / AUTOMATED RETRY
-      // ══════════════════════════════════════════════════════════════════════════
-      const optimization = campaign.deliveryOptimization;
-      if (optimization?.enabled) {
-        // CASE A: Automated Retry on Frequency Cap (Meta Error 131051)
-        if (optimization.type === 'AUTOMATED_RETRY' && errorHandling.reason === 'FREQUENCY_CAP') {
-          console.log(`[CampaignWorker] Frequency cap hit for ${recipient.phone}. Scheduling 24h retry.`);
-          
-          recipient.status = 'retrying';
-          recipient.error = 'Frequency Cap (Scheduled for 24h retry)';
-          
-          await CampaignMessage.findOneAndUpdate(
-            { campaign: campaignId, contact: recipient.contactId },
-            {
-              $set: {
-                status: 'retrying',
-                // Interakt default: 24 hours
-                retryAt: new Date(Date.now() + (optimization.retryConfig?.retryDelayHours || 24) * 60 * 60 * 1000),
-                lastError: 'Meta Frequency Cap (131051)'
-              },
-              $inc: { retryAttempts: 1 }
-            }
-          );
-
-          // We don't increment failure count for retries yet (it's pending)
-          // But we do track the success to prevent auto-pause from this specific error
-          await trackCampaignSuccess(campaignId); 
-          continue;
-        }
-
-        // CASE B: RCS Fallback on general delivery failures
-        if (optimization.type === 'RCS_FALLBACK' && 
-            !['POLICY_VIOLATION', 'TOKEN_EXPIRED', 'ACCOUNT_BLOCKED'].includes(errorHandling.reason)) {
-          console.log(`[CampaignWorker] Delivery failed for ${recipient.phone}. Triggering RCS Fallback.`);
-          
-          // Get contact again for variables (already loaded in loop)
-          const contact = await Contact.findById(recipient.contactId);
-          const templateVars = buildTemplateParams(template, batch.variableMapping, contact);
-          
-          const rcsResult = await rcsService.sendRCSMessage(
-            workspaceId, 
-            campaignId, 
-            { phone: contact.phone }, 
-            { templateId: optimization.rcsConfig?.templateId, mapping: templateVars }
-          );
-
-          if (rcsResult.success) {
-            recipient.status = 'rcs_sent';
-            results.sent++;
-            
-            // Record spend from parked balance
-            await walletService.recordMessageDeliverability(workspaceId, campaignId, true);
-            
-            await trackCampaignSuccess(campaignId);
-            await clearBackoff(campaignId);
-            continue;
-          }
-        }
-      }
-
       const errorTracking = await trackCampaignError(campaignId, errorHandling.reason, err.message);
       
       if (errorTracking.shouldAutoPause || errorHandling.action === 'PAUSE_CAMPAIGN') {

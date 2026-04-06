@@ -80,3 +80,18 @@
 {"contactId":"69bf0f3043aded99b678c774","error":"Contact not found","level":"error","message":"Failed to delete contact","service":"whatsapp-saas","timestamp":"2026-04-06 01:55:49","workspaceId":"699c21048e96ba1b49ab6945"}
 {"code":"NOT_FOUND","level":"error","message":"Contact not found","service":"whatsapp-saas","stack":"Error: Contact not found\n    at createError (/Users/vivek/devlopment projects/wApi/wApi/server/src/utils/errorFormatter.js:44:17)\n    at ContactService.deleteContact (/Users/vivek/devlopment projects/wApi/wApi/server/src/services/messaging/contactService.js:149:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /Users/vivek/devlopment projects/wApi/wApi/server/src/controllers/messaging/contactController.js:82:3","statusCode":404,"timestamp":"2026-04-06 01:57:16"}
 {"contactId":"69bf0f3043aded99b678c774","error":"Contact not found","level":"error","message":"Failed to delete contact","service":"whatsapp-saas","timestamp":"2026-04-06 01:57:16","workspaceId":"699c21048e96ba1b49ab6945"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 04:03:19","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 04:03:19","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 04:51:22","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 04:51:22","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 04:51:22","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 05:23:21","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 05:23:21","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 05:54:08","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 05:54:08","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 06:55:04","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 06:55:04","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 06:55:04","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 07:16:44","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 07:16:44","value":"read ETIMEDOUT"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-06 21:03:43","value":"read EADDRNOTAVAIL"}

@@ -239,6 +239,7 @@ const tagRoutes = require('./routes/messaging/tagRoutes'); // Stage 5: CRM Tags
 const analyticsDashboardRoutes = require('./routes/analytics/analyticsDashboardRoutes'); // Stage 5: Analytics Dashboard
 const automationEngineRoutes = require('./routes/automation/automationEngineRoutes'); // Stage 6: Automation Engine
 const auditRoutes = require('./routes/admin/auditRoutes'); // Stage 5: Audit Logs
+const quickReplyRoutes = require('./routes/messaging/quickReplyRoutes');
 
 app.use('/api/v1/campaigns', campaignRoutes);
 app.use('/api/v1/ads', adsRoutes);
@@ -277,6 +278,7 @@ app.use('/api/v1/tags', tagRoutes); // Stage 5: CRM Tags
 app.use('/api/v1/analytics/dashboard', analyticsDashboardRoutes); // Stage 5: Analytics Dashboard
 app.use('/api/v1/automation/engine', automationEngineRoutes); // Stage 6: Automation Engine
 app.use('/api/v1/audit-logs', auditRoutes); // Stage 5: Audit Logs
+app.use('/api/v1/quick-replies', quickReplyRoutes);
 
 // Start Automation Engine (Stage 6)
 if (process.env.ENABLE_AUTOMATION_ENGINE !== 'false') {

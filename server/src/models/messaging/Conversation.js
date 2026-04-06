@@ -34,7 +34,7 @@ const ConversationSchema = new mongoose.Schema({
   // Status (enhanced)
   status: { 
     type: String, 
-    enum: ['open', 'pending', 'resolved', 'closed', 'snoozed'], 
+    enum: ['open', 'pending', 'resolved', 'closed', 'snoozed', 'spam'], 
     default: 'open' 
   },
   statusChangedAt: { type: Date, default: Date.now },
@@ -101,6 +101,9 @@ const ConversationSchema = new mongoose.Schema({
   
   // Tags for organization
   tags: [String],
+  
+  // Interakt-style Conversation Label (one per chat)
+  label: { type: String, maxlength: 22 },
   
   // Notes
   notes: { type: String },

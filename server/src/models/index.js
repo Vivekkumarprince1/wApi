@@ -22,6 +22,7 @@ const Message = require('./messaging/Message');
 const Tag = require('./messaging/Tag');
 const WhatsAppForm = require('./messaging/WhatsAppForm');
 const WhatsAppFormResponse = require('./messaging/WhatsAppFormResponse');
+const QuickReply = require('./messaging/QuickReply');
 
 // Commerce domain
 const Product = require('./commerce/Product');
@@ -94,6 +95,7 @@ module.exports = {
   Tag,
   WhatsAppForm,
   WhatsAppFormResponse,
+  QuickReply,
 
   // Commerce domain
   Product,

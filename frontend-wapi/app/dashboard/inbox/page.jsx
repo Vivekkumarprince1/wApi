@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useState, useEffect, useRef } from 'react';
 import {
   fetchContacts,
@@ -41,7 +43,16 @@ import {
   FaClock,
   FaUserCircle,
   FaFileAlt,
-  FaHeadphones
+  FaHeadphones,
+  FaBolt,
+  FaRobot,
+  FaShieldAlt,
+  FaComments,
+  FaUserFriends,
+  FaInbox,
+  FaFlag,
+  FaChartBar,
+  FaTag
 } from 'react-icons/fa';
 import { useAuthStore } from '@/store/authStore';
 
@@ -93,21 +104,37 @@ export default function InboxPage() {
   const [expandedSections, setExpandedSections] = useState({
     details: true,
     tags: true,
-    pipeline: true
+    notes: true,
+    pipeline: true,
+    history: false
+  });
+
+  // Interakt alignment state
+  const [quickReplies, setQuickReplies] = useState([]);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [internalNoteMode, setInternalNoteMode] = useState(false);
+  const [showLabelModal, setShowLabelModal] = useState(false);
+  const [contactLabels, setContactLabels] = useState(['General', 'Sales', 'Support', 'Billing', 'VIP', 'Urgent']);
+  const [activeFilters, setActiveFilters] = useState({
+    label: null,
+    status: null,
+    assignee: null
   });
 
   // Load initial data (User & Tags)
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [userRes, tagsRes, agentsRes] = await Promise.all([
+        const [userRes, tagsRes, agentsRes, quickRepliesRes] = await Promise.all([
           get('/auth/me'),
           get('/tags'),
-          get('/inbox/agents').catch(() => ({ agents: [] }))
+          get('/inbox/agents').catch(() => ({ agents: [] })),
+          get('/quick-replies').catch(() => ({ data: [] }))
         ]);
         setCurrentUser(userRes.user || userRes.data || null);
         setAvailableTags(tagsRes.tags || tagsRes.data || []);
         setAgents(agentsRes.agents || agentsRes.data || []);
+        setQuickReplies(quickRepliesRes.data || []);
       } catch (err) {
         console.error('Error fetching initial inbox data:', err);
       }
@@ -115,10 +142,10 @@ export default function InboxPage() {
     fetchInitialData();
   }, []);
 
-  // Load conversations on mount or when view changes
+  // Load conversations on mount or when view/filters change
   useEffect(() => {
     loadConversations();
-  }, [currentView]);
+  }, [currentView, activeFilters]);
 
   // Listen for real-time message events (Synchronized with backend)
   useSocketEvent('inbox:new-message', (data) => {
@@ -289,7 +316,12 @@ export default function InboxPage() {
   const loadConversations = async () => {
     try {
       setLoading(true);
-      const response = await get(`/inbox?view=${currentView}&limit=100`);
+      let filterQuery = '';
+      if (activeFilters.label) filterQuery += `&label=${encodeURIComponent(activeFilters.label)}`;
+      if (activeFilters.status) filterQuery += `&status=${activeFilters.status}`;
+      if (activeFilters.assignee) filterQuery += `&assignee=${activeFilters.assignee}`;
+      
+      const response = await get(`/inbox?view=${currentView}&limit=100${filterQuery}`);
       setConversations(response.data || []);
     } catch (error) {
       console.error('Error loading conversations:', error);
@@ -507,6 +539,64 @@ export default function InboxPage() {
       console.error('Error adding tag:', error);
       toast.error('Failed to add tag');
     }
+  };
+
+  const handleSetLabel = async (label) => {
+    if (!selectedConversationId) return;
+    try {
+      await put(`/inbox/${selectedConversationId}/label`, { label });
+      toast.success(`Label set to ${label}`);
+      setShowLabelModal(false);
+      loadConversations();
+    } catch (error) {
+      toast.error('Failed to set label');
+    }
+  };
+
+  const handleClearLabel = async () => {
+    if (!selectedConversationId) return;
+    try {
+      await del(`/inbox/${selectedConversationId}/label`);
+      toast.success('Label cleared');
+      loadConversations();
+    } catch (error) {
+      toast.error('Failed to clear label');
+    }
+  };
+
+  const handleMarkSpam = async () => {
+    if (!selectedConversationId) return;
+    try {
+      await post(`/inbox/${selectedConversationId}/spam`);
+      toast.success('Marked as spam');
+      setSelectedContact(null);
+      setSelectedConversationId(null);
+      loadConversations();
+    } catch (error) {
+      toast.error('Failed to mark as spam');
+    }
+  };
+
+  const handleUnmarkSpam = async () => {
+    if (!selectedConversationId) return;
+    try {
+      await del(`/inbox/${selectedConversationId}/spam`);
+      toast.success('Unmarked as spam');
+      loadConversations();
+    } catch (error) {
+      toast.error('Failed to unmark spam');
+    }
+  };
+
+  const handleSelectQuickReply = (reply) => {
+    let content = reply.content;
+    // Basic variable replacement
+    if (selectedContact) {
+      content = content.replace(/\{\{name\}\}/gi, selectedContact.name || 'Customer');
+      content = content.replace(/\{\{phone\}\}/gi, selectedContact.phone || '');
+    }
+    setNewMessage(content);
+    setShowQuickReplies(false);
   };
 
   const handleRemoveTag = async (tagName) => {
@@ -784,21 +874,45 @@ export default function InboxPage() {
 
   return (
     <div className="fixed top-[60px] left-0 lg:left-[72px] right-0 bottom-0 bg-white text-gray-800 font-sans overflow-hidden flex z-20 transition-all duration-300">
-      {/* 1. Conversations List Sidebar (Left Pane) */}
       <div className="w-[300px] lg:w-[340px] flex-shrink-0 border-r border-gray-200 bg-white flex flex-col z-10">
-        {/* Sidebar Header */}
-        <div className="pt-4 pb-2 px-4 flex items-center justify-between border-b border-gray-100">
-          <h1 className="text-[22px] font-bold text-gray-800">Inbox</h1>
+        {/* Sidebar Header: Interakt style View Switcher */}
+        <div className="pt-4 pb-2 px-4 flex items-center justify-between border-b border-gray-100 relative group">
+          <div className="relative">
+            <button 
+              onClick={() => {
+                const next = { all: 'mine', mine: 'unassigned', unassigned: 'spam', spam: 'all' };
+                setCurrentView(next[currentView]);
+              }}
+              className="flex items-center gap-2 text-[20px] font-bold text-gray-800 hover:text-green-600 transition-colors"
+            >
+              <span className="capitalize">{currentView}</span>
+              <FaChevronDown size={14} className="mt-1" />
+            </button>
+            
+            {/* Red dot indicator if filters are active */}
+            {(activeFilters.label || activeFilters.status) && (
+              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+            )}
+          </div>
+
           <div className="flex items-center gap-2">
             <button
+              onClick={() => {
+                // Clear filters
+                setActiveFilters({ label: null, status: null, assignee: null });
+                toast.info('Filters cleared');
+              }}
+              className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${activeFilters.label || activeFilters.status ? 'text-green-600' : 'text-gray-400'}`}
+              title="Clear Filters"
+            >
+              <FaFilter size={14} />
+            </button>
+            <button
               onClick={openStartConversationModal}
-              className="p-2 hover:bg-green-50 rounded-full transition-colors text-green-600 tooltip group relative"
+              className="p-2 hover:bg-green-50 rounded-full transition-colors text-green-600 group relative"
               title="New Message"
             >
               <FaPlus className="text-sm" />
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
-              <FaFilter className="text-sm" />
             </button>
           </div>
         </div>
@@ -812,8 +926,26 @@ export default function InboxPage() {
               placeholder="Search or start new chat"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-sm ml-2 text-gray-700 placeholder-gray-500"
+              className="w-full bg-transparent border-none text-[13px] text-gray-500 placeholder-gray-400 outline-none font-medium h-6 ml-2"
             />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Link 
+              href="/dashboard/inbox/analytics"
+              className="p-2.5 bg-white border border-gray-100 text-gray-400 hover:text-green-600 rounded-xl hover:bg-green-50 shadow-sm transition-all"
+              title="Inbox Analytics"
+            >
+              <FaChartBar size={16} />
+            </Link>
+            
+            <button
+              onClick={() => setStartModalOpen(true)}
+              className="p-2.5 bg-[#00a884] text-white rounded-xl hover:bg-[#008f6f] shadow-sm hover:shadow-md transition-all active:scale-95"
+              title="Start New Conversation"
+            >
+              <FaPlus size={16} />
+            </button>
           </div>
         </div>
 
@@ -851,9 +983,9 @@ export default function InboxPage() {
               <p className="text-sm font-medium">No conversations found</p>
             </div>
           ) : (
-            filteredConversations.map((conversation) => (
+            filteredConversations.map((conversation, idx) => (
               <div
-                key={conversation._id}
+                key={conversation._id || conversation.id || `conv-${idx}`}
                 onClick={() => handleSelectContact(conversation)}
                 className={`px-4 py-3 border-b-0 cursor-pointer transition-all flex items-start gap-4 mx-2 my-1 rounded-xl ${
                   selectedContact?._id === conversation.contact._id 
@@ -926,64 +1058,102 @@ export default function InboxPage() {
         {selectedContact ? (
           <>
             {/* Chat Thread Header */}
-            <div className={`px-6 py-3.5 bg-white border-b border-gray-100 flex items-center justify-between shadow-[0_2px_10px_rgba(0,0,0,0.02)] z-10 ${!bspReady ? 'mt-10' : ''}`}>
-              <div className="flex items-center gap-3.5 cursor-pointer">
+            <div className={`px-5 py-3 bg-white border-b border-gray-100 flex items-center justify-between shadow-sm z-10 ${!bspReady ? 'mt-10' : ''}`}>
+              <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-11 h-11 bg-gradient-to-tr from-green-100 to-green-50 rounded-full flex items-center justify-center overflow-hidden border border-green-200/50">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border border-green-200/30">
                     {selectedContact.avatarUrl || selectedContact.avatar ? (
                       <img src={selectedContact.avatarUrl || selectedContact.avatar} alt={selectedContact.name} className="w-full h-full object-cover" />
                     ) : (
-                      <FaUser className="text-green-600/70 text-lg" />
+                      <FaUser className="text-green-600/60 text-lg" />
                     )}
                   </div>
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
                 </div>
                 <div>
-                  <h2 className="font-bold text-gray-900 text-[15px] leading-tight flex items-center gap-2">
-                    {selectedContact.displayName || selectedContact.name || selectedContact.phone}
-                    <span className="bg-gray-100 text-gray-500 text-[10px] px-2 py-0.5 rounded-md font-medium tracking-wide uppercase">Contact</span>
-                  </h2>
-                  <p className="text-[13px] text-gray-500 mt-0.5">
-                    {typingUsers[selectedConversationId]?.isTyping && typingUsers[selectedConversationId]?.agentId !== currentUser?._id ? (
-                      <span className="text-green-600 animate-pulse font-medium">
-                        {agents.find(a => a._id === typingUsers[selectedConversationId].agentId)?.name || 'An agent'} is typing...
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-bold text-gray-900 text-[15px] leading-tight">
+                      {selectedContact.displayName || selectedContact.name || selectedContact.phone}
+                    </h2>
+                    {selectedConversation?.label && (
+                      <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold tracking-wide uppercase">
+                        {selectedConversation.label}
                       </span>
+                    )}
+                  </div>
+                  <p className="text-[12px] text-gray-400 mt-0.5">
+                    {typingUsers[selectedConversationId]?.isTyping && typingUsers[selectedConversationId]?.agentId !== currentUser?._id ? (
+                      <span className="text-green-600 animate-pulse font-medium">Typing...</span>
                     ) : (
-                      'Online'
+                      selectedContact.phone
                     )}
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 text-gray-500">
-                <div className="hidden md:block">
+              <div className="flex items-center gap-3">
+                {/* Add Label Dropdown */}
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowLabelModal(!showLabelModal)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-xs font-semibold ${selectedConversation?.label ? 'border-green-200 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}`}
+                  >
+                    <FaFlag size={10} />
+                    <span>{selectedConversation?.label || 'Add Label'}</span>
+                  </button>
+                  
+                  {showLabelModal && (
+                    <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
+                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest px-2 py-1.5 border-b border-gray-50 mb-1">Select Label</p>
+                      {contactLabels.map((l, idx) => (
+                        <button
+                          key={l || `label-${idx}`}
+                          onClick={() => handleSetLabel(l)}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedConversation?.label === l ? 'bg-green-50 text-green-700' : 'hover:bg-gray-50 text-gray-600'}`}
+                        >
+                          {l}
+                        </button>
+                      ))}
+                      {selectedConversation?.label && (
+                        <button
+                          onClick={handleClearLabel}
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 mt-1 transition-colors border-t border-gray-50"
+                        >
+                          Clear Label
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50/50">
+                  <FaUserCircle className="text-gray-400" />
                   <select
                     value={selectedConversation?.assignedTo?._id || selectedConversation?.assignedTo || ''}
                     onChange={(e) => handleAssignConversation(e.target.value)}
-                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all cursor-pointer font-medium text-gray-700 hover:border-gray-300"
+                    className="bg-transparent border-none text-[13px] font-medium text-gray-700 outline-none cursor-pointer"
                   >
                     <option value="">Unassigned</option>
-                    {agents.map(agent => (
-                      <option key={agent._id} value={agent._id}>
-                        {agent.name}
+                    {agents.map((agent, idx) => (
+                      <option key={agent._id || `agent-${idx}`} value={agent._id}>
+                        {agent.name === currentUser?.name ? 'Assigned to Me' : agent.name}
                       </option>
                     ))}
                   </select>
                 </div>
-                <div className="w-px h-5 bg-gray-200 mx-1 hidden md:block"></div>
+
+                <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block"></div>
+                
                 <button
                   onClick={handleResolveConversation}
                   disabled={sending}
-                  className="px-3 py-1.5 hover:bg-green-50 text-green-600 text-sm font-medium rounded-lg transition-colors flex items-center gap-1.5" title="Resolve"
+                  className="p-2.5 rounded-full bg-green-50 text-green-600 border border-green-100 hover:bg-green-100 transition-all shadow-sm" 
+                  title="Resolve Chat"
                 >
-                  {sending ? <FaSpinner className="animate-spin" /> : <FaCheckCircle className="text-sm" />}
-                  <span>Resolve</span>
+                  {sending ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}
                 </button>
-                <div className="w-px h-5 bg-gray-200 mx-1"></div>
-                <button className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-full transition-colors" title="Delete Conversation" onClick={handleResolveConversation}>
-                  <FaTrash className="text-sm" />
-                </button>
-                <button className="p-2 hover:bg-gray-50 text-gray-400 hover:text-gray-700 rounded-full transition-colors" title="More options">
+                
+                <button className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
                   <FaEllipsisV className="text-sm" />
                 </button>
               </div>
@@ -1028,7 +1198,7 @@ export default function InboxPage() {
                         : 'bg-white border-gray-100 rounded-2xl rounded-tl-sm'
                         }`}
                     >
-                      {/* Removed triangle tail for modern SaaS look/}
+                      {/* Removed triangle tail for modern SaaS look */}
 
                       {/* Header Media */}
                       {templateHeaderFormat === 'IMAGE' && templateHeaderMediaUrl && (
@@ -1157,82 +1327,141 @@ export default function InboxPage() {
               <div ref={messagesEndRef} className="h-2" />
             </div>
 
-            {/* Compose Input Box */}
-            <div className="bg-white px-4 py-4 flex items-end gap-3 justify-center border-t border-gray-100 z-10 w-full relative drop-shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
-              {/* Media Preview Overlay */}
-              {mediaPreview && (
-                <div className="absolute bottom-[calc(100%+8px)] left-4 p-2 bg-white rounded-xl shadow-[0_-4px_15px_rgba(0,0,0,0.05)] border border-gray-100 z-20 flex animate-fadeIn max-w-[250px]">
-                  <div className="relative inline-block w-full">
-                    <button
-                      onClick={clearSelectedMedia}
-                      className="absolute -top-3 -right-3 bg-gray-600 text-white rounded-full p-1.5 hover:bg-gray-800 z-10 transition-colors"
-                      title="Remove Media"
-                    >
-                      <FaTimes className="text-[10px]" />
-                    </button>
-                    {mediaPreview.type.startsWith('image/') ? (
-                      <img src={mediaPreview.url} alt="preview" className="h-32 w-full object-cover rounded-lg border border-gray-200" />
-                    ) : mediaPreview.type.startsWith('video/') ? (
-                      <video src={mediaPreview.url} className="h-32 w-full object-cover rounded-lg border border-gray-200" controls />
-                    ) : (
-                      <div className="flex flex-col items-center justify-center p-6 h-32 w-full bg-gray-50 rounded-lg text-gray-500 border border-gray-200">
-                        <FaFileAlt className="text-4xl mb-3 text-green-500" />
-                        <span className="text-xs text-center truncate w-full px-2 font-medium" title={mediaPreview.name}>
-                          {mediaPreview.name}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <button type="button" className="p-2 text-gray-400 hover:text-green-600 transition-colors bg-gray-50 rounded-full hover:bg-green-50 mb-0.5">
-                <FaSmile className="text-lg" />
-              </button>
-              <button 
-                type="button" 
-                className={`p-2 transition-colors rounded-full mb-0.5 ${selectedMedia ? 'text-green-600 bg-green-50' : isUploading ? 'text-blue-500 bg-blue-50 animate-pulse' : 'text-gray-400 bg-gray-50 hover:text-green-600 hover:bg-green-50'}`}
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                <FaPaperclip className="text-lg" />
-              </button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                onChange={handleMediaSelect}
-                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
-              />
-
-              <div className="flex-1 bg-gray-50 rounded-2xl shadow-inner border border-gray-200 focus-within:border-green-400 focus-within:bg-white transition-all overflow-hidden relative">
-                <textarea
-                  value={newMessage}
-                  onChange={handleInputChange}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      if (newMessage.trim() || selectedMedia) handleSendMessage(e);
-                    }
-                  }}
-                  placeholder="Type a message..."
-                  className="w-full max-h-32 min-h-[44px] bg-transparent border-none py-3 px-4 text-[15px] focus:ring-0 resize-none text-gray-700 placeholder-gray-400 block"
-                  rows={1}
-                  disabled={sending}
-                />
+            {/* Compose Input Box: Interakt style */}
+            <div className={`p-4 flex flex-col gap-2 border-t border-gray-100 z-10 w-full relative drop-shadow-[0_-4px_10px_rgba(0,0,0,0.02)] transition-colors ${internalNoteMode ? 'bg-yellow-50/50' : 'bg-white'}`}>
+              
+              {/* Internal Note / Message Toggle */}
+              <div className="flex items-center gap-1 px-1">
+                <button 
+                  onClick={() => setInternalNoteMode(false)}
+                  className={`px-3 py-1 rounded-t-lg text-[11px] font-bold uppercase tracking-wider transition-all ${!internalNoteMode ? 'bg-white border-x border-t border-gray-100 text-green-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <FaComments className="inline-block mr-1 mb-0.5" /> Message
+                </button>
+                <button 
+                  onClick={() => setInternalNoteMode(true)}
+                  className={`px-3 py-1 rounded-t-lg text-[11px] font-bold uppercase tracking-wider transition-all ${internalNoteMode ? 'bg-yellow-100 border-x border-t border-yellow-200 text-yellow-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <FaFlag className="inline-block mr-1 mb-0.5" /> Internal Note
+                </button>
               </div>
 
-              <button
-                onClick={handleSendMessage}
-                disabled={!bspReady || sending || (!newMessage.trim() && !selectedMedia)}
-                className={`p-3 rounded-full flex-shrink-0 flex items-center justify-center transition-all cursor-pointer ${
-                  (newMessage.trim() || selectedMedia) && !sending && bspReady
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              <div className="flex items-end gap-3 w-full">
+                {/* Media Preview Overlay */}
+                {mediaPreview && (
+                  <div className="absolute bottom-[calc(100%+8px)] left-4 p-2 bg-white rounded-xl shadow-[0_-4px_15px_rgba(0,0,0,0.05)] border border-gray-100 z-20 flex animate-fadeIn max-w-[250px]">
+                    <div className="relative inline-block w-full">
+                      <button
+                        onClick={clearSelectedMedia}
+                        className="absolute -top-3 -right-3 bg-gray-600 text-white rounded-full p-1.5 hover:bg-gray-800 z-10 transition-colors"
+                        title="Remove Media"
+                      >
+                        <FaTimes className="text-[10px]" />
+                      </button>
+                      {mediaPreview.type.startsWith('image/') ? (
+                        <img src={mediaPreview.url} alt="preview" className="h-32 w-full object-cover rounded-lg border border-gray-200" />
+                      ) : mediaPreview.type.startsWith('video/') ? (
+                        <video src={mediaPreview.url} className="h-32 w-full object-cover rounded-lg border border-gray-200" controls />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center p-6 h-32 w-full bg-gray-50 rounded-lg text-gray-500 border border-gray-200">
+                          <FaFileAlt className="text-4xl mb-3 text-green-500" />
+                          <span className="text-xs text-center truncate w-full px-2 font-medium" title={mediaPreview.name}>
+                            {mediaPreview.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1 mb-0.5 relative">
+                  <button type="button" className="p-2 text-gray-400 hover:text-green-600 transition-colors bg-white rounded-full border border-gray-100 hover:bg-green-50">
+                    <FaSmile className="text-lg" />
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`p-2 transition-colors rounded-full border ${selectedMedia ? 'text-green-600 bg-green-50 border-green-200' : isUploading ? 'text-blue-500 bg-blue-50 animate-pulse border-blue-200' : 'text-gray-400 bg-white hover:text-green-600 hover:bg-green-50 border-gray-100'}`}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    <FaPaperclip className="text-lg" />
+                  </button>
+                  
+                  {/* Quick Reply Bolt */}
+                  <button 
+                    type="button"
+                    onClick={() => setShowQuickReplies(!showQuickReplies)}
+                    className={`p-2 transition-colors rounded-full border ${showQuickReplies ? 'text-green-600 bg-green-50 border-green-200 shadow-inner' : 'text-gray-400 bg-white hover:text-green-600 hover:bg-green-50 border-gray-100'}`}
+                  >
+                    <FaBolt className="text-lg" />
+                  </button>
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleMediaSelect}
+                    accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                  />
+                  
+                  {/* Quick Replies Overlay */}
+                  {showQuickReplies && (
+                    <div className="absolute bottom-full mb-3 left-0 w-72 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 p-2 animate-in fade-in slide-in-from-bottom-2 duration-200 flex flex-col font-sans">
+                       <p className="text-[10px] text-gray-400 uppercase font-black tracking-[0.1em] px-2 py-2 border-b border-gray-50 flex items-center justify-between">
+                         Quick Replies
+                         <span className="text-[9px] font-normal lowercase tracking-normal">({quickReplies.length})</span>
+                       </p>
+                       <div className="max-h-60 overflow-y-auto mt-1 custom-scrollbar">
+                         {quickReplies.length === 0 ? (
+                           <p className="px-3 py-4 text-xs text-gray-400 text-center">No quick replies found. Add them in settings.</p>
+                         ) : (
+                           quickReplies.map((reply, idx) => (
+                             <button
+                               key={reply._id || `reply-${idx}`}
+                               onClick={() => handleSelectQuickReply(reply)}
+                               className="w-full text-left px-3 py-2.5 hover:bg-green-50 rounded-lg group transition-all"
+                             >
+                               <p className="text-xs font-bold text-gray-700 group-hover:text-green-700">{reply.name}</p>
+                               <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5 group-hover:text-green-600/70">{reply.content}</p>
+                             </button>
+                           ))
+                         )}
+                       </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className={`flex-1 rounded-2xl shadow-sm border transition-all overflow-hidden relative ${internalNoteMode ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200 focus-within:border-green-400 focus-within:bg-white'}`}>
+                  <textarea
+                    value={newMessage}
+                    onChange={handleInputChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (newMessage.trim() || selectedMedia) handleSendMessage(e);
+                      }
+                    }}
+                    placeholder={internalNoteMode ? "Add a private note for the team..." : "Type a message..."}
+                    className="w-full max-h-32 min-h-[44px] bg-transparent border-none py-3 px-4 text-[15px] focus:ring-0 resize-none text-gray-700 placeholder-gray-400 block"
+                    rows={1}
+                    disabled={sending}
+                  />
+                </div>
+
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!bspReady || sending || (!newMessage.trim() && !selectedMedia)}
+                  className={`p-3 rounded-full flex-shrink-0 flex items-center justify-center transition-all cursor-pointer ${
+                    internalNoteMode 
+                      ? (newMessage.trim() ? 'bg-yellow-500 hover:bg-yellow-600 text-white shadow-md' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
+                      : ((newMessage.trim() || selectedMedia) && !sending && bspReady
+                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed')
                   }`}
-              >
-                {sending ? <FaSpinner className="animate-spin text-lg" /> : <FaPaperPlane className="text-lg translate-x-[-1px] translate-y-[1px]" />}
-              </button>
+                >
+                  {sending ? <FaSpinner className="animate-spin text-lg" /> : <FaPaperPlane className="text-lg translate-x-[-1px] translate-y-[1px]" />}
+                </button>
+              </div>
             </div>
           </>
         ) : (
@@ -1261,7 +1490,7 @@ export default function InboxPage() {
               {selectedContact.avatarUrl || selectedContact.avatar ? (
                 <img src={selectedContact.avatarUrl || selectedContact.avatar} alt={selectedContact.name} className="w-full h-full object-cover" />
               ) : (
-                <FaUserCircle className="text-[90px]" />
+                <FaUserCircle className="text-[80px] text-gray-200" />
               )}
             </div>
             <h2 className="text-[18px] font-bold text-gray-900 mb-0.5 relative z-10 mt-1">
@@ -1270,183 +1499,161 @@ export default function InboxPage() {
             <p className="text-[13px] text-gray-500 font-medium tracking-wide relative z-10">
               {selectedContact.phone}
             </p>
-            {selectedContact.email && (
-              <p className="text-[11px] text-gray-400 mt-0.5 relative z-10">{selectedContact.email}</p>
-            )}
           </div>
 
-          {/* CRM / Deal Pipeline Section */}
+          {/* Smart Cards Section */}
           <div className="p-0 flex-1 bg-white">
-
+            {/* Personal Details Card */}
             <div className="border-b border-gray-100 last:border-b-0">
               <button 
                 onClick={() => toggleSection('details')}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group"
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-bold group"
               >
-                <span className="flex items-center gap-2"><FaInfoCircle className="text-gray-400 group-hover:text-green-500" /> Personal Details</span>
-                <FaChevronDown className={`text-xs text-gray-400 transition-transform ${expandedSections.details ? 'rotate-180' : ''}`} />
+                <span className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
+                    <FaInfoCircle size={14} />
+                  </div>
+                  Personal Details
+                </span>
+                <FaChevronDown className={`text-xs text-gray-400 transition-transform duration-200 ${expandedSections.details ? 'rotate-180' : ''}`} />
               </button>
               {expandedSections.details && (
-                <div className="px-5 pb-4 text-sm text-gray-600 bg-white">
-                  <div className="grid grid-cols-[100px_1fr] gap-y-2">
-                    <span className="text-gray-400">Name</span>
-                    <span className="font-medium text-gray-800">{selectedContact.name || '-'}</span>
-                    <span className="text-gray-400">Phone</span>
-                    <span className="font-medium text-gray-800">{selectedContact.phone}</span>
-                    <span className="text-gray-400">Email</span>
-                    <span className="font-medium text-gray-800">{selectedContact.email || '-'}</span>
+                <div className="px-5 pb-5 text-sm text-gray-600 bg-white animate-in slide-in-from-top-1 duration-200">
+                  <div className="space-y-4">
+                    <div className="group/field">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Email</label>
+                      <p className="text-xs font-medium text-gray-700 bg-gray-50 px-3 py-2 rounded-lg border border-transparent hover:border-gray-200 transition-all">
+                        {selectedContact.email || '—'}
+                      </p>
+                    </div>
+                    <div className="group/field">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Company</label>
+                      <input 
+                        type="text" 
+                        placeholder="Add company..."
+                        className="w-full bg-gray-50 border-none rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-green-500/20 transition-all font-medium"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="border-b border-gray-100">
+            {/* Tags Card */}
+            <div className="border-b border-gray-100 last:border-b-0">
               <button 
                 onClick={() => toggleSection('tags')}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group"
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-bold group"
               >
-                <span className="flex items-center gap-2"><FaTags className="text-gray-400 group-hover:text-green-500" /> Tags</span>
-                <FaChevronDown className={`text-xs text-gray-400 transition-transform ${expandedSections.tags ? 'rotate-180' : ''}`} />
+                <span className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-100 transition-colors">
+                    <FaTag size={14} />
+                  </div>
+                  Customer Tags
+                </span>
+                <FaChevronDown className={`text-xs text-gray-400 transition-transform duration-200 ${expandedSections.tags ? 'rotate-180' : ''}`} />
               </button>
               {expandedSections.tags && (
-                <div className="px-5 pb-4">
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {selectedContact.tags && selectedContact.tags.length > 0 ? (
-                      selectedContact.tags.map(tag => (
-                        <span key={tag} className="px-2 py-1 bg-green-50 text-green-600 text-[11px] font-bold uppercase rounded-md border border-green-100 flex items-center gap-1 group/tag">
-                          {tag}
-                          <button onClick={() => handleRemoveTag(tag)} className="opacity-0 group-hover/tag:opacity-100 hover:text-red-500"><FaTimes className="text-[9px]" /></button>
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-xs text-gray-400 italic">No tags assigned</span>
+                <div className="px-5 pb-5 text-sm bg-white">
+                   <div className="flex flex-wrap gap-2 mb-4">
+                    {selectedContact.tags?.map((tag) => (
+                      <span key={tag} className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-md text-[11px] font-bold flex items-center gap-1.5 group/tag border border-gray-200/50">
+                        {tag}
+                        <button onClick={() => handleRemoveTag(tag)} className="text-gray-400 hover:text-red-500 transition-colors">
+                          <FaPlus className="rotate-45 text-[10px]" />
+                        </button>
+                      </span>
+                    ))}
+                    {(!selectedContact.tags || selectedContact.tags.length === 0) && (
+                      <span className="text-xs text-gray-400 italic">No tags added yet.</span>
                     )}
                   </div>
                   
-                  {availableTags.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-gray-50">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Available Tags</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {availableTags
-                          .filter(tag => !selectedContact.tags?.includes(tag.name || tag))
-                          .map(tag => (
-                            <button
-                              key={tag._id || tag}
-                              onClick={() => handleAddTag(tag.name || tag)}
-                              className="px-2 py-1 bg-gray-50 text-gray-500 text-[10px] font-medium rounded hover:bg-green-50 hover:text-green-600 hover:border-green-100 border border-gray-100 transition-all"
-                            >
-                              + {tag.name || tag}
-                            </button>
-                          ))
+                  <div className="relative group/search">
+                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within/search:text-green-500 transition-colors" size={10} />
+                    <input 
+                      type="text"
+                      placeholder="Add tag (e.g. High Priority)"
+                      className="w-full pl-8 pr-3 py-2 bg-gray-50 border-none rounded-lg text-xs focus:ring-2 focus:ring-green-500/20 transition-all font-medium"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleAddTag(e.target.value);
+                          e.target.value = '';
                         }
-                      </div>
-                    </div>
-                  )}
+                      }}
+                    />
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Sales Pipeline Data */}
-            <div className="border-b border-gray-100">
+            {/* Internal Notes Card */}
+            <div className="border-b border-gray-100 last:border-b-0">
               <button 
-                onClick={() => toggleSection('pipeline')}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-semibold group"
+                onClick={() => toggleSection('notes')}
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-bold group"
               >
-                <span className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-gray-400 group-hover:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm12-3c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zM3 19V6l12-3v13M3 19c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z" />
-                  </svg>
-                  Sales Pipeline
+                <span className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-yellow-50 text-yellow-600 rounded-lg group-hover:bg-yellow-100 transition-colors">
+                    <FaFlag size={14} />
+                  </div>
+                  Team Notes
                 </span>
-                <FaChevronDown className={`text-xs text-gray-400 transition-transform ${expandedSections.pipeline ? 'rotate-180' : ''}`} />
+                <FaChevronDown className={`text-xs text-gray-400 transition-transform duration-200 ${expandedSections.notes ? 'rotate-180' : ''}`} />
               </button>
-              {expandedSections.pipeline && (
-                <div className="px-5 pb-4 bg-white">
-                {crmLoading ? (
-                  <div className="flex items-center justify-center p-4">
-                    <FaSpinner className="animate-spin text-green-500 text-lg" />
-                  </div>
-                ) : activeDeal ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Pipeline</label>
-                      <p className="text-sm font-medium text-gray-900 bg-gray-50 px-3 py-2 border border-gray-200 rounded-md">
-                        {activeDeal.pipelineName || 'Default Pipeline'}
-                      </p>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-semibold text-gray-500 uppercase block mb-1">Stage</label>
-                      <select
-                        value={activeDeal.stage || ''}
-                        onChange={(e) => handleMoveStage(e.target.value)}
-                        disabled={updatingStage}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm bg-gray-50 focus:bg-white focus:border-green-500 outline-none transition-colors"
-                      >
-                        <option value="">Select stage...</option>
-                        {activeDeal.pipelineStages && activeDeal.pipelineStages.map(s => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {activeDeal.value && (
-                      <div className="flex justify-between items-center py-2 border-t border-gray-100">
-                        <span className="text-sm text-gray-500">Value</span>
-                        <span className="text-sm font-bold text-gray-900">${activeDeal.value}</span>
+              {expandedSections.notes && (
+                <div className="px-5 pb-5 text-sm bg-white">
+                  <div className="space-y-3 mb-4 max-h-48 overflow-y-auto pr-1 flex flex-col gap-2">
+                    {/* Placeholder for notes */}
+                    <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl">
+                      <p className="text-[11px] text-yellow-800 leading-normal font-medium">Customer requested callback tomorrow at 3 PM.</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[9px] text-yellow-600/70 font-bold uppercase">System</span>
+                        <span className="text-[9px] text-yellow-600/50 italic">Generated</span>
                       </div>
-                    )}
-
-                    {/* Notes Section within CRM */}
-                    <div className="pt-2 border-t border-gray-100">
-                      <label className="text-xs font-semibold text-gray-500 uppercase block mb-2">Internal Notes</label>
-
-                      <form onSubmit={handleAddNote} className="mb-3">
-                        <div className="flex items-center border border-gray-200 rounded-md bg-gray-50 focus-within:bg-white focus-within:border-green-400 overflow-hidden pr-1">
-                          <input
-                            type="text"
-                            placeholder="Add a note..."
-                            value={newNote}
-                            onChange={(e) => setNewNote(e.target.value)}
-                            disabled={addingNote}
-                            className="flex-1 px-3 py-2 text-sm bg-transparent border-none focus:ring-0 outline-none placeholder-gray-400"
-                          />
-                          <button
-                            type="submit"
-                            disabled={addingNote || !newNote.trim()}
-                            className="p-1.5 bg-green-100 text-green-600 rounded flex items-center justify-center hover:bg-green-200 disabled:opacity-50 transition-colors"
-                          >
-                            {addingNote ? <FaSpinner className="animate-spin" /> : <FaPlus className="text-xs" />}
-                          </button>
-                        </div>
-                      </form>
-
-                      {activeDeal.notes && activeDeal.notes.length > 0 && (
-                        <div className="space-y-2 mt-2 max-h-40 overflow-y-auto custom-scrollbar pr-1">
-                          {activeDeal.notes.map((note, idx) => (
-                            <div key={idx} className="bg-yellow-50 px-3 py-2 rounded-md border border-yellow-100/50">
-                              <p className="text-[13px] text-gray-800 leading-snug">{note.text}</p>
-                              <p className="text-[10px] text-gray-400 mt-1">
-                                {new Date(note.createdAt).toLocaleString(undefined, {
-                                  month: 'short', day: 'numeric',
-                                  hour: '2-digit', minute: '2-digit'
-                                })}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   </div>
-                ) : (
-                  <div className="text-center py-6 bg-gray-50 border border-gray-100 rounded-lg border-dashed">
-                    <p className="text-sm text-gray-500 px-4">No active pipeline deal found for this contact.</p>
-                  </div>
-                )}
+                  <button 
+                    onClick={() => setInternalNoteMode(true)}
+                    className="w-full py-2 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-bold hover:bg-yellow-100 transition-colors border border-yellow-200 border-dashed"
+                  >
+                    + Add New Note
+                  </button>
                 </div>
               )}
             </div>
 
+            {/* Interaction History Card */}
+            <div className="border-b border-gray-100 last:border-b-0">
+              <button 
+                onClick={() => toggleSection('history')}
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-bold group"
+              >
+                <span className="flex items-center gap-2.5">
+                  <div className="p-1.5 bg-gray-50 text-gray-600 rounded-lg group-hover:bg-gray-100 transition-colors">
+                    <FaClock size={14} />
+                  </div>
+                  Interaction History
+                </span>
+                <FaChevronDown className={`text-xs text-gray-400 transition-transform duration-200 ${expandedSections.history ? 'rotate-180' : ''}`} />
+              </button>
+              {expandedSections.history && (
+                <div className="px-5 pb-8 text-sm bg-white">
+                   <div className="space-y-4 relative before:content-[''] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
+                      <div className="relative pl-6">
+                        <div className="absolute left-0 top-1 w-3 h-3 bg-white border-2 border-green-500 rounded-full z-10"></div>
+                        <p className="text-[11px] font-bold text-gray-800">Current Session Active</p>
+                        <p className="text-[10px] text-gray-400">Inbound Message Recieved</p>
+                      </div>
+                      <div className="relative pl-6">
+                        <div className="absolute left-0 top-1 w-3 h-3 bg-white border-2 border-gray-200 rounded-full z-10"></div>
+                        <p className="text-[11px] font-bold text-gray-800">Contact Created</p>
+                        <p className="text-[10px] text-gray-400">First Interaction</p>
+                      </div>
+                   </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1481,9 +1688,9 @@ export default function InboxPage() {
 
                 <div className="mt-3 max-h-48 overflow-y-auto border border-gray-100 rounded-lg shadow-inner bg-gray-50">
                   {contactOptions.length > 0 ? (
-                    contactOptions.map((contact) => (
+                    contactOptions.map((contact, idx) => (
                       <button
-                        key={contact._id}
+                        key={contact._id || `opt-${idx}`}
                         type="button"
                         onClick={() => setSelectedStartContact(contact)}
                         className={`w-full text-left px-4 py-3 border-b last:border-b-0 border-gray-100 transition-colors flex justify-between items-center ${selectedStartContact?._id === contact._id

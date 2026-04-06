@@ -13,6 +13,7 @@
  * - Rate limit status
  */
 
+const mongoose = require('mongoose');
 const { Conversation, Message, Contact, User, Permission } = require('../../models');
 const { getIO } = require('../../utils/socket');
 const { uploadBufferToCloudinary } = require('../../utils/cloudinary');
@@ -634,6 +635,204 @@ exports.setPriority = async (req, res) => {
   }
 };
 
+/**
+ * Set conversation label
+ * PUT /api/inbox/:conversationId/label
+ */
+exports.setConversationLabel = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { label } = req.body;
+    const workspaceId = req.user.workspace;
+
+    if (!label || label.length > 22) {
+      return res.status(400).json({
+        success: false,
+        message: 'Label is required and must be max 22 characters',
+        code: 'INVALID_LABEL'
+      });
+    }
+
+    const conversation = await Conversation.findOneAndUpdate(
+      { _id: conversationId, workspace: workspaceId },
+      { label },
+      { new: true }
+    ).populate('contact', 'name phone profilePicture');
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Conversation not found',
+        code: 'CONVERSATION_NOT_FOUND'
+      });
+    }
+
+    // Socket notification
+    const io = getIO();
+    if (io) {
+      io.to(`workspace:${workspaceId}`).emit('conversation:labelChanged', {
+        conversationId: conversation._id,
+        label,
+        changedBy: { _id: req.user._id, name: req.user.name }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Label set to ${label}`,
+      data: conversation
+    });
+  } catch (err) {
+    console.error('[INBOX] Label error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to set label',
+      code: 'LABEL_ERROR'
+    });
+  }
+};
+
+/**
+ * Clear conversation label
+ * DELETE /api/inbox/:conversationId/label
+ */
+exports.clearConversationLabel = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const workspaceId = req.user.workspace;
+
+    const conversation = await Conversation.findOneAndUpdate(
+      { _id: conversationId, workspace: workspaceId },
+      { $unset: { label: "" } },
+      { new: true }
+    ).populate('contact', 'name phone profilePicture');
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Conversation not found',
+        code: 'CONVERSATION_NOT_FOUND'
+      });
+    }
+
+    // Socket notification
+    const io = getIO();
+    if (io) {
+      io.to(`workspace:${workspaceId}`).emit('conversation:labelCleared', {
+        conversationId: conversation._id,
+        clearedBy: { _id: req.user._id, name: req.user.name }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Label cleared',
+      data: conversation
+    });
+  } catch (err) {
+    console.error('[INBOX] Clear label error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear label',
+      code: 'CLEAR_LABEL_ERROR'
+    });
+  }
+};
+
+/**
+ * Mark conversation as spam
+ * POST /api/inbox/:conversationId/spam
+ */
+exports.markAsSpam = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const workspaceId = req.user.workspace;
+
+    const conversation = await Conversation.findOneAndUpdate(
+      { _id: conversationId, workspace: workspaceId },
+      { status: 'spam' },
+      { new: true }
+    ).populate('contact', 'name phone profilePicture');
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Conversation not found',
+        code: 'CONVERSATION_NOT_FOUND'
+      });
+    }
+
+    // Socket notification
+    const io = getIO();
+    if (io) {
+      io.to(`workspace:${workspaceId}`).emit('conversation:markedSpam', {
+        conversationId: conversation._id,
+        markedBy: { _id: req.user._id, name: req.user.name }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Conversation marked as spam',
+      data: conversation
+    });
+  } catch (err) {
+    console.error('[INBOX] Spam error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to mark as spam',
+      code: 'SPAM_ERROR'
+    });
+  }
+};
+
+/**
+ * Unmark conversation as spam (reopen)
+ * DELETE /api/inbox/:conversationId/spam
+ */
+exports.unmarkAsSpam = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const workspaceId = req.user.workspace;
+
+    const conversation = await Conversation.findOneAndUpdate(
+      { _id: conversationId, workspace: workspaceId },
+      { status: 'open' },
+      { new: true }
+    ).populate('contact', 'name phone profilePicture');
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Conversation not found',
+        code: 'CONVERSATION_NOT_FOUND'
+      });
+    }
+
+    // Socket notification
+    const io = getIO();
+    if (io) {
+      io.to(`workspace:${workspaceId}`).emit('conversation:unmarkedSpam', {
+        conversationId: conversation._id,
+        unmarkedBy: { _id: req.user._id, name: req.user.name }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Conversation unmarked as spam',
+      data: conversation
+    });
+  } catch (err) {
+    console.error('[INBOX] Unspam error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to unmark spam',
+      code: 'UNSPAM_ERROR'
+    });
+  }
+};
+
 // ═══════════════════════════════════════════════════════════════════════════
 // READ STATUS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -735,8 +934,12 @@ exports.getInbox = async (req, res) => {
     // View-based filtering
     if (view === 'mine') {
       query.assignedTo = agentId;
+      query.status = { $ne: 'spam' };
     } else if (view === 'unassigned') {
       query.assignedTo = null;
+      query.status = { $ne: 'spam' };
+    } else if (view === 'spam') {
+      query.status = 'spam';
     } else if (view === 'all') {
       // Only owners/admins/managers can view all
       if (permission.role !== 'owner' && permission.role !== 'admin' && permission.role !== 'manager' &&
@@ -758,9 +961,9 @@ exports.getInbox = async (req, res) => {
       query.status = { $in: ['open', 'pending'] };
     }
 
-    // Priority filter
-    if (priority) {
-      query.priority = priority;
+    // Label filter
+    if (req.query.label) {
+      query.label = req.query.label;
     }
 
     // Search (by contact name/phone)
@@ -1572,6 +1775,179 @@ exports.getRateLimitStatus = async (req, res) => {
       success: false,
       message: 'Failed to get rate limit status',
       code: 'RATE_LIMIT_STATUS_ERROR'
+    });
+  }
+};
+
+/**
+ * Get conversation analytics (Total, Responded, Resolved, Wait Times)
+ * GET /api/v1/inbox/analytics/report
+ * Query: range (7d, 30d, 90d, today), team (all, id)
+ */
+exports.getInboxAnalytics = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { range = '7d', team = 'all' } = req.query;
+
+    // 1. Calculate time range
+    const now = new Date();
+    let start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); // Default 7d
+    
+    if (range === 'today') {
+      start = new Date(new Date().setHours(0, 0, 0, 0));
+    } else if (range === '30d') {
+      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (range === '90d') {
+      start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    }
+
+    const end = new Date();
+
+    // 2. Build base match query
+    const matchQuery = {
+      workspace: new mongoose.Types.ObjectId(workspaceId.toString()),
+      conversationStartedAt: { $gte: start, $lte: end }
+    };
+
+    if (team !== 'all') {
+      matchQuery.assignedTo = new mongoose.Types.ObjectId(team.toString());
+    }
+
+    // 3. Parallel aggregations for performance
+    const [overviewStats, dailyTrends, tagDistribution, agentStats] = await Promise.all([
+      // A. Overview Stats
+      Conversation.aggregate([
+        { $match: matchQuery },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            resolved: { $sum: { $cond: [{ $in: ["$status", ["resolved", "closed"]] }, 1, 0] } },
+            responded: { $sum: { $cond: [{ $gt: ["$firstResponseAt", null] }, 1, 0] } },
+            avgResponseTime: { 
+              $avg: { 
+                $cond: [
+                  { $gt: ["$firstResponseAt", null] },
+                  { $subtract: ["$firstResponseAt", "$conversationStartedAt"] },
+                  null
+                ] 
+              } 
+            }
+          }
+        }
+      ]),
+
+      // B. Daily Trends
+      Conversation.aggregate([
+        { $match: matchQuery },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$conversationStartedAt" } },
+            new: { $sum: 1 },
+            resolved: { $sum: { $cond: [{ $in: ["$status", ["resolved", "closed"]] }, 1, 0] } }
+          }
+        },
+        { $sort: { "_id": 1 } },
+        {
+          $project: {
+            _id: 0,
+            date: "$_id",
+            new: 1,
+            resolved: 1
+          }
+        }
+      ]),
+
+      // C. Tag Distribution (Labels)
+      Conversation.aggregate([
+        { $match: { ...matchQuery, label: { $exists: true, $ne: null } } },
+        {
+          $group: {
+            _id: "$label",
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { count: -1 } },
+        { $limit: 10 },
+        {
+          $project: {
+            _id: 0,
+            name: "$_id",
+            count: 1
+          }
+        }
+      ]),
+
+      // D. Agent Performance
+      Conversation.aggregate([
+        { $match: { ...matchQuery, assignedTo: { $ne: null } } },
+        {
+          $group: {
+            _id: "$assignedTo",
+            assigned: { $sum: 1 },
+            resolved: { $sum: { $cond: [{ $in: ["$status", ["resolved", "closed"]] }, 1, 0] } },
+            avgResponseTimeMs: { 
+              $avg: { 
+                $cond: [
+                  { $gt: ["$firstResponseAt", null] },
+                  { $subtract: ["$firstResponseAt", "$conversationStartedAt"] },
+                  null
+                ] 
+              } 
+            }
+          }
+        }
+      ])
+    ]);
+
+    // 4. Transform Agent Performance with names
+    const agentIds = agentStats.map(s => s._id);
+    const users = await User.find({ _id: { $in: agentIds } }).select('name role').lean();
+    const userMap = users.reduce((acc, u) => {
+      acc[u._id.toString()] = u;
+      return acc;
+    }, {});
+
+    const agentPerformance = agentStats.map(s => {
+      const user = userMap[s._id.toString()] || { name: 'Unknown', role: 'Agent' };
+      // Estimate load (active vs total)
+      const load = Math.round((s.assigned - s.resolved) / Math.max(s.assigned, 1) * 100);
+      
+      return {
+        id: s._id,
+        name: user.name,
+        role: user.role,
+        assigned: s.assigned,
+        resolved: s.resolved,
+        avgResponseTime: s.avgResponseTimeMs ? `${Math.round(s.avgResponseTimeMs / 60000)}m` : 'N/A',
+        load: Math.max(0, isNaN(load) ? 0 : load)
+      };
+    });
+
+    // 5. Build final payload
+    const overview = overviewStats[0] || { total: 0, resolved: 0, responded: 0, avgResponseTime: 0 };
+    
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          total: overview.total,
+          resolved: overview.resolved,
+          avgResponseTime: overview.avgResponseTime ? `${Math.round(overview.avgResponseTime / 60000)}m` : 'N/A',
+          activeAgents: agentPerformance.length
+        },
+        dailyTrends,
+        tagDistribution,
+        agentPerformance
+      }
+    });
+
+  } catch (err) {
+    console.error('[INBOX] Analytics Report error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate analytics report',
+      code: 'ANALYTICS_REPORT_ERROR'
     });
   }
 };

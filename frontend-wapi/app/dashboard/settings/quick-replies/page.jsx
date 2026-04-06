@@ -1,148 +1,249 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaKeyboard, FaPlus, FaTrash, FaSpinner } from 'react-icons/fa';
-import { get, post, del } from '@/lib/api';
+import { get, post, put, del } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import FeatureGate from '@/components/features/FeatureGate';
+import { FaPlus, FaReply, FaTrash, FaEdit, FaSearch, FaBolt } from 'react-icons/fa';
 
-function QuickRepliesContent() {
-  const [replies, setReplies] = useState([]);
+export default function QuickReplyManager() {
+  const [quickReplies, setQuickReplies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ title: '', shortcut: '', content: '', category: 'General' });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingReply, setEditingReply] = useState(null);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    shortcut: '',
+    content: '',
+    mediaUrl: '',
+    mediaType: 'image'
+  });
 
   useEffect(() => {
-    loadReplies();
+    fetchQuickReplies();
   }, []);
 
-  const loadReplies = async () => {
+  const fetchQuickReplies = async () => {
     try {
       setLoading(true);
-      const data = await get('/quick-replies');
-      const replyList = Array.isArray(data) ? data : (data?.replies || []);
-      setReplies(replyList);
+      const res = await get('/quick-replies');
+      setQuickReplies(res.data || []);
     } catch (err) {
-      console.error('Failed to load quick replies:', err);
-      // API may not exist yet - show empty state
-      setReplies([]);
+      toast.error('Failed to load quick replies');
     } finally {
       setLoading(false);
     }
   };
 
-  const createReply = async (e) => {
+  const handleOpenModal = (reply = null) => {
+    if (reply) {
+      setEditingReply(reply);
+      setFormData({
+        name: reply.name,
+        shortcut: reply.shortcut || '',
+        content: reply.content,
+        mediaUrl: reply.mediaUrl || '',
+        mediaType: reply.mediaType || 'image'
+      });
+    } else {
+      setEditingReply(null);
+      setFormData({
+        name: '',
+        shortcut: '',
+        content: '',
+        mediaUrl: '',
+        mediaType: 'image'
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.content.trim()) return;
-    
     try {
-      setCreating(true);
-      const data = await post('/quick-replies', form);
-      setReplies(prev => [data.reply || data, ...prev]);
-      setForm({ title: '', shortcut: '', content: '', category: 'General' });
-      toast?.success?.('Quick reply created');
+      if (editingReply) {
+        await put(`/quick-replies/${editingReply._id}`, formData);
+        toast.success('Quick reply updated');
+      } else {
+        await post('/quick-replies', formData);
+        toast.success('Quick reply created');
+      }
+      setIsModalOpen(false);
+      fetchQuickReplies();
     } catch (err) {
-      toast?.error?.(err.message || 'Failed to create quick reply');
-    } finally {
-      setCreating(false);
+      toast.error(err.response?.data?.message || 'Action failed');
     }
   };
 
-  const deleteReply = async (id) => {
-    if (!confirm('Delete this quick reply?')) return;
-    
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this quick reply?')) return;
     try {
       await del(`/quick-replies/${id}`);
-      setReplies(prev => prev.filter(r => String(r._id || r.id) !== String(id)));
-      toast?.success?.('Quick reply deleted');
+      toast.success('Deleted successfully');
+      fetchQuickReplies();
     } catch (err) {
-      toast?.error?.(err.message || 'Failed to delete quick reply');
+      toast.error('Delete failed');
     }
   };
 
-  if (loading) {
-    return (
-      <div className=" flex items-center justify-center">
-        <FaSpinner className="animate-spin text-3xl text-cyan-600" />
-      </div>
-    );
-  }
-
-  return (
-    <div className=" p-6">
-      <div className="max-w-6xl mx-auto mb-6 flex items-center gap-3">
-        <div className="w-12 h-12 bg-cyan-600 rounded-xl flex items-center justify-center">
-          <FaKeyboard className="text-white text-xl" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Quick Replies</h1>
-          <p className="text-sm text-muted-foreground">Create reusable responses for faster replies</p>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
-        <form onSubmit={createReply} className="bg-card rounded-xl shadow-premium p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Create Reply</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-foreground mb-1">Title</label>
-              <input value={form.title} onChange={(e)=>setForm({...form,title:e.target.value})} required placeholder="e.g., Greeting" className="w-full px-3 py-2 rounded border border-border bg-white dark:bg-muted text-foreground" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm text-foreground mb-1">Shortcut</label>
-                <input value={form.shortcut} onChange={(e)=>setForm({...form,shortcut:e.target.value})} placeholder="/hi" className="w-full px-3 py-2 rounded border border-border bg-white dark:bg-muted text-foreground" />
-              </div>
-              <div>
-                <label className="block text-sm text-foreground mb-1">Category</label>
-                <select value={form.category} onChange={(e)=>setForm({...form,category:e.target.value})} className="w-full px-3 py-2 rounded border border-border bg-white dark:bg-muted text-foreground">
-                  <option>General</option>
-                  <option>Sales</option>
-                  <option>Support</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm text-foreground mb-1">Content</label>
-              <textarea value={form.content} onChange={(e)=>setForm({...form,content:e.target.value})} rows={4} required placeholder="Type your message template..." className="w-full px-3 py-2 rounded border border-border bg-white dark:bg-muted text-foreground" />
-            </div>
-            <button type="submit" disabled={creating} className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 disabled:opacity-50">
-              {creating ? <FaSpinner className="animate-spin" /> : <FaPlus/>} 
-              {creating ? 'Creating...' : 'Create Reply'}
-            </button>
-          </div>
-        </form>
-
-        <div className="bg-card rounded-xl shadow-premium p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Replies ({replies.length})</h2>
-          {replies.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">No quick replies yet. Create your first one!</p>
-          ) : (
-            <ul className="space-y-3 max-h-[500px] overflow-y-auto">
-              {replies.map(r => (
-                <li key={String(r._id || r.id)} className="border border-border rounded p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground truncate">{r.title} <span className="text-xs text-muted-foreground">({r.category})</span></h3>
-                      <p className="text-xs text-muted-foreground">Shortcut: {r.shortcut || '—'}</p>
-                      <p className="mt-2 text-sm text-foreground line-clamp-2">{r.content}</p>
-                    </div>
-                    <button onClick={()=>deleteReply(r._id || r.id)} className="ml-2 text-destructive hover:text-destructive/80"><FaTrash/></button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-    </div>
+  const filteredReplies = quickReplies.filter(r => 
+    r.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    r.shortcut?.toLowerCase().includes(searchTerm.toLowerCase())
   );
-}
 
-export default function QuickRepliesSettingsPage() {
   return (
-    <FeatureGate feature="quick-replies" comingSoon>
-      <QuickRepliesContent />
-    </FeatureGate>
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Quick Replies</h1>
+          <p className="text-gray-500 text-sm">Manage canned responses for your Shared Team Inbox.</p>
+        </div>
+        <button 
+          onClick={() => handleOpenModal()}
+          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors shadow-sm"
+        >
+          <FaPlus size={14} />
+          <span>New Quick Reply</span>
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-gray-100 flex items-center gap-4">
+          <div className="relative flex-1 group">
+            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-green-600 transition-colors" />
+            <input 
+              type="text"
+              placeholder="Search by name or shortcut (e.g. /greeting)..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-lg focus:ring-2 focus:ring-green-500/20 text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-gray-400 text-xs uppercase tracking-wider bg-gray-50/50">
+                <th className="px-6 py-4 font-semibold">Name & Shortcut</th>
+                <th className="px-6 py-4 font-semibold">Content Preview</th>
+                <th className="px-6 py-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {loading ? (
+                <tr><td colSpan="3" className="px-6 py-12 text-center text-gray-400">Loading replies...</td></tr>
+              ) : filteredReplies.length === 0 ? (
+                <tr><td colSpan="3" className="px-6 py-12 text-center text-gray-400">No quick replies found.</td></tr>
+              ) : (
+                filteredReplies.map(reply => (
+                  <tr key={reply._id} className="hover:bg-gray-50/50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-700">{reply.name}</div>
+                      {reply.shortcut && (
+                        <div className="text-xs text-green-600 font-mono mt-0.5">{reply.shortcut}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-gray-500 line-clamp-1 max-w-sm">
+                        {reply.content}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleOpenModal(reply)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <FaEdit size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(reply._id)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <FaTrash size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <FaBolt className="text-green-600" />
+                {editingReply ? 'Edit Quick Reply' : 'New Quick Reply'}
+              </h2>
+              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                <FaPlus className="rotate-45" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Internal Name</label>
+                  <input 
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="e.g. Welcome Message"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Shortcut (Optional)</label>
+                  <input 
+                    type="text"
+                    value={formData.shortcut}
+                    onChange={(e) => setFormData({...formData, shortcut: e.target.value})}
+                    placeholder="e.g. /hi"
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all text-sm font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wider">Message Content</label>
+                <textarea 
+                  required
+                  rows="4"
+                  value={formData.content}
+                  onChange={(e) => setFormData({...formData, content: e.target.value})}
+                  placeholder="Type your canned response here..."
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all text-sm resize-none"
+                ></textarea>
+                <p className="mt-1.5 text-[10px] text-gray-400">Pro-tip: Use variables like {"{{name}}"} for personalization.</p>
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors shadow-sm"
+                >
+                  {editingReply ? 'Save Changes' : 'Create Reply'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

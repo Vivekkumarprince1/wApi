@@ -47,6 +47,17 @@ router.get('/agents',
 );
 
 /**
+ * GET /api/inbox/analytics/report
+ * Get conversation analytics (Total, Responded, Resolved, Wait Times)
+ * This must be above the :conversationId wildcard route.
+ */
+router.get('/analytics/report',
+  auth,
+  requireRole(['owner', 'admin', 'manager']),
+  inboxController.getInboxAnalytics
+);
+
+/**
  * GET /api/inbox/:conversationId
  * Get single conversation details
  * Agents can only access their assigned conversations
@@ -201,6 +212,46 @@ router.put('/:conversationId/priority',
   inboxController.setPriority
 );
 
+/**
+ * PUT /api/inbox/:conversationId/label
+ * Set conversation label
+ */
+router.put('/:conversationId/label',
+  auth,
+  requireConversationAccess('conversationId'),
+  inboxController.setConversationLabel
+);
+
+/**
+ * DELETE /api/inbox/:conversationId/label
+ * Clear conversation label
+ */
+router.delete('/:conversationId/label',
+  auth,
+  requireConversationAccess('conversationId'),
+  inboxController.clearConversationLabel
+);
+
+/**
+ * POST /api/inbox/:conversationId/spam
+ * Mark conversation as spam
+ */
+router.post('/:conversationId/spam',
+  auth,
+  requireConversationAccess('conversationId'),
+  inboxController.markAsSpam
+);
+
+/**
+ * DELETE /api/inbox/:conversationId/spam
+ * Unmark conversation as spam
+ */
+router.delete('/:conversationId/spam',
+  auth,
+  requireConversationAccess('conversationId'),
+  inboxController.unmarkAsSpam
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // READ STATUS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -282,5 +333,7 @@ router.get('/rate-limit/status',
   auth,
   inboxController.getRateLimitStatus
 );
+
+// Analytics route moved to top of parameter section to avoid shadowing.
 
 module.exports = router;
