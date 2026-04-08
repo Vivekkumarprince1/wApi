@@ -418,3 +418,14 @@
 {"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-08 12:18:03"}
 {"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-08 12:18:04"}
 {"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-08 12:18:05"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 203a5e43-c560-44c8-be2e-4044e0b0b941","service":"whatsapp-saas","timestamp":"2026-04-08 13:18:07"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 203a5e43-c560-44c8-be2e-4044e0b0b941","service":"whatsapp-saas","timestamp":"2026-04-08 13:18:08"}
+{"level":"info","message":"[PhoneThroughputMiddleware] Limiter initialized in fail-open mode (no Redis)","service":"whatsapp-saas","timestamp":"2026-04-08 13:52:30"}
+{"conversationId":"69bada1e8a07e6f050493571","ledgerId":"69d4d0ef09e9833d2e22fc27","level":"info","message":"[BillingLedger] Message recorded in existing window","service":"whatsapp-saas","timestamp":"2026-04-08 13:52:42","window":"existing"}
+{"code":"NOT_FOUND","level":"error","message":"Contact not found","service":"whatsapp-saas","stack":"Error: Contact not found\n    at createError (/Users/vivek/devlopment projects/wApi/wApi/server/src/utils/errorFormatter.js:44:17)\n    at ContactService.getContact (/Users/vivek/devlopment projects/wApi/wApi/server/src/services/messaging/contactService.js:62:15)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async /Users/vivek/devlopment projects/wApi/wApi/server/src/controllers/messaging/contactController.js:31:19","statusCode":404,"timestamp":"2026-04-08 13:53:13"}
+{"error":"Contact not found","level":"error","message":"Failed to get contact","service":"whatsapp-saas","timestamp":"2026-04-08 13:53:13","workspaceId":"699c21048e96ba1b49ab6945"}
+{"level":"info","message":"[Tags] Added 1 tags to conversation 69bada1e8a07e6f050493571","service":"whatsapp-saas","timestamp":"2026-04-08 13:55:52"}
+{"delaySeconds":60,"jobId":"121","level":"info","message":"[MessageRetryQueue] Message enqueued for retry:","messageId":"69d612786a108acdb2a01deb","retryCount":0,"service":"whatsapp-saas","timestamp":"2026-04-08 14:02:54"}
+{"delaySeconds":60,"jobId":"122","level":"info","message":"[MessageRetryQueue] Message enqueued for retry:","messageId":"69d613a66a108acdb2a01e86","retryCount":0,"service":"whatsapp-saas","timestamp":"2026-04-08 14:07:54"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 203a5e43-c560-44c8-be2e-4044e0b0b941","service":"whatsapp-saas","timestamp":"2026-04-08 14:18:05"}
+{"level":"info","message":"[AppTokenService] Found cached app token for appId: 203a5e43-c560-44c8-be2e-4044e0b0b941","service":"whatsapp-saas","timestamp":"2026-04-08 14:18:07"}
