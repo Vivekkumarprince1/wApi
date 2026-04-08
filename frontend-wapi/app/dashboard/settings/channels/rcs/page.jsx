@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { 
   Rocket, Server, Key, ShieldCheck, 
   ExternalLink, Info, CheckCircle2, 
-  AlertCircle, Loader2, Save, ArrowLeft
+  AlertCircle, Loader2, Save, ArrowLeft,
+  Smartphone
 } from 'lucide-react';
+import FlashLoader from '@/components/ui/FlashLoader';
 import { useRouter } from 'next/navigation';
 import { get, post } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -14,18 +16,17 @@ export default function RCSConfigurationPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('config'); // 'config' | 'test'
 
   const [config, setConfig] = useState({
-    provider: 'JIO',
+    provider: 'GUPSHUP',
     credentials: {
       apiKey: '',
-      apiSecret: '',
       senderId: '',
-      endpoint: 'https://jio-rcs.central.api.com/v1'
+      endpoint: 'https://api.gupshup.io/sm/api/v1/msg'
     },
     status: 'PENDING'
   });
+  const [isManaged, setIsManaged] = useState(false);
 
   useEffect(() => {
     loadConfig();
@@ -36,7 +37,16 @@ export default function RCSConfigurationPage() {
       setLoading(true);
       const res = await get('/settings/channels/rcs');
       if (res.success && res.data) {
-        setConfig(res.data);
+        setIsManaged(res.isManaged || false);
+        // Merge with defaults while preserving existing credentials
+        setConfig(prev => ({
+          ...prev,
+          ...res.data,
+          credentials: {
+            ...prev.credentials,
+            ...(res.data.credentials || {})
+          }
+        }));
       }
     } catch (err) {
       console.error('Failed to load RCS config:', err);
@@ -46,28 +56,32 @@ export default function RCSConfigurationPage() {
   };
 
   const handleSave = async () => {
+    // Only require API key if not managed
+    if (!isManaged && !config.credentials.apiKey) {
+      toast?.error?.('Please fill in your Gupshup API Key');
+      return;
+    }
+
+    if (!config.credentials.senderId) {
+      toast?.error?.('Please fill in your RCS Business Name (Sender ID)');
+      return;
+    }
+
     try {
       setSaving(true);
       const res = await post('/settings/channels/rcs', config);
       if (res.success) {
-        toast?.success?.('RCS credentials saved successfully');
+        toast?.success?.('RCS details saved. Identity verified.');
         loadConfig();
       }
     } catch (err) {
-      toast?.error?.(err.message || 'Failed to save RCS config');
+      toast?.error?.(err.message || 'Failed to save RCS details');
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-        <p className="text-sm text-muted-foreground">Loading RCS configuration...</p>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   return (
     <div className="max-w-4xl mx-auto p-6 animate-fade-in">
@@ -80,35 +94,44 @@ export default function RCSConfigurationPage() {
           <ArrowLeft className="h-5 w-5 text-foreground" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">RCS (Rich Communication Services)</h1>
-          <p className="text-sm text-muted-foreground">Configure fallback channel for WhatsApp campaigns.</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-foreground">RCS Brand Identity</h1>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+              (isManaged || config.credentials.apiKey) && config.credentials.senderId
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-amber-100 text-amber-700'
+            }`}>
+              {(isManaged || config.credentials.apiKey) && config.credentials.senderId ? 'Active' : 'Setup Required'}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground">Configure how your brand appears on RCS fallback messages.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Config */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Status Card */}
-          <div className={`p-5 rounded-2xl border flex items-center justify-between ${
-            config.status === 'ACTIVE' 
-              ? 'bg-emerald-500/5 border-emerald-500/20' 
-              : 'bg-amber-500/5 border-amber-500/20'
-          }`}>
+          {/* Gupshup Branding Card */}
+          <div className="p-5 rounded-2xl border bg-blue-500/5 border-blue-500/20 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                config.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-600' : 'bg-amber-500/20 text-amber-600'
-              }`}>
-                {config.status === 'ACTIVE' ? <CheckCircle2 className="h-6 w-6" /> : <ShieldCheck className="h-6 w-6" />}
+              <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-600 flex items-center justify-center">
+                <Smartphone className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Connection Status</p>
-                <p className={`font-bold ${config.status === 'ACTIVE' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                  {config.status === 'ACTIVE' ? 'Connected & Active' : 'Pending Configuration'}
-                </p>
+                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-0.5">Primary Gateway</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-bold text-blue-600">Gupshup Single Messaging API</p>
+                  {isManaged && (
+                    <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase">Managed</span>
+                  )}
+                </div>
               </div>
             </div>
-            {config.status === 'ACTIVE' && (
-              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-full">LIVE</span>
+            {isManaged && (
+              <div className="flex items-center gap-2 text-blue-600/60 font-medium text-xs">
+                <ShieldCheck className="h-4 w-4" />
+                Trusted Partner Connectivity
+              </div>
             )}
           </div>
 
@@ -116,75 +139,47 @@ export default function RCSConfigurationPage() {
           <div className="bg-card border border-border rounded-2xl shadow-premium overflow-hidden">
             <div className="p-6 border-b border-border">
               <h3 className="font-bold text-foreground flex items-center gap-2">
-                <Server className="h-4 w-4 text-primary" /> Channel Credentials
+                <Server className="h-4 w-4 text-primary" /> Delivery Configuration
               </h3>
             </div>
             <div className="p-6 space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">Provider</label>
-                  <select 
-                    value={config.provider}
-                    onChange={(e) => setConfig(c => ({ ...c, provider: e.target.value }))}
-                    className="input-premium text-sm w-full"
-                  >
-                    <option value="JIO">Jio (Recommended India)</option>
-                    <option value="GUPSHUP">Gupshup RCS</option>
-                    <option value="META_RCS">Meta RCS (Beta)</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">RCS Agent ID / Sender ID</label>
-                  <input 
-                    type="text"
-                    value={config.credentials.senderId}
-                    onChange={(e) => setConfig(c => ({ ...c, credentials: { ...c.credentials, senderId: e.target.value } }))}
-                    placeholder="e.g. MyStoreRCS"
-                    className="input-premium text-sm w-full"
-                  />
-                </div>
-              </div>
-
               <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase">API Endpoint URL</label>
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="text"
-                    value={config.credentials.endpoint}
-                    onChange={(e) => setConfig(c => ({ ...c, credentials: { ...c.credentials, endpoint: e.target.value } }))}
-                    className="input-premium text-sm w-full"
-                  />
-                  <div className="p-2.5 bg-muted rounded-xl">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                  </div>
-                </div>
+                <label className="text-xs font-bold text-muted-foreground uppercase">RCS Business Name (Sender ID)</label>
+                <input 
+                  type="text"
+                  value={config.credentials.senderId}
+                  onChange={(e) => setConfig(c => ({ ...c, credentials: { ...c.credentials, senderId: e.target.value } }))}
+                  placeholder="e.g. MyBrandOfficial"
+                  className="input-premium text-sm w-full"
+                />
+                <p className="text-[10px] text-muted-foreground italic">This is the name customers will see on their phones.</p>
               </div>
 
-              <div className="space-y-4 pt-4 border-t border-border/50">
+              {!isManaged ? (
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase flex items-center justify-between">
-                    API Key
-                    <span className="text-[10px] lowercase font-normal italic">Requires DLT registration</span>
-                  </label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase">Gupshup API Key</label>
                   <input 
                     type="password"
                     value={config.credentials.apiKey}
                     onChange={(e) => setConfig(c => ({ ...c, credentials: { ...c.credentials, apiKey: e.target.value } }))}
-                    placeholder="*****************************"
+                    placeholder="Paste your Gupshup API Key here"
                     className="input-premium text-sm w-full"
                   />
+                  <p className="text-[10px] text-amber-500/80 italic flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" /> Required for independent connectivity.
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase">API Secret</label>
-                  <input 
-                    type="password"
-                    value={config.credentials.apiSecret}
-                    onChange={(e) => setConfig(c => ({ ...c, credentials: { ...c.credentials, apiSecret: e.target.value } }))}
-                    placeholder="*****************************"
-                    className="input-premium text-sm w-full"
-                  />
+              ) : (
+                <div className="p-4 rounded-xl bg-muted/50 border border-dashed border-border flex items-start gap-3">
+                  <ShieldCheck className="h-5 w-5 text-primary mt-0.5" />
+                  <div>
+                    <p className="text-xs font-bold text-foreground">API Credentials Managed</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed mt-1">
+                      Your Gupshup API connectivity is automatically handled by the platform using your onboarded app credentials. No manual API Key is required.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="pt-4">
                  <button 
@@ -193,7 +188,7 @@ export default function RCSConfigurationPage() {
                   className="btn-primary w-full py-3 flex items-center justify-center gap-2"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {saving ? 'Saving...' : 'Save RCS Configuration'}
+                  {saving ? 'Saving...' : 'Save RCS Brand Identity'}
                 </button>
               </div>
             </div>
@@ -202,16 +197,16 @@ export default function RCSConfigurationPage() {
 
         {/* Info / Sidebar */}
         <div className="space-y-6">
-          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-5">
-            <h4 className="font-bold text-primary flex items-center gap-2 mb-3">
-              <Rocket className="h-4 w-4" /> Why enable RCS?
+          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-5">
+            <h4 className="font-bold text-emerald-600 flex items-center gap-2 mb-3">
+              <CheckCircle2 className="h-4 w-4" /> Why enable RCS?
             </h4>
-            <ul className="space-y-3">
+            <ul className="space-y-3 font-medium">
               {[
-                'Fallback delivery when WhatsApp is offline.',
-                'Brand trust with verified "check" marks.',
-                'Rich cards, carousels, and quick replies.',
-                'Lower cost for generic fallback alerts.'
+                'Fallback when WhatsApp delivery fails.',
+                'Verified brand name on customer screen.',
+                'Interactive buttons and carousels.',
+                'High conversion rich messaging.'
               ].map((text, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs text-foreground/80 leading-relaxed">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
@@ -223,20 +218,12 @@ export default function RCSConfigurationPage() {
 
           <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-5">
             <h4 className="font-bold text-amber-600 flex items-center gap-2 mb-3">
-              <Info className="h-4 w-4" /> Requirements
+              <Info className="h-4 w-4" /> Setup Notice
             </h4>
             <p className="text-xs text-foreground/80 leading-relaxed mb-4">
-              To use RCS fallback in India, you must have an active DLT registration and a Jio/Carrier partnership. 
+              RCS agents require a 7-10 day setup process. Ensure your brand is whitelisted on Gupshup before activating fallback.
             </p>
-            <a href="#" className="text-xs font-bold text-amber-600 hover:underline flex items-center gap-1">
-              Read DLT Setup Guide <ExternalLink className="h-3 w-3" />
-            </a>
           </div>
-
-          <button className="w-full p-4 rounded-2xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/50 transition-all flex items-center justify-center gap-2 text-sm font-bold text-muted-foreground group">
-            <ExternalLink className="h-4 w-4 group-hover:text-primary" />
-            Developer Documentation
-          </button>
         </div>
       </div>
     </div>

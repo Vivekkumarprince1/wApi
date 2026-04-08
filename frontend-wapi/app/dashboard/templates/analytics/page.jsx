@@ -11,6 +11,7 @@ import {
 } from '@/lib/api';
 import TemplateAnalyticsChart from '@/components/templates/TemplateAnalyticsChart';
 import QualityScoreBadge from '@/components/templates/QualityScoreBadge';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function TemplateAnalyticsPage() {
   const [analytics, setAnalytics] = useState(null);
@@ -57,13 +58,7 @@ export default function TemplateAnalyticsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Loading analytics...</div>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   // Prepare chart data
   const messagesTrendData = analytics?.messagesTrend || [];
@@ -83,8 +78,8 @@ export default function TemplateAnalyticsPage() {
               <BarChart4 size={24} className="text-blue-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Template Analytics</h1>
-              <p className="text-gray-600">Workspace-wide performance metrics</p>
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">Template Analytics</h1>
+              <p className="text-slate-600 dark:text-slate-400">Workspace-wide performance metrics</p>
             </div>
           </div>
           <button
@@ -105,7 +100,7 @@ export default function TemplateAnalyticsPage() {
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 dateRange === days
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
               }`}
             >
               Last {days} days
@@ -151,7 +146,7 @@ export default function TemplateAnalyticsPage() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {messagesTrendData.length > 0 && (
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
             <TemplateAnalyticsChart
               data={messagesTrendData}
               type="line"
@@ -163,7 +158,7 @@ export default function TemplateAnalyticsPage() {
         )}
 
         {qualityDistributionData.some(d => d.value > 0) && (
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
             <TemplateAnalyticsChart
               data={qualityDistributionData}
               type="pie"
@@ -177,17 +172,17 @@ export default function TemplateAnalyticsPage() {
       {/* Top vs Low Performers */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Top Performers */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">
             🚀 Top Performing Templates
           </h2>
           {topPerformers.length > 0 ? (
             <div className="space-y-3">
               {topPerformers.map((template, idx) => (
-                <div key={template._id?.toString() || template.id?.toString() || `top-${idx}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={template._id?.toString() || template.id?.toString() || `top-${idx}`} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{idx + 1}. {template.name}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-medium text-slate-900 dark:text-slate-100">{idx + 1}. {template.name}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
                       {template.stats?.sentCount || 0} sent • {template.stats?.deliveryRate?.toFixed(1)}% delivery
                     </p>
                   </div>
@@ -203,17 +198,17 @@ export default function TemplateAnalyticsPage() {
         </div>
 
         {/* Low Performers */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">
             ⚠️ Low Performing Templates
           </h2>
           {lowPerformers.length > 0 ? (
             <div className="space-y-3">
               {lowPerformers.map((template, idx) => (
-                <div key={template._id?.toString() || template.id?.toString() || `low-${idx}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div key={template._id?.toString() || template.id?.toString() || `low-${idx}`} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900">{idx + 1}. {template.name}</p>
-                    <p className="text-sm text-gray-600">
+                    <p className="font-medium text-slate-900 dark:text-slate-100">{idx + 1}. {template.name}</p>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
                       {template.stats?.sentCount || 0} sent • {template.stats?.failureRate?.toFixed(1)}% failure rate
                     </p>
                   </div>
@@ -231,8 +226,8 @@ export default function TemplateAnalyticsPage() {
 
       {/* Quality Breakdown */}
       {analytics?.qualityBreakdown && (
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Quality Breakdown</h2>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-lg border border-slate-200 dark:border-slate-800">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-4">Quality Breakdown</h2>
           <div className="grid grid-cols-3 gap-4">
             <QualityBreakdownCard
               label="Excellent"
@@ -265,27 +260,33 @@ function SummaryCard({ title, value, icon, color = 'blue' }) {
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg border border-gray-200">
+    <div className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-slate-200 dark:border-slate-800">
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClasses[color]} mb-3`}>
         {icon}
       </div>
-      <p className="text-gray-600 text-sm">{title}</p>
-      <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+      <p className="text-slate-600 dark:text-slate-400 text-sm">{title}</p>
+      <p className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-1">{value}</p>
     </div>
   );
 }
 
 function QualityBreakdownCard({ label, value, color }) {
   const bgColors = {
-    green: 'bg-green-100',
-    yellow: 'bg-yellow-100',
-    red: 'bg-red-100'
+    green: 'bg-green-100 dark:bg-green-900/20',
+    yellow: 'bg-yellow-100 dark:bg-yellow-900/20',
+    red: 'bg-red-100 dark:bg-red-900/20'
+  };
+
+  const textColors = {
+    green: 'text-green-700 dark:text-green-400',
+    yellow: 'text-yellow-700 dark:text-yellow-400',
+    red: 'text-red-700 dark:text-red-400'
   };
 
   return (
     <div className={`p-4 rounded-lg ${bgColors[color]}`}>
-      <p className="text-gray-600 text-sm">{label}</p>
-      <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+      <p className={`${textColors[color]} text-sm opacity-80 uppercase tracking-wider font-semibold`}>{label}</p>
+      <p className={`text-3xl font-bold ${textColors[color]} mt-2`}>{value}</p>
     </div>
   );
 }

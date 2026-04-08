@@ -616,16 +616,31 @@ async function computeAgentMetrics(workspaceId, startDate, endDate) {
     
     agentMetrics.push({
       agentId: userId,
-      name: user.name, // Matches frontend
-      totalConversations: assigned,
-      resolvedConversations: resolved,
-      closedConversations: closed,
-      totalReplies: totalReplies,
-      avgResponseTime: avgResponseTime,
-      slaBreaches: slaBreaches,
-      activeConversations: activeAssigned,
-      satisfactionScore: 0, // Placeholder
-      activeMinutes: 0 // Placeholder
+      name: user.name,
+      conversations: {
+        assigned,
+        resolved,
+        closed,
+        activeAssigned
+      },
+      responses: {
+        totalReplies: totalReplies,
+        firstResponses: firstResponses,
+        avgResponseTime: avgResponseTime
+      },
+      sla: {
+        breaches: slaBreaches,
+        met: firstResponses - slaBreaches,
+        complianceRate: firstResponses > 0 
+          ? Math.round(((firstResponses - slaBreaches) / firstResponses) * 100)
+          : 100
+      },
+      satisfaction: {
+        avgScore: 0
+      },
+      activity: {
+        activeMinutes: 0
+      }
     });
   }
   

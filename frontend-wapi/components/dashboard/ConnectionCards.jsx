@@ -20,8 +20,8 @@ const ConnectionCards = ({ isWhatsAppConnected, workspace, onConnectWhatsApp, on
               onClick={() => !isWhatsAppConnected && onConnectWhatsApp()}
               disabled={isWhatsAppConnected}
               className={`w-full px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-md ${isWhatsAppConnected
-                ? 'bg-emerald-100 text-emerald-700 cursor-default dark:bg-emerald-900/30 dark:text-emerald-300'
-                : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white hover:shadow-lg'
+                ? 'bg-primary/10 text-primary cursor-default'
+                : 'bg-primary hover:brightness-110 text-primary-foreground hover:shadow-lg'
                 }`}
             >
               {isWhatsAppConnected ? 'Connected' : 'Connect Now'}

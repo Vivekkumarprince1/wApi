@@ -6,6 +6,7 @@ import * as api from '@/lib/api';
 import { useQuota } from '@/lib/useQuota';
 import { toast } from '@/lib/toast';
 import { Play, Pause, Trash2, Eye, Search, SlidersHorizontal, BarChart3, Calendar, User, Plus, AlertTriangle, Loader2 } from 'lucide-react';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function CampaignsPage() {
   const router = useRouter();
@@ -173,10 +174,7 @@ export default function CampaignsPage() {
       {/* Main Content */}
       <div className="bg-card border border-border/50 rounded-xl shadow-premium overflow-hidden min-h-[400px]">
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-80">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-            <p className="text-sm text-muted-foreground font-medium">Fetching campaigns...</p>
-          </div>
+          <FlashLoader />
         ) : campaigns.length === 0 ? (
           <EmptyState />
         ) : (

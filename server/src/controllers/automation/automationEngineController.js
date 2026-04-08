@@ -8,7 +8,7 @@
  * - Engine control
  */
 
-const { AutomationRule, AutomationExecution } = require('../../models');
+const { AutomationRule, AutomationExecution, Workspace, AiIntentMatchLog } = require('../../models');
 const automationEngine = require('../../services/automation/automationEngine');
 const safetyGuards = require('../../services/automation/automationSafetyGuards');
 const { automationEvents } = require('../../services/automation/automationEventEmitter');
@@ -808,4 +808,112 @@ exports.getActions = async (req, res) => {
       { type: 'delay', label: 'Wait/Delay', category: 'Flow' }
     ]
   });
+};
+// ═══════════════════════════════════════════════════════════════════════════
+// AI INTENT MATCHING (Stage 6 Smart Layer)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * GET /api/v1/automation/engine/ai-settings
+ * Get AI Intent Match settings
+ */
+exports.getAiSettings = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const workspace = await Workspace.findById(workspaceId).select('automationSettings');
+    
+    res.json({
+      success: true,
+      data: {
+        enabled: workspace?.automationSettings?.aiIntentMatchEnabled || false,
+        threshold: workspace?.automationSettings?.aiMatchConfidenceThreshold || 0.7
+      }
+    });
+  } catch (error) {
+    logger.error('[AutomationController] getAiSettings failed:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch AI settings' });
+  }
+};
+
+/**
+ * PATCH /api/v1/automation/engine/ai-settings
+ * Update AI Intent Match settings
+ */
+exports.patchAiSettings = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { enabled, threshold } = req.body;
+    
+    const update = {};
+    if (enabled !== undefined) update['automationSettings.aiIntentMatchEnabled'] = enabled;
+    if (threshold !== undefined) update['automationSettings.aiMatchConfidenceThreshold'] = threshold;
+    
+    await Workspace.findByIdAndUpdate(workspaceId, { $set: update });
+    
+    res.json({ success: true, message: 'AI settings updated' });
+  } catch (error) {
+    logger.error('[AutomationController] patchAiSettings failed:', error);
+    res.status(500).json({ success: false, error: 'Failed to update AI settings' });
+  }
+};
+
+/**
+ * GET /api/v1/automation/engine/ai-stats
+ * Get AI resolution statistics
+ */
+exports.getAiStats = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    
+    // Total matches
+    const totalResolutions = await AiIntentMatchLog.countDocuments({ workspace: workspaceId });
+    
+    // Active rules count
+    const activeRules = await AutomationRule.countDocuments({ 
+      workspace: workspaceId, 
+      enabled: true, 
+      deletedAt: null 
+    });
+    
+    // Resolution Rate (simplified for now: AI resolutions vs non-AI executions)
+    const keywordExecutions = await AutomationExecution.countDocuments({ workspace: workspaceId });
+    const resolutionRate = keywordExecutions > 0 
+      ? Math.round((totalResolutions / (totalResolutions + keywordExecutions)) * 100) 
+      : 0;
+
+    res.json({
+      success: true,
+      data: {
+        totalResolutions,
+        resolutionRate,
+        activeRules
+      }
+    });
+  } catch (error) {
+    logger.error('[AutomationController] getAiStats failed:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch AI stats' });
+  }
+};
+
+/**
+ * GET /api/v1/automation/engine/ai-logs
+ * Get recent AI intent match logs
+ */
+exports.getAiLogs = async (req, res) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const logs = await AiIntentMatchLog.find({ workspace: workspaceId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('matchedRule', 'name')
+      .lean();
+      
+    res.json({
+      success: true,
+      data: logs
+    });
+  } catch (error) {
+    logger.error('[AutomationController] getAiLogs failed:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch AI logs' });
+  }
 };

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaTags, FaPlus, FaTrash, FaSpinner } from 'react-icons/fa';
+import FlashLoader from '@/components/ui/FlashLoader';
 import { get, post, del } from '@/lib/api';
 import { toast } from '@/lib/toast';
 
@@ -57,13 +58,7 @@ export default function TagsSettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className=" flex items-center justify-center">
-        <FaSpinner className="animate-spin text-3xl text-amber-500" />
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   return (
     <div className=" p-6">

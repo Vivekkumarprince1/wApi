@@ -233,13 +233,27 @@ async function provisionPartnerApp(userId, options = {}) {
         }
     }
 
+    // STEP 5.6: Mark Migration (ONLY for 'migrate' flow)
+    if (options.connectionType === 'migrate') {
+        console.log(`[Provisioning] Step 5.6: Marking App ${appId} for Phone Migration from previous BSP`);
+        try {
+            await gupshupService.markAppForMigration(appId);
+            console.log(`[Provisioning] App marked for Phone Migration successfully.`);
+        } catch (err) {
+            // Can be fatal because if migration flag is not set, meta rejects the number reuse
+            console.error(`[Provisioning] Failed to mark app for migration:`, err.message);
+            throw new Error(`Failed to mark app for migration: ${err.message}`);
+        }
+    }
+
     // STEP 6: Generate Embedded Signup Link
     console.log(`[Provisioning] Step 6: Generating Embed Link for App ${appId}`);
     const embed = await gupshupService.getOnboardingEmbedLink({
         appId: appId,
         user: `usr_${userId.toString().substring(0, 10)}`,
         callbackUrl: options.callbackUrl,
-        regenerate: options.connectionType === 'new_number' // Force fresh link for new number flow
+        // Regenerate works better to force fresh parameters, useful for both new_number and migrate
+        regenerate: ['new_number', 'migrate'].includes(options.connectionType)
     });
 
     if (!embed || (!embed.url && !embed.link && !embed.embedLink && !embed.data?.url)) {

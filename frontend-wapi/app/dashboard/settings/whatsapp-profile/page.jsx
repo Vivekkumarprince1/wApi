@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FaWhatsapp, FaEdit, FaSave, FaImage, FaTrash } from 'react-icons/fa';
 import { toast } from '@/lib/toast';
 import * as api from '@/lib/api';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 const ACTIVE_PHONE_STATUSES = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VERIFIED'];
 
@@ -282,10 +283,7 @@ export default function WhatsAppProfilePage() {
       {/* Content */}
       <div className="max-w-4xl mx-auto bg-card rounded-xl shadow-premium p-6">
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
-            <p className="mt-2 text-muted-foreground">Loading profile...</p>
-          </div>
+          <FlashLoader />
         ) : (
           <div className="space-y-6">
             {isPhoneConnected(stage1Status) && (

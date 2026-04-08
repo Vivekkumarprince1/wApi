@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { FaArrowLeft, FaPause, FaPlay, FaSync, FaTrash } from 'react-icons/fa';
 import { get, post, del } from '../../../../lib/api';
 import { toast } from '@/lib/toast';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function CampaignDetailsPage() {
   const params = useParams();
@@ -92,13 +93,7 @@ export default function CampaignDetailsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-muted-foreground">Loading campaign details...</p>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   if (error || !campaign) {
     return (

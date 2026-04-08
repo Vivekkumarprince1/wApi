@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getCurrentMonthBilling, getQuotaReport, getBillingPreview } from '@/lib/api';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function BillingDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -62,9 +63,7 @@ export default function BillingDashboardPage() {
         )}
 
         {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-teal-600" />
-          </div>
+          <FlashLoader />
         ) : (
           <div className="grid gap-6 md:grid-cols-3">
             {/* Quota summary */}

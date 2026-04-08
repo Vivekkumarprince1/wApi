@@ -370,7 +370,7 @@ const Header = ({ onMenuClick }) => {
                       </div>
                       <button
                         onClick={() => router.push('/pricing')}
-                        className="bg-white text-slate-900 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-slate-100 transition-colors"
+                        className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-semibold hover:brightness-110 transition-colors"
                       >
                         {workspaceData?.plan === 'free' ? 'Upgrade' : 'Manage'}
                       </button>

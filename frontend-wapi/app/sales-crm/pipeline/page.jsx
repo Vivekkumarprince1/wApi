@@ -5,6 +5,7 @@ import { ChevronDown, Plus, MoreVertical, Filter, Search, ArrowRight, User as Us
 import { getPipelines, getDefaultPipeline, listDeals, getDealsByStage, moveDealStage, createDeal, createPipeline } from "@/lib/api/sales";
 import { fetchContacts } from "@/lib/api/contacts";
 import { toast } from "react-hot-toast";
+import FlashLoader from "@/components/ui/FlashLoader";
 
 export default function SalesPipelinePage() {
   const [loading, setLoading] = useState(true);
@@ -149,13 +150,7 @@ export default function SalesPipelinePage() {
     return list;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   return (
     <div className="flex flex-col h-full bg-background">

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Zap, MessageSquare, AlertCircle } from 'lucide-react';
 import { get, post, put } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function AutoReplyModal({ isOpen, onClose, autoReplyId, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -186,10 +187,7 @@ export default function AutoReplyModal({ isOpen, onClose, autoReplyId, onSuccess
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-8">
           {initLoading ? (
-            <div className="flex flex-col items-center justify-center h-40">
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-sm text-slate-500">Loading settings...</p>
-            </div>
+            <FlashLoader />
           ) : (
             <div className="space-y-8">
               

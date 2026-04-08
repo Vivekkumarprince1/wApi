@@ -1,5 +1,6 @@
 const { Workspace } = require('../../models');
 const RCSConfig = require('../../models/workspace/RCSConfig');
+const SMSConfig = require('../../models/workspace/SMSConfig');
 const WalletTransaction = require('../../models/workspace/WalletTransaction');
 const { encryptToken, isEncrypted } = require('../../utils/tokenEncryption');
 
@@ -847,16 +848,25 @@ async function updateBusinessInfo(req, res, next) {
  */
 async function getRCSConfig(req, res, next) {
   try {
-    let config = await RCSConfig.findOne({ workspaceId: req.user.workspace });
+    const workspaceId = req.user.workspace;
+    const [config, workspace] = await Promise.all([
+      RCSConfig.findOne({ workspaceId }),
+      Workspace.findById(workspaceId)
+    ]);
     
-    if (!config) {
-      config = new RCSConfig({ workspaceId: req.user.workspace });
-      await config.save();
+    let activeConfig = config;
+    if (!activeConfig) {
+      activeConfig = new RCSConfig({ workspaceId });
+      await activeConfig.save();
     }
+
+    // Check if managed by BSP (Gupshup Partner)
+    const isManaged = !!(workspace.gupshupIdentity?.appApiKey || workspace.gupshupAppId);
 
     res.json({
       success: true,
-      data: config
+      data: activeConfig,
+      isManaged
     });
   } catch (err) {
     next(err);
@@ -869,27 +879,125 @@ async function getRCSConfig(req, res, next) {
 async function updateRCSConfig(req, res, next) {
   try {
     const { provider, credentials } = req.body;
-    let config = await RCSConfig.findOne({ workspaceId: req.user.workspace });
+    const workspaceId = req.user.workspace;
+    const [config, workspace] = await Promise.all([
+      RCSConfig.findOne({ workspaceId }),
+      Workspace.findById(workspaceId)
+    ]);
 
-    if (!config) {
-      config = new RCSConfig({ workspaceId: req.user.workspace });
+    let activeConfig = config;
+    if (!activeConfig) {
+      activeConfig = new RCSConfig({ workspaceId });
     }
 
-    if (provider) config.provider = provider;
+    if (provider) activeConfig.provider = provider;
     if (credentials) {
-      config.credentials = { ...(config.credentials || {}), ...credentials };
+      // Sanitize: Don't overwrite with empty strings (allows Workspace fallback)
+      const sanitizedCreds = {};
+      for (const [key, value] of Object.entries(credentials)) {
+        if (value !== undefined && value !== '') {
+          sanitizedCreds[key] = value;
+        }
+      }
+      activeConfig.credentials = { ...(activeConfig.credentials || {}), ...sanitizedCreds };
     }
     
-    // Auto-active on update for simplicity (can be refined with actual testing)
-    config.status = 'ACTIVE';
-    config.lastTestedAt = new Date();
-
-    await config.save();
+    // Auto-active if we have a senderId and (local key OR managed workspace)
+    const isManaged = !!(workspace.gupshupIdentity?.appApiKey || workspace.gupshupAppId);
+    if (activeConfig.credentials?.senderId && (activeConfig.credentials?.apiKey || isManaged)) {
+      activeConfig.status = 'ACTIVE';
+    } else {
+      activeConfig.status = 'PENDING';
+    }
+    
+    activeConfig.lastTestedAt = new Date();
+    await activeConfig.save();
 
     res.json({
       success: true,
       message: 'RCS configuration updated successfully',
-      data: config
+      data: activeConfig,
+      isManaged
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+/**
+ * Get SMS configuration for current workspace
+ */
+async function getSMSConfig(req, res, next) {
+  try {
+    const workspaceId = req.user.workspace;
+    const [config, workspace] = await Promise.all([
+      SMSConfig.findOne({ workspaceId }),
+      Workspace.findById(workspaceId)
+    ]);
+    
+    let activeConfig = config;
+    if (!activeConfig) {
+      activeConfig = new SMSConfig({ workspaceId });
+      await activeConfig.save();
+    }
+
+    // Check if managed by BSP (Gupshup Partner)
+    const isManaged = !!(workspace.gupshupIdentity?.appApiKey || workspace.gupshupAppId);
+
+    res.json({
+      success: true,
+      data: activeConfig,
+      isManaged
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Update SMS configuration
+ */
+async function updateSMSConfig(req, res, next) {
+  try {
+    const { provider, credentials } = req.body;
+    const workspaceId = req.user.workspace;
+    const [config, workspace] = await Promise.all([
+      SMSConfig.findOne({ workspaceId }),
+      Workspace.findById(workspaceId)
+    ]);
+
+    let activeConfig = config;
+    if (!activeConfig) {
+      activeConfig = new SMSConfig({ workspaceId });
+    }
+
+    if (provider) activeConfig.provider = provider;
+    if (credentials) {
+      // Sanitize: Don't overwrite with empty strings (allows Workspace fallback)
+      const sanitizedCreds = {};
+      for (const [key, value] of Object.entries(credentials)) {
+        if (value !== undefined && value !== '') {
+          sanitizedCreds[key] = value;
+        }
+      }
+      activeConfig.credentials = { ...(activeConfig.credentials || {}), ...sanitizedCreds };
+    }
+    
+    // Auto-active if we have a senderId and (local key OR managed workspace)
+    const isManaged = !!(workspace.gupshupIdentity?.appApiKey || workspace.gupshupAppId);
+    if (activeConfig.credentials?.senderId && (activeConfig.credentials?.apiKey || isManaged)) {
+      activeConfig.status = 'ACTIVE';
+    } else {
+      activeConfig.status = 'PENDING';
+    }
+    
+    activeConfig.lastTestedAt = new Date();
+    await activeConfig.save();
+
+    res.json({
+      success: true,
+      message: 'SMS configuration updated successfully',
+      data: activeConfig,
+      isManaged
     });
   } catch (err) {
     next(err);
@@ -950,6 +1058,8 @@ module.exports = {
   updateInboxSettings,
   getRCSConfig,
   updateRCSConfig,
+  getSMSConfig,
+  updateSMSConfig,
   getWalletBalance,
   getWalletTransactions
 };

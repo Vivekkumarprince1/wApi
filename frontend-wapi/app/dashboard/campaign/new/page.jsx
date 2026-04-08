@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Rocket, Users, FileText, Clock, CheckCircle2, Search,
   Upload, X, Tag, ChevronDown, AlertTriangle, Loader2, Send, Calendar,
-  Eye, Plus, Filter, UserCheck, FileUp, Zap, ChevronRight, Info
+  Eye, Plus, Filter, UserCheck, FileUp, Zap, ChevronRight, Info,
+  Smartphone, MessageSquare, Mail
 } from 'lucide-react';
 import { fetchContacts, fetchTemplates, post, get } from '@/lib/api';
 import { toast } from '@/lib/toast';
@@ -77,9 +78,10 @@ function CampaignWizard() {
     description: '',
     type: 'one-time',
     // Audience
-    audienceMode: 'all', // 'all' | 'tags' | 'csv'
+    audienceMode: 'specific', // 'specific' | 'tags' | 'csv'
     selectedTags: [],
     selectedContactIds: [],
+    selectAllContacts: false,
     csvContacts: [],
     // Template
     templateId: '',
@@ -100,7 +102,9 @@ function CampaignWizard() {
       retryConfig: {
         maxAttempts: 1,
         retryDelayHours: 24
-      }
+      },
+      cascadetoSms: false,
+      fallbackBody: ''
     }
   });
 
@@ -205,11 +209,13 @@ function CampaignWizard() {
   }, [selectedTemplate]);
 
   const audienceCount = useMemo(() => {
-    if (campaignData.audienceMode === 'all') return contactCount;
+    if (campaignData.audienceMode === 'specific') {
+      return campaignData.selectAllContacts ? contactCount : campaignData.selectedContactIds.length;
+    }
     if (campaignData.audienceMode === 'tags') return filteredContactCount;
     if (campaignData.audienceMode === 'csv') return campaignData.csvContacts.length;
     return 0;
-  }, [campaignData.audienceMode, contactCount, filteredContactCount, campaignData.csvContacts]);
+  }, [campaignData.audienceMode, campaignData.selectAllContacts, campaignData.selectedContactIds.length, contactCount, filteredContactCount, campaignData.csvContacts]);
 
   // ─── Contact field options for variable mapping ────────────────────────────
   const contactFields = [
@@ -290,8 +296,12 @@ function CampaignWizard() {
 
       // Resolve contact IDs
       let contactIds = [];
-      if (campaignData.audienceMode === 'all') {
-        contactIds = contacts.map(c => c._id || c.id);
+      if (campaignData.audienceMode === 'specific') {
+        if (campaignData.selectAllContacts) {
+          contactIds = contacts.map(c => c._id || c.id);
+        } else {
+          contactIds = campaignData.selectedContactIds;
+        }
       } else if (campaignData.audienceMode === 'tags') {
         const filtered = contacts.filter(c =>
           c.tags && campaignData.selectedTags.some(tag => c.tags.includes(tag))
@@ -446,7 +456,7 @@ function CampaignWizard() {
       {/* Audience Mode Selection */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { value: 'all', label: 'All Contacts', desc: `Send to all ${contactCount} contacts`, icon: Users, color: 'blue' },
+          { value: 'specific', label: 'My Contacts', desc: `Select specific contacts`, icon: Users, color: 'blue' },
           { value: 'tags', label: 'Filter by Tags', desc: 'Target contacts with specific tags', icon: Tag, color: 'purple' },
           { value: 'csv', label: 'Upload CSV', desc: 'Upload a list of phone numbers', icon: FileUp, color: 'emerald' },
         ].map(opt => {
@@ -478,6 +488,79 @@ function CampaignWizard() {
           );
         })}
       </div>
+
+      {/* Specific Contacts UI */}
+      {campaignData.audienceMode === 'specific' && (
+        <div className="bg-muted/30 border border-border rounded-xl p-5 space-y-4 animate-fade-in-up">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" /> Target Contacts
+            </h4>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={campaignData.selectAllContacts}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setCampaignData(d => ({
+                    ...d,
+                    selectAllContacts: checked,
+                    selectedContactIds: checked ? contacts.map(c => c._id || c.id) : []
+                  }));
+                }}
+                className="w-4 h-4 rounded border-border text-primary focus:ring-primary transition-all cursor-pointer"
+              />
+              <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">Select All Contacts ({contactCount})</span>
+            </label>
+          </div>
+
+          {!campaignData.selectAllContacts && (
+            <div className="border border-border rounded-lg bg-card max-h-[300px] overflow-y-auto">
+              {loadingContacts ? (
+                <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading...
+                </div>
+              ) : contacts.length === 0 ? (
+                <div className="py-6 text-center text-sm text-muted-foreground">No contacts found</div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {contacts.map(contact => {
+                    const id = contact._id || contact.id;
+                    const isSelected = campaignData.selectedContactIds.includes(id);
+                    return (
+                      <label key={id} className="flex items-center gap-3 p-3 hover:bg-muted/50 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            setCampaignData(d => ({
+                              ...d,
+                              selectedContactIds: e.target.checked 
+                                ? [...d.selectedContactIds, id]
+                                : d.selectedContactIds.filter(cid => cid !== id)
+                            }));
+                          }}
+                          className="w-4 h-4 rounded border-border text-primary focus:ring-primary cursor-pointer"
+                        />
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-sm font-medium text-foreground truncate">{contact.name || 'Unknown Name'}</span>
+                          <span className="text-xs text-muted-foreground">{contact.phone}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 px-4 py-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <UserCheck className="h-4 w-4 text-primary" />
+            <span className="text-sm font-bold text-primary">{audienceCount}</span>
+            <span className="text-sm text-foreground">contacts selected</span>
+          </div>
+        </div>
+      )}
 
       {/* Tag Filter UI */}
       {campaignData.audienceMode === 'tags' && (
@@ -879,7 +962,7 @@ function CampaignWizard() {
                   value: 'RCS_FALLBACK', 
                   label: 'RCS Fallback', 
                   desc: 'Send via RCS channel if WhatsApp delivery fails for any reason.',
-                  icon: Rocket
+                  icon: Smartphone
                 },
               ].map(opt => {
                 const isSelected = campaignData.deliveryOptimization.type === opt.value;
@@ -925,21 +1008,53 @@ function CampaignWizard() {
             {campaignData.deliveryOptimization.type === 'RCS_FALLBACK' && (
               <div className="space-y-4 animate-fade-in-up">
                  <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl flex items-start gap-3">
-                  <Rocket className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                  <Smartphone className="h-4 w-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
                   <div className="text-xs text-emerald-700 dark:text-emerald-300">
                     <p className="font-bold mb-1">Unified Reach:</p>
-                    <p>If WhatsApp is unavailable on the recipient's phone, we'll fallback to RCS (Rich Communication Services) automatically using your connected Jio/Carrier channel.</p>
+                    <p>If WhatsApp is unavailable on the recipient's phone, we'll fallback to RCS (Rich Communication Services) automatically.</p>
                   </div>
                 </div>
                 
-                {/* RCS Template Mapping Simplified */}
-                <div className="bg-card border border-border rounded-xl p-4">
-                  <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">RCS Template Mapping</h4>
-                  <p className="text-[11px] text-muted-foreground mb-4">Select an RCS template to use for fallback. Variables will be mapped automatically based on your WhatsApp template selection.</p>
-                  <select className="input-premium text-sm w-full">
-                    <option>Auto-map from WhatsApp Template (Standard)</option>
-                    <option disabled>Custom RCS Template (Advanced+ Plans)</option>
-                  </select>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-muted-foreground uppercase mb-2">Fallback Message Body</label>
+                    <textarea 
+                      value={campaignData.deliveryOptimization.fallbackBody}
+                      onChange={(e) => setCampaignData(d => ({
+                        ...d,
+                        deliveryOptimization: { ...d.deliveryOptimization, fallbackBody: e.target.value }
+                      }))}
+                      placeholder="Hi {{firstName}}, check out our sale! (Leave empty to use WhatsApp text)"
+                      rows={3}
+                      className="input-premium text-sm w-full resize-none"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">If empty, we'll use the plain text version of your WhatsApp template.</p>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-orange-500/5 border border-orange-500/20 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-600 flex items-center justify-center">
+                        <MessageSquare className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-foreground">Cascade to SMS</p>
+                        <p className="text-[10px] text-muted-foreground">If RCS also fails, send as a plain SMS message.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setCampaignData(d => ({
+                        ...d,
+                        deliveryOptimization: { ...d.deliveryOptimization, cascadetoSms: !d.deliveryOptimization.cascadetoSms }
+                      }))}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                        campaignData.deliveryOptimization.cascadetoSms ? 'bg-orange-500' : 'bg-muted'
+                      }`}
+                    >
+                      <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                        campaignData.deliveryOptimization.cascadetoSms ? 'translate-x-5' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

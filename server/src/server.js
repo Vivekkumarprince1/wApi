@@ -21,6 +21,7 @@ const authRoutes = require('./routes/auth/authRoutes');
 const contactRoutes = require('./routes/messaging/contactRoutes');
 const messageRoutes = require('./routes/messaging/messageRoutes');
 const webhookRoutes = require('./routes/bsp/webhookRoutes');
+const integrationWebhookRoutes = require('./routes/integration/webhookRoutes');
 const contactSettingsRoutes = require('./routes/messaging/contactSettingsRoutes');
 const developerRoutes = require('./routes/developer/developerRoutes');
 const externalRoutes = require('./routes/developer/externalRoutes');
@@ -198,6 +199,7 @@ app.use('/api/v1/contacts', contactRoutes);
 app.use('/api/v1/contact-settings', contactSettingsRoutes);
 app.use('/api/v1/messages', messageRoutes);
 app.use('/api/v1/webhook', webhookRoutes);
+app.use('/api/v1/webhook/integrations', integrationWebhookRoutes);
 app.use('/api/v1/developer', developerRoutes);
 app.use('/api/v1/external', externalRoutes);
 

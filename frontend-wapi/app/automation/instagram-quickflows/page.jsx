@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaChevronDown, FaComments, FaInstagram, FaGift, FaHashtag } from 'react-icons/fa';
 import Link from 'next/link';
 import { get, post, del } from '@/lib/api';
+import FlashLoader from '@/components/ui/FlashLoader';
 import { toast } from '@/lib/toast';
 
 const PRESET_TEMPLATES = [
@@ -287,10 +288,7 @@ export default function InstagramQuickflowsPage() {
 
         {/* Quickflows List */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
-            <p className="mt-4 text-muted-foreground">Loading quickflows...</p>
-          </div>
+          <FlashLoader />
         ) : quickflows.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🚀</div>

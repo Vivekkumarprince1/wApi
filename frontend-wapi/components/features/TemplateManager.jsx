@@ -9,6 +9,7 @@ import {
   syncTemplatesFromMeta,
   getTemplateCategories 
 } from '@/lib/api';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 const TemplateManager = () => {
   const [templates, setTemplates] = useState([]);
@@ -326,10 +327,7 @@ const TemplateManager = () => {
 
       {/* Templates List */}
       {loading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading templates...</p>
-        </div>
+        <FlashLoader />
       ) : templates.length === 0 ? (
         <div className="text-center py-8">
           <p className="text-gray-500">No templates found. Create your first template!</p>

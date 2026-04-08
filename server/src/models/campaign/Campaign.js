@@ -110,10 +110,10 @@ const CampaignSchema = new mongoose.Schema({
     read: { type: Number, default: 0 },
     failed: { type: Number, default: 0 },
     replied: { type: Number, default: 0 },
-    // RCS Fallback totals
+    // Fallback totals
+    fallbackSent: { type: Number, default: 0 }, // Total RCS/SMS sent as fallback
     rcsSent: { type: Number, default: 0 },
-    rcsDelivered: { type: Number, default: 0 },
-    rcsFailed: { type: Number, default: 0 }
+    smsSent: { type: Number, default: 0 }
   },
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -123,10 +123,18 @@ const CampaignSchema = new mongoose.Schema({
     enabled: { type: Boolean, default: false }, // Overall toggle
     type: {
       type: String,
-      enum: ['NONE', 'RCS_FALLBACK', 'AUTOMATED_RETRY'],
+      enum: ['NONE', 'RCS_FALLBACK', 'SMS_FALLBACK', 'AUTOMATED_RETRY'],
       default: 'NONE'
     },
-    // Config for RCS Fallback
+    // Advanced Config
+    config: {
+      rcsBody: { type: String }, // Custom text for RCS fallback
+      smsBody: { type: String }, // Custom text for SMS fallback
+      cascadeToSMS: { type: Boolean, default: false }, // If RCS fails, try SMS?
+      maxAttempts: { type: Number, default: 1 },
+      retryDelayHours: { type: Number, default: 24 }
+    },
+    // Config for RCS Fallback (Legacy/Extended)
     rcsConfig: {
       template: { type: mongoose.Schema.Types.ObjectId, ref: 'Template' },
       variableMapping: { type: mongoose.Schema.Types.Mixed, default: {} }

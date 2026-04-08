@@ -13,6 +13,9 @@ const Workspace = require('./workspace/Workspace');
 const Subscription = require('./workspace/Subscription');
 const InternalNote = require('./workspace/InternalNote');
 const Team = require('./workspace/Team');
+const RCSConfig = require('./workspace/RCSConfig');
+const SMSConfig = require('./workspace/SMSConfig');
+const WalletTransaction = require('./workspace/WalletTransaction');
 
 // Messaging domain
 const Contact = require('./messaging/Contact');
@@ -58,6 +61,7 @@ const AutoReplyLog = require('./automation/AutoReplyLog');
 const AutomationAuditLog = require('./automation/AutomationAuditLog');
 const AnswerBotSource = require('./automation/AnswerBotSource');
 const WorkflowExecution = require('./automation/WorkflowExecution');
+const AiIntentMatchLog = require('./automation/AiIntentMatchLog');
 
 // Integration domain
 const Integration = require('./integration/Integration');
@@ -86,6 +90,9 @@ module.exports = {
   Subscription,
   InternalNote,
   Team,
+  RCSConfig,
+  SMSConfig,
+  WalletTransaction,
 
   // Messaging domain
   Contact,
@@ -131,6 +138,7 @@ module.exports = {
   AutomationAuditLog,
   AnswerBotSource,
   WorkflowExecution,
+  AiIntentMatchLog,
 
   // Integration domain
   Integration,

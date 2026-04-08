@@ -7,6 +7,7 @@ import {
   Plus, RefreshCcw, UserCog, Layers, X,
   Edit2, ChevronDown, AlertCircle, ToggleLeft, ToggleRight
 } from 'lucide-react';
+import FlashLoader from '@/components/ui/FlashLoader';
 import { get, post, put, del } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import FeatureGate from '@/components/features/FeatureGate';
@@ -68,14 +69,7 @@ function TeamsContent() {
     { id: 'permissions', label: 'Roles & Permissions', count: null },
   ];
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="animate-spin h-8 w-8 text-[#25D366]" />
-        <span className="text-sm text-muted-foreground font-medium">Loading team data...</span>
-      </div>
-    </div>
-  );
+  if (loading) return <FlashLoader />;
 
   return (
     <div className="h-full">

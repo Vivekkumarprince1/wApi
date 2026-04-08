@@ -641,7 +641,8 @@ async function createTemplateForApp({ appId, appApiKey, template }) {
     example: String(template?.example || resolvedExample || bodyText),
     enableSample: template?.enableSample !== false,
     allowTemplateCategoryChange: template?.allowTemplateCategoryChange !== false,
-    parameterFormat: template?.parameterFormat || 'POSITIONAL'
+    parameterFormat: template?.parameterFormat || 'POSITIONAL',
+    add_security_disclaimer: String(template?.category || '').toUpperCase() === 'AUTHENTICATION'
   };
 
   let exampleMedia = template?.exampleMedia;
@@ -729,6 +730,7 @@ async function createTemplateForApp({ appId, appApiKey, template }) {
     if (templateRequest.mediaId) form.set('mediaId', templateRequest.mediaId);
     if (templateRequest.mediaUrl) form.set('mediaUrl', templateRequest.mediaUrl);
     if (templateRequest.cards) form.set('cards', JSON.stringify(templateRequest.cards));
+    if (templateRequest.add_security_disclaimer) form.set('add_security_disclaimer', 'true');
 
     if (['IMAGE', 'VIDEO', 'DOCUMENT', 'CAROUSEL', 'GIF'].includes(templateRequest.templateType)) {
       form.set('enableSample', 'true');
@@ -1094,6 +1096,27 @@ async function updateOnboardingContact(payloadOrAppId, maybeContactInfo) {
       timeout: 15000
     });
 
+    return response.data;
+  });
+}
+
+/**
+ * Mark the App for Migration (Syncs templates and phone numbers from source BSP).
+ * Must be called BEFORE generating the embed signup link if migrating an existing number.
+ */
+async function markAppForMigration(appId) {
+  if (!appId) {
+    throw new Error('GUPSHUP_APP_ID_REQUIRED');
+  }
+  const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/onboarding/phoneMigration`;
+
+  return withPartnerAuth(async (headers) => {
+    const response = await axios.post(url, "", {
+      headers: {
+        ...headers
+      },
+      timeout: 15000
+    });
     return response.data;
   });
 }
@@ -1998,6 +2021,7 @@ module.exports = {
   createTemplateFromLibrary,
   getPartnerApps,
   updateOnboardingContact,
+  markAppForMigration,
   getOnboardingEmbedLink,
   getPartnerAppAccessToken,
   registerPhoneForApp,

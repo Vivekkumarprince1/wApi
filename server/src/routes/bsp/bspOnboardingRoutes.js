@@ -65,7 +65,7 @@ router.post(
   '/register-phone',
   authenticate,
   [
-    body('connectionType').optional().isIn(['business_app', 'new_number']),
+    body('connectionType').optional().isIn(['business_app', 'new_number', 'migrate']),
     body('region').optional().isString().trim().matches(/^[A-Za-z]{2,10}$/),
     body('appId').optional().isString().trim().notEmpty(),
     body('businessName').optional().isString().trim(),

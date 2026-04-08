@@ -20,6 +20,7 @@ import {
   fetchTemplatesFromLibrary,
   createTemplate
 } from '@/lib/api';
+import FlashLoader from '@/components/ui/FlashLoader';
 import {
   FaSync, FaPlus, FaSearch, FaFilter, FaList, FaThLarge,
   FaEllipsisV, FaCheckCircle, FaClock, FaTimesCircle,
@@ -201,17 +202,17 @@ const TemplatesDashboard = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'APPROVED':
-        return <span className="bg-[#e6f4ea] text-[#137333] px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaCheckCircle /> Approved</span>;
+        return <span className="bg-[#e6f4ea] dark:bg-emerald-900/30 text-[#137333] dark:text-emerald-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaCheckCircle /> Approved</span>;
       case 'PENDING':
       case 'IN_APPEAL':
-        return <span className="bg-[#fef7e0] text-[#b06000] px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaClock /> Pending</span>;
+        return <span className="bg-[#fef7e0] dark:bg-amber-900/30 text-[#b06000] dark:text-amber-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaClock /> Pending</span>;
       case 'REJECTED':
       case 'FAILED':
-        return <span className="bg-[#fce8e6] text-[#c5221f] px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaTimesCircle /> {status === 'FAILED' ? 'Failed' : 'Rejected'}</span>;
+        return <span className="bg-[#fce8e6] dark:bg-red-900/30 text-[#c5221f] dark:text-red-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaTimesCircle /> {status === 'FAILED' ? 'Failed' : 'Rejected'}</span>;
       case 'DRAFT':
-        return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaFileAlt /> Draft</span>;
+        return <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-400 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 w-max"><FaFileAlt /> Draft</span>;
       default:
-        return <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs font-semibold w-max">{status}</span>;
+        return <span className="bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-400 px-2 py-1 rounded-full text-xs font-semibold w-max">{status}</span>;
     }
   };
 
@@ -225,27 +226,21 @@ const TemplatesDashboard = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-[#f4f5f7]">
-        <div className="w-10 h-10 border-4 border-[#00a884] border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   return (
-    <div className="min-h-screen bg-[#f4f5f7] font-sans text-gray-800 pb-10">
+    <div className="min-h-screen bg-[#f4f5f7] dark:bg-slate-950 font-sans text-gray-800 dark:text-slate-200 pb-10">
 
       {/* Page Header */}
-      <div className="bg-white px-8 py-5 flex items-center justify-between shadow-sm sticky top-0 z-30">
+      <div className="bg-white dark:bg-slate-900 px-8 py-5 flex items-center justify-between shadow-sm sticky top-0 z-30 border-b border-transparent dark:border-slate-800">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">WhatsApp Templates</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage and sync your business message templates</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">WhatsApp Templates</h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage and sync your business message templates</p>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/templates/analytics"
-            className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 px-4 py-2 rounded-md text-sm font-semibold transition-colors shadow-sm"
             title="View template analytics"
           >
             <BarChart4 size={16} />
@@ -253,7 +248,7 @@ const TemplatesDashboard = () => {
           </Link>
           <Link
             href="/dashboard/templates/rules"
-            className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 px-4 py-2 rounded-md text-sm font-semibold transition-colors shadow-sm"
             title="Manage auto-trigger rules"
           >
             <Zap size={16} />
@@ -261,9 +256,9 @@ const TemplatesDashboard = () => {
           </Link>
           <button
             onClick={handleSyncTemplates}
-            className="flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-md text-sm font-semibold transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 px-4 py-2 rounded-md text-sm font-semibold transition-colors shadow-sm"
           >
-            <FaSync className="text-gray-500" />
+            <FaSync className="text-gray-500 dark:text-slate-400" />
             Sync from WhatsApp
           </button>
           <button
@@ -297,43 +292,43 @@ const TemplatesDashboard = () => {
         ) : null}
 
         {/* Filters and Tabs Row */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800">
 
           {/* Top Filter Bar */}
-          <div className="p-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-4">
+          <div className="p-4 border-b border-gray-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4">
 
             <div className="flex items-center gap-3 flex-1">
               <div className="relative max-w-md w-full">
-                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" />
                 <input
                   type="text"
                   placeholder="Search template name..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm focus:bg-white focus:border-[#00a884] focus:ring-1 focus:ring-[#00a884] outline-none transition-all"
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-md text-sm focus:bg-white dark:focus:bg-slate-800 focus:border-[#00a884] focus:ring-1 focus:ring-[#00a884] outline-none transition-all dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
               </div>
 
               <select
                 value={selectedCategories[0]}
                 onChange={(e) => setSelectedCategories([e.target.value])}
-                className="bg-gray-50 border border-gray-200 text-gray-700 text-sm rounded-md px-3 py-2 outline-none focus:border-[#00a884] cursor-pointer"
+                className="bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 text-sm rounded-md px-3 py-2 outline-none focus:border-[#00a884] cursor-pointer"
               >
                 {categories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
             </div>
 
-            <div className="flex items-center bg-gray-100 rounded-md p-0.5 border border-gray-200">
+            <div className="flex items-center bg-gray-100 dark:bg-slate-800 rounded-md p-0.5 border border-gray-200 dark:border-slate-700">
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-[#00a884]' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`p-1.5 rounded transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm text-[#00a884]' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
                 title="List View"
               >
                 <FaList />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-[#00a884]' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`p-1.5 rounded transition-colors ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm text-[#00a884]' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
                 title="Grid View"
               >
                 <FaThLarge />
@@ -356,11 +351,11 @@ const TemplatesDashboard = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 whitespace-nowrap transition-colors ${activeTab === tab.id
                   ? 'border-[#00a884] text-[#00a884]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  : 'border-transparent text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-50 dark:hover:bg-slate-800'
                   }`}
               >
                 {tab.label}
-                <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-[#00a884]/10' : 'bg-gray-100'}`}>
+                <span className={`px-2 py-0.5 rounded-full text-xs ${activeTab === tab.id ? 'bg-[#00a884]/10 dark:bg-[#00a884]/20' : 'bg-gray-100 dark:bg-slate-800'}`}>
                   {tab.count}
                 </span>
               </button>
@@ -370,10 +365,10 @@ const TemplatesDashboard = () => {
 
         {/* Content Area */}
         {filteredTemplates.length === 0 ? (
-          <div className="bg-white rounded-lg border border-gray-200 p-16 text-center shadow-sm">
-            <FaFileAlt className="text-gray-300 text-6xl mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No templates found</h3>
-            <p className="text-gray-500 mb-6">{syncWarning?.suggestedAction || 'There are no templates matching your current filters.'}</p>
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 p-16 text-center shadow-sm">
+            <FaFileAlt className="text-gray-300 dark:text-slate-700 text-6xl mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">No templates found</h3>
+            <p className="text-gray-500 dark:text-slate-400 mb-6">{syncWarning?.suggestedAction || 'There are no templates matching your current filters.'}</p>
             <button
               onClick={() => { setSearchQuery(''); setSelectedCategories(['ALL']); setActiveTab('active'); }}
               className="text-[#00a884] font-medium hover:underline"
@@ -383,35 +378,35 @@ const TemplatesDashboard = () => {
           </div>
         ) : viewMode === 'list' ? (
           /* List View */
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">Template Name</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Quality</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Category</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Language</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
+                  <tr className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-800">
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider w-1/3">Template Name</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Quality</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Category</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">Language</th>
+                    <th className="px-6 py-4 text-xs font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                   {filteredTemplates.map((template, idx) => (
-                    <tr key={template._id?.toString() || template.id?.toString() || idx} className="hover:bg-gray-50 transition-colors group">
+                    <tr key={template._id?.toString() || template.id?.toString() || idx} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 bg-gray-100 dark:bg-slate-800 rounded flex items-center justify-center flex-shrink-0">
                             {template.header?.enabled && template.header.format !== 'TEXT' && template.header.format !== 'NONE'
                               ? getHeaderIcon(template.header.format)
-                              : <FaFileAlt className="text-gray-400" />
+                              : <FaFileAlt className="text-gray-400 dark:text-slate-500" />
                             }
                           </div>
                           <div>
-                            <p className="font-bold text-gray-900 text-sm group-hover:text-[#00a884] transition-colors cursor-pointer" onClick={() => handleOpenEdit(template)}>
+                            <p className="font-bold text-gray-900 dark:text-slate-100 text-sm group-hover:text-[#00a884] transition-colors cursor-pointer" onClick={() => handleOpenEdit(template)}>
                               {template.name}
                             </p>
-                            <p className="text-xs text-gray-500 line-clamp-1 max-w-sm mt-0.5">
+                            <p className="text-xs text-gray-500 dark:text-slate-400 line-clamp-1 max-w-sm mt-0.5">
                               {template.bodyText || template.body?.text || 'No content preview'}
                             </p>
                           </div>
@@ -431,24 +426,24 @@ const TemplatesDashboard = () => {
                         )}
                       </td>
                       <td className="px-6 py-4 align-middle">
-                        <span className="text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                        <span className="text-sm text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded">
                           {template.category}
                         </span>
                       </td>
                       <td className="px-6 py-4 align-middle">
-                        <span className="text-sm font-medium text-gray-600">
+                        <span className="text-sm font-medium text-gray-600 dark:text-slate-400">
                           {template.language?.toUpperCase() || 'EN'}
                         </span>
                       </td>
                       <td className="px-6 py-4 align-middle text-right">
                         <div className="flex justify-end gap-2 items-center opacity-0 group-hover:opacity-100 transition-opacity">
                           {['DRAFT', 'REJECTED', 'FAILED'].includes(template.status) && (
-                            <button onClick={() => handleSubmitTemplate(template._id)} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded transition-colors">Submit</button>
+                            <button onClick={() => handleSubmitTemplate(template._id)} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-3 py-1.5 rounded transition-colors">Submit</button>
                           )}
                           {template.status === 'APPROVED' && (
-                            <button onClick={() => setUseTemplateModal({ isOpen: true, template })} className="text-xs font-bold text-[#00a884] hover:bg-green-50 px-3 py-1.5 rounded transition-colors border border-[#00a884]">Use</button>
+                            <button onClick={() => setUseTemplateModal({ isOpen: true, template })} className="text-xs font-bold text-[#00a884] hover:bg-green-50 dark:hover:bg-green-900/20 px-3 py-1.5 rounded transition-colors border border-[#00a884]">Use</button>
                           )}
-                          <button onClick={() => handleOpenEdit(template)} className="text-gray-500 hover:text-gray-900 p-2 rounded-full hover:bg-gray-200 transition-colors">
+                          <button onClick={() => handleOpenEdit(template)} className="text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors">
                             <FaEllipsisV />
                           </button>
                         </div>
@@ -463,8 +458,8 @@ const TemplatesDashboard = () => {
           /* Grid View */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredTemplates.map((template, idx) => (
-              <div key={template._id?.toString() || template.id?.toString() || idx} className="bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow group relative overflow-hidden">
-                <div className="p-5 flex-1 flex flex-col border-b border-gray-100">
+              <div key={template._id?.toString() || template.id?.toString() || idx} className="bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow group relative overflow-hidden">
+                <div className="p-5 flex-1 flex flex-col border-b border-gray-100 dark:border-slate-800">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex flex-col gap-2 flex-1">
                       {getStatusBadge(template.status)}
@@ -482,18 +477,18 @@ const TemplatesDashboard = () => {
                     )}
                   </div>
 
-                  <h3 className="font-bold text-gray-900 text-[15px] mb-2 cursor-pointer hover:text-[#00a884] transition-colors" onClick={() => handleOpenEdit(template)}>
+                  <h3 className="font-bold text-gray-900 dark:text-slate-100 text-[15px] mb-2 cursor-pointer hover:text-[#00a884] transition-colors" onClick={() => handleOpenEdit(template)}>
                     {template.name}
                   </h3>
 
-                  <div className="bg-[#f0f2f5] p-3 rounded-md text-sm text-[#111b21] flex-1 line-clamp-4 leading-relaxed font-normal whitespace-pre-wrap shadow-inner">
+                  <div className="bg-[#f0f2f5] dark:bg-slate-800 p-3 rounded-md text-sm text-[#111b21] dark:text-slate-200 flex-1 line-clamp-4 leading-relaxed font-normal whitespace-pre-wrap shadow-inner">
                     {template.bodyText || template.body?.text || ''}
                   </div>
 
                   {template.buttons?.enabled && template.buttons?.items?.length > 0 && (
                     <div className="mt-2 flex flex-col gap-1">
                       {template.buttons.items.slice(0, 2).map((btn, i) => (
-                        <div key={i} className="text-center text-xs font-bold text-[#00a884] bg-white border border-gray-200 py-1.5 rounded">
+                        <div key={i} className="text-center text-xs font-bold text-[#00a884] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 py-1.5 rounded">
                           {btn.text}
                         </div>
                       ))}
@@ -501,11 +496,11 @@ const TemplatesDashboard = () => {
                   )}
                 </div>
 
-                <div className="px-5 py-3 bg-gray-50 flex items-center justify-between mt-auto">
+                <div className="px-5 py-3 bg-gray-50 dark:bg-slate-800/50 flex items-center justify-between mt-auto">
                   <div className="flex gap-2">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{template.category}</span>
-                    <span className="text-[11px] font-bold text-gray-400">•</span>
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{template.language}</span>
+                    <span className="text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{template.category}</span>
+                    <span className="text-[11px] font-bold text-gray-400 dark:text-slate-600">•</span>
+                    <span className="text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{template.language}</span>
                   </div>
                   <div className="flex gap-1">
                     {['DRAFT', 'REJECTED', 'FAILED'].includes(template.status) && (

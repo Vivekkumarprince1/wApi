@@ -15,6 +15,8 @@ const { automationEvents, AUTOMATION_EVENTS } = require('./automationEventEmitte
 const { evaluateRule } = require('./automationConditionEvaluator');
 const { runSafetyChecks, incrementCounters } = require('./automationSafetyGuards');
 const { executeActions } = require('./automationActionExecutor');
+const workflowExecutionService = require('./workflowExecutionService');
+const aiIntentMatcher = require('../ai/aiIntentMatcher');
 const logger = require('../../utils/logger');
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -201,18 +203,37 @@ async function processRule(rule, context, isDryRun = false) {
       return { status: 'SKIPPED', reason: evalResult.reason };
     }
     
-    // 3. Execute actions
-    const actionResult = await executeActions(rule.actions, context, isDryRun);
+    // 3. Execute actions (Switch between Graph and Legacy)
+    let actionResult = { status: 'COMPLETED', results: [] };
     
+    if (rule.flowConfig && rule.flowConfig.nodes?.length > 0) {
+      // VISUAL FLOW ENGINE (Stage 6)
+      logger.info(`[AutomationEngine] Running Visual Flow for ${rule.name}`);
+      await workflowExecutionService.executeFlow(rule, execution, context);
+      
+      // Map execution results to match the expected format below
+      actionResult.status = execution.status || 'COMPLETED';
+      actionResult.results = execution.actionsExecuted.map(a => ({
+        actionType: a.type,
+        status: a.status === 'completed' ? 'SUCCESS' : 'FAILED',
+        result: a.result,
+        error: a.error,
+        durationMs: a.completedAt ? (new Date(a.completedAt) - new Date(a.startedAt)) : 0
+      }));
+    } else {
+      // LEGACY SEQUENTIAL ENGINE
+      actionResult = await executeActions(rule.actions, context, isDryRun);
+      execution.actionResults = actionResult.results;
+      execution.actionsExecutedCount = actionResult.results.length; // renamed from actionsExecuted to avoided conflict with execution.actionsExecuted array
+      execution.actionsSucceeded = actionResult.results.filter(r => r.status === 'SUCCESS').length;
+      execution.actionsFailed = actionResult.results.filter(r => r.status === 'FAILED').length;
+    }
+
     // 4. Record results
     execution.status = isDryRun ? 'SKIPPED' : actionResult.status;
     if (isDryRun) {
       execution.skipReason = 'DRY_RUN';
     }
-    execution.actionResults = actionResult.results;
-    execution.actionsExecuted = actionResult.results.length;
-    execution.actionsSucceeded = actionResult.results.filter(r => r.status === 'SUCCESS').length;
-    execution.actionsFailed = actionResult.results.filter(r => r.status === 'FAILED').length;
     execution.completedAt = new Date();
     execution.durationMs = Date.now() - executionStart;
     
@@ -316,6 +337,32 @@ async function processEvent(event) {
     
     if (rules.length === 0) {
       logger.debug(`[AutomationEngine] No rules found for event ${event.type}`);
+      
+      // ═══════════════════════════════════════════════════════════════════
+      // AI INTENT MATCH FALLBACK (Stage 6 Smart Layer)
+      // ═══════════════════════════════════════════════════════════════════
+      if (['message_received', 'customer.message.received'].includes(event.type)) {
+        const workspace = await Workspace.findById(event.workspaceId).select('automationSettings plan');
+        
+        if (workspace?.automationSettings?.aiIntentMatchEnabled) {
+          logger.info(`[AutomationEngine] 🤖 Fallback to AI Intent Match for message: "${context.message?.content || ''}"`);
+          
+          const matchedRule = await aiIntentMatcher.matchIntent(
+            event.workspaceId,
+            context.message?.content || context.message?.text || '',
+            event.conversationId,
+            event.contactId
+          );
+
+          if (matchedRule) {
+            logger.info(`[AutomationEngine] 🧠 AI successfully matched query to rule: [${matchedRule.name}]`);
+            // Execute the single matched rule
+            const result = await processRule(matchedRule, context);
+            return [{ ruleId: matchedRule._id, ruleName: matchedRule.name, ...result }];
+          }
+        }
+      }
+      
       return;
     }
     

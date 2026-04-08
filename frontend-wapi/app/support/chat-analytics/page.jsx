@@ -3,6 +3,7 @@
 import { BarChart3, MessageCircle, Clock, UserCheck, TrendingUp, TrendingDown, Download, AlertCircle, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { getAnalyticsDashboardOverview, getAnalyticsDashboardAgents } from '@/lib/api';
+import FlashLoader from '@/components/ui/FlashLoader';
 import { 
   BarChart, 
   Bar, 
@@ -121,14 +122,7 @@ export default function ChatAnalyticsPage() {
     }));
   }, [data]);
 
-  if (loading && !data) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <RefreshCw className="h-8 w-8 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground animate-pulse">Loading analytics data...</p>
-      </div>
-    );
-  }
+  if (loading && !data) return <FlashLoader />;
 
   if (error) {
     return (
@@ -212,7 +206,7 @@ export default function ChatAnalyticsPage() {
         </div>
         <div className="h-80 w-full">
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorConv" x1="0" y1="0" x2="0" y2="1">
@@ -311,7 +305,7 @@ export default function ChatAnalyticsPage() {
           <h3 className="text-lg font-bold text-foreground mb-4">Message Distribution</h3>
           <div className="h-64">
             {data?.messages?.byType && Object.values(data.messages.byType).some(v => v > 0) ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <BarChart data={Object.entries(data.messages.byType)
                   .filter(([_, value]) => value > 0)
                   .map(([key, value]) => ({ name: key.charAt(0).toUpperCase() + key.slice(1), value }))

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { ArrowUp } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { useAuthStore as useAuth } from '@/store/authStore';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 // Modular Components
 import HeroSection from '@/components/shared/HeroSection'
@@ -57,16 +58,7 @@ export default function HomePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  if (authContextLoading || !mounted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  if (authContextLoading || !mounted) return <FlashLoader />;
 
   // Prevent flash while redirecting
   if (authenticated) {

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FaWhatsapp, FaClock, FaCheckCircle, FaSpinner, FaTimes } from 'react-icons/fa';
 import { get, put } from '@/lib/api';
 import { useAuthStore as useAuth } from '@/store/authStore';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function WhatsAppSetupRequests() {
   const router = useRouter();
@@ -79,13 +80,7 @@ export default function WhatsAppSetupRequests() {
     );
   };
 
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <FaSpinner className="h-8 w-8 animate-spin text-green-600" />
-      </div>
-    );
-  }
+  if (authLoading) return <FlashLoader />;
 
   if (!isAuthenticated || authUser?.role !== 'admin') return null;
 
@@ -120,10 +115,7 @@ export default function WhatsAppSetupRequests() {
 
         {/* Requests List */}
         {loading ? (
-          <div className="text-center py-12">
-            <FaSpinner className="animate-spin text-4xl text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading requests...</p>
-          </div>
+          <FlashLoader />
         ) : requests.length === 0 ? (
           <div className="bg-white rounded-xl shadow p-12 text-center">
             <FaWhatsapp className="text-6xl text-muted-foreground mx-auto mb-4" />

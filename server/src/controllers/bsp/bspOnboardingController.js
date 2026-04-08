@@ -217,25 +217,26 @@ async function registerPhoneForAppEndpoint(req, res) {
     const userId = req.user._id.toString();
     const connectionType = req.body?.connectionType || 'new_number';
 
-    if (!['business_app', 'new_number'].includes(connectionType)) {
+    if (!['business_app', 'new_number', 'migrate'].includes(connectionType)) {
       return res.status(400).json({
         success: false,
-        message: 'connectionType must be one of: business_app, new_number',
+        message: 'connectionType must be one of: business_app, new_number, migrate',
         code: 'INVALID_CONNECTION_TYPE'
       });
     }
 
-    if (connectionType === 'business_app') {
+    if (connectionType === 'business_app' || connectionType === 'migrate') {
       const result = await generateBspSignupUrl(userId, {
         businessName: req.body?.businessName,
         phone: req.body?.phone,
-        contactEmail: req.body?.contactEmail
+        contactEmail: req.body?.contactEmail,
+        connectionType
       });
 
       return res.json({
         success: true,
         connectionType,
-        message: 'Business app connect flow started',
+        message: 'WhatsApp connection flow started',
         url: result.url,
         state: result.state,
         expiresAt: result.expiresAt,

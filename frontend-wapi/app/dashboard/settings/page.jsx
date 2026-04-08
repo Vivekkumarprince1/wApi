@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, AlertCircle, Loader2, Bug, Save, Settings, User, Code, Phone, Users, Shield, Tag, Reply, Calendar, MessageSquare, ShoppingBag } from 'lucide-react';
 import { getWABASettings, updateWABASettings, testWABAConnection, initializeWABAFromEnv, debugWABACredentials } from '@/lib/api';
-import PageLoader from '@/components/ui/PageLoader';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -122,7 +122,7 @@ export default function SettingsPage() {
     { href: '/dashboard/settings/commerce', label: 'Commerce', icon: ShoppingBag, color: 'from-rose-500 to-rose-600' },
   ];
 
-  if (loading) return <PageLoader message="Loading settings..." />;
+  if (loading) return <FlashLoader />;
 
   const inputClass = "input-premium";
 

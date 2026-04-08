@@ -6,6 +6,7 @@ import {
   FaChartBar, FaClock, FaCheckCircle, FaUsers, FaCalendarAlt, 
   FaFilter, FaArrowLeft, FaDownload, FaSpinner, FaInbox
 } from 'react-icons/fa';
+import FlashLoader from '@/components/ui/FlashLoader';
 import Link from 'next/link';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -42,14 +43,7 @@ export default function InboxAnalyticsPage() {
     }
   };
 
-  if (loading && !data) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-        <FaSpinner className="animate-spin text-4xl text-[#00a884]" />
-        <p className="text-gray-500 font-medium">Crunching your inbox data...</p>
-      </div>
-    );
-  }
+  if (loading && !data) return <FlashLoader />;
 
   const COLORS = ['#00a884', '#00c39a', '#25d366', '#1ebea5', '#075e54'];
 

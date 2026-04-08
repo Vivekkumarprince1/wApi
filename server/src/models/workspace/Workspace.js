@@ -433,6 +433,18 @@ const WorkspaceSchema = new mongoose.Schema({
   },
 
   // ═══════════════════════════════════════════════════════════════════
+  // STAGE 6: AUTOMATION SETTINGS (AI Matching)
+  // ═══════════════════════════════════════════════════════════════════
+  automationSettings: {
+    // Global AI Intent Matcher (fallback layer)
+    aiIntentMatchEnabled: { type: Boolean, default: false },
+    // Confidence threshold for AI matching
+    aiMatchConfidenceThreshold: { type: Number, default: 0.7 },
+    // Max monthly AI resolution quota
+    aiMonthlyLimit: { type: Number, default: 5000 }
+  },
+
+  // ═══════════════════════════════════════════════════════════════════
   // STAGE 5: BILLING QUOTA & USAGE TRACKING
   // ═══════════════════════════════════════════════════════════════════
 

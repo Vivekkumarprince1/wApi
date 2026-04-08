@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Header from './Header';
 import Sidebar from './AppSidebar';
-import FlashLoader from '@/components/ui/FlashLoader';
+import FlashLoader from '../ui/FlashLoader';
 import { useAuthStore as useAuth } from '@/store/authStore';
 import { loadingStore } from '@/lib/api/loadingStore';
 import { cn } from '@/lib/utils';
@@ -60,10 +60,10 @@ export default function LayoutWrapper({ children }) {
   const isAuthPage = pathname.startsWith('/auth/');
   const shouldShowSidebar = mounted && authenticated && !isAuthPage;
 
-    // Client-side protection: redirect to login if not authenticated on a protected route
+  // Client-side protection: redirect to login if not authenticated on a protected route
   useEffect(() => {
     if (!mounted || loading) return;
-    
+
     // If not authenticated and not on a public route, go to login
     if (!authenticated && !isPublicRoute) {
       router.push('/auth/login');

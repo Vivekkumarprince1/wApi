@@ -1,37 +1,89 @@
 'use client';
 
-import { useState } from 'react';
-import { FaWhatsapp, FaInstagram, FaToggleOn } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import { FaWhatsapp, FaInstagram, FaRegCommentDots } from 'react-icons/fa';
+import { Smartphone, Mail, MessageSquare } from 'lucide-react';
+import { get } from '@/lib/api';
 
 export default function ChannelsSettingsPage() {
   const [channels, setChannels] = useState([
-    { id: 'whatsapp', name: 'WhatsApp', icon: <FaWhatsapp/>, status: 'connected' },
-    { id: 'instagram', name: 'Instagram', icon: <FaInstagram/>, status: 'not-connected' },
-    { id: 'rcs', name: 'RCS (Rich Communication)', icon: <FaToggleOn/>, status: 'not-connected' },
+    { id: 'whatsapp', name: 'WhatsApp', icon: <FaWhatsapp/>, status: 'connected', description: 'Primary messaging channel' },
+    { id: 'rcs', name: 'RCS (Rich Business)', icon: <Smartphone className="h-5 w-5"/>, status: 'not-connected', description: 'Rich fallback with brand identity' },
+    { id: 'sms', name: 'SMS Gateway', icon: <MessageSquare className="h-5 w-5"/>, status: 'not-connected', description: 'Final fallback for offline delivery' },
+    { id: 'instagram', name: 'Instagram', icon: <FaInstagram/>, status: 'not-connected', description: 'Social media messaging' },
   ]);
 
+  useEffect(() => {
+    checkChannelStatus();
+  }, []);
+
+  const checkChannelStatus = async () => {
+    try {
+      const [rcsRes, smsRes] = await Promise.all([
+        get('/settings/channels/rcs'),
+        get('/settings/channels/sms')
+      ]);
+
+      setChannels(prev => prev.map(ch => {
+        if (ch.id === 'rcs') {
+          const isConnected = rcsRes.isManaged || rcsRes.data?.credentials?.apiKey;
+          const hasIdentity = rcsRes.data?.credentials?.senderId;
+          return { ...ch, status: (isConnected && hasIdentity) ? 'connected' : 'not-connected' };
+        }
+        if (ch.id === 'sms') {
+          const isConnected = smsRes.isManaged || smsRes.data?.credentials?.apiKey;
+          const hasIdentity = smsRes.data?.credentials?.senderId;
+          return { ...ch, status: (isConnected && hasIdentity) ? 'connected' : 'not-connected' };
+        }
+        return ch;
+      }));
+    } catch (err) {
+      console.error('Failed to check channel status');
+    }
+  };
+
   return (
-    <div className=" p-6">
-      <div className="max-w-5xl mx-auto mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Channels</h1>
-        <p className="text-sm text-muted-foreground">Connect messaging channels</p>
+    <div className=" p-6 animate-fade-in">
+      <div className="max-w-5xl mx-auto mb-8">
+        <h1 className="text-2xl font-bold text-foreground">Message Channels</h1>
+        <p className="text-sm text-muted-foreground">Manage multi-channel delivery and brand identity.</p>
       </div>
 
-      <div className="max-w-5xl mx-auto grid sm:grid-cols-2 gap-6">
+      <div className="max-w-5xl mx-auto grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {channels.map(ch => (
-          <div key={ch.id} className="bg-card rounded-xl shadow-premium p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xl text-primary">
+          <div key={ch.id} className="bg-card border border-border rounded-2xl shadow-premium p-6 hover:shadow-hover transition-all group">
+            <div className="flex items-start justify-between">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                ch.status === 'connected' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'
+              }`}>
                 {ch.icon}
               </div>
-              <div>
-                <h3 className="font-medium text-foreground">{ch.name}</h3>
-                <p className="text-xs text-muted-foreground capitalize">{ch.status.replace('-', ' ')}</p>
-              </div>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                ch.status === 'connected' ? 'bg-emerald-100 text-emerald-700' : 'bg-muted text-muted-foreground'
+              }`}>
+                {ch.status.replace('-', ' ')}
+              </span>
             </div>
-            <div className="mt-4 flex gap-2">
-              <a href={ch.id==='whatsapp'?'/dashboard/settings/whatsapp-profile':ch.id==='rcs'?'/dashboard/settings/channels/rcs':'#'} className="px-3 py-2 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50">{ch.status==='connected'?'Manage':'Connect'}</a>
-              <button className="px-3 py-2 text-sm rounded border border-border text-foreground">Docs</button>
+            
+            <div className="mt-4">
+              <h3 className="font-bold text-foreground group-hover:text-primary transition-colors">{ch.name}</h3>
+              <p className="text-xs text-muted-foreground mt-1">{ch.description}</p>
+            </div>
+
+            <div className="mt-6 flex gap-2">
+              <a 
+                href={
+                  ch.id === 'whatsapp' ? '/dashboard/settings/whatsapp-profile' : 
+                  ch.id === 'rcs' ? '/dashboard/settings/channels/rcs' :
+                  ch.id === 'sms' ? '/dashboard/settings/channels/sms' : '#'
+                } 
+                className="flex-1 text-center py-2 text-xs font-bold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
+              >
+                {ch.status === 'connected' ? 'Configure' : 'Connect'}
+              </a>
+              <button className="px-4 py-2 text-xs font-bold rounded-lg border border-border text-foreground hover:bg-accent transition-colors">
+                Docs
+              </button>
             </div>
           </div>
         ))}

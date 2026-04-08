@@ -1,41 +1,66 @@
 const RCSConfig = require('../../models/workspace/RCSConfig');
+const { Workspace } = require('../../models');
 const axios = require('axios');
 
 /**
- * Send an RCS message via the configured provider (Jio, etc.)
+ * Send an RCS message via Gupshup Single Messaging API
  */
 async function sendRCSMessage(workspaceId, campaignId, contact, messageConfig) {
   try {
-    const config = await RCSConfig.findOne({ workspaceId });
-    if (!config || config.status !== 'ACTIVE') {
-      console.error(`RCS Fallback failed for ${contact.phone}: No active RCS config for workspace ${workspaceId}`);
-      return { success: false, error: 'NO_ACTIVE_RCS_CONFIG' };
+    const [config, workspace] = await Promise.all([
+      RCSConfig.findOne({ workspaceId }),
+      Workspace.findById(workspaceId)
+    ]);
+
+    if (!workspace) {
+      throw new Error('Workspace not found');
     }
 
-    // Mock Payload for Jio RCS
-    const payload = {
-      sender: config.credentials.senderId,
-      recipient: contact.phone,
-      templateId: messageConfig.templateId,
-      variables: messageConfig.mapping,
-      campaignId: campaignId
+    // Determine credentials: Use RCSConfig if present, else fallback to Workspace Managed App ID/Key
+    const apiKey = config?.credentials?.apiKey || workspace.gupshupIdentity?.appApiKey;
+    const appId = config?.credentials?.appId || workspace.gupshupAppId || workspace.gupshupIdentity?.partnerAppId;
+    const senderId = config?.credentials?.senderId || workspace.bspVerifiedName || 'WAPI';
+
+    if (!apiKey) {
+      console.error(`RCS Fallback failed for ${contact.phone}: No API Key found in Config or Workspace`);
+      return { success: false, error: 'MISSING_CREDENTIALS' };
+    }
+
+    // Gupshup Single Messaging API Endpoint
+    const url = 'https://api.gupshup.io/sm/api/v1/msg';
+    
+    // Build Payload for Gupshup RCS
+    const message = {
+      type: 'text',
+      text: messageConfig.text || `Hello ${contact.name || 'there'}!`,
     };
 
-    // Real API call (Mocked for now)
-    // const response = await axios.post(config.credentials.endpoint, payload, {
-    //   headers: { 'Authorization': `Bearer ${config.credentials.apiKey}` }
-    // });
-    
-    console.log(`[RCS Fallback] Sending to ${contact.phone} via ${config.provider}`);
-    
-    // Simulate Success
-    return { 
-      success: true, 
-      messageId: `RCS_${Math.random().toString(36).substring(7)}`,
-      provider: config.provider 
-    };
+    const params = new URLSearchParams();
+    params.append('channel', 'rcs');
+    params.append('source', senderId);
+    params.append('destination', contact.phone);
+    params.append('message', JSON.stringify(message));
+    params.append('src.name', senderId);
+
+    const response = await axios.post(url, params.toString(), {
+      headers: {
+        'apikey': apiKey,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    if (response.data && (response.data.status === 'submitted' || response.data.status === 'success')) {
+      console.log(`[RCS Fallback] Success for ${contact.phone}. MsgID: ${response.data.messageId}`);
+      return { 
+        success: true, 
+        messageId: response.data.messageId,
+        provider: 'GUPSHUP_RCS'
+      };
+    } else {
+      throw new Error(response.data.message || 'Gupshup RCS submission failed');
+    }
   } catch (err) {
-    console.error(`RCS fallback send error:`, err.message);
+    console.error(`RCS fallback send error:`, err.response?.data || err.message);
     return { success: false, error: err.message };
   }
 }
@@ -44,7 +69,7 @@ async function sendRCSMessage(workspaceId, campaignId, contact, messageConfig) {
  * Automatically map WhatsApp template variables to RCS
  */
 function mapVariablesToRCS(waVariables, mapping) {
-  // Simple 1:1 mapping for demonstration
+  // Simple mapping
   const rcsMapping = {};
   for (const [key, value] of Object.entries(mapping)) {
     rcsMapping[key] = value;

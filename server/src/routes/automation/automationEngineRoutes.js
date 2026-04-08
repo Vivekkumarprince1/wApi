@@ -82,4 +82,20 @@ router.get('/triggers', automationController.getTriggers);
 // Get available actions
 router.get('/actions', automationController.getActions);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// AI INTENT MATCHING (Stage 6 Smart Layer)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Get AI Intent Match settings
+router.get('/ai-settings', automationController.getAiSettings);
+
+// Update AI Intent Match settings
+router.patch('/ai-settings', automationController.patchAiSettings);
+
+// Get AI Intent Match statistics
+router.get('/ai-stats', automationController.getAiStats);
+
+// Get AI Intent Match logs
+router.get('/ai-logs', automationController.getAiLogs);
+
 module.exports = router;

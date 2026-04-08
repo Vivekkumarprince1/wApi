@@ -11,7 +11,7 @@ const ActivityItem = ({ activity }) => {
   const gradient = colorMap[activity.color] || colorMap.blue;
 
   return (
-    <div className="flex items-center gap-3 p-2.5 hover:bg-accent/50 rounded-xl transition-colors cursor-pointer group">
+    <div className="flex items-center gap-3 p-2.5 hover:bg-muted rounded-xl transition-colors cursor-pointer group">
       <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform shrink-0`}>
         <Icon className="text-white h-3.5 w-3.5" />
       </div>
@@ -77,7 +77,7 @@ const RightSidebar = ({ stats, recentActivity, showTrial }) => {
             </div>
             <h3 className="text-lg font-bold mb-1.5">Upgrade to Pro</h3>
             <p className="text-sm text-white/80 mb-4">Unlimited campaigns, advanced analytics, priority support.</p>
-            <button className="w-full bg-white text-primary py-2.5 rounded-xl font-bold hover:bg-white/90 transition-colors shadow-lg">
+            <button className="w-full bg-white dark:bg-primary-foreground text-primary py-2.5 rounded-xl font-bold hover:brightness-110 transition-colors shadow-lg">
               Upgrade Now - Save 50%
             </button>
           </div>

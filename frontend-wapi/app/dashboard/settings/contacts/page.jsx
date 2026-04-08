@@ -8,6 +8,7 @@ import {
 import { getContactSettings, updateContactSettings } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import FeatureGate from '@/components/features/FeatureGate';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 function ContactsSettingsContent() {
   const [settings, setSettings] = useState({
@@ -112,13 +113,7 @@ function ContactsSettingsContent() {
     }));
   };
 
-  if (loading) {
-    return (
-      <div className="p-6 flex justify-center items-center h-48">
-        <FaSpinner className="animate-spin text-emerald-600 text-3xl" />
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   return (
     <div className="p-6 max-w-5xl mx-auto pb-20">

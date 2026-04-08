@@ -22,7 +22,7 @@ import {
   Trophy
 } from 'lucide-react';
 import { getCommerceSettings, updateCommerceSettings, validateCommerceConfig } from '@/lib/api';
-import PageLoader from '@/components/ui/PageLoader';
+import FlashLoader from '@/components/ui/FlashLoader';
 import { toast } from '@/lib/toast';
 
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED', 'SAR', 'KWD', 'QAR', 'BHD', 'OMR'];
@@ -214,7 +214,7 @@ export default function CommerceSettingsPage() {
     }));
   };
 
-  if (loading) return <PageLoader message="Opening Commerce Vault..." />;
+  if (loading) return <FlashLoader />;
 
   const inputClass = "input-premium bg-muted/30 border-muted-foreground/10 focus:bg-background transition-all placeholder:text-muted-foreground/40";
 

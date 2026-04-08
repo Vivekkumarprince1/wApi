@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaPlus, FaPause, FaPlay, FaTrash, FaEye } from 'react-icons/fa';
 import { checkAdsEligibility, listAds, pauseAd, resumeAd, deleteAd } from '@/lib/api';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function AdsPage() {
   const router = useRouter();
@@ -80,31 +81,22 @@ export default function AdsPage() {
 
   const getStatusBadgeColor = (status) => {
     const colors = {
-      draft: 'bg-gray-100 text-gray-800',
-      pending_review: 'bg-blue-100 text-blue-800',
-      active: 'bg-green-100 text-green-800',
-      paused: 'bg-yellow-100 text-yellow-800',
-      rejected: 'bg-red-100 text-red-800',
-      completed: 'bg-purple-100 text-purple-800'
+      draft: 'bg-muted text-muted-foreground border-border',
+      pending_review: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200/30',
+      active: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200/30',
+      paused: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200/30',
+      rejected: 'bg-destructive/10 text-destructive border-destructive/20',
+      completed: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-200/30'
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return `border ${colors[status] || 'bg-muted text-muted-foreground'}`;
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-muted-foreground">Loading ads...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   if (!eligibility) {
     return (
       <div className="p-6">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl">
           <p>Failed to load ads eligibility. Please try again.</p>
         </div>
       </div>
@@ -114,22 +106,22 @@ export default function AdsPage() {
   return (
     <div className="animate-fade-in-up">
       {/* Header */}
-      <div className="bg-white border-b border-border px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-card border-b border-border px-6 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">WhatsApp Ads</h1>
+            <h1 className="text-3xl font-bold text-foreground">WhatsApp Ads</h1>
             <p className="text-muted-foreground mt-1">Click-to-Chat campaigns</p>
           </div>
           <button
             onClick={handleCreateAd}
             disabled={!eligibility.enabled}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium ${
+            className={`flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95 ${
               eligibility.enabled
-                ? 'bg-primary hover:bg-primary/90 text-white'
-                : 'bg-gray-300 text-muted-foreground cursor-not-allowed'
+                ? 'bg-primary hover:bg-primary/90 text-primary-foreground hover:shadow-lg'
+                : 'bg-muted text-muted-foreground cursor-not-allowed'
             }`}
           >
-            <FaPlus /> Create Ad
+            <FaPlus className="h-4 w-4" /> Create Ad
           </button>
         </div>
       </div>
@@ -137,10 +129,10 @@ export default function AdsPage() {
       <div className="p-6">
         {/* Error/Success Messages */}
         {error && (
-          <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
+          <div className="mb-6 bg-destructive/10 border border-destructive/20 text-destructive px-5 py-4 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+            <p className="font-medium">{error}</p>
             <button
-              className="ml-4 underline"
+              className="text-sm font-bold underline hover:no-underline px-2 py-1"
               onClick={() => setError('')}
             >
               Dismiss
@@ -149,10 +141,10 @@ export default function AdsPage() {
         )}
 
         {success && (
-          <div className="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-            {success}
+          <div className="mb-6 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-5 py-4 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+            <p className="font-medium">{success}</p>
             <button
-              className="ml-4 underline"
+              className="text-sm font-bold underline hover:no-underline px-2 py-1"
               onClick={() => setSuccess('')}
             >
               Dismiss
@@ -162,17 +154,18 @@ export default function AdsPage() {
 
         {/* Eligibility Checks */}
         {!eligibility.enabled && (
-          <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-xl p-6">
-            <h3 className="font-semibold text-yellow-900 mb-3">
+          <div className="mb-8 bg-amber-500/5 border border-amber-500/20 rounded-2xl p-6 sm:p-8">
+            <h3 className="font-bold text-amber-600 dark:text-amber-400 text-lg mb-4 flex items-center gap-2">
+              <span className="p-1.5 bg-amber-500/10 rounded-lg">⚠️</span>
               Why WhatsApp Ads is not available:
             </h3>
-            <ul className="space-y-2">
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {eligibility.errors.map((error) => {
                 const check = eligibility.checks[error.replace('_LIMIT', '').toLowerCase()];
                 return (
-                  <li key={error} className="text-yellow-800">
-                    <span className="font-medium">❌ {error}</span>
-                    {check?.reason && <p className="text-sm ml-4">{check.reason}</p>}
+                  <li key={error} className="bg-card/50 border border-border p-4 rounded-xl">
+                    <span className="font-bold text-foreground block mb-1">❌ {error.replace(/_/g, ' ')}</span>
+                    {check?.reason && <p className="text-sm text-muted-foreground">{check.reason}</p>}
                   </li>
                 );
               })}
@@ -182,28 +175,32 @@ export default function AdsPage() {
 
         {/* Ads List */}
         {eligibility.enabled && ads.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-xl border border-border">
-            <p className="text-muted-foreground mb-4">No ads created yet.</p>
+          <div className="text-center py-16 bg-card rounded-2xl border border-border shadow-premium">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <FaPlus className="text-muted-foreground h-6 w-6" />
+            </div>
+            <p className="text-muted-foreground mb-6 font-medium">No ads created yet. Start growing your audience.</p>
             <button
               onClick={handleCreateAd}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl font-medium"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold shadow-lg transition-all"
             >
               <FaPlus /> Create Your First Ad
             </button>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-border overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-muted border-b border-border">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Name</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Budget</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Spent</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Impressions</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-foreground">Actions</th>
-                </tr>
-              </thead>
+          <div className="bg-card rounded-2xl border border-border shadow-premium overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-muted/50 border-b border-border">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">Name</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">Budget</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">Spent</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">Impressions</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
               <tbody>
                 {ads.map((ad) => (
                   <tr key={ad._id} className="border-b border-border hover:bg-muted">
@@ -276,30 +273,31 @@ export default function AdsPage() {
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Plan Limits Info */}
         {eligibility.enabled && eligibility.limits && (
-          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-6">
-            <h3 className="font-semibold text-blue-900 mb-2">Your Plan Limits</h3>
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <p className="text-sm text-blue-700">Max Active Ads</p>
-                <p className="text-lg font-bold text-blue-900">
+          <div className="mt-8 bg-blue-500/5 border border-blue-200/20 rounded-2xl p-6 sm:p-8">
+            <h3 className="font-bold text-blue-600 dark:text-blue-400 text-lg mb-4">Your Plan Limits</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="bg-card/50 border border-border p-4 rounded-xl">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Max Active Ads</p>
+                <p className="text-2xl font-extrabold text-foreground">
                   {eligibility.limits.maxActiveAds === -1 ? 'Unlimited' : eligibility.limits.maxActiveAds}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-blue-700">Monthly Budget Limit</p>
-                <p className="text-lg font-bold text-blue-900">
+              <div className="bg-card/50 border border-border p-4 rounded-xl">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Monthly Budget Limit</p>
+                <p className="text-2xl font-extrabold text-foreground">
                   {eligibility.limits.maxMonthlySpend === -1 
                     ? 'Unlimited' 
                     : `$${(eligibility.limits.maxMonthlySpend / 100).toFixed(0)}`}
                 </p>
               </div>
-              <div>
-                <p className="text-sm text-blue-700">Concurrent Campaigns</p>
-                <p className="text-lg font-bold text-blue-900">
+              <div className="bg-card/50 border border-border p-4 rounded-xl">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Concurrent Campaigns</p>
+                <p className="text-2xl font-extrabold text-foreground">
                   {eligibility.limits.maxConcurrentCampaigns === -1 ? 'Unlimited' : eligibility.limits.maxConcurrentCampaigns}
                 </p>
               </div>

@@ -24,6 +24,7 @@ import {
   getDefaultPipeline
 } from "@/lib/api/sales";
 import { toast } from "react-hot-toast";
+import FlashLoader from "@/components/ui/FlashLoader";
 
 export default function SalesCRMReportsPage() {
   const [loading, setLoading] = useState(true);
@@ -123,13 +124,7 @@ export default function SalesCRMReportsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   return (
     <div className="p-6 bg-background min-h-screen">

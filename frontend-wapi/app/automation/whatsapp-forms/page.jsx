@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaDownload, FaChevronDown, FaEye } from 'react-icons/fa';
 import Link from 'next/link';
 import { get, post, del } from '@/lib/api';
+import FlashLoader from '@/components/ui/FlashLoader';
 import { toast } from '@/lib/toast';
 
 export default function WhatsAppFormsPage() {
@@ -90,7 +91,7 @@ export default function WhatsAppFormsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen bg-[#f4f5f7] dark:bg-slate-950 animate-in fade-in duration-700">
       {/* Header */}
       <div className="bg-card border-b border-border sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -117,56 +118,56 @@ export default function WhatsAppFormsPage() {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-border">
+        <div className="flex gap-4 mb-6 border-b border-slate-200 dark:border-slate-800">
           <button
             onClick={() => setActiveTab('all')}
-            className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+            className={`px-4 py-3 font-semibold border-b-2 transition-colors transition-all relative ${
               activeTab === 'all'
-                ? 'border-green-600 text-primary dark:text-green-400'
-                : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-gray-200'
+                ? 'border-[#00a884] text-[#00a884]'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
             All Forms
+            {activeTab === 'all' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#00a884] rounded-t-full" />}
           </button>
           <button
             onClick={() => setActiveTab('draft')}
-            className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+            className={`px-4 py-3 font-semibold border-b-2 transition-colors transition-all relative ${
               activeTab === 'draft'
-                ? 'border-green-600 text-primary dark:text-green-400'
-                : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-gray-200'
+                ? 'border-[#00a884] text-[#00a884]'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
             Draft
+            {activeTab === 'draft' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#00a884] rounded-t-full" />}
           </button>
           <button
             onClick={() => setActiveTab('published')}
-            className={`px-4 py-3 font-medium border-b-2 transition-colors ${
+            className={`px-4 py-3 font-semibold border-b-2 transition-colors transition-all relative ${
               activeTab === 'published'
-                ? 'border-green-600 text-primary dark:text-green-400'
-                : 'border-transparent text-muted-foreground hover:text-foreground dark:hover:text-gray-200'
+                ? 'border-[#00a884] text-[#00a884]'
+                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
           >
             Published
+            {activeTab === 'published' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#00a884] rounded-t-full" />}
           </button>
         </div>
 
         {/* Search */}
-        <div className="bg-card rounded-xl shadow p-4 mb-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 mb-6">
           <input
             type="text"
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             placeholder="Search forms by name..."
-            className="w-full px-4 py-2 border border-border rounded-xl dark:bg-muted dark:text-foreground"
+            className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-gray-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-1 focus:ring-[#00a884] outline-none"
           />
         </div>
 
         {/* Forms Table */}
         {loading ? (
-          <div className="text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-            <p className="mt-4 text-muted-foreground">Loading forms...</p>
-          </div>
+          <FlashLoader />
         ) : forms.length === 0 ? (
           <div className="text-center py-16 bg-card rounded-xl">
             <div className="text-6xl mb-4">📋</div>
@@ -179,24 +180,24 @@ export default function WhatsAppFormsPage() {
             </Link>
           </div>
         ) : (
-          <div className="bg-card rounded-xl shadow overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
             <table className="w-full">
-              <thead className="bg-muted/50 border-b border-border">
+              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Form Name</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Responses</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-foreground">Completion</th>
-                  <th className="px-6 py-4 text-right text-sm font-semibold text-foreground">Actions</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Form Name</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Status</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Responses</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700 dark:text-slate-300">Completion</th>
+                  <th className="px-6 py-4 text-right text-sm font-semibold text-slate-700 dark:text-slate-300">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {forms.map((form) => (
-                  <tr key={form._id} className="hover:bg-accent/30 transition-colors">
+                  <tr key={form._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="font-medium text-foreground">{form.name}</p>
-                        <p className="text-sm text-muted-foreground">{form.description}</p>
+                        <p className="font-bold text-slate-900 dark:text-slate-100">{form.name}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{form.description}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -210,17 +211,17 @@ export default function WhatsAppFormsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-center">
-                        <p className="text-lg font-bold text-foreground">
+                        <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
                           {form.statistics?.totalResponses || 0}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-slate-500 dark:text-slate-500">
                           {form.statistics?.completedResponses || 0} completed
                         </p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-center">
-                        <p className="text-lg font-bold text-foreground">
+                        <p className="text-lg font-bold text-slate-900 dark:text-slate-100">
                           {form.statistics?.completionRate || 0}%
                         </p>
                       </div>

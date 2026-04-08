@@ -261,11 +261,11 @@ const ConnectNumberModal = ({ isOpen, onClose, callbackPayload = null }) => {
           <>
             {/* Action Buttons */}
             <div className="p-6 border-b border-border">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <button
                   onClick={() => handleConnect('business_app')}
                   disabled={loadingType !== null}
-                  className="bg-teal-500 hover:bg-primary text-primary-foreground px-6 py-4 rounded-lg font-medium transition-colors text-center"
+                  className="bg-teal-500 hover:bg-primary text-primary-foreground px-4 py-4 rounded-lg font-medium transition-colors text-center shadow-sm"
                 >
                   {loadingType === 'business_app' ? (
                     <span className="flex items-center justify-center gap-2">
@@ -276,18 +276,23 @@ const ConnectNumberModal = ({ isOpen, onClose, callbackPayload = null }) => {
                     <>
                       Connect your
                       <br />
-                      WhatsApp Business
-                      <br />
-                      App
+                      WhatsApp App
                     </>
                   )}
                 </button>
                 <button
                   onClick={() => handleConnect('new_number')}
                   disabled={loadingType !== null}
-                  className="bg-white hover:bg-muted dark:hover:bg-gray-600 text-teal-600 dark:text-teal-400 border-2 border-teal-500 px-6 py-4 rounded-lg font-medium transition-colors"
+                  className="bg-white hover:bg-muted dark:hover:bg-gray-600 text-teal-600 dark:text-teal-400 border-2 border-teal-500 px-4 py-4 rounded-lg font-medium transition-colors shadow-sm"
                 >
                   {loadingType === 'new_number' ? 'Registering...' : 'Connect new number'}
+                </button>
+                <button
+                  onClick={() => handleConnect('migrate')}
+                  disabled={loadingType !== null}
+                  className="bg-white hover:bg-muted dark:hover:bg-gray-600 text-purple-600 dark:text-purple-400 border-2 border-purple-500 px-4 py-4 rounded-lg font-medium transition-colors shadow-sm"
+                >
+                  {loadingType === 'migrate' ? 'Migrating...' : 'Migrate Existing API Number'}
                 </button>
               </div>
               {error && (

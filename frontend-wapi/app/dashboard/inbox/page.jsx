@@ -55,6 +55,7 @@ import {
   FaTag
 } from 'react-icons/fa';
 import { useAuthStore } from '@/store/authStore';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function InboxPage() {
   const workspace = useAuthStore(state => state.workspace);
@@ -79,7 +80,7 @@ export default function InboxPage() {
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const statusCacheRef = useRef({});
-  
+
   // File upload state
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -158,7 +159,7 @@ export default function InboxPage() {
         conv.lastMessageAt = data.message.createdAt;
         conv.lastMessage = data.message;
         conv.lastMessagePreview = data.message.body || data.message.type || 'New message';
-        
+
         // Increase unread count if it's not the currently active conversation
         if (!selectedContact || String(data.contact._id) !== String(selectedContact._id)) {
           conv.unreadCount = (conv.unreadCount || 0) + 1;
@@ -184,7 +185,7 @@ export default function InboxPage() {
         return [...prev, data.message];
       });
       scrollToBottom();
-      
+
       // Mark as read immediately since the conversation is open
       if (data.conversationId) {
         post(`/inbox/${data.conversationId}/read`, {}).catch(err => console.error('Failed to mark read:', err));
@@ -195,7 +196,7 @@ export default function InboxPage() {
   useSocketEvent('inbox:new-conversation', (data) => {
     console.log('New conversation received:', data);
     loadConversations();
-    
+
     if (selectedContact && String(data.contact._id) === String(selectedContact._id)) {
       if (data.firstMessage) {
         setMessages(prev => {
@@ -203,7 +204,7 @@ export default function InboxPage() {
           return [...prev, data.firstMessage];
         });
         scrollToBottom();
-        
+
         // Mark as read immediately
         if (data.conversationId || data.conversation?._id) {
           const cid = data.conversationId || data.conversation._id;
@@ -224,13 +225,13 @@ export default function InboxPage() {
 
     // Update message status in current thread
     setMessages(prev => prev.map(msg =>
-      String(msg._id) === String(data.messageId) || 
-      String(msg.whatsappMessageId) === String(data.messageId) ||
-      (msg.whatsappMessageId && typeof msg.whatsappMessageId === 'object' && String(msg.whatsappMessageId.id) === String(data.messageId))
+      String(msg._id) === String(data.messageId) ||
+        String(msg.whatsappMessageId) === String(data.messageId) ||
+        (msg.whatsappMessageId && typeof msg.whatsappMessageId === 'object' && String(msg.whatsappMessageId.id) === String(data.messageId))
         ? { ...msg, status: data.status }
         : msg
     ));
-    
+
     // Also update in conversations list if it's the last message
     setConversations(prev => prev.map(conv => {
       if (conv.lastMessage && (String(conv.lastMessage._id) === String(data.messageId) || String(conv.lastMessage.whatsappMessageId) === String(data.messageId))) {
@@ -262,7 +263,7 @@ export default function InboxPage() {
         agentId: data.agentId
       }
     }));
-    
+
     // Auto-clear typing after 5 seconds
     if (data.isTyping) {
       setTimeout(() => {
@@ -293,7 +294,7 @@ export default function InboxPage() {
         agentName: data.agent.name
       }
     }));
-    
+
     if (data.isTyping) {
       setTimeout(() => {
         setTypingUsers(current => {
@@ -320,7 +321,7 @@ export default function InboxPage() {
       if (activeFilters.label) filterQuery += `&label=${encodeURIComponent(activeFilters.label)}`;
       if (activeFilters.status) filterQuery += `&status=${activeFilters.status}`;
       if (activeFilters.assignee) filterQuery += `&assignee=${activeFilters.assignee}`;
-      
+
       const response = await get(`/inbox?view=${currentView}&limit=100${filterQuery}`);
       setConversations(response.data || []);
     } catch (error) {
@@ -354,11 +355,11 @@ export default function InboxPage() {
   const handleSelectContact = async (conversation) => {
     setSelectedContact(conversation.contact);
     setSelectedConversationId(conversation._id || conversation.id || null);
-    
+
     // Clear unread counts natively upon viewing
-    setConversations(prev => prev.map(c => 
-      (c._id || c.id) === (conversation._id || conversation.id) 
-        ? { ...c, unreadCount: 0, myUnreadCount: 0 } 
+    setConversations(prev => prev.map(c =>
+      (c._id || c.id) === (conversation._id || conversation.id)
+        ? { ...c, unreadCount: 0, myUnreadCount: 0 }
         : c
     ));
 
@@ -618,9 +619,9 @@ export default function InboxPage() {
 
   const handleInputChange = (e) => {
     setNewMessage(e.target.value);
-    
+
     if (!selectedConversationId || !socket) return;
-    
+
     // Emit typing via socket
     if (!typingTimeoutRef.current) {
       socket.emit('typing', {
@@ -630,7 +631,7 @@ export default function InboxPage() {
     } else {
       clearTimeout(typingTimeoutRef.current);
     }
-    
+
     typingTimeoutRef.current = setTimeout(() => {
       socket.emit('typing:stop', {
         conversationId: selectedConversationId
@@ -644,7 +645,7 @@ export default function InboxPage() {
 
     if (!newMessage.trim() && !selectedMedia) return;
     if (!selectedContact) return;
-    
+
     if (!bspReady) {
       toast?.error?.('Connect WhatsApp to send messages') || alert('Connect WhatsApp to send messages');
       return;
@@ -710,15 +711,15 @@ export default function InboxPage() {
               }
 
               if (finalMsg && typeof finalMsg === 'object') {
-                 const finalWamId = typeof finalMsg.whatsappMessageId === 'object' ? finalMsg.whatsappMessageId.id : finalMsg.whatsappMessageId;
-                 const cachedStatus = statusCacheRef.current[finalMsg._id] || statusCacheRef.current[finalWamId];
-                 const realStatus = cachedStatus || finalMsg.status || 'sent';
-                 setMessages(prev => prev.map(m => m._id === tmpId ? { ...finalMsg, status: realStatus } : m));
+                const finalWamId = typeof finalMsg.whatsappMessageId === 'object' ? finalMsg.whatsappMessageId.id : finalMsg.whatsappMessageId;
+                const cachedStatus = statusCacheRef.current[finalMsg._id] || statusCacheRef.current[finalWamId];
+                const realStatus = cachedStatus || finalMsg.status || 'sent';
+                setMessages(prev => prev.map(m => m._id === tmpId ? { ...finalMsg, status: realStatus } : m));
               } else {
-                 setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent'} : m));
+                setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent' } : m));
               }
             } else {
-               setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+              setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
             }
           } else {
             // Handle sending to a contact without an active DB conversation ID yet
@@ -743,26 +744,26 @@ export default function InboxPage() {
               }
 
               if (finalMsg && typeof finalMsg === 'object') {
-                 const finalWamId = typeof finalMsg.whatsappMessageId === 'object' ? finalMsg.whatsappMessageId.id : finalMsg.whatsappMessageId;
-                 const cachedStatus = statusCacheRef.current[finalMsg._id] || statusCacheRef.current[finalWamId];
-                 const realStatus = cachedStatus || finalMsg.status || 'sent';
-                 setMessages(prev => prev.map(m => m._id === tmpId ? { ...finalMsg, status: realStatus } : m));
+                const finalWamId = typeof finalMsg.whatsappMessageId === 'object' ? finalMsg.whatsappMessageId.id : finalMsg.whatsappMessageId;
+                const cachedStatus = statusCacheRef.current[finalMsg._id] || statusCacheRef.current[finalWamId];
+                const realStatus = cachedStatus || finalMsg.status || 'sent';
+                setMessages(prev => prev.map(m => m._id === tmpId ? { ...finalMsg, status: realStatus } : m));
               } else {
-                 setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent'} : m));
+                setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent' } : m));
               }
             } else {
-              setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+              setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
             }
           }
           // Optional: toast.success('Media sent successfully');
           loadConversations();
         } else {
-          setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+          setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
           toast.error(uploadRes.message || 'Media upload failed');
         }
       } catch (err) {
         console.error('[INBOX] Media send error:', err);
-        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
         toast.error('Failed to send media');
       }
       return;
@@ -773,7 +774,7 @@ export default function InboxPage() {
     const contactId = selectedContact._id || selectedContact.id;
     const conversationId = selectedConversationId;
     const tmpId = `tmp-${Date.now()}`;
-    
+
     // Optimistically add message to UI immediately
     const optimisticMessage = {
       _id: tmpId,
@@ -820,14 +821,14 @@ export default function InboxPage() {
         if (sentMessage && !sentMessage.whatsappMessageId && sentMessage.messageId) {
           sentMessage.whatsappMessageId = sentMessage.messageId;
         }
-        
+
         const wamIdToCache = sentMessage ? (typeof sentMessage.whatsappMessageId === 'object' ? sentMessage.whatsappMessageId.id : sentMessage.whatsappMessageId) : null;
         const cachedStatus = sentMessage ? (statusCacheRef.current[sentMessage._id] || statusCacheRef.current[wamIdToCache]) : null;
         const realStatus = cachedStatus || sentMessage?.status || 'sent';
 
         setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, ...sentMessage, status: realStatus, whatsappMessageId: wamIdToCache } : m));
         loadConversations();
-        
+
         if (data?.data?.fallbackUsed) {
           const templateName = data?.data?.fallbackTemplateName;
           toast?.success?.(templateName
@@ -835,11 +836,11 @@ export default function InboxPage() {
             : '24h window was closed, sent fallback template');
         }
       } else {
-        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed'} : m));
+      setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
       toast?.error?.(error.message || 'Failed to send message');
     }
   };
@@ -873,75 +874,36 @@ export default function InboxPage() {
   const selectedConversation = conversations.find(c => (c._id || c.id) === selectedConversationId);
 
   return (
-    <div className="fixed top-[60px] left-0 lg:left-[72px] right-0 bottom-0 bg-white text-gray-800 font-sans overflow-hidden flex z-20 transition-all duration-300">
-      <div className="w-[300px] lg:w-[340px] flex-shrink-0 border-r border-gray-200 bg-white flex flex-col z-10">
+    <div className="fixed top-[60px] left-0 lg:left-[72px] right-0 bottom-0 bg-background text-foreground font-sans overflow-hidden flex z-20 transition-all duration-300">
+      <div className="w-[300px] lg:w-[340px] flex-shrink-0 border-r border-border bg-card flex flex-col z-10">
         {/* Sidebar Header: Interakt style View Switcher */}
-        <div className="pt-4 pb-2 px-4 flex items-center justify-between border-b border-gray-100 relative group">
-          <div className="relative">
-            <button 
-              onClick={() => {
-                const next = { all: 'mine', mine: 'unassigned', unassigned: 'spam', spam: 'all' };
-                setCurrentView(next[currentView]);
-              }}
-              className="flex items-center gap-2 text-[20px] font-bold text-gray-800 hover:text-green-600 transition-colors"
-            >
-              <span className="capitalize">{currentView}</span>
-              <FaChevronDown size={14} className="mt-1" />
-            </button>
-            
-            {/* Red dot indicator if filters are active */}
-            {(activeFilters.label || activeFilters.status) && (
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
-            )}
-          </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                // Clear filters
-                setActiveFilters({ label: null, status: null, assignee: null });
-                toast.info('Filters cleared');
-              }}
-              className={`p-2 hover:bg-gray-100 rounded-full transition-colors ${activeFilters.label || activeFilters.status ? 'text-green-600' : 'text-gray-400'}`}
-              title="Clear Filters"
-            >
-              <FaFilter size={14} />
-            </button>
-            <button
-              onClick={openStartConversationModal}
-              className="p-2 hover:bg-green-50 rounded-full transition-colors text-green-600 group relative"
-              title="New Message"
-            >
-              <FaPlus className="text-sm" />
-            </button>
-          </div>
-        </div>
 
         {/* Search Bar */}
-        <div className="px-4 py-3 bg-white">
-          <div className="relative bg-gray-100 rounded-lg flex items-center px-3 py-2 border border-transparent focus-within:border-green-500 focus-within:bg-white transition-all">
-            <FaSearch className="text-gray-400 text-sm flex-shrink-0" />
+        <div className="px-4 py-3 bg-card">
+          <div className="relative bg-muted rounded-lg flex items-center px-3 py-2 border border-transparent focus-within:border-primary focus-within:bg-card transition-all">
+            <FaSearch className="text-muted-foreground text-sm flex-shrink-0" />
             <input
               type="text"
               placeholder="Search or start new chat"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-transparent border-none text-[13px] text-gray-500 placeholder-gray-400 outline-none font-medium h-6 ml-2"
+              className="w-full bg-transparent border-none text-[13px] text-foreground placeholder:text-muted-foreground outline-none font-medium h-6 ml-2"
             />
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <Link 
+            <Link
               href="/dashboard/inbox/analytics"
-              className="p-2.5 bg-white border border-gray-100 text-gray-400 hover:text-green-600 rounded-xl hover:bg-green-50 shadow-sm transition-all"
+              className="p-2.5 bg-card border border-border text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/10 shadow-sm transition-all"
               title="Inbox Analytics"
             >
               <FaChartBar size={16} />
             </Link>
-            
+
             <button
               onClick={() => setStartModalOpen(true)}
-              className="p-2.5 bg-[#00a884] text-white rounded-xl hover:bg-[#008f6f] shadow-sm hover:shadow-md transition-all active:scale-95"
+              className="p-2.5 bg-primary text-primary-foreground rounded-xl hover:brightness-110 shadow-sm hover:shadow-md transition-all active:scale-95"
               title="Start New Conversation"
             >
               <FaPlus size={16} />
@@ -956,8 +918,8 @@ export default function InboxPage() {
               key={view}
               onClick={() => setCurrentView(view)}
               className={`px-3 py-1.5 text-xs font-semibold rounded-full capitalize transition-all ${currentView === view
-                ? 'bg-green-100 text-green-700'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-primary/10 text-primary'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
                 }`}
             >
               {view}
@@ -966,19 +928,17 @@ export default function InboxPage() {
         </div>
 
         {/* Socket Status */}
-        <div className="px-4 py-1 text-[11px] font-medium flex items-center gap-1.5 border-b border-gray-100">
-          <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
-          <span className="text-gray-500">{connected ? 'Connected' : 'Disconnected'}</span>
+        <div className="px-4 py-1 text-[11px] font-medium flex items-center gap-1.5 border-b border-border">
+          <div className={`w-2 h-2 rounded-full ${connected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+          <span className="text-muted-foreground">{connected ? 'Connected' : 'Disconnected'}</span>
         </div>
 
         {/* Chat List */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           {loading ? (
-            <div className="flex items-center justify-center p-8">
-              <FaSpinner className="animate-spin text-2xl text-green-500" />
-            </div>
+            <FlashLoader />
           ) : filteredConversations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-400 p-6 text-center">
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 text-center">
               <FaArchive className="text-4xl mb-3 opacity-50" />
               <p className="text-sm font-medium">No conversations found</p>
             </div>
@@ -987,15 +947,14 @@ export default function InboxPage() {
               <div
                 key={conversation._id || conversation.id || `conv-${idx}`}
                 onClick={() => handleSelectContact(conversation)}
-                className={`px-4 py-3 border-b-0 cursor-pointer transition-all flex items-start gap-4 mx-2 my-1 rounded-xl ${
-                  selectedContact?._id === conversation.contact._id 
-                    ? 'bg-green-50 shadow-sm border border-green-100/50' 
-                    : 'bg-white hover:bg-gray-50 border border-transparent hover:border-gray-100'
-                }`}
+                className={`px-4 py-3 border-b-0 cursor-pointer transition-all flex items-start gap-4 mx-2 my-1 rounded-xl ${selectedContact?._id === conversation.contact._id
+                  ? 'bg-primary/5 shadow-sm border border-primary/20'
+                  : 'bg-card hover:bg-muted border border-transparent hover:border-border'
+                  }`}
               >
                 {/* Avatar */}
                 <div className="relative flex-shrink-0 pt-1">
-                  <div className={`w-11 h-11 rounded-full flex items-center justify-center overflow-hidden border-2 ${selectedContact?._id === conversation.contact._id ? 'border-white bg-green-100 text-green-600' : 'border-gray-50 bg-gray-100 text-gray-400'}`}>
+                  <div className={`w-11 h-11 rounded-full flex items-center justify-center overflow-hidden border-2 ${selectedContact?._id === conversation.contact._id ? 'border-primary/20 bg-primary/10 text-primary' : 'border-border bg-muted text-muted-foreground'}`}>
                     <FaUser className="text-lg" />
                   </div>
                 </div>
@@ -1003,11 +962,11 @@ export default function InboxPage() {
                 {/* Chat Preview */}
                 <div className="flex-1 min-w-0 pr-1 py-1">
                   <div className="flex justify-between items-baseline mb-0.5">
-                    <h3 className={`font-semibold truncate text-[15px] ${selectedContact?._id === conversation.contact._id ? 'text-green-900' : 'text-gray-900'}`}>
+                    <h3 className={`font-semibold truncate text-[15px] ${selectedContact?._id === conversation.contact._id ? 'text-primary' : 'text-foreground'}`}>
                       {conversation.contact?.displayName || conversation.contact?.name || conversation.contact?.phone}
                     </h3>
                     {conversation.lastMessageAt && (
-                      <span className={`text-[11px] flex-shrink-0 ml-2 font-medium ${selectedContact?._id === conversation.contact._id ? 'text-green-600' : 'text-gray-400'}`}>
+                      <span className={`text-[11px] flex-shrink-0 ml-2 font-medium ${selectedContact?._id === conversation.contact._id ? 'text-primary' : 'text-muted-foreground'}`}>
                         {new Date(conversation.lastMessageAt).toLocaleTimeString('en-US', {
                           hour: 'numeric',
                           minute: '2-digit',
@@ -1018,15 +977,15 @@ export default function InboxPage() {
                   </div>
 
                   <div className="flex justify-between items-center">
-                    <p className="text-[13px] text-gray-500 truncate pr-2">
+                    <p className="text-[13px] text-muted-foreground truncate pr-2">
                       {typingUsers[conversation._id]?.isTyping && typingUsers[conversation._id]?.agentId !== currentUser?._id ? (
-                         <span className="text-green-500 italic font-medium">Typing...</span>
+                        <span className="text-primary italic font-medium">Typing...</span>
                       ) : (
-                         conversation.lastMessage?.body || conversation.lastMessagePreview || 'No messages'
+                        conversation.lastMessage?.body || conversation.lastMessagePreview || 'No messages'
                       )}
                     </p>
                     {(conversation.myUnreadCount || conversation.unreadCount || 0) > 0 && (
-                      <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
+                      <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-primary-foreground text-[10px] font-bold flex-shrink-0">
                         {conversation.myUnreadCount || conversation.unreadCount}
                       </div>
                     )}
@@ -1039,16 +998,16 @@ export default function InboxPage() {
       </div>
 
       {/* 2. Message Thread Area (Center Pane) */}
-      <div className="flex-1 flex flex-col bg-[#efeae2] relative border-r border-gray-200 shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20">
-        {!workspace.loading && !bspReady && (
-          <div className="absolute top-0 left-0 right-0 z-50 bg-yellow-100 border-b border-yellow-200 px-4 py-2 flex items-center justify-between shadow-sm">
-            <div className="flex items-center gap-2 text-yellow-800">
+      <div className="flex-1 flex flex-col bg-muted/20 relative border-r border-border shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20">
+        {!workspace?.loading && !bspReady && (
+          <div className="absolute top-0 left-0 right-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between shadow-sm backdrop-blur-md">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
               <FaInfoCircle />
               <p className="text-sm font-medium">WhatsApp not connected. Connect account to send messages.</p>
             </div>
             <button
               onClick={() => (window.location.href = '/dashboard?connectWhatsApp=1')}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white text-xs font-bold px-3 py-1.5 rounded transition-colors"
+              className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition-colors"
             >
               Connect App
             </button>
@@ -1058,32 +1017,32 @@ export default function InboxPage() {
         {selectedContact ? (
           <>
             {/* Chat Thread Header */}
-            <div className={`px-5 py-3 bg-white border-b border-gray-100 flex items-center justify-between shadow-sm z-10 ${!bspReady ? 'mt-10' : ''}`}>
+            <div className={`px-5 py-3 bg-card border-b border-border flex items-center justify-between shadow-sm z-10 ${!bspReady ? 'mt-10' : ''}`}>
               <div className="flex items-center gap-4">
                 <div className="relative">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center overflow-hidden border border-green-200/30">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center overflow-hidden border border-primary/20">
                     {selectedContact.avatarUrl || selectedContact.avatar ? (
                       <img src={selectedContact.avatarUrl || selectedContact.avatar} alt={selectedContact.name} className="w-full h-full object-cover" />
                     ) : (
-                      <FaUser className="text-green-600/60 text-lg" />
+                      <FaUser className="text-primary/60 text-lg" />
                     )}
                   </div>
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-card rounded-full"></div>
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="font-bold text-gray-900 text-[15px] leading-tight">
+                    <h2 className="font-bold text-foreground text-[15px] leading-tight">
                       {selectedContact.displayName || selectedContact.name || selectedContact.phone}
                     </h2>
                     {selectedConversation?.label && (
-                      <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold tracking-wide uppercase">
+                      <span className="bg-primary/10 text-primary text-[10px] px-2 py-0.5 rounded font-bold tracking-wide uppercase">
                         {selectedConversation.label}
                       </span>
                     )}
                   </div>
-                  <p className="text-[12px] text-gray-400 mt-0.5">
+                  <p className="text-[12px] text-muted-foreground mt-0.5">
                     {typingUsers[selectedConversationId]?.isTyping && typingUsers[selectedConversationId]?.agentId !== currentUser?._id ? (
-                      <span className="text-green-600 animate-pulse font-medium">Typing...</span>
+                      <span className="text-primary animate-pulse font-medium">Typing...</span>
                     ) : (
                       selectedContact.phone
                     )}
@@ -1094,22 +1053,22 @@ export default function InboxPage() {
               <div className="flex items-center gap-3">
                 {/* Add Label Dropdown */}
                 <div className="relative">
-                  <button 
+                  <button
                     onClick={() => setShowLabelModal(!showLabelModal)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-xs font-semibold ${selectedConversation?.label ? 'border-green-200 bg-green-50 text-green-700' : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'}`}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all text-xs font-semibold ${selectedConversation?.label ? 'border-primary/20 bg-primary/10 text-primary' : 'border-border bg-background text-muted-foreground hover:bg-muted'}`}
                   >
                     <FaFlag size={10} />
                     <span>{selectedConversation?.label || 'Add Label'}</span>
                   </button>
-                  
+
                   {showLabelModal && (
-                    <div className="absolute top-full mt-2 right-0 w-48 bg-white border border-gray-100 rounded-xl shadow-xl z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
-                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-widest px-2 py-1.5 border-b border-gray-50 mb-1">Select Label</p>
+                    <div className="absolute top-full mt-2 right-0 w-48 bg-popover border border-border rounded-xl shadow-xl z-50 p-2 animate-in fade-in zoom-in-95 duration-200">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest px-2 py-1.5 border-b border-border/50 mb-1">Select Label</p>
                       {contactLabels.map((l, idx) => (
                         <button
                           key={l || `label-${idx}`}
                           onClick={() => handleSetLabel(l)}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedConversation?.label === l ? 'bg-green-50 text-green-700' : 'hover:bg-gray-50 text-gray-600'}`}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${selectedConversation?.label === l ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground/80'}`}
                         >
                           {l}
                         </button>
@@ -1117,7 +1076,7 @@ export default function InboxPage() {
                       {selectedConversation?.label && (
                         <button
                           onClick={handleClearLabel}
-                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 mt-1 transition-colors border-t border-gray-50"
+                          className="w-full text-left px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 mt-1 transition-colors border-t border-border/50"
                         >
                           Clear Label
                         </button>
@@ -1126,12 +1085,12 @@ export default function InboxPage() {
                   )}
                 </div>
 
-                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50/50">
-                  <FaUserCircle className="text-gray-400" />
+                <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-border rounded-lg bg-muted/50">
+                  <FaUserCircle className="text-muted-foreground" />
                   <select
                     value={selectedConversation?.assignedTo?._id || selectedConversation?.assignedTo || ''}
                     onChange={(e) => handleAssignConversation(e.target.value)}
-                    className="bg-transparent border-none text-[13px] font-medium text-gray-700 outline-none cursor-pointer"
+                    className="bg-transparent border-none text-[13px] font-medium text-foreground outline-none cursor-pointer"
                   >
                     <option value="">Unassigned</option>
                     {agents.map((agent, idx) => (
@@ -1142,18 +1101,18 @@ export default function InboxPage() {
                   </select>
                 </div>
 
-                <div className="w-px h-6 bg-gray-200 mx-1 hidden md:block"></div>
-                
+                <div className="w-px h-6 bg-border mx-1 hidden md:block"></div>
+
                 <button
                   onClick={handleResolveConversation}
                   disabled={sending}
-                  className="p-2.5 rounded-full bg-green-50 text-green-600 border border-green-100 hover:bg-green-100 transition-all shadow-sm" 
+                  className="p-2.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all shadow-sm"
                   title="Resolve Chat"
                 >
                   {sending ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}
                 </button>
-                
-                <button className="p-2.5 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
+
+                <button className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors">
                   <FaEllipsisV className="text-sm" />
                 </button>
               </div>
@@ -1161,7 +1120,7 @@ export default function InboxPage() {
 
             {/* Chat Messages */}
             <div
-              className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 relative bg-[#f4f6f8]"
+              className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 relative bg-background/50"
             >
               {messages.map((message) => {
                 const isOutbound = message.direction === 'outbound';
@@ -1194,8 +1153,8 @@ export default function InboxPage() {
                   <div key={message._id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} w-full`}>
                     <div
                       className={`relative max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] px-1 pt-1 pb-1 shadow-sm border ${isOutbound
-                        ? 'bg-[#e2f7cb] border-[#d3edb9] rounded-2xl rounded-tr-sm'
-                        : 'bg-white border-gray-100 rounded-2xl rounded-tl-sm'
+                        ? 'bg-emerald-500/15 dark:bg-emerald-900/40 border-emerald-500/10 rounded-2xl rounded-tr-sm'
+                        : 'bg-card border-border rounded-2xl rounded-tl-sm'
                         }`}
                     >
                       {/* Removed triangle tail for modern SaaS look */}
@@ -1203,7 +1162,7 @@ export default function InboxPage() {
                       {/* Header Media */}
                       {templateHeaderFormat === 'IMAGE' && templateHeaderMediaUrl && (
                         <div className="p-1 pb-0">
-                          <div className="relative w-full overflow-hidden rounded-lg bg-gray-50">
+                          <div className="relative w-full overflow-hidden rounded-lg bg-muted/50">
                             <img
                               src={templateHeaderMediaUrl}
                               alt="Image"
@@ -1223,11 +1182,11 @@ export default function InboxPage() {
                       )}
 
                       {templateHeaderFormat === 'DOCUMENT' && templateHeaderMediaUrl && (
-                        <a href={templateHeaderMediaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-black/5 rounded-md hover:bg-black/10 transition mt-1 mx-1">
-                          <FaFileAlt className="text-gray-500 text-2xl" />
+                        <a href={templateHeaderMediaUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-muted rounded-md hover:bg-muted/80 transition mt-1 mx-1">
+                          <FaFileAlt className="text-muted-foreground text-2xl" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-800 font-medium truncate">{templateHeaderFilename}</p>
-                            <p className="text-[10px] text-gray-500 truncate mt-0.5">Click to view/download</p>
+                            <p className="text-sm text-foreground font-medium truncate">{templateHeaderFilename}</p>
+                            <p className="text-[10px] text-muted-foreground truncate mt-0.5">Click to view/download</p>
                           </div>
                         </a>
                       )}
@@ -1236,7 +1195,7 @@ export default function InboxPage() {
                       {['image', 'video', 'document', 'audio', 'sticker'].includes(message.type) && (message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link) && (
                         <div className="p-1 pb-0">
                           {['image', 'sticker'].includes(message.type) && (
-                            <div className="relative w-full overflow-hidden rounded-lg bg-gray-50">
+                            <div className="relative w-full overflow-hidden rounded-lg bg-muted/50">
                               <img
                                 src={message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link}
                                 alt={message.media?.caption || message.meta?.media?.caption || 'Image'}
@@ -1251,11 +1210,11 @@ export default function InboxPage() {
                             </div>
                           )}
                           {message.type === 'document' && (
-                            <a href={message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-black/5 rounded-md hover:bg-black/10 transition mt-1 mx-1">
-                              <FaFileAlt className="text-gray-500 text-2xl" />
+                            <a href={message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-3 bg-muted rounded-md hover:bg-muted/80 transition mt-1 mx-1">
+                              <FaFileAlt className="text-muted-foreground text-2xl" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm text-gray-800 font-medium truncate">{message.media?.filename || message.meta?.media?.filename || 'Document'}</p>
-                                <p className="text-[10px] text-gray-500 truncate mt-0.5">Click to view/download</p>
+                                <p className="text-sm text-foreground font-medium truncate">{message.media?.filename || message.meta?.media?.filename || 'Document'}</p>
+                                <p className="text-[10px] text-muted-foreground truncate mt-0.5">Click to view/download</p>
                               </div>
                             </a>
                           )}
@@ -1269,15 +1228,15 @@ export default function InboxPage() {
 
                       <div className="p-2 pt-1.5 px-2.5 pb-2 flow-root">
                         {isTemplate && isOutbound && (
-                          <div className="mb-1 flex items-center justify-between gap-2 border-b border-black/10 pb-1">
-                            <span className="text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1">
+                          <div className="mb-1 flex items-center justify-between gap-2 border-b border-border/50 pb-1">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                               <FaInfoCircle /> Template
                             </span>
                           </div>
                         )}
 
                         {!hideBodyText && (
-                          <div className="text-[14.5px] leading-[1.35] text-[#111b21] whitespace-pre-wrap font-normal drop-words">
+                          <div className="text-[14.5px] leading-[1.35] text-foreground whitespace-pre-wrap font-normal drop-words">
                             {message.body}
                           </div>
                         )}
@@ -1286,7 +1245,7 @@ export default function InboxPage() {
                         <div className={`flex items-center justify-end gap-1 mt-1 -mb-1 float-right clear-both
                           ${(!hideBodyText && message.body && message.body.length >= 30) ? 'w-full' : 'ml-4'}`}
                         >
-                          <span className="text-[10.5px] text-gray-500 opacity-90 relative top-[1px]">
+                          <span className="text-[10.5px] text-muted-foreground opacity-90 relative top-[1px]">
                             {new Date(message.createdAt).toLocaleTimeString('en-US', {
                               hour: 'numeric',
                               minute: '2-digit',
@@ -1303,11 +1262,11 @@ export default function InboxPage() {
 
                       {/* Action Buttons */}
                       {message.template?.buttons?.length > 0 && (
-                        <div className="flex flex-col border-t border-black/5 mt-1">
+                        <div className="flex flex-col border-t border-border/50 mt-1">
                           {message.template.buttons.map((btn, idx) => (
                             <button
                               key={idx}
-                              className="w-full py-3 px-3 text-[14px] leading-tight font-medium text-[#00a884] flex justify-center items-center gap-2 border-b border-black/5 last:border-b-0 hover:bg-black/5 active:bg-black/10 transition-colors whitespace-nowrap"
+                              className="w-full py-3 px-3 text-[14px] leading-tight font-medium text-emerald-500 flex justify-center items-center gap-2 border-b border-border/50 last:border-b-0 hover:bg-muted transition-colors whitespace-nowrap"
                               onClick={() => {
                                 if (btn.type === 'URL' && btn.url) window.open(btn.url, '_blank');
                                 if (btn.type === 'PHONE_NUMBER' && btn.phoneNumber) window.location.href = `tel:${btn.phoneNumber}`;
@@ -1328,19 +1287,19 @@ export default function InboxPage() {
             </div>
 
             {/* Compose Input Box: Interakt style */}
-            <div className={`p-4 flex flex-col gap-2 border-t border-gray-100 z-10 w-full relative drop-shadow-[0_-4px_10px_rgba(0,0,0,0.02)] transition-colors ${internalNoteMode ? 'bg-yellow-50/50' : 'bg-white'}`}>
-              
+            <div className={`p-4 flex flex-col gap-2 border-t border-border z-10 w-full relative drop-shadow-[0_-4px_10px_rgba(0,0,0,0.02)] transition-colors ${internalNoteMode ? 'bg-amber-500/5' : 'bg-card'}`}>
+
               {/* Internal Note / Message Toggle */}
               <div className="flex items-center gap-1 px-1">
-                <button 
+                <button
                   onClick={() => setInternalNoteMode(false)}
-                  className={`px-3 py-1 rounded-t-lg text-[11px] font-bold uppercase tracking-wider transition-all ${!internalNoteMode ? 'bg-white border-x border-t border-gray-100 text-green-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`px-3 py-1 rounded-t-lg text-[11px] font-bold uppercase tracking-wider transition-all ${!internalNoteMode ? 'bg-card border-x border-t border-border text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                   <FaComments className="inline-block mr-1 mb-0.5" /> Message
                 </button>
-                <button 
+                <button
                   onClick={() => setInternalNoteMode(true)}
-                  className={`px-3 py-1 rounded-t-lg text-[11px] font-bold uppercase tracking-wider transition-all ${internalNoteMode ? 'bg-yellow-100 border-x border-t border-yellow-200 text-yellow-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`px-3 py-1 rounded-t-lg text-[11px] font-bold uppercase tracking-wider transition-all ${internalNoteMode ? 'bg-amber-500/10 border-x border-t border-amber-500/20 text-amber-600 shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                   <FaFlag className="inline-block mr-1 mb-0.5" /> Internal Note
                 </button>
@@ -1349,22 +1308,22 @@ export default function InboxPage() {
               <div className="flex items-end gap-3 w-full">
                 {/* Media Preview Overlay */}
                 {mediaPreview && (
-                  <div className="absolute bottom-[calc(100%+8px)] left-4 p-2 bg-white rounded-xl shadow-[0_-4px_15px_rgba(0,0,0,0.05)] border border-gray-100 z-20 flex animate-fadeIn max-w-[250px]">
+                  <div className="absolute bottom-[calc(100%+8px)] left-4 p-2 bg-popover rounded-xl shadow-[0_-4px_15px_rgba(0,0,0,0.05)] border border-border z-20 flex animate-fadeIn max-w-[250px]">
                     <div className="relative inline-block w-full">
                       <button
                         onClick={clearSelectedMedia}
-                        className="absolute -top-3 -right-3 bg-gray-600 text-white rounded-full p-1.5 hover:bg-gray-800 z-10 transition-colors"
+                        className="absolute -top-3 -right-3 bg-muted-foreground text-card rounded-full p-1.5 hover:bg-foreground z-10 transition-colors shadow-lg"
                         title="Remove Media"
                       >
                         <FaTimes className="text-[10px]" />
                       </button>
                       {mediaPreview.type.startsWith('image/') ? (
-                        <img src={mediaPreview.url} alt="preview" className="h-32 w-full object-cover rounded-lg border border-gray-200" />
+                        <img src={mediaPreview.url} alt="preview" className="h-32 w-full object-cover rounded-lg border border-border" />
                       ) : mediaPreview.type.startsWith('video/') ? (
-                        <video src={mediaPreview.url} className="h-32 w-full object-cover rounded-lg border border-gray-200" controls />
+                        <video src={mediaPreview.url} className="h-32 w-full object-cover rounded-lg border border-border" controls />
                       ) : (
-                        <div className="flex flex-col items-center justify-center p-6 h-32 w-full bg-gray-50 rounded-lg text-gray-500 border border-gray-200">
-                          <FaFileAlt className="text-4xl mb-3 text-green-500" />
+                        <div className="flex flex-col items-center justify-center p-6 h-32 w-full bg-muted rounded-lg text-muted-foreground border border-border">
+                          <FaFileAlt className="text-4xl mb-3 text-primary" />
                           <span className="text-xs text-center truncate w-full px-2 font-medium" title={mediaPreview.name}>
                             {mediaPreview.name}
                           </span>
@@ -1375,23 +1334,23 @@ export default function InboxPage() {
                 )}
 
                 <div className="flex items-center gap-1 mb-0.5 relative">
-                  <button type="button" className="p-2 text-gray-400 hover:text-green-600 transition-colors bg-white rounded-full border border-gray-100 hover:bg-green-50">
+                  <button type="button" className="p-2 text-muted-foreground hover:text-primary transition-colors bg-card rounded-full border border-border hover:bg-muted">
                     <FaSmile className="text-lg" />
                   </button>
-                  <button 
-                    type="button" 
-                    className={`p-2 transition-colors rounded-full border ${selectedMedia ? 'text-green-600 bg-green-50 border-green-200' : isUploading ? 'text-blue-500 bg-blue-50 animate-pulse border-blue-200' : 'text-gray-400 bg-white hover:text-green-600 hover:bg-green-50 border-gray-100'}`}
+                  <button
+                    type="button"
+                    className={`p-2 transition-colors rounded-full border ${selectedMedia ? 'text-primary bg-primary/10 border-primary/20' : isUploading ? 'text-primary bg-primary/10 animate-pulse border-primary/20' : 'text-muted-foreground bg-card hover:text-primary hover:bg-muted border-border'}`}
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
                   >
                     <FaPaperclip className="text-lg" />
                   </button>
-                  
+
                   {/* Quick Reply Bolt */}
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setShowQuickReplies(!showQuickReplies)}
-                    className={`p-2 transition-colors rounded-full border ${showQuickReplies ? 'text-green-600 bg-green-50 border-green-200 shadow-inner' : 'text-gray-400 bg-white hover:text-green-600 hover:bg-green-50 border-gray-100'}`}
+                    className={`p-2 transition-colors rounded-full border ${showQuickReplies ? 'text-primary bg-primary/10 border-primary/20 shadow-inner' : 'text-muted-foreground bg-card hover:text-primary hover:bg-muted border-border'}`}
                   >
                     <FaBolt className="text-lg" />
                   </button>
@@ -1403,35 +1362,35 @@ export default function InboxPage() {
                     onChange={handleMediaSelect}
                     accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                   />
-                  
+
                   {/* Quick Replies Overlay */}
                   {showQuickReplies && (
-                    <div className="absolute bottom-full mb-3 left-0 w-72 bg-white border border-gray-100 rounded-xl shadow-2xl z-50 p-2 animate-in fade-in slide-in-from-bottom-2 duration-200 flex flex-col font-sans">
-                       <p className="text-[10px] text-gray-400 uppercase font-black tracking-[0.1em] px-2 py-2 border-b border-gray-50 flex items-center justify-between">
-                         Quick Replies
-                         <span className="text-[9px] font-normal lowercase tracking-normal">({quickReplies.length})</span>
-                       </p>
-                       <div className="max-h-60 overflow-y-auto mt-1 custom-scrollbar">
-                         {quickReplies.length === 0 ? (
-                           <p className="px-3 py-4 text-xs text-gray-400 text-center">No quick replies found. Add them in settings.</p>
-                         ) : (
-                           quickReplies.map((reply, idx) => (
-                             <button
-                               key={reply._id || `reply-${idx}`}
-                               onClick={() => handleSelectQuickReply(reply)}
-                               className="w-full text-left px-3 py-2.5 hover:bg-green-50 rounded-lg group transition-all"
-                             >
-                               <p className="text-xs font-bold text-gray-700 group-hover:text-green-700">{reply.name}</p>
-                               <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5 group-hover:text-green-600/70">{reply.content}</p>
-                             </button>
-                           ))
-                         )}
-                       </div>
+                    <div className="absolute bottom-full mb-3 left-0 w-72 bg-popover border border-border rounded-xl shadow-2xl z-50 p-2 animate-in fade-in slide-in-from-bottom-2 duration-200 flex flex-col font-sans">
+                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.1em] px-2 py-2 border-b border-border/50 flex items-center justify-between">
+                        Quick Replies
+                        <span className="text-[9px] font-normal lowercase tracking-normal">({quickReplies.length})</span>
+                      </p>
+                      <div className="max-h-60 overflow-y-auto mt-1 custom-scrollbar">
+                        {quickReplies.length === 0 ? (
+                          <p className="px-3 py-4 text-xs text-muted-foreground text-center">No quick replies found. Add them in settings.</p>
+                        ) : (
+                          quickReplies.map((reply, idx) => (
+                            <button
+                              key={reply._id || `reply-${idx}`}
+                              onClick={() => handleSelectQuickReply(reply)}
+                              className="w-full text-left px-3 py-2.5 hover:bg-muted rounded-lg group transition-all"
+                            >
+                              <p className="text-xs font-bold text-foreground group-hover:text-primary">{reply.name}</p>
+                              <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5 group-hover:text-primary/70">{reply.content}</p>
+                            </button>
+                          ))
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
 
-                <div className={`flex-1 rounded-2xl shadow-sm border transition-all overflow-hidden relative ${internalNoteMode ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200 focus-within:border-green-400 focus-within:bg-white'}`}>
+                <div className={`flex-1 rounded-2xl shadow-sm border transition-all overflow-hidden relative ${internalNoteMode ? 'bg-amber-500/10 border-amber-500/20' : 'bg-muted border-border focus-within:border-primary/50 focus-within:bg-card'}`}>
                   <textarea
                     value={newMessage}
                     onChange={handleInputChange}
@@ -1442,7 +1401,7 @@ export default function InboxPage() {
                       }
                     }}
                     placeholder={internalNoteMode ? "Add a private note for the team..." : "Type a message..."}
-                    className="w-full max-h-32 min-h-[44px] bg-transparent border-none py-3 px-4 text-[15px] focus:ring-0 resize-none text-gray-700 placeholder-gray-400 block"
+                    className="w-full max-h-32 min-h-[44px] bg-transparent border-none py-3 px-4 text-[15px] focus:ring-0 resize-none text-foreground placeholder:text-muted-foreground block"
                     rows={1}
                     disabled={sending}
                   />
@@ -1451,13 +1410,12 @@ export default function InboxPage() {
                 <button
                   onClick={handleSendMessage}
                   disabled={!bspReady || sending || (!newMessage.trim() && !selectedMedia)}
-                  className={`p-3 rounded-full flex-shrink-0 flex items-center justify-center transition-all cursor-pointer ${
-                    internalNoteMode 
-                      ? (newMessage.trim() ? 'bg-yellow-500 hover:bg-yellow-600 text-white shadow-md' : 'bg-gray-100 text-gray-400 cursor-not-allowed')
-                      : ((newMessage.trim() || selectedMedia) && !sending && bspReady
-                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed')
-                  }`}
+                  className={`p-3 rounded-full flex-shrink-0 flex items-center justify-center transition-all cursor-pointer ${internalNoteMode
+                    ? (newMessage.trim() ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-md' : 'bg-muted text-muted-foreground cursor-not-allowed')
+                    : ((newMessage.trim() || selectedMedia) && !sending && bspReady
+                      ? 'bg-primary hover:brightness-110 text-primary-foreground shadow-md'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed')
+                    }`}
                 >
                   {sending ? <FaSpinner className="animate-spin text-lg" /> : <FaPaperPlane className="text-lg translate-x-[-1px] translate-y-[1px]" />}
                 </button>
@@ -1465,13 +1423,13 @@ export default function InboxPage() {
             </div>
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#f4f6f8] border-l border-gray-100">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-muted/30 border-l border-border">
             <div className="w-[320px] text-center flex flex-col items-center">
-              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100 text-green-500">
+              <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center mb-6 shadow-sm border border-border text-primary">
                 <FaPaperPlane className="text-4xl translate-x-[-2px] translate-y-[2px]" />
               </div>
-              <h3 className="text-2xl font-semibold text-gray-800 mb-3 tracking-tight">Shared Inbox</h3>
-              <p className="text-sm text-gray-500 leading-relaxed max-w-[280px]">
+              <h3 className="text-2xl font-semibold text-foreground mb-3 tracking-tight">Shared Inbox</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-[280px]">
                 Select a conversation from the left menu to start messaging, or start a new chat above.
               </p>
             </div>
@@ -1481,57 +1439,57 @@ export default function InboxPage() {
 
       {/* 3. Right Sidebar: Context Panel (Smart Card / Details) */}
       {selectedContact && (
-        <div className="w-[300px] lg:w-[330px] flex-shrink-0 bg-white border-l border-gray-100 flex flex-col overflow-y-auto z-30 hidden xl:flex shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.02)] transition-all">
+        <div className="w-[300px] lg:w-[330px] flex-shrink-0 bg-card border-l border-border flex flex-col overflow-y-auto z-30 hidden xl:flex shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.02)] transition-all">
 
           {/* Contact Header Card */}
-          <div className="p-8 flex flex-col items-center justify-center bg-white border-b border-gray-100 text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-br from-green-50 to-emerald-50 opacity-80"></div>
-            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-3 overflow-hidden border-[3px] border-white shadow-md relative z-10 text-gray-300">
+          <div className="p-8 flex flex-col items-center justify-center bg-card border-b border-border text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1/3 bg-gradient-to-br from-primary/5 to-primary/10 opacity-80"></div>
+            <div className="w-20 h-20 bg-background rounded-full flex items-center justify-center mb-3 overflow-hidden border-[3px] border-background shadow-md relative z-10 text-muted-foreground">
               {selectedContact.avatarUrl || selectedContact.avatar ? (
                 <img src={selectedContact.avatarUrl || selectedContact.avatar} alt={selectedContact.name} className="w-full h-full object-cover" />
               ) : (
-                <FaUserCircle className="text-[80px] text-gray-200" />
+                <FaUserCircle className="text-[80px] text-muted-foreground/30" />
               )}
             </div>
-            <h2 className="text-[18px] font-bold text-gray-900 mb-0.5 relative z-10 mt-1">
+            <h2 className="text-[18px] font-bold text-foreground mb-0.5 relative z-10 mt-1">
               {selectedContact.name || selectedContact.phone}
             </h2>
-            <p className="text-[13px] text-gray-500 font-medium tracking-wide relative z-10">
+            <p className="text-[13px] text-muted-foreground font-medium tracking-wide relative z-10">
               {selectedContact.phone}
             </p>
           </div>
 
           {/* Smart Cards Section */}
-          <div className="p-0 flex-1 bg-white">
+          <div className="p-0 flex-1 bg-card">
             {/* Personal Details Card */}
-            <div className="border-b border-gray-100 last:border-b-0">
-              <button 
+            <div className="border-b border-border last:border-b-0">
+              <button
                 onClick={() => toggleSection('details')}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-bold group"
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-muted transition-colors text-foreground font-bold group"
               >
                 <span className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
+                  <div className="p-1.5 bg-blue-500/10 text-blue-500 rounded-lg group-hover:bg-blue-500/20 transition-colors">
                     <FaInfoCircle size={14} />
                   </div>
                   Personal Details
                 </span>
-                <FaChevronDown className={`text-xs text-gray-400 transition-transform duration-200 ${expandedSections.details ? 'rotate-180' : ''}`} />
+                <FaChevronDown className={`text-xs text-muted-foreground transition-transform duration-200 ${expandedSections.details ? 'rotate-180' : ''}`} />
               </button>
               {expandedSections.details && (
-                <div className="px-5 pb-5 text-sm text-gray-600 bg-white animate-in slide-in-from-top-1 duration-200">
+                <div className="px-5 pb-5 text-sm text-foreground bg-card animate-in slide-in-from-top-1 duration-200">
                   <div className="space-y-4">
                     <div className="group/field">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Email</label>
-                      <p className="text-xs font-medium text-gray-700 bg-gray-50 px-3 py-2 rounded-lg border border-transparent hover:border-gray-200 transition-all">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Email</label>
+                      <p className="text-xs font-medium text-foreground bg-muted px-3 py-2 rounded-lg border border-transparent hover:border-border transition-all">
                         {selectedContact.email || '—'}
                       </p>
                     </div>
                     <div className="group/field">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Company</label>
-                      <input 
-                        type="text" 
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-1">Company</label>
+                      <input
+                        type="text"
                         placeholder="Add company..."
-                        className="w-full bg-gray-50 border-none rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-green-500/20 transition-all font-medium"
+                        className="w-full bg-muted border-none rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-primary/20 transition-all font-medium text-foreground"
                       />
                     </div>
                   </div>
@@ -1540,41 +1498,41 @@ export default function InboxPage() {
             </div>
 
             {/* Tags Card */}
-            <div className="border-b border-gray-100 last:border-b-0">
-              <button 
+            <div className="border-b border-border last:border-b-0">
+              <button
                 onClick={() => toggleSection('tags')}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-bold group"
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-muted transition-colors text-foreground font-bold group"
               >
                 <span className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-100 transition-colors">
+                  <div className="p-1.5 bg-purple-500/10 text-purple-500 rounded-lg group-hover:bg-purple-500/20 transition-colors">
                     <FaTag size={14} />
                   </div>
                   Customer Tags
                 </span>
-                <FaChevronDown className={`text-xs text-gray-400 transition-transform duration-200 ${expandedSections.tags ? 'rotate-180' : ''}`} />
+                <FaChevronDown className={`text-xs text-muted-foreground transition-transform duration-200 ${expandedSections.tags ? 'rotate-180' : ''}`} />
               </button>
               {expandedSections.tags && (
-                <div className="px-5 pb-5 text-sm bg-white">
-                   <div className="flex flex-wrap gap-2 mb-4">
+                <div className="px-5 pb-5 text-sm bg-card">
+                  <div className="flex flex-wrap gap-2 mb-4">
                     {selectedContact.tags?.map((tag) => (
-                      <span key={tag} className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-md text-[11px] font-bold flex items-center gap-1.5 group/tag border border-gray-200/50">
+                      <span key={tag} className="px-2.5 py-1 bg-muted text-foreground rounded-md text-[11px] font-bold flex items-center gap-1.5 group/tag border border-border">
                         {tag}
-                        <button onClick={() => handleRemoveTag(tag)} className="text-gray-400 hover:text-red-500 transition-colors">
+                        <button onClick={() => handleRemoveTag(tag)} className="text-muted-foreground hover:text-destructive transition-colors">
                           <FaPlus className="rotate-45 text-[10px]" />
                         </button>
                       </span>
                     ))}
                     {(!selectedContact.tags || selectedContact.tags.length === 0) && (
-                      <span className="text-xs text-gray-400 italic">No tags added yet.</span>
+                      <span className="text-xs text-muted-foreground italic">No tags added yet.</span>
                     )}
                   </div>
-                  
+
                   <div className="relative group/search">
-                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within/search:text-green-500 transition-colors" size={10} />
-                    <input 
+                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 group-focus-within/search:text-primary transition-colors" size={10} />
+                    <input
                       type="text"
                       placeholder="Add tag (e.g. High Priority)"
-                      className="w-full pl-8 pr-3 py-2 bg-gray-50 border-none rounded-lg text-xs focus:ring-2 focus:ring-green-500/20 transition-all font-medium"
+                      className="w-full pl-8 pr-3 py-2 bg-muted border-none rounded-lg text-xs focus:ring-2 focus:ring-primary/20 transition-all font-medium text-foreground"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           handleAddTag(e.target.value);
@@ -1588,34 +1546,34 @@ export default function InboxPage() {
             </div>
 
             {/* Internal Notes Card */}
-            <div className="border-b border-gray-100 last:border-b-0">
-              <button 
+            <div className="border-b border-border last:border-b-0">
+              <button
                 onClick={() => toggleSection('notes')}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-bold group"
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-muted transition-colors text-foreground font-bold group"
               >
                 <span className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-yellow-50 text-yellow-600 rounded-lg group-hover:bg-yellow-100 transition-colors">
+                  <div className="p-1.5 bg-amber-500/10 text-amber-500 rounded-lg group-hover:bg-amber-500/20 transition-colors">
                     <FaFlag size={14} />
                   </div>
                   Team Notes
                 </span>
-                <FaChevronDown className={`text-xs text-gray-400 transition-transform duration-200 ${expandedSections.notes ? 'rotate-180' : ''}`} />
+                <FaChevronDown className={`text-xs text-muted-foreground transition-transform duration-200 ${expandedSections.notes ? 'rotate-180' : ''}`} />
               </button>
               {expandedSections.notes && (
-                <div className="px-5 pb-5 text-sm bg-white">
+                <div className="px-5 pb-5 text-sm bg-card">
                   <div className="space-y-3 mb-4 max-h-48 overflow-y-auto pr-1 flex flex-col gap-2">
                     {/* Placeholder for notes */}
-                    <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl">
-                      <p className="text-[11px] text-yellow-800 leading-normal font-medium">Customer requested callback tomorrow at 3 PM.</p>
+                    <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                      <p className="text-[11px] text-amber-600/90 leading-normal font-medium">Customer requested callback tomorrow at 3 PM.</p>
                       <div className="flex items-center justify-between mt-2">
-                        <span className="text-[9px] text-yellow-600/70 font-bold uppercase">System</span>
-                        <span className="text-[9px] text-yellow-600/50 italic">Generated</span>
+                        <span className="text-[9px] text-amber-600/70 font-bold uppercase">System</span>
+                        <span className="text-[9px] text-amber-600/50 italic">Generated</span>
                       </div>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setInternalNoteMode(true)}
-                    className="w-full py-2 bg-yellow-50 text-yellow-700 rounded-lg text-xs font-bold hover:bg-yellow-100 transition-colors border border-yellow-200 border-dashed"
+                    className="w-full py-2 bg-amber-500/10 text-amber-600 rounded-lg text-xs font-bold hover:bg-amber-500/20 transition-colors border border-amber-500/20 border-dashed"
                   >
                     + Add New Note
                   </button>
@@ -1624,33 +1582,33 @@ export default function InboxPage() {
             </div>
 
             {/* Interaction History Card */}
-            <div className="border-b border-gray-100 last:border-b-0">
-              <button 
+            <div className="border-b border-border last:border-b-0">
+              <button
                 onClick={() => toggleSection('history')}
-                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors text-gray-800 font-bold group"
+                className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-muted transition-colors text-foreground font-bold group"
               >
                 <span className="flex items-center gap-2.5">
-                  <div className="p-1.5 bg-gray-50 text-gray-600 rounded-lg group-hover:bg-gray-100 transition-colors">
+                  <div className="p-1.5 bg-muted text-muted-foreground rounded-lg group-hover:bg-accent transition-colors">
                     <FaClock size={14} />
                   </div>
                   Interaction History
                 </span>
-                <FaChevronDown className={`text-xs text-gray-400 transition-transform duration-200 ${expandedSections.history ? 'rotate-180' : ''}`} />
+                <FaChevronDown className={`text-xs text-muted-foreground transition-transform duration-200 ${expandedSections.history ? 'rotate-180' : ''}`} />
               </button>
               {expandedSections.history && (
-                <div className="px-5 pb-8 text-sm bg-white">
-                   <div className="space-y-4 relative before:content-[''] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-gray-100">
-                      <div className="relative pl-6">
-                        <div className="absolute left-0 top-1 w-3 h-3 bg-white border-2 border-green-500 rounded-full z-10"></div>
-                        <p className="text-[11px] font-bold text-gray-800">Current Session Active</p>
-                        <p className="text-[10px] text-gray-400">Inbound Message Recieved</p>
-                      </div>
-                      <div className="relative pl-6">
-                        <div className="absolute left-0 top-1 w-3 h-3 bg-white border-2 border-gray-200 rounded-full z-10"></div>
-                        <p className="text-[11px] font-bold text-gray-800">Contact Created</p>
-                        <p className="text-[10px] text-gray-400">First Interaction</p>
-                      </div>
-                   </div>
+                <div className="px-5 pb-8 text-sm bg-card">
+                  <div className="space-y-4 relative before:content-[''] before:absolute before:left-1.5 before:top-2 before:bottom-2 before:w-px before:bg-border">
+                    <div className="relative pl-6">
+                      <div className="absolute left-0 top-1 w-3 h-3 bg-card border-2 border-emerald-500 rounded-full z-10"></div>
+                      <p className="text-[11px] font-bold text-foreground">Current Session Active</p>
+                      <p className="text-[10px] text-muted-foreground">Inbound Message Recieved</p>
+                    </div>
+                    <div className="relative pl-6">
+                      <div className="absolute left-0 top-1 w-3 h-3 bg-card border-2 border-border rounded-full z-10"></div>
+                      <p className="text-[11px] font-bold text-foreground">Contact Created</p>
+                      <p className="text-[10px] text-muted-foreground">First Interaction</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1661,58 +1619,58 @@ export default function InboxPage() {
       {/* Start Conversation Modal */}
       {startModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50">
-              <h3 className="text-lg font-bold text-gray-900">Start New Conversation</h3>
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] border border-border">
+            <div className="p-5 border-b border-border flex items-center justify-between bg-muted/50">
+              <h3 className="text-lg font-bold text-foreground">Start New Conversation</h3>
               <button
                 onClick={() => setStartModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-200 rounded-full transition-colors"
+                className="text-muted-foreground hover:text-foreground p-1 hover:bg-muted rounded-full transition-colors"
               >
                 <FaTimes />
               </button>
             </div>
 
-            <div className="p-6 space-y-5 overflow-y-auto">
+            <div className="p-6 space-y-5 overflow-y-auto bg-card">
               <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-2">Select Contact</label>
+                <label className="text-sm font-semibold text-muted-foreground block mb-2">Select Contact</label>
                 <div className="relative">
-                  <FaSearch className="absolute left-3 top-3 text-gray-400" />
+                  <FaSearch className="absolute left-3 top-3 text-muted-foreground" />
                   <input
                     type="text"
                     value={contactSearch}
                     onChange={(e) => handleSearchStartContacts(e.target.value)}
                     placeholder="Search by name or phone"
-                    className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm transition-all"
+                    className="w-full pl-9 pr-3 py-2.5 border border-border rounded-lg bg-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm text-foreground transition-all"
                   />
                 </div>
 
-                <div className="mt-3 max-h-48 overflow-y-auto border border-gray-100 rounded-lg shadow-inner bg-gray-50">
+                <div className="mt-3 max-h-48 overflow-y-auto border border-border rounded-lg shadow-inner bg-muted/30">
                   {contactOptions.length > 0 ? (
                     contactOptions.map((contact, idx) => (
                       <button
                         key={contact._id || `opt-${idx}`}
                         type="button"
                         onClick={() => setSelectedStartContact(contact)}
-                        className={`w-full text-left px-4 py-3 border-b last:border-b-0 border-gray-100 transition-colors flex justify-between items-center ${selectedStartContact?._id === contact._id
-                          ? 'bg-green-50 border-green-100'
-                          : 'hover:bg-white bg-white'
+                        className={`w-full text-left px-4 py-3 border-b last:border-b-0 border-border transition-colors flex justify-between items-center ${selectedStartContact?._id === contact._id
+                          ? 'bg-primary/10 border-primary/20'
+                          : 'hover:bg-muted bg-transparent'
                           }`}
                       >
                         <div>
-                          <p className={`font-semibold text-sm ${selectedStartContact?._id === contact._id ? 'text-green-800' : 'text-gray-800'}`}>
+                          <p className={`font-semibold text-sm ${selectedStartContact?._id === contact._id ? 'text-primary' : 'text-foreground'}`}>
                             {contact.name || contact.phone}
                           </p>
                           {contact.name && (
-                            <p className="text-xs text-gray-500 mt-0.5">{contact.phone}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{contact.phone}</p>
                           )}
                         </div>
                         {selectedStartContact?._id === contact._id && (
-                          <FaCheckCircle className="text-green-500" />
+                          <FaCheckCircle className="text-primary" />
                         )}
                       </button>
                     ))
                   ) : (
-                    <div className="p-6 text-center text-sm text-gray-500 bg-white">
+                    <div className="p-6 text-center text-sm text-muted-foreground bg-card">
                       No contacts found. Please add a contact in the Sales CRM tab first.
                     </div>
                   )}
@@ -1720,34 +1678,34 @@ export default function InboxPage() {
               </div>
 
               <div>
-                <label className="text-sm font-semibold text-gray-700 block mb-2">First Message</label>
+                <label className="text-sm font-semibold text-muted-foreground block mb-2">First Message</label>
                 <textarea
                   value={startMessage}
                   onChange={(e) => setStartMessage(e.target.value)}
                   rows={4}
                   placeholder="Type your message here..."
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none text-sm transition-all resize-none"
+                  className="w-full px-4 py-3 border border-border rounded-lg bg-muted/50 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none text-sm text-foreground transition-all resize-none placeholder:text-muted-foreground"
                 />
                 <div className="flex items-start gap-2 mt-2 px-1">
                   <FaInfoCircle className="text-blue-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-600/80 leading-snug">
+                  <p className="text-xs text-blue-500/80 leading-snug">
                     Sending a message to a new contact outside the 24h window will use standard template pricing.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="p-5 border-t border-gray-100 flex justify-end gap-3 bg-gray-50">
+            <div className="p-5 border-t border-border flex justify-end gap-3 bg-muted/50">
               <button
                 onClick={() => setStartModalOpen(false)}
-                className="px-4 py-2 text-sm font-semibold rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 text-sm font-semibold rounded-lg text-muted-foreground hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleStartConversation}
                 disabled={startingConversation || !selectedStartContact || !startMessage.trim()}
-                className="px-6 py-2 text-sm font-bold rounded-lg bg-[#00a884] text-white hover:bg-[#008f6f] focus:ring-4 focus:ring-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm"
+                className="px-6 py-2 text-sm font-bold rounded-lg bg-primary text-primary-foreground hover:brightness-110 focus:ring-4 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 shadow-sm"
               >
                 {startingConversation ? (
                   <><FaSpinner className="animate-spin" /> Sending...</>

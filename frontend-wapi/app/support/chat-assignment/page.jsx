@@ -30,6 +30,7 @@ import {
 import { useSocketEvent } from '@/store/socketStore';
 import { toast } from '@/lib/toast';
 import PageHeader from '@/components/shared/PageHeader';
+import FlashLoader from '@/components/ui/FlashLoader';
 // import Modal from '@/components/shared/Modal'; // Using inline modals for consistency
 
 export default function ChatAssignmentPage() {
@@ -150,14 +151,7 @@ export default function ChatAssignmentPage() {
     },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <RefreshCw className="h-8 w-8 text-primary animate-spin mb-4" />
-        <p className="text-muted-foreground animate-pulse">Loading assignment configuration...</p>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   return (
     <div className="animate-fade-in-up">

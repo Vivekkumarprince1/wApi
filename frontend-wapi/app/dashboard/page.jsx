@@ -11,6 +11,8 @@ import ConnectNumberModal from '@/components/modals/ConnectNumberModal';
 import ConnectInstagramModal from '@/components/modals/ConnectInstagramModal';
 import CreateContactPanel from '@/components/modals/CreateContactPanel';
 
+import FlashLoader from '@/components/ui/FlashLoader';
+
 // Modular Home Components
 import WelcomeHero from '@/components/dashboard/WelcomeHero';
 import StatsGrid from '@/components/dashboard/StatsGrid';
@@ -172,16 +174,7 @@ const DashboardPage = () => {
 
   // ─── Loading State ──────────────────────────────────────────────────
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <FlashLoader />;
 
   // ─── Main Render ────────────────────────────────────────────────────
 
@@ -201,7 +194,7 @@ const DashboardPage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Left — Quick Actions + Connections + Features */}
         <div className="lg:col-span-2 space-y-6">
-          <DeliveryHealth deliveryHealth={deliveryHealth} />
+          {/* <DeliveryHealth deliveryHealth={deliveryHealth} /> */}
 
           <QuickActions
             canUseMessaging={canUseMessaging}
@@ -210,7 +203,7 @@ const DashboardPage = () => {
 
           <ConnectionCards
             isWhatsAppConnected={isWhatsAppConnected}
-            workspace={{...workspace, phoneNumber}}
+            workspace={{ ...workspace, phoneNumber }}
             onConnectWhatsApp={() => setConnectNumberModalOpen(true)}
             onConnectInstagram={() => setConnectInstagramModalOpen(true)}
           />

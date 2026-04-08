@@ -6,6 +6,7 @@ import {
   ArrowUpRight, ArrowDownLeft, ShieldCheck, 
   AlertCircle, Loader2, Info, Plus
 } from 'lucide-react';
+import FlashLoader from '@/components/ui/FlashLoader';
 import { get } from '@/lib/api';
 
 export default function WalletSettingsPage() {
@@ -43,14 +44,7 @@ export default function WalletSettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-        <p className="text-sm text-muted-foreground">Fetching wallet details...</p>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   return (
     <div className="max-w-5xl mx-auto p-6 animate-fade-in">

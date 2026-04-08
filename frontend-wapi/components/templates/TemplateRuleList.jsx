@@ -3,6 +3,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import TemplateRuleCard from './TemplateRuleCard';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 /**
  * TemplateRuleList
@@ -19,13 +20,7 @@ export default function TemplateRuleList({
   onStats,
   onPageChange
 }) {
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading rules...</div>
-      </div>
-    );
-  }
+  if (loading) return <FlashLoader />;
 
   if (!rules || rules.length === 0) {
     return (

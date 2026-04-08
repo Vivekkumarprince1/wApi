@@ -10,11 +10,30 @@ async function connectRedis() {
     return null;
   }
 
-  client = createClient({ url: redisUrl });
-  client.on('error', (err) => console.error('Redis Client Error', err));
-  await client.connect();
-  console.log('Redis connected');
-  return client;
+  try {
+    client = createClient({ 
+      url: redisUrl,
+      socket: {
+        reconnectStrategy: (retries) => {
+          if (retries > 10) return new Error('Retry limit reached');
+          return Math.min(retries * 500, 5000);
+        }
+      }
+    });
+
+    client.on('error', (err) => {
+      // Log but don't crash the process
+      console.error('[SharedRedis] Error:', err.message);
+    });
+
+    await client.connect();
+    console.log('[SharedRedis] Connected to Redis');
+    return client;
+  } catch (err) {
+    console.warn('[SharedRedis] Initial connection failed:', err.message);
+    // Don't rethrow, let server.js handle the null/undefined connection
+    return null;
+  }
 }
 
 function getRedis() {

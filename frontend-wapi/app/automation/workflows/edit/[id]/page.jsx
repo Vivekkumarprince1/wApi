@@ -1,17 +1,65 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { 
   FaArrowLeft, FaPlus, FaTrash, FaSave, FaRobot, FaFilter, FaBolt, FaPlusCircle,
   FaCheckCircle, FaExclamationTriangle, FaClock, FaTag, FaUserPlus, FaLink, FaCommentDots,
-  FaSitemap, FaWpforms, FaDatabase
+  FaSitemap, FaWpforms, FaDatabase, FaMagic
 } from 'react-icons/fa';
 import Link from 'next/link';
-import { post, get, put } from '@/lib/api';
+import { useNodesState, useEdgesState, addEdge } from '@xyflow/react';
+import { put, get } from '@/lib/api';
 import { toast } from '@/lib/toast';
-import { WorkflowCanvas, FlowNode, NodeConnector } from '@/components/features/automation/FlowComponents';
+import { FlowCanvas } from '@/components/features/automation/FlowCanvas';
 
+// ─────────────────────────────────────────────────────────────────────────
+// CONSTANTS
+// ─────────────────────────────────────────────────────────────────────────
+
+const TRIGGER_EVENTS = [
+  { value: 'customer.message.received', label: '📨 Customer Message Received', icon: FaCommentDots },
+  { value: 'conversation.created', label: '🆕 New Conversation Started', icon: FaBolt },
+  { value: 'first.agent.reply', label: '👤 First Agent Reply', icon: FaUserPlus },
+  { value: 'conversation.closed', label: '✅ Conversation Closed', icon: FaCheckCircle },
+  { value: 'sla.breached', label: '⚠️ SLA Breached', icon: FaExclamationTriangle },
+  { value: 'contact.tag.added', label: '🏷️ Tag Added to Contact', icon: FaTag },
+  { value: 'deal.stage.changed', label: '📈 Deal Stage Changed', icon: FaBolt },
+  { value: 'form.submitted', label: '📝 Form/Flow Submitted', icon: FaSave }
+];
+
+const ACTION_TYPES = [
+  { value: 'send_template_message', label: '💬 Send Template', icon: FaCommentDots, category: 'message', nodeType: 'message' },
+  { value: 'send_text_message', label: '✍️ Send Text (24h)', icon: FaCommentDots, category: 'message', nodeType: 'message' },
+  { value: 'condition', label: '🔀 Branch / Condition', icon: FaFilter, category: 'logic', nodeType: 'condition' },
+  { value: 'assign_conversation', label: '👤 Assign Agent', icon: FaUserPlus, category: 'assignment', nodeType: 'action' },
+  { value: 'add_tag', label: '🏷️ Add Tag', icon: FaTag, category: 'crm', nodeType: 'action' },
+  { value: 'remove_tag', label: '❌ Remove Tag', icon: FaTag, category: 'crm', nodeType: 'action' },
+  { value: 'delay', label: '⏱️ Wait / Delay', icon: FaClock, category: 'logic', nodeType: 'action' },
+  { value: 'notify_webhook', label: '🔗 Webhook', icon: FaLink, category: 'logic', nodeType: 'action' },
+  { value: 'save_response', label: '💾 Save Input', icon: FaSave, category: 'logic', nodeType: 'action' },
+  { value: 'mark_as_resolved', label: '✅ Resolve Chat', icon: FaCheckCircle, category: 'crm', nodeType: 'action' }
+];
+
+const CONDITION_FIELDS = [
+  { value: 'message.content', label: 'Message Content' },
+  { value: 'contact.tags', label: 'Contact Tags' },
+  { value: 'contact.name', label: 'Contact Name' },
+  { value: 'conversation.status', label: 'Conversation Status' },
+  { value: 'message.type', label: 'Message Type' }
+];
+
+const CONDITION_OPERATORS = [
+  { value: 'equals', label: 'Equals' },
+  { value: 'contains', label: 'Contains' },
+  { value: 'not_contains', label: 'Does not contain' },
+  { value: 'starts_with', label: 'Starts with' },
+  { value: 'is_not_empty', label: 'Has value' }
+];
+
+// ─────────────────────────────────────────────────────────────────────────
+// COMPONENT
+// ─────────────────────────────────────────────────────────────────────────
 
 export default function EditWorkflowPage() {
   const router = useRouter();
@@ -24,218 +72,189 @@ export default function EditWorkflowPage() {
   const [templates, setTemplates] = useState([]);
   const [agents, setAgents] = useState([]);
   const [tags, setTags] = useState([]);
-  const [selectedNode, setSelectedNode] = useState({ type: 'trigger', index: null });
   
-  const [form, setForm] = useState({
-    name: '',
-    description: '',
-    trigger: {
-      event: 'customer.message.received',
-      filters: {
-        channel: 'all',
-        messageTypes: [],
-        keywords: [],
-        source: 'all',
-        businessHoursOnly: false
-      }
-    },
-    conditions: [],
-    actions: [],
-    rateLimit: {
-      maxExecutions: 100,
-      windowSeconds: 3600,
-      perContactCooldown: 300,
-      maxPerContactPerDay: 10
-    },
-    enabled: true
-  });
+  const [workflowName, setWorkflowName] = useState('');
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
 
+  const selectedNode = useMemo(() => 
+    nodes.find(n => n.id === selectedNodeId), 
+    [nodes, selectedNodeId]
+  );
+
+  // -- Load Data --
   useEffect(() => {
-    if (workflowId) {
-      loadData();
-    }
-  }, [workflowId]);
+    if (!workflowId) return;
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      const [workflowRes, templatesRes, agentsRes, tagsRes] = await Promise.all([
-        get(`/automation/engine/rules/${workflowId}`),
-        get('/templates'),
-        get('/team/members'),
-        get('/tags')
-      ]);
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [workflowRes, tplData, agentData, tagData] = await Promise.all([
+          get(`/automation/engine/rules/${workflowId}`),
+          get('/templates'),
+          get('/team/members'),
+          get('/tags')
+        ]);
 
-      if (workflowRes.success && workflowRes.data.rule) {
-        const rule = workflowRes.data.rule;
-        // Ensure trigger is in the new object format
-        if (typeof rule.trigger === 'string') {
-          rule.trigger = { event: rule.trigger, filters: {} };
+        setTemplates(tplData.templates || []);
+        setAgents(agentData.members || []);
+        setTags(tagData.data || []);
+
+        if (workflowRes.success && workflowRes.data.rule) {
+          const rule = workflowRes.data.rule;
+          setWorkflowName(rule.name);
+          
+          if (rule.flowConfig && rule.flowConfig.nodes?.length > 0) {
+            setNodes(rule.flowConfig.nodes);
+            setEdges(rule.flowConfig.edges || []);
+          } else {
+            // BACKWARD COMPATIBILITY: Generate a linear flow from legacy actions
+            console.log('[Workflow] Legacy rule detected. Generating linear flow.');
+            const generatedNodes = [{
+              id: 'node_trigger',
+              type: 'trigger',
+              position: { x: 250, y: 50 },
+              data: { 
+                event: rule.trigger?.event || 'customer.message.received', 
+                label: TRIGGER_EVENTS.find(t => t.value === rule.trigger?.event)?.label.split(' ').slice(1).join(' ') || 'Condition Met',
+                filters: rule.trigger?.filters || { channel: 'all', source: 'all' }
+              }
+            }];
+
+            const generatedEdges = [];
+            let lastId = 'node_trigger';
+
+            rule.actions?.forEach((action, idx) => {
+              const nid = `node_${idx}_${Date.now()}`;
+              const actionInfo = ACTION_TYPES.find(a => a.value === action.type);
+              
+              generatedNodes.push({
+                id: nid,
+                type: actionInfo?.nodeType || 'action',
+                position: { x: 250, y: 150 + (idx * 150) },
+                data: { 
+                  type: action.type, 
+                  label: actionInfo?.label || action.type,
+                  config: action.config 
+                }
+              });
+
+              generatedEdges.push({ id: `e-${lastId}-${nid}`, source: lastId, target: nid });
+              lastId = nid;
+            });
+
+            setNodes(generatedNodes);
+            setEdges(generatedEdges);
+          }
         }
-        setForm(rule);
+      } catch (err) {
+        console.error('Initial Load Error:', err);
+        setError('Failed to load workflow data');
+      } finally {
+        setLoading(false);
       }
-      
-      setTemplates(templatesRes.templates || []);
-      setAgents(agentsRes.members || []);
-      setTags(tagsRes.data || []);
-    } catch (err) {
-      console.error('Error loading workflow data:', err);
-      setError('Failed to load workflow data');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    loadData();
+  }, [workflowId, setNodes, setEdges]);
 
-  const triggerEvents = [
-    { value: 'customer.message.received', label: '📨 Customer Message Received', icon: FaCommentDots },
-    { value: 'conversation.created', label: '🆕 New Conversation Started', icon: FaBolt },
-    { value: 'first.agent.reply', label: '👤 First Agent Reply', icon: FaUserPlus },
-    { value: 'conversation.closed', label: '✅ Conversation Closed', icon: FaCheckCircle },
-    { value: 'sla.breached', label: '⚠️ SLA Breached', icon: FaExclamationTriangle },
-    { value: 'contact.created', label: '👤 New Contact Created', icon: FaUserPlus },
-    { value: 'contact.tag.added', label: '🏷️ Tag Added to Contact', icon: FaTag },
-    { value: 'deal.stage.changed', label: '📈 Deal Stage Changed', icon: FaBolt },
-    { value: 'campaign.message.sent', label: '📣 Campaign Message Sent', icon: FaLink },
-    { value: 'form.submitted', label: '📝 Form/Flow Submitted', icon: FaSave }
-  ];
+  // -- Handlers --
+  const onConnect = useCallback(
+    (params) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  );
 
-  const actionTypes = [
-    { value: 'send_template_message', label: '💬 Send Template', icon: FaCommentDots, category: 'message' },
-    { value: 'send_text_message', label: '✍️ Send Text (24h)', icon: FaCommentDots, category: 'message' },
-    { value: 'send_interactive_message', label: '🔘 Send Buttons/List', icon: FaFilter, category: 'message' },
-    { value: 'send_form', label: '📝 Send WhatsApp Form', icon: FaSave, category: 'message' },
-    { value: 'save_response', label: '💾 Save User Response', icon: FaSave, category: 'logic' },
-    { value: 'assign_conversation', label: '👤 Assign to Agent/Team', icon: FaUserPlus, category: 'assignment' },
-    { value: 'add_tag', label: '🏷️ Add Tag', icon: FaTag, category: 'crm' },
-    { value: 'remove_tag', label: '❌ Remove Tag', icon: FaTag, category: 'crm' },
-    { value: 'create_deal', label: '💰 Create New Deal', icon: FaBolt, category: 'crm' },
-    { value: 'move_pipeline_stage', label: '➡️ Move Deal Stage', icon: FaBolt, category: 'crm' },
-    { value: 'notify_agent', label: '🔔 Internal Notification', icon: FaBolt, category: 'logic' },
-    { value: 'add_note', label: '📝 Add Internal Note', icon: FaSave, category: 'crm' },
-    { value: 'mark_as_resolved', label: '✅ Mark Resolved', icon: FaCheckCircle, category: 'crm' },
-    { value: 'notify_webhook', label: '🔗 External Webhook', icon: FaLink, category: 'logic' },
-    { value: 'delay', label: '⏱️ Delay Next Action', icon: FaClock, category: 'logic' }
-  ];
+  const onNodeClick = useCallback((event, node) => {
+    setSelectedNodeId(node.id);
+  }, []);
 
-  const conditionFields = [
-    { value: 'message.content', label: 'Message Content' },
-    { value: 'contact.tags', label: 'Contact Tags' },
-    { value: 'contact.name', label: 'Contact Name' },
-    { value: 'contact.email', label: 'Contact Email' },
-    { value: 'conversation.status', label: 'Conversation Status' },
-    { value: 'conversation.assignedTo', label: 'Assigned Agent' },
-    { value: 'message.type', label: 'Message Type' },
-    { value: 'current.day_of_week', label: 'Day of Week' },
-    { value: 'current.time_of_day', label: 'Time of Day' }
-  ];
-
-  const conditionOperators = [
-    { value: 'equals', label: 'Equals' },
-    { value: 'contains', label: 'Contains' },
-    { value: 'not_contains', label: 'Does not contain' },
-    { value: 'starts_with', label: 'Starts with' },
-    { value: 'ends_with', label: 'Ends with' },
-    { value: 'matches_regex', label: 'Matches Regex' },
-    { value: 'is_empty', label: 'Is empty' },
-    { value: 'is_not_empty', label: 'Is not empty' },
-    { value: 'greater_than', label: 'Greater than' },
-    { value: 'less_than', label: 'Less than' },
-    { value: 'time_within', label: 'Within last N hours' }
-  ];
-
-
-  const addCondition = () => {
-    setForm({
-      ...form,
-      conditions: [...form.conditions, { field: 'message.content', operator: 'contains', value: '', logicalOperator: 'AND' }]
-    });
-  };
-
-  const removeCondition = (idx) => {
-    setForm({
-      ...form,
-      conditions: form.conditions.filter((_, i) => i !== idx)
-    });
-  };
-
-  const updateCondition = (idx, field, value) => {
-    const newConditions = [...form.conditions];
-    newConditions[idx][field] = value;
-    setForm({ ...form, conditions: newConditions });
-  };
-
-  const addAction = (type) => {
-    const newAction = {
-      type,
-      config: {},
-      order: form.actions.length,
-      continueOnFailure: true
+  const addNode = (actionType) => {
+    const actionInfo = ACTION_TYPES.find(a => a.value === actionType);
+    const newNodeId = `node_${Date.now()}`;
+    
+    const newNode = {
+      id: newNodeId,
+      type: actionInfo.nodeType,
+      position: { 
+        x: selectedNode ? selectedNode.position.x : 250, 
+        y: selectedNode ? selectedNode.position.y + 150 : 200 
+      },
+      data: { 
+        type: actionType,
+        label: actionInfo.label,
+        config: {} 
+      }
     };
 
-    if (type === 'send_template_message') {
-      newAction.config = { templateId: '', templateLanguage: 'en', templateVariables: {} };
-    } else if (type === 'send_text_message') {
-      newAction.config = { messageContent: '' };
-    } else if (type === 'send_interactive_message') {
-      newAction.config = { 
-        interactiveConfig: { 
-          type: 'buttons', 
-          header: '', 
-          body: 'Hello! Please select an option:', 
-          buttons: [{ id: 'btn_1', text: 'Yes' }, { id: 'btn_2', text: 'No' }] 
-        } 
-      };
-    } else if (type === 'send_form') {
-      newAction.config = { formConfig: { flowId: '', screenId: 'START' } };
-    } else if (type === 'save_response') {
-      newAction.config = { saveAs: { type: 'trait', name: '' } };
-    } else if (type === 'create_deal') {
-      newAction.config = { pipelineId: '', stageId: '', dealTitle: 'New Deal' };
-    } else if (type === 'move_pipeline_stage') {
-      newAction.config = { pipelineId: '', stageId: '' };
-    } else if (type === 'notify_agent') {
-      newAction.config = { notificationTitle: 'Automation Alert', notificationBody: 'A rule was triggered.' };
-    } else if (type === 'assign_conversation') {
-      newAction.config = { assignTo: { type: 'round_robin' } };
-    } else if (type === 'add_tag' || type === 'remove_tag') {
-      newAction.config = { tagName: '' };
-    } else if (type === 'add_note') {
-      newAction.config = { noteContent: '' };
-    } else if (type === 'delay') {
-      newAction.config = { delayMinutes: 5 };
-    } else if (type === 'notify_webhook') {
-      newAction.config = { webhookUrl: '', method: 'POST' };
+    setNodes((nds) => nds.concat(newNode));
+    
+    if (selectedNodeId) {
+      setEdges((eds) => addEdge({ 
+        source: selectedNodeId, 
+        target: newNodeId,
+        sourceHandle: selectedNode.type === 'condition' ? 'true' : null 
+      }, eds));
     }
-
-
-    setForm({
-      ...form,
-      actions: [...form.actions, newAction]
-    });
+    
+    setSelectedNodeId(newNodeId);
   };
 
-  const removeAction = (idx) => {
-    setForm({
-      ...form,
-      actions: form.actions.filter((_, i) => i !== idx).map((a, i) => ({ ...a, order: i }))
-    });
+  const removeSelectedNode = () => {
+    if (!selectedNodeId || selectedNodeId === 'node_trigger') return;
+    setNodes((nds) => nds.filter((n) => n.id !== selectedNodeId));
+    setEdges((eds) => eds.filter((e) => e.source !== selectedNodeId && e.target !== selectedNodeId));
+    setSelectedNodeId(null);
   };
 
-  const updateActionConfig = (idx, configUpdates) => {
-    const newActions = [...form.actions];
-    newActions[idx].config = { ...newActions[idx].config, ...configUpdates };
-    setForm({ ...form, actions: newActions });
+  const updateNodeData = (updates) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === selectedNodeId) {
+          return { ...node, data: { ...node.data, ...updates } };
+        }
+        return node;
+      })
+    );
   };
 
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    if (!form.name.trim()) return setError('Workflow name is required');
-    if (form.actions.length === 0) return setError('At least one action is required');
+  const updateNodeConfig = (configUpdates) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === selectedNodeId) {
+          return { 
+            ...node, 
+            data: { 
+              ...node.data, 
+              config: { ...node.data.config, ...configUpdates } 
+            } 
+          };
+        }
+        return node;
+      })
+    );
+  };
 
+  const handleSubmit = async () => {
+    if (!workflowName.trim()) return setError('Workflow name is required');
+    
     setSaving(true);
     try {
-      await put(`/automation/engine/rules/${workflowId}`, form);
-      toast.success('Workflow updated successfully');
+      const triggerNode = nodes.find(n => n.type === 'trigger');
+      
+      const payload = {
+        name: workflowName,
+        category: 'workflow',
+        trigger: triggerNode.data,
+        flowConfig: { nodes, edges },
+        actions: nodes.filter(n => n.type !== 'trigger').map((n, i) => ({
+          type: n.data.type,
+          config: n.data.config,
+          order: i
+        }))
+      };
+
+      await put(`/automation/engine/rules/${workflowId}`, payload);
+      toast.success('Visual Workflow updated and published!');
       router.push('/automation/workflows');
     } catch (err) {
       setError(err.message || 'Error updating workflow');
@@ -246,321 +265,195 @@ export default function EditWorkflowPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <FaRobot className="text-4xl text-primary animate-bounce" />
-          <p className="text-sm font-medium text-muted-foreground">Loading workflow configuration...</p>
-        </div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <FaRobot className="text-4xl text-slate-300 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 mb-0">
-        <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/automation/workflows" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <FaArrowLeft className="text-slate-500" />
+    <div className="min-h-screen bg-slate-50 pb-10 flex flex-col">
+      {/* Designer Header */}
+      <div className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-[1800px] mx-auto px-6 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-5">
+            <Link href="/automation/workflows" className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-600">
+              <FaArrowLeft size={18} />
             </Link>
+            <div className="h-8 w-px bg-slate-200 mx-1" />
             <div>
-              <h1 className="text-xl font-bold text-slate-900">Edit Workflow Flow</h1>
-              <p className="text-xs text-slate-500">{form.name || 'Manage automation logic'}</p>
+              <input 
+                type="text" 
+                value={workflowName}
+                onChange={(e) => setWorkflowName(e.target.value)}
+                className="text-lg font-bold text-slate-900 bg-transparent border-none focus:ring-0 p-0 w-80"
+                placeholder="Workflow Name"
+              />
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-blue-500" />
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Editing Flow</p>
+              </div>
             </div>
           </div>
+          
           <div className="flex items-center gap-3">
-             <button 
-               onClick={handleSubmit}
-               disabled={saving}
-               className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-95 disabled:opacity-50"
+            <button 
+              onClick={handleSubmit}
+              disabled={saving}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50"
             >
               {saving ? <FaRobot className="animate-spin" /> : <FaSave />}
-              {saving ? 'Updating...' : 'Update & Publish'}
+              {saving ? 'Saving...' : 'Update Flow'}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 py-8 flex items-start gap-8">
-        {/* Left: Visual Builder Canvas */}
-        <div className="flex-1 flex flex-col gap-6">
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 animate-shake">
-              <FaExclamationTriangle className="text-red-500" />
-              <p className="text-red-700 text-sm font-medium">{error}</p>
-            </div>
-          )}
-
-          <WorkflowCanvas>
-            {/* 1. TRIGGER NODE */}
-            <FlowNode 
-              type="trigger" 
-              title="START: TRIGGER" 
-              icon={triggerEvents.find(t => t.value === form.trigger.event)?.icon || FaBolt}
-              onClick={() => setSelectedNode({ type: 'trigger', index: null })}
-              status={form.trigger.event ? 'valid' : 'incomplete'}
-            >
-              <div className="text-slate-700 font-medium">
-                {triggerEvents.find(t => t.value === form.trigger.event)?.label}
-              </div>
-              <div className="mt-1 text-[11px] text-slate-500">
-                Filters: {form.trigger.filters?.channel || 'all'} channel, {form.trigger.filters?.source || 'all'} source
-              </div>
-            </FlowNode>
-
-            <NodeConnector />
-
-            {/* 2. CONDITIONS (IF ANY) */}
-            {form.conditions.map((cond, idx) => (
-              <React.Fragment key={`cond-frag-${idx}`}>
-                <FlowNode 
-                  type="condition" 
-                  title={`CONDITION ${idx + 1}`} 
-                  icon={FaFilter}
-                  onRemove={() => removeCondition(idx)}
-                  onClick={() => setSelectedNode({ type: 'condition', index: idx })}
-                >
-                  <div className="text-slate-700 font-medium">
-                    {conditionFields.find(f => f.value === cond.field)?.label} {cond.operator.replace('_', ' ')} "{cond.value}"
-                  </div>
-                </FlowNode>
-                <NodeConnector />
-              </React.Fragment>
-            ))}
-
-            {/* ADD CONDITION BUTTON */}
-            <button 
-              onClick={addCondition}
-              className="group flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-dashed border-slate-300 rounded-lg text-slate-500 transition-all active:scale-95 mb-4"
-            >
-              <FaPlusCircle className="text-slate-400 group-hover:text-primary" />
-              <span className="text-xs font-bold uppercase tracking-wider">Add Condition</span>
-            </button>
-
-            {form.conditions.length > 0 && <NodeConnector />}
-
-            {/* 3. ACTIONS */}
-            {form.actions.map((action, idx) => (
-              <React.Fragment key={`action-frag-${idx}`}>
-                <FlowNode 
-                  type="action" 
-                  title={`STEP ${idx + 1}: ${actionTypes.find(a => a.value === action.type)?.label.split(' (')[0]}`} 
-                  icon={actionTypes.find(a => a.value === action.type)?.icon || FaBolt}
-                  onRemove={() => removeAction(idx)}
-                  onClick={() => setSelectedNode({ type: 'action', index: idx })}
-                >
-                  <div className="text-slate-700 font-medium truncate">
-                    {action.type === 'send_text_message' ? action.config.messageContent : 
-                     action.type === 'send_template_message' ? `Template: ${templates.find(t => t._id === action.config.templateId)?.name || '... '}` :
-                     action.type === 'assign_conversation' ? `Assign: ${action.config.assignTo?.type}` :
-                     action.type === 'add_tag' ? `Tag: ${action.config.tagName}` :
-                     action.type === 'save_response' ? `Save: ${action.config.saveAs?.name} (${action.config.saveAs?.type})` :
-                     'Configured'}
-                  </div>
-                </FlowNode>
-                {idx < form.actions.length - 1 && <NodeConnector />}
-              </React.Fragment>
-            ))}
-
-            {/* ADD ACTION DROPDOWN */}
-            <div className="mt-4 flex flex-wrap justify-center gap-2 p-4 bg-white/50 rounded-2xl border border-slate-200 shadow-sm">
-              {actionTypes.map(a => (
-                <button
-                  key={a.value}
-                  onClick={() => addAction(a.value)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 transition-all active:scale-95 shadow-sm"
-                >
-                  <a.icon size={12} className="text-primary" />
-                  {a.label.split(' (')[0]}
-                </button>
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left: Component Library */}
+        <div className="w-72 bg-white border-r border-slate-200 overflow-y-auto p-4 space-y-6">
+          <div>
+            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Add Steps</h4>
+            <div className="space-y-4">
+              {Object.entries(
+                ACTION_TYPES.reduce((acc, action) => {
+                  acc[action.category] = acc[action.category] || [];
+                  acc[action.category].push(action);
+                  return acc;
+                }, {})
+              ).map(([category, items]) => (
+                <div key={category} className="space-y-1">
+                  <p className="text-[9px] font-extrabold text-slate-300 uppercase ml-1 mb-1">{category}</p>
+                  {items.map(item => (
+                    <button
+                      key={item.value}
+                      onClick={() => addNode(item.value)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-lg text-slate-600 hover:text-slate-900 group transition-all"
+                    >
+                      <div className="p-1.5 rounded bg-slate-50 group-hover:bg-white text-slate-400 group-hover:text-primary transition-colors">
+                        <item.icon size={12} />
+                      </div>
+                      <span className="text-xs font-semibold">{item.label}</span>
+                      <FaPlusCircle className="ml-auto opacity-0 group-hover:opacity-100 text-slate-300" size={10} />
+                    </button>
+                  ))}
+                </div>
               ))}
             </div>
-          </WorkflowCanvas>
+          </div>
         </div>
 
-        {/* Right: Configuration Panel */}
-        <div className="w-96 sticky top-28 h-[calc(100vh-140px)] overflow-y-auto space-y-6 flex flex-col">
-          <section className="bg-white rounded-2x border border-slate-200 shadow-premium p-6 flex-1">
-            <div className="flex items-center justify-between mb-6 border-b pb-4">
-              <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                <FaRobot className="text-primary" /> 
-                {selectedNode.type === 'trigger' ? 'Edit Trigger' : 
-                 selectedNode.type === 'condition' ? `Edit Condition ${selectedNode.index + 1}` : 
-                 `Edit Action ${selectedNode.index + 1}`}
-              </h3>
-            </div>
+        {/* Center: Canvas Area */}
+        <div className="flex-1 bg-slate-50 relative">
+          <FlowCanvas 
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeClick={onNodeClick}
+          />
+        </div>
 
-            {/* TRIGGER CONFIG */}
-            {selectedNode.type === 'trigger' && (
+        {/* Right: Node Configuration Sidebar */}
+        <div className="w-96 bg-white border-l border-slate-200 overflow-y-auto flex flex-col">
+          {!selectedNode ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
+              <FaSitemap size={24} className="opacity-20 mb-4" />
+              <p className="text-sm font-medium">Select a node to edit</p>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col p-6">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-slate-900 text-white">
+                    {ACTION_TYPES.find(a => a.value === selectedNode.data.type)?.icon({ size: 14 }) || <FaBolt size={14} />}
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900">{selectedNode.data.label || 'Node Preview'}</h3>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{selectedNode.type} NODE</p>
+                  </div>
+                </div>
+                {selectedNode.id !== 'node_trigger' && (
+                  <button onClick={removeSelectedNode} className="p-2 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded-lg">
+                    <FaTrash size={14} />
+                  </button>
+                )}
+              </div>
+
               <div className="space-y-6">
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Workflow Name</label>
-                  <input 
-                    type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 ring-primary/20 outline-none"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Trigger Event</label>
-                  <select 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                    value={form.trigger.event}
-                    onChange={(e) => setForm({ ...form, trigger: { ...form.trigger, event: e.target.value } })}
-                  >
-                    {triggerEvents.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div className="pt-4 border-t">
-                  <h4 className="text-xs font-bold text-slate-900 mb-3">Trigger Filters</h4>
-                  <div className="space-y-4">
+                {selectedNode.type === 'trigger' && (
+                  <div className="space-y-5">
                     <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Channel</label>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Trigger Event</label>
                       <select 
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
-                        value={form.trigger.filters?.channel || 'all'}
-                        onChange={(e) => setForm({ ...form, trigger: { ...form.trigger, filters: { ...form.trigger.filters, channel: e.target.value } } })}
+                        value={selectedNode.data.event}
+                        onChange={(e) => updateNodeData({ 
+                          event: e.target.value,
+                          label: TRIGGER_EVENTS.find(t => t.value === e.target.value)?.label.split(' ').slice(1).join(' ') 
+                        })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
                       >
-                        <option value="all">All Channels</option>
-                        <option value="whatsapp">WhatsApp</option>
-                        <option value="instagram">Instagram</option>
+                        {TRIGGER_EVENTS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                       </select>
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
-
-            {/* CONDITION CONFIG */}
-            {selectedNode.type === 'condition' && selectedNode.index !== null && (
-              <div className="space-y-6">
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Field</label>
-                  <select 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
-                    value={form.conditions[selectedNode.index].field}
-                    onChange={(e) => updateCondition(selectedNode.index, 'field', e.target.value)}
-                  >
-                    {conditionFields.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Operator</label>
-                  <select 
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
-                    value={form.conditions[selectedNode.index].operator}
-                    onChange={(e) => updateCondition(selectedNode.index, 'operator', e.target.value)}
-                  >
-                    {conditionOperators.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-                {!['is_empty', 'is_not_empty'].includes(form.conditions[selectedNode.index].operator) && (
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Value</label>
-                    <input 
-                      type="text" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
-                      value={form.conditions[selectedNode.index].value}
-                      onChange={(e) => updateCondition(selectedNode.index, 'value', e.target.value)}
-                    />
-                  </div>
                 )}
-              </div>
-            )}
 
-            {/* ACTION CONFIG */}
-            {selectedNode.type === 'action' && selectedNode.index !== null && (
-              <div className="space-y-6">
-                <p className="text-xs text-slate-500 italic">Configure step behaviors below</p>
-                
-                {form.actions[selectedNode.index].type === 'send_text_message' && (
+                {selectedNode.data.type === 'send_text_message' && (
                   <div>
-                    <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Message Content</label>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Message Content</label>
                     <textarea 
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                      rows="4"
-                      value={form.actions[selectedNode.index].config.messageContent}
-                      onChange={(e) => updateActionConfig(selectedNode.index, { messageContent: e.target.value })}
+                      rows={5}
+                      value={selectedNode.data.config.messageContent || ''}
+                      onChange={(e) => updateNodeConfig({ messageContent: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm"
                     />
                   </div>
                 )}
 
-                {form.actions[selectedNode.index].type === 'send_template_message' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Template</label>
-                      <select 
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                        value={form.actions[selectedNode.index].config.templateId}
-                        onChange={(e) => updateActionConfig(selectedNode.index, { templateId: e.target.value })}
-                      >
-                        <option value="">Select template...</option>
-                        {templates.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-                      </select>
-                    </div>
+                {selectedNode.data.type === 'send_template_message' && (
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Template</label>
+                    <select 
+                      value={selectedNode.data.config.templateId || ''}
+                      onChange={(e) => {
+                        const tpl = templates.find(t => t._id === e.target.value);
+                        updateNodeConfig({ templateId: e.target.value, templateName: tpl?.name });
+                      }}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                    >
+                      <option value="">Choose Template...</option>
+                      {templates.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                    </select>
                   </div>
                 )}
 
-                {form.actions[selectedNode.index].type === 'save_response' && (
-                  <div className="space-y-4">
+                {selectedNode.type === 'condition' && (
+                  <div className="space-y-5">
                     <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Save As</label>
-                      <select 
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
-                        value={form.actions[selectedNode.index].config.saveAs?.type}
-                        onChange={(e) => updateActionConfig(selectedNode.index, { saveAs: { ...form.actions[selectedNode.index].config.saveAs, type: e.target.value } })}
-                      >
-                        <option value="trait">User Trait (Persistent)</option>
-                        <option value="variable">Variables (Temporary)</option>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Field</label>
+                      <select value={selectedNode.data.field || ''} onChange={(e) => updateNodeData({ field: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
+                        {CONDITION_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Name</label>
-                      <input 
-                        type="text" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
-                        placeholder="e.g., favorite_color"
-                        value={form.actions[selectedNode.index].config.saveAs?.name}
-                        onChange={(e) => updateActionConfig(selectedNode.index, { saveAs: { ...form.actions[selectedNode.index].config.saveAs, name: e.target.value } })}
-                      />
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Operator</label>
+                      <select value={selectedNode.data.operator || ''} onChange={(e) => updateNodeData({ operator: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
+                        {CONDITION_OPERATORS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Value</label>
+                      <input type="text" value={selectedNode.data.value || ''} onChange={(e) => updateNodeData({ value: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm" />
                     </div>
                   </div>
                 )}
-                
-                {/* Fallback for other types */}
-                {!['send_text_message', 'send_template_message', 'save_response'].includes(form.actions[selectedNode.index].type) && (
-                  <div className="text-center py-8 text-slate-400 italic text-sm">
-                    Additional settings for {form.actions[selectedNode.index].type} coming soon.
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Rate Limit Settings */}
-          <section className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-            <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Limits & Safety</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 block mb-1">Max/Hr</label>
-                <input 
-                  type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold"
-                  value={form.rateLimit?.maxExecutions || 100}
-                  onChange={(e) => setForm({ ...form, rateLimit: { ...form.rateLimit, maxExecutions: parseInt(e.target.value) }})}
-                />
-              </div>
-              <div>
-                <label className="text-[9px] font-bold text-slate-400 block mb-1">Cooldown (s)</label>
-                <input 
-                  type="number" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold"
-                  value={form.rateLimit?.perContactCooldown || 300}
-                  onChange={(e) => setForm({ ...form, rateLimit: { ...form.rateLimit, perContactCooldown: parseInt(e.target.value) }})}
-                />
               </div>
             </div>
-          </section>
+          )}
         </div>
       </div>
     </div>
   );
-
 }

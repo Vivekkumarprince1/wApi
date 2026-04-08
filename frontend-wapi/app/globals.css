@@ -110,10 +110,20 @@
   ::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.2);
     border-radius: 999px;
+    border: 1px solid transparent;
+    background-clip: content-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.35);
+    background: hsl(var(--muted-foreground) / 0.4);
+    border: 1px solid transparent;
+    background-clip: content-box;
+  }
+
+  /* Support for Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
   }
   * {
     @apply border-border outline-ring/50;

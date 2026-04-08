@@ -9,6 +9,7 @@ import {
 } from '@/lib/api';
 import QuotaWarning from './QuotaWarning';
 import { useAuthStore } from '@/store/authStore';
+import FlashLoader from '@/components/ui/FlashLoader';
 
 const BulkMessageSender = () => {
   const workspace = useAuthStore(state => state.workspace);
@@ -399,10 +400,7 @@ const BulkMessageSender = () => {
             </div>
 
             {loadingContacts ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-                <p className="mt-2 text-gray-600">Loading contacts...</p>
-              </div>
+              <FlashLoader />
             ) : (
               <>
                 <div className="mb-4">

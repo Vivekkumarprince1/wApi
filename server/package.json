@@ -23,6 +23,7 @@
     "lint:fix": "eslint src/**/*.js --fix"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^2.4.3",
     "bull": "^4.16.5",
     "bullmq": "^1.91.1",

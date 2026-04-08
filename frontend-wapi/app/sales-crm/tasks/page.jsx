@@ -5,6 +5,7 @@ import { FaTasks, FaPlus, FaCalendarAlt, FaCheck, FaClock, FaUser, FaFilter, FaS
 import { listSalesTasks, createSalesTask, toggleSalesTaskStatus, deleteSalesTask, getPipelines, listDeals } from "@/lib/api/sales";
 import { fetchContacts } from "@/lib/api/contacts";
 import { toast } from "react-hot-toast";
+import FlashLoader from "@/components/ui/FlashLoader";
 
 export default function SalesTasksPage() {
   const [tasks, setTasks] = useState([]);
@@ -195,10 +196,7 @@ export default function SalesTasksPage() {
 
         {/* Tasks View */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            <p className="text-muted-foreground font-medium animate-pulse">Syncing your sales velocity...</p>
-          </div>
+          <FlashLoader />
         ) : filteredTasks.length === 0 ? (
           <div className="text-center py-32 bg-card rounded-[3rem] border-2 border-dashed border-border/50 flex flex-col items-center">
             <div className="w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mb-6">
