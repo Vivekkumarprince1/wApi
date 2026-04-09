@@ -1,7 +1,20 @@
+const { env } = require('../../config');
+
 function errorHandler(err, req, res, next) {
-  console.error(err);
+  if (env === 'development') {
+    console.error(err);
+  }
+  
   const status = err.status || 500;
-  res.status(status).json({ success: false, message: err.message || 'Internal Server Error' });
+  const message = (env === 'production' && status === 500) 
+    ? 'Internal Server Error' 
+    : err.message || 'Internal Server Error';
+
+  res.status(status).json({ 
+    success: false, 
+    message 
+  });
 }
 
 module.exports = errorHandler;
+

@@ -1,15 +1,9 @@
 import { create } from 'zustand';
 import api from '@/lib/axios';
 
-function setAuthCookie(token) {
-    if (typeof document !== 'undefined') {
-        document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-    }
-}
-
 const clearAuthCookie = () => {
     if (typeof document !== 'undefined') {
-        document.cookie = 'auth_token=; path=/; max-age=0';
+        document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
     }
 }
 
@@ -29,10 +23,14 @@ export const useAuthStore = create((set, get) => ({
     workspace: null,
     stage1Complete: false,
     phoneStatus: 'NOT_CONNECTED',
-    phoneNumber: undefined,
+    phone: {
+        number: null,
+        verified: false
+    },
     loading: true,
     lastFetchTime: 0,
     inFlightPromise: null,
+    nextStep: null,
 
     // Permissions
     authenticated: false,
@@ -61,46 +59,29 @@ export const useAuthStore = create((set, get) => ({
     },
 
     fetchSession: async (force = false) => {
-        const { lastFetchTime, inFlightPromise } = get();
-        const now = Date.now();
-        const MIN_FETCH_INTERVAL = 3000;
-
-        if (!force && now - lastFetchTime < MIN_FETCH_INTERVAL) return;
+        const { inFlightPromise } = get();
         if (inFlightPromise) return inFlightPromise;
-
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-        if (!token) {
-            set({ user: null, workspace: null, loading: false });
-            clearAuthCookie();
-            return;
-        }
-
-        setAuthCookie(token);
 
         const doFetch = async () => {
             try {
-                set({ lastFetchTime: Date.now() });
-                const [authData, stage1Data] = await Promise.all([
-                    api.get('/auth/me').catch(() => null),
-                    api.get('/onboarding/bsp/stage1-status').catch(() => ({
-                        stage1: { complete: false, details: { phoneStatus: 'NOT_CONNECTED' } }
-                    }))
-                ]);
-
-                if (!authData || !authData.user) {
-                    if (typeof window !== 'undefined') localStorage.removeItem('token');
+                const sessionData = await api.get('/auth/session');
+                
+                if (!sessionData || !sessionData.authenticated) {
                     clearAuthCookie();
-                    set({ user: null, workspace: null, loading: false, inFlightPromise: null });
+                    set({ 
+                        user: null, 
+                        workspace: null, 
+                        loading: false, 
+                        inFlightPromise: null, 
+                        authenticated: false,
+                        phone: { number: null, verified: false }
+                    });
                     return;
                 }
 
-                const userData = authData.user;
-                const userWorkspace = authData.workspace;
-
+                const { user: userData, workspace: userWorkspace, phone: phoneData } = sessionData;
                 const role = userData.role || 'viewer';
-                const stage1Complete = stage1Data?.stage1?.complete || false;
-                const trialEndsAt = userData.trialEndsAt;
+                const stage1Complete = userWorkspace?.stage1?.complete || false;
 
                 // Robust Plan Parsing with Starter Fallback
                 let activePlan = userWorkspace?.plan || userData.plan;
@@ -108,51 +89,52 @@ export const useAuthStore = create((set, get) => ({
                     activePlan = STARTER_PLAN_FALLBACK;
                 }
 
-                let trialDaysLeft = null;
-                if (trialEndsAt) {
-                    trialDaysLeft = Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86400000));
-                }
-                const isOnTrial = activePlan.slug === 'trial' || (trialDaysLeft !== null && trialDaysLeft > 0);
-
                 set({
                     user: {
-                        id: userData._id || userData.id,
+                        id: userData.id,
                         name: userData.name,
                         email: userData.email,
                         role: role,
                         plan: activePlan,
-                        emailVerified: userData.emailVerified ?? true,
-                        trialEndsAt: trialEndsAt,
-                        workspace: userWorkspace ? (typeof userWorkspace === 'string' ? userWorkspace : (userWorkspace._id || userWorkspace.id)) : null,
+                        emailVerified: userData.emailVerified,
+                        workspace: userWorkspace ? userWorkspace.id : null,
                     },
                     workspace: userWorkspace ? {
-                        id: typeof userWorkspace === 'string' ? userWorkspace : (userWorkspace._id || userWorkspace.id),
-                        name: userWorkspace.name || 'My Workspace',
-                        wabaId: userWorkspace.wabaId,
-                        owner: userWorkspace.owner,
-                        gupshupIdentity: userWorkspace.gupshupIdentity || null,
-                        businessVerified: userWorkspace.businessVerified || false,
-                        verification: userWorkspace.verification,
-                        onboardingStatus: userWorkspace.onboarding?.status || userWorkspace.onboardingStatus,
+                        id: userWorkspace.id,
+                        name: userWorkspace.name,
+                        whatsappConnected: userWorkspace.whatsappConnected,
+                        onboardingStatus: userWorkspace.onboarding?.status,
+                        stage1: userWorkspace.stage1,
+                        // Hydration data
+                        address: userWorkspace.address,
+                        city: userWorkspace.city,
+                        state: userWorkspace.state,
+                        country: userWorkspace.country,
+                        zipCode: userWorkspace.zipCode,
+                        industry: userWorkspace.industry,
+                        website: userWorkspace.website,
+                        onboarding: userWorkspace.onboarding
                     } : null,
                     stage1Complete: stage1Complete,
-                    phoneStatus: stage1Data?.stage1?.details?.phoneStatus || 'NOT_CONNECTED',
-                    phoneNumber: stage1Data?.stage1?.details?.phoneNumber,
+                    phoneStatus: userWorkspace?.stage1?.details?.phoneStatus || (phoneData?.verified ? 'CONNECTED' : 'NOT_CONNECTED'),
+                    phone: {
+                        number: phoneData?.number || null,
+                        verified: !!phoneData?.verified
+                    },
                     
-                    // Computed
                     authenticated: true,
+                    nextStep: sessionData.nextStep,
                     canCreateTemplates: stage1Complete && ['owner', 'manager', 'admin'].includes(role),
                     canCreateCampaigns: stage1Complete && ['owner', 'manager', 'admin'].includes(role),
                     canSendMessages: stage1Complete && ['owner', 'manager', 'agent', 'admin'].includes(role),
                     canManageTeam: ['owner', 'manager', 'admin'].includes(role),
                     canViewBilling: ['owner', 'admin'].includes(role),
-                    canAccessAdmin: role === 'owner' || role === 'admin',
-                    isOnTrial,
-                    trialDaysLeft,
                 });
+                return sessionData;
             } catch (err) {
                 console.error('[AuthStore] Session fetch failed:', err);
                 set({ user: null, authenticated: false });
+                throw err;
             } finally {
                 set({ loading: false, inFlightPromise: null });
             }
@@ -165,9 +147,6 @@ export const useAuthStore = create((set, get) => ({
 
     logout: () => {
         api.post('/auth/logout').catch(() => {});
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-        }
         clearAuthCookie();
         set({
             user: null,
@@ -185,9 +164,6 @@ export const useAuthStore = create((set, get) => ({
     deleteAccount: async () => {
         try {
             await api.delete('/auth/account');
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem('token');
-            }
             clearAuthCookie();
             set({
                 user: null,

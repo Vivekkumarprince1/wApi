@@ -19,6 +19,23 @@ const EMAIL_VERIFY_TTL_SECONDS = 30 * 60; // 30 minutes
 const PASSWORD_RESET_TTL_SECONDS = 30 * 60; // 30 minutes
 const DEFAULT_FRONTEND_URL = 'http://localhost:3000';
 
+function sendAuthToken(res, user, token) {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction || process.env.COOKIE_SECURE === 'true',
+    sameSite: isProduction ? 'strict' : 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    path: '/'
+  };
+
+  res.cookie('auth_token', token, cookieOptions);
+  
+  // Also return token in JSON for backward compatibility where needed (client can ignore it if using cookies)
+  return res.json({ token, user });
+}
+
 function normalizeOrigin(origin) {
   return typeof origin === 'string' ? origin.replace(/\/$/, '') : '';
 }
@@ -100,10 +117,39 @@ function maskPhoneNumber(phone) {
   return `${digits.slice(0, 3)}******${digits.slice(-2)}`;
 }
 
+/**
+ * Precomputes the next onboarding step for a user/workspace.
+ * Centralizing this logic on the server reduces route churn and ensures consistency.
+ */
+function getOnboardingDestination(user, workspace) {
+  // 1. Email Verification (Auth Bootstrap)
+  if (!user.emailVerified) {
+    return '/auth/verify-email?reason=onboarding';
+  }
+
+  // 2. Mobile Verification (Essential for BSP profile)
+  const phoneVerified = !!user.phoneVerified;
+  if (!phoneVerified) {
+    return '/onboarding/verify-mobile';
+  }
+
+  // 3. Business Information (Stage 1 Complete)
+  const businessInfoCompleted = workspace?.onboarding?.businessInfoCompleted || false;
+  if (!businessInfoCompleted) {
+    return '/onboarding/business-info';
+  }
+
+  // 4. WhatsApp Connection (Optional but recommended for dashboard utilities)
+  // If we want a specific onboarding page for WhatsApp connection, we add it here.
+  // For now, if business info is done, they reach the dashboard.
+  
+  return '/dashboard';
+}
+
 // Send OTP for signup
 async function sendSignupOTP(req, res, next) {
   try {
-    const { email, name, password, phone } = req.body;
+    const { email, name, password } = req.body;
     getRedisClient(); // Ensure Redis is available (required for durable OTP)
 
     // Check if user already exists
@@ -119,7 +165,6 @@ async function sendSignupOTP(req, res, next) {
       email,
       name,
       password,
-      phone,
       expiresAt,
       lastSentAt: Date.now()
     }, OTP_EXPIRY_SECONDS);
@@ -212,7 +257,7 @@ async function verifySignupOTP(req, res, next) {
     }
 
     // OTP verified, extract stored user data
-    const { name, password, phone } = stored;
+    const { name, password } = stored;
     await deleteKey(`otp:signup:${email}`);
 
     const normalizedBusinessName = typeof businessName === 'string' ? businessName.trim() : '';
@@ -269,8 +314,7 @@ async function verifySignupOTP(req, res, next) {
       passwordHash,
       workspace: workspace._id,
       role: 'owner',
-      emailVerified: true,
-      phone: phone || undefined
+      emailVerified: true
     });
     workspace.owner = user._id;
     await workspace.save();
@@ -278,7 +322,7 @@ async function verifySignupOTP(req, res, next) {
     await Permission.seedOwnerPermissions(workspace._id, user._id);
 
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
-    res.json({ token, user });
+    return sendAuthToken(res, user, token);
   } catch (err) {
     next(err);
   }
@@ -389,7 +433,7 @@ async function verifyLoginOTP(req, res, next) {
     }
 
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
-    res.json({ token, user });
+    return sendAuthToken(res, user, token);
   } catch (err) {
     next(err);
   }
@@ -499,8 +543,7 @@ async function signup(req, res, next) {
       companyLocation,
       annualRevenue,
       certificationType,
-      certificationNumber,
-      phone
+      certificationNumber
     } = req.body;
     const existing = await User.findOne({ email });
     if (existing) return res.status(400).json({ message: 'Email already registered' });
@@ -559,7 +602,6 @@ async function signup(req, res, next) {
       passwordHash,
       workspace: workspace._id,
       role: 'owner',
-      phone: phone || undefined,
       phoneVerified: false
     });
     workspace.owner = user._id;
@@ -570,11 +612,11 @@ async function signup(req, res, next) {
     processSignupProvisioning(user._id, workspace._id, {
       name,
       email,
-      phone
+      phone: null
     }).catch(err => console.error('[ProvisioningError] Background signup provisioning failed:', err.message));
 
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
-    res.json({ token, user });
+    return sendAuthToken(res, user, token);
   } catch (err) {
     next(err);
   }
@@ -589,7 +631,62 @@ async function login(req, res, next) {
     const ok = await bcrypt.compare(password, user.passwordHash || '');
     if (!ok) return res.status(401).json({ message: 'Invalid credentials' });
     const token = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
-    res.json({ token, user });
+    return sendAuthToken(res, user, token);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Get current session (unified user + workspace + onboarding)
+async function session(req, res, next) {
+  try {
+    const user = await User.findById(req.user._id).select('-passwordHash');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const workspace = await Workspace.findById(user.workspace).populate('plan');
+    
+    // Lightweight Stage 1 Check (Direct DB access, no external/heavy middleware)
+    const stage1Complete = !!(
+      workspace?.bspWabaId && 
+      (workspace?.bspPhoneNumberId || workspace?.phoneNumberId) && 
+      workspace?.bspPhoneStatus === 'CONNECTED'
+    );
+
+    // Comprehensive response (Optimized for Fast Paint)
+    const data = {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        emailVerified: !!user.emailVerified,
+        createdAt: user.createdAt
+      },
+      workspace: workspace ? {
+        id: workspace._id,
+        name: workspace.name,
+        plan: workspace.plan || 'free',
+        whatsappConnected: workspace.whatsappConnected || stage1Complete,
+        onboarding: workspace.onboarding,
+        stage1: { complete: stage1Complete }, // Minimal stage1 status
+        // Cached business info for hydration
+        address: workspace.address,
+        city: workspace.city,
+        state: workspace.state,
+        country: workspace.country,
+        zipCode: workspace.zipCode,
+        industry: workspace.industry,
+        website: workspace.website
+      } : null,
+      phone: {
+        number: user.phone,
+        verified: !!user.phoneVerified
+      },
+      nextStep: getOnboardingDestination(user, workspace),
+      authenticated: true
+    };
+
+    res.json(data);
   } catch (err) {
     next(err);
   }
@@ -715,6 +812,7 @@ async function logout(req, res, next) {
   try {
     // In a JWT-based system, logout is typically handled client-side
     // But we can add server-side logic here if needed (e.g., token blacklisting)
+    res.clearCookie('auth_token');
     res.json({
       success: true,
       message: 'Logged out successfully'
@@ -836,14 +934,15 @@ async function verifyEmail(req, res, next) {
       return res.status(400).json({ message: 'OTP expired' });
     }
 
-    // NOTE: Email displays only first 6 chars of token (uppercase), so compare accordingly.
-    const storedCode = stored.token.substring(0, 6).toUpperCase();
-    const enteredCode = otp.toUpperCase();
-    if (storedCode !== enteredCode) {
-      return res.status(400).json({ message: 'Invalid OTP' });
+    // Proper token comparison
+    const storedToken = String(stored.token || '');
+    const enteredToken = String(otp || '');
+
+    if (!storedToken || storedToken !== enteredToken) {
+      return res.status(400).json({ message: 'Invalid or expired verification token' });
     }
 
-    // OTP verified, mark email as verified
+    // Token verified, mark email as verified
     await deleteKey(`email-verify:${user._id}`);
     user.emailVerified = true;
     await user.save();
@@ -1064,7 +1163,14 @@ async function googleOAuthCallback(req, res, next) {
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
     if (!user) {
       const workspace = await Workspace.create({ name: `${name}'s workspace` });
-      user = await User.create({ name, email, googleId, workspace: workspace._id, role: 'owner' });
+      user = await User.create({ 
+        name, 
+        email, 
+        googleId, 
+        workspace: workspace._id, 
+        role: 'owner',
+        emailVerified: true // Trust Google email
+      });
       workspace.owner = user._id;
       await workspace.save();
       await Permission.seedOwnerPermissions(workspace._id, user._id);
@@ -1082,11 +1188,20 @@ async function googleOAuthCallback(req, res, next) {
 
     const authToken = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
 
-    // Redirect back to frontend with token in query (frontend should capture it)
+    // Set secure cookie
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.cookie('auth_token', authToken, {
+      httpOnly: true,
+      secure: isProduction || process.env.COOKIE_SECURE === 'true',
+      sameSite: isProduction ? 'strict' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/'
+    });
+
+    // Redirect back to frontend WITHOUT token in URL
     const frontend = frontendOrigin || DEFAULT_FRONTEND_URL;
-    // Log the redirect URI used (helpful for diagnosing redirect_uri_mismatch)
     console.log('[GoogleOAuth] Used redirect URI:', redirectUri);
-    return res.redirect(`${frontend}/auth/google/callback?token=${encodeURIComponent(authToken)}`);
+    return res.redirect(`${frontend}/auth/google/callback`);
   } catch (err) {
     console.error('Google OAuth callback error:', err.response?.data || err.message);
     return res.status(500).send('Google OAuth callback failed');
@@ -1146,6 +1261,7 @@ async function googleOAuthLogin(req, res, next) {
         googleId,
         workspace: workspace._id,
         role: 'owner',
+        emailVerified: true, // Trust Google email
         phoneVerified: false,
       });
       workspace.owner = user._id;
@@ -1205,6 +1321,7 @@ async function facebookOAuthLogin(req, res, next) {
         email: email || `${facebookId}@facebook.com`,
         facebookId,
         role: 'owner',
+        emailVerified: true, // Trust Facebook email
         workspace: workspace._id,
       });
       workspace.owner = user._id;
@@ -1255,5 +1372,6 @@ module.exports = {
   sendEmailVerification,
   verifyEmail,
   requestPasswordReset,
-  resetPassword
+  resetPassword,
+  session
 };

@@ -5,19 +5,18 @@ export const apiClient = api;
 export const API_URL = api.defaults.baseURL;
 
 export const getToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('token');
-  }
+  // Token is now handled via HttpOnly cookies by the browser
   return null;
 };
 
 export const isAuthenticated = () => {
-  return !!getToken();
+  // This should ideally be checked via the authStore's authenticated state
+  return typeof document !== 'undefined' && document.cookie.includes('auth_token');
 };
 
 export const getAuthHeaders = () => {
-  const token = getToken();
-  return token ? { 'Authorization': `Bearer ${token}` } : {};
+  // Authorization header is no longer needed as cookies are used
+  return {};
 };
 
 export const get = (endpoint, config = {}) => api.get(endpoint, config);

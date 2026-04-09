@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { get, getOnboardingStatus, saveBusinessInfo } from "@/lib/api";
+import { get, saveBusinessInfo } from "@/lib/api";
+import { FaSpinner } from "react-icons/fa";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -13,7 +14,11 @@ const businessInfoSchema = z.object({
   companySize: z.string().optional(),
   annualRevenue: z.string().optional(),
   website: z.string().url('Invalid website URL').optional().or(z.literal('')),
-  companyLocation: z.string().optional(),
+  address: z.string().min(5, 'Main address is required'),
+  city: z.string().min(2, 'City is required'),
+  state: z.string().min(2, 'State is required'),
+  country: z.string().min(2, 'Country is required'),
+  zipCode: z.string().min(2, 'Zip code is required'),
   certificationType: z.string().min(1, 'Certification Type is required'),
   certificationNumber: z.string().min(2, 'Certification Number is required'),
   description: z.string().max(300, 'Description cannot exceed 300 characters').optional(),
@@ -31,9 +36,11 @@ const INDUSTRIES = [
   "Other"
 ];
 
+import { useAuthStore } from "@/store/authStore";
+
 export default function BusinessInfoPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const { user, workspace, loading: authLoading, fetchSession } = useAuthStore();
   const [error, setError] = useState("");
 
   const {
@@ -48,7 +55,11 @@ export default function BusinessInfoPage() {
       industry: "",
       companySize: "",
       website: "",
-      companyLocation: "",
+      address: "",
+      city: "",
+      state: "",
+      country: "",
+      zipCode: "",
       annualRevenue: "",
       description: "",
       certificationType: "",
@@ -57,85 +68,68 @@ export default function BusinessInfoPage() {
   });
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [me, onboarding] = await Promise.all([
-          get('/auth/me'),
-          getOnboardingStatus()
-        ]);
+    if (authLoading) return;
 
-        if (onboarding?.status?.steps?.businessInfo) {
-          router.replace('/dashboard');
-          return;
-        }
+    if (!user) {
+        router.push('/auth/login');
+        return;
+    }
 
-        if (!onboarding?.status?.steps?.phoneVerified) {
-          router.replace('/onboarding/verify-mobile');
-          return;
-        }
+    if (!user.emailVerified) {
+      router.replace('/auth/verify-email?reason=onboarding');
+      return;
+    }
 
-        const workspace = me?.workspace || {};
-        const docs = workspace?.documents || {};
-        const docType = docs?.gstNumber
-          ? 'gst'
-          : docs?.msmeNumber
-            ? 'msme'
-            : docs?.panNumber
-              ? 'pan'
-              : '';
-        const docNumber = docs?.gstNumber || docs?.msmeNumber || docs?.panNumber || '';
+    // Check onboarding status from session
+    if (workspace?.onboardingStatus === 'completed' || workspace?.onboarding?.businessInfoCompleted) {
+      router.replace('/dashboard');
+      return;
+    }
 
+    if (!user.phoneVerified && !useAuthStore.getState().phone?.verified) {
+      router.replace('/onboarding/verify-mobile');
+      return;
+    }
+
+    // Hydration from store (Unified Session)
+    if (workspace) {
         reset({
-          businessName: workspace?.businessInfo?.name || '',
-          industry: workspace?.businessInfo?.industry || '',
-          website: workspace?.businessInfo?.website || '',
-          companyLocation: [workspace?.businessInfo?.city, workspace?.businessInfo?.state, workspace?.businessInfo?.country].filter(Boolean).join(', '),
-          certificationType: docType,
-          certificationNumber: docNumber,
-          companySize: "",
-          annualRevenue: "",
-          description: "",
+            businessName: workspace.name || '',
+            industry: workspace.industry || '',
+            website: workspace.website || '',
+            address: workspace.address || '',
+            city: workspace.city || '',
+            state: workspace.state || '',
+            country: workspace.country || '',
+            zipCode: workspace.zipCode || '',
+            companySize: workspace.companySize || '',
+            annualRevenue: workspace.annualRevenue || '',
+            description: workspace.description || '',
+            certificationType: workspace.businessDocuments?.documentType || '',
+            certificationNumber: workspace.businessDocuments?.certificationNumber || '',
         });
-      } catch (_err) {
-        setError('Unable to load business profile. Please refresh and try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    load();
-  }, [router]);
+    }
+  }, [user, workspace, authLoading, router, reset]);
 
   const onSubmit = async (values) => {
     setError('');
 
     try {
-      const payload = {
-        businessName: values.businessName,
-        industry: values.industry,
-        companySize: values.companySize,
-        annualRevenue: values.annualRevenue,
-        website: values.website,
-        address: values.companyLocation,
-        description: values.description,
-        documentType: values.certificationType,
-        gstNumber: values.certificationType === 'gst' ? values.certificationNumber : undefined,
-        msmeNumber: values.certificationType === 'msme' ? values.certificationNumber : undefined,
-        panNumber: values.certificationType === 'pan' ? values.certificationNumber : undefined,
-        certificationNumber: values.certificationNumber
-      };
-
-      await saveBusinessInfo(payload);
+      await saveBusinessInfo(values);
+      await fetchSession(true); // Update store
       router.push('/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to save business info.');
     }
   };
 
-  if (loading) {
+  if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-sm text-muted-foreground">Loading business info form...</div>
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-4">
+            <FaSpinner className="animate-spin text-4xl text-emerald-500" />
+            <div className="text-sm text-slate-400">Loading business profile...</div>
+        </div>
       </div>
     );
   }
@@ -181,7 +175,30 @@ export default function BusinessInfoPage() {
           </div>
 
           <div className="space-y-1">
-            <input {...register("companyLocation")} placeholder="Company Location" className="input-premium" />
+            <input {...register("address")} placeholder="Business Address *" className={`input-premium ${errors.address ? 'border-destructive' : ''}`} />
+            {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <input {...register("city")} placeholder="City *" className={`input-premium ${errors.city ? 'border-destructive' : ''}`} />
+              {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
+            </div>
+            <div className="space-y-1">
+              <input {...register("state")} placeholder="State *" className={`input-premium ${errors.state ? 'border-destructive' : ''}`} />
+              {errors.state && <p className="text-xs text-destructive">{errors.state.message}</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <input {...register("country")} placeholder="Country *" className={`input-premium ${errors.country ? 'border-destructive' : ''}`} />
+              {errors.country && <p className="text-xs text-destructive">{errors.country.message}</p>}
+            </div>
+            <div className="space-y-1">
+              <input {...register("zipCode")} placeholder="Zip Code *" className={`input-premium ${errors.zipCode ? 'border-destructive' : ''}`} />
+              {errors.zipCode && <p className="text-xs text-destructive">{errors.zipCode.message}</p>}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -134,3 +134,4 @@
 {"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-09 22:07:45","value":"The client is closed"}
 {"level":"error","message":"Failed to save partner token to Redis","service":"whatsapp-saas","timestamp":"2026-04-09 22:07:47","value":"The client is closed"}
 {"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-09 22:12:45","value":"The client is closed"}
+{"errorLabelSet":{},"level":"error","message":"[Analytics] getOverview failed:","service":"whatsapp-saas","timestamp":"2026-04-10 01:24:24"}

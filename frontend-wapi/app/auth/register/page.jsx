@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GoogleLogin from '@/components/auth/GoogleLogin';
 import FacebookLogin from '@/components/auth/FacebookLogin';
-import { registerUser, getOnboardingStatus, verifyEmailOtp, resendEmailOtp } from '@/lib/api';
+import { registerUser, verifyEmailOtp, resendEmailOtp } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Mail, Lock, User, ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';
@@ -30,7 +30,6 @@ const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'Invalid phone number format'),
 });
 
 export default function RegisterPage() {
@@ -56,7 +55,6 @@ export default function RegisterPage() {
       name: '',
       email: '',
       password: '',
-      phone: ''
     },
   });
 
@@ -69,99 +67,21 @@ export default function RegisterPage() {
     setError('');
     setSocialError('');
     try {
-      const data = await registerUser(values);
-      if (data?.message?.includes('OTP sent')) {
-        setIsOtpSent(true);
-        setEmailForVerification(values.email);
-        setCountdown(60);
-      }
+      await registerUser(values);
+      const session = await useAuthStore.getState().fetchSession(true);
+      router.push(session.nextStep || '/onboarding/verify-mobile');
     } catch (err) {
       setError(err.message || 'Registration failed');
     }
   };
 
-  const onVerifyOtp = async (e) => {
-    e?.preventDefault();
-    setOtpError('');
-    setOtpLoading(true);
-    const otpString = otp.join('');
-    
-    if (otpString.length < 6) {
-      setOtpError('Please enter the 6-digit code');
-      setOtpLoading(false);
-      return;
-    }
-
-    try {
-      const { token } = await verifyEmailOtp({ email: emailForVerification, otp: otpString });
-      if (token) {
-        localStorage.setItem('token', token);
-        document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-        window.dispatchEvent(new Event('authChange'));
-        await useAuthStore.getState().fetchSession(true);
-      }
-      router.push('/onboarding/verify-mobile');
-    } catch (err) {
-      setOtpError(err.message || 'Verification failed');
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    try {
-      setResendDisabled(true);
-      await resendEmailOtp(emailForVerification);
-      setCountdown(60);
-    } catch (err) {
-      setError(err.message || 'Failed to resend OTP');
-      setResendDisabled(false);
-    }
-  };
-
-  useEffect(() => {
-    let timer;
-    if (countdown > 0) {
-      timer = setInterval(() => setCountdown(prev => prev - 1), 1000);
-    } else {
-      setResendDisabled(false);
-    }
-    return () => clearInterval(timer);
-  }, [countdown]);
-
-  const handleOtpChange = (index, value) => {
-    if (value && !/^\d+$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
-    setOtp(newOtp);
-
-    // Auto-focus next
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
-    }
-  };
-
-  const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const prevInput = document.getElementById(`otp-${index - 1}`);
-      prevInput?.focus();
-    }
-  };
-
-  const handleSocialSuccess = async (result) => {
-    if (result?.token) {
-      localStorage.setItem('token', result.token);
-      document.cookie = `auth_token=${result.token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-      window.dispatchEvent(new Event('authChange'));
-    }
+  const handleSocialSuccess = async () => {
     setSocialError('');
-    
-    const onboarding = await getOnboardingStatus().catch(() => null);
-    router.push(getOnboardingPath(onboarding));
+    const session = await useAuthStore.getState().fetchSession(true);
+    router.push(session.nextStep || '/dashboard');
   };
 
-  const handleFacebookSuccess = (result) => handleSocialSuccess(result);
+  const handleFacebookSuccess = () => handleSocialSuccess();
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -274,144 +194,65 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {isOtpSent ? (
-                <form onSubmit={onVerifyOtp} className="space-y-6">
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-6">
-                      We've sent a 6-digit verification code to<br />
-                      <span className="font-semibold text-foreground">{emailForVerification}</span>
-                    </p>
-                    
-                    <div className="flex justify-between gap-2 mb-4">
-                      {otp.map((digit, index) => (
-                        <input
-                          key={index}
-                          id={`otp-${index}`}
-                          type="text"
-                          maxLength={1}
-                          value={digit}
-                          onChange={(e) => handleOtpChange(index, e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(index, e)}
-                          className="w-12 h-14 text-center text-xl font-bold bg-muted/30 border-2 border-border rounded-xl focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all"
-                        />
-                      ))}
-                    </div>
-
-                    {otpError && <p className="text-xs text-destructive mb-4 text-center">{otpError}</p>}
-
-                    <button
-                      type="submit"
-                      disabled={otpLoading}
-                      className="btn-primary w-full flex items-center justify-center gap-2"
-                    >
-                      {otpLoading ? (
-                        <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <span>Verify & Complete</span>
-                          <ArrowRight className="h-4 w-4" />
-                        </>
-                      )}
-                    </button>
-
-                    <div className="mt-6 text-sm text-muted-foreground">
-                      Didn't receive the code?{' '}
-                      <button
-                        type="button"
-                        onClick={handleResendOtp}
-                        disabled={resendDisabled || countdown > 0}
-                        className="font-semibold text-primary hover:text-primary/80 disabled:opacity-50"
-                      >
-                        {countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setIsOtpSent(false)}
-                      className="mt-4 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      Use a different email address
-                    </button>
+              {/* Registration Form */}
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
+                <div className="space-y-1 relative">
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      id="name"
+                      type="text"
+                      {...register('name')}
+                      className={`input-premium pl-11 ${errors.name ? 'border-destructive' : ''}`}
+                      placeholder="Full Name"
+                    />
                   </div>
-                </form>
-              ) : (
-                <>
-                  {/* Form */}
-                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
-                    <div className="space-y-1 relative">
-                      <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="name"
-                          type="text"
-                          {...register('name')}
-                          className={`input-premium pl-11 ${errors.name ? 'border-destructive' : ''}`}
-                          placeholder="Full Name"
-                        />
-                      </div>
-                      {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
-                    </div>
+                  {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+                </div>
 
-                    <div className="space-y-1 relative">
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="email"
-                          type="email"
-                          {...register('email')}
-                          className={`input-premium pl-11 ${errors.email ? 'border-destructive' : ''}`}
-                          placeholder="Email Address"
-                        />
-                      </div>
-                      {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-                    </div>
+                <div className="space-y-1 relative">
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      id="email"
+                      type="email"
+                      {...register('email')}
+                      className={`input-premium pl-11 ${errors.email ? 'border-destructive' : ''}`}
+                      placeholder="Email Address"
+                    />
+                  </div>
+                  {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
+                </div>
 
-                    <div className="space-y-1 relative">
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="password"
-                          type="password"
-                          {...register('password')}
-                          className={`input-premium pl-11 ${errors.password ? 'border-destructive' : ''}`}
-                          placeholder="Password"
-                        />
-                      </div>
-                      {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
-                    </div>
+                <div className="space-y-1 relative">
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <input
+                      id="password"
+                      type="password"
+                      {...register('password')}
+                      className={`input-premium pl-11 ${errors.password ? 'border-destructive' : ''}`}
+                      placeholder="Password"
+                    />
+                  </div>
+                  {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+                </div>
 
-                    <div className="space-y-1 relative">
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          id="phone"
-                          type="tel"
-                          {...register('phone')}
-                          className={`input-premium pl-11 ${errors.phone ? 'border-destructive' : ''}`}
-                          placeholder="Phone Number (e.g., +1234567890)"
-                        />
-                      </div>
-                      {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
-                    </div>
-
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="btn-primary w-full flex items-center justify-center gap-2 group"
-                    >
-                      {isSubmitting ? (
-                        <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <span>Create Account</span>
-                          <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
-                        </>
-                      )}
-                    </button>
-                  </form>
-                </>
-              )}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="btn-primary w-full flex items-center justify-center gap-2 group"
+                >
+                  {isSubmitting ? (
+                    <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Create Account</span>
+                      <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                    </>
+                  )}
+                </button>
+              </form>
 
               {/* Terms */}
               <p className="mt-5 text-xs text-muted-foreground text-center">

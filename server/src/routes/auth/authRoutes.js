@@ -22,7 +22,8 @@ const {
   sendEmailVerification,
   verifyEmail,
   requestPasswordReset,
-  resetPassword
+  resetPassword,
+  session
 } = require('../../controllers/auth/authController');
 const validate = require('../../middlewares/infrastructure/validate');
 const auth = require('../../middlewares/auth');
@@ -45,8 +46,7 @@ router.post('/verify-signup-otp', [
   body('description').optional().isString(),
   body('companyLocation').optional().isString(),
   body('certificationType').optional().isIn(['gst', 'msme', 'pan', 'other']),
-  body('certificationNumber').optional().isString(),
-  body('phone').optional().isString()
+  body('certificationNumber').optional().isString()
 ], validate, verifySignupOTP);
 router.post('/send-login-otp', [body('email').isEmail()], validate, sendLoginOTP);
 router.post('/resend-login-otp', [body('email').isEmail()], validate, resendLoginOTP);
@@ -67,13 +67,13 @@ router.post('/signup', [
   body('description').optional().isString(),
   body('companyLocation').optional().isString(),
   body('certificationType').optional().isIn(['gst', 'msme', 'pan', 'other']),
-  body('certificationNumber').optional().isString(),
-  body('phone').optional().isString()
+  body('certificationNumber').optional().isString()
 ], validate, signup);
 router.post('/login', [body('email').isEmail(), body('password').notEmpty()], validate, login);
 
 // Protected routes
 router.get('/me', auth, me);
+router.get('/session', auth, session);
 router.post('/google/login', [body('token').notEmpty()], validate, googleOAuthLogin);
 router.get('/google/debug', getGoogleDebug);
 router.get('/google/auth-url', getGoogleAuthUrl);

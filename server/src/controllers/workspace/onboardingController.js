@@ -86,6 +86,13 @@ async function saveBusinessInfo(req, res, next) {
       certificationNumber
     } = req.body;
 
+    // Basic validation for structured address fields
+    if (!address || address.length < 5) return res.status(400).json({ message: 'Valid address is required' });
+    if (!city) return res.status(400).json({ message: 'City is required' });
+    if (!state) return res.status(400).json({ message: 'State is required' });
+    if (!country) return res.status(400).json({ message: 'Country is required' });
+    if (!zipCode) return res.status(400).json({ message: 'Zip code is required' });
+
     const user = await User.findById(req.user._id);
     
     if (!user) {

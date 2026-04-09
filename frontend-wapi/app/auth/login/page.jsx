@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import GoogleLogin from '@/components/auth/GoogleLogin';
 import FacebookLogin from '@/components/auth/FacebookLogin';
-import { loginUser, getOnboardingStatus } from '@/lib/api';
+import { loginUser } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { FaWhatsapp } from 'react-icons/fa';
 import { Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
@@ -63,48 +63,24 @@ export default function LoginPage() {
     setSocialError('');
 
     try {
-      const data = await loginUser(values);
-      if (data?.token) {
-        localStorage.setItem('token', data.token);
-        document.cookie = `auth_token=${data.token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-        window.dispatchEvent(new Event('authChange'));
-        // Wait for the store to update before proceeding
-        await useAuthStore.getState().fetchSession(true);
-      }
-
-      const onboarding = await getOnboardingStatus().catch(() => null);
-      await redirectAfterLogin(onboarding);
+      await loginUser(values);
+      const session = await useAuthStore.getState().fetchSession(true);
+      router.push(session.nextStep || '/dashboard');
     } catch (err) {
       setError(err.message || 'Login failed');
     }
   };
 
-  const handleSocialSuccess = async (result) => {
-    if (result?.token) {
-      localStorage.setItem('token', result.token);
-      document.cookie = `auth_token=${result.token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-      window.dispatchEvent(new Event('authChange'));
-      await useAuthStore.getState().fetchSession(true);
-    }
+  const handleSocialSuccess = async () => {
     setSocialError('');
-
-    // Use result data
-    const onboarding = await getOnboardingStatus().catch(() => null);
-    await redirectAfterLogin(onboarding);
+    const session = await useAuthStore.getState().fetchSession(true);
+    router.push(session.nextStep || '/dashboard');
   };
 
-  const handleFacebookSuccess = async (result) => {
-    if (result?.token) {
-      localStorage.setItem('token', result.token);
-      document.cookie = `auth_token=${result.token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
-      window.dispatchEvent(new Event('authChange'));
-      await useAuthStore.getState().fetchSession(true);
-    }
+  const handleFacebookSuccess = async () => {
     setSocialError('');
-
-    // Use result data
-    const onboarding = await getOnboardingStatus().catch(() => null);
-    await redirectAfterLogin(onboarding);
+    const session = await useAuthStore.getState().fetchSession(true);
+    router.push(session.nextStep || '/dashboard');
   };
 
   return (

@@ -27,12 +27,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     loadingStore.startRequest();
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
+    // Token is now handled automatically via HttpOnly cookies (withCredentials: true)
     return config;
   },
   (error) => {
@@ -52,9 +47,8 @@ api.interceptors.response.use(
     
     // Handle 401
     if (error.response?.status === 401) {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('token');
-      }
+      // In cookie-based auth, we don't need to manually clear localStorage here
+      // The fetchSession in authStore will handle the state update if the cookie is invalid
     }
 
     // Handle 402 (Payment Required / Plan Limit / Wallet Balance)

@@ -26,7 +26,7 @@ export const verifySignupOTP = async (otpData) => {
     throw new Error(error.message || 'Failed to verify OTP');
   }
   const data = await response.json();
-  if (data.token) localStorage.setItem('token', data.token);
+
   return data;
 };
 
@@ -56,7 +56,7 @@ export const verifyLoginOTP = async (otpData) => {
     throw new Error(error.message || 'Failed to verify OTP');
   }
   const data = await response.json();
-  if (data.token) localStorage.setItem('token', data.token);
+
   return data;
 };
 
@@ -86,7 +86,7 @@ export const verifyEmailOtp = async (otpData) => {
     throw new Error(error.message || 'Failed to verify OTP');
   }
   const data = await response.json();
-  if (data.token) localStorage.setItem('token', data.token);
+
   return data;
 };
 
@@ -116,7 +116,7 @@ export const loginUser = async (credentials) => {
     throw new Error(error.message || 'Failed to login');
   }
   const data = await response.json();
-  if (data.token) localStorage.setItem('token', data.token);
+
   return data;
 };
 
@@ -133,25 +133,31 @@ export const logoutUser = async () => {
     }
     return response.json();
   } finally {
-    localStorage.removeItem('token');
+    // Cookie cleared by backend or clearAuthCookie helper in store
   }
 };
 
 export const getCurrentUser = async () => {
-  const response = await fetch(`${API_URL}/auth/me`, {
+  const response = await fetch(`${API_URL}/auth/session`, {
     headers: getAuthHeaders(),
     credentials: 'include',
   });
   if (!response.ok) {
     if (response.status === 401) {
-      localStorage.removeItem('token');
       return null;
     }
     const error = await response.json();
-    throw new Error(error.message || 'Failed to get user');
+    throw new Error(error.message || 'Failed to get session');
   }
-  const data = await response.json();
-  return data.user;
+  return response.json();
+};
+
+export const requestPasswordReset = async (email) => {
+  return post('/auth/request-password-reset', { email });
+};
+
+export const resetPassword = async (token, newPassword) => {
+  return post('/auth/reset-password', { token, newPassword });
 };
 
 export const updateProfile = async (profileData) => {
@@ -181,7 +187,7 @@ export const googleLogin = async (token) => {
     throw new Error(error.message || 'Google authentication failed');
   }
   const data = await response.json();
-  if (data.token) localStorage.setItem('token', data.token);
+
   return data;
 };
 
@@ -206,7 +212,7 @@ export const facebookLogin = async (accessToken) => {
     throw new Error(error.message || 'Facebook authentication failed');
   }
   const data = await response.json();
-  if (data.token) localStorage.setItem('token', data.token);
+
   return data;
 };
 

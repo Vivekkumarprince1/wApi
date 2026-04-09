@@ -3,48 +3,43 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaMobileAlt, FaCheckCircle, FaExclamationCircle, FaSpinner } from 'react-icons/fa';
-import { getCurrentUser, sendMobileVerificationOTP, verifyMobileVerificationOTP } from '@/lib/api';
+import { sendMobileVerificationOTP, verifyMobileVerificationOTP } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 
 export default function VerifyMobilePage() {
   const router = useRouter();
+  const { user, phone: authPhone, fetchSession, loading: authLoading } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
-  const hasFetched = useRef(false);
+  const hasSentInitialOTP = useRef(false);
 
   useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
+    if (authLoading) return;
+    
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
 
-    const loadUser = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          router.push('/auth/login');
-          return;
-        }
-
-        const user = await getCurrentUser();
-        const currentPhone = user?.phone || '';
-        if (currentPhone) {
-          setPhone(currentPhone);
-          if (user?.phoneVerified) {
-            router.push('/onboarding/business-info');
-            return;
-          }
-          await sendOTP(currentPhone);
-        }
-      } catch (err) {
-        console.error('Error getting user:', err);
-        router.push('/auth/login');
+    const currentPhone = authPhone?.number || '';
+    if (currentPhone) {
+      setPhone(currentPhone);
+      if (authPhone?.verified) {
+        router.push('/onboarding/business-info');
+        return;
       }
-    };
-
-    loadUser();
-  }, [router]);
+      
+      // Auto-send OTP only once if phone exists
+      if (!hasSentInitialOTP.current) {
+        hasSentInitialOTP.current = true;
+        sendOTP(currentPhone);
+      }
+    }
+  }, [user, authPhone, authLoading, router]);
 
   const startCountdown = () => {
     setCountdown(60);
@@ -60,6 +55,11 @@ export default function VerifyMobilePage() {
   };
 
   const sendOTP = async (phoneNumber = phone) => {
+    if (!phoneNumber) {
+      setError('Phone number is required');
+      return;
+    }
+    
     try {
       setLoading(true);
       setError('');
@@ -96,6 +96,7 @@ export default function VerifyMobilePage() {
       setError('');
 
       await verifyMobileVerificationOTP(phone, otp);
+      await fetchSession(true); // Refresh session to update verified status
       router.push('/onboarding/business-info');
     } catch (err) {
       setError(err.message || 'Invalid OTP');
@@ -107,6 +108,14 @@ export default function VerifyMobilePage() {
   const handleResendOTP = async () => {
     await sendOTP(phone);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <FaSpinner className="animate-spin text-4xl text-emerald-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-4">
@@ -139,9 +148,9 @@ export default function VerifyMobilePage() {
           </div>
         )}
 
-        {!phone ? (
+        {!otpSent ? (
           <div className="space-y-4">
-            <label className="block text-sm font-medium text-foreground">Mobile number</label>
+            <label className="block text-sm font-medium text-foreground">Mobile number (with country code)</label>
             <input
               type="tel"
               value={phone}
@@ -156,7 +165,7 @@ export default function VerifyMobilePage() {
               className="w-full px-6 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
             >
               {loading ? <FaSpinner className="animate-spin" /> : <FaCheckCircle />}
-              Send code
+              Send verification code
             </button>
           </div>
         ) : (
@@ -177,14 +186,27 @@ export default function VerifyMobilePage() {
             {countdown > 0 ? (
               <p className="text-center text-sm text-muted-foreground">Resend code in {countdown}s</p>
             ) : (
-              <button
-                type="button"
-                onClick={handleResendOTP}
-                disabled={loading}
-                className="w-full text-center text-sm text-primary hover:text-emerald-700 font-medium"
-              >
-                Resend code
-              </button>
+              <div className="flex flex-col gap-3">
+                <button
+                    type="button"
+                    onClick={handleResendOTP}
+                    disabled={loading}
+                    className="w-full text-center text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                >
+                    Resend code
+                </button>
+                <button
+                    type="button"
+                    onClick={() => {
+                        setOtpSent(false);
+                        setOtp('');
+                        setCountdown(0);
+                    }}
+                    className="w-full text-center text-sm text-muted-foreground hover:text-foreground font-medium"
+                >
+                    Change mobile number
+                </button>
+              </div>
             )}
 
             <button

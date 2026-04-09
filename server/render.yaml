@@ -1,11 +1,12 @@
 services:
+  # Main Web Service
   - type: web
     name: waapi-backend
     env: node
     rootDir: server
-    plan: free
-    buildCommand: npm ci
-    startCommand: node src/server.js
+    plan: starter # Recommended for production (non-free)
+    buildCommand: npm install && npm run build
+    startCommand: node dist/server.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -13,3 +14,17 @@ services:
         value: 22
       - key: PORT
         value: 5001
+
+  # Background Worker Service
+  - type: worker
+    name: waapi-worker
+    env: node
+    rootDir: server
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: npm run worker
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22

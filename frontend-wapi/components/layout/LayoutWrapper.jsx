@@ -29,23 +29,14 @@ export default function LayoutWrapper({ children }) {
   const publicRoutes = ['/', '/auth/login', '/auth/register', '/auth/reset', '/privacy'];
   const isPublicRoute = publicRoutes.includes(pathname) || pathname.startsWith('/auth/') || pathname.startsWith('/privacy/');
 
-  // Email verification enforcement
-  const unprotectedRoutes = [...publicRoutes, '/onboarding/verify-email'];
-  const requiresEmailVerification = !unprotectedRoutes.some(route =>
-    pathname === route || pathname.startsWith(route)
-  );
+  const unprotectedRoutes = [...publicRoutes];
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Redirect to verify-email if not verified
-  useEffect(() => {
-    if (loading || isPublicRoute || !mounted) return;
-    if (user && !user.emailVerified && requiresEmailVerification && pathname !== '/onboarding/verify-email') {
-      router.push('/onboarding/verify-email');
-    }
-  }, [user, loading, isPublicRoute, requiresEmailVerification, pathname, mounted, router]);
+  // Removed redundant email verification redirection
+  // This is now handled by AuthInitializer via nextStep field
 
   // Prevent body scroll when sidebar is open on mobile
   useEffect(() => {

@@ -6,6 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const cookieParser = require('cookie-parser');
 const { initSocket } = require('./utils/socket');
 const { connectRedis } = require('./config/redis');
 const { mongoUri, port, env } = require('./config');
@@ -40,9 +41,9 @@ app.use(helmet({
       baseUri: ["'none'"],
       frameAncestors: ["'none'"],
       formAction: ["'none'"],
-      connectSrc: ["'self'", "http://localhost:5001", "http://localhost:3000", "http://10.40.109.51:3000", "http://10.40.109.51:5001", "https://*.onrender.com"],
-      imgSrc: ["'self'", 'data:', "https://*.cloudinary.com"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      connectSrc: ["'self'", "http://localhost:5001", "http://localhost:3000", "https://*.onrender.com"],
+      imgSrc: ["'self'", 'data:', "https://*.cloudinary.com", "https://images.unsplash.com"],
+      scriptSrc: ["'self'"], // Removed 'unsafe-inline' and 'unsafe-eval' for prod hardening
       styleSrc: ["'self'", "'unsafe-inline'"]
     }
   },
@@ -50,22 +51,25 @@ app.use(helmet({
 }));
 
 // CORS configuration - allow frontend with credentials
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://10.40.109.51:3000',
-  'https://waapi-frontend.onrender.com'
-];
+const allowedOrigins = env === 'development' 
+  ? [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://10.40.109.51:3000'
+    ]
+  : [
+      'https://waapi-frontend.onrender.com'
+    ];
 
-// Add FRONTEND_URL from env if set
+// Add FRONTEND_URL from env if set (mostly for prod override)
 if (process.env.FRONTEND_URL && process.env.FRONTEND_URL !== '*') {
   allowedOrigins.push(process.env.FRONTEND_URL);
 }
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like mobile apps or curl) or if in development
+    if (!origin || (env === 'development') || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
@@ -97,6 +101,7 @@ app.use("/uploads", express.static(require("path").join(__dirname, "../public/up
 app.use('/uploads', express.static(require('path').join(__dirname, '../public/uploads')));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Logging
 if (env === 'development') app.use(morgan('dev'));
