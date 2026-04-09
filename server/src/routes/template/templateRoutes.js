@@ -32,6 +32,7 @@ const {
   getWorkspaceAnalytics,
   getTopPerformingTemplates,
   getLowPerformingTemplates,
+  getTemplateBehavioralInsights,
   exportAnalyticsReport
 } = require('../../controllers/template/templateAnalyticsController');
 
@@ -48,6 +49,7 @@ router.use(auth);
 router.get('/analytics/workspace', getWorkspaceAnalytics);
 router.get('/analytics/top-performers', getTopPerformingTemplates);
 router.get('/analytics/low-performers', getLowPerformingTemplates);
+router.get('/analytics/behavioral', getTemplateBehavioralInsights);
 router.get('/analytics/export', exportAnalyticsReport);
 
 // ═══════════════════════════════════════════════════════════════════════════════

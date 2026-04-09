@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { loadingStore } from './api/loadingStore';
+import { toast } from 'react-hot-toast';
 
 function resolveApiUrl() {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -53,6 +54,28 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('token');
+      }
+    }
+
+    // Handle 402 (Payment Required / Plan Limit / Wallet Balance)
+    if (error.response?.status === 402) {
+      const { code, feature } = error.response?.data || {};
+      const message = error.response?.data?.message || "Payment required to proceed";
+      
+      toast.error(message, { id: 'plan-gate-error' });
+      
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes('/dashboard/billing') && !currentPath.includes('/admin')) {
+          // If wallet balance error, redirect to recharge section
+          const isWalletError = code === 'INSUFFICIENT_WALLET_BALANCE' || code === 'INSUFFICIENT_BALANCE';
+          const redirectPath = '/dashboard/billing';
+          const query = isWalletError ? '?action=recharge' : `?reason=gate&feature=${feature || 'unknown'}`;
+          
+          setTimeout(() => {
+            window.location.href = redirectPath + query;
+          }, 1500);
+        }
       }
     }
 

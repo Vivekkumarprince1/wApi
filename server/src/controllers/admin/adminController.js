@@ -1,5 +1,4 @@
-const { Workspace } = require('../../models');
-const { User } = require('../../models');
+const { Workspace, User, WalletTransaction, Message, Campaign, Plan } = require('../../models');
 const { updateAllWorkspacesWABA } = require('../../services/infrastructure/initService');
 
 // Get all WhatsApp setup requests
@@ -13,8 +12,17 @@ async function getWhatsAppSetupRequests(req, res, next) {
     const { status } = req.query;
     
     const query = { 'whatsappSetup.requestedNumber': { $exists: true } };
+    
     if (status) {
-      query['whatsappSetup.status'] = status;
+      if (status === 'pending') {
+        query['whatsappSetup.status'] = { $in: ['otp_sent', 'otp_verified', 'pending_activation', 'pending'] };
+      } else if (status === 'in_progress') {
+        query['whatsappSetup.status'] = { $in: ['registering', 'in_progress'] };
+      } else if (status === 'failed') {
+        query['whatsappSetup.status'] = { $in: ['failed', 'blocked', 'otp_expired'] };
+      } else {
+        query['whatsappSetup.status'] = status;
+      }
     }
 
     const workspaces = await Workspace.find(query)
@@ -324,16 +332,20 @@ async function getAllWorkspaces(req, res, next) {
 
     let query = {};
     if (search) {
+      const isMongoId = /^[0-9a-fA-F]{24}$/.test(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { 'esbFlow.createdBy': { $regex: search, $options: 'i' } }
+        { name: { $regex: search, $options: 'i' } }
       ];
+      if (isMongoId) {
+        query.$or.push({ _id: search });
+      }
     }
     if (plan) query.plan = plan;
     if (status) query['esbFlow.status'] = status;
 
     const workspaces = await Workspace.find(query)
-      .select('name plan esbFlow businessVerification whatsappPhoneNumber createdAt updatedAt')
+      .populate('plan', 'name slug')
+      .select('name plan esbFlow businessVerification whatsappPhoneNumber suspended createdAt updatedAt')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -350,12 +362,13 @@ async function getAllWorkspaces(req, res, next) {
         return {
           id: ws._id,
           name: ws.name,
-          plan: ws.plan,
+          plan: ws.plan, // Now populated
           owner: owner ? { name: owner.name, email: owner.email } : null,
           memberCount,
           wabaStatus: ws.esbFlow?.status || 'not_started',
           phoneNumber: ws.whatsappPhoneNumber,
           verificationStatus: ws.businessVerification?.status || 'not_submitted',
+          suspended: ws.suspended || false,
           createdAt: ws.createdAt,
           updatedAt: ws.updatedAt
         };
@@ -541,11 +554,30 @@ async function getAnalytics(req, res, next) {
       { $group: { _id: '$esbFlow.status', count: { $sum: 1 } } }
     ]);
 
+    // Revenue tracking (completed recharges)
+    const revenueStats = await WalletTransaction.aggregate([
+      { $match: { type: 'RECHARGE', status: 'COMPLETED', createdAt: { $gte: start, $lte: end } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+
+    // Message volume
+    const totalMessages = await Message.countDocuments({
+      createdAt: { $gte: start, $lte: end }
+    });
+
+    // Active Users (Unique users who sent a message in interval)
+    const activeUsers = await Message.distinct('user', {
+      createdAt: { $gte: start, $lte: end }
+    });
+
     // Usage metrics (if you have usage tracking models)
     const analytics = {
       overview: {
         totalWorkspaces,
         activeWorkspaces,
+        totalRevenue: (revenueStats[0]?.total || 0) / 100, // Convert paise to INR
+        totalMessages,
+        activeUsers: activeUsers.length,
         suspension_rate: ((await Workspace.countDocuments({ suspended: true }) / totalWorkspaces) * 100).toFixed(2) + '%'
       },
       plans: planDistribution.reduce((acc, p) => {
@@ -633,38 +665,143 @@ async function updateTemplateStatus(req, res, next) {
 // Get campaign analytics
 async function getCampaignAnalytics(req, res, next) {
   try {
-    const Campaign = require('../models/Campaign');
-    const { Message } = require('../../models');
-
     const campaigns = await Campaign.find()
       .select('name status createdAt workspace')
       .sort({ createdAt: -1 })
       .limit(50);
 
-    const campaignStats = await Promise.all(
-      campaigns.map(async (campaign) => {
-        const messages = await Message.find({ campaign: campaign._id });
-        const sent = messages.filter(m => m.status === 'sent').length;
-        const delivered = messages.filter(m => m.status === 'delivered').length;
-        const failed = messages.filter(m => m.status === 'failed').length;
+    // Efficiently get counts using aggregation for all relative campaigns
+    const campaignIds = campaigns.map(c => c._id);
+    const stats = await Message.aggregate([
+      { $match: { campaign: { $in: campaignIds } } },
+      { $group: { 
+          _id: { campaignId: '$campaign', status: '$status' },
+          count: { $sum: 1 }
+      }}
+    ]);
 
-        return {
-          id: campaign._id,
-          name: campaign.name,
-          status: campaign.status,
-          totalMessages: messages.length,
-          sent,
-          delivered,
-          failed,
-          successRate: messages.length ? ((sent / messages.length) * 100).toFixed(2) : 0,
-          createdAt: campaign.createdAt
-        };
-      })
-    );
+    const campaignStats = campaigns.map(campaign => {
+      const campStats = stats.filter(s => s._id.campaignId.toString() === campaign._id.toString());
+      const sent = campStats.find(s => s._id.status === 'sent')?.count || 0;
+      const delivered = campStats.find(s => s._id.status === 'delivered')?.count || 0;
+      const failed = campStats.find(s => s._id.status === 'failed')?.count || 0;
+      const total = campStats.reduce((acc, s) => acc + s.count, 0);
+
+      return {
+        id: campaign._id,
+        name: campaign.name,
+        status: campaign.status,
+        totalMessages: total,
+        sent,
+        delivered,
+        failed,
+        successRate: total ? ((sent / total) * 100).toFixed(2) : 0,
+        createdAt: campaign.createdAt
+      };
+    });
 
     res.json({
       success: true,
       data: campaignStats
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Get all users across all workspaces
+async function getAllUsers(req, res, next) {
+  try {
+    const { page = 1, limit = 20, search, role } = req.query;
+    const skip = (page - 1) * limit;
+
+    let query = {};
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } }
+      ];
+    }
+    if (role) query.role = role;
+
+    const users = await User.find(query)
+      .populate('workspace', 'name plan')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      success: true,
+      data: users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Update user role
+async function updateUserRole(req, res, next) {
+  try {
+    const { userId } = req.params;
+    const { role, status } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (role) user.role = role;
+    if (status) user.status = status;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'User updated successfully',
+      data: { id: user._id, role: user.role, status: user.status }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Manually update workspace plan
+async function updateWorkspacePlan(req, res, next) {
+  try {
+    const { workspaceId } = req.params;
+    const { planId } = req.body;
+
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({ success: false, message: 'Workspace not found' });
+    }
+
+    const { Plan } = require('../../models');
+    const plan = await Plan.findById(planId);
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Plan not found' });
+    }
+
+    workspace.plan = planId;
+    // Update plan slug for feature gating if applicable
+    if (workspace.esbFlow) {
+      workspace.esbFlow.currentPlanSlug = plan.slug;
+    }
+
+    await workspace.save();
+
+    res.json({
+      success: true,
+      message: `Workspace plan updated to ${plan.name}`,
+      data: { id: workspace._id, plan: planId }
     });
   } catch (err) {
     next(err);
@@ -678,7 +815,7 @@ module.exports = {
   getVerificationRequests,
   updateVerificationStatus,
   manuallyActivateWhatsApp,
-  // New endpoints
+  // Existing endpoints
   getAllWorkspaces,
   getWorkspaceDetails,
   suspendWorkspace,
@@ -687,5 +824,9 @@ module.exports = {
   getAnalytics,
   getTemplatesForApproval,
   updateTemplateStatus,
-  getCampaignAnalytics
+  getCampaignAnalytics,
+  // New upgraded endpoints
+  getAllUsers,
+  updateUserRole,
+  updateWorkspacePlan
 };

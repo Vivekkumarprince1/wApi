@@ -11,11 +11,13 @@
 const express = require('express');
 const auth = require('../../middlewares/auth');
 const automationController = require('../../controllers/automation/automationEngineController');
+const { requireFeature } = require('../../middlewares/infrastructure/featureGate');
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(auth);
+router.use(requireFeature('AUTOMATION'));
 
 // ═══════════════════════════════════════════════════════════════════════════
 // RULE MANAGEMENT

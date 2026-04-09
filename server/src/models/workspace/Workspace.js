@@ -11,9 +11,14 @@ const WorkspaceSchema = new mongoose.Schema({
     index: true
   },
   plan: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Plan',
+    index: true
+  },
+  billingCycle: {
     type: String,
-    enum: ['free', 'basic', 'premium', 'enterprise'],
-    default: 'free'
+    enum: ['monthly', 'yearly'],
+    default: 'monthly'
   },
   // BSP billing (single active phone + suspension mirror)
   activePhoneNumberId: { type: String },
@@ -145,7 +150,7 @@ const WorkspaceSchema = new mongoose.Schema({
     requestedAt: { type: Date },
     status: {
       type: String,
-      enum: ['not_started', 'otp_sent', 'otp_expired', 'otp_verified', 'registering', 'pending_activation', 'connected', 'failed', 'blocked'],
+      enum: ['not_started', 'otp_sent', 'otp_expired', 'otp_verified', 'registering', 'pending_activation', 'pending', 'in_progress', 'connected', 'failed', 'blocked'],
       default: 'not_started'
     },
     // OTP verification

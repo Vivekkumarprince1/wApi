@@ -10,7 +10,6 @@ const { createError } = require('../../utils/errorFormatter');
 
 class InstagramService {
   constructor() {
-    this.redis = getRedis();
     this.baseUrl = 'https://graph.instagram.com';
     this.graphUrl = 'https://graph.facebook.com';
     this.tokenExpiry = 3600; // 1 hour

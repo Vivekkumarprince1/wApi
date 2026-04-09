@@ -20,8 +20,8 @@ export const getAuthHeaders = () => {
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };
 
-export const get = (endpoint) => api.get(endpoint);
-export const post = (endpoint, data) => api.post(endpoint, data);
-export const put = (endpoint, data) => api.put(endpoint, data);
-export const patch = (endpoint, data) => api.patch(endpoint, data);
-export const del = (endpoint, data = null) => api.delete(endpoint, data ? { data } : {});
+export const get = (endpoint, config = {}) => api.get(endpoint, config);
+export const post = (endpoint, data, config = {}) => api.post(endpoint, data, config);
+export const put = (endpoint, data, config = {}) => api.put(endpoint, data, config);
+export const patch = (endpoint, data, config = {}) => api.patch(endpoint, data, config);
+export const del = (endpoint, config = {}) => api.delete(endpoint, config);

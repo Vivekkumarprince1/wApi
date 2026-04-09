@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import * as api from '@/lib/api';
 import { useQuota } from '@/lib/useQuota';
 import { toast } from '@/lib/toast';
-import { Play, Pause, Trash2, Eye, Search, SlidersHorizontal, BarChart3, Calendar, User, Plus, AlertTriangle, Loader2 } from 'lucide-react';
+import { Play, Pause, Trash2, Eye, Search, SlidersHorizontal, BarChart3, Calendar, User, Plus, AlertTriangle, Loader2, Target } from 'lucide-react';
 import FlashLoader from '@/components/ui/FlashLoader';
+import { motion } from 'framer-motion';
+import RetargetModal from '@/components/dashboard/campaign/RetargetModal';
 
 export default function CampaignsPage() {
   const router = useRouter();
@@ -21,6 +23,8 @@ export default function CampaignsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [campaigns, setCampaigns] = useState([]);
+  const [isRetargetModalOpen, setIsRetargetModalOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
 
   const showQuotaWarning = isApproachingLimit('campaigns', 80);
   const remainingCampaigns = getRemainingQuota('campaigns');
@@ -80,6 +84,39 @@ export default function CampaignsPage() {
       case 'queued': return 'bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20';
       case 'draft': return 'bg-muted text-foreground border-border';
       default: return 'bg-muted text-muted-foreground border-border';
+    }
+  };
+
+  const renderProgressBar = (sent, total, status) => {
+    const percentage = total > 0 ? Math.round((sent / total) * 100) : 0;
+    const isRunning = ['sending', 'running', 'queued'].includes(status?.toLowerCase());
+    
+    return (
+      <div className="w-full max-w-[120px] mt-2">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-bold text-muted-foreground">{percentage}%</span>
+          {isRunning && (
+            <span className="flex h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+          )}
+        </div>
+        <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden border border-border/50">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${percentage}%` }}
+            className={`h-full rounded-full ${percentage === 100 ? 'bg-emerald-500' : 'bg-primary'}`}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const handleRetarget = async (id, type) => {
+    try {
+      const resp = await api.post(`/campaigns/${id}/retarget`, { type });
+      toast.success('Retargeting draft created!');
+      router.push(`/dashboard/campaign/${resp.campaign._id}`);
+    } catch (e) {
+      toast.error(e.message || 'Failed to create retargeting draft');
     }
   };
 
@@ -205,20 +242,31 @@ export default function CampaignsPage() {
                       <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full border ${getStatusColor(c.status)} uppercase`}>{c.status}</span>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="text-sm font-bold text-foreground">{c.sentCount || 0}</span>
-                      <p className="text-[10px] text-muted-foreground uppercase mt-0.5">Total: {c.totalContacts || 0}</p>
+                      <div className="flex flex-col items-center">
+                        <span className="text-sm font-bold text-foreground">{c.sentCount || 0}</span>
+                        <p className="text-[10px] text-muted-foreground uppercase mt-0.5 font-medium">Out of {c.totalContacts || 0}</p>
+                        {renderProgressBar(c.sentCount || 0, c.totalContacts || 0, c.status)}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">{c.deliveredCount || 0}</span>
-                      <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                        {c.sentCount > 0 ? Math.round(((c.deliveredCount || 0) / c.sentCount) * 100) : 0}%
-                      </p>
+                      <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-lg bg-blue-500/5 flex items-center justify-center mb-1">
+                          <span className="text-sm font-black text-blue-600 dark:text-blue-400 font-mono">{c.deliveredCount || 0}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-bold tracking-tighter">
+                          {c.sentCount > 0 ? Math.round(((c.deliveredCount || 0) / c.sentCount) * 100) : 0}% DELIVERED
+                        </p>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono">{c.readCount || 0}</span>
-                      <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-                        {c.sentCount > 0 ? Math.round(((c.readCount || 0) / c.sentCount) * 100) : 0}%
-                      </p>
+                      <div className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/5 flex items-center justify-center mb-1">
+                          <span className="text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono">{c.readCount || 0}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground font-bold tracking-tighter">
+                          {c.sentCount > 0 ? Math.round(((c.readCount || 0) / c.sentCount) * 100) : 0}% READ
+                        </p>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
@@ -250,6 +298,12 @@ export default function CampaignsPage() {
                             <Play className="h-4 w-4" />
                           </button>
                         )}
+                        {['COMPLETED', 'completed'].includes(c.status) && (
+                          <button onClick={() => { setSelectedCampaign(c); setIsRetargetModalOpen(true); }}
+                            className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg transition-all" title="Retarget">
+                            <Target className="h-4 w-4" />
+                          </button>
+                        )}
                         <button onClick={() => handleDelete(c._id)}
                           className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all" title="Delete">
                           <Trash2 className="h-4 w-4" />
@@ -263,6 +317,13 @@ export default function CampaignsPage() {
           </div>
         )}
       </div>
+
+      <RetargetModal 
+        isOpen={isRetargetModalOpen} 
+        onClose={() => setIsRetargetModalOpen(false)} 
+        campaign={selectedCampaign} 
+        onRetarget={handleRetarget} 
+      />
     </div>
   );
 }

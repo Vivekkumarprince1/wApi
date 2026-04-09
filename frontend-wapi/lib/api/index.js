@@ -13,3 +13,6 @@ export * from './integrations';
 export * from './widget';
 export * from './automation';
 export * from './team';
+export * from './wallet';
+export * from './subscription';
+export * from './admin';

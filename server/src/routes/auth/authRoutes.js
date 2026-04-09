@@ -12,6 +12,8 @@ const {
   sendLoginOTP,
   resendLoginOTP,
   verifyLoginOTP,
+  sendMobileVerificationOTP,
+  verifyMobileVerificationOTP,
   googleOAuthLogin,
   getGoogleDebug,
   getGoogleAuthUrl,
@@ -49,6 +51,8 @@ router.post('/verify-signup-otp', [
 router.post('/send-login-otp', [body('email').isEmail()], validate, sendLoginOTP);
 router.post('/resend-login-otp', [body('email').isEmail()], validate, resendLoginOTP);
 router.post('/verify-login-otp', [body('email').isEmail(), body('otp').notEmpty()], validate, verifyLoginOTP);
+router.post('/mobile/send-otp', auth, [body('phone').isString().notEmpty()], validate, sendMobileVerificationOTP);
+router.post('/mobile/verify-otp', auth, [body('otp').notEmpty(), body('phone').isString().notEmpty()], validate, verifyMobileVerificationOTP);
 
 // Traditional email/password authentication
 router.post('/signup', [

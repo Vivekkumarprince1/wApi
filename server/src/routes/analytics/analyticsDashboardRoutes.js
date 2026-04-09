@@ -17,14 +17,14 @@
 const express = require('express');
 const auth = require('../../middlewares/auth');
 const analyticsDashboardController = require('../../controllers/analytics/analyticsDashboardController');
+const { requireFeature } = require('../../middlewares/infrastructure/featureGate');
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(auth);
-
 // ═══════════════════════════════════════════════════════════════════════════
-// OVERVIEW
+// OVERVIEW (Public for all plans as baseline dashboard)
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
@@ -32,6 +32,9 @@ router.use(auth);
  * Query params: startDate, endDate, period (day|week|month)
  */
 router.get('/overview', analyticsDashboardController.getOverview);
+
+// All other analytics require the premium ANALYTICS feature
+router.use(requireFeature('ANALYTICS'));
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONVERSATIONS

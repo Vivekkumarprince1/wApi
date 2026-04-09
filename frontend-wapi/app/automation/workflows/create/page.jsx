@@ -12,6 +12,7 @@ import { useNodesState, useEdgesState, addEdge } from '@xyflow/react';
 import { post, get } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { FlowCanvas } from '@/components/features/automation/FlowCanvas';
+import { validateWorkflow } from '@/utils/automationValidator';
 
 // ─────────────────────────────────────────────────────────────────────────
 // CONSTANTS & MAPPINGS
@@ -36,9 +37,11 @@ const ACTION_TYPES = [
   { value: 'add_tag', label: '🏷️ Add Tag', icon: FaTag, category: 'crm', nodeType: 'action' },
   { value: 'remove_tag', label: '❌ Remove Tag', icon: FaTag, category: 'crm', nodeType: 'action' },
   { value: 'delay', label: '⏱️ Wait / Delay', icon: FaClock, category: 'logic', nodeType: 'action' },
+  { value: 'ask_ai', label: '🧠 Ask AI (Intent)', icon: FaRobot, category: 'logic', nodeType: 'condition' },
   { value: 'notify_webhook', label: '🔗 Webhook', icon: FaLink, category: 'logic', nodeType: 'action' },
   { value: 'save_response', label: '💾 Save Input', icon: FaSave, category: 'logic', nodeType: 'action' },
-  { value: 'mark_as_resolved', label: '✅ Resolve Chat', icon: FaCheckCircle, category: 'crm', nodeType: 'action' }
+  { value: 'mark_as_resolved', label: '✅ Resolve Chat', icon: FaCheckCircle, category: 'crm', nodeType: 'action' },
+  { value: 'create_deal', label: '📈 Create CRM Deal', icon: FaBolt, category: 'crm', nodeType: 'action' }
 ];
 
 const CONDITION_FIELDS = [
@@ -71,6 +74,7 @@ export default function CreateWorkflowPage() {
   const [templates, setTemplates] = useState([]);
   const [agents, setAgents] = useState([]);
   const [tags, setTags] = useState([]);
+  const [pipelines, setPipelines] = useState([]);
 
   // -- Flow State --
   const initialNodes = [
@@ -100,14 +104,16 @@ export default function CreateWorkflowPage() {
   useEffect(() => {
     const loadAppData = async () => {
       try {
-        const [tplData, agentData, tagData] = await Promise.all([
+        const [tplData, agentData, tagData, pipeData] = await Promise.all([
           get('/templates'),
           get('/team/members'),
-          get('/tags')
+          get('/tags'),
+          get('/commerce/pipelines')
         ]);
         setTemplates(tplData.templates || []);
         setAgents(agentData.members || []);
         setTags(tagData.data || []);
+        setPipelines(pipeData.data || pipeData.pipelines || []);
       } catch (err) {
         console.error('Initial Load Error:', err);
       }
@@ -164,6 +170,41 @@ export default function CreateWorkflowPage() {
     setSelectedNodeId('node_trigger');
   };
 
+  const handleValidate = useCallback(() => {
+    const { errors, warnings } = validateWorkflow(nodes, edges);
+    
+    // Clear errors from all nodes first
+    setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, error: null, warning: null } })));
+    
+    if (errors.length === 0 && warnings.length === 0) {
+      toast.success('Workflow is valid and optimized!');
+      return true;
+    }
+
+    // Map errors back to nodes
+    setNodes(nds => nds.map(n => {
+      const nodeError = errors.find(e => e.id === n.id);
+      const nodeWarning = warnings.find(w => w.id === n.id);
+      return { 
+        ...n, 
+        data: { 
+          ...n.data, 
+          error: nodeError?.message || null,
+          warning: nodeWarning?.message || null
+        } 
+      };
+    }));
+
+    if (errors.length > 0) {
+      setError(`Found ${errors.length} validation errors.`);
+      toast.error(`Workflow has ${errors.length} errors.`);
+      return false;
+    } else {
+      toast?.info?.(`Workflow has ${warnings.length} warnings.`);
+      return true;
+    }
+  }, [nodes, edges]);
+
   const updateNodeData = (updates) => {
     setNodes((nds) =>
       nds.map((node) => {
@@ -196,6 +237,9 @@ export default function CreateWorkflowPage() {
   const handleSubmit = async () => {
     if (!workflowName.trim()) return setError('Workflow name is required');
     
+    const isValid = handleValidate();
+    if (!isValid) return;
+
     setLoading(true);
     try {
       const triggerNode = nodes.find(n => n.type === 'trigger');
@@ -251,6 +295,12 @@ export default function CreateWorkflowPage() {
           </div>
           
           <div className="flex items-center gap-3">
+            <button 
+              onClick={handleValidate}
+              className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all flex items-center gap-2"
+            >
+              <FaCheckCircle className="text-emerald-500" /> Validate
+            </button>
             <button 
               onClick={handleSubmit}
               disabled={loading}
@@ -552,10 +602,107 @@ export default function CreateWorkflowPage() {
                   </div>
                 )}
 
-                {/* generic Action placeholder if not customized above */}
-                {['notify_webhook', 'mark_as_resolved'].includes(selectedNode.data.type) && (
-                  <div className="py-10 text-center border-2 border-dashed border-slate-100 rounded-2xl">
-                    <p className="text-xs text-slate-400 italic">Settings for {selectedNode.data.label} coming soon</p>
+                {selectedNode.data.type === 'notify_webhook' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Endpoint URL</label>
+                      <input 
+                        type="url" 
+                        placeholder="https://api.yourdomain.com/webhook"
+                        value={selectedNode.data.config.webhookUrl || ''}
+                        onChange={(e) => updateNodeConfig({ webhookUrl: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">HTTP Method</label>
+                      <select 
+                        value={selectedNode.data.config.method || 'POST'}
+                        onChange={(e) => updateNodeConfig({ method: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
+                      >
+                        <option value="POST">POST</option>
+                        <option value="GET">GET</option>
+                        <option value="PUT">PUT</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Custom Headers (JSON)</label>
+                      <textarea 
+                        rows={3}
+                        placeholder='{"Authorization": "Bearer ...", "X-Custom": "Value"}'
+                        value={selectedNode.data.config.headers || ''}
+                        onChange={(e) => updateNodeConfig({ headers: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-[11px] font-mono outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedNode.data.type === 'mark_as_resolved' && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Resolution State</label>
+                      <select 
+                        value={selectedNode.data.config.status || 'resolved'}
+                        onChange={(e) => updateNodeConfig({ status: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
+                      >
+                        <option value="resolved">Mark as Resolved</option>
+                        <option value="closed">Close Conversation</option>
+                        <option value="pending">Move to Pending</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-3 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                      <FaCheckCircle className="text-amber-500" />
+                      <p className="text-[10px] text-amber-700 font-medium">This will remove the chat from the agent's active queue.</p>
+                    </div>
+                  </div>
+                )}
+
+                {(selectedNode.data.type === 'create_deal' || selectedNode.data.type === 'move_pipeline_stage') && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Target Pipeline</label>
+                      <select 
+                        value={selectedNode.data.config.pipelineId || ''}
+                        onChange={(e) => updateNodeConfig({ pipelineId: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
+                      >
+                        <option value="">-- Select Pipeline --</option>
+                        {pipelines.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                      </select>
+                    </div>
+                    {selectedNode.data.config.pipelineId && (
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Select Stage</label>
+                        <select 
+                          value={selectedNode.data.config.stageId || ''}
+                          onChange={(e) => updateNodeConfig({ stageId: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none"
+                        >
+                          <option value="">-- Select Stage --</option>
+                          {pipelines.find(p => p._id === selectedNode.data.config.pipelineId)?.stages?.map(s => (
+                            <option key={s._id} value={s._id}>{s.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {selectedNode.data.type === 'create_deal' && (
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Initial Deal Value</label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                          <input 
+                            type="number" 
+                            placeholder="0.00"
+                            value={selectedNode.data.config.dealValue || ''}
+                            onChange={(e) => updateNodeConfig({ dealValue: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-4 py-2.5 text-sm outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -495,6 +495,38 @@ async function resumeCampaign(req, res, next) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CAMPAIGN RETARGETING
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Create a retargeting campaign from an existing one
+ * POST /api/campaigns/:id/retarget
+ */
+async function retargetCampaign(req, res, next) {
+  try {
+    const workspaceId = req.user.workspace;
+    const campaignId = req.params.id;
+    const userId = req.user._id;
+    const { type } = req.body; // 'NON_READERS' | 'NON_REPLIERS'
+    
+    const campaign = await campaignExecutionService.retargetCampaign(
+      campaignId,
+      workspaceId,
+      userId,
+      type
+    );
+    
+    res.status(201).json({
+      success: true,
+      campaign,
+      message: 'Retargeting draft created successfully'
+    });
+  } catch (err) {
+    handleCampaignError(err, res, next);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CAMPAIGN PROGRESS
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -669,5 +701,6 @@ module.exports = {
   // Progress
   getCampaignProgress,
   getCampaignSummary,
-  getCampaignMessages
+  getCampaignMessages,
+  retargetCampaign
 };

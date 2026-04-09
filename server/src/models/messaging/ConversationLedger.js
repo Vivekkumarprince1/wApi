@@ -337,6 +337,7 @@ const ConversationLedgerSchema = new mongoose.Schema({
 ConversationLedgerSchema.index({ 
   workspace: 1, 
   contact: 1, 
+  category: 1, // Added for category-aware billing (Requirement 2.1)
   isActive: 1, 
   expiresAt: 1 
 });

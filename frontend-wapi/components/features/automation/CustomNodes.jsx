@@ -4,7 +4,7 @@ import React, { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { 
   FaBolt, FaCommentDots, FaFilter, FaTag, FaUserPlus, 
-  FaClock, FaLink, FaSave, FaCheckCircle 
+  FaClock, FaLink, FaSave, FaCheckCircle, FaRobot 
 } from 'react-icons/fa';
 
 /**
@@ -14,9 +14,10 @@ const NodeContainer = ({ children, title, icon: Icon, color, selected, data }) =
   const borderColor = selected ? `border-${color}-500 shadow-lg shadow-${color}-100` : `border-${color}-200`;
   const iconBg = `bg-${color}-50`;
   const iconText = `text-${color}-600`;
+  const statusColor = data?.error ? 'border-red-500 bg-red-50/30' : data?.warning ? 'border-amber-400 bg-amber-50/30' : borderColor;
 
   return (
-    <div className={`min-w-[220px] bg-white rounded-xl border-2 transition-all overflow-hidden ${borderColor}`}>
+    <div className={`min-w-[220px] bg-white rounded-xl border-2 transition-all shadow-sm overflow-hidden ${statusColor}`}>
       {/* Node Header */}
       <div className={`px-4 py-2 flex items-center gap-3 border-b bg-slate-50/50`}>
         <div className={`p-1.5 rounded-lg ${iconBg} ${iconText}`}>
@@ -32,10 +33,15 @@ const NodeContainer = ({ children, title, icon: Icon, color, selected, data }) =
         {children}
       </div>
 
-      {/* Safety Guard: Show error if invalid */}
+      {/* Safety Guard: Show error or warning if invalid */}
       {data?.error && (
-        <div className="px-4 py-1 bg-red-50 text-[9px] text-red-500 border-t border-red-100 italic">
-          {data.error}
+        <div className="px-4 py-1.5 bg-red-50 text-[9px] text-red-600 border-t border-red-100 italic font-bold">
+          ⚠️ {data.error}
+        </div>
+      )}
+      {data?.warning && !data?.error && (
+        <div className="px-4 py-1.5 bg-amber-50 text-[9px] text-amber-700 border-t border-amber-100 italic font-bold">
+          💡 {data.warning}
         </div>
       )}
     </div>
@@ -110,24 +116,28 @@ export const ConditionNode = memo(({ data, selected }) => {
         data={data}
       >
         <div className="text-sm font-semibold text-slate-800">
-          If {data.field || 'Field'} {data.operator || 'equals'}...
+          {data.type === 'ask_ai' ? (
+            `Match Intent: ${data.config?.intent || '...'}`
+          ) : (
+            `If ${data.field || 'Field'} ${data.operator || 'equals'}...`
+          )}
         </div>
         <div className="mt-1 text-[10px] text-slate-400 italic">
-          Split the flow based on data
+          {data.type === 'ask_ai' ? 'AI intent classification' : 'Split the flow based on data'}
         </div>
       </NodeContainer>
       
       {/* Multiple Outlets */}
-      <div className="flex justify-between px-2 mt-[-4px]">
+      <div className="flex justify-between px-2 mt-[-4px] relative pb-2">
         <div className="flex flex-col items-center">
           <Handle 
             type="source" 
             position={Position.Bottom} 
             id="true" 
-            className="w-3 h-3 bg-emerald-500 border-2 border-white left-1/4" 
+            className="w-3 h-3 bg-emerald-500 border-2 border-white" 
             style={{ left: '25%' }}
           />
-          <span className="text-[8px] font-bold text-emerald-600 mt-2">YES</span>
+          <span className="text-[8px] font-bold text-emerald-600 mt-5">YES</span>
         </div>
         <div className="flex flex-col items-center">
           <Handle 
@@ -137,7 +147,7 @@ export const ConditionNode = memo(({ data, selected }) => {
             className="w-3 h-3 bg-red-500 border-2 border-white" 
             style={{ left: '75%' }}
           />
-          <span className="text-[8px] font-bold text-red-600 mt-2">NO</span>
+          <span className="text-[8px] font-bold text-red-600 mt-5">NO</span>
         </div>
       </div>
     </div>

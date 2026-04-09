@@ -1,4 +1,5 @@
-const { FAQ, AnswerBotSource, Workspace } = require('../../models');
+const { FAQ, AnswerBotSource, Workspace, AiIntentMatchLog } = require('../../models');
+const bspMessagingService = require('../bsp/bspMessagingService');
 
 /**
  * Generate FAQs from a website URL
@@ -275,7 +276,7 @@ async function approveFAQs(workspace, faqIds) {
  * Check if an inbound message matches any approved FAQ
  * Returns matching FAQ if found
  */
-async function matchFAQ(messageBody, workspace) {
+async function matchFAQ(messageBody, workspace, conversation = null) {
   if (!messageBody || !workspace) {
     return null;
   }
@@ -292,27 +293,18 @@ async function matchFAQ(messageBody, workspace) {
 
     // Try to match against question or variations
     for (const faq of faqs) {
-      const questionMatch = matchText(lowerMessage, faq.question.toLowerCase());
+      const matchResult = matchText(lowerMessage, faq.question);
 
-      if (questionMatch) {
-        // Update match count
-        faq.matchCount = (faq.matchCount || 0) + 1;
-        faq.lastMatchedAt = new Date();
-        await faq.save();
-
-        return faq;
+      if (matchResult.matched) {
+        return finalizeMatch(faq, conversation, messageBody, matchResult.score);
       }
 
       // Check variations
       if (faq.variations && faq.variations.length > 0) {
         for (const variation of faq.variations) {
-          const variationMatch = matchText(lowerMessage, variation.toLowerCase());
-          if (variationMatch) {
-            faq.matchCount = (faq.matchCount || 0) + 1;
-            faq.lastMatchedAt = new Date();
-            await faq.save();
-
-            return faq;
+          const varMatch = matchText(lowerMessage, variation);
+          if (varMatch.matched) {
+            return finalizeMatch(faq, conversation, messageBody, varMatch.score);
           }
         }
       }
@@ -326,27 +318,124 @@ async function matchFAQ(messageBody, workspace) {
 }
 
 /**
- * Simple text matching algorithm
- * Matches if key words are found (not full text matching)
+ * High-level function to process bot response and handle escalation
+ */
+async function processBotResponse(messageBody, workspaceId, conversation) {
+  if (!conversation || conversation.botMetadata?.isBotPaused) {
+    return null;
+  }
+
+  const matchedFaq = await matchFAQ(messageBody, workspaceId, conversation);
+
+  if (matchedFaq) {
+    // ══════════════════════════════════════════════════════════════════════════
+    // BUG FIX: Actually send the response! (Previously it only matched)
+    // ══════════════════════════════════════════════════════════════════════════
+    const contactPhone = conversation.contact?.phone || (await conversation.populate('contact')).contact?.phone;
+    
+    if (matchedFaq.interactive && matchedFaq.interactive.buttons?.length > 0) {
+      // Send Interactive Message (Quick Replies)
+      await bspMessagingService.sendInteractiveMessage(
+        workspaceId,
+        contactPhone,
+        {
+          type: 'button',
+          header: matchedFaq.interactive.header ? { type: 'text', text: matchedFaq.interactive.header } : undefined,
+          body: { text: matchedFaq.interactive.body || matchedFaq.answer },
+          footer: matchedFaq.interactive.footer ? { text: matchedFaq.interactive.footer } : undefined,
+          action: {
+            buttons: matchedFaq.interactive.buttons.map(btn => ({
+              type: 'reply',
+              reply: { id: btn.id, title: btn.title }
+            }))
+          }
+        },
+        { contactId: conversation.contact._id, conversationId: conversation._id }
+      );
+    } else {
+      // Send Text Response
+      await bspMessagingService.sendTextMessage(
+        workspaceId,
+        contactPhone,
+        matchedFaq.answer,
+        { contactId: conversation.contact._id, conversationId: conversation._id }
+      );
+    }
+    
+    return matchedFaq;
+  }
+
+  // No match - increment failed intents
+  conversation.botMetadata = conversation.botMetadata || { failedIntents: 0, isBotPaused: false };
+  conversation.botMetadata.failedIntents = (conversation.botMetadata.failedIntents || 0) + 1;
+  conversation.botMetadata.lastBotInteractionAt = new Date();
+
+  console.log(`[AnswerBot] Failed intent for conv ${conversation._id}. Current count: ${conversation.botMetadata.failedIntents}`);
+
+  if (conversation.botMetadata.failedIntents >= 3) {
+    conversation.botMetadata.isBotPaused = true;
+    console.log(`[AnswerBot] 🚨 Escalating to human agent for conv ${conversation._id}`);
+
+    // Notify human agents via Socket
+    try {
+      const inboxSocketService = require('../messaging/inboxSocketService');
+      await inboxSocketService.emitBotEscalation(workspaceId, conversation);
+    } catch (err) {
+      console.error('[AnswerBot] Failed to emit escalation socket:', err.message);
+    }
+  }
+
+  await conversation.save();
+  return null;
+}
+
+/**
+ * Smart text matching algorithm (Token Overlap + Fuzzy Coefficient)
  */
 function matchText(messageText, questionText) {
-  const messageWords = messageText
-    .split(/\s+/)
-    .filter(w => w.length > 2); // Ignore short words like 'a', 'is', etc.
-
-  const questionWords = questionText
+  // 1. Normalize and tokenize
+  const tokenize = (str) => str
+    .toLowerCase()
+    .replace(/[^\w\s]/g, '')
     .split(/\s+/)
     .filter(w => w.length > 2);
 
-  if (questionWords.length === 0) {
-    return false;
+  const messageTokens = tokenize(messageText);
+  const questionTokens = tokenize(questionText);
+
+  if (questionTokens.length === 0) return { matched: false, score: 0 };
+
+  // 2. Count matches (Exact or Fuzzy)
+  let matchCount = 0;
+  for (const qToken of questionTokens) {
+    let bestTokenScore = 0;
+    
+    for (const mToken of messageTokens) {
+      if (qToken === mToken) {
+        bestTokenScore = 1;
+        break;
+      }
+      
+      // Fuzzy check for abbreviations (e.g. "sub" matching "subscription")
+      if (qToken.startsWith(mToken) || mToken.startsWith(qToken)) {
+        // Only if length match is decent (min 3 chars)
+        const minLen = Math.min(qToken.length, mToken.length);
+        if (minLen >= 3) {
+          bestTokenScore = Math.max(bestTokenScore, 0.8 * (minLen / Math.max(qToken.length, mToken.length)));
+        }
+      }
+    }
+    matchCount += bestTokenScore;
   }
 
-  // Check if at least 60% of question words appear in message
-  const matchedWords = questionWords.filter(qw => messageWords.includes(qw));
-  const matchPercentage = matchedWords.length / questionWords.length;
-
-  return matchPercentage >= 0.6;
+  // 3. Calculate score
+  // Threshold: 0.5 (matches 50% of keywords, accounting for fuzzy bits)
+  const score = matchCount / questionTokens.length;
+  
+  return {
+    matched: score >= 0.5,
+    score: score
+  };
 }
 
 /**
@@ -392,11 +481,50 @@ async function getAnswerBotSources(workspace) {
   }).sort({ createdAt: -1 });
 }
 
+/**
+ * Update stats and log match for the FAQ
+ */
+async function finalizeMatch(faq, conversation, queryText, confidence) {
+  // Update match count
+  faq.matchCount = (faq.matchCount || 0) + 1;
+  faq.lastMatchedAt = new Date();
+  await faq.save();
+
+  // Reset failed intents if matched
+  if (conversation) {
+    conversation.botMetadata = conversation.botMetadata || {};
+    conversation.botMetadata.failedIntents = 0;
+    conversation.botMetadata.lastBotInteractionAt = new Date();
+    await conversation.save().catch(err => console.error('[AnswerBot] Failed to save conversation metadata:', err));
+  }
+
+  // Log intent match
+  try {
+    await AiIntentMatchLog.create({
+      workspace: faq.workspace,
+      queryText: queryText,
+      matchedRule: faq._id, // Reuse Rule field for FAQ
+      confidence: confidence,
+      conversation: conversation?._id,
+      contact: conversation?.contact?._id || conversation?.contact,
+      aiMetadata: {
+        model: 'wapi-fuzzy-v2',
+        intentDetected: faq.question
+      }
+    });
+  } catch (err) {
+    console.error('[AnswerBot] Failed to log intent match:', err.message);
+  }
+
+  return faq;
+}
+
 module.exports = {
   generateFAQsFromWebsite,
   getFAQs,
   approveFAQs,
   matchFAQ,
+  processBotResponse,
   deleteFAQ,
   getAnswerBotSources
 };

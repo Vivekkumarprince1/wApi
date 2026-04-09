@@ -112,7 +112,7 @@ export default function UsageDashboard() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Usage & Limits</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Current Plan: <span className="font-semibold capitalize">{usageData.plan}</span>
+            Current Plan: <span className="font-semibold capitalize">{(typeof usageData.plan === 'object' ? usageData.plan.name : usageData.plan) || 'Standard'}</span>
           </p>
         </div>
         <Button onClick={fetchUsageData} variant="outline">
@@ -180,7 +180,7 @@ export default function UsageDashboard() {
       </div>
 
       {/* Upgrade CTA if any limit is close */}
-      {Object.values(usageData.warnings).some(w => w) && usageData.plan !== 'enterprise' && (
+      {Object.values(usageData.warnings).some(w => w) && (usageData.plan?.slug || usageData.plan) !== 'enterprise' && (
         <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
           <div className="flex items-center justify-between">
             <div>

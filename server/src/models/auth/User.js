@@ -7,6 +7,7 @@ const UserSchema = new mongoose.Schema({
   googleId: { type: String },
   facebookId: { type: String },
   phone: { type: String },
+  phoneVerified: { type: Boolean, default: false },
   company: { type: String },
   emailVerified: { type: Boolean, default: false },
   role: { type: String, enum: ['owner', 'admin', 'manager', 'agent', 'member', 'viewer'], default: 'member' },

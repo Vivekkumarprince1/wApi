@@ -42,13 +42,30 @@ const AutoReplySchema = new mongoose.Schema({
     default: true
   },
   
-  // Template to send (must be APPROVED)
+  // Template to send (Required if replyType is template)
   template: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Template',
-    required: true
+    ref: 'Template'
   },
   
+  // ✅ Phase 3: Enhanced Reply Logic
+  replyType: {
+    type: String,
+    enum: ['text', 'template'],
+    default: 'template'
+  },
+
+  textMessage: {
+    type: String, // Used if replyType is 'text'
+    trim: true
+  },
+
+  variableMapping: [{
+    variable: String, // e.g. "1" for {{1}}
+    contactField: String, // e.g. "name", "phone", "customFields.city"
+    fallbackValue: String
+  }],
+
   // Denormalized template name for display
   templateName: String,
   

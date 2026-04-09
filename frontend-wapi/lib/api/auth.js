@@ -218,6 +218,14 @@ export const verifyEmailOTP = async (otp) => {
   return post('/auth/verify-email', { otp });
 };
 
+export const sendMobileVerificationOTP = async (phone) => {
+  return post('/auth/mobile/send-otp', { phone });
+};
+
+export const verifyMobileVerificationOTP = async (phone, otp) => {
+  return post('/auth/mobile/verify-otp', { phone, otp });
+};
+
 export const deleteAccount = async () => {
   return del('/privacy/delete-account');
 };

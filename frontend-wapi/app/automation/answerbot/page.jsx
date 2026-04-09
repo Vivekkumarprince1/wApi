@@ -161,6 +161,10 @@ export default function AnswerBotPage() {
     setSelectedFaqIds(updated);
   };
 
+  const handleUpdateFaqButtons = (faqId, buttons) => {
+    setFaqs(faqs.map(f => f._id === faqId ? { ...f, interactive: { buttons } } : f));
+  };
+
   const handleApproveFAQs = async () => {
     if (selectedFaqIds.size === 0) return;
     setApproving(true);
@@ -261,7 +265,7 @@ export default function AnswerBotPage() {
                 <div className="flex items-center gap-3 mb-1">
                   <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Data Sources</h3>
                   <div className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                    Sources Used: {sources.length} / {(workspace?.plan === 'free' || workspace?.plan === 'trial') ? 4 : 6}
+                    Sources Used: {sources.length} / {(workspace?.plan?.slug === 'free' || workspace?.plan?.slug === 'starter') ? 4 : 6}
                   </div>
                 </div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Provide links and documents for the AI to learn from.</p>
@@ -278,7 +282,7 @@ export default function AnswerBotPage() {
                 </a>
                 <button
                   onClick={() => setShowAddSource(true)}
-                  disabled={sources.length >= ((workspace?.plan === 'free' || workspace?.plan === 'trial') ? 4 : 6)}
+                  disabled={sources.length >= ((workspace?.plan?.slug === 'free' || workspace?.plan?.slug === 'starter') ? 4 : 6)}
                   className="bg-primary hover:bg-slate-900 disabled:bg-slate-200 disabled:text-slate-400 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-sm transition-all"
                 >
                   <Plus className="w-4 h-4" /> Add Source
@@ -356,8 +360,40 @@ export default function AnswerBotPage() {
                         <ChevronDown className={`w-5 h-5 text-slate-400 dark:text-slate-500 transition-transform ${expandedFaqIds.has(faq._id) ? 'rotate-180' : ''}`} />
                       </div>
                       {expandedFaqIds.has(faq._id) && (
-                        <div className="px-12 pb-4 pt-2 text-sm text-slate-600 dark:text-slate-400 border-t border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                          {faq.answer}
+                        <div className="px-12 pb-6 pt-2 text-sm border-t border-slate-50 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                          <p className="text-slate-600 dark:text-slate-400 mb-4">{faq.answer}</p>
+                          
+                          <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-4">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Interactive Quick Replies (WhatsApp Only)</label>
+                            <div className="flex flex-wrap gap-2">
+                              {faq.interactive?.buttons?.map((btn, bidx) => (
+                                <div key={bidx} className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pr-1 pl-3 py-1 gap-2 shadow-sm">
+                                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{btn.title}</span>
+                                  <button 
+                                    onClick={() => handleUpdateFaqButtons(faq._id, faq.interactive.buttons.filter((_, i) => i !== bidx))}
+                                    className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-500 rounded-md"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                              {(faq.interactive?.buttons?.length || 0) < 3 && (
+                                <button
+                                  onClick={() => {
+                                    const title = prompt('Enter button text:');
+                                    if (title) {
+                                      const buttons = faq.interactive?.buttons || [];
+                                      handleUpdateFaqButtons(faq._id, [...buttons, { id: `btn_${Date.now()}`, title }]);
+                                    }
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 border border-dashed border-primary/40 text-primary text-xs font-bold rounded-lg hover:bg-primary/5 transition-all"
+                                >
+                                  <Plus className="w-3 h-3" /> Add Button
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-2 italic">Max 3 buttons. These will be sent alongside the bot's response.</p>
+                          </div>
                         </div>
                       )}
                     </div>

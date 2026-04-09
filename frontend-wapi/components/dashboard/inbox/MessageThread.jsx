@@ -290,10 +290,12 @@ export default function MessageThread({
 
             const message = item;
             const isOutbound = message.direction === 'outbound';
+            const isNote = message.type === 'note' || message.isInternalNote;
             const isTemplate = message.type === 'template';
             const hideBodyText = !message.body || message.body === `[${message.type}]` || message.body === '[template]' || (['image', 'video', 'document', 'audio', 'sticker', 'location'].includes(message.type) && message.body === `[${message.type}]`);
 
-            // Media extraction
+            // Media extraction...
+            // ... (rest of media logic)
             let mediaUrl = message.media?.url || message.media?.link || message.meta?.media?.url || message.meta?.media?.link;
             let mediaType = message.type;
             let mediaFilename = message.media?.filename || message.meta?.media?.filename || "Document";
@@ -325,16 +327,29 @@ export default function MessageThread({
                 className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} w-full group relative px-2 ${item.isStartOfGroup ? 'mt-4' : 'mt-0.5'}`}
               >
                 <div
-                  className={`relative max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] shadow-sm transition-all pb-1 ${isOutbound
-                    ? 'bg-[#dcf8c6] dark:bg-[#005c4b] text-foreground dark:text-white border-[0.5px] border-black/5'
-                    : 'bg-white dark:bg-[#202c33] text-foreground dark:text-white border-[0.5px] border-black/5'
+                  className={`relative max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] shadow-sm transition-all pb-1 ${isNote
+                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100 border-amber-200 dark:border-amber-700/50 border-2'
+                    : isOutbound
+                      ? 'bg-[#dcf8c6] dark:bg-[#005c4b] text-foreground dark:text-white border-[0.5px] border-black/5'
+                      : 'bg-white dark:bg-[#202c33] text-foreground dark:text-white border-[0.5px] border-black/5'
                     } ${item.isStartOfGroup
                       ? (isOutbound ? 'rounded-2xl rounded-tr-none' : 'rounded-2xl rounded-tl-none')
                       : 'rounded-2xl'
                     }`}
                 >
+                  {/* Internal Note Tag */}
+                  {isNote && (
+                    <div className="px-3 pt-2 pb-0 flex items-center gap-1.5 opacity-60">
+                      <FaFlag className="text-[9px]" />
+                      <span className="text-[9px] font-black uppercase tracking-widest">Team Note</span>
+                      {message.sentBy?.name && (
+                        <span className="text-[9px] font-black uppercase tracking-widest">• {message.sentBy.name}</span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Message Detail (Tails - only on start of group) */}
-                  {item.isStartOfGroup && (
+                  {item.isStartOfGroup && !isNote && (
                     <div className={`absolute top-0 w-3 h-4 ${isOutbound ? '-right-2' : '-left-2'}`}>
                       <div className={`w-full h-full ${isOutbound ? 'bg-[#dcf8c6] dark:bg-[#005c4b]' : 'bg-white dark:bg-[#202c33]'}`} style={{ clipPath: isOutbound ? 'polygon(0 0, 0 100%, 100% 0)' : 'polygon(100% 0, 100% 100%, 0 0)' }}></div>
                     </div>

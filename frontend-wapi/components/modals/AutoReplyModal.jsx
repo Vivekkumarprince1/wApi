@@ -29,6 +29,9 @@ export default function AutoReplyModal({ isOpen, onClose, autoReplyId, onSuccess
         {
           type: 'send_template_message',
           config: {
+            replyType: 'template', // 'template' or 'text'
+            textMessage: '',
+            variableMapping: [], // [{variable: '1', contactField: 'name', fallbackValue: ''}]
             templateId: '',
             templateName: '',
             templateLanguage: 'en',
@@ -73,7 +76,15 @@ export default function AutoReplyModal({ isOpen, onClose, autoReplyId, onSuccess
               businessHoursOnly: rule.trigger?.filters?.businessHoursOnly || false
             }
           },
-          actions: rule.actions?.length ? rule.actions : getDefaultForm().actions
+          actions: rule.actions?.length ? rule.actions.map(a => ({
+            ...a,
+            config: {
+              replyType: a.config?.replyType || 'template',
+              textMessage: a.config?.textMessage || '',
+              variableMapping: a.config?.variableMapping || [],
+              ...a.config
+            }
+          })) : getDefaultForm().actions
         });
       }
     } catch (err) {
@@ -121,6 +132,35 @@ export default function AutoReplyModal({ isOpen, onClose, autoReplyId, onSuccess
         }
       }]
     });
+  };
+
+  const handleReplyTypeChange = (type) => {
+    const actions = [...form.actions];
+    actions[0].config.replyType = type;
+    setForm({ ...form, actions });
+  };
+
+  const updateVariableMapping = (idx, field, value) => {
+    const mapping = [...form.actions[0].config.variableMapping];
+    mapping[idx] = { ...mapping[idx], [field]: value };
+    const actions = [...form.actions];
+    actions[0].config.variableMapping = mapping;
+    setForm({ ...form, actions });
+  };
+
+  const addVariableMapping = () => {
+    const mapping = [...form.actions[0].config.variableMapping];
+    mapping.push({ variable: mapping.length + 1 + '', contactField: 'name', fallbackValue: '' });
+    const actions = [...form.actions];
+    actions[0].config.variableMapping = mapping;
+    setForm({ ...form, actions });
+  };
+
+  const removeVariableMapping = (idx) => {
+    const mapping = form.actions[0].config.variableMapping.filter((_, i) => i !== idx);
+    const actions = [...form.actions];
+    actions[0].config.variableMapping = mapping;
+    setForm({ ...form, actions });
   };
 
   const handleSubmit = async () => {
@@ -285,19 +325,98 @@ export default function AutoReplyModal({ isOpen, onClose, autoReplyId, onSuccess
                   <h3 className="text-base font-bold text-slate-900">Configure Response</h3>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-900 mb-2">Send WhatsApp Template</label>
-                  <select 
-                    value={form.actions[0].config.templateId}
-                    onChange={(e) => handleTemplateChange(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
-                  >
-                    <option value="">Select a template...</option>
-                    {templates.map(t => (
-                      <option key={t._id} value={t._id}>{t.name} ({t.category})</option>
-                    ))}
-                  </select>
+                {/* Reply Type Picker */}
+                <div className="mb-6">
+                  <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Response Mode</label>
+                  <div className="flex bg-slate-100 p-1 rounded-lg w-full">
+                    <button
+                      onClick={() => handleReplyTypeChange('template')}
+                      className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${form.actions[0].config.replyType === 'template' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      WHATSAPP TEMPLATE (PAID)
+                    </button>
+                    <button
+                      onClick={() => handleReplyTypeChange('text')}
+                      className={`flex-1 py-2 rounded-md text-xs font-bold transition-all ${form.actions[0].config.replyType === 'text' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      PLAIN TEXT (SESSION/FREE)
+                    </button>
+                  </div>
                 </div>
+
+                {form.actions[0].config.replyType === 'text' ? (
+                  <div className="space-y-4 animate-in slide-in-from-top-2">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-900 mb-2">Message Content</label>
+                      <textarea
+                        rows={4}
+                        value={form.actions[0].config.textMessage}
+                        onChange={e => {
+                          const actions = [...form.actions];
+                          actions[0].config.textMessage = e.target.value;
+                          setForm({ ...form, actions });
+                        }}
+                        placeholder="Hi {{name}}, thanks for reaching out!"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary resize-none"
+                      />
+                      <p className="text-[10px] text-slate-400 mt-2 italic">
+                        Use {"{{field}}"} for dynamic data. Examples: {"{{name}}"}, {"{{customFields.city}}"}.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-6 animate-in slide-in-from-top-2">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-900 mb-2">Select Template</label>
+                      <select 
+                        value={form.actions[0].config.templateId}
+                        onChange={(e) => handleTemplateChange(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-all"
+                      >
+                        <option value="">Select a template...</option>
+                        {templates.map(t => (
+                          <option key={t._id} value={t._id}>{t.name} ({t.category})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Variable Mapping Table */}
+                    {form.actions[0].config.templateId && (
+                      <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50">
+                        <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-3">Dynamic Content Mapping</label>
+                        <div className="space-y-3">
+                          {form.actions[0].config.variableMapping.map((mv, vidx) => (
+                            <div key={vidx} className="flex items-center gap-2">
+                              <span className="w-8 h-8 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600">{"{{"}{mv.variable}{"}}"}</span>
+                              <select
+                                value={mv.contactField}
+                                onChange={e => updateVariableMapping(vidx, 'contactField', e.target.value)}
+                                className="flex-1 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs focus:outline-none"
+                              >
+                                <option value="name">Contact Name</option>
+                                <option value="phone">Phone Number</option>
+                                <option value="email">Email Address</option>
+                                <option value="customFields.city">City (Custom)</option>
+                                <option value="customFields.source">Source (Custom)</option>
+                              </select>
+                              <input
+                                type="text"
+                                placeholder="Fallback"
+                                value={mv.fallbackValue}
+                                onChange={e => updateVariableMapping(vidx, 'fallbackValue', e.target.value)}
+                                className="w-24 bg-white border border-slate-200 rounded-lg px-2 py-2 text-xs focus:outline-none"
+                              />
+                              <button onClick={() => removeVariableMapping(vidx)} className="text-slate-300 hover:text-red-500"><X className="w-4 h-4" /></button>
+                            </div>
+                          ))}
+                          <button onClick={addVariableMapping} className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1 mt-2">
+                             <Plus className="w-3 h-3" /> Add Mapping
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
             </div>

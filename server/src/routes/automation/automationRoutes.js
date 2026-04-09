@@ -22,13 +22,16 @@ const express = require('express');
 const auth = require('../../middlewares/auth');
 const automationController = require('../../controllers/automation/automationController');
 const answerBotRoutes = require('./answerbotRoutes');
+const { requireFeature } = require('../../middlewares/infrastructure/featureGate');
 
 const router = express.Router();
 
-// All routes require authentication
+// All routes require authentication and Automation feature
 router.use(auth);
+router.use(requireFeature('AUTOMATION'));
 
 // AnswerBot routes (nested under /api/v1/automation/answerbot)
+// Note: This sub-router can have its own additional feature checks if needed
 router.use('/answerbot', answerBotRoutes);
 
 // ═══════════════════════════════════════════════════════════════════════════

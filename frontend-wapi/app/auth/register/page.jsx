@@ -14,6 +14,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
+const getOnboardingPath = (onboarding) => {
+  if (!onboarding?.status?.steps?.phoneVerified) {
+    return '/onboarding/verify-mobile';
+  }
+
+  if (!onboarding?.status?.steps?.businessInfo) {
+    return '/onboarding/business-info';
+  }
+
+  return '/dashboard';
+};
+
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email address'),
@@ -88,7 +100,7 @@ export default function RegisterPage() {
         window.dispatchEvent(new Event('authChange'));
         await useAuthStore.getState().fetchSession(true);
       }
-      router.push('/onboarding/business-info');
+      router.push('/onboarding/verify-mobile');
     } catch (err) {
       setOtpError(err.message || 'Verification failed');
     } finally {
@@ -145,15 +157,8 @@ export default function RegisterPage() {
     }
     setSocialError('');
     
-    // Fetch current onboarding status to determine destination
     const onboarding = await getOnboardingStatus().catch(() => null);
-    const needsBusinessInfo = !onboarding || onboarding.status === 'workspace_not_created';
-    
-    if (needsBusinessInfo) {
-      router.push('/onboarding/business-info');
-    } else {
-      router.push('/dashboard');
-    }
+    router.push(getOnboardingPath(onboarding));
   };
 
   const handleFacebookSuccess = (result) => handleSocialSuccess(result);

@@ -593,10 +593,88 @@ async function getReplyRateAnalytics(workspaceId, startDate, endDate) {
   }
 }
 
+/**
+ * Get behavioral insights (Engagement Heatmap & Best Time to Send)
+ */
+async function getBehavioralInsights(workspaceId, templateId = null, days = 30) {
+  const ObjectId = mongoose.Types.ObjectId;
+  const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  try {
+    const match = {
+      workspace: new ObjectId(workspaceId),
+      direction: 'outbound',
+      type: 'template',
+      status: 'read',
+      readAt: { $exists: true, $ne: null },
+      createdAt: { $gte: startDate }
+    };
+
+    if (templateId) {
+      match['template.id'] = new ObjectId(templateId);
+    }
+
+    // Aggregate by Day of Week (1=Sun, 7=Sat) and Hour of Day (0-23)
+    const engagementData = await Message.aggregate([
+      { $match: match },
+      {
+        $project: {
+          dayOfWeek: { $dayOfWeek: '$readAt' },
+          hour: { $hour: '$readAt' }
+        }
+      },
+      {
+        $group: {
+          _id: { day: '$dayOfWeek', hour: '$hour' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Format into a 7x24 matrix
+    const matrix = Array.from({ length: 7 }, () => Array(24).fill(0));
+    let maxEngagement = 0;
+    let peakDay = 0;
+    let peakHour = 0;
+
+    engagementData.forEach(d => {
+      const dayIdx = d._id.day - 1; // 0-indexed Sun-Sat
+      const hour = d._id.hour;
+      matrix[dayIdx][hour] = d.count;
+      
+      if (d.count > maxEngagement) {
+        maxEngagement = d.count;
+        peakDay = d._id.day;
+        peakHour = d._id.hour;
+      }
+    });
+
+    const daysMap = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const bestTime = maxEngagement > 0 
+      ? `${daysMap[peakDay - 1]} at ${peakHour}:00`
+      : 'Insufficient data';
+
+    return {
+      success: true,
+      data: {
+        matrix,
+        maxEngagement,
+        bestTime,
+        peakDay: daysMap[peakDay - 1],
+        peakHour
+      }
+    };
+  } catch (error) {
+    logger.error('[TemplateAnalytics] Behavioral insights failed:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   // Template analytics
   getTemplateAnalytics,
   getTemplatePerformanceTrend,
+  getBehavioralInsights,
   
   // Campaign analytics
   getCampaignAnalytics,

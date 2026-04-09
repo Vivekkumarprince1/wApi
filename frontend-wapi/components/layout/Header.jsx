@@ -31,6 +31,8 @@ import { useTheme } from 'next-themes';
 import { FaWhatsapp, FaInstagram } from 'react-icons/fa';
 import * as api from '@/lib/api';
 import { useAuthStore as useAuth } from '@/store/authStore';
+import { toast } from 'react-hot-toast';
+import { Wallet, Plus, CreditCard } from 'lucide-react';
 
 const ACTIVE_PHONE_STATUSES = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VERIFIED'];
 
@@ -46,6 +48,8 @@ const Header = ({ onMenuClick }) => {
   const [loading, setLoading] = useState(false);
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [verification, setVerification] = useState(null);
+  const [wallet, setWallet] = useState({ balance: 0, loading: true });
+  const [isRecharging, setIsRecharging] = useState(false);
 
   // Map auth context to component's expected shape
   const userData = user ? { name: user.name, email: user.email, role: user.role, _id: user.id, emailVerified: user.emailVerified } : null;
@@ -70,6 +74,87 @@ const Header = ({ onMenuClick }) => {
   const notifRef = useRef(null);
   const accountRef = useRef(null);
   const settingsRef = useRef(null);
+
+  useEffect(() => {
+    if (user && showAccountSummary) {
+      fetchWallet();
+    }
+  }, [user, showAccountSummary]);
+
+  const fetchWallet = async () => {
+    try {
+      setWallet(prev => ({ ...prev, loading: true }));
+      const { data } = await api.getWalletStatus();
+      setWallet({ balance: data.balance, loading: false });
+    } catch (err) {
+      console.error('Failed to fetch wallet:', err);
+      setWallet(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleRecharge = async (amountINR) => {
+    try {
+      if (!window.Razorpay) {
+        toast.error('Payment gateway is still loading. Please try again in a moment.');
+        return;
+      }
+
+      setIsRecharging(true);
+      const amountPaise = amountINR * 100;
+      const response = await api.initiateRecharge(amountPaise);
+      
+      // The axial interceptor returns response.data
+      // So if the server returns { success: true, data: { ... } }, 
+      // response is { success: true, data: { ... } }
+      const orderData = response.data || response;
+
+      if (!orderData || !orderData.orderId) {
+        console.error('[Header] Invalid Order Structure:', response);
+        throw new Error('Invalid order response from server');
+      }
+
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: process.env.NEXT_PUBLIC_APP_NAME || 'Interakt',
+        description: `Wallet Recharge: ₹${amountINR}`,
+        order_id: orderData.orderId,
+        handler: async (response) => {
+          try {
+            toast.loading('Verifying payment...', { id: 'verify-payment' });
+            await api.verifyRecharge({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            });
+            toast.success('Payment verified! Balance updated.', { id: 'verify-payment' });
+            fetchWallet();
+          } catch (err) {
+            console.error('[Header] Verification Error:', err);
+            toast.error('Payment succeeded but verification failed. Please contact support.', { id: 'verify-payment' });
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email
+        },
+        theme: { color: "#2563eb" }
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response){
+        toast.error(`Payment Failed: ${response.error.description}`);
+      });
+      rzp.open();
+    } catch (err) {
+      console.error('[Header] Recharge Error:', err);
+      const msg = err.response?.data?.error || err.message || 'Failed to initiate recharge';
+      toast.error(msg);
+    } finally {
+      setIsRecharging(false);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -163,14 +248,17 @@ const Header = ({ onMenuClick }) => {
   };
 
   const getPlanName = () => {
-    const plan = workspaceData?.plan || 'free';
+    const plan = workspaceData?.plan;
+    const planSlug = (typeof plan === 'object' ? plan?.slug : plan) || 'free';
+
     const planNames = {
       'free': 'Growth (free trial)',
+      'starter': 'Starter',
       'basic': 'Basic',
       'premium': 'Premium',
       'enterprise': 'Enterprise'
     };
-    return planNames[plan] || plan;
+    return planNames[planSlug] || (typeof plan === 'object' ? plan.name : planSlug);
   };
 
   const getVerificationBadge = () => {
@@ -369,11 +457,34 @@ const Header = ({ onMenuClick }) => {
                         <div className="text-slate-300 text-xs">Expires {formatPlanExpiry()}</div>
                       </div>
                       <button
-                        onClick={() => router.push('/pricing')}
+                        onClick={() => router.push('/dashboard/billing')}
                         className="bg-primary text-primary-foreground px-3 py-1.5 rounded-lg text-xs font-semibold hover:brightness-110 transition-colors"
                       >
-                        {workspaceData?.plan === 'free' ? 'Upgrade' : 'Manage'}
+                        {(workspaceData?.plan?.slug || workspaceData?.plan) === 'free' ? 'Upgrade' : 'Manage'}
                       </button>
+                    </div>
+
+                    {/* Wallet Section */}
+                    <div className="mt-4 pt-4 border-t border-white/10 space-y-3">
+                      <div className="flex items-center justify-between text-white">
+                        <div className="flex items-center gap-2">
+                          <Wallet className="h-4 w-4 text-blue-400" />
+                          <span className="text-sm">Wallet Balance</span>
+                        </div>
+                        <span className="font-bold">₹{(wallet.balance / 100).toFixed(2)}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        {[500, 1000].map(amt => (
+                          <button
+                            key={amt}
+                            disabled={isRecharging}
+                            onClick={() => handleRecharge(amt)}
+                            className="flex-1 bg-white/10 hover:bg-white/20 text-white text-[10px] py-1.5 rounded-lg transition-colors border border-white/5"
+                          >
+                            +₹{amt}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 

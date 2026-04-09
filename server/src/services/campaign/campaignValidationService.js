@@ -1,4 +1,6 @@
 const { Template, Contact, Workspace, Campaign } = require('../../models');
+const billingLedgerService = require('../billing/billingLedgerService');
+const walletService = require('../billing/walletService');
 
 // ✅ Plan limits - source of truth for enforcement
 const PLAN_LIMITS = {
@@ -170,7 +172,30 @@ async function validateCampaignCreation(workspace, campaignData) {
     }
   }
 
-  // 9️⃣ Check ESB flow or WABA credentials
+  // 9️⃣ ✅ CRITICAL: Wallet Balance Check
+  // Estimate total cost based on recipient count and template category
+  const { price: pricePaise, category: billingCategory } = await billingLedgerService.getTemplatePrice(workspace._id, template.category);
+  
+  if (pricePaise > 0) {
+    const totalEstimatedCost = messageCount * pricePaise;
+    const wallet = await walletService.getBalance(workspace._id);
+    const balance = wallet.balance || 0;
+
+    if (balance < totalEstimatedCost) {
+      const error = new Error(`INSUFFICIENT_WALLET_BALANCE: Campaign requires ₹${(totalEstimatedCost / 100).toFixed(2)}, but wallet has only ₹${(balance / 100).toFixed(2)}.`);
+      error.code = 'INSUFFICIENT_WALLET_BALANCE';
+      error.statusCode = 402;
+      error.details = { 
+        required: totalEstimatedCost, 
+        available: balance,
+        category: billingCategory,
+        recipientCount: messageCount 
+      };
+      throw error;
+    }
+  }
+
+  // 🔟 Check ESB flow or WABA credentials
   const isConnected = (workspace.esbFlow?.status === 'completed') || (workspace.bspManaged && workspace.isBspConnected?.());
   if (!isConnected) {
     throw new Error('WHATSAPP_NOT_CONNECTED: Complete WhatsApp setup first');

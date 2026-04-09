@@ -78,16 +78,32 @@ export const useSocketStore = create((set, get) => ({
 if (typeof window !== 'undefined') {
   useAuthStore.subscribe((state, prevState) => {
     const { user, workspace } = state;
-    const prevUser = prevState?.user;
-    const prevWorkspace = prevState?.workspace;
+    
+    // Connect if we have user and workspace, even if they haven't explicitly "changed"
+    // from a previous state (which helps on initial load where connect might not have fired)
+    if (user && workspace) {
+        const currentSocket = useSocketStore.getState().socket;
+        const currentConnected = useSocketStore.getState().connected;
+        // Check if we are already connected to avoid duplicate connections
+        if (!currentSocket || !currentConnected) {
+             const token = localStorage.getItem('token');
+             useSocketStore.getState().connect(token, user, workspace);
+        } else {
+             // If we have a socket, we also need to make sure the socket's auth matches.
+             // This logic keeps user/workspace synced if they actually DO change
+            const prevUser = prevState?.user;
+            const prevWorkspace = prevState?.workspace;
 
-    // Only reconnect if user ID or workspace ID meaningfully changed
-    const userChanged = user?.id !== prevUser?.id;
-    const workspaceChanged = workspace?.id !== prevWorkspace?.id;
+            const userChanged = user?.id !== prevUser?.id;
+            const workspaceChanged = workspace?.id !== prevWorkspace?.id;
 
-    if (userChanged || workspaceChanged) {
-      const token = localStorage.getItem('token');
-      useSocketStore.getState().connect(token, user, workspace);
+            if (userChanged || workspaceChanged) {
+                const token = localStorage.getItem('token');
+                useSocketStore.getState().connect(token, user, workspace);
+            }
+        }
+    } else if (!user || !workspace) {
+        useSocketStore.getState().disconnect();
     }
   });
 }

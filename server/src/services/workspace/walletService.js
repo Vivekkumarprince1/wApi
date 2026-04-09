@@ -1,5 +1,6 @@
 const { Workspace } = require('../../models');
 const WalletTransaction = require('../../models/workspace/WalletTransaction');
+const inboxSocketService = require('../messaging/inboxSocketService');
 
 /**
  * Park credits for a campaign
@@ -16,6 +17,9 @@ async function parkBalance(workspaceId, amount, campaignId) {
   workspace.wallet.balance -= amount;
   workspace.wallet.parkedBalance += amount;
   await workspace.save();
+
+  // Emit real-time update
+  inboxSocketService.emitWalletUpdate(workspaceId, workspace.wallet);
 
   // Record transaction
   await WalletTransaction.create({
@@ -44,6 +48,9 @@ async function unparkBalance(workspaceId, amount, campaignId) {
   workspace.wallet.balance += actualUnpark;
   await workspace.save();
 
+  // Emit real-time update
+  inboxSocketService.emitWalletUpdate(workspaceId, workspace.wallet);
+
   await WalletTransaction.create({
     workspaceId,
     type: 'UNPARK',
@@ -57,13 +64,30 @@ async function unparkBalance(workspaceId, amount, campaignId) {
 }
 
 /**
- * Finalize credit spend (convert parked to spent)
+ * Finalize credit spend for a campaign message (Conversation-Aware)
+ * 
+ * Rules:
+ * 1. If message failed → Refund 1 parked credit
+ * 2. If message succeeded BUT no new conversation started (active window) → Refund 1 parked credit
+ * 3. If message succeeded AND started new billable conversation → Keep 1 credit spent
+ * 
+ * @param {ObjectId} workspaceId 
+ * @param {String} whatsappMessageId 
+ * @param {ObjectId} campaignId 
+ * @param {Boolean} success 
  */
-async function recordMessageDeliverability(workspaceId, campaignId, success) {
+async function finalizeConversationSpend(workspaceId, whatsappMessageId, campaignId, success) {
+  const billingLedgerService = require('../billing/billingLedgerService');
   const workspace = await Workspace.findById(workspaceId);
   if (!workspace) return;
 
-  if (success) {
+  const { billable } = await billingLedgerService.wasMessageBillable(whatsappMessageId);
+
+  // Determine if we should actually charge for this message
+  // We only charge if it was a SUCCESSFUL delivery that started a NEW BILLABLE window
+  const shouldCharge = success && billable;
+
+  if (shouldCharge) {
     // Just reduce parked balance (it's already deducted from balance)
     workspace.wallet.parkedBalance = Math.max(0, workspace.wallet.parkedBalance - 1);
     await workspace.save();
@@ -76,13 +100,20 @@ async function recordMessageDeliverability(workspaceId, campaignId, success) {
       referenceType: 'CAMPAIGN',
       referenceId: campaignId,
       referenceTypeModel: 'Campaign',
-      description: `Credit spent on successful delivery`
+      description: `Conversation credit spent (Meta Window started)`
     });
+
+    console.log(`[WalletService] Credit SPENT for ${whatsappMessageId} (Window started)`);
   } else {
-    // Refund 1 credit if failure and no fallback
+    // Refund 1 credit (either it failed, or it was free/within-window)
+    const refundReason = !success ? 'Delivery failure' : 'Active window (no new charge)';
+    
     workspace.wallet.parkedBalance = Math.max(0, workspace.wallet.parkedBalance - 1);
     workspace.wallet.balance += 1;
     await workspace.save();
+
+    // Emit real-time update
+    inboxSocketService.emitWalletUpdate(workspaceId, workspace.wallet);
 
     await WalletTransaction.create({
       workspaceId,
@@ -92,13 +123,17 @@ async function recordMessageDeliverability(workspaceId, campaignId, success) {
       referenceType: 'CAMPAIGN',
       referenceId: campaignId,
       referenceTypeModel: 'Campaign',
-      description: `Credit refunded due to delivery failure`
+      description: `Credit refunded: ${refundReason}`
     });
+
+    console.log(`[WalletService] Credit REFUNDED for ${whatsappMessageId} (${refundReason})`);
   }
 }
 
 module.exports = {
   parkBalance,
   unparkBalance,
-  recordMessageDeliverability
+  finalizeConversationSpend,
+  // Legacy support for other modules
+  recordMessageDeliverability: finalizeConversationSpend 
 };

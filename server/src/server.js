@@ -242,18 +242,24 @@ const analyticsDashboardRoutes = require('./routes/analytics/analyticsDashboardR
 const automationEngineRoutes = require('./routes/automation/automationEngineRoutes'); // Stage 6: Automation Engine
 const auditRoutes = require('./routes/admin/auditRoutes'); // Stage 5: Audit Logs
 const quickReplyRoutes = require('./routes/messaging/quickReplyRoutes');
+const segmentRoutes = require('./routes/campaign/segmentRoutes');
+const adminPlanRoutes = require('./routes/admin/planRoutes');
+const subscriptionRoutes = require('./routes/billing/subscriptionRoutes');
+const walletRoutes = require('./routes/billing/walletRoutes');
 
 app.use('/api/v1/campaigns', campaignRoutes);
 app.use('/api/v1/ads', adsRoutes);
 app.use('/api/v1/automation', automationRoutes);
 app.use('/api/v1/auto-replies', autoReplyRoutes);
 app.use('/api/v1/instagram-quickflows', instagramQuickflowRoutes);
+app.use('/api/v1/segments', segmentRoutes);
 app.use('/api/v1/whatsapp-forms', whatsappFormRoutes);
+app.use('/api/v1/analytics/dashboard', analyticsDashboardRoutes); // Stage 5: Analytics Dashboard (Placed before general analytics to avoid prefix shadowing)
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/team', teamRoutes);
-app.use('/api/v1/billing', billingRoutes); // Week 2 addition
+// app.use('/api/v1/billing', billingRoutes); // Moved below specific billing sub-routes
 app.use('/api/v1/templates', templateRoutes);
 app.use('/api/v1/conversations', conversationRoutes);
 app.use('/api/v1/inbox', inboxRoutes); // Stage 4: Shared Inbox
@@ -277,10 +283,13 @@ app.use('/api/v1/widget', widgetRoutes);
 app.use('/api/v1/privacy', dataDeletionRoutes);
 app.use('/api/v1/reports', billingReportsRoutes); // Stage 5: Billing Reports
 app.use('/api/v1/tags', tagRoutes); // Stage 5: CRM Tags
-app.use('/api/v1/analytics/dashboard', analyticsDashboardRoutes); // Stage 5: Analytics Dashboard
 app.use('/api/v1/automation/engine', automationEngineRoutes); // Stage 6: Automation Engine
 app.use('/api/v1/audit-logs', auditRoutes); // Stage 5: Audit Logs
 app.use('/api/v1/quick-replies', quickReplyRoutes);
+app.use('/api/v1/billing/plans', adminPlanRoutes);
+app.use('/api/v1/billing/subscriptions', subscriptionRoutes);
+app.use('/api/v1/billing/wallet', walletRoutes);
+app.use('/api/v1/billing', billingRoutes); // Moved generic billing routes to end to avoid prefix shadowing
 
 // Start Automation Engine (Stage 6)
 if (process.env.ENABLE_AUTOMATION_ENGINE !== 'false') {
@@ -288,6 +297,11 @@ if (process.env.ENABLE_AUTOMATION_ENGINE !== 'false') {
     const { startEngine } = require('./services/automation/automationEngine');
     startEngine();
     console.log('[Server] ✅ Automation engine started');
+
+    // Start CRM Automation Bridge (Stage 5 Extension)
+    const crmAutomationService = require('./services/commerce/crmAutomationService');
+    crmAutomationService.init();
+    console.log('[Server] ✅ CRM Automation bridge initialized');
   } catch (err) {
     console.error('[Server] Failed to start automation engine:', err.message);
   }

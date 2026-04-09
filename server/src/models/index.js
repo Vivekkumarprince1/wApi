@@ -42,6 +42,7 @@ const Campaign = require('./campaign/Campaign');
 const CampaignBatch = require('./campaign/CampaignBatch');
 const CampaignMessage = require('./campaign/CampaignMessage');
 const CampaignSummary = require('./campaign/CampaignSummary');
+const Segment = require('./campaign/Segment');
 
 // Template domain
 const Template = require('./template/Template');
@@ -119,6 +120,7 @@ module.exports = {
   CampaignBatch,
   CampaignMessage,
   CampaignSummary,
+  Segment,
 
   // Template domain
   Template,

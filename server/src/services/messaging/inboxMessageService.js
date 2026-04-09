@@ -731,11 +731,81 @@ async function getConversationMessages(options) {
   };
 }
 
+/**
+ * Send an internal note from inbox
+ */
+async function sendInternalNote(options) {
+  const {
+    workspaceId,
+    conversationId,
+    agentId,
+    text
+  } = options;
+
+  // 1. Permission check (simplified for notes)
+  const permissionCheck = await canAgentSendMessage(agentId, workspaceId, conversationId, {
+    requireOpenConversation: false // Can add notes to closed conversations
+  });
+  if (!permissionCheck.allowed) {
+    throw new Error(`PERMISSION_DENIED: ${permissionCheck.reason}`);
+  }
+
+  // 2. Create internal note message
+  const message = await Message.create({
+    workspace: workspaceId,
+    conversation: conversationId,
+    direction: 'outbound',
+    type: 'note',
+    body: text,
+    isInternalNote: true,
+    sentBy: agentId,
+    status: 'received' // Internal notes are "received" by the system immediately
+  });
+
+  // 3. Update conversation
+  const now = new Date();
+  const conversation = await Conversation.findById(conversationId);
+  if (conversation) {
+    conversation.lastActivityAt = now;
+    // We update lastMessagePreview but maybe with a [Note] prefix
+    conversation.lastMessagePreview = `[Note] ${text.substring(0, 90)}`;
+    conversation.lastMessageDirection = 'outbound';
+    conversation.lastMessageType = 'note';
+    // Notes don't count as "responses" for SLA or window management
+    await conversation.save();
+  }
+
+  // 4. Emit socket event
+  const io = getIO();
+  if (io) {
+    const messageData = await Message.findById(message._id).populate('sentBy', 'name email').lean();
+    
+    // Broadcast to workspace
+    io.to(`workspace:${workspaceId}`).emit('message:sent', {
+      conversationId,
+      message: messageData
+    });
+
+    // Update conversation preview
+    io.to(`workspace:${workspaceId}`).emit('conversation:updated', {
+      conversationId,
+      updates: {
+        lastActivityAt: now,
+        lastMessagePreview: `[Note] ${text.substring(0, 90)}`,
+        lastMessageType: 'note'
+      }
+    });
+  }
+
+  return { success: true, message };
+}
+
 module.exports = {
   canAgentSendMessage,
   isWithin24HourWindow,
   sendTextMessage,
   sendTemplateMessage,
   sendMediaMessage,
+  sendInternalNote,
   getConversationMessages
 };

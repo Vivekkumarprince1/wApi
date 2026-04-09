@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Header from './Header';
 import Sidebar from './AppSidebar';
+import AdminSidebar from './AdminSidebar';
 import FlashLoader from '../ui/FlashLoader';
 import { useAuthStore as useAuth } from '@/store/authStore';
 import { loadingStore } from '@/lib/api/loadingStore';
@@ -85,15 +86,23 @@ export default function LayoutWrapper({ children }) {
         <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar Selection */}
       {shouldShowSidebar && (
         <>
-          <Sidebar
-            isOpen={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            onSectionChange={() => setSidebarOpen(false)}
-            currentPath={pathname}
-          />
+          {pathname.startsWith('/admin') ? (
+            <AdminSidebar 
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              currentPath={pathname}
+            />
+          ) : (
+            <Sidebar
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              onSectionChange={() => setSidebarOpen(false)}
+              currentPath={pathname}
+            />
+          )}
 
           {/* Mobile overlay */}
           {sidebarOpen && (

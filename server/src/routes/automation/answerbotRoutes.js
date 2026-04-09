@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router({ mergeParams: true });
 const answerBotController = require('../../controllers/automation/answerbotController');
+const { requireFeature } = require('../../middlewares/infrastructure/featureGate');
 
 /**
  * AnswerBot Routes
  * Base URL: /api/automation/answerbot/:workspaceId
  * Auth middleware is applied by parent router (automationRoutes)
  */
+
+router.use(requireFeature('ANSWERBOT'));
 
 /**
  * POST /api/automation/answerbot/:workspaceId/generate

@@ -44,6 +44,20 @@ async function processCampaignStatusUpdate(whatsappMessageId, status, timestamp,
       // Not a campaign message, skip campaign processing
       return { processed: false, reason: 'not_campaign_message' };
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // TASK: Wallet Reconciliation (Align with Interakt/Meta billing)
+    // ══════════════════════════════════════════════════════════════════════════
+    if (status === 'sent' || status === 'failed') {
+      setImmediate(() => {
+        walletService.finalizeConversationSpend(
+          message.workspace,
+          whatsappMessageId,
+          campaignId,
+          status !== 'failed'
+        ).catch(err => console.error('[CampaignWebhook] Wallet reconciliation failed:', err.message));
+      });
+    }
     
     // Find or create CampaignMessage record
     let campaignMessage = await CampaignMessage.findOne({
@@ -106,6 +120,24 @@ async function processCampaignStatusUpdate(whatsappMessageId, status, timestamp,
         }
         
         await CampaignMessage.findByIdAndUpdate(campaignMessage._id, { $set: updateData });
+
+        console.log(`[CampaignWebhook] Status update progressed: ${status} for ${whatsappMessageId}`);
+
+        // ══════════════════════════════════════════════════════════════════════════
+        // TASK: Wallet Reconciliation (Align with Interakt/Meta billing)
+        // ══════════════════════════════════════════════════════════════════════════
+        // Finalize credit spend when message reaches terminal sent/failed state
+        if (status === 'sent' || status === 'failed') {
+          console.log(`[CampaignWebhook] Triggering wallet reconciliation for ${status}`);
+          walletService.finalizeConversationSpend(
+            message.workspace,
+            whatsappMessageId,
+            campaignId,
+            status !== 'failed' // success = true if sent
+          )
+          .then(() => console.log(`[CampaignWebhook] Wallet reconciliation success for ${whatsappMessageId}`))
+          .catch(err => console.error('[CampaignWebhook] Wallet reconciliation failed:', err.message));
+        }
       } else {
         // Status is not a progression, skip update
         return { 
@@ -139,17 +171,10 @@ async function processCampaignStatusUpdate(whatsappMessageId, status, timestamp,
           recipient.error = statusData.errors?.[0]?.message;
         }
         
-        // Update batch stats
-        if (status === 'delivered') {
-          batch.stats.delivered = (batch.stats.delivered || 0) + 1;
-        } else if (status === 'read') {
-          batch.stats.read = (batch.stats.read || 0) + 1;
-        }
-        
-        await batch.save();
+        await CampaignBatch.findByIdAndUpdate(batch._id, { $set: { stats: batch.stats } });
       }
     }
-    
+
     return {
       processed: true,
       campaignId,

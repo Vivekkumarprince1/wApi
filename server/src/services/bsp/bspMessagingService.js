@@ -1390,7 +1390,19 @@ async function ensurePrerequisites(workspace) {
     try {
       await finalizationPromises.get(appId);
     } catch (err) {
-      throw new Error(`BSP_WHITELIST_FAILED: ${err.message}`);
+      const status = Number(err.response?.status || 0);
+      const errMsg = err.response?.data?.message || err.message;
+      
+      // Fail-Soft: If it's a 400 error (Bad Request), it often means the WABA 
+      // is already in a state (whitelisted/OBO) that Gupshup API rejects with POST.
+      // We log a warning but allow the message to proceed if the app seems otherwise healthy.
+      if (status === 400) {
+        console.warn(`[Messaging] ⚠️ WABA whitelisting failed (Fail-Soft) for ${appId}: ${errMsg}. Proceeding anyway.`);
+        finalizedWabas.add(appId); // Mark as "finalized" to stop retrying for this session
+        return; 
+      }
+      
+      throw new Error(`BSP_WHITELIST_FAILED: ${errMsg}`);
     }
   }
 

@@ -1,3 +1,4 @@
+const { requireFeature } = require('../../middlewares/infrastructure/featureGate');
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../../middlewares/auth');
@@ -20,6 +21,7 @@ const {
 
 // All routes require authentication
 router.use(authMiddleware);
+router.use(requireFeature('COMMERCE'));
 
 /**
  * @route   POST /api/v1/checkout-bot/init

@@ -3,8 +3,11 @@ const router = express.Router();
 const whatsappFormController = require('../../controllers/messaging/whatsappFormController');
 const authMiddleware = require('../../middlewares/auth');
 
-// All routes require authentication
+const { requireFeature } = require('../../middlewares/infrastructure/featureGate');
+
+// All routes require authentication and WhatsApp Forms feature
 router.use(authMiddleware);
+router.use(requireFeature('WHATSAPP_FORMS'));
 
 // Form interaction endpoints (MUST be before /:id routes to avoid catch-all)
 router.post('/start', whatsappFormController.startWhatsAppFormResponse);

@@ -1,4 +1,5 @@
 const { UsageLedger, Workspace } = require('../../models');
+const inboxSocketService = require('../messaging/inboxSocketService');
 
 function getBillingPeriod(date = new Date()) {
   const year = date.getUTCFullYear();
@@ -62,7 +63,7 @@ async function incrementConversations({ workspaceId, category, initiatedBy }) {
     update.$inc['conversations.userInitiated'] = 1;
   }
 
-  return UsageLedger.findOneAndUpdate(
+  const ledger = await UsageLedger.findOneAndUpdate(
     { workspace: workspaceId, billingPeriod },
     {
       ...update,
@@ -75,13 +76,23 @@ async function incrementConversations({ workspaceId, category, initiatedBy }) {
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
+
+  // Emit real-time update
+  if (ledger) {
+    const workspace = await Workspace.findById(workspaceId).select('billingQuota').lean();
+    if (workspace) {
+      inboxSocketService.emitQuotaUpdate(workspaceId, ledger, workspace.billingQuota || {});
+    }
+  }
+
+  return ledger;
 }
 
 async function incrementMessages({ workspaceId, direction }) {
   const { billingPeriod, periodStart, periodEnd } = getBillingPeriod();
   const messageField = direction === 'inbound' ? 'messages.inbound' : 'messages.outbound';
 
-  return UsageLedger.findOneAndUpdate(
+  const ledger = await UsageLedger.findOneAndUpdate(
     { workspace: workspaceId, billingPeriod },
     {
       $inc: { [messageField]: 1 },
@@ -94,6 +105,16 @@ async function incrementMessages({ workspaceId, direction }) {
     },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
+
+  // Emit real-time update
+  if (ledger) {
+    const workspace = await Workspace.findById(workspaceId).select('billingQuota').lean();
+    if (workspace) {
+      inboxSocketService.emitQuotaUpdate(workspaceId, ledger, workspace.billingQuota || {});
+    }
+  }
+
+  return ledger;
 }
 
 async function incrementTemplateSubmissions(workspaceId, count = 1) {

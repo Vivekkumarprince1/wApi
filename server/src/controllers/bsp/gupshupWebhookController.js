@@ -10,6 +10,8 @@ const { runPostOnboardingAutomations } = require('../../services/bsp/gupshupProv
 const inboxSocketService = require('../../services/messaging/inboxSocketService');
 const { enqueueRetry } = require('../../services/infrastructure/messageRetryQueue');
 const { normalizePhone } = require('../../utils/phoneUtils');
+const { enqueueWebhook } = require('../../services/infrastructure/webhookQueue');
+
 
 function verify(req, res) {
   return res.status(200).json({ ok: true, provider: 'gupshup' });
@@ -19,13 +21,14 @@ async function handler(req, res) {
   const payload = req.body || {};
   const deliveryId = req.headers['x-delivery-id'] || req.headers['x-request-id'] || null;
 
+  // Immediate response for provider acknowledgement (Requirement 2.3)
   res.sendStatus(200);
 
-  try {
-    await processWebhookPayload(payload, deliveryId, req.ip);
-  } catch (error) {
-    console.error('[GupshupWebhook] Processing failed:', error.message);
-  }
+  // Requirement 2.3: Offload to queue asynchronously
+  // We do not await this to ensure the main request thread is freed immediately
+  enqueueWebhook(payload, deliveryId).catch(error => {
+    console.error('[GupshupWebhook] Failed to async-queue webhook:', error.message);
+  });
 }
 
 async function processWebhookPayload(payload, deliveryId, sourceIp) {
@@ -408,6 +411,9 @@ async function processInbound(incoming, workspace) {
       const autoReplyResult = await autoReplyService.checkAutoReply(text, contact, workspace._id);
       if (autoReplyResult.shouldSend) {
         await autoReplyService.sendAutoReply(autoReplyResult.autoReplyData, contact, workspace._id, message);
+      } else {
+        // Only try AnswerBot if no explicit keyword auto-reply matched
+        await answerBotService.processBotResponse(text, workspace._id, conversation);
       }
     } catch (err) {
       console.error('[GupshupWebhook] Async processing error:', err.message);

@@ -677,6 +677,15 @@ exports.setConversationLabel = async (req, res) => {
       });
     }
 
+    // Trigger automation event
+    const { automationEvents } = require('../../services/automation/automationEventEmitter');
+    automationEvents.conversationLabelChanged({
+      workspaceId,
+      conversationId: conversation._id,
+      contactId: conversation.contact._id,
+      metadata: { label }
+    });
+
     res.json({
       success: true,
       message: `Label set to ${label}`,
@@ -938,6 +947,10 @@ exports.getInbox = async (req, res) => {
     } else if (view === 'unassigned') {
       query.assignedTo = null;
       query.status = { $ne: 'spam' };
+    } else if (view === 'resolved') {
+      query.status = { $in: ['closed', 'resolved'] };
+    } else if (view === 'snoozed') {
+      query.status = 'snoozed';
     } else if (view === 'spam') {
       query.status = 'spam';
     } else if (view === 'all') {
@@ -953,11 +966,11 @@ exports.getInbox = async (req, res) => {
       // No assignedTo filter - show all
     }
 
-    // Status filter
+    // Status override (if explicitly provided in query)
     if (status) {
       query.status = status;
-    } else {
-      // Default: show open and pending (not closed)
+    } else if (!['resolved', 'snoozed', 'spam'].includes(view)) {
+      // Default: show open and pending if not in a specific status-driven view
       query.status = { $in: ['open', 'pending'] };
     }
 
@@ -1340,6 +1353,56 @@ exports.sendMessage = async (req, res) => {
       success: false,
       message: err.message || 'Failed to send message',
       code: 'SEND_ERROR'
+    });
+  }
+};
+
+/**
+ * Send internal note in conversation
+ * POST /api/inbox/:conversationId/notes
+ * Body: { text: string }
+ */
+exports.sendInternalNote = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { text } = req.body;
+    const workspaceId = req.user.workspace;
+    const agentId = req.user._id;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Note text is required',
+        code: 'MISSING_TEXT'
+      });
+    }
+
+    const result = await inboxMessageService.sendInternalNote({
+      workspaceId,
+      conversationId,
+      agentId,
+      text: text.trim()
+    });
+
+    res.json({
+      success: true,
+      message: 'Note added',
+      data: result.message
+    });
+
+  } catch (err) {
+    if (err.message?.startsWith('PERMISSION_DENIED')) {
+      return res.status(403).json({
+        success: false,
+        message: err.message.replace('PERMISSION_DENIED: ', ''),
+        code: 'PERMISSION_DENIED'
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Failed to add note',
+      code: 'NOTE_ERROR'
     });
   }
 };

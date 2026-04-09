@@ -23,6 +23,7 @@ const {
 } = require('./campaignKillSwitchService');
 
 const walletService = require('../workspace/walletService');
+const segmentService = require('./segmentService');
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -71,12 +72,12 @@ async function createCampaign(workspaceId, campaignData, userId) {
   let recipientCount = 0;
   if (campaignData.contacts && campaignData.contacts.length > 0) {
     recipientCount = campaignData.contacts.length;
+  } else if (campaignData.segmentId) {
+    const segmentContacts = await segmentService.resolveSegmentContacts(workspaceId, campaignData.segmentId);
+    campaignData.contacts = segmentContacts;
+    recipientCount = segmentContacts.length;
   } else if (campaignData.recipientFilter) {
-    const filter = { workspace: workspaceId, optedOut: { $ne: true } };
-    if (campaignData.recipientFilter.tags?.length > 0) {
-      filter.tags = { $in: campaignData.recipientFilter.tags };
-    }
-    recipientCount = await Contact.countDocuments(filter);
+    recipientCount = await segmentService.getSegmentCount(workspaceId, campaignData.recipientFilter);
   }
   
   // Create campaign with audit entry
@@ -125,6 +126,66 @@ async function createCampaign(workspaceId, campaignData, userId) {
     await scheduleCampaign(campaign._id, workspaceId, campaignData.scheduledAt);
   }
   
+  return campaign;
+}
+
+/**
+ * Retarget an existing campaign
+ * Creates a new DRAFT campaign with a subset of contacts based on interaction
+ * @param {ObjectId} campaignId - Original campaign ID
+ * @param {ObjectId} workspaceId 
+ * @param {ObjectId} userId 
+ * @param {String} type - 'NON_READERS' | 'NON_REPLIERS'
+ */
+async function retargetCampaign(campaignId, workspaceId, userId, type = 'NON_READERS') {
+  const original = await Campaign.findOne({ _id: campaignId, workspace: workspaceId });
+  if (!original) throw new Error('CAMPAIGN_NOT_FOUND');
+
+  // Identify targets
+  const query = { campaign: campaignId, workspace: workspaceId };
+  if (type === 'NON_READERS') {
+    query.status = { $ne: 'read' };
+  } else if (type === 'NON_REPLIERS') {
+    // Note: 'replied' is usually checked against Conversation or CampaignMessage replied flag
+    // For this MVP, we consider those who haven't sent a message back in the thread
+    // This is often tracked in Conversation or locally in CampaignMessage
+    query.replied = { $ne: true };
+  }
+
+  const targets = await CampaignMessage.find(query).distinct('contact');
+  if (targets.length === 0) {
+    throw new Error('NO_TARGETS_FOUND: All contacts in the original campaign have already responded/read.');
+  }
+
+  // Create cloned draft
+  const retargetName = `🎯 Retarget: ${original.name} (${type === 'NON_READERS' ? 'Unread' : 'No Reply'})`;
+  const campaign = await Campaign.create({
+    workspace: workspaceId,
+    name: retargetName,
+    description: `Retargeting campaign created from ${original.name}`,
+    campaignType: 'one-time',
+    template: original.template,
+    templateSnapshot: original.templateSnapshot,
+    variableMapping: original.variableMapping,
+    contacts: targets, // Static list of targets
+    status: 'DRAFT',
+    totals: {
+      totalRecipients: targets.length,
+      queued: 0, sent: 0, delivered: 0, read: 0, failed: 0
+    },
+    totalContacts: targets.length,
+    createdBy: userId,
+    parentCampaign: original._id, // Track lineage
+    audit: {
+      history: [{
+        action: 'RETARGETED_FROM',
+        by: userId,
+        at: new Date(),
+        metadata: { parentId: original._id, type }
+      }]
+    }
+  });
+
   return campaign;
 }
 
@@ -468,8 +529,15 @@ async function resumeCampaign(campaignId, workspaceId, userId) {
       campaign: campaignId,
       status: 'PENDING'
     }).sort({ batchIndex: 1 });
-    
-    await enqueueBatches(batchesToEnqueue, 2000);
+
+    // Calculate dynamic delay based on MPS (Messages Per Second)
+    const workspace = await Workspace.findById(workspaceId).select('bspRateLimits').lean();
+    const mps = workspace?.bspRateLimits?.messagesPerSecond || 10;
+    const batchSize = campaign.batching?.batchSize || 50;
+    const delayBetweenMs = Math.max(1000, Math.ceil((batchSize / mps) * 1000));
+
+    console.log(`[CampaignExecution] Resuming with dynamic delay: ${delayBetweenMs}ms (MPS: ${mps}, BatchSize: ${batchSize})`);
+    await enqueueBatches(batchesToEnqueue, delayBetweenMs);
     
     return {
       campaign,
@@ -825,6 +893,7 @@ module.exports = {
   resumeCampaign,
   completeCampaign,
   failCampaign,
+  retargetCampaign,
   
   // Progress & stats
   getCampaignProgress,

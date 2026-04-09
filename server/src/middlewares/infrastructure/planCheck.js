@@ -39,45 +39,7 @@ async function checkTokenExpiry(req, res, next) {
   }
 }
 
-// Centralized plan limits configuration
-const PLAN_LIMITS = {
-  free: {
-    messagesDaily: -1,
-    messagesMonthly: -1,
-    templates: -1,
-    campaigns: -1,
-    contacts: -1,
-    automations: -1,
-    products: -1
-  },
-  basic: {
-    messagesDaily: -1,
-    messagesMonthly: -1,
-    templates: -1,
-    campaigns: -1,
-    contacts: -1,
-    automations: -1,
-    products: -1
-  },
-  premium: {
-    messagesDaily: -1,
-    messagesMonthly: -1,
-    templates: -1,
-    campaigns: -1,
-    contacts: -1,
-    automations: -1,
-    products: -1
-  },
-  enterprise: {
-    messagesDaily: -1,
-    messagesMonthly: -1,
-    templates: -1,
-    campaigns: -1,
-    contacts: -1,
-    automations: -1,
-    products: -1
-  }
-};
+// Migration Note: hardcoded PLAN_LIMITS removed in favor of DB Plan resolution.
 
 /**
  * Enhanced Plan Check Middleware
@@ -87,6 +49,7 @@ const PLAN_LIMITS = {
 function planCheck(resource = 'messages', amount = 1) {
   return async (req, res, next) => {
     try {
+      const { Plan, Workspace } = require('../../models');
       const workspace = await Workspace.findById(req.user.workspace);
 
       if (!workspace) {
@@ -100,9 +63,8 @@ function planCheck(resource = 'messages', amount = 1) {
       if (!workspace.usage) {
         workspace.usage = {
           contacts: 0,
-          messages: 0,
+          messagesMonthly: 0,
           messagesDaily: 0,
-          messagesThisMonth: 0,
           templates: 0,
           campaigns: 0,
           automations: 0,
@@ -111,132 +73,115 @@ function planCheck(resource = 'messages', amount = 1) {
         };
       }
 
-      // Reset daily counter if needed
+      // 1. Resolve Plan from DB
+      let plan = null;
+      if (workspace.plan && /^[0-9a-fA-F]{24}$/.test(workspace.plan.toString())) {
+        plan = await Plan.findById(workspace.plan).lean();
+      }
+
+      // Fallback to Starter plan if not found
+      if (!plan) {
+        plan = await Plan.findOne({ slug: 'starter' }).lean();
+      }
+
+      if (!plan) {
+        // Absolute fallback if seeding is missing
+        plan = {
+          name: 'Starter',
+          limits: { 
+            maxContacts: 1000, 
+            maxMessagesPerMonth: 10000, 
+            maxAutomations: 2, 
+            maxTemplates: 10 
+          }
+        };
+      }
+
+      // Reset counters logic...
       const today = new Date().toDateString();
       const lastReset = workspace.usage.lastResetDate ? new Date(workspace.usage.lastResetDate).toDateString() : null;
       if (lastReset !== today) {
         workspace.usage.messagesDaily = 0;
         workspace.usage.lastResetDate = new Date();
-        await workspace.save();
       }
 
-      // Reset monthly counter if needed
       const thisMonth = new Date().getMonth();
       const lastMonthlyReset = workspace.usage.lastMonthlyResetDate ? new Date(workspace.usage.lastMonthlyResetDate).getMonth() : null;
       if (lastMonthlyReset !== thisMonth) {
-        workspace.usage.messagesThisMonth = 0;
+        workspace.usage.messagesMonthly = 0;
         workspace.usage.lastMonthlyResetDate = new Date();
-        await workspace.save();
       }
 
-      // Get plan-based limits
-      const plan = workspace.plan || 'free';
-      const planLimits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
+      // 2. Enforce Limits...
+      let limit = -1;
+      let currentUsage = 0;
+      let limitType = resource;
 
-      // Determine limit based on resource type
-      let limit;
-      let currentUsage;
-      let limitType;
+      const limits = plan.limits || {};
 
       switch (resource) {
         case 'messages':
         case 'messaging':
-          // Check daily messaging limit
-          limit = planLimits.messagesDaily;
-          currentUsage = workspace.usage.messagesDaily || 0;
-          limitType = 'daily messages';
-
-          // Enterprise has unlimited (-1)
-          if (limit === -1) {
-            req.remainingQuota = 999999;
-            return next();
-          }
+          limit = limits.maxMessagesPerMonth || -1;
+          currentUsage = workspace.usage.messagesMonthly || 0;
+          limitType = 'monthly messages';
           break;
 
         case 'templates':
-          limit = planLimits.templates;
+          limit = limits.maxTemplates || -1;
           currentUsage = workspace.usage.templates || 0;
-          limitType = 'templates';
-
-          if (limit === -1) {
-            req.remainingQuota = 999999;
-            return next();
-          }
           break;
 
         case 'campaigns':
-          limit = planLimits.campaigns;
+          // Often campaigns are a feature, but can be a limit
+          limit = limits.maxCampaigns || -1;
           currentUsage = workspace.usage.campaigns || 0;
-          limitType = 'campaigns';
-
-          if (limit === -1) {
-            req.remainingQuota = 999999;
-            return next();
-          }
           break;
 
         case 'contacts':
-          limit = planLimits.contacts;
+          limit = limits.maxContacts || -1;
           currentUsage = workspace.usage.contacts || 0;
-          limitType = 'contacts';
-
-          if (limit === -1) {
-            req.remainingQuota = 999999;
-            return next();
-          }
           break;
 
         case 'automations':
-          limit = planLimits.automations;
+          limit = limits.maxAutomations || -1;
           currentUsage = workspace.usage.automations || 0;
-          limitType = 'automations';
-
-          if (limit === -1) {
-            req.remainingQuota = 999999;
-            return next();
-          }
-          break;
-
-        case 'products':
-          limit = planLimits.products;
-          currentUsage = workspace.usage.products || 0;
-          limitType = 'products';
-
-          if (limit === -1) {
-            req.remainingQuota = 999999;
-            return next();
-          }
           break;
 
         default:
-          return res.status(400).json({
-            message: 'Invalid resource type',
-            code: 'INVALID_RESOURCE'
-          });
+          limit = -1;
+      }
+
+      // Unlimited check
+      if (limit === -1) {
+        req.remainingQuota = 999999;
+        return next();
       }
 
       // Check if adding 'amount' would exceed limit
       if (currentUsage + amount > limit) {
         return res.status(402).json({
-          message: `Plan limit exceeded for ${limitType}`,
+          success: false,
+          message: `Plan limit exceeded for ${limitType}. Current: ${currentUsage}/${limit}.`,
           code: 'PLAN_LIMIT_EXCEEDED',
-          limit: limit,
+          limit,
           current: currentUsage,
-          requested: amount,
-          plan: workspace.plan,
           upgradeRequired: true
         });
       }
 
-      // Add remaining quota to request for controllers to use
-      req.remainingQuota = limit - currentUsage;
-      req.planLimit = limit;
-      req.currentUsage = currentUsage;
+      // Save usage if reset occurred
+      if (workspace.isModified('usage')) {
+        await workspace.save();
+      }
 
+      // Add quota data to request
+      req.remainingQuota = limit - currentUsage;
       next();
     } catch (err) {
-      console.error('Plan check error:', err);
+      console.error('[PlanCheck] Error:', err);
       return res.status(500).json({
+        success: false,
         message: 'Error checking plan limits',
         code: 'PLAN_CHECK_ERROR'
       });

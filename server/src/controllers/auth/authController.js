@@ -8,6 +8,7 @@ const { jwtSecret, googleClientId, facebookAppId, facebookAppSecret } = require(
 const { googleClientSecret } = require('../../config');
 const { getRedis, setJson, getJson, deleteKey } = require('../../config/redis');
 const { sendVerificationEmail, sendPasswordResetEmail, sendSignupOTPEmail, sendLoginOTPEmail } = require('../../services/infrastructure/emailService');
+const otpService = require('../../services/auth/otpService');
 const { processSignupProvisioning } = require('../../services/auth/signupProvisioningService');
 
 const googleClient = googleClientId ? new OAuth2Client(googleClientId) : null;
@@ -16,6 +17,48 @@ const googleClient = googleClientId ? new OAuth2Client(googleClientId) : null;
 const OTP_EXPIRY_SECONDS = 5 * 60; // 5 minutes
 const EMAIL_VERIFY_TTL_SECONDS = 30 * 60; // 30 minutes
 const PASSWORD_RESET_TTL_SECONDS = 30 * 60; // 30 minutes
+const DEFAULT_FRONTEND_URL = 'http://localhost:3000';
+
+function normalizeOrigin(origin) {
+  return typeof origin === 'string' ? origin.replace(/\/$/, '') : '';
+}
+
+function isAllowedFrontendOrigin(origin) {
+  const normalized = normalizeOrigin(origin);
+  if (!normalized) {
+    return false;
+  }
+
+  const configuredFrontend = normalizeOrigin(process.env.FRONTEND_URL);
+  if (configuredFrontend && normalized === configuredFrontend) {
+    return true;
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') {
+      return ['3000', '3001'].includes(parsed.port || '3000');
+    }
+  } catch (error) {
+    return false;
+  }
+
+  return false;
+}
+
+function getFrontendOrigin(req) {
+  const requestOrigin = normalizeOrigin(req.get('origin'));
+  if (isAllowedFrontendOrigin(requestOrigin)) {
+    return requestOrigin;
+  }
+
+  const configuredFrontend = normalizeOrigin(process.env.FRONTEND_URL);
+  if (isAllowedFrontendOrigin(configuredFrontend)) {
+    return configuredFrontend;
+  }
+
+  return DEFAULT_FRONTEND_URL;
+}
 
 function getRedisClient() {
   // Fail fast if Redis is unavailable to avoid silent OTP/state loss
@@ -29,6 +72,32 @@ function generateOTP() {
 
 function generateSecureToken() {
   return crypto.randomBytes(32).toString('hex');
+}
+
+function normalizePhoneNumber(phone) {
+  if (typeof phone !== 'string') {
+    return '';
+  }
+
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 10 || digits.length > 15) {
+    return '';
+  }
+
+  return digits;
+}
+
+function maskPhoneNumber(phone) {
+  const digits = normalizePhoneNumber(phone);
+  if (!digits) {
+    return '';
+  }
+
+  if (digits.length <= 4) {
+    return digits;
+  }
+
+  return `${digits.slice(0, 3)}******${digits.slice(-2)}`;
 }
 
 // Send OTP for signup
@@ -326,6 +395,95 @@ async function verifyLoginOTP(req, res, next) {
   }
 }
 
+// Send OTP for mobile verification during onboarding
+async function sendMobileVerificationOTP(req, res, next) {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const phone = normalizePhoneNumber(req.body?.phone || user.phone || '');
+    if (!phone) {
+      return res.status(400).json({ message: 'A valid mobile number is required' });
+    }
+
+    if (user.phoneVerified && normalizePhoneNumber(user.phone) === phone) {
+      return res.json({
+        success: true,
+        message: 'Mobile number is already verified',
+        phoneNumber: maskPhoneNumber(phone),
+        phoneVerified: true
+      });
+    }
+
+    const otpStatus = await otpService.getOtpStatus(user._id.toString(), 'mobile_verification');
+    if (otpStatus.exists && otpStatus.timeRemaining > 240) {
+      return res.status(429).json({ message: 'Please wait 60 seconds before requesting another code' });
+    }
+
+    const otp = otpService.generateOtp();
+    await otpService.storeOtp(user._id.toString(), otp, 'mobile_verification');
+    await otpService.sendSmsOtp(phone, otp);
+
+    user.phone = phone;
+    user.phoneVerified = false;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Verification code sent to your mobile number',
+      phoneNumber: maskPhoneNumber(phone),
+      expiresIn: 300
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Verify OTP for mobile verification during onboarding
+async function verifyMobileVerificationOTP(req, res, next) {
+  try {
+    const { otp, phone } = req.body;
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const normalizedPhone = normalizePhoneNumber(phone || user.phone || '');
+    if (!normalizedPhone) {
+      return res.status(400).json({ message: 'A valid mobile number is required' });
+    }
+
+    const storedPhone = normalizePhoneNumber(user.phone);
+    if (storedPhone && storedPhone !== normalizedPhone) {
+      user.phone = normalizedPhone;
+      user.phoneVerified = false;
+      await user.save();
+    }
+
+    await otpService.verifyOtp(user._id.toString(), otp, 'mobile_verification');
+
+    user.phone = normalizedPhone;
+    user.phoneVerified = true;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Mobile number verified successfully',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        phoneVerified: user.phoneVerified
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // Signup with email/password (creates workspace)
 async function signup(req, res, next) {
   try {
@@ -401,7 +559,8 @@ async function signup(req, res, next) {
       passwordHash,
       workspace: workspace._id,
       role: 'owner',
-      phone: phone || undefined
+      phone: phone || undefined,
+      phoneVerified: false
     });
     workspace.owner = user._id;
     await workspace.save();
@@ -447,8 +606,16 @@ async function me(req, res, next) {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Fetch workspace with full details
-    const workspace = await Workspace.findById(user.workspace);
+    // Fetch workspace with full details (including plan features)
+    const workspace = await Workspace.findById(user.workspace)
+      .populate('plan');
+    
+    // Ensure we have a valid plan object for the response, falling back to Starter if needed
+    let planObj = workspace?.plan;
+    if (!planObj || (typeof planObj === 'string' && planObj === 'free')) {
+      const { Plan } = require('../../models');
+      planObj = await Plan.findOne({ slug: 'starter' });
+    }
 
     // Prepare comprehensive response
     const response = {
@@ -463,7 +630,7 @@ async function me(req, res, next) {
       workspace: workspace ? {
         _id: workspace._id,
         name: workspace.name,
-        plan: workspace.plan || 'free',
+        plan: planObj || 'free',
         planLimits: workspace.planLimits,
         usage: workspace.usage,
         // Subscription details
@@ -795,13 +962,16 @@ async function getGoogleAuthUrl(req, res, next) {
     const host = req.get('host');
     const protocol = req.protocol || (process.env.NODE_ENV === 'production' ? 'https' : 'http');
     const redirectUri = `${protocol}://${host}/api/v1/auth/google/callback`;
+    const frontendOrigin = getFrontendOrigin(req);
+    const state = Buffer.from(JSON.stringify({ frontendOrigin }), 'utf8').toString('base64url');
     const params = new URLSearchParams({
       client_id: googleClientId,
       redirect_uri: redirectUri,
       response_type: 'code',
       scope: 'openid email profile',
       access_type: 'online',
-      prompt: 'select_account'
+      prompt: 'select_account',
+      state
     });
 
     const url = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
@@ -847,6 +1017,19 @@ async function googleOAuthCallback(req, res, next) {
     const protocol = req.protocol || (process.env.NODE_ENV === 'production' ? 'https' : 'http');
     const redirectUri = `${protocol}://${host}/api/v1/auth/google/callback`;
 
+    let frontendOrigin = getFrontendOrigin(req);
+    const stateParam = req.query.state;
+    if (typeof stateParam === 'string' && stateParam.length > 0) {
+      try {
+        const parsedState = JSON.parse(Buffer.from(stateParam, 'base64url').toString('utf8'));
+        if (parsedState?.frontendOrigin && isAllowedFrontendOrigin(parsedState.frontendOrigin)) {
+          frontendOrigin = normalizeOrigin(parsedState.frontendOrigin);
+        }
+      } catch (stateError) {
+        console.warn('[GoogleOAuth] Invalid state payload, falling back to configured frontend URL');
+      }
+    }
+
     // Exchange code for tokens
     const tokenResp = await axios.post('https://oauth2.googleapis.com/token', null, {
       params: {
@@ -890,7 +1073,7 @@ async function googleOAuthCallback(req, res, next) {
       processSignupProvisioning(user._id, workspace._id, {
         name,
         email,
-        phone: null // Can be prompted later or fetched from advanced profile
+        phone: null // Can be prompted later during onboarding
       }).catch(err => console.error('[ProvisioningError] Background signup provisioning failed:', err.message));
     } else if (!user.googleId) {
       user.googleId = googleId;
@@ -900,7 +1083,7 @@ async function googleOAuthCallback(req, res, next) {
     const authToken = jwt.sign({ id: user._id }, jwtSecret, { expiresIn: '30d' });
 
     // Redirect back to frontend with token in query (frontend should capture it)
-    const frontend = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontend = frontendOrigin || DEFAULT_FRONTEND_URL;
     // Log the redirect URI used (helpful for diagnosing redirect_uri_mismatch)
     console.log('[GoogleOAuth] Used redirect URI:', redirectUri);
     return res.redirect(`${frontend}/auth/google/callback?token=${encodeURIComponent(authToken)}`);
@@ -963,6 +1146,7 @@ async function googleOAuthLogin(req, res, next) {
         googleId,
         workspace: workspace._id,
         role: 'owner',
+        phoneVerified: false,
       });
       workspace.owner = user._id;
       await workspace.save();
@@ -1060,6 +1244,8 @@ module.exports = {
   sendLoginOTP,
   resendLoginOTP,
   verifyLoginOTP,
+  sendMobileVerificationOTP,
+  verifyMobileVerificationOTP,
   googleOAuthLogin,
   // New helper endpoints
   getGoogleAuthUrl,

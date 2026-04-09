@@ -136,7 +136,7 @@ const WorkspaceDetailPage = () => {
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Business Information</h2>
             <div className="space-y-3">
-              <InfoItem label="Plan" value={workspace.plan} />
+              <InfoItem label="Plan" value={typeof workspace.plan === 'object' ? workspace.plan.name : workspace.plan} />
               <InfoItem label="Industry" value={workspace.industry} />
               <InfoItem label="Website" value={workspace.website} />
             </div>

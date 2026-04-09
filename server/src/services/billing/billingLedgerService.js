@@ -22,9 +22,10 @@
  *    - Business reply after window requires template (new business-initiated)
  */
 
-const { ConversationLedger, Conversation, Template, Workspace, Contact } = require('../../models');
+const { ConversationLedger, Conversation, Template, Workspace, Contact, Plan } = require('../../models');
 const logger = require('../../utils/logger');
 const usageLedgerService = require('./usageLedgerService');
+const walletService = require('./walletService');
 
 // Import event emitter for integration events
 let integrationEventEmitter;
@@ -54,8 +55,11 @@ function resolveCategory(initiatedBy, templateCategory) {
     // Valid template categories
     const validCategories = ['MARKETING', 'UTILITY', 'AUTHENTICATION'];
     
-    if (templateCategory && validCategories.includes(templateCategory)) {
-      return templateCategory;
+    // Normalize case and strip spaces
+    const normalizedCategory = templateCategory?.toUpperCase()?.trim();
+    
+    if (normalizedCategory && validCategories.includes(normalizedCategory)) {
+      return normalizedCategory;
     }
     
     // Map legacy categories
@@ -65,8 +69,8 @@ function resolveCategory(initiatedBy, templateCategory) {
       'OTP': 'AUTHENTICATION'
     };
     
-    if (templateCategory && categoryMap[templateCategory]) {
-      return categoryMap[templateCategory];
+    if (normalizedCategory && categoryMap[normalizedCategory]) {
+      return categoryMap[normalizedCategory];
     }
     
     // Default business-initiated without valid category to UTILITY
@@ -82,21 +86,73 @@ function resolveCategory(initiatedBy, templateCategory) {
 }
 
 /**
+ * Get the fixed price for a template category based on workspace plan
+ * @param {ObjectId} workspaceId 
+ * @param {string} templateCategory 
+ * @returns {Object} { price: number (paise), category: string }
+ */
+async function getTemplatePrice(workspaceId, templateCategory) {
+  const category = resolveCategory('BUSINESS', templateCategory);
+  
+  // SERVICE category is handled by free tier eligibility (usually free first 1000)
+  if (category === 'SERVICE') return { price: 0, category };
+
+  const workspace = await Workspace.findById(workspaceId).select('plan').lean();
+  if (!workspace) throw new Error('WORKSPACE_NOT_FOUND');
+
+  const plan = await Plan.findById(workspace.plan).lean();
+  if (!plan) return { price: 0, category };
+
+  const price = plan.fixedPricePaise?.[category.toLowerCase()] || 0;
+  return { price, category };
+}
+
+/**
+ * Ensure workspace has enough wallet balance for a template send
+ * Throws INSUFFICIENT_BALANCE if not enough funds
+ */
+async function ensureWalletBalance(workspaceId, templateCategory) {
+  const { price, category } = await getTemplatePrice(workspaceId, templateCategory);
+  
+  if (price === 0) return { price, category };
+
+  const wallet = await walletService.getBalance(workspaceId);
+  const available = (wallet.balance || 0);
+
+  if (available < price) {
+    const error = new Error(`INSUFFICIENT_BALANCE: Wallet top-up required for ${category} template messaging. Required: ${price} paise, Available: ${available} paise.`);
+    error.code = 'INSUFFICIENT_BALANCE';
+    error.statusCode = 402;
+    error.details = { required: price, available };
+    throw error;
+  }
+
+  return { price, category };
+}
+
+/**
  * Check if there's an active conversation window for this contact
  * 
  * @param {ObjectId} workspaceId 
  * @param {ObjectId} contactId 
+ * @param {string} category Optional - check for specific category (Requirement 2.1)
  * @returns {Object|null} Active ledger entry or null
  */
-async function findActiveWindow(workspaceId, contactId) {
+async function findActiveWindow(workspaceId, contactId, category = null) {
   const now = new Date();
   
-  const activeWindow = await ConversationLedger.findOne({
+  const query = {
     workspace: workspaceId,
     contact: contactId,
     isActive: true,
     expiresAt: { $gt: now }
-  }).sort({ startedAt: -1 });
+  };
+  
+  if (category) {
+    query.category = category;
+  }
+  
+  const activeWindow = await ConversationLedger.findOne(query).sort({ startedAt: -1 });
   
   return activeWindow;
 }
@@ -123,33 +179,64 @@ async function startBusinessConversation(options) {
     userId,
     messageId,
     whatsappMessageId,
-    isBillable = true
+    isBillable = true,
+    forceBillable = false
   } = options;
 
   try {
-    // Check for existing active window
-    const existingWindow = await findActiveWindow(workspaceId, contactId);
+    // Check if workspace is eligible for free service conversations (Requirement - Free Tier)
+    let finalBillable = isBillable;
+    if (finalBillable && !forceBillable) {
+      const isFree = await checkFreeTierEligibility(workspaceId, options.templateCategory || options.category);
+      if (isFree) finalBillable = false;
+    }
+
+    // Resolve category from template for this request
+    const category = resolveCategory('BUSINESS', templateCategory);
+
+    // DEDUCT FROM WALLET if billable and new conversation
+    // Note: Deducting here is a safety net. For API/UI sends, we should also check PRE-FLIGHT.
+    if (finalBillable) {
+      const { price } = await getTemplatePrice(workspaceId, category);
+      if (price > 0) {
+        try {
+          await walletService.deduct(workspaceId, price, {
+            type: 'SPEND',
+            referenceType: 'SYSTEM',
+            referenceId: conversationId,
+            description: `Template: ${category}`
+          });
+        } catch (deductErr) {
+          if (deductErr.message.includes('INSUFFICIENT_BALANCE')) {
+            throw deductErr; // Propagate up to block the campaign/message sequence
+          }
+          logger.error('[BillingLedger] Wallet deduction in startBusinessConversation failed:', deductErr.message);
+        }
+      }
+    }
+    
+    // Requirement 2.1: Check for existing active window OF THE SAME CATEGORY
+    // Meta bills separately for Marketing, Utility, and Authentication
+    const existingWindow = await findActiveWindow(workspaceId, contactId, category);
     
     if (existingWindow) {
-      // Window exists - record message in existing window
+      // Window exists for this specific category - record message in existing window
       await existingWindow.recordMessage('outbound');
       await usageLedgerService.incrementMessages({ workspaceId, direction: 'outbound' });
       
-      logger.info('[BillingLedger] Message recorded in existing window', {
+      logger.info('[BillingLedger] Message recorded in existing category window', {
         ledgerId: existingWindow._id,
         conversationId,
+        category,
         window: 'existing'
       });
       
       return {
         ledger: existingWindow,
         isNewConversation: false,
-        billable: false // Not a new conversation charge
+        billable: false // Already billed for this category window
       };
     }
-    
-    // Resolve category from template
-    const category = resolveCategory('BUSINESS', templateCategory);
     
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -166,7 +253,7 @@ async function startBusinessConversation(options) {
       startedAt: now,
       expiresAt,
       isActive: true,
-      billable: isBillable,
+      billable: finalBillable,
       template: templateId,
       templateName,
       templateCategory,
@@ -183,11 +270,14 @@ async function startBusinessConversation(options) {
     
     await ledger.save();
 
-    await usageLedgerService.incrementConversations({
-      workspaceId,
-      category,
-      initiatedBy: 'BUSINESS'
-    });
+    // Only increment conversation usage if it was actually billable (not free tier)
+    if (finalBillable) {
+      await usageLedgerService.incrementConversations({
+        workspaceId,
+        category,
+        initiatedBy: 'BUSINESS'
+      });
+    }
     await usageLedgerService.incrementMessages({ workspaceId, direction: 'outbound' });
     
     logger.info('[BillingLedger] New business conversation started', {
@@ -359,8 +449,38 @@ async function recordMessage(options) {
   } = options;
 
   try {
+    // Wallet Deduction Logic: Charge only for OUTBOUND TEMPLATES
+    if (direction === 'outbound' && isTemplate) {
+      try {
+        const { price, category } = await getTemplatePrice(workspaceId, templateCategory);
+        
+        if (price > 0) {
+          // Check if it's actually STARTING a new window (Requirement 2.1)
+          const categoryToCheck = resolveCategory('BUSINESS', templateCategory);
+          const activeWindow = await findActiveWindow(workspaceId, contactId, categoryToCheck);
+          
+          if (!activeWindow) {
+            await walletService.deduct(workspaceId, price, {
+              type: 'SPEND',
+              referenceType: 'SYSTEM',
+              referenceId: conversationId,
+              description: `Template: ${templateCategory}`
+            });
+          }
+        }
+      } catch (deductErr) {
+        if (deductErr.message.includes('INSUFFICIENT_BALANCE')) {
+           throw deductErr; // Block the operation
+        }
+        logger.error('[BillingLedger] Wallet deduction in recordMessage failed:', deductErr.message);
+      }
+    }
+
+    // If it's a template, we MUST check only for windows of that category (Requirement 2.1)
+    const categoryToCheck = isTemplate ? resolveCategory('BUSINESS', templateCategory) : null;
+    
     // Find active window
-    const activeWindow = await findActiveWindow(workspaceId, contactId);
+    const activeWindow = await findActiveWindow(workspaceId, contactId, categoryToCheck);
     
     if (activeWindow) {
       // Record in existing window
@@ -636,6 +756,48 @@ async function getQuotaStatus(workspaceId) {
   }
 }
 
+/**
+ * Check if a workspace is eligible for a free conversation (First 1000 Service conversations)
+ * 
+ * @param {ObjectId} workspaceId 
+ * @param {string} category 
+ * @returns {Boolean} True if conversation should be free
+ */
+async function checkFreeTierEligibility(workspaceId, category) {
+  // Only SERVICE conversations are eligible for the free 1000 tier
+  if (category !== 'SERVICE') return false;
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Count service conversations this month
+  const serviceCount = await ConversationLedger.countDocuments({
+    workspace: workspaceId,
+    category: 'SERVICE',
+    startedAt: { $gte: startOfMonth },
+    billable: true // We count the ones we WOULD have billed
+  });
+
+  return serviceCount < 1000;
+}
+
+/**
+ * Check if a specific message was the start of a billable conversation
+ * 
+ * @param {String} whatsappMessageId 
+ * @returns {Object} { billable: boolean, category: string }
+ */
+async function wasMessageBillable(whatsappMessageId) {
+  const ledger = await ConversationLedger.findOne({ whatsappMessageId });
+  if (!ledger) return { billable: false };
+  
+  return { 
+    billable: ledger.billable, 
+    category: ledger.category,
+    isNew: ledger.firstMessageId !== null // Simple heuristic
+  };
+}
+
 const mongoose = require('mongoose');
 
 module.exports = {
@@ -647,5 +809,10 @@ module.exports = {
   hasActiveReplyWindow,
   closeExpiredWindows,
   getBillingSummary,
-  getQuotaStatus
+  getQuotaStatus,
+  checkFreeTierEligibility,
+  wasMessageBillable,
+  // New exported utilities for pre-flight checks
+  getTemplatePrice,
+  ensureWalletBalance
 };

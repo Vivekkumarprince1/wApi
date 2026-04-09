@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaComments, 
@@ -8,7 +9,8 @@ import {
   FaBolt, 
   FaFileAlt, 
   FaSpinner, 
-  FaPaperPlane 
+  FaPaperPlane,
+  FaAt
 } from 'react-icons/fa';
 
 export default function ChatInput({
@@ -24,12 +26,109 @@ export default function ChatInput({
   fileInputRef,
   showQuickReplies,
   setShowQuickReplies,
-  quickReplies,
+  quickReplies = [],
   handleSelectQuickReply,
   bspReady,
   sending,
-  handleMediaSelect
+  handleMediaSelect,
+  agents = []
 }) {
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState('');
+  const [mentionCoords, setMentionCoords] = useState({ top: 0, left: 0 });
+  const textareaRef = useRef(null);
+
+  // Deriving filtered lists for power-user commands
+  const qrQuery = (newMessage.match(/\/([a-zA-Z0-9_]*)$/) || [])[1] || '';
+  const filteredQuickReplies = qrQuery && !internalNoteMode
+    ? quickReplies.filter(r => 
+        r.name.toLowerCase().includes(qrQuery.toLowerCase()) || 
+        r.content.toLowerCase().includes(qrQuery.toLowerCase())
+      )
+    : quickReplies;
+
+  const filteredAgents = agents.filter(a => 
+    a.name?.toLowerCase().includes(mentionFilter) || 
+    a.email?.toLowerCase().includes(mentionFilter)
+  );
+
+  // Parse mentions and quick reply shortcuts when typing
+  useEffect(() => {
+    const cursorPosition = textareaRef.current?.selectionStart;
+    if (cursorPosition === undefined) return;
+
+    const textBeforeCursor = newMessage.slice(0, cursorPosition);
+    
+    // 1. Mentions (@)
+    if (internalNoteMode) {
+      const mentionMatch = textBeforeCursor.match(/@([a-zA-Z0-9_]*)$/);
+      if (mentionMatch) {
+        setMentionFilter(mentionMatch[1].toLowerCase());
+        setShowMentions(true);
+        setMentionCoords({ left: Math.min(200, mentionMatch[1].length * 8 + 20) });
+      } else {
+        setShowMentions(false);
+      }
+    }
+
+    // 2. Quick Replies (/)
+    const qrMatch = textBeforeCursor.match(/\/([a-zA-Z0-9_]*)$/);
+    if (qrMatch && !internalNoteMode) {
+      setShowQuickReplies(true);
+    }
+  }, [newMessage, internalNoteMode, setShowQuickReplies]);
+
+  const insertMention = (agent) => {
+    const cursorPosition = textareaRef.current?.selectionStart || newMessage.length;
+    const textBeforeCursor = newMessage.slice(0, cursorPosition);
+    const textAfterCursor = newMessage.slice(cursorPosition);
+    const lastAtPos = textBeforeCursor.lastIndexOf('@');
+    
+    if (lastAtPos !== -1) {
+      const newText = textBeforeCursor.slice(0, lastAtPos) + `@${agent.name} ` + textAfterCursor;
+      handleInputChange({ target: { value: newText } });
+    }
+    
+    setShowMentions(false);
+    textareaRef.current?.focus();
+  };
+
+  const handleKeyDown = (e) => {
+    // Mention Tab/Enter
+    if (showMentions && filteredAgents.length > 0) {
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        insertMention(filteredAgents[0]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setShowMentions(false);
+        return;
+      }
+    }
+
+    // Quick Reply Tab/Enter
+    if (showQuickReplies && filteredQuickReplies.length > 0) {
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        if (qrQuery.length > 0) {
+          e.preventDefault();
+          handleSelectQuickReply(filteredQuickReplies[0]);
+          return;
+        }
+      }
+      if (e.key === 'Escape') {
+        setShowQuickReplies(false);
+        return;
+      }
+    }
+
+    // Standard Message Send
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (newMessage.trim() || selectedMedia) handleSendMessage(e);
+    }
+  };
+
   return (
     <div className={`p-5 flex flex-col gap-3 border-t border-border/50 z-30 w-full relative transition-all duration-500 ${internalNoteMode ? 'bg-amber-500/5' : 'bg-card/40 backdrop-blur-md'}`}>
       
@@ -133,21 +232,24 @@ export default function ChatInput({
                 className="absolute bottom-full mb-6 left-0 w-80 bg-card/95 backdrop-blur-xl border border-border shadow-premium rounded-2xl z-50 p-2 overflow-hidden"
               >
                 <div className="px-3 py-3 border-b border-border/50 mb-2 flex items-center justify-between">
-                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-50">Saved Replies</p>
-                  <span className="text-[9px] font-bold bg-muted px-2 py-0.5 rounded-full">{quickReplies.length}</span>
+                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-50">Quick Replies (Type / to search)</p>
+                  <span className="text-[9px] font-bold bg-muted px-2 py-0.5 rounded-full">{filteredQuickReplies.length}</span>
                 </div>
                 <div className="max-h-64 overflow-y-auto no-scrollbar flex flex-col gap-1 pr-1">
-                  {quickReplies.length === 0 ? (
+                  {filteredQuickReplies.length === 0 ? (
                     <p className="px-4 py-8 text-xs text-muted-foreground text-center font-medium italic">No quick replies found.</p>
                   ) : (
-                    quickReplies.map((reply, idx) => (
+                    filteredQuickReplies.map((reply, idx) => (
                       <button
                         key={reply._id || `reply-${idx}`}
                         onClick={() => handleSelectQuickReply(reply)}
-                        className="w-full text-left px-3.5 py-3 hover:bg-primary/5 rounded-xl group transition-all border border-transparent hover:border-primary/10"
+                        className={`w-full text-left px-3.5 py-3 rounded-xl group transition-all border ${newMessage.startsWith('/') && idx === 0 ? 'bg-primary/10 border-primary/20' : 'hover:bg-primary/5 border-transparent hover:border-primary/10'}`}
                       >
-                        <p className="text-[13px] font-black text-foreground group-hover:text-primary tracking-tight">{reply.name}</p>
-                        <p className="text-[11px] text-muted-foreground line-clamp-1 mt-1 font-medium group-hover:text-primary/70">{reply.content}</p>
+                        <div className="flex items-center justify-between">
+                          <p className={`text-[13px] font-black tracking-tight ${newMessage.startsWith('/') && idx === 0 ? 'text-primary' : 'text-foreground group-hover:text-primary'}`}>{reply.name}</p>
+                          <span className="text-[9px] font-black opacity-30 group-hover:opacity-100 uppercase">/{reply.name.toLowerCase().replace(/\s+/g, '-')}</span>
+                        </div>
+                        <p className={`text-[11px] line-clamp-1 mt-1 font-medium ${newMessage.startsWith('/') && idx === 0 ? 'text-primary/70' : 'text-muted-foreground group-hover:text-primary/70'}`}>{reply.content}</p>
                       </button>
                     ))
                   )}
@@ -161,19 +263,51 @@ export default function ChatInput({
           ? 'bg-amber-500/5 border-amber-500/20 focus-within:ring-4 focus-within:ring-amber-500/5 focus-within:border-amber-500/40' 
           : 'bg-muted/40 border-border/40 focus-within:bg-card focus-within:ring-4 focus-within:ring-primary/5 focus-within:border-primary/30'}`}>
           <textarea
+            ref={textareaRef}
             value={newMessage}
             onChange={handleInputChange}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                if (newMessage.trim() || selectedMedia) handleSendMessage(e);
-              }
-            }}
-            placeholder={internalNoteMode ? "Add a private team note..." : "Type a message..."}
+            onKeyDown={handleKeyDown}
+            placeholder={internalNoteMode ? "Add a private team note... (Type @ to mention)" : "Type a message..."}
             className="w-full max-h-40 min-h-[48px] bg-transparent border-none py-3.5 px-4 text-[14.5px] focus:ring-0 resize-none text-foreground placeholder:text-muted-foreground/50 font-medium leading-relaxed"
             rows={1}
             disabled={sending}
           />
+          
+          {/* Mentions Popover */}
+          <AnimatePresence>
+            {showMentions && agents && filteredAgents.length > 0 && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="absolute bottom-full mb-1 bg-card/95 backdrop-blur-xl border border-border/60 shadow-premium rounded-xl z-50 overflow-hidden w-64"
+                style={{ left: Math.min(Math.max(10, mentionCoords.left), 300) }}
+              >
+                <div className="px-3 py-2 bg-muted/30 border-b border-border/40 flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-wider flex items-center gap-1">
+                    <FaAt className="text-[9px]" /> Mention
+                  </span>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {filteredAgents.map((agent, i) => (
+                    <button
+                      key={agent._id || `agent-${i}`}
+                      onClick={() => insertMention(agent)}
+                      className={`w-full text-left px-3 py-2.5 flex items-center gap-2 hover:bg-amber-500/10 transition-colors ${i === 0 ? 'bg-amber-500/5 border-l-2 border-amber-500' : 'border-l-2 border-transparent'}`}
+                    >
+                      <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px] font-bold text-amber-600 uppercase flex-shrink-0">
+                        {agent.name ? agent.name.charAt(0) : '?'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-bold truncate">{agent.name}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">{agent.email}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <button

@@ -130,6 +130,14 @@ const ConversationSchema = new mongoose.Schema({
   wabaId: { type: String }, // WhatsApp Business Account ID
   // ====== END 24H SESSION MANAGEMENT ======
   
+  // ====== BOT ESCALATION GATEWAY ======
+  botMetadata: {
+    failedIntents: { type: Number, default: 0 },
+    isBotPaused: { type: Boolean, default: false },
+    lastBotInteractionAt: { type: Date }
+  },
+  // ====== END BOT ESCALATION ======
+  
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

@@ -412,6 +412,34 @@ async function emitMessageStatus(workspaceId, conversationId, messageId, status,
   }
 }
 
+/**
+ * Emit bot escalation event
+ * Called when the AnswerBot fails multiple times and pauses
+ */
+async function emitBotEscalation(workspaceId, conversation) {
+  try {
+    const io = getIO();
+    if (!io) return;
+
+    const payload = {
+      conversationId: conversation._id,
+      botMetadata: conversation.botMetadata,
+      timestamp: new Date(),
+      message: 'Human intervention required: AnswerBot paused after multiple failed attempts.'
+    };
+
+    // Emit to workspace
+    io.to(getWorkspaceRoom(workspaceId)).emit('inbox:bot-escalation', payload);
+
+    // Emit to conversation viewers
+    io.to(getConversationRoom(conversation._id)).emit('conversation:bot-escalation', payload);
+
+    console.log(`[SOCKET] Emitted inbox:bot-escalation for conversation ${conversation._id}`);
+  } catch (err) {
+    console.error('[SOCKET] Error emitting bot escalation:', err.message);
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // INBOX STATS UPDATE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -435,6 +463,65 @@ async function emitStatsUpdate(workspaceId, stats) {
     console.log(`[SOCKET] Emitted inbox:stats-update for workspace ${workspaceId}`);
   } catch (err) {
     console.error('[SOCKET] Error emitting stats update:', err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SYSTEM & USAGE EVENTS (Polling Reduction)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Emit wallet balance update
+ */
+async function emitWalletUpdate(workspaceId, wallet) {
+  try {
+    const io = getIO();
+    if (!io) return;
+
+    const payload = {
+      wallet: {
+        balance: wallet.balance,
+        parkedBalance: wallet.parkedBalance,
+        currency: wallet.currency
+      },
+      timestamp: new Date()
+    };
+
+    io.to(getWorkspaceRoom(workspaceId)).emit('workspace:wallet_update', payload);
+    console.log(`[SOCKET] Emitted workspace:wallet_update for ${workspaceId}`);
+  } catch (err) {
+    console.error('[SOCKET] Error emitting wallet update:', err.message);
+  }
+}
+
+/**
+ * Emit quota usage update
+ */
+async function emitQuotaUpdate(workspaceId, billingUsage, billingQuota) {
+  try {
+    const io = getIO();
+    if (!io) return;
+
+    const payload = {
+      usage: {
+        monthlyConversationsUsed: billingUsage.monthlyConversationsUsed,
+        marketingUsed: billingUsage.marketingUsed,
+        utilityUsed: billingUsage.utilityUsed,
+        authenticationUsed: billingUsage.authenticationUsed,
+        serviceUsed: billingUsage.serviceUsed
+      },
+      quota: {
+        monthlyConversations: billingQuota.monthlyConversations,
+        warningThreshold: billingQuota.warningThreshold,
+        blockThreshold: billingQuota.blockThreshold
+      },
+      timestamp: new Date()
+    };
+
+    io.to(getWorkspaceRoom(workspaceId)).emit('workspace:quota_update', payload);
+    console.log(`[SOCKET] Emitted workspace:quota_update for ${workspaceId}`);
+  } catch (err) {
+    console.error('[SOCKET] Error emitting quota update:', err.message);
   }
 }
 
@@ -464,6 +551,13 @@ module.exports = {
   // Typing
   emitAgentTyping,
   
+  // Bot
+  emitBotEscalation,
+  
   // Stats
-  emitStatsUpdate
+  emitStatsUpdate,
+  
+  // System/Quota
+  emitWalletUpdate,
+  emitQuotaUpdate
 };

@@ -9,8 +9,10 @@
  */
 
 const { Server } = require('socket.io');
+const { createAdapter } = require('@socket.io/redis-adapter');
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../config');
+const { sharedConnection } = require('../services/infrastructure/redisClient');
 
 let io;
 
@@ -23,6 +25,18 @@ function initSocket(server) {
     pingTimeout: 60000,
     pingInterval: 25000
   });
+
+  // Requirement 2.2: Implement Redis Adapter for Multi-Server Scalability
+  // This allows Socket.io events to be broadcast across multiple nodes
+  try {
+    const pubClient = sharedConnection;
+    const subClient = sharedConnection.duplicate();
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('[SOCKET] ✅ Redis adapter implemented for multi-node support');
+  } catch (err) {
+    console.error('[SOCKET] ❌ Failed to initialize Redis adapter:', err.message);
+    // Continue without adapter in fallback (local development)
+  }
   
   // Authentication middleware
   io.use(async (socket, next) => {

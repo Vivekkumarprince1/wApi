@@ -117,6 +117,9 @@ const actionHandlers = {
        resolvedVariables = { body: arr };
     }
 
+    // Hardened Wallet Validation
+    await billingLedgerService.ensureWalletBalance(workspaceId, template.category);
+
     // Send via WhatsApp service
     const whatsappService = getWhatsAppService();
     const result = await whatsappService.sendTemplateMessage(workspaceId, phone, template.name, templateLanguage || template.language || 'en', resolvedVariables);

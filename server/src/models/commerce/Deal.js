@@ -24,6 +24,24 @@ const DealSchema = new mongoose.Schema({
     default: 'active'
   },
   
+  // Advanced CRM Enrichment
+  probability: { type: Number, min: 0, max: 100, default: 10 }, // Probability percentage
+  expectedCloseDate: { type: Date },
+  priority: { 
+    type: String, 
+    enum: ['low', 'medium', 'high', 'urgent'], 
+    default: 'medium' 
+  },
+  winLossReason: { type: String },
+  
+  // Lead Attribution
+  source: { 
+    type: String, 
+    enum: ['manual', 'campaign', 'automation', 'answerbot', 'workflow', 'legacy'],
+    default: 'manual' 
+  },
+  sourceId: { type: mongoose.Schema.Types.ObjectId }, // Reference to campaign/bot/workflow
+  
   // Activity tracking
   notes: [
     {
@@ -39,6 +57,20 @@ const DealSchema = new mongoose.Schema({
       stage: String,
       timestamp: { type: Date, default: Date.now },
       changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    }
+  ],
+  
+  // Granular Activity log for timeline
+  activityLog: [
+    {
+      type: { 
+        type: String, 
+        enum: ['stage_change', 'note_added', 'assigned', 'status_change', 'attribute_update', 'created'] 
+      },
+      text: String,
+      payload: mongoose.Schema.Types.Mixed,
+      author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      timestamp: { type: Date, default: Date.now }
     }
   ],
   

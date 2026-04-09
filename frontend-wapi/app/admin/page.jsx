@@ -1,264 +1,177 @@
-"use client"
+"use client";
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Loader2, ShieldAlert, BarChart3, Building2, Smartphone } from 'lucide-react';
-import { getAllWorkspaces, getAdminAnalytics, getWABAHealth } from '@/lib/api';
-import { useAuthStore as useAuth } from '@/store/authStore';
+import { 
+  Loader2, 
+  BarChart3, 
+  Users, 
+  Building2, 
+  TrendingUp, 
+  Zap, 
+  ShieldCheck, 
+  Search,
+  ArrowUpRight,
+  Target,
+  DollarSign,
+  Smartphone
+} from 'lucide-react';
+import { getAdminAnalytics } from '@/lib/api';
+import { cn } from "@/lib/utils";
 
 const AdminDashboard = () => {
-  const router = useRouter();
-  const { user: authUser, loading: authLoading } = useAuth();
-  const isAuthenticated = Boolean(authUser);
-  const isAdmin = authUser?.role === 'admin';
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [workspaces, setWorkspaces] = useState([]);
   const [analytics, setAnalytics] = useState(null);
-  const [wabaHealth, setWabaHealth] = useState([]);
-  const [error, setError] = useState(null);
-  const [statsLoading, setStatsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!authUser) { router.push('/auth/login'); return; }
-
-    const fetchAdminData = async () => {
-      if (authUser.role !== 'admin') {
-        setError('You do not have permission to access the admin dashboard');
-        setLoading(false);
-        setTimeout(() => router.push('/dashboard'), 3000);
-        return;
-      }
+    const fetchAnalytics = async () => {
       try {
-        const workspacesRes = await getAllWorkspaces({ limit: 50 });
-        setWorkspaces(workspacesRes.data || []);
-        const analyticsRes = await getAdminAnalytics();
-        setAnalytics(analyticsRes.data || {});
-        const wabaRes = await getWABAHealth();
-        setWabaHealth(wabaRes.data || []);
+        const res = await getAdminAnalytics();
+        setAnalytics(res.data || {});
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
-        setError(err.message);
       }
       setLoading(false);
-      setStatsLoading(false);
     };
-    fetchAdminData();
-  }, [authUser, authLoading, router]);
+    fetchAnalytics();
+  }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
       </div>
     );
   }
-
-  if (!isAuthenticated) return null;
-
-  if (error && !isAdmin) {
-    return (
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-8 text-center max-w-md">
-          <ShieldAlert className="h-12 w-12 text-destructive mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">{error}</p>
-          <p className="text-sm text-muted-foreground">Redirecting to dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'workspaces', label: 'Workspaces', icon: Building2 },
-    { id: 'waba', label: 'WABA Health', icon: Smartphone },
-  ];
 
   const statCards = [
-    { label: 'Total Workspaces', value: analytics?.overview?.totalWorkspaces || 0, color: 'from-blue-500/10 to-blue-600/10 border-blue-500/20', textColor: 'text-blue-600 dark:text-blue-400' },
-    { label: 'Active Workspaces', value: analytics?.overview?.activeWorkspaces || 0, color: 'from-emerald-500/10 to-emerald-600/10 border-emerald-500/20', textColor: 'text-emerald-600 dark:text-emerald-400' },
-    { label: 'Suspension Rate', value: analytics?.overview?.suspension_rate || '0%', color: 'from-amber-500/10 to-amber-600/10 border-amber-500/20', textColor: 'text-amber-600 dark:text-amber-400' },
-    { label: 'Plan Distribution', value: null, color: 'from-violet-500/10 to-violet-600/10 border-violet-500/20', textColor: 'text-violet-600 dark:text-violet-400', custom: true },
+    { label: 'Total Revenue', value: '₹' + (analytics?.overview?.totalRevenue || 0).toLocaleString(), change: '+12.5%', icon: DollarSign, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { label: 'Total Tenants', value: analytics?.overview?.totalWorkspaces || 0, change: '+5.2%', icon: Building2, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+    { label: 'Active Users', value: analytics?.overview?.activeUsers || 0, change: '+18%', icon: Users, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+    { label: 'Messages Sent', value: (analytics?.overview?.totalMessages || 0).toLocaleString(), change: '+32.4%', icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10' },
   ];
 
   return (
-    <div className="animate-fade-in-up">
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <ShieldAlert className="h-7 w-7 text-primary" />
-          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+    <div className="space-y-8 pb-12">
+      {/* Header */}
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-extrabold text-white tracking-tight">Main Dashboard</h1>
+          <p className="text-slate-400 mt-2 font-medium">Welcome back, Admin. Here's a platform overview.</p>
         </div>
-        <p className="text-muted-foreground">Manage all tenants, monitor WABA health, and view platform analytics</p>
+        <div className="text-right">
+          <p className="text-slate-500 text-xs font-black uppercase tracking-widest">Platform Status</p>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+            <span className="text-emerald-500 font-bold text-sm uppercase">Operational</span>
+          </div>
+        </div>
       </div>
 
-      {error && (
-        <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 mb-6">
-          <p className="text-destructive text-sm">Error: {error}</p>
-        </div>
-      )}
+      {/* Hero Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((card, i) => (
+          <div key={i} className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 hover:border-slate-700 transition-all group">
+            <div className="flex justify-between items-start mb-6">
+              <div className={cn("p-4 rounded-2xl", card.bg)}>
+                <card.icon className={card.color} size={24} />
+              </div>
+              <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
+                {card.change} <ArrowUpRight size={14} />
+              </div>
+            </div>
+            <p className="text-slate-500 text-sm font-bold uppercase tracking-wider">{card.label}</p>
+            <h3 className="text-3xl font-black text-white mt-1 group-hover:text-blue-400 transition-colors tracking-tighter">
+              {card.value}
+            </h3>
+          </div>
+        ))}
+      </div>
 
-      {/* Tabs */}
-      <div className="mb-6 border-b border-border">
-        <div className="flex gap-6">
-          {tabs.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`pb-3 font-medium transition-colors flex items-center gap-2 text-sm ${activeTab === tab.id
-                ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <tab.icon className="h-4 w-4" /> {tab.label}
-            </button>
+      {/* Visual Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Verification Status Distribution */}
+        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-[3rem] p-10">
+          <div className="flex justify-between items-center mb-10">
+            <div>
+              <h3 className="text-2xl font-bold text-white tracking-tight">Verification Funnel</h3>
+              <p className="text-slate-500 text-sm mt-1">Current status of business verification requests</p>
+            </div>
+            <Target className="text-slate-700" size={32} />
+          </div>
+
+          <div className="space-y-6">
+            {Object.entries(analytics?.verification || {}).map(([status, count]) => (
+              <div key={status} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-bold text-slate-300 capitalize">{status}</span>
+                  <span className="text-sm font-black text-white">{count} ({Math.round((count / (analytics?.overview?.totalWorkspaces || 1)) * 100)}%)</span>
+                </div>
+                <div className="h-3 bg-slate-950 border border-slate-800 rounded-full overflow-hidden">
+                  <div 
+                    className={cn(
+                      "h-full transition-all duration-1000",
+                      status === 'verified' ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 
+                      status === 'pending' ? 'bg-amber-500' : 'bg-slate-700'
+                    )}
+                    style={{ width: `${(count / (analytics?.overview?.totalWorkspaces || 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Plan Distribution Mini-Card */}
+        <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-10 flex flex-col">
+          <div className="mb-10">
+            <h3 className="text-2xl font-bold text-white tracking-tight">Plan Usage</h3>
+            <p className="text-slate-500 text-sm mt-1">Revenue tier distribution</p>
+          </div>
+
+          <div className="flex-1 space-y-4">
+            {Object.entries(analytics?.plans || {}).map(([plan, count]) => (
+              <div key={plan} className="flex items-center justify-between p-4 bg-slate-950 border border-slate-800 rounded-2xl hover:border-blue-500/50 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="text-sm font-bold text-slate-400 capitalize group-hover:text-white transition-colors">{plan} User</span>
+                </div>
+                <span className="text-lg font-black text-white">{count}</span>
+              </div>
+            ))}
+          </div>
+
+          <button className="w-full mt-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-blue-900/20">
+            View Revenue Reports
+          </button>
+        </div>
+      </div>
+
+      {/* Activity Map / WABA Distribution */}
+      <div className="bg-slate-900 border border-slate-800 rounded-[3rem] p-10">
+        <div className="flex items-center gap-4 mb-10">
+          <div className="p-4 bg-amber-500/10 rounded-2xl">
+            <Smartphone className="text-amber-500" size={24} />
+          </div>
+          <div>
+            <h3 className="text-2xl font-bold text-white tracking-tight">WABA Status Map</h3>
+            <p className="text-slate-500 text-sm mt-1">Meta connectivity across the entire platform</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {Object.entries(analytics?.wabaStatus || {}).map(([status, count]) => (
+            <div key={status} className="bg-slate-950 border border-slate-800 rounded-2xl p-6 text-center hover:border-slate-600 transition-colors">
+              <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2">{status.replace(/_/g, ' ')}</p>
+              <h4 className={cn(
+                "text-3xl font-black",
+                status === 'completed' ? 'text-emerald-500' : 'text-white'
+              )}>
+                {count}
+              </h4>
+            </div>
           ))}
         </div>
       </div>
-
-      {/* Overview Tab */}
-      {activeTab === 'overview' && (
-        <div>
-          {statsLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {statCards.map((card, i) => (
-                  <div key={i} className={`bg-gradient-to-br ${card.color} border rounded-xl p-5`}>
-                    <div className={`text-sm font-medium ${card.textColor}`}>{card.label}</div>
-                    {card.custom ? (
-                      <div className={`text-sm font-medium mt-2 ${card.textColor}`}>
-                        <div>Free: {analytics?.plans?.free || 0}</div>
-                        <div>Premium: {analytics?.plans?.premium || 0}</div>
-                      </div>
-                    ) : (
-                      <div className={`text-3xl font-bold mt-2 ${card.textColor}`}>{card.value}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="bg-card border border-border/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">Verification Status</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(analytics?.verification || {}).map(([status, count]) => (
-                    <div key={status} className="bg-muted rounded-xl p-4 text-center">
-                      <div className="text-sm text-muted-foreground capitalize">{status}</div>
-                      <div className="text-2xl font-bold text-foreground mt-2">{count}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-card border border-border/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold text-foreground mb-4">WABA Status Distribution</h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {Object.entries(analytics?.wabaStatus || {}).map(([status, count]) => (
-                    <div key={status} className="bg-muted rounded-xl p-4 text-center">
-                      <div className="text-sm text-muted-foreground capitalize">{status.replace(/_/g, ' ')}</div>
-                      <div className="text-2xl font-bold text-foreground mt-2">{count}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Workspaces Tab */}
-      {activeTab === 'workspaces' && (
-        <div>
-          {statsLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : (
-            <div className="bg-card border border-border/50 rounded-xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border bg-muted/50">
-                      {['Workspace', 'Owner', 'Plan', 'WABA Status', 'Verification', 'Members', 'Created', 'Actions'].map(h => (
-                        <th key={h} className="text-left py-3 px-4 font-semibold text-muted-foreground text-sm">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {workspaces.map((workspace) => (
-                      <tr key={workspace.id} className="border-b border-border/50 hover:bg-accent/50 transition-colors">
-                        <td className="py-3 px-4 font-medium text-foreground">{workspace.name}</td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground">{workspace.owner?.name || 'N/A'}</td>
-                        <td className="py-3 px-4">
-                          <span className="inline-block px-2.5 py-1 bg-primary/10 text-primary rounded-full text-xs font-medium">{workspace.plan}</span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${workspace.wabaStatus === 'completed'
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
-                            {workspace.wabaStatus}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${workspace.verificationStatus === 'verified'
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-muted text-muted-foreground'}`}>
-                            {workspace.verificationStatus}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground">{workspace.memberCount}</td>
-                        <td className="py-3 px-4 text-sm text-muted-foreground">{new Date(workspace.createdAt).toLocaleDateString()}</td>
-                        <td className="py-3 px-4">
-                          <button onClick={() => router.push(`/admin/workspaces/${workspace.id}`)}
-                            className="text-primary hover:text-primary/80 text-sm font-medium transition-colors">
-                            View Details →
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {workspaces.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">No workspaces found</div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* WABA Health Tab */}
-      {activeTab === 'waba' && (
-        <div>
-          {statsLoading ? (
-            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : (
-            <div className="space-y-4">
-              {wabaHealth.map((waba) => (
-                <div key={waba.workspaceId} className="bg-card border border-border/50 rounded-xl p-5 hover:shadow-premium transition-shadow">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{waba.workspaceName}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">📱 {waba.phoneNumber}</p>
-                    </div>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${waba.accountStatus === 'ACTIVE'
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                      : waba.accountStatus === 'DISABLED'
-                        ? 'bg-destructive/10 text-destructive'
-                        : 'bg-amber-500/10 text-amber-600 dark:text-amber-400'}`}>
-                      {waba.accountStatus}
-                    </span>
-                  </div>
-                  {waba.blocked && (
-                    <div className="mt-3 p-3 bg-destructive/5 border border-destructive/20 rounded-lg text-sm text-destructive">
-                      🔒 Blocked: {waba.blockReason}
-                    </div>
-                  )}
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Last checked: {waba.lastCheckedAt ? new Date(waba.lastCheckedAt).toLocaleString() : 'Never'}
-                  </div>
-                </div>
-              ))}
-              {wabaHealth.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">No WABA data available</div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

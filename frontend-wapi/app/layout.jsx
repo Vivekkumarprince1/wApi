@@ -30,12 +30,19 @@ export const metadata = {
   description: 'Create engaging WhatsApp ads that drive clicks and conversions. The ultimate WhatsApp marketing platform for businesses.',
 }
 
+import Script from 'next/script'
+
 export default function RootLayout({
   children,
 }) {
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={cn(inter.variable, quicksand.variable, "font-sans", geist.variable)}>
       <body className="font-sans">
+        <Script 
+          id="razorpay-checkout-js"
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="lazyOnload"
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"

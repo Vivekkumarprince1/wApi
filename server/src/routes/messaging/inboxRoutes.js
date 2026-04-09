@@ -120,6 +120,18 @@ router.post('/:conversationId/messages/media',
 );
 
 /**
+ * POST /api/inbox/:conversationId/notes
+ * Send internal note in conversation
+ * Body: { text: string }
+ */
+router.post('/:conversationId/notes',
+  auth,
+  requireConversationAccess('conversationId'),
+  requirePermission('sendMessages'),
+  inboxController.sendInternalNote
+);
+
+/**
  * POST /api/inbox/upload-media
  * Upload media for inbox messages via Cloudinary
  */

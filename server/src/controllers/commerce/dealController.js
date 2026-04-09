@@ -1,4 +1,6 @@
 const { Deal, Pipeline, Contact, Workspace } = require('../../models');
+const { automationEvents } = require('../../services/automation/automationEventEmitter');
+const { getIO } = require('../../utils/socket');
 
 /**
  * Create a new deal for a contact in a pipeline
@@ -7,7 +9,7 @@ const { Deal, Pipeline, Contact, Workspace } = require('../../models');
 async function createDeal(req, res, next) {
   try {
     const workspace = req.user.workspace;
-    const { contactId, pipelineId, title, description, value, currency } = req.body;
+    const { contactId, pipelineId, title, description, value, currency, probability, expectedCloseDate, priority } = req.body;
 
     // Check plan limits
     const workspaceDoc = await Workspace.findById(workspace);
@@ -60,9 +62,20 @@ async function createDeal(req, res, next) {
       value: value || 0,
       currency: currency || 'USD',
       stage: firstStage.id,
-      assignedAgent: req.user._id
+      assignedAgent: req.user._id,
+      probability: probability || 10,
+      expectedCloseDate,
+      priority: priority || 'medium'
     });
 
+    // Record initial activity
+    deal.activityLog.push({
+      type: 'created',
+      text: `Deal created in stage: ${firstStage.title}`,
+      author: req.user._id,
+      payload: { stage: firstStage.id, pipelineId }
+    });
+    
     // Record first stage transition in history
     deal.stageHistory.push({
       stage: firstStage.id,
@@ -78,6 +91,12 @@ async function createDeal(req, res, next) {
 
     // Populate deal with references
     await deal.populate(['contact', 'pipeline', 'assignedAgent']);
+
+    // Emit socket event
+    const io = getIO();
+    if (io) {
+      io.to(`workspace:${workspace}`).emit('deal:created', { deal });
+    }
 
     res.status(201).json({ success: true, deal });
   } catch (err) {
@@ -176,6 +195,18 @@ async function moveStage(req, res, next) {
     const oldStage = deal.stage;
     deal.stage = stageId;
 
+    // Add to activity log
+    deal.activityLog.push({
+      type: 'stage_change',
+      text: `Moved from ${oldStage} to ${stageId}`,
+      author: req.user._id,
+      payload: { 
+        oldStage, 
+        newStage: stageId,
+        timeInPreviousStage: Date.now() - (deal.stageHistory[deal.stageHistory.length - 1]?.timestamp || deal.createdAt).getTime()
+      }
+    });
+
     // Add to history
     deal.stageHistory.push({
       stage: stageId,
@@ -186,11 +217,44 @@ async function moveStage(req, res, next) {
     if (validStage.isFinal && !deal.closedAt) {
       deal.closedAt = new Date();
       // Determine status based on stage
-      if (stageId === 'won') deal.status = 'won';
-      else if (stageId === 'lost') deal.status = 'lost';
+      if (stageId === 'won') {
+        deal.status = 'won';
+        deal.activityLog.push({ type: 'status_change', text: 'Deal marked as WON', author: req.user._id });
+      }
+      else if (stageId === 'lost') {
+        deal.status = 'lost';
+        deal.activityLog.push({ type: 'status_change', text: 'Deal marked as LOST', author: req.user._id });
+      }
     }
 
     await deal.save();
+    await deal.populate(['contact', 'assignedAgent']);
+
+    // Emit socket event
+    const io = getIO();
+    if (io) {
+      io.to(`workspace:${workspace}`).emit('deal:moved', {
+        dealId: deal._id,
+        pipelineId: deal.pipeline,
+        oldStageId: oldStage,
+        newStageId: stageId,
+        deal: deal
+      });
+    }
+
+    // Trigger automation event
+    automationEvents.dealStageChanged({
+      workspaceId: workspace,
+      contactId: deal.contact,
+      metadata: {
+        dealId: deal._id,
+        title: deal.title,
+        oldStageId: oldStage,
+        newStageId: stageId,
+        value: deal.value,
+        status: deal.status
+      }
+    });
 
     // Clear active deal reference if moved to terminal stage
     if (validStage.isFinal) {
@@ -212,7 +276,7 @@ async function moveStage(req, res, next) {
 async function updateDeal(req, res, next) {
   try {
     const workspace = req.user.workspace;
-    const { title, description, value, currency, assignedAgent } = req.body;
+    const { title, description, value, currency, assignedAgent, probability, expectedCloseDate, priority, winLossReason, status } = req.body;
 
     const deal = await Deal.findOne({ _id: req.params.id, workspace });
     if (!deal) return res.status(404).json({ message: 'Deal not found' });
@@ -222,6 +286,11 @@ async function updateDeal(req, res, next) {
     if (value !== undefined) deal.value = value;
     if (currency) deal.currency = currency;
     if (assignedAgent) deal.assignedAgent = assignedAgent;
+    if (probability !== undefined) deal.probability = probability;
+    if (expectedCloseDate) deal.expectedCloseDate = expectedCloseDate;
+    if (priority) deal.priority = priority;
+    if (winLossReason) deal.winLossReason = winLossReason;
+    if (status) deal.status = status;
 
     await deal.save();
 
@@ -251,6 +320,14 @@ async function addNote(req, res, next) {
       text: text.trim(),
       author: req.user._id,
       createdAt: new Date()
+    });
+
+    // Add to activity log
+    deal.activityLog.push({
+      type: 'note_added',
+      text: 'New note added to deal',
+      author: req.user._id,
+      payload: { noteSnippet: text.trim().substring(0, 50) + '...' }
     });
 
     await deal.save();

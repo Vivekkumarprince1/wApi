@@ -64,8 +64,13 @@ export default function BusinessInfoPage() {
           getOnboardingStatus()
         ]);
 
-        if (onboarding?.status && onboarding.status !== 'workspace_not_created') {
+        if (onboarding?.status?.steps?.businessInfo) {
           router.replace('/dashboard');
+          return;
+        }
+
+        if (!onboarding?.status?.steps?.phoneVerified) {
+          router.replace('/onboarding/verify-mobile');
           return;
         }
 

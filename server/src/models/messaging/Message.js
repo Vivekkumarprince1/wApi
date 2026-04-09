@@ -50,11 +50,12 @@ const MessageSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['text', 'template', 'image', 'video', 'document', 'audio', 'sticker', 'location', 'contacts', 'interactive', 'reaction'],
+    enum: ['text', 'template', 'image', 'video', 'document', 'audio', 'sticker', 'location', 'contacts', 'interactive', 'reaction', 'note'],
     default: 'text',
     index: true
   },
   body: { type: String },
+  isInternalNote: { type: Boolean, default: false, index: true },
 
   // ─────────────────────────────────────────────────────────────────────────────
   // DELIVERY STATUS

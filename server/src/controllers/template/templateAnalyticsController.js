@@ -164,8 +164,29 @@ exports.getLowPerformingTemplates = async (req, res, next) => {
 };
 
 /**
+ * Get behavioral insights (Heatmap & Best Time)
+ * GET /api/v1/templates/analytics/behavioral
+ */
+exports.getTemplateBehavioralInsights = async (req, res, next) => {
+  try {
+    const workspaceId = req.user.workspace;
+    const { templateId, days = 30 } = req.query;
+
+    const result = await templateCampaignService.getBehavioralInsights(
+      workspaceId,
+      templateId,
+      parseInt(days)
+    );
+
+    res.json(result);
+  } catch (error) {
+    logger.error('[TemplateAnalytics] getTemplateBehavioralInsights failed:', error);
+    next(error);
+  }
+};
+
+/**
  * Export analytics report
- * GET /api/v1/templates/analytics/export
  */
 exports.exportAnalyticsReport = async (req, res, next) => {
   try {

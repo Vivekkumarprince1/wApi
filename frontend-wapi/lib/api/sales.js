@@ -1,4 +1,4 @@
-import { get, post, put, del } from './client';
+import { get, post, put, del, patch } from './client';
 
 // Pipelines
 export const createPipeline = async (data) => post('/sales/pipelines', data);
@@ -154,3 +154,9 @@ export const updateTemplateApprovalStatus = async (templateId, status, rejection
   return put(`/admin/templates/${templateId}/status`, { status, rejectionReason });
 };
 export const getCampaignAnalytics = async () => get('/admin/campaigns/analytics');
+export const getAllUsers = async (filters) => {
+  const queryParams = new URLSearchParams(filters);
+  return get(`/admin/users?${queryParams}`);
+};
+export const updateUserRole = async (userId, data) => patch(`/admin/users/${userId}/role`, data);
+export const updateWorkspacePlan = async (workspaceId, planId) => patch(`/admin/workspaces/${workspaceId}/plan`, { planId });

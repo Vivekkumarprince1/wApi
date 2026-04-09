@@ -10,7 +10,6 @@ const { createError } = require('../../utils/errorFormatter');
 
 class FacebookService {
   constructor() {
-    this.redis = getRedis();
     this.graphUrl = 'https://graph.facebook.com';
     this.version = 'v18.0';
     this.tokenExpiry = 3600; // 1 hour

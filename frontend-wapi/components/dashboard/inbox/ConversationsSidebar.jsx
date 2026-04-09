@@ -59,12 +59,12 @@ export default function ConversationsSidebar({
       </div>
 
       {/* Tabs / Filtering */}
-      <div className="px-4 py-3 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-border/40">
-        {['all', 'mine', 'unassigned'].map(view => (
+      <div className="px-4 py-3 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-border/40 scrollbar-hide">
+        {['all', 'mine', 'unassigned', 'resolved', 'snoozed'].map(view => (
           <button
             key={view}
             onClick={() => setCurrentView(view)}
-            className={`px-3.5 py-1.5 text-[11px] font-bold rounded-lg capitalize transition-all border ${currentView === view
+            className={`px-3.5 py-1.5 text-[11px] font-bold rounded-lg capitalize transition-all border whitespace-nowrap ${currentView === view
               ? 'bg-primary/10 border-primary/20 text-primary shadow-sm'
               : 'bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
               }`}
@@ -132,6 +132,15 @@ export default function ConversationsSidebar({
                           <FaUser className={`text-xl ${isSelected ? 'text-primary' : 'text-muted-foreground/40'}`} />
                         )}
                       </div>
+                      {/* SLA Indicator */}
+                      {conversation.status === 'open' && conversation.slaDeadline && (
+                        <div className={`absolute -top-1 -left-1 w-3.5 h-3.5 rounded-full flex items-center justify-center shadow-sm z-10 ${conversation.slaBreached ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'}`} title={conversation.slaBreached ? "SLA Breached" : "Response Due Soon"}>
+                          <div className="w-2 h-2 border-[1.5px] border-current rounded-full relative">
+                            <div className="absolute top-1/2 left-1/2 w-0.5 h-1 bg-current -translate-x-1/2 -translate-y-full origin-bottom rotate-0" />
+                          </div>
+                        </div>
+                      )}
+
                       {(conversation.myUnreadCount || conversation.unreadCount || 0) > 0 && (
                         <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
@@ -147,11 +156,24 @@ export default function ConversationsSidebar({
                           {conversation.contact?.displayName || conversation.contact?.name || conversation.contact?.phone}
                         </h3>
                         {conversation.lastMessageAt && (
-                          <span className="text-[10px] font-bold text-muted-foreground/60 flex-shrink-0 ml-2">
-                            {new Date(conversation.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                          <div className="flex flex-col items-end gap-1 flex-shrink-0 ml-2">
+                             <span className="text-[10px] font-bold text-muted-foreground/60">
+                               {new Date(conversation.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                             </span>
+                             {conversation.priority === 'urgent' && (
+                               <div className="text-amber-500 text-[10px]">★</div>
+                             )}
+                          </div>
                         )}
                       </div>
+
+                      {conversation.label && (
+                        <div className="flex mb-1.5">
+                          <span className="px-1.5 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/10">
+                            {conversation.label}
+                          </span>
+                        </div>
+                      )}
 
                       <div className="flex justify-between items-center gap-2">
                         <p className={`text-[12.5px] truncate font-medium ${isSelected ? 'text-muted-foreground' : 'text-muted-foreground/80'}`}>

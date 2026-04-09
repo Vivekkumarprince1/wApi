@@ -253,6 +253,23 @@ async function sendTemplateMessage(req, res, next) {
     const providerTemplateId = template.metaTemplateId || template.providerId || null;
     const metaTemplateName = template.metaTemplateName || template.name;
 
+    // ═══════════════════════════════════════════════════════════════════
+    // WALLET VALIDATION (Hardened Compliance)
+    // ═══════════════════════════════════════════════════════════════════
+    try {
+      await billingLedgerService.ensureWalletBalance(workspaceId, template.category);
+    } catch (walletErr) {
+      if (walletErr.code === 'INSUFFICIENT_BALANCE') {
+        return res.status(402).json({
+          success: false,
+          message: walletErr.message,
+          code: 'INSUFFICIENT_WALLET_BALANCE',
+          details: walletErr.details
+        });
+      }
+      throw walletErr;
+    }
+
     // Get or create conversation first to link message
     const { conversation, isNew: isNewConversation } = await getOrCreateConversation(workspaceId, contact._id, template);
 
@@ -501,6 +518,29 @@ async function sendBulkTemplateMessage(req, res, next) {
         current: currentMonthly,
         requested: contactIds.length
       });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // WALLET VALIDATION (Bulk Pre-check)
+    // ═══════════════════════════════════════════════════════════════════
+    try {
+      const { price, category } = await billingLedgerService.getTemplatePrice(workspaceId, template.category);
+      if (price > 0) {
+        const totalRequired = price * contactIds.length;
+        const walletService = require('../../services/billing/walletService');
+        const wallet = await walletService.getBalance(workspaceId);
+        if ((wallet.balance || 0) < totalRequired) {
+          return res.status(402).json({
+            success: false,
+            message: `Insufficient wallet balance for bulk send. Required: ${totalRequired} paise for ${contactIds.length} ${category} messages.`,
+            code: 'INSUFFICIENT_WALLET_BALANCE',
+            details: { required: totalRequired, available: wallet.balance, count: contactIds.length }
+          });
+        }
+      }
+    } catch (walletErr) {
+      console.error('[MessageController] Bulk wallet pre-check failed:', walletErr.message);
+      // If check fails technically, we might want to be safe and block or alert.
     }
 
     // Fetch all contacts

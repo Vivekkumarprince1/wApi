@@ -57,6 +57,11 @@ export const getLowPerformingTemplates = async (limit = 10) => {
   return get(`/templates/analytics/low-performers?limit=${limit}`);
 };
 
+export const getTemplateBehavioralInsights = async (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return get(`/templates/analytics/behavioral${query ? '?' + query : ''}`);
+};
+
 export const exportAnalyticsReport = async (format = 'json') => {
   return get(`/templates/analytics/export?format=${format}`);
 };

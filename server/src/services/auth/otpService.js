@@ -9,7 +9,6 @@ const logger = require('../../utils/logger');
 
 class OtpService {
   constructor() {
-    this.redis = getRedis();
     this.otpLength = 6;
     this.otpExpiry = 5 * 60; // 5 minutes
     this.maxAttempts = 3;

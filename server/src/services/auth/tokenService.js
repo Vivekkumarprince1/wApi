@@ -9,7 +9,6 @@ const logger = require('../../utils/logger');
 
 class TokenService {
   constructor() {
-    this.redis = getRedis();
   }
 
   /**

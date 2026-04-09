@@ -243,6 +243,7 @@ async function getOnboardingStatus(req, res, next) {
     const status = {
       steps: {
         emailVerified: user.emailVerified || false,
+        phoneVerified: user.phoneVerified || false,
         businessInfo: workspace.onboarding?.businessInfoCompleted || false,
         wabaConnection: !!(workspace.whatsappAccessToken && workspace.whatsappPhoneNumberId),
         businessVerification: isVerified
@@ -253,6 +254,10 @@ async function getOnboardingStatus(req, res, next) {
         documents: workspace.businessDocuments,
         submittedAt: workspace.businessVerification?.submittedAt,
         verifiedAt: workspace.businessVerification?.verifiedAt
+      },
+      phone: {
+        number: user.phone || null,
+        verified: user.phoneVerified || false
       },
       completedAt: workspace.onboarding?.completedAt || null
     };

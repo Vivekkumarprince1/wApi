@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaWhatsapp, FaClock, FaCheckCircle, FaSpinner, FaTimes } from 'react-icons/fa';
-import { get, put } from '@/lib/api';
+import { getWhatsAppSetupRequests, updateWhatsAppSetupStatus } from '@/lib/api';
 import { useAuthStore as useAuth } from '@/store/authStore';
 import FlashLoader from '@/components/ui/FlashLoader';
 
@@ -30,11 +30,7 @@ export default function WhatsAppSetupRequests() {
   const loadRequests = async () => {
     try {
       setLoading(true);
-      const endpoint = filter === 'all' 
-        ? '/admin/whatsapp-setup-requests'
-        : `/admin/whatsapp-setup-requests?status=${filter}`;
-      
-      const data = await get(endpoint);
+      const data = await getWhatsAppSetupRequests(filter === 'all' ? null : filter);
       if (data.success) {
         setRequests(data.requests);
       }
@@ -48,8 +44,7 @@ export default function WhatsAppSetupRequests() {
   const updateRequestStatus = async (workspaceId, status, notes = '') => {
     try {
       setUpdating(true);
-      
-      const data = await put(`/admin/whatsapp-setup-requests/${workspaceId}`, { status, notes });
+      const data = await updateWhatsAppSetupStatus(workspaceId, { status, notes });
       if (data.success) {
         await loadRequests();
         setSelectedRequest(null);

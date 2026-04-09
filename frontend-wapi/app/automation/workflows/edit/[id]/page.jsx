@@ -12,6 +12,9 @@ import { useNodesState, useEdgesState, addEdge } from '@xyflow/react';
 import { put, get } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import { FlowCanvas } from '@/components/features/automation/FlowCanvas';
+import { validateWorkflow } from '@/utils/automationValidator';
+import { WorkflowInspector } from '@/components/features/automation/WorkflowInspector';
+import { Panel } from '@xyflow/react';
 
 // ─────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -36,9 +39,11 @@ const ACTION_TYPES = [
   { value: 'add_tag', label: '🏷️ Add Tag', icon: FaTag, category: 'crm', nodeType: 'action' },
   { value: 'remove_tag', label: '❌ Remove Tag', icon: FaTag, category: 'crm', nodeType: 'action' },
   { value: 'delay', label: '⏱️ Wait / Delay', icon: FaClock, category: 'logic', nodeType: 'action' },
+  { value: 'ask_ai', label: '🧠 Ask AI (Intent)', icon: FaRobot, category: 'logic', nodeType: 'condition' },
   { value: 'notify_webhook', label: '🔗 Webhook', icon: FaLink, category: 'logic', nodeType: 'action' },
   { value: 'save_response', label: '💾 Save Input', icon: FaSave, category: 'logic', nodeType: 'action' },
-  { value: 'mark_as_resolved', label: '✅ Resolve Chat', icon: FaCheckCircle, category: 'crm', nodeType: 'action' }
+  { value: 'mark_as_resolved', label: '✅ Resolve Chat', icon: FaCheckCircle, category: 'crm', nodeType: 'action' },
+  { value: 'create_deal', label: '📈 Create CRM Deal', icon: FaBolt, category: 'crm', nodeType: 'action' }
 ];
 
 const CONDITION_FIELDS = [
@@ -72,11 +77,14 @@ export default function EditWorkflowPage() {
   const [templates, setTemplates] = useState([]);
   const [agents, setAgents] = useState([]);
   const [tags, setTags] = useState([]);
+  const [pipelines, setPipelines] = useState([]);
   
   const [workflowName, setWorkflowName] = useState('');
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [inspectorMode, setInspectorMode] = useState(false);
+  const [inspectedActions, setInspectedActions] = useState([]);
 
   const selectedNode = useMemo(() => 
     nodes.find(n => n.id === selectedNodeId), 
@@ -90,16 +98,18 @@ export default function EditWorkflowPage() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [workflowRes, tplData, agentData, tagData] = await Promise.all([
+        const [workflowRes, tplData, agentData, tagData, pipeData] = await Promise.all([
           get(`/automation/engine/rules/${workflowId}`),
           get('/templates'),
           get('/team/members'),
-          get('/tags')
+          get('/tags'),
+          get('/commerce/pipelines')
         ]);
 
         setTemplates(tplData.templates || []);
         setAgents(agentData.members || []);
         setTags(tagData.data || []);
+        setPipelines(pipeData.data || pipeData.pipelines || []);
 
         if (workflowRes.success && workflowRes.data.rule) {
           const rule = workflowRes.data.rule;
@@ -206,6 +216,76 @@ export default function EditWorkflowPage() {
     setSelectedNodeId(null);
   };
 
+  const handleValidate = useCallback(() => {
+    const { errors, warnings } = validateWorkflow(nodes, edges);
+    setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, error: null, warning: null } })));
+    
+    if (errors.length === 0 && warnings.length === 0) {
+      toast.success('Workflow is perfectly structured!');
+      return true;
+    }
+
+    setNodes(nds => nds.map(n => {
+      const nodeError = errors.find(e => e.id === n.id);
+      const nodeWarning = warnings.find(w => w.id === n.id);
+      return { 
+        ...n, 
+        data: { 
+          ...n.data, 
+          error: nodeError?.message || null,
+          warning: nodeWarning?.message || null
+        } 
+      };
+    }));
+
+    if (errors.length > 0) {
+      setError(`Found ${errors.length} validation errors.`);
+      toast.error('Workflow has structural errors');
+      return false;
+    }
+    return true;
+  }, [nodes, edges]);
+
+  const onInspectPath = useCallback((executedActions) => {
+    // 1. Identify nodes that were executed
+    // We assume the sequence matches the linear flow for simple cases, 
+    // or we match by node types/config if stored precisely.
+    // For now, we highlight nodes that match the executed action types in order.
+    
+    setNodes(nds => nds.map(node => {
+      const isExecuted = executedActions.some(a => a.type === node.data.type);
+      return {
+        ...node,
+        animated: isExecuted,
+        style: isExecuted ? { border: '2px solid #3b82f6', boxShadow: '0 0 10px rgba(59, 130, 246, 0.5)' } : {}
+      };
+    }));
+
+    setEdges(eds => eds.map(edge => {
+      // Find if source and target nodes were both executed in sequence
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+      const isPath = executedActions.some(a => a.type === sourceNode?.data.type) && 
+                     executedActions.some(a => a.type === targetNode?.data.type);
+      
+      return {
+        ...edge,
+        animated: isPath,
+        style: isPath ? { stroke: '#3b82f6', strokeWidth: 4 } : { stroke: '#cbd5e1', strokeWidth: 1 }
+      };
+    }));
+
+    toast.info(`Tracing path: ${executedActions.length} steps executed`);
+  }, [nodes, setNodes, setEdges]);
+
+  // Clear highlight when inspector mode is toggled off
+  useEffect(() => {
+    if (!inspectorMode) {
+      setNodes(nds => nds.map(n => ({ ...n, style: {}, animated: false })));
+      setEdges(eds => eds.map(e => ({ ...e, style: {}, animated: true })));
+    }
+  }, [inspectorMode, setNodes, setEdges]);
+
   const updateNodeData = (updates) => {
     setNodes((nds) =>
       nds.map((node) => {
@@ -236,7 +316,8 @@ export default function EditWorkflowPage() {
 
   const handleSubmit = async () => {
     if (!workflowName.trim()) return setError('Workflow name is required');
-    
+    if (!handleValidate()) return;
+
     setSaving(true);
     try {
       const triggerNode = nodes.find(n => n.type === 'trigger');
@@ -298,6 +379,20 @@ export default function EditWorkflowPage() {
           
           <div className="flex items-center gap-3">
             <button 
+              onClick={() => setInspectorMode(!inspectorMode)}
+              className={`px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all ${
+                inspectorMode ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              <FaHistory /> {inspectorMode ? 'Hide Inspector' : 'Show Inspector'}
+            </button>
+            <button 
+              onClick={handleValidate}
+              className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 flex items-center gap-2"
+            >
+              <FaCheckCircle className="text-emerald-500" /> Validate
+            </button>
+            <button 
               onClick={handleSubmit}
               disabled={saving}
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-100 transition-all active:scale-95 disabled:opacity-50"
@@ -353,106 +448,176 @@ export default function EditWorkflowPage() {
             onConnect={onConnect}
             onNodeClick={onNodeClick}
           />
-        </div>
 
-        {/* Right: Node Configuration Sidebar */}
-        <div className="w-96 bg-white border-l border-slate-200 overflow-y-auto flex flex-col">
-          {!selectedNode ? (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-              <FaSitemap size={24} className="opacity-20 mb-4" />
-              <p className="text-sm font-medium">Select a node to edit</p>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col p-6">
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-slate-900 text-white">
-                    {ACTION_TYPES.find(a => a.value === selectedNode.data.type)?.icon({ size: 14 }) || <FaBolt size={14} />}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900">{selectedNode.data.label || 'Node Preview'}</h3>
-                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{selectedNode.type} NODE</p>
-                  </div>
+          {inspectorMode && (
+            <div className="absolute top-4 left-4 z-10">
+              <div className="bg-white/90 backdrop-blur p-4 rounded-2xl border border-blue-200 shadow-xl max-w-xs animate-in slide-in-from-left duration-300">
+                <div className="flex items-center gap-2 text-blue-600 font-bold text-[10px] uppercase tracking-widest mb-2">
+                  <FaHistory className="animate-pulse" /> Live Analysis Mode
                 </div>
-                {selectedNode.id !== 'node_trigger' && (
-                  <button onClick={removeSelectedNode} className="p-2 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded-lg">
-                    <FaTrash size={14} />
-                  </button>
-                )}
-              </div>
-
-              <div className="space-y-6">
-                {selectedNode.type === 'trigger' && (
-                  <div className="space-y-5">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Trigger Event</label>
-                      <select 
-                        value={selectedNode.data.event}
-                        onChange={(e) => updateNodeData({ 
-                          event: e.target.value,
-                          label: TRIGGER_EVENTS.find(t => t.value === e.target.value)?.label.split(' ').slice(1).join(' ') 
-                        })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
-                      >
-                        {TRIGGER_EVENTS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {selectedNode.data.type === 'send_text_message' && (
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Message Content</label>
-                    <textarea 
-                      rows={5}
-                      value={selectedNode.data.config.messageContent || ''}
-                      onChange={(e) => updateNodeConfig({ messageContent: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm"
-                    />
-                  </div>
-                )}
-
-                {selectedNode.data.type === 'send_template_message' && (
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Template</label>
-                    <select 
-                      value={selectedNode.data.config.templateId || ''}
-                      onChange={(e) => {
-                        const tpl = templates.find(t => t._id === e.target.value);
-                        updateNodeConfig({ templateId: e.target.value, templateName: tpl?.name });
-                      }}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
-                    >
-                      <option value="">Choose Template...</option>
-                      {templates.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-                    </select>
-                  </div>
-                )}
-
-                {selectedNode.type === 'condition' && (
-                  <div className="space-y-5">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Field</label>
-                      <select value={selectedNode.data.field || ''} onChange={(e) => updateNodeData({ field: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
-                        {CONDITION_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Operator</label>
-                      <select value={selectedNode.data.operator || ''} onChange={(e) => updateNodeData({ operator: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
-                        {CONDITION_OPERATORS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Value</label>
-                      <input type="text" value={selectedNode.data.value || ''} onChange={(e) => updateNodeData({ value: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm" />
-                    </div>
-                  </div>
-                )}
+                <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+                  Select an execution from the sidebar to trace the contact's path through this workflow.
+                </p>
               </div>
             </div>
           )}
         </div>
+
+        {/* Right Sidebar: Switch between Library/Config and Inspector */}
+        {inspectorMode ? (
+          <WorkflowInspector workflowId={workflowId} onInspectPath={onInspectPath} />
+        ) : (
+          <div className="w-96 bg-white border-l border-slate-200 overflow-y-auto flex flex-col">
+            {/* Library / Config Sidebar Content */}
+            {!selectedNode ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                <FaSitemap size={24} className="opacity-20 mb-4" />
+                <p className="text-sm font-medium">Select a node to edit</p>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col p-6">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-slate-900 text-white">
+                      {ACTION_TYPES.find(a => a.value === selectedNode.data.type)?.icon({ size: 14 }) || <FaBolt size={14} />}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-slate-900">{selectedNode.data.label || 'Node Preview'}</h3>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{selectedNode.type} NODE</p>
+                    </div>
+                  </div>
+                  {selectedNode.id !== 'node_trigger' && (
+                    <button onClick={removeSelectedNode} className="p-2 hover:bg-red-50 text-slate-300 hover:text-red-500 rounded-lg">
+                      <FaTrash size={14} />
+                    </button>
+                  )}
+                </div>
+
+                <div className="space-y-6">
+                  {selectedNode.type === 'trigger' && (
+                    <div className="space-y-5">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Trigger Event</label>
+                        <select 
+                          value={selectedNode.data.event}
+                          onChange={(e) => updateNodeData({ 
+                            event: e.target.value,
+                            label: TRIGGER_EVENTS.find(t => t.value === e.target.value)?.label.split(' ').slice(1).join(' ') 
+                          })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                        >
+                          {TRIGGER_EVENTS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedNode.data.type === 'send_text_message' && (
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Message Content</label>
+                      <textarea 
+                        rows={5}
+                        value={selectedNode.data.config.messageContent || ''}
+                        onChange={(e) => updateNodeConfig({ messageContent: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {selectedNode.data.type === 'send_template_message' && (
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Template</label>
+                      <select 
+                        value={selectedNode.data.config.templateId || ''}
+                        onChange={(e) => {
+                          const tpl = templates.find(t => t._id === e.target.value);
+                          updateNodeConfig({ templateId: e.target.value, templateName: tpl?.name });
+                        }}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                      >
+                        <option value="">Choose Template...</option>
+                        {templates.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {selectedNode.type === 'condition' && selectedNode.data.type !== 'ask_ai' && (
+                    <div className="space-y-5">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Field</label>
+                        <select value={selectedNode.data.field || ''} onChange={(e) => updateNodeData({ field: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
+                          {CONDITION_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Operator</label>
+                        <select value={selectedNode.data.operator || ''} onChange={(e) => updateNodeData({ operator: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm">
+                          {CONDITION_OPERATORS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Value</label>
+                        <input type="text" value={selectedNode.data.value || ''} onChange={(e) => updateNodeData({ value: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm" />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedNode.data.type === 'ask_ai' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Confidence Threshold (%)</label>
+                        <input 
+                          type="range" min="10" max="95" step="5"
+                          value={selectedNode.data.config.confidence || 75}
+                          onChange={(e) => updateNodeConfig({ confidence: parseInt(e.target.value) })}
+                          className="w-full"
+                        />
+                        <div className="text-right text-[10px] font-bold text-slate-400 mt-1">{selectedNode.data.config.confidence || 75}%</div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Expected Intent</label>
+                        <input 
+                          type="text" placeholder="e.g. billing_issue, human_handover"
+                          value={selectedNode.data.config.intent || ''}
+                          onChange={(e) => updateNodeConfig({ intent: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedNode.data.type === 'notify_webhook' && (
+                    <div className="space-y-4">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Webhook URL</label>
+                      <input 
+                        type="url" placeholder="https://"
+                        value={selectedNode.data.config.webhookUrl || ''}
+                        onChange={(e) => updateNodeConfig({ webhookUrl: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                      />
+                    </div>
+                  )}
+
+                  {(selectedNode.data.type === 'create_deal' || selectedNode.data.type === 'move_pipeline_stage') && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase block mb-2">Pipeline</label>
+                        <select 
+                          value={selectedNode.data.config.pipelineId || ''}
+                          onChange={(e) => updateNodeConfig({ pipelineId: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm"
+                        >
+                          <option value="">-- Choose Pipeline --</option>
+                          {pipelines.map(p => <option key={p._id} value={p._id}>{p.name}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

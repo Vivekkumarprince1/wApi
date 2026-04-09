@@ -19,12 +19,14 @@ import { useSocketStore, useSocketEvent } from '@/store/socketStore';
 import { toast } from '@/lib/toast';
 import {
   FaPaperPlane,
+  FaInfoCircle
 } from 'react-icons/fa';
 import ConversationsSidebar from '@/components/dashboard/inbox/ConversationsSidebar';
 import MessageThread from '@/components/dashboard/inbox/MessageThread';
 import ChatInput from '@/components/dashboard/inbox/ChatInput';
 import ContactDetailsSidebar from '@/components/dashboard/inbox/ContactDetailsSidebar';
 import StartConversationModal from '@/components/dashboard/inbox/StartConversationModal';
+import TemplateSelectorModal from '@/components/dashboard/inbox/TemplateSelectorModal';
 import { useAuthStore } from '@/store/authStore';
 import FlashLoader from '@/components/ui/FlashLoader';
 
@@ -43,6 +45,7 @@ export default function InboxPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [startModalOpen, setStartModalOpen] = useState(false);
   const [contactOptions, setContactOptions] = useState([]);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
   const [selectedStartContact, setSelectedStartContact] = useState(null);
   const [startMessage, setStartMessage] = useState('');
@@ -740,6 +743,45 @@ export default function InboxPage() {
       return;
     }
 
+    // --- Flow for handling internal notes ---
+    if (internalNoteMode) {
+      const textToSend = newMessage.trim();
+      const conversationId = selectedConversationId;
+      const tmpId = `tmp-note-${Date.now()}`;
+
+      // Optimistic note update
+      const optimisticNote = {
+        _id: tmpId,
+        body: textToSend,
+        direction: 'outbound',
+        type: 'note',
+        isInternalNote: true,
+        status: 'received',
+        createdAt: new Date().toISOString(),
+        sentBy: currentUser || { _id: 'me', name: 'Me' }
+      };
+
+      setMessages(prev => [...prev, optimisticNote]);
+      setNewMessage('');
+      setInternalNoteMode(false); // Switch back to message mode after note
+      scrollToBottom();
+
+      try {
+        const res = await post(`/inbox/${conversationId}/notes`, { text: textToSend });
+        if (res.success) {
+          setMessages(prev => prev.map(m => m._id === tmpId ? { ...res.data, status: 'received' } : m));
+          loadConversations();
+        } else {
+          setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
+        }
+      } catch (err) {
+        console.error('[INBOX] Internal note error:', err);
+        setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
+        toast.error('Failed to add internal note');
+      }
+      return;
+    }
+
     // --- Flow for handling text messages ---
     const textToSend = newMessage.trim();
     const contactId = selectedContact._id || selectedContact.id;
@@ -812,7 +854,16 @@ export default function InboxPage() {
     } catch (error) {
       console.error('Error sending message:', error);
       setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
-      toast?.error?.(error.message || 'Failed to send message');
+      
+      // UI Gap Fix: Handle 24h Session Window Expiration
+      const errorMsg = error.message || (typeof error.response?.data === 'string' ? error.response.data : error.response?.data?.message) || '';
+      
+      if (errorMsg.includes('Session window expired') || errorMsg.includes('use template')) {
+        toast.warning('WhatsApp 24h window expired. You must use a template to continue.');
+        setShowTemplateModal(true);
+      } else {
+        toast?.error?.(errorMsg || 'Failed to send message');
+      }
     }
   };
 
@@ -908,6 +959,7 @@ export default function InboxPage() {
               bspReady={bspReady}
               sending={sending}
               handleMediaSelect={handleMediaSelect}
+              agents={agents}
             />
           </>
         ) : (
@@ -953,6 +1005,16 @@ export default function InboxPage() {
         onMessageChange={setStartMessage}
         onSubmit={handleStartConversation}
         loading={startingConversation}
+      />
+      {/* Template Selection Modal for 24h Policy Compliance */}
+      <TemplateSelectorModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        contact={selectedContact}
+        onSuccess={() => {
+          toast.success('Template sent successfully. Session resumed.');
+          // Optionally refresh conversation window
+        }}
       />
     </div>
   );

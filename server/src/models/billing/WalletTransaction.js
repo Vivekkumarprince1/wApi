@@ -24,7 +24,8 @@ const WalletTransactionSchema = new mongoose.Schema({
       'UNPARK',         // Released after campaign/message completion (refund of reserved)
       'SPEND',          // Permanent deduction (successful message/conversation)
       'REFUND',         // Manual or automated adjustment refund
-      'BONUS'           // Promotional credits
+      'BONUS',          // Promotional credits
+      'SUBSCRIPTION_PURCHASE' // Direct plan purchase
     ],
     required: true
   },
@@ -48,7 +49,7 @@ const WalletTransactionSchema = new mongoose.Schema({
   },
   referenceId: { 
     type: mongoose.Schema.Types.ObjectId, 
-    required: true 
+    required: false 
   },
   
   // Status of the transaction

@@ -10,39 +10,42 @@ export default function AudienceStep({
   loadingTags, 
   filteredContactCount, 
   handleCSVUpload, 
-  audienceCount 
+  audienceCount,
+  segments = [],
+  loadingSegments = false
 }) {
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Audience Mode Selection */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         {[
-          { value: 'specific', label: 'My Contacts', desc: `Select specific contacts`, icon: Users, color: 'blue' },
-          { value: 'tags', label: 'Filter by Tags', desc: 'Target contacts with specific tags', icon: Tag, color: 'purple' },
-          { value: 'csv', label: 'Upload CSV', desc: 'Upload a list of phone numbers', icon: FileUp, color: 'emerald' },
+          { value: 'specific', label: 'Contacts', desc: `Select specific`, icon: Users, color: 'blue' },
+          { value: 'tags', label: 'By Tags', desc: 'Target tags', icon: Tag, color: 'purple' },
+          { value: 'segment', label: 'Segment', desc: 'Saved groups', icon: Filter, color: 'amber' },
+          { value: 'csv', label: 'CSV', desc: 'Upload file', icon: FileUp, color: 'emerald' },
         ].map(opt => {
           const Icon = opt.icon;
           const isSelected = campaignData.audienceMode === opt.value;
           return (
             <button key={opt.value}
-              onClick={() => setCampaignData(d => ({ ...d, audienceMode: opt.value, selectedTags: [], csvContacts: [] }))}
-              className={`group relative p-5 rounded-xl border-2 text-left transition-all duration-200 ${isSelected
+              onClick={() => setCampaignData(d => ({ ...d, audienceMode: opt.value, selectedTags: [], csvContacts: [], segmentId: null }))}
+              className={`group relative p-4 rounded-xl border-2 text-left transition-all duration-200 ${isSelected
                 ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
                 : 'border-border hover:border-primary/40 hover:bg-accent/50'
               }`}
             >
-              <div className="flex flex-col items-center text-center gap-3">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground group-hover:text-primary'}`}>
-                  <Icon className="h-5 w-5" />
+              <div className="flex flex-col items-center text-center gap-2">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${isSelected ? 'bg-primary/15 text-primary' : 'bg-muted text-muted-foreground group-hover:text-primary'}`}>
+                  <Icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <div className="font-bold text-sm text-foreground">{opt.label}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{opt.desc}</div>
+                  <div className="font-bold text-[13px] text-foreground leading-tight">{opt.label}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{opt.desc}</div>
                 </div>
               </div>
               {isSelected && (
-                <div className="absolute top-2.5 right-2.5">
-                  <CheckCircle2 className="h-4 w-4 text-primary" />
+                <div className="absolute top-2 right-2">
+                  <CheckCircle2 className="h-3 w-3 text-primary" />
                 </div>
               )}
             </button>
@@ -71,7 +74,7 @@ export default function AudienceStep({
                 }}
                 className="w-4 h-4 rounded border-border text-primary focus:ring-primary transition-all cursor-pointer"
               />
-              <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">Select All Contacts ({contactCount})</span>
+              <span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">Select All ({contactCount})</span>
             </label>
           </div>
 
@@ -180,6 +183,56 @@ export default function AudienceStep({
         </div>
       )}
 
+      {/* Segment Selection UI */}
+      {campaignData.audienceMode === 'segment' && (
+        <div className="bg-muted/30 border border-border rounded-xl p-5 space-y-4 animate-fade-in-up">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Filter className="h-4 w-4 text-primary" /> Select Dynamic Segment
+            </h4>
+          </div>
+
+          {loadingSegments ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading segments...
+            </div>
+          ) : segments.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">No segments found. Create one in the Contacts section first.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-3">
+              {segments.map(seg => {
+                const isSelected = campaignData.segmentId === seg._id;
+                return (
+                  <button key={seg._id}
+                    onClick={() => {
+                      setCampaignData(d => ({
+                        ...d,
+                        segmentId: isSelected ? null : seg._id
+                      }));
+                    }}
+                    className={`flex items-center justify-between p-4 rounded-xl border transition-all text-left ${isSelected
+                      ? 'bg-primary/5 border-primary shadow-inner'
+                      : 'bg-card border-border hover:border-primary/40 hover:bg-accent/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${isSelected ? 'bg-primary text-white' : 'bg-muted text-muted-foreground'}`}>
+                        <Users className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-bold text-foreground">{seg.name}</div>
+                        <div className="text-[10px] text-muted-foreground uppercase font-black mt-0.5">{seg.contactCount || 0} Contacts</div>
+                      </div>
+                    </div>
+                    {isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* CSV Upload UI */}
       {campaignData.audienceMode === 'csv' && (
         <div className="bg-muted/30 border border-border rounded-xl p-5 space-y-4 animate-fade-in-up">
@@ -194,7 +247,7 @@ export default function AudienceStep({
                 <FileUp className="h-6 w-6 text-primary" />
               </div>
               <p className="text-sm font-semibold text-foreground mb-1">Click to upload CSV file</p>
-              <p className="text-xs text-muted-foreground">Must include a "phone" column. Supports name, email columns.</p>
+              <p className="text-xs text-muted-foreground">Must include a "phone" column.</p>
             </label>
           ) : (
             <div className="space-y-3">
@@ -207,33 +260,6 @@ export default function AudienceStep({
                   className="text-xs text-destructive hover:underline flex items-center gap-1">
                   <X className="h-3 w-3" /> Remove
                 </button>
-              </div>
-
-              {/* Preview Table */}
-              <div className="bg-card border border-border rounded-lg overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-muted/50 border-b border-border">
-                      <th className="px-4 py-2 text-left text-xs font-bold text-muted-foreground uppercase">#</th>
-                      <th className="px-4 py-2 text-left text-xs font-bold text-muted-foreground uppercase">Phone</th>
-                      <th className="px-4 py-2 text-left text-xs font-bold text-muted-foreground uppercase">Name</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {campaignData.csvContacts.slice(0, 5).map((c, i) => (
-                      <tr key={i} className="border-b border-border/50 last:border-0">
-                        <td className="px-4 py-2 text-muted-foreground">{i + 1}</td>
-                        <td className="px-4 py-2 font-mono text-foreground">{c.phone}</td>
-                        <td className="px-4 py-2 text-foreground">{c.name || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {campaignData.csvContacts.length > 5 && (
-                  <div className="px-4 py-2 text-xs text-muted-foreground text-center bg-muted/30 border-t border-border">
-                    ...and {campaignData.csvContacts.length - 5} more contacts
-                  </div>
-                )}
               </div>
             </div>
           )}

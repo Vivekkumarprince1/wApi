@@ -19,6 +19,7 @@ const AUTOMATION_EVENTS = {
   CONVERSATION_REOPENED: 'conversation.reopened',
   CONVERSATION_ASSIGNED: 'conversation.assigned',
   CONVERSATION_UNASSIGNED: 'conversation.unassigned',
+  CONVERSATION_LABEL_CHANGED: 'conversation.label.changed',
   
   // Message events
   CUSTOMER_MESSAGE_RECEIVED: 'customer.message.received',
@@ -251,6 +252,13 @@ class AutomationEventEmitter extends EventEmitter {
    */
   conversationUnassigned(payload) {
     return this.emitAutomationEvent(AUTOMATION_EVENTS.CONVERSATION_UNASSIGNED, payload);
+  }
+
+  /**
+   * Emit when conversation label is changed
+   */
+  conversationLabelChanged(payload) {
+    return this.emitAutomationEvent(AUTOMATION_EVENTS.CONVERSATION_LABEL_CHANGED, payload);
   }
   
   /**

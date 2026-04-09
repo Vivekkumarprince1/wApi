@@ -1,7 +1,7 @@
+const { User, Workspace } = require('../../models');
+const walletService = require('../../services/billing/walletService');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { User } = require('../../models');
-const { Workspace } = require('../../models');
 
 // Lazy initialize Razorpay instance
 let razorpay = null;
@@ -269,7 +269,25 @@ async function handleWebhook(req, res, next) {
     switch (event) {
       case 'payment.captured':
         // Payment successful
-        console.log('Payment captured:', payload.payment.entity.id);
+        const payment = payload.payment.entity;
+        const notes = payment.notes || {};
+        
+        console.log('[RazorpayWebhook] Payment captured:', payment.id);
+        
+        // Handle Wallet Recharge
+        if (notes.type === 'WALLET_RECHARGE' && notes.workspaceId) {
+          try {
+            await walletService.credit(notes.workspaceId, payment.amount, {
+              referenceType: 'SYSTEM',
+              referenceId: null,
+              description: `Razorpay Recharge: ${payment.id}`,
+              metadata: { razorpayPaymentId: payment.id, razorpayOrderId: payment.order_id }
+            });
+            console.log(`[RazorpayWebhook] Credited wallet for workspace ${notes.workspaceId}`);
+          } catch (creditErr) {
+            console.error('[RazorpayWebhook] Failed to credit wallet:', creditErr);
+          }
+        }
         break;
         
       case 'payment.failed':

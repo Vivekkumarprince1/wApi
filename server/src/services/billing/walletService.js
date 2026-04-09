@@ -1,155 +1,178 @@
 const { Workspace, WalletTransaction } = require('../../models');
-const mongoose = require('mongoose');
 const logger = require('../../utils/logger');
+const mongoose = require('mongoose');
 
 /**
- * ═══════════════════════════════════════════════════════════════════════════════
- * WALLET SERVICE - PRE-PAID CREDIT MANAGEMENT
- * 
- * Core logic for:
- * 1. Balance Parking: Reserving credits before campaign execution (prevent over-spend)
- * 2. Unparking/Refunds: Releasing credits for failed messages or completion
- * 3. Permanent Spending: Finalizing charges for successful sends
- * 4. Auditing: Ensuring every credit movement is traced to a transaction
- * ═══════════════════════════════════════════════════════════════════════════════
+ * Wallet Service - Implementation for Pre-paid billing
+ * Handles balance management, deduction, and transaction history.
  */
+class WalletService {
+  /**
+   * Add funds to a workspace wallet
+   * @param {string} workspaceId 
+   * @param {number} amountPaise 
+   * @param {Object} metadata { referenceType, referenceId, description }
+   */
+  async credit(workspaceId, amountPaise, metadata = {}) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const workspace = await Workspace.findById(workspaceId).session(session);
+      if (!workspace) throw new Error('Workspace not found');
 
-/**
- * Park balance for a campaign
- * Reserves credits corresponding to the total recipient count
- * 
- * @param {ObjectId} workspaceId 
- * @param {Number} amount - Amount to park (totalRecipients * costPerRecipient)
- * @param {ObjectId} campaignId 
- * @returns {Promise<{success: boolean, balance: number}>}
- */
-async function parkBalance(workspaceId, amount, campaignId) {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  
-  try {
-    const workspace = await Workspace.findById(workspaceId).session(session);
-    
-    if (!workspace) throw new Error('WORKSPACE_NOT_FOUND');
-    
-    // Check if sufficient balance
-    if (workspace.wallet.balance < amount) {
-      throw new Error(`INSUFFICIENT_BALANCE: Found ${workspace.wallet.balance}, required ${amount} for campaign`);
+      // Update balance
+      if (!workspace.wallet) workspace.wallet = { balance: 0 };
+      workspace.wallet.balance = (workspace.wallet.balance || 0) + amountPaise;
+      workspace.wallet.lastRechargeAt = new Date();
+      
+      await workspace.save({ session });
+
+      // Record transaction
+      const transaction = new WalletTransaction({
+        workspace: workspaceId,
+        type: 'RECHARGE',
+        amount: amountPaise,
+        referenceType: metadata.referenceType || 'SYSTEM',
+        referenceId: metadata.referenceId,
+        status: 'COMPLETED',
+        description: metadata.description || 'Wallet Recharge',
+        metadata: metadata.metadata
+      });
+      await transaction.save({ session });
+
+      await session.commitTransaction();
+      logger.info(`[WalletService] Credited ${amountPaise} paise to Workspace ${workspaceId}`);
+      return { success: true, newBalance: workspace.balance };
+    } catch (error) {
+      await session.abortTransaction();
+      logger.error('[WalletService] Credit failed:', error);
+      throw error;
+    } finally {
+      session.endSession();
     }
+  }
+
+  /**
+   * Deduct funds from a workspace wallet
+   * @param {string} workspaceId 
+   * @param {number} amountPaise 
+   * @param {Object} metadata { type, referenceType, referenceId, description }
+   */
+  async deduct(workspaceId, amountPaise, metadata = {}) {
+    if (amountPaise <= 0) return { success: true };
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const workspace = await Workspace.findById(workspaceId).session(session);
+      if (!workspace) throw new Error('Workspace not found');
+
+      // Update balance
+      if (!workspace.wallet) workspace.wallet = { balance: 0 };
+      const currentBalance = workspace.wallet.balance || 0;
+      if (currentBalance < amountPaise) {
+        throw new Error(`INSUFFICIENT_BALANCE: Required ${amountPaise}, current ${currentBalance}`);
+      }
+
+      workspace.wallet.balance = currentBalance - amountPaise;
+      await workspace.save({ session });
+
+      // Record transaction
+      const transaction = new WalletTransaction({
+        workspace: workspaceId,
+        type: metadata.type || 'SPEND',
+        amount: amountPaise,
+        referenceType: metadata.referenceType || 'SYSTEM',
+        referenceId: metadata.referenceId,
+        status: 'COMPLETED',
+        description: metadata.description || 'Message Consumption',
+        metadata: metadata.metadata
+      });
+      await transaction.save({ session });
+
+      await session.commitTransaction();
+      logger.info(`[WalletService] Deducted ${amountPaise} paise from Workspace ${workspaceId}`);
+      return { success: true, newBalance: workspace.balance };
+    } catch (error) {
+      await session.abortTransaction();
+      if (!error.message.includes('INSUFFICIENT_BALANCE')) {
+        logger.error('[WalletService] Deduction failed:', error);
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  /**
+   * Get wallet balance
+   */
+  async getBalance(workspaceId) {
+    const workspace = await Workspace.findById(workspaceId).select('wallet');
+    return {
+      balance: workspace?.wallet?.balance || 0
+    };
+  }
+
+  /**
+   * Get balance and status
+   */
+  async getStatus(workspaceId) {
+    const workspace = await Workspace.findById(workspaceId).select('wallet');
+    if (!workspace) throw new Error('Workspace not found');
     
-    const previousBalance = workspace.wallet.balance;
+    const wallet = workspace.wallet || { balance: 0, thresholdAmount: 500 };
+    return {
+      balance: wallet.balance || 0,
+      isLow: (wallet.balance || 0) < (wallet.thresholdAmount || 500),
+      threshold: wallet.thresholdAmount || 500
+    };
+  }
+
+  /**
+   * Get transaction history
+   */
+  async getTransactions(workspaceId, limit = 20, offset = 0) {
+    const transactions = await WalletTransaction.find({ workspace: workspaceId })
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit);
     
-    // Atomically move from balance to parkedBalance
-    workspace.wallet.balance -= amount;
-    workspace.wallet.parkedBalance += amount;
-    await workspace.save({ session });
+    const total = await WalletTransaction.countDocuments({ workspaceId });
     
-    // Record transaction
-    const transaction = new WalletTransaction({
-      workspace: workspaceId,
-      type: 'PARK',
-      amount,
-      previousBalance,
-      newBalance: workspace.wallet.balance,
-      referenceType: 'CAMPAIGN',
-      referenceId: campaignId,
-      description: `Credits parked for campaign start (Recipients: ${amount})`
-    });
-    await transaction.save({ session });
-    
-    await session.commitTransaction();
-    logger.info(`[Wallet] Parked ${amount} credits for workspace ${workspaceId} (Campaign: ${campaignId})`);
-    
-    return { success: true, balance: workspace.wallet.balance };
-  } catch (error) {
-    await session.abortTransaction();
-    logger.error(`[Wallet] parkBalance failed for workspace ${workspaceId}:`, error.message);
-    throw error;
-  } finally {
-    session.endSession();
+    return {
+      transactions,
+      total,
+      hasMore: offset + limit < total
+    };
+  }
+
+  /**
+   * Record a plan subscription payment in the ledger
+   * @param {string} workspaceId 
+   * @param {string} planId 
+   * @param {number} amountPaise 
+   * @param {string} providerId (Razorpay order/sub id)
+   */
+  async recordPlanPurchase(workspaceId, planId, amountPaise, providerId, planName) {
+    try {
+      const transaction = new WalletTransaction({
+        workspace: workspaceId,
+        type: 'SUBSCRIPTION_PURCHASE',
+        amount: amountPaise,
+        referenceType: 'SUBSCRIPTION',
+        referenceId: planId,
+        status: 'COMPLETED',
+        description: `Plan Purchase: ${planName || 'Pro'}`,
+        metadata: { providerId }
+      });
+      await transaction.save();
+      logger.info(`[WalletService] Recorded subscription ledger for Workspace ${workspaceId}: ${planName}`);
+    } catch (error) {
+      logger.error('[WalletService] recordPlanPurchase failed:', error);
+      // Non-blocking error for main activation logic
+    }
   }
 }
 
-/**
- * Unpark balance (finalize or refund reserved credits)
- * 
- * @param {ObjectId} workspaceId 
- * @param {Number} amount - Amount to unpark
- * @param {ObjectId} campaignId 
- * @param {Boolean} isSpend - If true, deducting from parked (permanent spend), else refund to balance
- * @returns {Promise<Object>}
- */
-async function unparkBalance(workspaceId, amount, campaignId, isSpend = false) {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-  
-  try {
-    const workspace = await Workspace.findById(workspaceId).session(session);
-    if (!workspace) throw new Error('WORKSPACE_NOT_FOUND');
-    
-    // Ensure we don't unpark more than exists
-    const actualUnpark = Math.min(amount, workspace.wallet.parkedBalance);
-    
-    workspace.wallet.parkedBalance -= actualUnpark;
-    
-    if (!isSpend) {
-      // Refund to main balance
-      workspace.wallet.balance += actualUnpark;
-    }
-    
-    await workspace.save({ session });
-    
-    // Record transaction
-    const transaction = new WalletTransaction({
-      workspace: workspaceId,
-      type: isSpend ? 'SPEND' : 'UNPARK',
-      amount: actualUnpark,
-      newBalance: workspace.wallet.balance,
-      referenceType: 'CAMPAIGN',
-      referenceId: campaignId,
-      description: isSpend ? `Credits spent for campaign delivery` : `Credits unparked/refunded from campaign`
-    });
-    await transaction.save({ session });
-    
-    await session.commitTransaction();
-    return { success: true, balance: workspace.wallet.balance };
-  } catch (error) {
-    await session.abortTransaction();
-    logger.error(`[Wallet] unparkBalance failed:`, error.message);
-    throw error;
-  } finally {
-    session.endSession();
-  }
-}
-
-/**
- * Handle individual message spend from parked balance
- * 
- * @param {ObjectId} workspaceId 
- * @param {ObjectId} campaignId 
- * @param {Number} amount (defaults to 1) 
- */
-async function recordMessageDeliverability(workspaceId, campaignId, amount = 1) {
-  // This is a "silent" spend from parked balance (no transaction log per message to avoid DB bloat)
-  // Instead, the total reconciliation happens via unparkBalance on completion.
-  // However, for high-accuracy tracking, we'll implement a batch reconciliation.
-  
-  return Workspace.findByIdAndUpdate(workspaceId, {
-    $inc: { 'wallet.parkedBalance': -amount }
-  });
-}
-
-/**
- * Get current balance
- */
-async function getBalance(workspaceId) {
-  const workspace = await Workspace.findById(workspaceId).select('wallet');
-  return workspace?.wallet || { balance: 0, parkedBalance: 0 };
-}
-
-module.exports = {
-  parkBalance,
-  unparkBalance,
-  recordMessageDeliverability,
-  getBalance
-};
+module.exports = new WalletService();

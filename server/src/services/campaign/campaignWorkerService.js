@@ -174,11 +174,17 @@ async function processCampaignStart(job) {
   
   console.log(`[CampaignWorker] Created ${batches.length} batches for campaign ${campaignId}`);
   
+  // Calculate dynamic delay based on MPS (Messages Per Second)
+  const mps = workspace.bspRateLimits?.messagesPerSecond || 10;
+  const delayBetweenMs = Math.max(1000, Math.ceil((BATCH_CONFIG.BATCH_SIZE / mps) * 1000));
+
+  console.log(`[CampaignWorker] Starting campaign ${campaignId} with dynamic delay: ${delayBetweenMs}ms (MPS: ${mps})`);
+
   // Enqueue batch jobs with staggered delays
-  await enqueueBatches(batches, BATCH_CONFIG.DELAY_BETWEEN_BATCHES_MS);
+  await enqueueBatches(batches, delayBetweenMs);
   
   // Schedule completion check
-  const estimatedDurationMs = batches.length * BATCH_CONFIG.DELAY_BETWEEN_BATCHES_MS + 
+  const estimatedDurationMs = batches.length * delayBetweenMs + 
                               contacts.length * BATCH_CONFIG.DELAY_BETWEEN_MESSAGES_MS;
   await enqueueCampaignCheck(campaignId, workspaceId, estimatedDurationMs + 30000);
   

@@ -92,6 +92,7 @@ async function validateCampaignExecution(campaignId) {
       accountCheck,
       tierCheck,
       limitCheck,
+      walletCheck,
       estimateCheck
     ] = await Promise.all([
       validateTemplate(campaign),
@@ -99,6 +100,7 @@ async function validateCampaignExecution(campaignId) {
       validateAccountHealth(workspace),
       validatePhoneTier(workspace, campaign),
       validateWorkspaceLimits(workspace, campaign),
+      validateWalletBalance(workspace, campaign),
       calculateEstimates(campaign, workspace)
     ]);
     
@@ -108,7 +110,8 @@ async function validateCampaignExecution(campaignId) {
       recipients: recipientCheck,
       account: accountCheck,
       tier: tierCheck,
-      limits: limitCheck
+      limits: limitCheck,
+      wallet: result.checks.wallet // Calculated above
     };
     
     result.estimates = estimateCheck;
@@ -463,6 +466,60 @@ async function validateWorkspaceLimits(workspace, campaign) {
 }
 
 /**
+ * Validate workspace has enough wallet balance for the campaign
+ */
+async function validateWalletBalance(workspace, campaign) {
+  const result = { passed: false, warnings: [] };
+  
+  try {
+    const recipientCount = campaign.totals?.totalRecipients || campaign.contacts?.length || 0;
+    const templateCategory = campaign.template?.category || 'UTILITY';
+    
+    // Get price per message
+    const billingLedgerService = require('../billing/billingLedgerService');
+    const { price, category } = await billingLedgerService.getTemplatePrice(workspace._id, templateCategory);
+    
+    if (price === 0) {
+      result.passed = true;
+      return result;
+    }
+    
+    const totalRequired = recipientCount * price;
+    
+    // Use the existing walletService
+    const walletService = require('../billing/walletService');
+    const wallet = await walletService.getBalance(workspace._id);
+    const available = (wallet.balance || 0);
+    
+    if (available < totalRequired) {
+      result.error = {
+        code: 'INSUFFICIENT_WALLET_BALANCE',
+        message: `Insufficient wallet balance. This campaign requires ${category} templates costing ${totalRequired} paise for ${recipientCount} recipients. Your current balance is ${available} paise.`,
+        details: { required: totalRequired, available, recipientCount, pricePerMessage: price }
+      };
+      return result;
+    }
+    
+    result.passed = true;
+    result.wallet = {
+      required: totalRequired,
+      available,
+      category,
+      pricePerMessage: price
+    };
+    
+    return result;
+  } catch (error) {
+    console.error('[Preflight] Wallet check failed:', error);
+    result.error = {
+      code: 'WALLET_VALIDATION_ERROR',
+      message: 'Could not verify wallet balance: ' + error.message
+    };
+    return result;
+  }
+}
+
+/**
  * Calculate estimated send duration and throughput
  */
 async function calculateEstimates(campaign, workspace) {
@@ -622,6 +679,7 @@ module.exports = {
   validateAccountHealth,
   validatePhoneTier,
   validateWorkspaceLimits,
+  validateWalletBalance,
   calculateEstimates,
   
   // Batch finality (Task B)

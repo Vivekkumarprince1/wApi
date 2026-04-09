@@ -1,5 +1,6 @@
 const { AutoReply, AutoReplyLog, Template, Contact, Workspace } = require('../../models');
 const templateSendingService = require('../template/templateSendingService');
+const bspMessagingService = require('../bsp/bspMessagingService');
 const { isWithinBusinessHours } = require('./automationSafetyGuards');
 
 /**
@@ -34,7 +35,7 @@ async function checkAutoReply(messageBody, contact, workspace) {
     
     if (!matches) continue;
 
-    // Check 24-hour window
+    // ✅ Requirement 3: Rule-Level Throttling (Interakt-style)
     const lastReplyLog = await AutoReplyLog.findOne({
       autoReply: autoReply._id,
       contact: contact._id
@@ -43,15 +44,22 @@ async function checkAutoReply(messageBody, contact, workspace) {
     if (lastReplyLog) {
       const hoursSinceLastReply = (Date.now() - lastReplyLog.sentAt) / (1000 * 60 * 60);
       if (hoursSinceLastReply < 24) {
-        console.log(`[AutoReply] 24h window not expired for ${contact.phone} (${hoursSinceLastReply.toFixed(1)}h ago)`);
-        continue; // Try next auto-reply
+        console.log(`[AutoReply] Rule ${autoReply._id} recently sent to ${contact.phone} (${hoursSinceLastReply.toFixed(1)}h ago)`);
+        continue;
       }
     }
 
-    // Check template is still approved
-    if (autoReply.template.status !== 'APPROVED') {
-      console.warn(`[AutoReply] Template ${autoReply.template.name} is no longer approved`);
-      continue; // Try next auto-reply
+    // Ensure template is populated and approved if using template mode
+    if (autoReply.replyType === 'template') {
+      if (!autoReply.template || typeof autoReply.template === 'string' || !autoReply.template.status) {
+         console.warn(`[AutoReply] Template for rule ${autoReply._id} not populated or missing`);
+         continue;
+      }
+
+      if (autoReply.template.status !== 'APPROVED') {
+        console.warn(`[AutoReply] Template ${autoReply.template.name} is no longer approved`);
+        continue; // Try next auto-reply
+      }
     }
 
     // ✅ All checks passed - send this auto-reply
@@ -96,29 +104,56 @@ function matchKeywords(messageBody, keywords, matchMode = 'contains') {
  */
 async function sendAutoReply(autoReply, contact, workspace, triggeringMessage) {
   try {
-    // Get workspace for credentials
-    const workspaceDoc = await Workspace.findById(workspace);
-    if (!workspaceDoc) {
-      throw new Error('Workspace not found');
+    const workspaceId = workspace._id || workspace;
+    const workspaceDoc = await Workspace.findById(workspaceId);
+    if (!workspaceDoc) throw new Error('Workspace not found');
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // ✅ PHASE 3: SESSION OPTIMIZATION (Meta Cost Saving)
+    // ─────────────────────────────────────────────────────────────────────────────
+    const isSessionActive = await bspMessagingService.canSendSessionMessage(workspaceId, contact.phone);
+
+    if (autoReply.replyType === 'text' && isSessionActive) {
+      console.log(`[AutoReply] Utilizing Free Session Window for ${contact.phone}`);
+      
+      const sessionText = resolveContactVariables(autoReply.textMessage, contact);
+      
+      const result = await bspMessagingService.sendTextMessage(
+        workspaceId,
+        contact.phone,
+        sessionText,
+        { contactId: contact._id, conversationId: triggeringMessage.conversation }
+      );
+
+      await logAndStats(autoReply, contact, workspaceId, triggeringMessage);
+      
+      return { success: true, messageId: result.messageId };
     }
 
-    // Get template with full details
+    // ─────────────────────────────────────────────────────────────────────────────
+    // ✅ PHASE 3: DYNAMIC VARIABLE RESOLVING (Fixes "Value1" Bug)
+    // ─────────────────────────────────────────────────────────────────────────────
     const template = await Template.findById(autoReply.template);
-    if (!template) {
-      throw new Error('Template not found');
+    if (!template) throw new Error('Template not found');
+
+    // Resolve mapped variables from contact fields
+    const resolvedBodyVars = [];
+    if (autoReply.variableMapping && autoReply.variableMapping.length > 0) {
+      // Sort by variable index to ensure {{1}}, {{2}} order
+      const mappings = [...autoReply.variableMapping].sort((a, b) => parseInt(a.variable) - parseInt(b.variable));
+      
+      for (const mapping of mappings) {
+        const val = getContactField(contact, mapping.contactField) || mapping.fallbackValue || 'there';
+        resolvedBodyVars.push(String(val));
+      }
     }
 
-    // Check template is still approved
-    if (template.status !== 'APPROVED') {
-      throw new Error('Template is not approved');
-    }
-
-    // Send via BSP template pipeline (single outbound path)
+    // Send via template service with resolved variables
     const result = await templateSendingService.sendTemplate({
-      workspaceId: workspace,
+      workspaceId,
       templateId: template._id,
       to: contact.phone,
-      variables: {},
+      variables: { body: resolvedBodyVars },
       contactId: contact._id,
       meta: {
         autoReplyId: autoReply._id,
@@ -127,37 +162,72 @@ async function sendAutoReply(autoReply, contact, workspace, triggeringMessage) {
       }
     });
 
-    // Log the auto-reply for 24-hour window tracking
-    await AutoReplyLog.create({
-      workspace,
-      autoReply: autoReply._id,
-      contact: contact._id,
-      messageId: triggeringMessage._id,
-      sentAt: new Date()
-    });
+    await logAndStats(autoReply, contact, workspaceId, triggeringMessage);
 
-    // Update auto-reply statistics
-    await AutoReply.updateOne(
-      { _id: autoReply._id },
-      {
-        totalRepliesSent: (autoReply.totalRepliesSent || 0) + 1,
-        lastSentAt: new Date()
-      }
-    );
-
-    console.log(`[AutoReply] ✅ Sent to ${contact.phone} (${template.name})`);
-
-    return {
-      success: true,
-      messageId: result.messageId
-    };
+    return { success: true, messageId: result.messageId };
   } catch (err) {
     console.error(`[AutoReply] ❌ Error sending auto-reply:`, err.message);
-    return {
-      success: false,
-      error: err.message
-    };
+    return { success: false, error: err.message };
   }
+}
+
+/**
+ * Helper to get nested contact field values
+ */
+function getContactField(contact, path) {
+  if (!path) return null;
+  const parts = path.split('.');
+  let current = contact;
+  
+  // Convert document to plain object for easier traversal if it's a Mongoose doc
+  if (current && typeof current.toObject === 'function') {
+    current = current.toObject();
+  }
+
+  for (const part of parts) {
+    if (current == null) return null;
+    
+    // Support for Map objects (including Mongoose Maps converted to objects)
+    if (current[part] !== undefined) {
+      current = current[part];
+    } else if (current.get && typeof current.get === 'function' && current.get(part)) {
+      current = current.get(part);
+    } else {
+      return null;
+    }
+  }
+  return current;
+}
+
+/**
+ * Resolve variables in a plain text string
+ */
+function resolveContactVariables(text, contact) {
+  if (!text) return '';
+  return text.replace(/\{\{([^{}]+)\}\}/g, (match, field) => {
+    return getContactField(contact, field.trim()) || match;
+  });
+}
+
+/**
+ * Internal helper for log and stats
+ */
+async function logAndStats(autoReply, contact, workspaceId, triggeringMessage) {
+  await AutoReplyLog.create({
+    workspace: workspaceId,
+    autoReply: autoReply._id,
+    contact: contact._id,
+    messageId: triggeringMessage._id,
+    sentAt: new Date()
+  });
+
+  await AutoReply.updateOne(
+    { _id: autoReply._id },
+    {
+      $inc: { totalRepliesSent: 1 },
+      $set: { lastSentAt: new Date() }
+    }
+  );
 }
 
 /**

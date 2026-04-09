@@ -41,11 +41,15 @@ const {
   resumeCampaign,
   getCampaignProgress,
   getCampaignSummary,
-  getCampaignMessages
+  getCampaignMessages,
+  retargetCampaign
 } = require('../../controllers/campaign/campaignControllerV2');
+
+const { requireFeature } = require('../../middlewares/infrastructure/featureGate');
 
 const router = express.Router();
 router.use(auth);
+router.use(requireFeature('BULK_CAMPAIGN'));
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // READ OPERATIONS (Soft check - adds stage1 status to response)
@@ -87,5 +91,8 @@ router.post('/:id/pause', requirePhoneActivation, pauseCampaign);
 
 // Resume paused campaign
 router.post('/:id/resume', requirePhoneActivation, resumeCampaign);
+
+// Retarget completed campaign
+router.post('/:id/retarget', requirePhoneActivation, retargetCampaign);
 
 module.exports = router;

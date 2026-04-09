@@ -4,22 +4,63 @@ import { useState, useEffect } from "react";
 import { ChevronDown, Plus, MoreVertical, Filter, Search, ArrowRight, User as UserIcon, DollarSign, Calendar, CheckSquare, Settings } from "lucide-react";
 import { getPipelines, getDefaultPipeline, listDeals, getDealsByStage, moveDealStage, createDeal, createPipeline } from "@/lib/api/sales";
 import { fetchContacts } from "@/lib/api/contacts";
+import { useSocketEvent } from "@/store/socketStore";
 import { toast } from "react-hot-toast";
 import FlashLoader from "@/components/ui/FlashLoader";
+import DealDetailDrawer from "@/components/features/DealDetailDrawer";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function SalesPipelinePage() {
   const [loading, setLoading] = useState(true);
   const [pipelines, setPipelines] = useState([]);
   const [activePipeline, setActivePipeline] = useState(null);
-  const [deals, setDeals] = useState({});
+  const [deals, setDeals] = useState({}); // { stageId: [deals] }
   const [activeStage, setActiveStage] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [isDealModalOpen, setIsDealModalOpen] = useState(false);
   const [isPipelineModalOpen, setIsPipelineModalOpen] = useState(false);
   const [contacts, setContacts] = useState([]);
-  const [newDeal, setNewDeal] = useState({ title: "", value: 0, contactId: "" });
+  const [newDeal, setNewDeal] = useState({ 
+    title: "", 
+    value: 0, 
+    contactId: "",
+    probability: 10,
+    priority: "medium",
+    expectedCloseDate: ""
+  });
   const [newPipeline, setNewPipeline] = useState({ name: "", description: "" });
+  const [selectedDealId, setSelectedDealId] = useState(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Socket Listener: Real-time Deal Creation
+  useSocketEvent("deal:created", (data) => {
+    const { deal } = data;
+    if (deal.pipeline === activePipeline?._id || deal.pipeline?._id === activePipeline?._id) {
+      setDeals(prev => ({
+        ...prev,
+        [deal.stage]: [deal, ...(prev[deal.stage] || [])]
+      }));
+      toast.info(`New Deal: ${deal.title}`);
+    }
+  });
+
+  // Socket Listener: Real-time Deal Movement
+  useSocketEvent("deal:moved", (data) => {
+    const { dealId, oldStageId, newStageId, deal } = data;
+    if (deal.pipeline === activePipeline?._id || deal.pipeline?._id === activePipeline?._id) {
+      setDeals(prev => {
+        const sourceList = (prev[oldStageId] || []).filter(d => d._id !== dealId);
+        const destList = [deal, ...(prev[newStageId] || []).filter(d => d._id !== dealId)];
+        return {
+          ...prev,
+          [oldStageId]: sourceList,
+          [newStageId]: destList
+        };
+      });
+    }
+  });
 
   useEffect(() => {
     fetchInitialData();
@@ -38,7 +79,6 @@ export default function SalesPipelinePage() {
         setActiveStage(defaultPipeline.stages[0]?.id);
         await fetchDeals(defaultPipeline._id);
       } else {
-        // No pipelines found, try to get or create default
         const defaultP = await getDefaultPipeline();
         if (defaultP) {
           setPipelines([defaultP]);
@@ -60,9 +100,7 @@ export default function SalesPipelinePage() {
 
   const fetchDeals = async (pipelineId) => {
     try {
-      setLoading(true); // Using a local loading state for deals or reusing components
       const response = await getDealsByStage(pipelineId);
-      // getDealsByStage returns { pipeline, deals: { stageId: [deals] } }
       setDeals(response.deals || {});
       if (response.pipeline) {
         setActivePipeline(response.pipeline);
@@ -70,21 +108,42 @@ export default function SalesPipelinePage() {
     } catch (error) {
       console.error("Failed to fetch deals:", error);
       toast.error("Failed to load deals");
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleMoveStage = async (dealId, targetStageId) => {
+  const handleOnDragEnd = async (result) => {
+    const { source, destination, draggableId } = result;
+
+    if (!destination) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+
+    const sourceStageId = source.droppableId;
+    const destStageId = destination.droppableId;
+    
+    // 1. Optimistic Update
+    const sourceDeals = [...(deals[sourceStageId] || [])];
+    const destDeals = sourceStageId === destStageId ? sourceDeals : [...(deals[destStageId] || [])];
+    
+    const [movedDeal] = sourceDeals.splice(source.index, 1);
+    destDeals.splice(destination.index, 0, movedDeal);
+
+    setDeals(prev => ({
+      ...prev,
+      [sourceStageId]: sourceDeals,
+      [destStageId]: destDeals
+    }));
+
+    // 2. API Call
     try {
-      await moveDealStage(dealId, targetStageId);
-      toast.success("Deal moved successfully");
-      if (activePipeline) {
-        fetchDeals(activePipeline._id);
+      if (sourceStageId !== destStageId) {
+        await moveDealStage(draggableId, destStageId);
+        toast.success("Deal moved");
       }
     } catch (error) {
       console.error("Failed to move deal:", error);
-      toast.error("Failed to move deal");
+      toast.error("Failed to move deal. Rolling back.");
+      // 3. Rollback on failure
+      fetchDeals(activePipeline._id);
     }
   };
 
@@ -102,7 +161,14 @@ export default function SalesPipelinePage() {
       });
       toast.success("Deal created successfully");
       setIsDealModalOpen(false);
-      setNewDeal({ title: "", value: 0, contactId: "", pipelineId: "", stage: "" });
+      setNewDeal({ 
+        title: "", 
+        value: 0, 
+        contactId: "", 
+        probability: 10, 
+        priority: "medium", 
+        expectedCloseDate: "" 
+      });
       fetchDeals(activePipeline._id);
     } catch (error) {
       console.error("Failed to create deal:", error);
@@ -129,39 +195,37 @@ export default function SalesPipelinePage() {
     }
   };
 
-  const filteredDeals = () => {
-    let list = deals[activeStage] || [];
-    
+  const filteredDealsPerStage = (stageId) => {
+    let list = deals[stageId] || [];
     if (searchQuery) {
       list = list.filter(d => 
         d.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         d.contact?.name?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-
-    if (sortBy === "value-high") {
-      list = [...list].sort((a, b) => b.value - a.value);
-    } else if (sortBy === "value-low") {
-      list = [...list].sort((a, b) => a.value - b.value);
-    } else {
-      list = [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    }
-
     return list;
   };
 
   if (loading) return <FlashLoader />;
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="bg-card border-b border-border sticky top-0 z-10">
+    <div className="flex flex-col h-full bg-background font-sans">
+      <div className="bg-card border-b border-border sticky top-0 z-40 backdrop-blur-md bg-opacity-80">
         <div className="px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Sales Pipeline</h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-2xl font-black text-foreground tracking-tight">Sales Pipeline</h1>
+              <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1 rounded-full border border-indigo-100 dark:border-indigo-900/30">
+                <TrendingUp size={12} className="text-indigo-600 dark:text-indigo-400" />
+                <span className="text-[10px] font-black text-indigo-700 dark:text-indigo-300 uppercase tracking-widest">
+                  Active Velocity: {activePipeline?.stages?.length > 0 ? "High" : "N/A"}
+                </span>
+              </div>
+            </div>
             <div className="flex items-center gap-2 mt-1">
-               <div className="flex items-center space-x-2 bg-muted/30 p-1.5 rounded-2xl border border-border/50">
+               <div className="flex items-center space-x-2 bg-muted/40 p-1 rounded-xl border border-border/50">
                  <select 
-                   className="bg-transparent text-sm font-bold text-foreground focus:outline-none px-3 py-1.5 cursor-pointer hover:bg-muted/50 rounded-lg transition-colors"
+                   className="bg-transparent text-xs font-bold text-foreground focus:outline-none px-3 py-1.5 cursor-pointer hover:bg-muted/50 rounded-lg transition-colors border-none"
                    value={activePipeline?._id}
                    onChange={e => {
                      const p = pipelines.find(p => p._id === e.target.value);
@@ -173,26 +237,17 @@ export default function SalesPipelinePage() {
                    }}
                  >
                    {pipelines.map(p => (
-                     <option key={p._id} value={p._id} className="bg-card">{p.name}</option>
+                     <option key={p._id} value={p._id}>{p.name}</option>
                    ))}
                  </select>
                </div>
               <button 
                 onClick={() => setIsPipelineModalOpen(true)}
-                className="p-2 hover:bg-muted rounded-xl text-primary transition-colors"
+                className="p-2 hover:bg-muted rounded-xl text-primary transition-colors active:scale-95"
                 title="New Pipeline"
               >
                 <Plus className="w-4 h-4" />
               </button>
-              {activePipeline && (
-                <button 
-                  onClick={() => toast.success("Pipeline Rules & Settings coming soon!")}
-                  className="p-2 hover:bg-muted rounded-xl text-muted-foreground hover:text-primary transition-colors"
-                  title="Pipeline Rules & Settings"
-                >
-                  <Settings className="w-4 h-4" />
-                </button>
-              )}
             </div>
           </div>
           
@@ -204,12 +259,12 @@ export default function SalesPipelinePage() {
                 placeholder="Search deals..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-64"
+                className="pl-9 pr-4 py-2 bg-muted/40 border-none rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-64 transition-all"
               />
             </div>
             <button 
               onClick={() => setIsDealModalOpen(true)}
-              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:opacity-90 transition-opacity"
+              className="bg-primary hover:brightness-110 text-white px-5 py-2 rounded-xl text-sm font-black uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Add Deal
@@ -220,205 +275,249 @@ export default function SalesPipelinePage() {
 
       <div className="flex-1 overflow-x-auto p-6 scrollbar-hide">
         {!activePipeline ? (
-           <div className="flex flex-col items-center justify-center py-40 animate-in fade-in duration-1000">
-             <div className="p-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-[3rem] border border-primary/10 mb-8 relative">
-               <div className="absolute -top-4 -right-4 w-12 h-12 bg-primary/20 rounded-full blur-xl animate-pulse" />
-               <ChevronDown className="w-16 h-16 text-primary animate-bounce opacity-50" />
-             </div>
-             <h3 className="text-4xl font-black text-foreground font-outfit tracking-tighter">Your Pipeline Awaits</h3>
-             <p className="text-muted-foreground max-w-sm text-center mt-4 font-inter text-lg leading-relaxed">
-               Ready to scale? Create your high-velocity sales journey to start tracking deals.
-             </p>
-             <button 
-               onClick={() => setIsPipelineModalOpen(true)}
-               className="mt-10 px-10 py-5 bg-primary text-white rounded-[2rem] font-black shadow-premium hover:shadow-2xl transition-all hover:-translate-y-2 active:scale-95 text-xl tracking-tight"
-             >
-               Blueprint Your Journey
-             </button>
-           </div>
+            <div className="flex flex-col items-center justify-center py-40 animate-in fade-in duration-1000">
+              <div className="p-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-[3rem] border border-primary/10 mb-8">
+                <ChevronDown className="w-16 h-16 text-primary animate-bounce opacity-50" />
+              </div>
+              <h3 className="text-4xl font-black text-foreground font-outfit tracking-tighter">Your Pipeline Awaits</h3>
+              <p className="text-muted-foreground max-w-sm text-center mt-4 font-inter text-lg leading-relaxed font-medium">
+                Ready to scale? Create your high-velocity sales journey to start tracking deals.
+              </p>
+              <button 
+                onClick={() => setIsPipelineModalOpen(true)}
+                className="mt-10 px-10 py-5 bg-primary text-white rounded-[2rem] font-black shadow-premium hover:shadow-2xl transition-all hover:-translate-y-2 active:scale-95 text-xl tracking-tight"
+              >
+                Blueprint Your Journey
+              </button>
+            </div>
         ) : (
-          <div className="board-container flex space-x-6 pb-8 h-full min-h-[600px]">
-            {activePipeline.stages.map((stage) => {
-              const stageDeals = deals[stage.id] || [];
-              const totalValue = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
-              
-              return (
-                <div key={stage.id} className="board-column w-80 flex-shrink-0 bg-muted/10 rounded-[2rem] p-5 flex flex-col h-full border border-border/30 backdrop-blur-sm group/column hover:bg-muted/20 transition-all">
-                  {/* Column Header */}
-                  <div className="flex items-center justify-between mb-6 px-1">
-                    <div className="flex items-center space-x-3">
-                      <div 
-                        className="w-3 h-3 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.1)]" 
-                        style={{ backgroundColor: stage.color || '#6B7280' }}
-                      />
-                      <div>
-                        <h3 className="text-sm font-black text-foreground tracking-tight flex items-center gap-2 uppercase opacity-80 group-hover/column:opacity-100 transition-opacity">
-                          {stage.title}
-                          <span className="bg-muted px-2 py-0.5 rounded-lg text-[10px] font-extrabold text-muted-foreground">{stageDeals.length}</span>
-                        </h3>
-                        <p className="text-[10px] font-bold text-muted-foreground mt-0.5 tracking-wider">₹{totalValue.toLocaleString('en-IN')}</p>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        setActiveStage(stage.id);
-                        setIsDealModalOpen(true);
-                      }}
-                      className="p-2 text-muted-foreground hover:bg-white dark:hover:bg-muted rounded-xl transition-all opacity-0 group-hover/column:opacity-100"
-                    >
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Column Body */}
-                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
-                    {stageDeals.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-border/30 rounded-3xl opacity-40 group-hover/column:opacity-60 transition-all">
-                        <div className="p-4 bg-muted/50 rounded-2xl mb-2">
-                          <DollarSign className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Empty Stage</p>
-                      </div>
-                    ) : (
-                      stageDeals.map((deal) => (
+          <DragDropContext onDragEnd={handleOnDragEnd}>
+            <div className="board-container flex space-x-6 pb-8 h-full min-h-[600px]">
+              {activePipeline.stages.map((stage) => {
+                const stageDeals = filteredDealsPerStage(stage.id);
+                const totalValue = stageDeals.reduce((sum, d) => sum + (d.value || 0), 0);
+                
+                return (
+                  <div key={stage.id} className="board-column w-80 flex-shrink-0 bg-muted/20 rounded-[2.5rem] p-5 flex flex-col h-full border border-border/40 backdrop-blur-sm group/column hover:bg-muted/30 transition-all shadow-sm">
+                    {/* Column Header */}
+                    <div className="flex items-center justify-between mb-6 px-1">
+                      <div className="flex items-center space-x-3">
                         <div 
-                          key={deal._id} 
-                          className="deal-card bg-card border border-border/80 rounded-[1.5rem] p-5 shadow-sm hover:shadow-2xl transition-all group/card border-b-4 hover:-translate-y-1 active:scale-[0.98]"
-                          style={{ borderBottomColor: stage.color }}
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-sm text-foreground truncate group-hover/card:text-primary transition-colors">{deal.title}</h4>
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-[10px] font-bold text-muted-foreground truncate max-w-[120px]">{deal.contact?.name || 'Unknown'}</span>
-                                <span className="w-1 h-1 bg-muted-foreground/30 rounded-full" />
-                                <span className="text-[10px] text-muted-foreground">{new Date(deal.createdAt).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-                            <button className="p-1.5 text-muted-foreground hover:bg-muted rounded-lg opacity-0 group-hover/card:opacity-100 transition-all">
-                              <MoreVertical className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          
-                          <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/40">
-                            <div className="flex flex-col gap-2">
-                              <div className="flex items-center gap-1.5">
-                                <UserIcon className="w-3 h-3 text-muted-foreground" />
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-tighter">
-                                  {deal.assignedAgent?.name?.split(' ')[0] || 'Team'}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors cursor-pointer" title="View Tasks">
-                                <CheckSquare className="w-3 h-3" />
-                                <span className="text-[10px] font-bold uppercase tracking-tighter">
-                                  {deal.tasks?.length || 0} Tasks
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-right flex flex-col justify-between items-end">
-                              <p className="text-sm font-black text-foreground">₹{deal.value?.toLocaleString() || '0'}</p>
-                            </div>
-                          </div>
-
-                          <div className="mt-3 flex gap-1 opacity-0 group-hover/card:opacity-100 transition-all">
-                             {activePipeline.stages
-                              .filter(s => s.id !== stage.id)
-                              .slice(0, 2)
-                              .map(nextStage => (
-                                <button
-                                  key={nextStage.id}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleMoveStage(deal._id, nextStage.id);
-                                  }}
-                                  className="text-[9px] font-black px-2 py-1 bg-muted hover:bg-primary hover:text-primary-foreground rounded-lg transition-all flex items-center gap-1 flex-1 justify-center whitespace-nowrap"
-                                >
-                                  TO {nextStage.title.split(' ')[0].toUpperCase()}
-                                  <ArrowRight className="w-2 h-2" />
-                                </button>
-                              ))
-                            }
-                          </div>
+                          className="w-4 h-4 rounded-full shadow-inner" 
+                          style={{ backgroundColor: stage.color || '#6B7280' }}
+                        />
+                        <div>
+                          <h3 className="text-[11px] font-black text-foreground tracking-widest flex items-center gap-2 uppercase opacity-80 group-hover/column:opacity-100 transition-opacity">
+                            {stage.title}
+                            <span className="bg-card px-2 py-0.5 rounded-lg text-[9px] font-black text-muted-foreground shadow-sm">{stageDeals.length}</span>
+                          </h3>
+                          <p className="text-[10px] font-black text-primary mt-0.5 tracking-wider uppercase">₹{totalValue.toLocaleString('en-IN')}</p>
                         </div>
-                      ))
-                    )}
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setActiveStage(stage.id);
+                          setIsDealModalOpen(true);
+                        }}
+                        className="p-2 text-muted-foreground hover:bg-card rounded-xl transition-all opacity-0 group-hover/column:opacity-100 shadow-sm"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Column Body - Droppable */}
+                    <Droppable droppableId={stage.id}>
+                      {(provided, snapshot) => (
+                        <div 
+                          ref={provided.innerRef}
+                          {...provided.droppableProps}
+                          className={`flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar transition-all duration-300 rounded-2xl p-1 ${snapshot.isDraggingOver ? 'bg-primary/5 ring-1 ring-primary/20 ring-inset shadow-inner' : ''}`}
+                        >
+                          {stageDeals.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-border/30 rounded-[2rem] opacity-30 group-hover/column:opacity-50 transition-all">
+                              <DollarSign className="w-5 h-5 text-muted-foreground mb-3" />
+                              <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground">Empty Stage</p>
+                            </div>
+                          ) : (
+                            stageDeals.map((deal, index) => (
+                              <Draggable key={deal._id} draggableId={deal._id} index={index}>
+                                {(provided, snapshot) => (
+                                  <div 
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    {...provided.dragHandleProps}
+                                    onClick={() => {
+                                      setSelectedDealId(deal._id);
+                                      setIsDrawerOpen(true);
+                                    }}
+                                    className={`deal-card bg-card border border-border/60 rounded-[1.8rem] p-5 shadow-sm transition-all group/card cursor-pointer ${snapshot.isDragging ? 'shadow-2xl opacity-100 scale-[1.02] z-50 ring-2 ring-primary border-transparent' : 'hover:shadow-xl hover:-translate-y-1'}`}
+                                    style={{ 
+                                      borderLeft: `4px solid ${stage.color}`,
+                                      ...provided.draggableProps.style 
+                                    }}
+                                  >
+                                    <div className="flex justify-between items-start mb-3">
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-black text-[13px] text-foreground tracking-tight line-clamp-2 group-hover/card:text-primary transition-colors leading-tight">{deal.title}</h4>
+                                        <div className="flex items-center gap-2 mt-2">
+                                          <div className="w-5 h-5 rounded-lg bg-primary/10 flex items-center justify-center">
+                                            <UserIcon className="w-3 h-3 text-primary/70" />
+                                          </div>
+                                          <span className="text-[10px] font-black text-muted-foreground truncate max-w-[120px] uppercase tracking-tighter">{deal.contact?.name || 'Unknown'}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-2 mt-3 flex-wrap">
+                                      {deal.probability && (
+                                        <div className="px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">
+                                          {deal.probability}% Prob
+                                        </div>
+                                      )}
+                                      {deal.priority === 'high' || deal.priority === 'urgent' ? (
+                                        <div className="px-2 py-0.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 text-[9px] font-black uppercase tracking-widest border border-rose-500/20">
+                                          {deal.priority}
+                                        </div>
+                                      ) : null}
+                                      {deal.expectedCloseDate && (
+                                        <div className="px-2 py-0.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[9px] font-black uppercase tracking-widest border border-blue-500/20 flex items-center gap-1">
+                                          <Calendar className="w-2.5 h-2.5" />
+                                          {new Date(deal.expectedCloseDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-border/40">
+                                      <div className="flex flex-col gap-1">
+                                         <p className="text-[9px] font-black text-muted-foreground/50 uppercase tracking-widest leading-none">
+                                           {new Date(deal.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                         </p>
+                                      </div>
+                                      <p className="text-[13px] font-black text-foreground bg-muted/40 px-3 py-1 rounded-xl">₹{deal.value?.toLocaleString() || '0'}</p>
+                                    </div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))
+                          )}
+                          {provided.placeholder}
+                        </div>
+                      )}
+                    </Droppable>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </DragDropContext>
         )}
       </div>
 
       {/* Create Deal Modal */}
       {isDealModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all">
-          <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden">
-            <div className="p-6 border-b border-border bg-muted/30">
-              <h2 className="text-xl font-bold text-foreground">Create New Deal</h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Adding to {activePipeline?.name} - {activePipeline?.stages?.find(s => s.id === activeStage)?.title}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-xl transition-all animate-in fade-in duration-300">
+          <div className="bg-card w-full max-w-md rounded-[2.5rem] shadow-premium border border-border overflow-hidden">
+            <div className="p-8 border-b border-border/50 bg-muted/20">
+              <h2 className="text-2xl font-black text-foreground tracking-tight">Fuel Your Growth</h2>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1 opacity-60">
+                Adding to {activePipeline?.name} • {activePipeline?.stages?.find(s => s.id === activeStage)?.title}
               </p>
             </div>
             
-            <form onSubmit={handleCreateDeal} className="p-6 space-y-4 text-left">
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Deal Title</label>
+            <form onSubmit={handleCreateDeal} className="p-8 space-y-6 text-left">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">The Opportunity</label>
                 <input 
                   type="text" 
                   required
-                  placeholder="e.g., Enterprise License Upgrade"
-                  className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="e.g., Enterprise Expansion"
+                  className="w-full px-5 py-4 bg-muted/40 border-none rounded-2xl text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/30"
                   value={newDeal.title}
                   onChange={e => setNewDeal({...newDeal, title: e.target.value})}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Value (₹)</label>
-                  <input 
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Win Probability (%)</label>
+                   <input 
                     type="number" 
-                    required
-                    placeholder="0"
-                    className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    value={isNaN(newDeal.value) ? "" : newDeal.value}
-                    onChange={e => setNewDeal({...newDeal, value: parseInt(e.target.value) || 0})}
+                    min="0"
+                    max="100"
+                    className="w-full px-5 py-4 bg-muted/40 border-none rounded-2xl text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    value={newDeal.probability}
+                    onChange={e => setNewDeal({...newDeal, probability: parseInt(e.target.value) || 0})}
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Contact</label>
-                  <select 
-                    required
-                    className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                    value={newDeal.contactId}
-                    onChange={e => setNewDeal({...newDeal, contactId: e.target.value})}
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Priority</label>
+                   <select 
+                    className="w-full px-5 py-4 bg-muted/40 border-none rounded-2xl text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                    value={newDeal.priority}
+                    onChange={e => setNewDeal({...newDeal, priority: e.target.value})}
                   >
-                    <option value="">Select Contact</option>
-                    {contacts.map((c, idx) => (
-                      <option 
-                        key={c.id || idx} 
-                        value={c.id}
-                        disabled={!!c.activeDealId}
-                      >
-                        {c.name} ({c.phone}) {c.activeDealId ? "— (In Pipeline)" : ""}
-                      </option>
-                    ))}
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
                   </select>
                 </div>
               </div>
 
-              <div className="pt-4 flex gap-3">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Value (₹)</label>
+                   <input 
+                    type="number" 
+                    required
+                    placeholder="0"
+                    className="w-full px-5 py-4 bg-muted/40 border-none rounded-2xl text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    value={isNaN(newDeal.value) ? "" : newDeal.value}
+                    onChange={e => setNewDeal({...newDeal, value: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Expected Close</label>
+                  <input 
+                    type="date" 
+                    className="w-full px-5 py-4 bg-muted/40 border-none rounded-2xl text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    value={newDeal.expectedCloseDate}
+                    onChange={e => setNewDeal({...newDeal, expectedCloseDate: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Partner</label>
+                <select 
+                  required
+                  className="w-full px-5 py-4 bg-muted/40 border-none rounded-2xl text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
+                  value={newDeal.contactId}
+                  onChange={e => setNewDeal({...newDeal, contactId: e.target.value})}
+                >
+                  <option value="">Select Partner</option>
+                  {contacts.map((c, idx) => (
+                    <option 
+                      key={c._id || idx} 
+                      value={c._id}
+                      disabled={!!c.activeDealId}
+                    >
+                      {c.name} {c.activeDealId ? "• Active" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="pt-6 flex gap-4">
                 <button 
                   type="button"
                   onClick={() => setIsDealModalOpen(false)}
-                  className="flex-1 py-2.5 border border-border rounded-lg text-sm font-semibold hover:bg-muted transition-colors"
+                  className="flex-1 py-4 border border-border/60 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-muted/50 transition-all active:scale-95"
                 >
-                  Cancel
+                  Discard
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+                  className="flex-1 py-4 bg-primary text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 transition-all active:scale-95"
                 >
                   Create Deal
                 </button>
@@ -430,50 +529,50 @@ export default function SalesPipelinePage() {
 
       {/* Create Pipeline Modal */}
       {isPipelineModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all">
-          <div className="bg-card w-full max-w-md rounded-2xl shadow-2xl border border-border overflow-hidden">
-            <div className="p-6 border-b border-border bg-muted/30">
-              <h2 className="text-xl font-bold text-foreground">Create New Pipeline</h2>
-              <p className="text-xs text-muted-foreground mt-1">Define your sales journey</p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-xl transition-all animate-in fade-in duration-300">
+          <div className="bg-card w-full max-w-md rounded-[2.5rem] shadow-premium border border-border overflow-hidden">
+            <div className="p-8 border-b border-border/50 bg-muted/20">
+              <h2 className="text-2xl font-black text-foreground tracking-tight">Design Your Funnel</h2>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-1 opacity-60">Architect your sales journey</p>
             </div>
             
-            <form onSubmit={handleCreatePipeline} className="p-6 space-y-4 text-left">
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Pipeline Name</label>
+            <form onSubmit={handleCreatePipeline} className="p-8 space-y-6 text-left">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Pipeline Identity</label>
                 <input 
                   type="text" 
                   required
-                  placeholder="e.g., Enterprise Sales, Direct Leads"
-                  className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder="e.g., Enterprise Velocity"
+                  className="w-full px-5 py-4 bg-muted/40 border-none rounded-2xl text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   value={newPipeline.name}
                   onChange={e => setNewPipeline({...newPipeline, name: e.target.value})}
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Description (Optional)</label>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Strategy (Optional)</label>
                 <textarea 
-                  className="w-full px-4 py-2.5 bg-muted/50 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  placeholder="Briefly describe the purpose of this pipeline..."
+                  className="w-full px-5 py-4 bg-muted/40 border-none rounded-2xl text-[14px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+                  placeholder="Describe your winning approach..."
                   rows="3"
                   value={newPipeline.description}
                   onChange={e => setNewPipeline({...newPipeline, description: e.target.value})}
                 ></textarea>
               </div>
 
-              <div className="pt-4 flex gap-3">
+              <div className="pt-6 flex gap-4">
                 <button 
                   type="button"
                   onClick={() => setIsPipelineModalOpen(false)}
-                  className="flex-1 py-2.5 border border-border rounded-lg text-sm font-semibold hover:bg-muted transition-colors"
+                  className="flex-1 py-4 border border-border/60 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-muted/50 transition-all active:scale-95"
                 >
-                  Cancel
+                  Discard
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+                  className="flex-1 py-4 bg-primary text-white rounded-2xl text-[12px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 transition-all active:scale-95"
                 >
-                  Create Pipeline
+                  Blueprint Funnel
                 </button>
               </div>
             </form>
@@ -481,11 +580,32 @@ export default function SalesPipelinePage() {
         </div>
       )}
       
+      {/* Deal Detail Drawer */}
+      <DealDetailDrawer 
+        dealId={selectedDealId}
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        onUpdate={() => fetchDeals(activePipeline?._id)}
+      />
+
       <style jsx global>{`
-        .no-scrollbar::-webkit-scrollbar {
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(0, 0, 0, 0.05);
+          border-radius: 10px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.05);
+        }
+        .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
-        .no-scrollbar {
+        .scrollbar-hide {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }

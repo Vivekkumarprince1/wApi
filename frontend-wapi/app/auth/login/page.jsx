@@ -14,6 +14,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 
+const getOnboardingPath = (onboarding) => {
+  if (!onboarding?.status?.steps?.phoneVerified) {
+    return '/onboarding/verify-mobile';
+  }
+
+  if (!onboarding?.status?.steps?.businessInfo) {
+    return '/onboarding/business-info';
+  }
+
+  return '/dashboard';
+};
+
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -37,13 +49,8 @@ export default function LoginPage() {
     },
   });
 
-  const redirectAfterLogin = async ({ needsBusinessInfo }) => {
-    if (needsBusinessInfo) {
-      router.push('/onboarding/business-info');
-      return;
-    }
-
-    router.push('/dashboard');
+  const redirectAfterLogin = async (onboarding) => {
+    router.push(getOnboardingPath(onboarding));
   };
 
   useEffect(() => {
@@ -66,9 +73,7 @@ export default function LoginPage() {
       }
 
       const onboarding = await getOnboardingStatus().catch(() => null);
-      await redirectAfterLogin({
-        needsBusinessInfo: !onboarding || onboarding.status === 'workspace_not_created',
-      });
+      await redirectAfterLogin(onboarding);
     } catch (err) {
       setError(err.message || 'Login failed');
     }
@@ -85,9 +90,7 @@ export default function LoginPage() {
 
     // Use result data
     const onboarding = await getOnboardingStatus().catch(() => null);
-    await redirectAfterLogin({
-      needsBusinessInfo: !onboarding || onboarding.status === 'workspace_not_created',
-    });
+    await redirectAfterLogin(onboarding);
   };
 
   const handleFacebookSuccess = async (result) => {
@@ -101,9 +104,7 @@ export default function LoginPage() {
 
     // Use result data
     const onboarding = await getOnboardingStatus().catch(() => null);
-    await redirectAfterLogin({
-      needsBusinessInfo: !onboarding || onboarding.status === 'workspace_not_created',
-    });
+    await redirectAfterLogin(onboarding);
   };
 
   return (

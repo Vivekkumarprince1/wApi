@@ -10,10 +10,13 @@ const {
   restoreProduct,
   getProductStats
 } = require('../../controllers/commerce/productController');
+const { requireFeature } = require('../../middlewares/infrastructure/featureGate');
 const { planCheck } = require('../../middlewares/infrastructure/planCheck');
 
-// All routes require authentication
+// All routes require authentication and Commerce feature
 router.use(authMiddleware);
+router.use(requireFeature('COMMERCE'));
+router.use(requireFeature('COMMERCE'));
 
 /**
  * @route   POST /api/v1/products

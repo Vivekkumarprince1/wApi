@@ -60,6 +60,22 @@ const FAQSchema = new mongoose.Schema({
 
   lastMatchedAt: Date,
 
+  // Interactive message support (Quick Reply buttons)
+  interactive: {
+    type: {
+      type: String,
+      enum: ['button'],
+      default: 'button'
+    },
+    header: String,
+    body: String,
+    footer: String,
+    buttons: [{
+      id: String,
+      title: String
+    }]
+  },
+
   // Metadata
   createdAt: {
     type: Date,

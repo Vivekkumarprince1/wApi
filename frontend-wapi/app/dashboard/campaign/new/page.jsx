@@ -86,6 +86,7 @@ function CampaignWizard() {
     selectedTags: [],
     selectedContactIds: [],
     selectAllContacts: false,
+    segmentId: null,
     csvContacts: [],
     templateId: '',
     variableMapping: {},
@@ -112,10 +113,12 @@ function CampaignWizard() {
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [loadingTags, setLoadingTags] = useState(false);
   const [templateSearch, setTemplateSearch] = useState('');
+  const [segments, setSegments] = useState([]);
+  const [loadingSegments, setLoadingSegments] = useState(false);
 
   // ─── Loaders & Effects (Keeping all logic) ───
   useEffect(() => { loadAllData(); }, []);
-  const loadAllData = async () => { await Promise.all([loadContacts(), loadTemplates(), loadTags()]); };
+  const loadAllData = async () => { await Promise.all([loadContacts(), loadTemplates(), loadTags(), loadSegments()]); };
   
   const loadContacts = async () => {
     try {
@@ -141,6 +144,14 @@ function CampaignWizard() {
       const res = await get('/tags');
       setTags(res.data || res.tags || []);
     } catch (e) { console.error(e); } finally { setLoadingTags(false); }
+  };
+
+  const loadSegments = async () => {
+    try {
+      setLoadingSegments(true);
+      const res = await get('/segments');
+      setSegments(res.segments || []);
+    } catch (e) { console.error(e); } finally { setLoadingSegments(false); }
   };
 
   useEffect(() => {
@@ -169,6 +180,10 @@ function CampaignWizard() {
   const audienceCount = useMemo(() => {
     if (campaignData.audienceMode === 'specific') return campaignData.selectAllContacts ? contactCount : campaignData.selectedContactIds.length;
     if (campaignData.audienceMode === 'tags') return filteredContactCount;
+    if (campaignData.audienceMode === 'segment') {
+      const seg = segments.find(s => s._id === campaignData.segmentId);
+      return seg ? seg.contactCount || 0 : 0;
+    }
     if (campaignData.audienceMode === 'csv') return campaignData.csvContacts.length;
     return 0;
   }, [campaignData.audienceMode, campaignData.selectAllContacts, campaignData.selectedContactIds.length, contactCount, filteredContactCount, campaignData.csvContacts]);
@@ -244,6 +259,7 @@ function CampaignWizard() {
         campaignType: campaignData.type === 'one-time' ? 'one-time' : 'scheduled',
         template: campaignData.templateId,
         contacts: contactIds,
+        segmentId: campaignData.audienceMode === 'segment' ? campaignData.segmentId : null,
         variableMapping: campaignData.variableMapping,
         ...(campaignData.audienceMode === 'tags' && { recipientFilter: { type: 'tags', tags: campaignData.selectedTags } }),
         ...(campaignData.scheduleType === 'later' && { scheduledAt: new Date(`${campaignData.scheduleDate}T${campaignData.scheduleTime}`).toISOString() }),
@@ -336,6 +352,8 @@ function CampaignWizard() {
               filteredContactCount={filteredContactCount}
               handleCSVUpload={handleCSVUpload}
               audienceCount={audienceCount}
+              segments={segments}
+              loadingSegments={loadingSegments}
             />
           )}
           {step === 3 && (
