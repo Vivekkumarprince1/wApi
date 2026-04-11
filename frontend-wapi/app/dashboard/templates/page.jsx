@@ -21,6 +21,7 @@ import {
   createTemplate
 } from '@/lib/api';
 import FlashLoader from '@/components/ui/FlashLoader';
+import LockedPage from '@/components/shared/LockedPage';
 import {
   FaSync, FaPlus, FaSearch, FaFilter, FaList, FaThLarge,
   FaEllipsisV, FaCheckCircle, FaClock, FaTimesCircle,
@@ -44,6 +45,8 @@ const TemplatesDashboard = () => {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [useTemplateModal, setUseTemplateModal] = useState({ isOpen: false, template: null });
   const [syncWarning, setSyncWarning] = useState(null);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockedReason, setLockedReason] = useState(null);
 
   // Data from backend
   const [templates, setTemplates] = useState([]);
@@ -101,6 +104,10 @@ const TemplatesDashboard = () => {
       }
     } catch (err) {
       console.error('Error loading data:', err);
+      if (err.status === 403) {
+        setIsLocked(true);
+        setLockedReason("You don't have permission to view or manage WhatsApp templates.");
+      }
       setError(err.message || 'Failed to load templates');
     } finally {
       setLoading(false);
@@ -227,6 +234,17 @@ const TemplatesDashboard = () => {
   };
 
   if (loading) return <FlashLoader />;
+
+  if (isLocked) {
+    return (
+      <LockedPage 
+        title="Templates Locked"
+        description={lockedReason}
+        requiredRole="Manager"
+        isUpgradeRequired={false}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f4f5f7] dark:bg-slate-950 font-sans text-gray-800 dark:text-slate-200 pb-10">

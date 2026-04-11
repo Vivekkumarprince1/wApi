@@ -43,7 +43,14 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
   const [openWhatsAppCommerce, setOpenWhatsAppCommerce] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  const { user, stage1Complete, loading } = useAuth();
+  const { 
+    user, 
+    stage1Complete, 
+    loading, 
+    canManageTeam, 
+    canViewBilling, 
+    canAccessAdmin 
+  } = useAuth();
   const userRole = user?.role || null;
   const loadingRole = loading;
 
@@ -572,8 +579,8 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
 
 
 
-            {/* Team Management - Only for owners, admins and managers */}
-            {!loadingRole && (userRole === 'owner' || userRole === 'admin' || userRole === 'manager') && (
+            {/* Team Management - Now shown to all, but locked based on permissions/plan */}
+            {!loadingRole && (
               <div
                 className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/dashboard/settings/teams')
                   ? 'bg-gradient-to-r from-[#13C18D]/90 to-[#0e8c6c]/90 text-white shadow-md'
@@ -595,18 +602,32 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
               </div>
             )}
 
-            {/* Admin Dashboard - Only for owners */}
-            {!loadingRole && userRole === 'admin' && (
+            {/* Admin Dashboard - Now shown to all, but locked based on permissions */}
+            {!loadingRole && (
               <div
-                className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${isActive('/admin')
-                  ? 'bg-teal-700 dark:bg-teal-600 text-white'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                onClick={() => navigate('/admin')}
-                title="Admin Dashboard"
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all duration-200 ${isActive('/admin')
+                  ? 'bg-teal-700 dark:bg-teal-600 text-white shadow-md'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 hover:scale-102 hover:shadow-sm'
+                  } ${!canAccessAdmin ? 'opacity-70' : ''}`}
+                onClick={() => {
+                  if (canAccessAdmin) {
+                    navigate('/admin');
+                  } else {
+                    toast.error('Only the workspace Owner or Admin can access admin settings');
+                  }
+                }}
+                title={canAccessAdmin ? "Admin Dashboard" : "Restricted: Admin Only"}
               >
-                <span className="flex-shrink-0 text-lg">⚙️</span>
-                {isHovered && <span className={isActive('/admin') ? 'text-white' : 'text-gray-800 dark:text-gray-200'}>Admin Dashboard</span>}
+                <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${isActive('/admin')
+                  ? 'bg-white/20'
+                  : 'bg-gradient-to-br from-indigo-500/10 to-indigo-600/10'
+                  }`}>
+                  <FaChartBar className={`${isActive('/admin') ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'}`} />
+                </div>
+                <div className="flex-1 flex items-center justify-between min-w-0">
+                  {isHovered && <span className={`font-medium text-sm ${isActive('/admin') ? 'text-white' : 'text-gray-700 dark:text-gray-200'}`}>Admin</span>}
+                  {isHovered && !canAccessAdmin && <LockedIndicator reason="Admin" />}
+                </div>
               </div>
             )}
 

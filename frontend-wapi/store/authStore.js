@@ -10,7 +10,7 @@ const clearAuthCookie = () => {
 const STARTER_PLAN_FALLBACK = {
     name: 'Starter (Standard)',
     slug: 'starter',
-    features: ['CRM', 'ANALYTICS', 'MESSAGING', 'BULK_CAMPAIGN', 'CONTACTS'],
+    features: ['CRM', 'ANALYTICS', 'MESSAGING', 'BULK_CAMPAIGN', 'CONTACTS', 'COMMERCE', 'WHATSAPP_FORMS'],
     limits: {
         maxContacts: 500,
         maxMessagesPerMonth: 2000,
@@ -34,6 +34,7 @@ export const useAuthStore = create((set, get) => ({
 
     // Permissions
     authenticated: false,
+    permissions: null,
     canCreateTemplates: false,
     canCreateCampaigns: false,
     canSendMessages: false,
@@ -79,7 +80,7 @@ export const useAuthStore = create((set, get) => ({
                     return;
                 }
 
-                const { user: userData, workspace: userWorkspace, phone: phoneData } = sessionData;
+                const { user: userData, workspace: userWorkspace, phone: phoneData, permissions: userPerms } = sessionData;
                 const role = userData.role || 'viewer';
                 const stage1Complete = userWorkspace?.stage1?.complete || false;
 
@@ -95,8 +96,10 @@ export const useAuthStore = create((set, get) => ({
                         name: userData.name,
                         email: userData.email,
                         role: role,
+                        team: userData.team,
                         plan: activePlan,
                         emailVerified: userData.emailVerified,
+                        accountStatus: userData.accountStatus || 'AWAITING_EMAIL_VERIFICATION',
                         workspace: userWorkspace ? userWorkspace.id : null,
                     },
                     workspace: userWorkspace ? {
@@ -116,7 +119,7 @@ export const useAuthStore = create((set, get) => ({
                         onboarding: userWorkspace.onboarding
                     } : null,
                     stage1Complete: stage1Complete,
-                    phoneStatus: userWorkspace?.stage1?.details?.phoneStatus || (phoneData?.verified ? 'CONNECTED' : 'NOT_CONNECTED'),
+                    phoneStatus: userWorkspace?.stage1?.phoneStatus || 'NOT_CONNECTED',
                     phone: {
                         number: phoneData?.number || null,
                         verified: !!phoneData?.verified
@@ -124,11 +127,13 @@ export const useAuthStore = create((set, get) => ({
                     
                     authenticated: true,
                     nextStep: sessionData.nextStep,
-                    canCreateTemplates: stage1Complete && ['owner', 'manager', 'admin'].includes(role),
-                    canCreateCampaigns: stage1Complete && ['owner', 'manager', 'admin'].includes(role),
-                    canSendMessages: stage1Complete && ['owner', 'manager', 'agent', 'admin'].includes(role),
-                    canManageTeam: ['owner', 'manager', 'admin'].includes(role),
-                    canViewBilling: ['owner', 'admin'].includes(role),
+                    permissions: userPerms,
+                    canCreateTemplates: stage1Complete && (userPerms?.createTemplates ?? ['owner', 'manager', 'admin'].includes(role)),
+                    canCreateCampaigns: stage1Complete && (userPerms?.createCampaigns ?? ['owner', 'manager', 'admin'].includes(role)),
+                    canSendMessages: stage1Complete && (userPerms?.sendMessages ?? ['owner', 'manager', 'agent', 'admin'].includes(role)),
+                    canManageTeam: userPerms?.manageTeam ?? ['owner', 'manager', 'admin'].includes(role),
+                    canViewBilling: userPerms?.billing?.view ?? ['owner', 'admin'].includes(role),
+                    canAccessAdmin: ['owner', 'admin'].includes(role),
                 });
                 return sessionData;
             } catch (err) {
@@ -192,17 +197,20 @@ export function useFeatureGate(feature) {
   const features = userPlan?.features || [];
 
   // Normalize feature name and map to backend Plan keys
-  const getMappedFeatureKey = (f) => {
-    const map = {
-        'campaigns': 'BULK_CAMPAIGN',
-        'commerce': 'WHATSAPP_FORMS',
-        'analytics': 'ANALYTICS',
-        'automation': 'AUTOMATION',
-        'crm': 'CRM',
-        'answerbot': 'ANSWERBOT'
+    const getMappedFeatureKey = (f) => {
+        const map = {
+            'campaigns': 'BULK_CAMPAIGN',
+            'commerce': 'COMMERCE',
+            'whatsform': 'WHATSAPP_FORMS',
+            'whatsapp-forms': 'WHATSAPP_FORMS',
+            'analytics': 'ANALYTICS',
+            'automation': 'AUTOMATION',
+            'crm': 'CRM',
+            'answerbot': 'ANSWERBOT'
+        };
+        const normalized = f.toLowerCase().replace(/-/g, '_');
+        return map[normalized] || normalized.toUpperCase();
     };
-    return map[f.toLowerCase()] || f.toUpperCase();
-  };
 
   const featureKey = getMappedFeatureKey(feature);
   const hasPlanAccess = features.includes(featureKey) || features.includes('ALL');
@@ -221,7 +229,7 @@ export function useFeatureGate(feature) {
         reason: !hasPlanAccess ? 'Upgrade your plan to unlock advanced automation' : undefined
     },
     commerce: {
-        allowed: hasPlanAccess || features.includes('WHATSAPP_FORMS'),
+        allowed: hasPlanAccess || features.includes('COMMERCE'),
         reason: !hasPlanAccess ? 'Upgrade your plan to unlock WhatsApp Commerce' : undefined
     },
     inbox: {
@@ -250,8 +258,8 @@ export function useFeatureGate(feature) {
         ? 'Connect your WhatsApp number to create templates'
         : !hasPlanAccess && !features.includes('BULK_CAMPAIGN')
           ? 'Upgrade required for advanced templates'
-          : !['owner', 'manager', 'admin'].includes(workspace.user?.role || '')
-            ? 'You need Manager or Owner access to create templates'
+          : !workspace.canCreateTemplates
+            ? 'You do not have permission to create templates'
             : undefined
     },
     campaigns: {
@@ -260,33 +268,35 @@ export function useFeatureGate(feature) {
         ? 'Connect your WhatsApp number to create campaigns'
         : !hasPlanAccess && !features.includes('BULK_CAMPAIGN')
           ? 'Upgrade required for advanced campaigns'
-          : !['owner', 'manager', 'admin'].includes(workspace.user?.role || '')
-            ? 'You need Manager or Owner access to create campaigns'
+          : !workspace.canCreateCampaigns
+            ? 'You do not have permission to create campaigns'
             : undefined
     },
     messaging: {
       allowed: workspace.canSendMessages,
       reason: !workspace.stage1Complete
         ? 'Connect your WhatsApp number to send messages'
-        : undefined
+        : !workspace.canSendMessages
+          ? 'You do not have permission to send messages'
+          : undefined
     },
     team: {
       allowed: workspace.canManageTeam && (hasPlanAccess || features.includes('TEAM')),
-      reason: !['owner', 'manager', 'admin'].includes(workspace.user?.role || '')
-        ? 'You need Manager or Owner access to manage team'
+      reason: !workspace.canManageTeam
+        ? 'You do not have permission to manage team'
         : !hasPlanAccess && !features.includes('TEAM')
           ? 'Upgrade your plan to unlock Team Management'
           : undefined
     },
     billing: {
       allowed: workspace.canViewBilling,
-      reason: !['owner', 'admin'].includes(workspace.user?.role || '')
+      reason: !workspace.canViewBilling
         ? 'Only the workspace Owner or Admin can access billing'
         : undefined
     },
     admin: {
       allowed: workspace.canAccessAdmin,
-      reason: !['owner', 'admin'].includes(workspace.user?.role || '')
+      reason: !workspace.canAccessAdmin
         ? 'Only the workspace Owner or Admin can access admin settings'
         : undefined
     }

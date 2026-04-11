@@ -1,4 +1,4 @@
-import { get, post, put, patch } from './client';
+import { get, post, put, patch, del } from './client';
 
 // Helper to filter params and build query string
 const buildQuery = (params) => {
@@ -29,12 +29,16 @@ export const resumeWorkspace = (workspaceId) => post(`/admin/workspaces/${worksp
 
 export const updateWorkspacePlan = (workspaceId, planId) => patch(`/admin/workspaces/${workspaceId}/plan`, { planId });
 
+export const deleteWorkspace = (workspaceId) => del(`/admin/workspaces/${workspaceId}`);
+
 // Users
 export const getAllUsers = (params = {}) => {
   return get(`/admin/users${buildQuery(params)}`);
 };
 
 export const updateUserRole = (userId, data) => patch(`/admin/users/${userId}/role`, data);
+
+export const deleteUser = (userId) => del(`/admin/users/${userId}`);
 
 // WhatsApp Setup
 export const getWhatsAppSetupRequests = (status) => {

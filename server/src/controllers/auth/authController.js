@@ -122,28 +122,32 @@ function maskPhoneNumber(phone) {
  * Centralizing this logic on the server reduces route churn and ensures consistency.
  */
 function getOnboardingDestination(user, workspace) {
-  // 1. Email Verification (Auth Bootstrap)
-  if (!user.emailVerified) {
-    return '/auth/verify-email?reason=onboarding';
+  // Determine effective status based on flags if accountStatus is lagging or legacy
+  let effectiveStatus = user.accountStatus || 'AWAITING_EMAIL_VERIFICATION';
+
+  // Logic correction for existing/transitional users
+  if (effectiveStatus === 'AWAITING_EMAIL_VERIFICATION' && user.emailVerified) {
+    effectiveStatus = 'AWAITING_MOBILE_VERIFICATION';
+  }
+  if (effectiveStatus === 'AWAITING_MOBILE_VERIFICATION' && user.phoneVerified) {
+    effectiveStatus = 'AWAITING_BUSINESS_INFO';
+  }
+  if (effectiveStatus === 'AWAITING_BUSINESS_INFO' && workspace?.onboarding?.businessInfoCompleted) {
+    effectiveStatus = 'SIGNUP_COMPLETED';
   }
 
-  // 2. Mobile Verification (Essential for BSP profile)
-  const phoneVerified = !!user.phoneVerified;
-  if (!phoneVerified) {
-    return '/onboarding/verify-mobile';
+  switch (effectiveStatus) {
+    case 'AWAITING_EMAIL_VERIFICATION':
+      return '/onboarding/verify-email?reason=onboarding';
+    case 'AWAITING_MOBILE_VERIFICATION':
+      return '/onboarding/verify-mobile';
+    case 'AWAITING_BUSINESS_INFO':
+      return '/onboarding/business-info';
+    case 'SIGNUP_COMPLETED':
+      return null;
+    default:
+      return null;
   }
-
-  // 3. Business Information (Stage 1 Complete)
-  const businessInfoCompleted = workspace?.onboarding?.businessInfoCompleted || false;
-  if (!businessInfoCompleted) {
-    return '/onboarding/business-info';
-  }
-
-  // 4. WhatsApp Connection (Optional but recommended for dashboard utilities)
-  // If we want a specific onboarding page for WhatsApp connection, we add it here.
-  // For now, if business info is done, they reach the dashboard.
-  
-  return '/dashboard';
 }
 
 // Send OTP for signup
@@ -314,7 +318,8 @@ async function verifySignupOTP(req, res, next) {
       passwordHash,
       workspace: workspace._id,
       role: 'owner',
-      emailVerified: true
+      emailVerified: true,
+      accountStatus: 'AWAITING_MOBILE_VERIFICATION' // Transition after email verify
     });
     workspace.owner = user._id;
     await workspace.save();
@@ -510,6 +515,7 @@ async function verifyMobileVerificationOTP(req, res, next) {
 
     user.phone = normalizedPhone;
     user.phoneVerified = true;
+    user.accountStatus = 'AWAITING_BUSINESS_INFO'; // Advance to next step
     await user.save();
 
     res.json({
@@ -652,14 +658,22 @@ async function session(req, res, next) {
       workspace?.bspPhoneStatus === 'CONNECTED'
     );
 
+    const permission = await Permission.findOne({
+      workspace: user.workspace,
+      user: user._id
+    });
+
     // Comprehensive response (Optimized for Fast Paint)
     const data = {
+      permissions: permission?.permissions || null,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
+        team: user.team,
         emailVerified: !!user.emailVerified,
+        accountStatus: user.accountStatus || 'AWAITING_EMAIL_VERIFICATION',
         createdAt: user.createdAt
       },
       workspace: workspace ? {
@@ -668,7 +682,10 @@ async function session(req, res, next) {
         plan: workspace.plan || 'free',
         whatsappConnected: workspace.whatsappConnected || stage1Complete,
         onboarding: workspace.onboarding,
-        stage1: { complete: stage1Complete }, // Minimal stage1 status
+        stage1: { 
+          complete: stage1Complete,
+          phoneStatus: workspace.bspPhoneStatus || (workspace.whatsappConnected ? 'CONNECTED' : 'NOT_CONNECTED')
+        }, 
         // Cached business info for hydration
         address: workspace.address,
         city: workspace.city,
@@ -721,7 +738,9 @@ async function me(req, res, next) {
         name: user.name,
         email: user.email,
         role: user.role,
+        team: user.team,
         emailVerified: user.emailVerified || false,
+        accountStatus: user.accountStatus || 'AWAITING_EMAIL_VERIFICATION',
         createdAt: user.createdAt
       },
       workspace: workspace ? {
@@ -1169,7 +1188,8 @@ async function googleOAuthCallback(req, res, next) {
         googleId, 
         workspace: workspace._id, 
         role: 'owner',
-        emailVerified: true // Trust Google email
+        emailVerified: true, // Trust Google email
+        accountStatus: 'AWAITING_MOBILE_VERIFICATION' // Jump directly to mobile step
       });
       workspace.owner = user._id;
       await workspace.save();

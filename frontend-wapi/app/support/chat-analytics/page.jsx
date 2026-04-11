@@ -4,6 +4,8 @@ import { BarChart3, MessageCircle, Clock, UserCheck, TrendingUp, TrendingDown, D
 import { useState, useEffect, useMemo } from 'react';
 import { getAnalyticsDashboardOverview, getAnalyticsDashboardAgents } from '@/lib/api';
 import FlashLoader from '@/components/ui/FlashLoader';
+import LockedPage from '@/components/shared/LockedPage';
+import { useAuthStore } from '@/store/authStore';
 import { 
   BarChart, 
   Bar, 
@@ -22,8 +24,11 @@ export default function ChatAnalyticsPage() {
   const [timeRange, setTimeRange] = useState('7days');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockedReason, setLockedReason] = useState(null);
   const [data, setData] = useState(null);
   const [agentData, setAgentData] = useState([]);
+  const { user } = useAuthStore();
 
   const days = useMemo(() => {
     switch (timeRange) {
@@ -54,7 +59,12 @@ export default function ChatAnalyticsPage() {
       }
     } catch (err) {
       console.error('Analytics fetch error:', err);
-      setError(err.message || 'An error occurred while fetching analytics data');
+      if (err.status === 403) {
+        setIsLocked(true);
+        setLockedReason(err.message || 'Required: Manager or Owner permissions');
+      } else {
+        setError(err.message || 'An error occurred while fetching analytics data');
+      }
     } finally {
       setLoading(false);
     }
@@ -123,6 +133,17 @@ export default function ChatAnalyticsPage() {
   }, [data]);
 
   if (loading && !data) return <FlashLoader />;
+
+  if (isLocked) {
+    return (
+      <LockedPage 
+        title="Analytics Locked"
+        description={lockedReason}
+        requiredRole="Manager"
+        isUpgradeRequired={false}
+      />
+    );
+  }
 
   if (error) {
     return (

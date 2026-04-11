@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { getAuditLogs } from '@/lib/api';
+import LockedPage from '@/components/shared/LockedPage';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AuditLogsPage() {
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
+  const { user } = useAuthStore();
   const [filters, setFilters] = useState({
     action: '',
     startDate: '',
@@ -34,7 +38,11 @@ export default function AuditLogsPage() {
       setTotal(result.data.total || 0);
     } catch (err) {
       console.error('Failed to load audit logs', err);
-      setError(err.message || 'Failed to load audit logs');
+      if (err.status === 403) {
+        setIsLocked(true);
+      } else {
+        setError(err.message || 'Failed to load audit logs');
+      }
     } finally {
       setLoading(false);
     }
@@ -49,6 +57,17 @@ export default function AuditLogsPage() {
     e.preventDefault();
     loadLogs();
   };
+
+  if (isLocked) {
+    return (
+      <LockedPage 
+        title="Audit Logs Locked"
+        description="Access to workspace audit logs is restricted to Administrators and Owners. Please contact your workspace administrator for access."
+        requiredRole="Admin"
+        isUpgradeRequired={false}
+      />
+    );
+  }
 
   return (
     <div className=" p-6">

@@ -20,7 +20,9 @@ const {
   // New upgraded endpoints
   getAllUsers,
   updateUserRole,
-  updateWorkspacePlan
+  updateWorkspacePlan,
+  deleteUser,
+  deleteWorkspace
 } = require('../../controllers/admin/adminController');
 const validate = require('../../middlewares/infrastructure/validate');
 const auth = require('../../middlewares/auth');
@@ -64,6 +66,7 @@ router.patch('/workspaces/:workspaceId/plan',
   validate,
   updateWorkspacePlan
 );
+router.delete('/workspaces/:workspaceId', deleteWorkspace);
 
 // ==================
 // USER MANAGEMENT
@@ -75,6 +78,7 @@ router.patch('/users/:userId/role',
   validate,
   updateUserRole
 );
+router.delete('/users/:userId', deleteUser);
 
 // ==================
 // WABA & VERIFICATION

@@ -24,6 +24,7 @@ import {
 import { getCommerceSettings, updateCommerceSettings, validateCommerceConfig } from '@/lib/api';
 import FlashLoader from '@/components/ui/FlashLoader';
 import { toast } from '@/lib/toast';
+import FeatureGate from '@/components/features/FeatureGate';
 
 const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED', 'SAR', 'KWD', 'QAR', 'BHD', 'OMR'];
 
@@ -48,7 +49,7 @@ const Toggle = ({ enabled, onChange, disabled }) => (
   </button>
 );
 
-export default function CommerceSettingsPage() {
+function CommerceSettingsContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -648,5 +649,13 @@ export default function CommerceSettingsPage() {
         .font-outfit { font-family: 'Outfit', sans-serif; }
       `}</style>
     </div>
+  );
+}
+
+export default function CommerceSettingsPage() {
+  return (
+    <FeatureGate feature="commerce">
+      <CommerceSettingsContent />
+    </FeatureGate>
   );
 }

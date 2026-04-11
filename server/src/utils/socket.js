@@ -52,6 +52,7 @@ function initSocket(server) {
       const user = await User.findById(payload.id).select('-passwordHash');
       
       if (!user) {
+        console.error(`[SOCKET] Authentication failed: User not found for ID ${payload.id}`);
         return next(new Error('User not found'));
       }
       
@@ -112,13 +113,14 @@ function initSocket(server) {
           user: socket.user._id
         }).lean();
         
-        // Check access (owners/admins/managers see all, agents only assigned)
+        // Check access (owners/admins/managers see all, agents only assigned or in the same team)
         const canAccess = 
           permission?.role === 'owner' || 
           permission?.role === 'admin' ||
           permission?.role === 'manager' ||
           permission?.permissions?.viewAllConversations ||
-          (conversation.assignedTo && conversation.assignedTo.toString() === socket.user._id.toString());
+          (conversation.assignedTo && conversation.assignedTo.toString() === socket.user._id.toString()) ||
+          (conversation.assignedTeam && socket.user.team && conversation.assignedTeam.toString() === socket.user.team.toString());
         
         if (!canAccess) {
           socket.emit('error', { message: 'Access denied to conversation' });

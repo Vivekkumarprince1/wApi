@@ -7,11 +7,13 @@ import {
   FaPlus, 
   FaSearch, 
   FaFlag, 
-  FaClock 
+  FaClock,
+  FaUser
 } from 'react-icons/fa';
 
 export default function ContactDetailsSidebar({
   selectedContact,
+  selectedConversation,
   expandedSections,
   toggleSection,
   handleAddTag,
@@ -21,9 +23,47 @@ export default function ContactDetailsSidebar({
   newNote,
   setNewNote,
   handleAddNote,
-  addingNote
+  addingNote,
+  conversationNotes = [],
+  messages = []
 }) {
   if (!selectedContact) return null;
+
+  const contactTags = [...new Set([
+    ...(selectedConversation?.contact?.tags || []),
+    ...(selectedConversation?.tags || []),
+    ...(selectedContact.tags || [])
+  ])];
+  const assignmentHistory = selectedConversation?.assignmentHistory || [];
+
+  const timelineEvents = [
+    ...assignmentHistory.map((event, index) => ({
+      key: `assignment-${index}`,
+      kind: 'assignment',
+      date: event.assignedAt,
+      title: event.action === 'unassigned'
+        ? 'Unassigned'
+        : event.action === 'reassigned'
+          ? 'Reassigned'
+          : 'Assigned',
+      body: event.assignedTo?.name || event.assignedBy?.name || 'Team action'
+    })),
+    ...conversationNotes.map((note, index) => ({
+      key: `note-${note._id || index}`,
+      kind: 'note',
+      date: note.createdAt,
+      title: 'Internal Note',
+      body: note.content,
+      meta: note.createdBy?.name || 'Team'
+    })),
+    ...messages.slice(-8).map((message, index) => ({
+      key: `message-${message._id || index}`,
+      kind: message.direction === 'outbound' ? 'outbound' : 'inbound',
+      date: message.createdAt,
+      title: message.direction === 'outbound' ? 'Agent message' : 'Customer message',
+      body: message.body || message.type || 'Message'
+    }))
+  ].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-10);
 
   return (
     <div className="w-[300px] lg:w-[336px] flex-shrink-0 bg-card/40 backdrop-blur-3xl border-l border-border/50 flex flex-col overflow-y-auto z-30 hidden xl:flex shadow-[-10px_0_30px_-5px_rgba(0,0,0,0.03)] transition-all duration-500 custom-scrollbar">
@@ -132,7 +172,7 @@ export default function ContactDetailsSidebar({
                   className="px-5 pb-6 overflow-hidden"
                 >
                   <div className="flex flex-wrap gap-2 mb-5 pt-2">
-                    {selectedContact.tags?.map((tag) => (
+                    {contactTags.map((tag) => (
                       <motion.span 
                         key={tag} 
                         initial={{ scale: 0.9, opacity: 0 }}
@@ -145,7 +185,7 @@ export default function ContactDetailsSidebar({
                         </button>
                       </motion.span>
                     ))}
-                    {(!selectedContact.tags || selectedContact.tags.length === 0) && (
+                    {contactTags.length === 0 && (
                       <span className="px-4 py-3 bg-muted/20 border border-dashed border-border/50 rounded-xl text-[11px] text-muted-foreground/60 w-full text-center italic font-bold">No active segments</span>
                     )}
                   </div>
@@ -196,13 +236,13 @@ export default function ContactDetailsSidebar({
                       <div className="flex justify-center p-8">
                         <FaClock className="animate-spin text-primary/40" size={20} />
                       </div>
-                    ) : activeDeal?.notes?.length > 0 ? (
-                      activeDeal.notes.map((note, idx) => (
-                        <div key={idx} className="p-4 bg-muted/30 border border-border/50 rounded-2xl relative overflow-hidden group/note hover:border-amber-500/30 transition-all">
+                    ) : conversationNotes.length > 0 ? (
+                      conversationNotes.map((note, idx) => (
+                        <div key={note._id || idx} className="p-4 bg-muted/30 border border-border/50 rounded-2xl relative overflow-hidden group/note hover:border-amber-500/30 transition-all">
                           <div className="absolute top-0 right-0 w-2 h-full bg-amber-500/10"></div>
                           <p className="text-[12.5px] text-foreground/80 leading-relaxed font-bold mb-3">{note.content}</p>
                           <div className="flex items-center justify-between border-t border-border/30 pt-2.5">
-                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">{note.createdBy?.name || 'Inbound'}</span>
+                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">{note.createdBy?.name || 'Team'}</span>
                             <span className="text-[9px] text-muted-foreground/60 font-bold">
                               {new Date(note.createdAt).toLocaleDateString()}
                             </span>
@@ -258,16 +298,22 @@ export default function ContactDetailsSidebar({
                   className="px-6 pb-10 overflow-hidden"
                 >
                   <div className="space-y-6 relative border-l-2 border-border/50 ml-2 pt-2 pb-2 pl-6">
-                    <div className="relative">
-                      <div className="absolute -left-[31px] top-1.5 w-3 h-3 rounded-full bg-emerald-500 border-4 border-card ring-2 ring-emerald-500/20 shadow-sm"></div>
-                      <p className="text-[12px] font-black text-foreground tracking-tight">Lead Onboarded</p>
-                      <p className="text-[10px] text-muted-foreground font-bold opacity-60 uppercase tracking-widest mt-1">WhatsApp • 2 days ago</p>
-                    </div>
-                    <div className="relative opacity-50">
-                      <div className="absolute -left-[31px] top-1.5 w-3 h-3 rounded-full bg-muted border-4 border-card"></div>
-                      <p className="text-[12px] font-bold text-foreground">First Touch</p>
-                      <p className="text-[10px] text-muted-foreground">Historical Record</p>
-                    </div>
+                    {timelineEvents.length === 0 ? (
+                      <div className="relative">
+                        <div className="absolute -left-[31px] top-1.5 w-3 h-3 rounded-full bg-muted border-4 border-card"></div>
+                        <p className="text-[12px] font-bold text-foreground">No timeline events yet</p>
+                        <p className="text-[10px] text-muted-foreground">Conversation activity will appear here.</p>
+                      </div>
+                    ) : timelineEvents.map((event, index) => (
+                      <div key={event.key || index} className="relative">
+                        <div className={`absolute -left-[31px] top-1.5 w-3 h-3 rounded-full border-4 border-card ${event.kind === 'note' ? 'bg-amber-500' : event.kind === 'assignment' ? 'bg-primary' : event.kind === 'outbound' ? 'bg-emerald-500' : 'bg-muted'}`}></div>
+                        <p className="text-[12px] font-black text-foreground tracking-tight">{event.title}</p>
+                        <p className="text-[10px] text-muted-foreground font-bold opacity-60 uppercase tracking-widest mt-1">
+                          {event.meta ? `${event.meta} • ` : ''}{new Date(event.date).toLocaleString()}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{event.body}</p>
+                      </div>
+                    ))}
                   </div>
                 </motion.div>
               )}

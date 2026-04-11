@@ -14,13 +14,14 @@
  * - SLA tracking (clear deadline on first response)
  */
 
-const { Conversation, Message, Contact, Workspace, Permission } = require('../../models');
+const { Conversation, Message, Contact, Workspace, Permission, User } = require('../../models');
 const bspMessagingService = require('../bsp/bspMessagingService');
 const templateSendingService = require('../template/templateSendingService');
 const { isOptedOut } = require('./optOutService');
 const { getIO } = require('../../utils/socket');
 const billingLedgerService = require('../billing/billingLedgerService');
 const { enforceWorkspaceBilling } = require('../billing/billingEnforcementService');
+const { automationEvents } = require('../automation/automationEventEmitter');
 
 // Hardening services
 const agentRateLimitService = require('../infrastructure/agentRateLimitService');
@@ -38,15 +39,23 @@ async function canAgentSendMessage(agentId, workspaceId, conversationId, options
     requireSendPermission = true,
     requireOpenConversation = true
   } = options;
-  // Get permission
-  const permission = await Permission.findOne({
-    workspace: workspaceId,
-    user: agentId,
-    isActive: true
-  }).lean();
+  // 1. Get permission (try to use passed-in permissions first for performance)
+  let permission = options.permission;
+  
+  if (!permission) {
+    permission = await Permission.findOne({
+      workspace: workspaceId,
+      user: agentId
+    }).lean();
+  }
 
   if (!permission) {
-    return { allowed: false, reason: 'No active permissions' };
+    return { allowed: false, reason: 'No permissions record found for user' };
+  }
+
+  // Check if user is active
+  if (permission.isActive === false) {
+    return { allowed: false, reason: 'User account is disabled (Inactive permissions)' };
   }
 
   // Owner/admin/manager can send to any conversation
@@ -63,16 +72,25 @@ async function canAgentSendMessage(agentId, workspaceId, conversationId, options
   const conversation = await Conversation.findOne({
     _id: conversationId,
     workspace: workspaceId
-  }).select('assignedTo status').lean();
+  }).select('assignedTo team status').lean();
 
   if (!conversation) {
     return { allowed: false, reason: 'Conversation not found' };
   }
 
-  // Agents can only send to their assigned conversations
-  if (!conversation.assignedTo ||
-    conversation.assignedTo.toString() !== agentId.toString()) {
-    return { allowed: false, reason: 'Conversation not assigned to you' };
+  // Agents can only send to their assigned conversations OR their team's conversations
+  const isAssignedToAgent = conversation.assignedTo && conversation.assignedTo.toString() === agentId.toString();
+  
+  let isAssignedToAgentTeam = false;
+  if (conversation.team) {
+    const user = await User.findById(agentId).select('team').lean();
+    if (user?.team && user.team.toString() === conversation.team.toString()) {
+      isAssignedToAgentTeam = true;
+    }
+  }
+
+  if (!isAssignedToAgent && !isAssignedToAgentTeam) {
+    return { allowed: false, reason: 'Conversation not assigned to you or your team' };
   }
 
   // Check if conversation is closed
@@ -284,6 +302,22 @@ async function sendTextMessage(options) {
 
     // HARDENING: Clear SLA deadline on first response
     await slaService.clearSlaDeadline(conversationId, agentId);
+
+    automationEvents.firstAgentReply({
+      workspaceId,
+      conversationId,
+      contactId: contact._id,
+      messageId: message._id,
+      metadata: {
+        agentId,
+        message: {
+          type: 'text',
+          content: text,
+          direction: 'outbound'
+        },
+        source: 'inbox'
+      }
+    });
   }
 
   // Update billing counters
@@ -457,6 +491,22 @@ async function sendTemplateMessage(options) {
 
     // HARDENING: Clear SLA deadline on first response
     await slaService.clearSlaDeadline(conversationId, agentId);
+
+    automationEvents.firstAgentReply({
+      workspaceId,
+      conversationId,
+      contactId: contact._id,
+      messageId: message._id,
+      metadata: {
+        agentId,
+        message: {
+          type: 'template',
+          content: templateName,
+          direction: 'outbound'
+        },
+        source: 'inbox'
+      }
+    });
   }
 
   // Mark as read for this agent
@@ -504,14 +554,14 @@ async function sendTemplateMessage(options) {
 }
 
 /**
- * Send a media message (image, document, video, audio)
+ * Send a media message (image, document, video, audio, sticker, gif)
  */
 async function sendMediaMessage(options) {
   const {
     workspaceId,
     conversationId,
     agentId,
-    mediaType, // 'image', 'document', 'video', 'audio'
+    mediaType, // 'image', 'document', 'video', 'audio', 'sticker', 'gif'
     mediaUrl,
     caption,
     filename,
@@ -632,6 +682,22 @@ async function sendMediaMessage(options) {
 
     // HARDENING: Clear SLA deadline on first response
     await slaService.clearSlaDeadline(conversationId, agentId);
+
+    automationEvents.firstAgentReply({
+      workspaceId,
+      conversationId,
+      contactId: contact._id,
+      messageId: message._id,
+      metadata: {
+        agentId,
+        message: {
+          type: mediaType,
+          content: caption || mediaType,
+          direction: 'outbound'
+        },
+        source: 'inbox'
+      }
+    });
   }
 
   conversation.markReadForAgent(agentId);

@@ -33,7 +33,7 @@ const PlanSchema = new mongoose.Schema({
   trialAllowsSending: { type: Boolean, default: false },
 
   // Feature Toggles (for Feature Locking)
-  // Possible values: 'CRM', 'ANSWERBOT', 'ANALYTICS', 'AUTOMATION', 'BULK_CAMPAIGN', 'WHATSAPP_FORMS'
+  // Possible values: 'CRM', 'ANSWERBOT', 'ANALYTICS', 'AUTOMATION', 'BULK_CAMPAIGN', 'WHATSAPP_FORMS', 'COMMERCE'
   features: [{ type: String }],
   
   // Usage Limits

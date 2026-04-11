@@ -302,7 +302,7 @@ function OrderPanelContent() {
 
 export default function OrderPanelPage() {
   return (
-    <FeatureGate feature="products">
+    <FeatureGate feature="commerce">
       <OrderPanelContent />
     </FeatureGate>
   );

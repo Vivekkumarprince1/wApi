@@ -1,6 +1,8 @@
 const { User, Workspace, Permission, AuditLog, Conversation, Team } = require('../../models');
 const logger = require('../../utils/logger');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+const emailService = require('../../services/infrastructure/emailService');
 
 /**
  * TEAM MANAGEMENT CONTROLLER
@@ -84,25 +86,40 @@ async function inviteTeamMember(req, res, next) {
       return res.status(400).json({ error: `Invalid role. Must be one of: ${validRoles.join(', ')}` });
     }
 
-    // Check if user already exists in workspace
-    let user = await User.findOne({ email, workspace: workspaceId });
+    // Generate temporary password
+    const tempPassword = crypto.randomBytes(8).toString('hex');
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    // Check if user already exists globally
+    let user = await User.findOne({ email });
+
     if (user) {
-      if (user.status === 'removed') {
-        // Re-invite removed user
-        user.status = 'invited';
-        user.role = role;
-        user.name = name || user.name;
-        user.phone = phone || user.phone;
-        user.removedAt = null;
-        user.invitedAt = new Date();
-        await user.save();
+      const isSameWorkspace = user.workspace && user.workspace.toString() === workspaceId.toString();
+
+      if (isSameWorkspace) {
+        if (user.status === 'removed') {
+          // Re-invite removed user in same workspace
+          user.status = 'invited';
+          user.role = role;
+          user.name = name || user.name;
+          user.phone = phone || user.phone;
+          user.removedAt = null;
+          user.invitedAt = new Date();
+          // Reset password and status for re-invited users
+          user.passwordHash = passwordHash;
+          user.accountStatus = 'SIGNUP_COMPLETED';
+          user.emailVerified = true;
+          await user.save();
+        } else {
+          return res.status(409).json({ error: 'User already in workspace' });
+        }
       } else {
-        return res.status(409).json({ error: 'User already in workspace' });
+        // User exists in a DIFFERENT workspace
+        return res.status(409).json({
+          error: 'This email is already registered in another workspace. Multi-workspace membership is not supported yet.'
+        });
       }
     } else {
-      // Generate temporary password
-      const tempPassword = crypto.randomBytes(8).toString('hex');
-
       user = new User({
         name: name || email.split('@')[0],
         email,
@@ -111,22 +128,37 @@ async function inviteTeamMember(req, res, next) {
         role,
         status: 'invited',
         invitedAt: new Date(),
-        // In production, hash this password. For now store raw (TODO: bcrypt)
-        passwordHash: tempPassword,
+        // Properly hashed for authentication
+        passwordHash,
+        // Agents/Team members skip onboarding flow
+        accountStatus: 'SIGNUP_COMPLETED',
+        emailVerified: true,
       });
       await user.save();
     }
 
     // Create default Permission record for the new agent
+    // Seed permissions for user
     const existingPerm = await Permission.findOne({ workspace: workspaceId, user: user._id });
+    const permissionRole = role === 'member' ? 'agent' : role;
+
     if (!existingPerm) {
       await Permission.create({
         workspace: workspaceId,
         user: user._id,
-        role: role === 'member' ? 'agent' : role, // Map 'member' to 'agent' for Permission model
+        role: permissionRole,
+        permissions: Permission.getDefaultPermissions(permissionRole),
         isAvailable: true,
         isOnline: false,
+        isActive: true
       });
+    } else {
+      // Reactivate and sync role/permissions for existing record
+      existingPerm.role = permissionRole;
+      existingPerm.permissions = Permission.getDefaultPermissions(permissionRole);
+      existingPerm.isActive = true;
+      existingPerm.isAvailable = true;
+      await existingPerm.save();
     }
 
     // Audit log
@@ -137,7 +169,20 @@ async function inviteTeamMember(req, res, next) {
       details: { email, role, name: user.name, status: 'success' }
     });
 
-    // TODO: Send invitation email with login credentials
+    // Send invitation email with login credentials
+    try {
+      const workspace = await Workspace.findById(workspaceId).select('name');
+      await emailService.sendInvitationEmail({
+        email: user.email,
+        tempPassword,
+        inviterName: req.user.name,
+        workspaceName: workspace?.name || 'Your Team',
+        role: user.role
+      });
+    } catch (emailError) {
+      // We don't fail the whole request if email fails, but we log it
+      logger.error('[TeamController] Failed to send invitation email:', emailError);
+    }
 
     logger.info('[TeamController] Agent invited:', { workspaceId, email, role });
 
@@ -192,12 +237,24 @@ async function updateMember(req, res, next) {
       changes.oldRole = oldRole;
       changes.newRole = role;
 
-      // Sync Permission model role
-      await Permission.findOneAndUpdate(
-        { workspace: workspaceId, user: memberId },
-        { $set: { role: role === 'member' ? 'agent' : role } },
-        { upsert: true }
-      );
+      // Sync Permission model role and reset permissions to defaults for new role
+      const permRole = role === 'member' ? 'agent' : role;
+      const perm = await Permission.findOne({ workspace: workspaceId, user: memberId });
+      if (perm) {
+        perm.role = permRole;
+        perm.permissions = Permission.getDefaultPermissions(permRole);
+        perm.isActive = true; // Ensure active on role change
+        await perm.save();
+      } else {
+        await Permission.create({
+          workspace: workspaceId,
+          user: memberId,
+          role: permRole,
+          permissions: Permission.getDefaultPermissions(permRole),
+          isAvailable: true,
+          isActive: true
+        });
+      }
     }
 
     await user.save();
@@ -261,12 +318,24 @@ async function updateMemberRole(req, res, next) {
     user.role = role;
     await user.save();
 
-    // Sync Permission model
-    await Permission.findOneAndUpdate(
-      { workspace: workspaceId, user: memberId },
-      { $set: { role: role === 'member' ? 'agent' : role } },
-      { upsert: true }
-    );
+    // Sync Permission model and reset permissions to defaults for new role
+    const permRole = role === 'member' ? 'agent' : role;
+    const perm = await Permission.findOne({ workspace: workspaceId, user: memberId });
+    if (perm) {
+      perm.role = permRole;
+      perm.permissions = Permission.getDefaultPermissions(permRole);
+      perm.isActive = true; // Ensure active
+      await perm.save();
+    } else {
+      await Permission.create({
+        workspace: workspaceId,
+        user: memberId,
+        role: permRole,
+        permissions: Permission.getDefaultPermissions(permRole),
+        isAvailable: true,
+        isActive: true
+      });
+    }
 
     await AuditLog.create({
       workspace: workspaceId,

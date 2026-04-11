@@ -13,6 +13,11 @@ const UserSchema = new mongoose.Schema({
   role: { type: String, enum: ['owner', 'admin', 'manager', 'agent', 'member', 'viewer'], default: 'member' },
   workspace: { type: mongoose.Schema.Types.ObjectId, ref: 'Workspace' },
   team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
+  accountStatus: { 
+    type: String, 
+    enum: ['AWAITING_EMAIL_VERIFICATION', 'AWAITING_MOBILE_VERIFICATION', 'AWAITING_BUSINESS_INFO', 'SIGNUP_COMPLETED'],
+    default: 'AWAITING_EMAIL_VERIFICATION'
+  },
   status: { type: String, enum: ['active', 'invited', 'offline', 'removed'], default: 'active' },
   invitedAt: { type: Date },
   removedAt: { type: Date },

@@ -25,16 +25,13 @@ export default function VerifyMobilePage() {
       return;
     }
 
+    // AuthInitializer handles strict routing, but we can pre-populate local state
     const currentPhone = authPhone?.number || '';
     if (currentPhone) {
       setPhone(currentPhone);
-      if (authPhone?.verified) {
-        router.push('/onboarding/business-info');
-        return;
-      }
       
-      // Auto-send OTP only once if phone exists
-      if (!hasSentInitialOTP.current) {
+      // Auto-send OTP only once if phone exists and not yet verified
+      if (!user.phoneVerified && !hasSentInitialOTP.current) {
         hasSentInitialOTP.current = true;
         sendOTP(currentPhone);
       }

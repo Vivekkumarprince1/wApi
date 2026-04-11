@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { get, put } from '@/lib/api';
 import { toast } from '@/lib/toast';
+import FeatureGate from '@/components/features/FeatureGate';
 
 const BOT_TRIGGERS = [
   { id: 'welcome', label: 'Welcome Trigger', icon: MessageSquare, description: 'Sent when customer first types "Hi" or "Menu".', templateKey: 'welcome' },
@@ -40,7 +41,7 @@ const DEFAULT_TEMPLATES = {
   cartRecovery: 'Hey [Name]! You left items in your cart 🛒\nComplete your purchase now and get 10% off!'
 };
 
-export default function CheckoutBotPage() {
+function CheckoutBotContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [botActive, setBotActive] = useState(false);
@@ -382,6 +383,14 @@ export default function CheckoutBotPage() {
         .font-outfit { font-family: 'Outfit', sans-serif; }
       `}</style>
     </div>
+  );
+}
+
+export default function CheckoutBotPage() {
+  return (
+    <FeatureGate feature="commerce">
+      <CheckoutBotContent />
+    </FeatureGate>
   );
 }
 

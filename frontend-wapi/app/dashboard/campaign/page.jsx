@@ -9,6 +9,7 @@ import { Play, Pause, Trash2, Eye, Search, SlidersHorizontal, BarChart3, Calenda
 import FlashLoader from '@/components/ui/FlashLoader';
 import { motion } from 'framer-motion';
 import RetargetModal from '@/components/dashboard/campaign/RetargetModal';
+import LockedPage from '@/components/shared/LockedPage';
 
 export default function CampaignsPage() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function CampaignsPage() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
   const [campaigns, setCampaigns] = useState([]);
   const [isRetargetModalOpen, setIsRetargetModalOpen] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
@@ -44,8 +46,12 @@ export default function CampaignsPage() {
       setCampaigns(data);
     } catch (e) {
       console.error('Failed to load campaigns:', e);
-      setCampaigns([]);
-      setError('Failed to load campaigns');
+      if (e.status === 403) {
+        setIsLocked(true);
+      } else {
+        setCampaigns([]);
+        setError('Failed to load campaigns');
+      }
     } finally {
       setLoading(false);
     }
@@ -135,6 +141,17 @@ export default function CampaignsPage() {
       </button>
     </div>
   );
+
+  if (isLocked) {
+    return (
+      <LockedPage 
+        title="Campaigns Locked"
+        description="Campaign management is restricted to Workspace Managers and Owners. Contact your administrator to upgrade your role."
+        requiredRole="Manager"
+        isUpgradeRequired={false}
+      />
+    );
+  }
 
   return (
     <div className="animate-fade-in-up">

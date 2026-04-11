@@ -1,5 +1,4 @@
-const { User } = require('../../models');
-const { Workspace } = require('../../models');
+const { User, Workspace } = require('../../models');
 const crypto = require('crypto');
 const { getRedis, setJson, getJson } = require('../../config/redis');
 
@@ -143,9 +142,14 @@ async function saveBusinessInfo(req, res, next) {
     if (!workspace.onboarding) {
       workspace.onboarding = {};
     }
+    workspace.onboarding.step = 'business-info';
+    workspace.onboarding.status = 'in-progress';
     workspace.onboarding.businessInfoCompleted = true;
     workspace.onboarding.businessInfoCompletedAt = new Date();
 
+    // Advance user account status to COMPLETED
+    user.accountStatus = 'SIGNUP_COMPLETED';
+    await user.save();
     await workspace.save();
 
     // Attempt to submit business verification to Meta if WABA/business account is configured

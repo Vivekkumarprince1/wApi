@@ -4,7 +4,6 @@ import Link from 'next/link';
 
 import { useState, useEffect, useRef } from 'react';
 import {
-  fetchContacts,
   getDealsByContact,
   moveDealStage,
   addDealNote,
@@ -25,31 +24,26 @@ import ConversationsSidebar from '@/components/dashboard/inbox/ConversationsSide
 import MessageThread from '@/components/dashboard/inbox/MessageThread';
 import ChatInput from '@/components/dashboard/inbox/ChatInput';
 import ContactDetailsSidebar from '@/components/dashboard/inbox/ContactDetailsSidebar';
-import StartConversationModal from '@/components/dashboard/inbox/StartConversationModal';
 import TemplateSelectorModal from '@/components/dashboard/inbox/TemplateSelectorModal';
 import { useAuthStore } from '@/store/authStore';
 import FlashLoader from '@/components/ui/FlashLoader';
 
 export default function InboxPage() {
   const workspace = useAuthStore(state => state.workspace);
+  const permissions = useAuthStore(state => state.permissions);
   const stage1Complete = useAuthStore(state => state.stage1Complete);
   const phoneStatus = useAuthStore(state => state.phoneStatus);
   const bspReady = stage1Complete && ['CONNECTED', 'RESTRICTED'].includes(phoneStatus);
   const [conversations, setConversations] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [selectedConversationId, setSelectedConversationId] = useState(null);
+  const [selectedConversationDetail, setSelectedConversationDetail] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [startModalOpen, setStartModalOpen] = useState(false);
-  const [contactOptions, setContactOptions] = useState([]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [contactSearch, setContactSearch] = useState('');
-  const [selectedStartContact, setSelectedStartContact] = useState(null);
-  const [startMessage, setStartMessage] = useState('');
-  const [startingConversation, setStartingConversation] = useState(false);
   const [typingUsers, setTypingUsers] = useState({});
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -69,6 +63,7 @@ export default function InboxPage() {
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
   const [pipelines, setPipelines] = useState([]);
+  const [conversationNotes, setConversationNotes] = useState([]);
 
   const { socket, connected } = useSocketStore();
 
@@ -95,6 +90,13 @@ export default function InboxPage() {
     status: null,
     assignee: null
   });
+
+  // Permission-based view enforcement
+  useEffect(() => {
+    if (permissions && !permissions.viewAllConversations && (currentView === 'all' || currentView === 'unassigned')) {
+      setCurrentView('mine');
+    }
+  }, [permissions, currentView]);
 
   // Load initial data (User & Tags)
   useEffect(() => {
@@ -326,8 +328,29 @@ export default function InboxPage() {
     }
   };
 
+  const loadConversationDetail = async (conversationId) => {
+    try {
+      const [conversationRes, notesRes] = await Promise.all([
+        get(`/inbox/${conversationId}`),
+        get(`/inbox/${conversationId}/notes`).catch(() => ({ data: [] }))
+      ]);
+
+      const conversationData = conversationRes.data || conversationRes.result || conversationRes.conversation || conversationRes;
+      setSelectedConversationDetail(conversationData || null);
+      setConversationNotes(notesRes.data || []);
+      setSelectedContact(conversationData?.contact || null);
+      return conversationData || null;
+    } catch (error) {
+      console.error('Error loading conversation detail:', error);
+      setSelectedConversationDetail(null);
+      setConversationNotes([]);
+      return null;
+    }
+  };
+
   const handleSelectContact = async (conversation) => {
     setSelectedContact(conversation.contact);
+    setSelectedConversationDetail(conversation);
     setSelectedConversationId(conversation._id || conversation.id || null);
 
     // Clear unread counts natively upon viewing
@@ -338,61 +361,9 @@ export default function InboxPage() {
     ));
 
     await loadMessages(conversation._id || conversation.id);
+    const detailedConversation = await loadConversationDetail(conversation._id || conversation.id);
     // Load CRM data
-    await loadCRMData(conversation.contact._id);
-  };
-
-  const openStartConversationModal = async () => {
-    setStartModalOpen(true);
-    setContactSearch('');
-    setSelectedStartContact(null);
-    setStartMessage('');
-    try {
-      const contactsRes = await fetchContacts(1, 50, '');
-      setContactOptions(contactsRes?.data || contactsRes?.contacts || []);
-    } catch (error) {
-      console.error('Failed to load contacts for start conversation:', error);
-      setContactOptions([]);
-    }
-  };
-
-  const handleSearchStartContacts = async (value) => {
-    setContactSearch(value);
-    try {
-      const contactsRes = await fetchContacts(1, 50, value);
-      setContactOptions(contactsRes?.data || contactsRes?.contacts || []);
-    } catch (error) {
-      console.error('Failed to search contacts:', error);
-    }
-  };
-
-  const handleStartConversation = async () => {
-    if (!selectedStartContact || !startMessage.trim()) return;
-    if (!bspReady) {
-      toast?.error?.('Connect WhatsApp to start conversation') || alert('Connect WhatsApp to start conversation');
-      return;
-    }
-
-    try {
-      setStartingConversation(true);
-      await post('/messages/send', {
-        contactId: selectedStartContact._id || selectedStartContact.id,
-        phone: selectedStartContact.phone,
-        name: selectedStartContact.name,
-        body: startMessage.trim()
-      });
-
-      toast?.success?.('First message queued. Conversation will appear shortly.');
-      setStartModalOpen(false);
-      setStartMessage('');
-      setSelectedStartContact(null);
-      await loadConversations();
-    } catch (error) {
-      console.error('Failed to start conversation:', error);
-      toast?.error?.(error.message || 'Failed to start conversation');
-    } finally {
-      setStartingConversation(false);
-    }
+    await loadCRMData((detailedConversation?.contact?._id || conversation.contact._id).toString());
   };
 
   const loadCRMData = async (contactId) => {
@@ -426,13 +397,13 @@ export default function InboxPage() {
 
   const handleAddNote = async (e) => {
     e.preventDefault();
-    if (!newNote.trim() || !activeDeal) return;
+    if (!newNote.trim() || !selectedConversationId) return;
 
     try {
       setAddingNote(true);
-      const updated = await addDealNote(activeDeal._id, newNote);
-      setActiveDeal(updated);
+      await post(`/inbox/${selectedConversationId}/notes`, { text: newNote });
       setNewNote('');
+      await loadConversationDetail(selectedConversationId);
     } catch (error) {
       console.error('Error adding note:', error);
       alert('Failed to add note');
@@ -509,6 +480,7 @@ export default function InboxPage() {
       await post(`/conversations/${selectedConversationId}/tags`, { tags: [tagName] });
       toast.success(`Tag "${tagName}" added`);
       // Update local contact state if needed, or reload messages/convs
+      await loadConversationDetail(selectedConversationId);
       loadConversations();
     } catch (error) {
       console.error('Error adding tag:', error);
@@ -577,8 +549,9 @@ export default function InboxPage() {
   const handleRemoveTag = async (tagName) => {
     if (!selectedConversationId) return;
     try {
-      await del(`/conversations/${selectedConversationId}/tags`, { tags: [tagName] });
+      await del(`/conversations/${selectedConversationId}/tags`, { data: { tags: [tagName] } });
       toast.success(`Tag "${tagName}" removed`);
+      await loadConversationDetail(selectedConversationId);
       loadConversations();
     } catch (error) {
       console.error('Error removing tag:', error);
@@ -634,7 +607,10 @@ export default function InboxPage() {
 
       let mediaType = 'document';
       const mt = savedMedia.type || '';
-      if (mt.startsWith('image/')) mediaType = 'image';
+      const lowerName = String(savedMedia.name || '').toLowerCase();
+      if (mt === 'image/webp' || lowerName.endsWith('.webp')) mediaType = 'sticker';
+      else if (mt === 'image/gif' || lowerName.endsWith('.gif')) mediaType = 'gif';
+      else if (mt.startsWith('image/')) mediaType = 'image';
       else if (mt.startsWith('video/')) mediaType = 'video';
       else if (mt.startsWith('audio/')) mediaType = 'audio';
 
@@ -696,38 +672,8 @@ export default function InboxPage() {
               setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
             }
           } else {
-            // Handle sending to a contact without an active DB conversation ID yet
-            const dataPayload = {
-              contactId: selectedContact._id,
-              type: mediaType,
-              mediaUrl: uploadRes.url,
-              filename: uploadRes.filename || savedMedia.name,
-              caption: captionText
-            };
-            const messageRes = await post('/messages/send', dataPayload);
-            if (messageRes.success) {
-              let finalMsg = null;
-              if (messageRes.data?.message) {
-                finalMsg = messageRes.data.message;
-              } else if (messageRes.result?.message) {
-                finalMsg = messageRes.result.message;
-              } else if (messageRes.result) {
-                finalMsg = messageRes.result;
-              } else if (messageRes.message && typeof messageRes.message === 'object') {
-                finalMsg = messageRes.message;
-              }
-
-              if (finalMsg && typeof finalMsg === 'object') {
-                const finalWamId = typeof finalMsg.whatsappMessageId === 'object' ? finalMsg.whatsappMessageId.id : finalMsg.whatsappMessageId;
-                const cachedStatus = statusCacheRef.current[finalMsg._id] || statusCacheRef.current[finalWamId];
-                const realStatus = cachedStatus || finalMsg.status || 'sent';
-                setMessages(prev => prev.map(m => m._id === tmpId ? { ...finalMsg, status: realStatus } : m));
-              } else {
-                setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'sent' } : m));
-              }
-            } else {
-              setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
-            }
+            setMessages(prev => prev.map(m => m._id === tmpId ? { ...m, status: 'failed' } : m));
+            toast.error('Open the conversation before sending media, sticker, or GIF messages.');
           }
           // Optional: toast.success('Media sent successfully');
           loadConversations();
@@ -878,7 +824,7 @@ export default function InboxPage() {
     (conv.contact?.phone && conv.contact.phone.includes(searchTerm))
   );
 
-  const selectedConversation = conversations.find(c => (c._id || c.id) === selectedConversationId);
+  const selectedConversation = selectedConversationDetail || conversations.find(c => (c._id || c.id) === selectedConversationId);
 
   return (
     <div className="fixed top-[60px] left-0 lg:left-[72px] right-0 bottom-0 bg-background text-foreground font-sans overflow-hidden flex z-20 transition-all duration-300">
@@ -891,7 +837,6 @@ export default function InboxPage() {
         handleSelectContact={handleSelectContact}
         currentView={currentView}
         setCurrentView={setCurrentView}
-        openStartConversationModal={openStartConversationModal}
         activeFilters={activeFilters}
         setActiveFilters={setActiveFilters}
         agents={agents}
@@ -899,6 +844,7 @@ export default function InboxPage() {
         connected={connected}
         typingUsers={typingUsers}
         currentUser={currentUser}
+        permissions={permissions}
       />
 
       {/* 2. Message Thread Area (Center Pane) */}
@@ -939,6 +885,9 @@ export default function InboxPage() {
               messagesEndRef={messagesEndRef}
               bspReady={bspReady}
               workspace={workspace}
+              assignmentTeamId={selectedConversation?.team?._id || selectedConversation?.team || currentUser?.team?._id || currentUser?.team || null}
+              conversationNotes={conversationNotes}
+              conversationDetail={selectedConversation}
             />
 
             <ChatInput 
@@ -970,7 +919,7 @@ export default function InboxPage() {
               </div>
               <h3 className="text-2xl font-semibold text-foreground mb-3 tracking-tight">Shared Inbox</h3>
               <p className="text-sm text-muted-foreground leading-relaxed max-w-[280px]">
-                Select a conversation from the left menu to start messaging, or start a new chat above.
+                Select a conversation from the left menu to review ongoing chats.
               </p>
             </div>
           </div>
@@ -980,6 +929,7 @@ export default function InboxPage() {
       {selectedContact && (
         <ContactDetailsSidebar 
           selectedContact={selectedContact}
+          selectedConversation={selectedConversation}
           expandedSections={expandedSections}
           toggleSection={toggleSection}
           handleAddTag={handleAddTag}
@@ -990,22 +940,11 @@ export default function InboxPage() {
           setNewNote={setNewNote}
           handleAddNote={handleAddNote}
           addingNote={addingNote}
+          conversationNotes={conversationNotes}
+          messages={messages}
         />
       )}
 
-      <StartConversationModal 
-        isOpen={startModalOpen}
-        onClose={() => setStartModalOpen(false)}
-        contactSearch={contactSearch}
-        onSearchChange={handleSearchStartContacts}
-        contactOptions={contactOptions}
-        selectedContact={selectedStartContact}
-        onSelectContact={setSelectedStartContact}
-        message={startMessage}
-        onMessageChange={setStartMessage}
-        onSubmit={handleStartConversation}
-        loading={startingConversation}
-      />
       {/* Template Selection Modal for 24h Policy Compliance */}
       <TemplateSelectorModal
         isOpen={showTemplateModal}

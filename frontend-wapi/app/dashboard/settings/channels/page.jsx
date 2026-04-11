@@ -8,38 +8,15 @@ import { get } from '@/lib/api';
 export default function ChannelsSettingsPage() {
   const [channels, setChannels] = useState([
     { id: 'whatsapp', name: 'WhatsApp', icon: <FaWhatsapp/>, status: 'connected', description: 'Primary messaging channel' },
-    { id: 'rcs', name: 'RCS (Rich Business)', icon: <Smartphone className="h-5 w-5"/>, status: 'not-connected', description: 'Rich fallback with brand identity' },
-    { id: 'sms', name: 'SMS Gateway', icon: <MessageSquare className="h-5 w-5"/>, status: 'not-connected', description: 'Final fallback for offline delivery' },
     { id: 'instagram', name: 'Instagram', icon: <FaInstagram/>, status: 'not-connected', description: 'Social media messaging' },
   ]);
 
   useEffect(() => {
-    checkChannelStatus();
+    // checkChannelStatus();
   }, []);
 
   const checkChannelStatus = async () => {
-    try {
-      const [rcsRes, smsRes] = await Promise.all([
-        get('/settings/channels/rcs'),
-        get('/settings/channels/sms')
-      ]);
-
-      setChannels(prev => prev.map(ch => {
-        if (ch.id === 'rcs') {
-          const isConnected = rcsRes.isManaged || rcsRes.data?.credentials?.apiKey;
-          const hasIdentity = rcsRes.data?.credentials?.senderId;
-          return { ...ch, status: (isConnected && hasIdentity) ? 'connected' : 'not-connected' };
-        }
-        if (ch.id === 'sms') {
-          const isConnected = smsRes.isManaged || smsRes.data?.credentials?.apiKey;
-          const hasIdentity = smsRes.data?.credentials?.senderId;
-          return { ...ch, status: (isConnected && hasIdentity) ? 'connected' : 'not-connected' };
-        }
-        return ch;
-      }));
-    } catch (err) {
-      console.error('Failed to check channel status');
-    }
+    // ... remains for other channels if needed, but for now we only have whatsapp/instagram
   };
 
   return (
@@ -73,9 +50,7 @@ export default function ChannelsSettingsPage() {
             <div className="mt-6 flex gap-2">
               <a 
                 href={
-                  ch.id === 'whatsapp' ? '/dashboard/settings/whatsapp-profile' : 
-                  ch.id === 'rcs' ? '/dashboard/settings/channels/rcs' :
-                  ch.id === 'sms' ? '/dashboard/settings/channels/sms' : '#'
+                  ch.id === 'whatsapp' ? '/dashboard/settings/whatsapp-profile' : '#'
                 } 
                 className="flex-1 text-center py-2 text-xs font-bold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors shadow-sm"
               >

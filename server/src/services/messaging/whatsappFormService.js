@@ -1,4 +1,5 @@
 const { WhatsAppForm, WhatsAppFormResponse, Contact, Workspace } = require('../../models');
+const { automationEvents } = require('../automation/automationEventEmitter');
 const axios = require('axios');
 
 /**
@@ -438,10 +439,13 @@ async function completeFormResponse(responseId, form) {
 async function createLeadFromResponse(response, form) {
   try {
     // Create contact if doesn't exist
-    let contact = await Contact.findOne({
+    const existingContact = await Contact.findOne({
       workspace: response.workspace,
       phone: response.userPhone
     });
+
+    let contact = existingContact;
+    const isNewContact = !contact;
 
     if (!contact) {
       contact = await Contact.create({
@@ -460,9 +464,45 @@ async function createLeadFromResponse(response, form) {
     }
     contact.formResponses[form._id] = response.responses;
     contact.tags = contact.tags || [];
-    contact.tags.push(`form_${form.name.toLowerCase().replace(/\s+/g, '_')}`);
+    const formTag = `form_${form.name.toLowerCase().replace(/\s+/g, '_')}`;
+    if (!contact.tags.includes(formTag)) {
+      contact.tags.push(formTag);
+    }
 
     await contact.save();
+
+    if (isNewContact) {
+      automationEvents.contactCreated({
+        workspaceId: response.workspace,
+        contactId: contact._id,
+        metadata: {
+          source: 'whatsapp_form',
+          formId: form._id,
+          responseId: response._id
+        }
+      });
+    } else {
+      automationEvents.contactUpdated({
+        workspaceId: response.workspace,
+        contactId: contact._id,
+        metadata: {
+          source: 'whatsapp_form',
+          formId: form._id,
+          responseId: response._id
+        }
+      });
+    }
+
+    automationEvents.contactTagAdded({
+      workspaceId: response.workspace,
+      contactId: contact._id,
+      metadata: {
+        source: 'whatsapp_form',
+        tag: formTag,
+        formId: form._id,
+        responseId: response._id
+      }
+    });
 
     response.contact = contact._id;
     response.convertedToLead = true;

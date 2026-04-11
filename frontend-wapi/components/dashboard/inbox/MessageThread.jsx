@@ -16,6 +16,15 @@ import {
   FaCheckDouble
 } from 'react-icons/fa';
 
+const statusStyles = {
+  open: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  pending: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  closed: 'bg-slate-500/10 text-slate-600 border-slate-500/20',
+  resolved: 'bg-slate-500/10 text-slate-600 border-slate-500/20',
+  snoozed: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
+  spam: 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+};
+
 const getStatusIcon = (status) => {
   switch (status) {
     case 'sent':
@@ -70,8 +79,15 @@ export default function MessageThread({
   contactLabels,
   messagesEndRef,
   bspReady,
-  workspace
+  workspace,
+  assignmentTeamId
 }) {
+  const visibleAgents = assignmentTeamId
+    ? agents.filter(agent => {
+        const agentTeamId = agent.team?._id?.toString?.() || agent.team?.toString?.() || null;
+        return agentTeamId === String(assignmentTeamId);
+      })
+    : agents;
 
   // Group messages with date separators and grouping logic
   const renderItems = [];
@@ -158,6 +174,26 @@ export default function MessageThread({
               </h2>
 
             </div>
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${statusStyles[selectedConversation?.status] || 'bg-muted text-muted-foreground border-border/60'}`}>
+                {selectedConversation?.status || 'open'}
+              </span>
+              {selectedConversation?.assignedTo?.name && (
+                <span className="px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-[9px] font-black uppercase tracking-widest border border-border/60">
+                  {selectedConversation.assignedTo.name === currentUser?.name ? 'Assigned to me' : `Assigned to ${selectedConversation.assignedTo.name}`}
+                </span>
+              )}
+              {selectedConversation?.team?.name && (
+                <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20">
+                  {selectedConversation.team.name}
+                </span>
+              )}
+              {selectedConversation?.snoozedUntil && selectedConversation?.status === 'snoozed' && (
+                <span className="px-2 py-0.5 rounded-md bg-violet-500/10 text-violet-600 text-[9px] font-black uppercase tracking-widest border border-violet-500/20">
+                  Snoozed until {new Date(selectedConversation.snoozedUntil).toLocaleString()}
+                </span>
+              )}
+            </div>
             <p className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest">
               {typingUsers?.[selectedConversationId]?.isTyping && typingUsers[selectedConversationId]?.agentId !== currentUser?._id ? (
                 <span className="text-primary animate-pulse">Typing...</span>
@@ -220,7 +256,7 @@ export default function MessageThread({
               className="bg-transparent border-none text-[12px] font-bold text-foreground/80 outline-none cursor-pointer pr-4"
             >
               <option value="">Unassigned</option>
-              {agents.map((agent, idx) => (
+              {visibleAgents.map((agent, idx) => (
                 <option key={agent._id || `agent-${idx}`} value={agent._id}>
                   {agent.name === currentUser?.name ? 'Me' : agent.name}
                 </option>

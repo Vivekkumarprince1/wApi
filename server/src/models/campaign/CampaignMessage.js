@@ -61,6 +61,7 @@ const CampaignMessageSchema = new mongoose.Schema({
   sentAt: { type: Date },
   deliveredAt: { type: Date },
   readAt: { type: Date },
+  repliedAt: { type: Date },
   failedAt: { type: Date },
   failureReason: { type: String },
   

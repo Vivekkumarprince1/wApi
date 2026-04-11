@@ -7,7 +7,7 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { useAuthStore } from '@/store/authStore';
+import { useAuthStore, useFeatureGate } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { FaLock, FaExclamationTriangle, FaWhatsapp, FaUserShield } from 'react-icons/fa';
 
@@ -19,6 +19,7 @@ import { FaLock, FaExclamationTriangle, FaWhatsapp, FaUserShield } from 'react-i
 export default function FeatureGate({ feature, children, fallback, comingSoon }) {
   const router = useRouter();
   const authState = useAuthStore();
+  const { gate } = useFeatureGate(feature || '');
 
   // Show loading state while checking permissions
   if (authState.loading) {
@@ -65,7 +66,16 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
   }
   // Feature-specific checks
   else {
-    switch (feature) {
+    // 1. Plan Check via Hook
+    if (!gate.allowed && feature) {
+      blocked = true;
+      reason = gate.reason || `Please upgrade your plan to unlock ${feature}`;
+      blockType = 'plan';
+    } 
+    
+    // 2. Role & Context Checks
+    if (!blocked) {
+      switch (feature) {
       case 'templates':
         if (!authState.stage1Complete) {
           blocked = true;
@@ -120,7 +130,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
           reason = 'Only the workspace Owner or Admin can access admin settings';
           blockType = 'role';
         }
-        break;
+      }
     }
   }
 
@@ -139,6 +149,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
     phone: <FaWhatsapp className="text-4xl text-[#13C18D]" />,
     role: <FaUserShield className="text-4xl text-yellow-500" />,
     auth: <FaLock className="text-4xl text-red-500" />,
+    plan: <FaLock className="text-4xl text-purple-500" />,
   };
 
   const actions = {
@@ -157,6 +168,10 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
       label: 'Log In',
       action: () => router.push('/auth/login'),
     },
+    plan: {
+      label: 'View Plans',
+      action: () => router.push('/dashboard/billing'),
+    },
   };
 
   return (
@@ -170,6 +185,7 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
           {blockType === 'phone' && 'WhatsApp Connection Required'}
           {blockType === 'role' && 'Access Restricted'}
           {blockType === 'auth' && 'Authentication Required'}
+          {blockType === 'plan' && 'Feature Locked'}
         </h3>
 
         <p className="text-muted-foreground mb-6">
@@ -197,36 +213,36 @@ export default function FeatureGate({ feature, children, fallback, comingSoon })
  * Hook to check if a button should be disabled
  */
 export function useFeatureAccess(feature) {
-  const workspace = useAuthStore(state => state.workspace);
+  const auth = useAuthStore();
 
   let disabled = false;
   let tooltip = '';
 
-  if (!workspace.user) {
-    return { disabled: true, tooltip: 'Please log in', loading: workspace.loading };
+  if (!auth.user) {
+    return { disabled: true, tooltip: 'Please log in', loading: auth.loading };
   }
 
   switch (feature) {
     case 'templates':
     case 'campaigns':
-      if (!workspace.stage1Complete) {
+      if (!auth.stage1Complete) {
         disabled = true;
         tooltip = 'Connect WhatsApp first';
-      } else if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
+      } else if (!['owner', 'manager', 'admin'].includes(auth.user.role)) {
         disabled = true;
         tooltip = 'Manager access required';
       }
       break;
 
     case 'messaging':
-      if (!workspace.stage1Complete) {
+      if (!auth.stage1Complete) {
         disabled = true;
         tooltip = 'Connect WhatsApp first';
       }
       break;
 
     case 'team':
-      if (!['owner', 'manager', 'admin'].includes(workspace.user.role)) {
+      if (!['owner', 'manager', 'admin'].includes(auth.user.role)) {
         disabled = true;
         tooltip = 'Manager access required';
       }
@@ -234,14 +250,14 @@ export function useFeatureAccess(feature) {
 
     case 'billing':
     case 'admin':
-      if (!['owner', 'admin'].includes(workspace.user.role)) {
+      if (!['owner', 'admin'].includes(auth.user.role)) {
         disabled = true;
         tooltip = 'Owner access required';
       }
       break;
   }
 
-  return { disabled, tooltip, loading: workspace.loading };
+  return { disabled, tooltip, loading: auth.loading };
 }
 
 /**

@@ -13,9 +13,10 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from "lucide-react";
-import { getAllUsers, updateUserRole } from "@/lib/api";
+import { getAllUsers, updateUserRole, deleteUser } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,9 @@ const UserDirectory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [pagination, setPagination] = useState({ page: 1, total: 0 });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -66,6 +70,20 @@ const UserDirectory = () => {
     } catch (err) {
       toast.error("Failed to update user status");
     }
+  };
+
+  const handleDeleteUser = async () => {
+    setIsDeleting(true);
+    try {
+      toast.loading("Removing user...", { id: "delete-user" });
+      await deleteUser(selectedUser._id);
+      toast.success("User removed successfully", { id: "delete-user" });
+      setShowDeleteModal(false);
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to delete user", { id: "delete-user" });
+    }
+    setIsDeleting(false);
   };
 
   return (
@@ -197,9 +215,18 @@ const UserDirectory = () => {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="p-6">
-                      <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors">
-                        <MoreVertical size={18} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => { setSelectedUser(user); setShowDeleteModal(true); }}
+                          className="p-2 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-lg transition-colors"
+                          title="Delete User"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                        <button className="p-2 hover:bg-slate-800 rounded-lg text-slate-500 hover:text-white transition-colors">
+                          <MoreVertical size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -231,6 +258,42 @@ const UserDirectory = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete User Modal */}
+      {showDeleteModal && selectedUser && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 max-w-md w-full shadow-2xl">
+            <div className="w-16 h-16 bg-red-600/10 rounded-2xl flex items-center justify-center text-red-500 mb-6">
+              <Trash2 size={32} />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-white mb-2">Total Purge: User & Workspace?</h2>
+            <p className="text-slate-400 mb-8 text-sm">
+              Are you sure you want to remove <span className="text-white font-bold">{selectedUser.name}</span>? 
+              <br /><br />
+              <span className="text-red-500 font-bold uppercase text-[10px] tracking-widest block mb-2">Warning: Permanent Deletion</span>
+              This will also **permanently delete the entire workspace**, all team members, campaigns, messages, and deregister the phone number from Gupshup. This action cannot be undone.
+            </p>
+
+            <div className="flex gap-4">
+              <button 
+                disabled={isDeleting}
+                onClick={handleDeleteUser}
+                className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                {isDeleting ? <Loader2 className="animate-spin" size={18} /> : null}
+                Delete User
+              </button>
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

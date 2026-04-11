@@ -18,6 +18,7 @@ const { Conversation, Message, Contact, User, Permission } = require('../../mode
 const { getIO } = require('../../utils/socket');
 const { uploadBufferToCloudinary } = require('../../utils/cloudinary');
 const inboxSocketService = require('../../services/messaging/inboxSocketService');
+const { automationEvents } = require('../../services/automation/automationEventEmitter');
 
 // Hardening services
 const softLockService = require('../../services/infrastructure/softLockService');
@@ -35,26 +36,66 @@ async function ensurePermissions(req) {
   let permission = await Permission.findOne({
     workspace: workspaceId,
     user: userId
-  }).lean();
+  }); // Removed .lean() to allow .save()
+
+  // Self-healing & Role Sync: 
+  // 1. Ensure Permission role matches the actual User role
+  const trueRole = req.user.role || permission?.role || 'viewer';
+  let needsSave = false;
+
+  if (permission && permission.role !== trueRole) {
+    console.log(`[INBOX] Syncing role for user ${userId}: ${permission.role} -> ${trueRole}`);
+    permission.role = trueRole;
+    permission.permissions = Permission.getDefaultPermissions(trueRole);
+    needsSave = true;
+  }
+
+  // 1.5 Self-healing: Ensure isActive is true if the session is valid
+  if (permission && !permission.isActive) {
+    console.log(`[INBOX] Self-healing: Reactivating permission for user ${userId}`);
+    permission.isActive = true;
+    needsSave = true;
+  }
+
+  // 2. Repair hollow or misconfigured permissions
+  const needsRepair = permission && !needsSave && (
+    !permission.permissions || 
+    Object.keys(permission.permissions || {}).length < 5 ||
+    (['owner', 'admin', 'manager'].includes(permission.role) && !permission.permissions.viewAllConversations)
+  );
+
+  if (needsRepair) {
+    console.log(`[INBOX] Repairing permissions for role: ${permission.role}`);
+    permission.permissions = Permission.getDefaultPermissions(permission.role);
+    needsSave = true;
+  }
+
+  if (needsSave) {
+    await permission.save().catch(err => console.error('[INBOX] Failed to sync/repair permissions:', err.message));
+  }
 
   if (!permission) {
+    // Stage 4 Hardening: If User record doesn't exist for this ID, the session is stale.
+    // Return 401 to force frontend to refresh/logout.
     const user = await User.findById(userId).select('role').lean();
-    const role = user?.role || 'viewer';
+    if (!user) {
+      console.warn(`[INBOX] Stale session detected for user ID: ${userId}. Forcing re-auth.`);
+      return null; // Controller handles this as 401/403
+    }
+
+    const role = user.role || 'viewer';
     const defaultPermissions = Permission.getDefaultPermissions(role);
 
-    permission = {
-      role,
-      permissions: defaultPermissions,
-      isActive: true
-    };
-
-    Permission.create({
+    permission = await Permission.create({
       workspace: workspaceId,
       user: userId,
       role,
       permissions: defaultPermissions,
       isActive: true
-    }).catch(err => console.error('[INBOX] Failed to seed permissions:', err.message));
+    }).catch(err => {
+      console.error('[INBOX] Failed to seed permissions:', err.message);
+      return { role, permissions: defaultPermissions };
+    });
   }
 
   req.permissions = permission;
@@ -69,7 +110,7 @@ async function ensurePermissions(req) {
  * Assign conversation to an agent
  * POST /api/inbox/:conversationId/assign
  * 
- * Only OWNER and MANAGER can assign conversations
+ * Owners/Admins can assign globally; managers are scoped to their team.
  */
 exports.assignConversation = async (req, res) => {
   try {
@@ -78,11 +119,16 @@ exports.assignConversation = async (req, res) => {
     const workspaceId = req.user.workspace;
     const assignedById = req.user._id;
 
-    // Validate agent exists and belongs to workspace
+    // 1. Permission Check
+    const permission = await ensurePermissions(req);
+    const isGlobalAssigner = ['owner', 'admin'].includes(permission?.role);
+    const actorTeamId = req.user.team?.toString() || null;
+    
+    // 2. Validate agent exists and belongs to workspace
     const agent = await User.findOne({
       _id: agentId,
       workspace: workspaceId
-    }).select('_id name email');
+    }).select('_id name email team');
 
     if (!agent) {
       return res.status(404).json({
@@ -92,7 +138,43 @@ exports.assignConversation = async (req, res) => {
       });
     }
 
-    // Check agent has permission to receive assignments
+    // 3. Team Boundary Validation for team-scoped assigners
+    if (!isGlobalAssigner) {
+      if (!actorTeamId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You must belong to a team to assign conversations',
+          code: 'TEAM_REQUIRED'
+        });
+      }
+
+      const targetTeamId = agent.team?.toString() || null;
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        workspace: workspaceId
+      }).select('team assignedTo status');
+
+      if (!conversation) {
+        return res.status(404).json({
+          success: false,
+          message: 'Conversation not found',
+          code: 'CONVERSATION_NOT_FOUND'
+        });
+      }
+
+      const conversationTeamId = conversation.team?.toString() || null;
+      const scopedTeamId = conversationTeamId || actorTeamId;
+
+      if (scopedTeamId !== actorTeamId || targetTeamId !== actorTeamId) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only assign conversations to members of your own team',
+          code: 'TEAM_RESTRICTION'
+        });
+      }
+    }
+
+    // 4. Check agent has permission to receive assignments (target agent)
     const agentPermission = await Permission.findOne({
       workspace: workspaceId,
       user: agentId,
@@ -125,6 +207,15 @@ exports.assignConversation = async (req, res) => {
 
     // Use the model method for assignment
     conversation.assignTo(agentId, assignedById);
+    
+    // Update team reference to match the active team scope
+    if (isGlobalAssigner) {
+      if (agent.team) {
+        conversation.team = agent.team;
+      }
+    } else if (actorTeamId) {
+      conversation.team = actorTeamId;
+    }
 
     // Reopen if closed
     if (conversation.status === 'closed') {
@@ -170,6 +261,25 @@ exports.assignConversation = async (req, res) => {
         });
       }
     }
+
+    automationEvents.conversationAssigned({
+      workspaceId,
+      conversationId: conversation._id,
+      contactId: conversation.contact?._id || conversation.contact,
+      metadata: {
+        assignedTo: {
+          _id: agent._id,
+          name: agent.name,
+          email: agent.email
+        },
+        assignedBy: {
+          _id: req.user._id,
+          name: req.user.name
+        },
+        previousAssignee: previousAssignee?.toString() || null,
+        teamId: conversation.team?._id?.toString?.() || conversation.team?.toString?.() || null
+      }
+    });
 
     console.log(`[INBOX] Conversation ${conversationId} assigned to ${agent.name} by ${req.user.name}`);
 
@@ -245,6 +355,20 @@ exports.unassignConversation = async (req, res) => {
       });
     }
 
+    automationEvents.conversationUnassigned({
+      workspaceId,
+      conversationId: conversation._id,
+      contactId: conversation.contact?._id || conversation.contact,
+      metadata: {
+        unassignedBy: {
+          _id: req.user._id,
+          name: req.user.name
+        },
+        previousAssignee: previousAssignee?.toString() || null,
+        teamId: conversation.team?._id?.toString?.() || conversation.team?.toString?.() || null
+      }
+    });
+
     console.log(`[INBOX] Conversation ${conversationId} unassigned by ${req.user.name}`);
 
     res.json({
@@ -314,6 +438,26 @@ exports.claimConversation = async (req, res) => {
       });
     }
 
+    automationEvents.conversationAssigned({
+      workspaceId,
+      conversationId: conversation._id,
+      contactId: conversation.contact?._id || conversation.contact,
+      metadata: {
+        assignedTo: {
+          _id: req.user._id,
+          name: req.user.name,
+          email: req.user.email
+        },
+        assignedBy: {
+          _id: req.user._id,
+          name: req.user.name
+        },
+        previousAssignee: null,
+        claimed: true,
+        teamId: conversation.team?._id?.toString?.() || conversation.team?.toString?.() || null
+      }
+    });
+
     console.log(`[INBOX] Conversation ${conversationId} claimed by ${req.user.name}`);
 
     res.json({
@@ -363,10 +507,10 @@ exports.closeConversation = async (req, res) => {
     // Check if agent can close this conversation
     const permission = await ensurePermissions(req);
     if (!permission) {
-      return res.status(403).json({
+      return res.status(401).json({
         success: false,
-        message: 'No permissions found',
-        code: 'NO_PERMISSIONS'
+        message: 'Session expired or user not found. Please login again.',
+        code: 'STALE_SESSION'
       });
     }
     if (permission.role === 'agent' &&
@@ -402,6 +546,19 @@ exports.closeConversation = async (req, res) => {
         }
       });
     }
+
+    automationEvents.conversationClosed({
+      workspaceId,
+      conversationId: conversation._id,
+      contactId: conversation.contact?._id || conversation.contact,
+      metadata: {
+        closedBy: {
+          _id: req.user._id,
+          name: req.user.name
+        },
+        resolution: resolution || null
+      }
+    });
 
     console.log(`[INBOX] Conversation ${conversationId} closed by ${req.user.name}`);
 
@@ -471,6 +628,18 @@ exports.reopenConversation = async (req, res) => {
         }
       });
     }
+
+    automationEvents.conversationReopened({
+      workspaceId,
+      conversationId: conversation._id,
+      contactId: conversation.contact?._id || conversation.contact,
+      metadata: {
+        reopenedBy: {
+          _id: req.user._id,
+          name: req.user.name
+        }
+      }
+    });
 
     console.log(`[INBOX] Conversation ${conversationId} reopened by ${req.user.name}`);
 
@@ -921,10 +1090,10 @@ exports.getInbox = async (req, res) => {
     const agentId = req.user._id;
     const permission = await ensurePermissions(req);
     if (!permission) {
-      return res.status(403).json({
+      return res.status(401).json({
         success: false,
-        message: 'No permissions found',
-        code: 'NO_PERMISSIONS'
+        message: 'Session expired or user not found. Please login again.',
+        code: 'STALE_SESSION'
       });
     }
 
@@ -947,29 +1116,73 @@ exports.getInbox = async (req, res) => {
     } else if (view === 'unassigned') {
       query.assignedTo = null;
       query.status = { $ne: 'spam' };
+      
+      // Team isolation for unassigned
+      const hasAllAccess = permission.role === 'owner' || permission.role === 'admin' || permission.role === 'manager' || permission.permissions?.viewAllConversations;
+      
+      if (!hasAllAccess) {
+        const userTeams = await Team.find({ workspaceId, 'members.user': agentId, isActive: true }).select('_id').lean();
+        if (userTeams.length > 0) {
+          query.team = { $in: userTeams.map(t => t._id) };
+        } else {
+          // If no team, and no all-access, they see nothing unassigned? 
+          // Or they see unassigned that are NOT in any team?
+          // Let's hide all if no team membership.
+          query.team = { $exists: false, $eq: null }; 
+        }
+      }
     } else if (view === 'resolved') {
       query.status = { $in: ['closed', 'resolved'] };
     } else if (view === 'snoozed') {
       query.status = 'snoozed';
     } else if (view === 'spam') {
       query.status = 'spam';
-    } else if (view === 'all') {
-      // Only owners/admins/managers can view all
-      if (permission.role !== 'owner' && permission.role !== 'admin' && permission.role !== 'manager' &&
-        !permission.permissions?.viewAllConversations) {
-        return res.status(403).json({
-          success: false,
-          message: 'Insufficient permissions to view all conversations',
-          code: 'PERMISSION_DENIED'
-        });
+    } else if (view === 'team') {
+      // Fetch user's teams
+      const userTeams = await Team.find({ workspaceId, 'members.user': agentId, isActive: true }).select('_id members').lean();
+      
+      if (userTeams.length > 0) {
+        const teamIds = userTeams.map(t => t._id);
+        const memberIds = [...new Set(userTeams.flatMap(t => t.members.map(m => m.user.toString())))];
+        
+        query.$or = [
+          { assignedTo: { $in: memberIds } },
+          { team: { $in: teamIds } }
+        ];
+      } else {
+        query.assignedTo = agentId; // Fallback to mine if no team
       }
-      // No assignedTo filter - show all
+    } else if (view === 'all') {
+      // Only owners/admins/managers can view all by default
+      const hasAllAccess = permission.role === 'owner' || permission.role === 'admin' || permission.role === 'manager' || permission.permissions?.viewAllConversations;
+      
+      if (!hasAllAccess) {
+        // Find if user belongs to any teams
+        const userTeams = await Team.find({ workspaceId, 'members.user': agentId, isActive: true }).select('_id visibility members').lean();
+        
+        if (userTeams.length > 0) {
+          // If in a team, allow viewing all team conversations as a "View All" fallback
+          const teamIds = userTeams.map(t => t._id);
+          const memberIds = [...new Set(userTeams.flatMap(t => t.members.map(m => m.user.toString())))];
+          
+          query.$or = [
+            { assignedTo: { $in: memberIds } },
+            { team: { $in: teamIds } }
+          ];
+        } else {
+          return res.status(403).json({
+            success: false,
+            message: 'Insufficient permissions to view all conversations',
+            code: 'PERMISSION_DENIED'
+          });
+        }
+      }
     }
 
     // Status override (if explicitly provided in query)
     if (status) {
       query.status = status;
-    } else if (!['resolved', 'snoozed', 'spam'].includes(view)) {
+    } else if (view !== 'all' && !['resolved', 'snoozed', 'spam'].includes(view)) {
       // Default: show open and pending if not in a specific status-driven view
       query.status = { $in: ['open', 'pending'] };
     }
@@ -1144,6 +1357,7 @@ exports.getConversation = async (req, res) => {
     })
       .populate('contact')
       .populate('assignedTo', 'name email')
+      .populate('team', 'name')
       .populate('assignedBy', 'name email')
       .populate('lastRepliedBy', 'name email')
       .populate('statusChangedBy', 'name email')
@@ -1157,6 +1371,31 @@ exports.getConversation = async (req, res) => {
         message: 'Conversation not found',
         code: 'CONVERSATION_NOT_FOUND'
       });
+    }
+
+    // Access Control Hardening: Check if agent can view this specific conversation
+    const permission = await ensurePermissions(req);
+    const isOwnerOrAdmin = ['owner', 'admin', 'manager'].includes(permission?.role) || permission?.permissions?.viewAllConversations;
+    
+    if (!isOwnerOrAdmin) {
+      const isAssigned = conversation.assignedTo?._id?.toString() === agentId.toString();
+      
+      if (!isAssigned) {
+        // If not assigned, check if it belongs to user's team
+        const userTeams = await Team.find({ workspaceId, 'members.user': agentId, isActive: true }).select('_id').lean();
+        const teamIds = userTeams.map(t => t._id.toString());
+        const conversationTeamId = conversation.team?._id?.toString() || conversation.team?.toString();
+        
+        const isTeamChat = conversationTeamId && teamIds.includes(conversationTeamId);
+        
+        if (!isTeamChat) {
+          return res.status(403).json({
+            success: false,
+            message: 'You do not have permission to view this conversation',
+            code: 'ACCESS_DENIED'
+          });
+        }
+      }
     }
 
     // Add agent-specific unread count
@@ -1189,6 +1428,7 @@ exports.getConversation = async (req, res) => {
 exports.getAvailableAgents = async (req, res) => {
   try {
     const workspaceId = req.user.workspace;
+    const teamFilterId = req.query.team ? String(req.query.team) : null;
 
     // Get all active permissions in workspace
     const permissions = await Permission.find({
@@ -1224,8 +1464,13 @@ exports.getAvailableAgents = async (req, res) => {
       name: p.user.name,
       email: p.user.email,
       role: p.role,
+      team: p.user.team || null,
       activeConversations: countMap[p.user._id.toString()] || 0
-    }));
+    })).filter(agent => {
+      if (!teamFilterId) return true;
+      const agentTeamId = agent.team?._id?.toString?.() || agent.team?.toString?.() || null;
+      return agentTeamId === teamFilterId;
+    });
 
     res.json({
       success: true,
@@ -1495,7 +1740,7 @@ exports.sendMediaMessage = async (req, res) => {
     const workspaceId = req.user.workspace;
     const agentId = req.user._id;
 
-    const validTypes = ['image', 'document', 'video', 'audio'];
+    const validTypes = ['image', 'document', 'video', 'audio', 'sticker', 'gif'];
     if (!mediaType || !validTypes.includes(mediaType)) {
       return res.status(400).json({
         success: false,

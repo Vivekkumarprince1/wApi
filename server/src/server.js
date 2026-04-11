@@ -108,6 +108,7 @@ if (env === 'development') app.use(morgan('dev'));
 
 // Import init service
 const { initializeDefaultWABA } = require('./services/infrastructure/initService');
+const { bootstrap: bootstrapSystem } = require('./services/infrastructure/bootstrapService');
 
 // Connect to MongoDB (supports in-memory for local dev)
 async function startDB() {
@@ -123,7 +124,8 @@ async function startDB() {
       await mongoose.connect(mongoUri);
       console.log('MongoDB connected');
 
-      // Initialize WABA credentials for workspaces after DB connection
+      // Bootstrap system records (Plans, etc.)
+      await bootstrapSystem();
       // await initializeDefaultWABA(); // Disabled to prevent E11000 duplicate key errors in multi-tenant setup
     } catch (err) {
       console.error('MongoDB connection error:', err);
@@ -268,7 +270,7 @@ app.use('/api/v1/team', teamRoutes);
 app.use('/api/v1/templates', templateRoutes);
 app.use('/api/v1/conversations', conversationRoutes);
 app.use('/api/v1/inbox', inboxRoutes); // Stage 4: Shared Inbox
-app.use('/api/v1/inbox', inboxSendRoutes); // WhatsApp Inbox: flat send POST /api/v1/inbox/messages
+// app.use('/api/v1/inbox', inboxSendRoutes); // Disabled: flat inbox send shortcut is not used by the inbox UI
 app.use('/api/v1/inbox', internalNotesRoutes); // Stage 4 Hardening: Internal Notes
 app.use('/api/v1/metrics', metricsRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);

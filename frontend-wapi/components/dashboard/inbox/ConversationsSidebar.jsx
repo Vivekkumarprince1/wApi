@@ -1,7 +1,17 @@
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaSearch, FaPlus, FaArchive, FaUser, FaChartBar } from 'react-icons/fa';
+import { FaSearch, FaArchive, FaUser, FaChartBar, FaLock } from 'react-icons/fa';
 import FlashLoader from '@/components/ui/FlashLoader';
+import { toast } from '@/lib/toast';
+
+const statusStyles = {
+  open: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  pending: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
+  closed: 'bg-slate-500/10 text-slate-600 border-slate-500/20',
+  resolved: 'bg-slate-500/10 text-slate-600 border-slate-500/20',
+  snoozed: 'bg-violet-500/10 text-violet-600 border-violet-500/20',
+  spam: 'bg-rose-500/10 text-rose-600 border-rose-500/20'
+};
 
 export default function ConversationsSidebar({
   conversations,
@@ -12,15 +22,17 @@ export default function ConversationsSidebar({
   handleSelectContact,
   currentView,
   setCurrentView,
-  openStartConversationModal,
   activeFilters,
   setActiveFilters,
   agents,
   contactLabels,
   connected,
   typingUsers,
-  currentUser
+  currentUser,
+  permissions
 }) {
+  const allViews = ['all', 'mine', 'team', 'unassigned', 'resolved', 'snoozed'];
+
   return (
     <div className="w-[300px] lg:w-[340px] flex-shrink-0 border-r border-border bg-card/80 backdrop-blur-xl flex flex-col z-10 transition-all duration-500">
       {/* Search Bar section */}
@@ -46,32 +58,38 @@ export default function ConversationsSidebar({
           >
             <FaChartBar size={16} className="group-hover:scale-110 transition-transform" />
           </Link>
-
-          <button
-            onClick={openStartConversationModal}
-            className="p-2.5 bg-primary text-primary-foreground rounded-xl hover:brightness-110 shadow-lg hover:shadow-primary/20 transition-all active:scale-95 flex-1 flex items-center justify-center gap-2"
-            title="Start New Conversation"
-          >
-            <FaPlus size={12} />
-            <span className="text-sm font-bold tracking-tight">New Chat</span>
-          </button>
         </div>
       </div>
 
-      {/* Tabs / Filtering */}
       <div className="px-4 py-3 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-border/40 scrollbar-hide">
-        {['all', 'mine', 'unassigned', 'resolved', 'snoozed'].map(view => (
-          <button
-            key={view}
-            onClick={() => setCurrentView(view)}
-            className={`px-3.5 py-1.5 text-[11px] font-bold rounded-lg capitalize transition-all border whitespace-nowrap ${currentView === view
-              ? 'bg-primary/10 border-primary/20 text-primary shadow-sm'
-              : 'bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-              }`}
-          >
-            {view}
-          </button>
-        ))}
+        {allViews.map(view => {
+          const isRestricted = !permissions?.viewAllConversations && (view === 'all');
+          const isTeamRestricted = view === 'team' && !currentUser?.team;
+          
+          if (view === 'team' && !currentUser?.team) return null; // Hide team tab if user has no team
+
+          return (
+            <button
+              key={view}
+              onClick={() => {
+                if (isRestricted) {
+                  toast.error('Permission required to view all conversations');
+                } else if (isTeamRestricted) {
+                  toast.error('You are not assigned to any team');
+                } else {
+                  setCurrentView(view);
+                }
+              }}
+              className={`px-3.5 py-1.5 text-[11px] font-bold rounded-lg capitalize transition-all border whitespace-nowrap flex items-center gap-1.5 ${currentView === view
+                ? 'bg-primary/10 border-primary/20 text-primary shadow-sm'
+                : 'bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+                } ${isRestricted ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              <span>{view}</span>
+              {isRestricted && <FaLock size={8} className="opacity-70" />}
+            </button>
+          );
+        })}
       </div>
 
       {/* Connection Indicator */}
@@ -174,6 +192,17 @@ export default function ConversationsSidebar({
                           </span>
                         </div>
                       )}
+
+                      <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                        <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${statusStyles[conversation.status] || 'bg-muted text-muted-foreground border-border/60'}`}>
+                          {conversation.status || 'open'}
+                        </span>
+                        {conversation.assignedTo?.name && (
+                          <span className="px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-[9px] font-black uppercase tracking-widest border border-border/60">
+                            {conversation.assignedTo.name === currentUser?.name ? 'Assigned to me' : `Assigned to ${conversation.assignedTo.name}`}
+                          </span>
+                        )}
+                      </div>
 
                       <div className="flex justify-between items-center gap-2">
                         <p className={`text-[12.5px] truncate font-medium ${isSelected ? 'text-muted-foreground' : 'text-muted-foreground/80'}`}>

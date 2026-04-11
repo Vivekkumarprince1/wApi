@@ -329,13 +329,22 @@ async function sendMedia({ appId, destination, mediaType, mediaUrl, caption, app
   if (!appId) throw new Error('GUPSHUP_APP_ID_MISSING');
 
   const normalized = normalizePhoneNumber(destination);
+  const normalizedMediaType = String(mediaType || '').toLowerCase();
 
   const mediaObject = { link: mediaUrl };
-  if (caption && ['image', 'video', 'document'].includes(mediaType)) {
+  if (caption && ['image', 'video', 'document'].includes(normalizedMediaType)) {
     mediaObject.caption = caption;
   }
-  if (mediaType === 'document' && !mediaObject.filename) {
+  if (normalizedMediaType === 'document' && !mediaObject.filename) {
     mediaObject.filename = 'document';
+  }
+
+  if (normalizedMediaType === 'sticker') {
+    mediaObject.link = mediaUrl;
+  }
+
+  if (normalizedMediaType === 'gif') {
+    mediaObject.link = mediaUrl;
   }
 
   const payload = buildPartnerV3Envelope({
@@ -344,12 +353,12 @@ async function sendMedia({ appId, destination, mediaType, mediaUrl, caption, app
     destination: normalized,
     sourceName: appId,
     message: {
-      type: mediaType,
-      [mediaType]: mediaObject
+      type: normalizedMediaType === 'gif' ? 'image' : normalizedMediaType,
+      [normalizedMediaType === 'gif' ? 'image' : normalizedMediaType]: mediaObject
     }
   });
 
-  console.info(`[GupshupService] Sending ${mediaType} message`, {
+  console.info(`[GupshupService] Sending ${normalizedMediaType} message`, {
     appId,
     to: normalized
   });
@@ -358,7 +367,7 @@ async function sendMedia({ appId, destination, mediaType, mediaUrl, caption, app
     const data = await postPartnerV3Message({ appId, appApiKey, payload });
     const messageId = extractPartnerMessageId(data);
 
-    console.info(`[GupshupService] ${mediaType} message sent`, {
+    console.info(`[GupshupService] ${normalizedMediaType} message sent`, {
       messageId,
       phone: normalized
     });
@@ -369,7 +378,7 @@ async function sendMedia({ appId, destination, mediaType, mediaUrl, caption, app
       ...data
     };
   } catch (error) {
-    console.error(`[GupshupService] sendMedia ${mediaType} error`, {
+    console.error(`[GupshupService] sendMedia ${normalizedMediaType} error`, {
       message: error.message,
       response: error.response?.data
     });
@@ -1111,9 +1120,12 @@ async function markAppForMigration(appId) {
   const url = `${bspConfig.partnerBaseUrl}/partner/app/${appId}/onboarding/phoneMigration`;
 
   return withPartnerAuth(async (headers) => {
-    const response = await axios.post(url, "", {
+    const body = new URLSearchParams();
+    body.set('migrationStatus', 'META_EMBED_MIGRATION');
+    const response = await axios.post(url, body.toString(), {
       headers: {
-        ...headers
+        ...headers,
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       timeout: 15000
     });

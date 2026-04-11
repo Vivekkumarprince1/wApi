@@ -118,17 +118,17 @@ export default function VerifyEmailPage() {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-muted-foreground">Step 1 of 2</span>
+            <span className="text-sm font-medium text-muted-foreground">Step 1 of 3</span>
             <span className="text-sm font-medium text-primary">Verify Email</span>
           </div>
           <div className="w-full bg-border rounded-full h-2">
-            <div className="bg-green-600 h-2 rounded-full" style={{ width: '50%' }}></div>
+            <div className="bg-emerald-600 h-2 rounded-full" style={{ width: '33%' }}></div>
           </div>
         </div>
 
         <div className="flex flex-col items-center mb-6">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <FaEnvelope className="text-3xl text-primary" />
+          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+            <FaEnvelope className="text-3xl text-emerald-600" />
           </div>
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Verify Your Email

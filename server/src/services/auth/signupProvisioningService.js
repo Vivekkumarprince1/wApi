@@ -3,6 +3,15 @@ const { Workspace, User } = require('../../models');
 const gupshupService = require('../bsp/gupshupService');
 const bspOnboardingServiceV2 = require('../bsp/bspOnboardingServiceV2');
 
+function buildContactSyncFingerprint({ appId, contactName, contactEmail, contactNumber }) {
+    return [
+        String(appId || '').trim(),
+        String(contactName || '').trim().toLowerCase(),
+        String(contactEmail || '').trim().toLowerCase(),
+        String(contactNumber || '').trim()
+    ].join('|');
+}
+
 /**
  * Handles the background provisioning of a Gupshup app and Meta embedded signup
  * immediately after a user registers.
@@ -21,6 +30,24 @@ async function processSignupProvisioning(userId, workspaceId, contactInfo) {
 
         const user = await User.findById(userId);
         if (!user) throw new Error(`User not found: ${userId}`);
+
+        const existingAppId = workspace.gupshupIdentity?.partnerAppId || workspace.gupshupAppId;
+        const cleanContactPayload = {
+            appId: existingAppId,
+            contactName: contactInfo.name || user.name || workspace.name || `workspace-${workspaceId}`,
+            contactEmail: contactInfo.email || user.email,
+            contactNumber: contactInfo.phone || user.phone || ''
+        };
+        const requestedFingerprint = buildContactSyncFingerprint(cleanContactPayload);
+
+        if (
+            existingAppId &&
+            workspace.esbFlow?.contactSyncFingerprint === requestedFingerprint &&
+            workspace.esbFlow?.notes
+        ) {
+            console.log(`[Provisioning] Reusing existing provisioning state for App ${existingAppId} (contact already synced)`);
+            return { success: true, appId: existingAppId, embedUrl: workspace.esbFlow.notes, reused: true };
+        }
 
         // Update status to indicate we started
         workspace.esbFlow = {
@@ -56,10 +83,16 @@ async function processSignupProvisioning(userId, workspaceId, contactInfo) {
         // Provide defaults if missing, phone needs to be valid E164 if possible
         await gupshupService.updateOnboardingContact({
             appId,
-            contactEmail: contactInfo.email || user.email,
-            contactName: contactInfo.name || user.name || cleanAppName,
-            contactNumber: contactInfo.phone || '919999999999' // Needs a fallback if phone wasn't provided (social logs)
+            contactEmail: cleanContactPayload.contactEmail,
+            contactName: cleanContactPayload.contactName,
+            contactNumber: cleanContactPayload.contactNumber || '919999999999' // Needs a fallback if phone wasn't provided (social logs)
         });
+
+        workspace.esbFlow = {
+            ...workspace.esbFlow,
+            contactSyncFingerprint: requestedFingerprint,
+            contactSyncedAt: new Date()
+        };
 
         // 4. Get App Token
         console.log(`[Provisioning] Step 3: Resolving App Access Token for config`);
@@ -100,7 +133,8 @@ async function processSignupProvisioning(userId, workspaceId, contactInfo) {
             workspace.esbFlow = {
                 ...workspace.esbFlow,
                 callbackState: trackingId, // Usually our own ID as tracking ID
-                notes: embedUrl // storing here for easy retrieval
+                notes: embedUrl, // storing here for easy retrieval
+                embedUrl
             };
 
             console.log(`[Provisioning] ✅ Embed Link Generated successfully.`);

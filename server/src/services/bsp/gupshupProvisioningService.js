@@ -138,18 +138,19 @@ async function provisionPartnerApp(userId, options = {}) {
     let appName = options.businessName || workspace.name || `WABA${workspace._id.toString().substring(0, 8)}`;
 
     // Gupshup requires appName to be alphanumeric only, and between 6 and 150 characters
-    appName = appName.replace(/[^a-zA-Z0-9]/g, '');
+    let baseName = (options.businessName || workspace.name || `WABA${workspace._id.toString().substring(0, 8)}`)
+        .replace(/[^a-zA-Z0-9]/g, '');
+    
+    // Ensure base name is not too long to accommodate suffix
+    if (baseName.length > 35) baseName = baseName.substring(0, 35);
+    if (baseName.length < 5) baseName = `${baseName}WABA`;
 
-    // Append a unique suffix to prevent 409 "Bot Already Exists" cross-tenant collisions
-    const uniqueSuffix = Date.now().toString(36).substring(4);
-    appName = `${appName}${uniqueSuffix}`;
+    const generateUniqueName = () => {
+        const uniqueSuffix = crypto.randomBytes(4).toString('hex');
+        return `${baseName}${uniqueSuffix}`.substring(0, 50).toLowerCase();
+    };
 
-    if (appName.length < 6) {
-        appName = `${appName}WABA`.substring(0, 50);
-    } else if (appName.length > 50) {
-        // Gupshup typically errors on very long names in partner API despite the 150 limit stated, safely truncating to 50
-        appName = appName.substring(0, 50);
-    }
+    appName = generateUniqueName();
 
     // Mark Onboarding Started
     workspace.onboardingStatus = 'ONBOARDING_STARTED';
@@ -163,7 +164,21 @@ async function provisionPartnerApp(userId, options = {}) {
         console.log(`[Provisioning] Step 2: App already exists (${appId}), skipping creation.`);
     } else {
         console.log(`[Provisioning] Step 2: No existing app found, creating "${appName}"`);
-        const newApp = await gupshupService.createPartnerApp(appName);
+        let newApp;
+        try {
+            newApp = await gupshupService.createPartnerApp(appName);
+        } catch (err) {
+            // Handle 409 Conflict: Bot Already Exists
+            if (err.response?.status === 409 || err.message?.includes('Already Exists')) {
+                const retryName = generateUniqueName();
+                console.log(`[Provisioning] Step 2: App name "${appName}" collision. Retrying with "${retryName}"`);
+                newApp = await gupshupService.createPartnerApp(retryName);
+                appName = retryName; // Update appName for subsequent logs/metadata
+            } else {
+                throw err;
+            }
+        }
+
         if (!newApp || !newApp.appId) {
             throw new Error('Failed to create Gupshup app');
         }

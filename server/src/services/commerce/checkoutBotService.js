@@ -1,4 +1,4 @@
-const { CheckoutCart, Order, Product, Workspace, Contact } = require('../../models');
+const { CheckoutCart, Order, Product, Workspace, Contact, CommerceSettings } = require('../../models');
 const whatsappService = require('../bsp/bspMessagingService');
 
 /**
@@ -96,6 +96,240 @@ class CheckoutBotService {
     } catch (err) {
       throw new Error(`Product selection failed: ${err.message}`);
     }
+  }
+
+  /**
+   * Process an inbound message and advance the checkout flow.
+   */
+  static async processInboundMessage(workspaceId, contactId, conversationId, text, options = {}) {
+    try {
+      const commerceSettings = await CommerceSettings.findOne({ workspaceId }).lean();
+      if (!commerceSettings?.enabled) {
+        return { success: false, handled: false, reason: 'commerce_disabled' };
+      }
+
+      const normalizedText = String(text || '').trim();
+      const lowerText = normalizedText.toLowerCase();
+      let cart = await CheckoutCart.findOne({ workspaceId, contactId }).active();
+
+      if (cart) {
+        cart.lastInteractionAt = new Date();
+        cart.messageCount = (cart.messageCount || 0) + 1;
+        await cart.save();
+      }
+
+      if (!cart) {
+        if (!this.looksLikeCommerceIntent(lowerText)) {
+          return { success: false, handled: false, reason: 'no_commerce_intent' };
+        }
+
+        const initialized = await this.initializeCheckout(workspaceId, contactId, conversationId);
+        const selection = await this.showProductSelection(workspaceId, contactId, options.category || null);
+
+        await this.sendBotMessage(
+          workspaceId,
+          contactId,
+          `${initialized.message}\n\n${this.buildCatalogMessage(selection.products)}`
+        );
+
+        return {
+          success: true,
+          handled: true,
+          state: selection.state,
+          products: selection.products,
+          message: selection.message
+        };
+      }
+
+      if (cart.state === 'welcome' || cart.state === 'product_selection') {
+        if (this.looksLikeCatalogRequest(lowerText)) {
+          const selection = await this.showProductSelection(workspaceId, contactId, cart.currentContext?.selectedCategory || options.category || null);
+          await this.sendBotMessage(workspaceId, contactId, `${selection.message}\n\n${this.buildCatalogMessage(selection.products)}`);
+          return {
+            success: true,
+            handled: true,
+            state: selection.state,
+            products: selection.products
+          };
+        }
+
+        const product = await this.findProductFromMessage(workspaceId, cart, normalizedText);
+        if (product) {
+          const result = await this.selectProduct(workspaceId, contactId, product._id);
+          await this.sendBotMessage(workspaceId, contactId, result.message);
+          return {
+            success: true,
+            handled: true,
+            state: result.state,
+            product: result.product
+          };
+        }
+
+        const selection = await this.showProductSelection(workspaceId, contactId, cart.currentContext?.selectedCategory || options.category || null);
+        await this.sendBotMessage(
+          workspaceId,
+          contactId,
+          `${selection.message}\n\n${this.buildCatalogMessage(selection.products)}\nReply with a product number or name.`
+        );
+
+        return { success: true, handled: true, state: selection.state, products: selection.products };
+      }
+
+      if (cart.state === 'quantity_selection') {
+        const quantity = this.extractQuantity(normalizedText);
+        if (!quantity) {
+          await this.sendBotMessage(workspaceId, contactId, 'Reply with the quantity you want to order.');
+          return { success: true, handled: true, state: cart.state };
+        }
+
+        const result = await this.addToCart(workspaceId, contactId, quantity);
+        await this.sendBotMessage(
+          workspaceId,
+          contactId,
+          `${result.message}\nPlease share your delivery address in this format: name, phone, street, city, pincode.`
+        );
+
+        return {
+          success: true,
+          handled: true,
+          state: result.state,
+          total: result.total
+        };
+      }
+
+      if (cart.state === 'address_capture') {
+        const addressData = options.addressData || this.extractAddressFromText(normalizedText);
+        if (!addressData) {
+          await this.sendBotMessage(
+            workspaceId,
+            contactId,
+            'Share your delivery address as: name, phone, street, city, pincode.'
+          );
+          return { success: true, handled: true, state: cart.state };
+        }
+
+        const result = await this.captureAddress(workspaceId, contactId, addressData);
+        await this.sendBotMessage(
+          workspaceId,
+          contactId,
+          `${result.message}\nReply COD, Razorpay, Stripe or PayPal to continue.`
+        );
+
+        return {
+          success: true,
+          handled: true,
+          state: result.state,
+          total: result.total
+        };
+      }
+
+      if (cart.state === 'payment_pending') {
+        const paymentMethod = this.extractPaymentMethod(normalizedText) || options.paymentMethod;
+        if (!paymentMethod) {
+          await this.sendBotMessage(
+            workspaceId,
+            contactId,
+            'Reply COD, Razorpay, Stripe or PayPal to confirm the order.'
+          );
+          return { success: true, handled: true, state: cart.state };
+        }
+
+        const result = await this.initiatePayment(workspaceId, contactId, paymentMethod);
+        await this.sendBotMessage(workspaceId, contactId, result.message);
+
+        return {
+          success: true,
+          handled: true,
+          state: result.state,
+          order: result.order
+        };
+      }
+
+      return { success: false, handled: false, reason: 'unhandled_state' };
+    } catch (err) {
+      throw new Error(`Inbound checkout processing failed: ${err.message}`);
+    }
+  }
+
+  static looksLikeCommerceIntent(text) {
+    return /(buy|shop|order|catalog|product|products|pricing|checkout|cart|purchase|show me|available)/i.test(text);
+  }
+
+  static looksLikeCatalogRequest(text) {
+    return /(catalog|product|products|show|browse|menu|list)/i.test(text);
+  }
+
+  static buildCatalogMessage(products) {
+    if (!products?.length) {
+      return 'No products are available right now.';
+    }
+
+    const lines = products.map((product, index) => `${index + 1}. ${product.name} - ₹${product.price}`);
+    return ['Available products:', ...lines].join('\n');
+  }
+
+  static async findProductFromMessage(workspaceId, cart, text) {
+    const query = { workspaceId, isDeleted: false, isActive: true };
+    if (cart.currentContext?.selectedCategory) {
+      query.category = cart.currentContext.selectedCategory;
+    }
+
+    const products = await Product.find(query)
+      .select('_id name price category images stock')
+      .limit(10)
+      .lean();
+
+    if (!products.length) {
+      return null;
+    }
+
+    const numericChoice = Number.parseInt(text, 10);
+    if (Number.isInteger(numericChoice) && numericChoice >= 1 && numericChoice <= products.length) {
+      return products[numericChoice - 1];
+    }
+
+    const lowered = text.toLowerCase();
+    return products.find(product => {
+      const name = String(product.name || '').toLowerCase();
+      return name === lowered || name.includes(lowered) || lowered.includes(name);
+    }) || null;
+  }
+
+  static extractQuantity(text) {
+    const match = text.match(/\b([1-9]\d*)\b/);
+    if (!match) {
+      return null;
+    }
+
+    const quantity = Number.parseInt(match[1], 10);
+    return Number.isFinite(quantity) && quantity > 0 ? quantity : null;
+  }
+
+  static extractAddressFromText(text) {
+    const parts = text.split(/[\n,]+/).map(part => part.trim()).filter(Boolean);
+    if (parts.length < 5) {
+      return null;
+    }
+
+    const [name, phone, street, city, pincode, state, country] = parts;
+    return {
+      name: name || null,
+      phone: phone || null,
+      street: street || null,
+      city: city || null,
+      pincode: pincode || null,
+      state: state || null,
+      country: country || 'India'
+    };
+  }
+
+  static extractPaymentMethod(text) {
+    if (/\b(cod|cash|cash on delivery)\b/i.test(text)) return 'cod';
+    if (/\b(razorpay|razor pay)\b/i.test(text)) return 'razorpay';
+    if (/\b(stripe)\b/i.test(text)) return 'stripe';
+    if (/\b(paypal)\b/i.test(text)) return 'paypal';
+    if (/\b(upi|pay now|online)\b/i.test(text)) return 'upi';
+    return null;
   }
 
   /**
@@ -453,9 +687,11 @@ class CheckoutBotService {
       const workspace = await Workspace.findById(workspaceId);
       if (!workspace) throw new Error('Workspace not found');
 
-      // For now, just log the message
-      // In production, use Message.create() and enqueueSend()
-      console.log(`[CheckoutBot] Message to ${contact.phone}: ${messageBody}`);
+      await whatsappService.sendTextMessage(workspaceId, contact.phone, messageBody, {
+        contactId: contact._id,
+        messageType,
+        source: 'checkout_bot'
+      });
 
       return {
         success: true,

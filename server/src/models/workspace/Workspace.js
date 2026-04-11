@@ -120,6 +120,11 @@ const WorkspaceSchema = new mongoose.Schema({
     callbackReceived: { type: Boolean, default: false },
     callbackReceivedAt: { type: Date },
     callbackData: { type: mongoose.Schema.Types.Mixed }, // Raw callback data from Meta
+    // Provisioning sync markers
+    contactSyncFingerprint: { type: String },
+    contactSyncedAt: { type: Date },
+    subscriptionSyncedAt: { type: Date },
+    embedUrl: { type: String },
     // Timestamps
     startedAt: { type: Date },
     completedAt: { type: Date },

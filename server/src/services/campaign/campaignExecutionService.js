@@ -279,8 +279,6 @@ async function startCampaign(campaignId, workspaceId, userId) {
     // ══════════════════════════════════════════════════════════════════════════
     if (campaign.deliveryOptimization?.enabled) {
       const recipientCount = campaign.totals?.totalRecipients || 0;
-      // 1 credit per recipient for delivery optimization (RCS/Retry)
-      const creditsToPark = recipientCount * 1; 
       
       try {
         await walletService.parkBalance(workspaceId, creditsToPark, campaignId);

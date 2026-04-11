@@ -340,11 +340,101 @@ const sendLoginOTPEmail = async (email, otp, userName = '') => {
     throw error;
   }
 };
+/**
+ * Send team invitation email
+ */
+const sendInvitationEmail = async ({ email, tempPassword, inviterName, workspaceName, role }) => {
+  const transport = getTransporter();
+
+  const appName = process.env.APP_NAME || 'Interakt';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const loginLink = `${frontendUrl}/auth/login`;
+
+  if (!transport) {
+    console.log(`📧 [DEV MODE] Invitation for ${email} to join ${workspaceName}`);
+    console.log(`   Credentials: Password: ${tempPassword} | Link: ${loginLink}`);
+    return { success: true, devMode: true };
+  }
+
+  const mailOptions = {
+    from: `"${appName}" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+    to: email,
+    subject: `You've been invited to join ${workspaceName} on ${appName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f5;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 20px;">
+          <tr>
+            <td align="center">
+              <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+                <!-- Header -->
+                <tr>
+                  <td style="background: linear-gradient(135deg, #13C18D 0%, #0e8c6c 100%); padding: 30px; text-align: center; border-radius: 16px 16px 0 0;">
+                    <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 700;">${appName}</h1>
+                  </td>
+                </tr>
+                
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 40px 30px; text-align: center;">
+                    <h2 style="margin: 0 0 10px; color: #1f2937; font-size: 22px;">You're Invited!</h2>
+                    <p style="margin: 0 0 25px; color: #6b7280; font-size: 15px; line-height: 1.6;">
+                      Hi there,<br><br>
+                      <strong>${inviterName || 'An administrator'}</strong> has invited you to join the team <strong>${workspaceName}</strong> as a <strong>${role}</strong>.
+                    </p>
+                    
+                    <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 25px; margin: 20px 0; text-align: left;">
+                      <p style="margin: 0 0 10px; color: #6b7280; font-size: 13px; font-weight: 600; text-transform: uppercase;">Your Login Credentials</p>
+                      <p style="margin: 5px 0; color: #1f2937; font-size: 14px;"><strong>Email:</strong> ${email}</p>
+                      <p style="margin: 5px 0; color: #1f2937; font-size: 14px;"><strong>Temporary Password:</strong> <code style="background: #ffffff; padding: 2px 6px; border: 1px solid #d1d5db; border-radius: 4px; color: #13C18D;">${tempPassword}</code></p>
+                    </div>
+
+                    <a href="${loginLink}" style="display: inline-block; background: linear-gradient(135deg, #13C18D 0%, #0e8c6c 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; margin-top: 20px;">Log In to Your Account</a>
+                    
+                    <p style="margin: 25px 0 0; color: #9ca3af; font-size: 13px;">
+                      For security reasons, we recommend changing your password after your first login.
+                    </p>
+                  </td>
+                </tr>
+                
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 20px 30px; background-color: #f9fafb; border-radius: 0 0 16px 16px; text-align: center;">
+                    <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                      © ${new Date().getFullYear()} ${appName}. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `,
+    text: `You've been invited to join ${workspaceName} on ${appName}\n\nLogin Email: ${email}\nTemporary Password: ${tempPassword}\n\nLog in here: ${loginLink}`
+  };
+
+  try {
+    const info = await transport.sendMail(mailOptions);
+    console.log(`📧 Invitation email sent to ${email}: ${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`❌ Failed to send invitation email to ${email}:`, error.message);
+    throw error;
+  }
+};
 
 module.exports = {
   sendVerificationEmail,
   sendPasswordResetEmail,
   sendSignupOTPEmail,
   sendLoginOTPEmail,
+  sendInvitationEmail,
   getTransporter
 };

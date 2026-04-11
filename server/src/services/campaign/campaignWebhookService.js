@@ -1,7 +1,6 @@
 const { Campaign, CampaignBatch, CampaignMessage, Message, Workspace } = require('../../models');
-const rcsService = require('./rcsService');
-const smsService = require('./smsService');
 const walletService = require('../workspace/walletService');
+const { automationEvents } = require('../automation/automationEventEmitter');
 
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
@@ -107,12 +106,6 @@ async function processCampaignStatusUpdate(whatsappMessageId, status, timestamp,
         } else if (status === 'failed') {
           updateData.failedAt = timestamp;
           updateData.failureReason = statusData.errors?.[0]?.message || 'Unknown error';
-          
-          // Trigger Delivery Optimization (Fallback/Retry)
-          // We fire this asynchronously to not block the webhook response
-          setImmediate(() => {
-            triggerCampaignFallback(campaignId, message.contact, message.workspace, statusData);
-          });
         }
         
         if (!campaignMessage.whatsappMessageId) {
@@ -173,6 +166,30 @@ async function processCampaignStatusUpdate(whatsappMessageId, status, timestamp,
         
         await CampaignBatch.findByIdAndUpdate(batch._id, { $set: { stats: batch.stats } });
       }
+    }
+
+    if (status === 'delivered') {
+      automationEvents.campaignMessageDelivered({
+        workspaceId: message.workspace,
+        campaignId,
+        contactId: message.contact,
+        messageId: message._id,
+        metadata: {
+          whatsappMessageId,
+          statusData
+        }
+      });
+    } else if (status === 'read') {
+      automationEvents.campaignMessageRead({
+        workspaceId: message.workspace,
+        campaignId,
+        contactId: message.contact,
+        messageId: message._id,
+        metadata: {
+          whatsappMessageId,
+          statusData
+        }
+      });
     }
 
     return {
@@ -287,6 +304,7 @@ async function processCampaignReply(contactId, workspaceId) {
     const recentCampaignMessage = await CampaignMessage.findOne({
       workspace: workspaceId,
       contact: contactId,
+      repliedAt: { $exists: false },
       status: { $in: ['sent', 'delivered', 'read'] }
     }).sort({ sentAt: -1 }).limit(1);
     
@@ -311,6 +329,21 @@ async function processCampaignReply(contactId, workspaceId) {
       },
       { new: true }
     );
+
+    await CampaignMessage.findByIdAndUpdate(recentCampaignMessage._id, {
+      $set: { repliedAt: new Date() }
+    });
+
+    automationEvents.campaignMessageReplied({
+      workspaceId,
+      campaignId: recentCampaignMessage.campaign,
+      contactId,
+      messageId: recentCampaignMessage.message,
+      metadata: {
+        source: 'campaign-reply',
+        repliedAt: new Date()
+      }
+    });
     
     return {
       processed: true,
@@ -440,105 +473,7 @@ async function syncCampaignStats(campaignId) {
   }
 }
 
-/**
- * Trigger Delivery Optimization (RCS/SMS Fallback or Automated Retry)
- */
-async function triggerCampaignFallback(campaignId, contactId, workspaceId, statusData) {
-  try {
-    const campaign = await Campaign.findById(campaignId);
-    if (!campaign || !campaign.deliveryOptimization?.enabled) return;
 
-    const contact = await Message.db.model('Contact').findById(contactId);
-    if (!contact) return;
-
-    const errorCode = statusData.errors?.[0]?.code;
-    const errorMessage = statusData.errors?.[0]?.message || 'Unknown WhatsApp Error';
-
-    console.log(`[CampaignFallback] Processing fallback for Campaign ${campaignId}, Contact ${contact.phone}, Error: ${errorCode}`);
-
-    const opt = campaign.deliveryOptimization;
-
-    // 1. Check for Automated Retry (Frequency Cap Errors)
-    if (opt.type === 'AUTOMATED_RETRY') {
-      const retryableCodes = ['131015', '131026', '131042', '131051'];
-      if (retryableCodes.includes(String(errorCode))) {
-        console.log(`[CampaignFallback] Triggering Automated Retry for ${contact.phone}`);
-        // Retries would typically be handled by a worker/queue
-        return;
-      }
-    }
-
-    // 2. Check for RCS Fallback or Cascade
-    if (opt.type === 'RCS_FALLBACK' || opt.type === 'FALLBACK') {
-      console.log(`[CampaignFallback] Triggering RCS Fallback for ${contact.phone}`);
-      
-      const rcsResult = await rcsService.sendRCSMessage(workspaceId, campaignId, contact, {
-        text: opt.fallbackBody || `Hello ${contact.firstName || contact.name || 'there'}! This is an important update from our team.`
-      });
-      
-      if (rcsResult.success) {
-        await recordFallbackSuccess(campaignId, contactId, 'RCS', rcsResult.messageId);
-        return;
-      }
-
-      // If RCS fails and Cascade to SMS is enabled
-      if (opt.cascadetoSms) {
-        console.log(`[CampaignFallback] RCS failed, cascading to SMS for ${contact.phone}`);
-        const smsResult = await smsService.sendSMSMessage(workspaceId, campaignId, contact, {
-          text: opt.fallbackBody || `Hello ${contact.firstName || contact.name || 'there'}! Your WhatsApp message couldn't be delivered.`
-        });
-
-        if (smsResult.success) {
-          await recordFallbackSuccess(campaignId, contactId, 'SMS', smsResult.messageId);
-        }
-      }
-    }
-
-  } catch (err) {
-    console.error(`[CampaignFallback] Error:`, err.message);
-  }
-}
-
-/**
- * Record a successful fallback send
- */
-async function recordFallbackSuccess(campaignId, contactId, channel, providerMessageId) {
-  try {
-    const update = {
-      $inc: { 
-        'deliveryOptimization.fallbackSent': 1,
-        'totals.failed': -1 // "Recovered" from failure count
-      }
-    };
-
-    if (channel === 'RCS') update.$inc['deliveryOptimization.rcsSent'] = 1;
-    if (channel === 'SMS') update.$inc['deliveryOptimization.smsSent'] = 1;
-
-    // Increment the fallback counter in the campaign
-    await Campaign.findByIdAndUpdate(campaignId, update);
-
-    // Update CampaignMessage record to show it was delivered via fallback
-    // We use a separate collection or model for this if it exists
-    const CampaignMessage = Message.db.model('CampaignMessage');
-    if (CampaignMessage) {
-      await CampaignMessage.findOneAndUpdate(
-        { campaign: campaignId, contact: contactId },
-        { 
-          $set: { 
-            fallbackChannel: channel,
-            fallbackMessageId: providerMessageId,
-            status: 'fallback_sent',
-            updatedAt: new Date()
-          } 
-        }
-      );
-    }
-
-    console.log(`[CampaignFallback] Recorded ${channel} success for campaign ${campaignId}`);
-  } catch (err) {
-    console.error(`[CampaignFallback] Error recording success:`, err.message);
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EXPORTS
@@ -549,6 +484,5 @@ module.exports = {
   rollupCampaignStats,
   processCampaignReply,
   handleCampaignFailure,
-  syncCampaignStats,
-  triggerCampaignFallback
+  syncCampaignStats
 };

@@ -13,8 +13,6 @@ const Workspace = require('./workspace/Workspace');
 const Subscription = require('./workspace/Subscription');
 const InternalNote = require('./workspace/InternalNote');
 const Team = require('./workspace/Team');
-const RCSConfig = require('./workspace/RCSConfig');
-const SMSConfig = require('./workspace/SMSConfig');
 const WalletTransaction = require('./workspace/WalletTransaction');
 
 // Messaging domain
@@ -91,8 +89,6 @@ module.exports = {
   Subscription,
   InternalNote,
   Team,
-  RCSConfig,
-  SMSConfig,
   WalletTransaction,
 
   // Messaging domain

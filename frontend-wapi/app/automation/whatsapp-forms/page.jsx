@@ -7,8 +7,9 @@ import Link from 'next/link';
 import { get, post, del } from '@/lib/api';
 import FlashLoader from '@/components/ui/FlashLoader';
 import { toast } from '@/lib/toast';
+import FeatureGate from '@/components/features/FeatureGate';
 
-export default function WhatsAppFormsPage() {
+function WhatsAppFormsContent() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('all');
   const [forms, setForms] = useState([]);
@@ -297,5 +298,13 @@ export default function WhatsAppFormsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function WhatsAppFormsPage() {
+  return (
+    <FeatureGate feature="whatsapp-forms">
+      <WhatsAppFormsContent />
+    </FeatureGate>
   );
 }

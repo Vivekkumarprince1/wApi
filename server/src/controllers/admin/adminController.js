@@ -1,5 +1,7 @@
-const { Workspace, User, WalletTransaction, Message, Campaign, Plan } = require('../../models');
+const Models = require('../../models');
+const { Workspace, User, WalletTransaction, Message, Campaign, Plan } = Models;
 const { updateAllWorkspacesWABA } = require('../../services/infrastructure/initService');
+const gupshupService = require('../../services/bsp/gupshupService');
 
 // Get all WhatsApp setup requests
 async function getWhatsAppSetupRequests(req, res, next) {
@@ -808,6 +810,141 @@ async function updateWorkspacePlan(req, res, next) {
   }
 }
 
+// Delete user and their associated data (if not owner)
+async function deleteUser(req, res, next) {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Always purge the associated workspace context
+    if (user.workspace) {
+      console.log(`[Admin] 🚮 Triggering AGGRESSIVE PURGE for workspace ${user.workspace} (due to user deletion: ${user.email})`);
+      const cleanupResults = await internalPurgeWorkspace(user.workspace);
+      
+      return res.json({
+        success: true,
+        message: 'User and their associated workspace have been completely purged.',
+        cleanupStats: cleanupResults
+      });
+    }
+
+    // Fallback: If no workspace, just delete user
+    await User.findByIdAndDelete(userId);
+
+    // TODO: Any user-specific data cleanup (e.g. personal notes, preferences)
+    
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Delete entire workspace, deregister from Gupshup, and purge all data
+async function deleteWorkspace(req, res, next) {
+  try {
+    const { workspaceId } = req.params;
+
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) {
+      return res.status(404).json({ success: false, message: 'Workspace not found' });
+    }
+
+    console.log(`[Admin] 🚮 Starting FULL DELETION for workspace: ${workspace.name} (${workspaceId})`);
+
+    const results = await internalPurgeWorkspace(workspace._id);
+
+    res.json({
+      success: true,
+      message: 'Workspace and all associated records deleted successfully',
+      cleanupStats: results
+    });
+
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * Shared helper to purge ALL data associated with a workspace
+ * including Gupshup deregistration and record cleanup.
+ */
+async function internalPurgeWorkspace(workspaceId) {
+  const workspace = await Workspace.findById(workspaceId);
+  if (!workspace) return { error: 'Workspace not found' };
+
+  const workspaceIdObj = workspace._id;
+
+  // 1. Deregister from Gupshup if associated
+  const appId = workspace.gupshupAppId || workspace.gupshupIdentity?.partnerAppId;
+  if (appId) {
+    try {
+      console.log(`[Admin] 🛑 Stopping Gupshup App: ${appId}`);
+      await gupshupService.stopApp(appId);
+      console.log(`[Admin] ✅ Gupshup App stopped successfully`);
+    } catch (err) {
+      console.error(`[Admin] ⚠️ Failed to stop Gupshup App ${appId}:`, err.message);
+    }
+  }
+
+  // 2. Data Cleanup - Purge all models associated with this workspace
+  const workspaceModels = [
+    'Subscription', 'InternalNote', 'Team', 'RCSConfig', 'SMSConfig', 'WalletTransaction',
+    'Contact', 'Conversation', 'ConversationLedger', 'Message', 'Tag', 'WhatsAppForm', 'WhatsAppFormResponse', 'QuickReply',
+    'Product', 'CheckoutCart', 'Order', 'Deal', 'Invoice', 'Pipeline', 'Task', 'CommerceSettings',
+    'Campaign', 'CampaignBatch', 'CampaignMessage', 'CampaignSummary', 'Segment',
+    'Template', 'TemplateMetric',
+    'DailyAnalytics', 'AgentDailyAnalytics', 'UsageLedger', 'WhatsAppAd',
+    'AutomationRule', 'AutomationExecution', 'AutoReply', 'AutoReplyLog', 'AutomationAuditLog', 'AnswerBotSource', 'WorkflowExecution', 'AiIntentMatchLog',
+    'Integration', 'InstagramQuickflow', 'WidgetConfig',
+    'WebhookLog'
+  ];
+
+  const results = {};
+  for (const modelName of workspaceModels) {
+    if (Models[modelName]) {
+      try {
+        const deleteResult = await Models[modelName].deleteMany({ workspace: workspaceIdObj });
+        results[modelName] = deleteResult.deletedCount;
+      } catch (err) {
+        console.error(`[Admin] ❌ Error deleting from ${modelName}:`, err.message);
+      }
+    }
+  }
+
+  // Special case for models with different fields or extra cleanup
+  try {
+    // InstagramQuickflowLog might use instagramQuickflow reference
+    if (Models.InstagramQuickflow) {
+      const quickflowIds = await Models.InstagramQuickflow.find({ workspace: workspaceIdObj }).distinct('_id');
+      if (quickflowIds.length > 0) {
+        if (Models.InstagramQuickflowLog) {
+          await Models.InstagramQuickflowLog.deleteMany({ instagramQuickflow: { $in: quickflowIds } });
+        }
+      }
+    }
+    
+    // Delete all users belonging to this workspace
+    const usersDeleted = await User.deleteMany({ workspace: workspaceIdObj });
+    results['Users'] = usersDeleted.deletedCount;
+
+    // Finally delete the workspace itself
+    await Workspace.findByIdAndDelete(workspaceIdObj);
+    results['Workspace'] = 1;
+
+  } catch (err) {
+    console.error(`[Admin] ❌ Error in final cleanup steps:`, err.message);
+  }
+
+  return results;
+}
+
 module.exports = {
   getWhatsAppSetupRequests,
   updateWhatsAppSetupStatus,
@@ -828,5 +965,7 @@ module.exports = {
   // New upgraded endpoints
   getAllUsers,
   updateUserRole,
-  updateWorkspacePlan
+  updateWorkspacePlan,
+  deleteUser,
+  deleteWorkspace
 };

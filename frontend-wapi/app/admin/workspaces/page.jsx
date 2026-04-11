@@ -15,9 +15,11 @@ import {
   TrendingUp,
   CreditCard,
   History,
-  Loader2
+  Loader2,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
-import { getAllWorkspaces, suspendWorkspace, resumeWorkspace, updateWorkspacePlan } from "@/lib/api";
+import { getAllWorkspaces, suspendWorkspace, resumeWorkspace, updateWorkspacePlan, deleteWorkspace } from "@/lib/api";
 import { toast } from "react-hot-toast";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +30,9 @@ const WorkspaceManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedWS, setSelectedWS] = useState(null);
   const [showPlanModal, setShowPlanModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchWorkspaces();
@@ -80,6 +85,26 @@ const WorkspaceManagement = () => {
     } catch (err) {
       toast.error("Suspension update failed");
     }
+  };
+  
+  const handleDeleteWorkspace = async () => {
+    if (confirmName !== selectedWS.name) {
+      toast.error("Workspace name does not match");
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      toast.loading("Purging workspace and all related data...", { id: "delete-ws" });
+      await deleteWorkspace(selectedWS.id);
+      toast.success("Workspace successfully deleted", { id: "delete-ws" });
+      setShowDeleteModal(false);
+      setConfirmName("");
+      fetchWorkspaces();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Deletion failed", { id: "delete-ws" });
+    }
+    setIsDeleting(false);
   };
 
   return (
@@ -195,6 +220,13 @@ const WorkspaceManagement = () => {
                   {ws.suspended ? <Play size={14} /> : <Pause size={14} />}
                   <span className="text-xs font-bold uppercase">{ws.suspended ? 'Resume' : 'Suspend'}</span>
                 </button>
+                <button 
+                  onClick={() => { setSelectedWS(ws); setShowDeleteModal(true); setConfirmName(""); }}
+                  className="w-12 flex items-center justify-center bg-red-600/10 text-red-500 border border-red-600/30 hover:bg-red-600 hover:text-white rounded-xl transition-all"
+                  title="Delete Workspace (Permanent)"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </div>
           ))
@@ -238,6 +270,63 @@ const WorkspaceManagement = () => {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && selectedWS && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl">
+          <div className="bg-slate-900 border border-red-900/50 rounded-[3rem] p-10 max-w-lg w-full shadow-[0_0_50px_rgba(220,38,38,0.15)]">
+            <div className="w-20 h-20 bg-red-600/10 rounded-3xl flex items-center justify-center text-red-500 mb-8 border border-red-600/20">
+              <AlertTriangle size={40} />
+            </div>
+            
+            <h2 className="text-3xl font-bold text-white mb-4">Confirm Destructive Action</h2>
+            <div className="space-y-4 mb-8 text-slate-400 text-sm leading-relaxed">
+              <p>You are about to <span className="text-red-500 font-bold uppercase underline">PERMANENTLY DELETE</span> the workspace: <span className="text-white font-bold">{selectedWS.name}</span>.</p>
+              
+              <ul className="list-disc pl-5 space-y-1">
+                <li>All <span className="text-white font-medium">Messages & Conversations</span> will be purged.</li>
+                <li>The <span className="text-white font-medium">Gupshup App/Number</span> will be stopped and deregistered.</li>
+                <li>All <span className="text-white font-medium">Analytics & Campaigns</span> will be lost.</li>
+                <li>All <span className="text-white font-medium">Team Members</span> will lose access immediately.</li>
+              </ul>
+              
+              <p className="text-red-400/80 font-medium">This action cannot be undone.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2 block">
+                  To confirm, type the workspace name exactly
+                </label>
+                <input 
+                  type="text"
+                  placeholder={selectedWS.name}
+                  value={confirmName}
+                  onChange={(e) => setConfirmName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-6 py-4 text-white focus:outline-none focus:ring-2 focus:ring-red-600/50 font-bold placeholder:opacity-30"
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <button 
+                  disabled={confirmName !== selectedWS.name || isDeleting}
+                  onClick={handleDeleteWorkspace}
+                  className="flex-1 bg-red-600 hover:bg-red-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? <Loader2 className="animate-spin" size={20} /> : <Trash2 size={20} />}
+                  Confirm Purge
+                </button>
+                <button 
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-8 bg-slate-800 hover:bg-slate-700 text-white font-bold py-4 rounded-2xl transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

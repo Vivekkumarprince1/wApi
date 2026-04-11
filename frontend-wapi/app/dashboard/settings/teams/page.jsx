@@ -11,6 +11,8 @@ import FlashLoader from '@/components/ui/FlashLoader';
 import { get, post, put, del } from '@/lib/api';
 import { toast } from '@/lib/toast';
 import FeatureGate from '@/components/features/FeatureGate';
+import LockedPage from '@/components/shared/LockedPage';
+import { useAuthStore } from '@/store/authStore';
 
 // ═══════════════════════════════════════
 // ROLE CONFIG (Interakt style)
@@ -35,7 +37,10 @@ function TeamsContent() {
   const [teams, setTeams] = useState([]);
   const [permissions, setPermissions] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockedReason, setLockedReason] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const { user } = useAuthStore();
 
   // Side panels
   const [showInvitePanel, setShowInvitePanel] = useState(false);
@@ -54,8 +59,22 @@ function TeamsContent() {
       if (membersRes.status === 'fulfilled') setMembers(membersRes.value?.members || []);
       if (teamsRes.status === 'fulfilled') setTeams(teamsRes.value?.teams || []);
       if (permsRes.status === 'fulfilled') setPermissions(permsRes.value?.roles || null);
+
+      // Check if any critical endpoint returned 403
+      const is403 = [membersRes, teamsRes].some(res => 
+        res.status === 'rejected' && res.reason?.status === 403
+      );
+      
+      if (is403) {
+        setIsLocked(true);
+        setLockedReason("You don't have permission to manage team settings.");
+      }
     } catch (err) {
       console.error('Failed to load team data:', err);
+      if (err.status === 403) {
+        setIsLocked(true);
+        setLockedReason("You don't have permission to manage team settings.");
+      }
     } finally {
       setLoading(false);
     }
@@ -70,6 +89,17 @@ function TeamsContent() {
   ];
 
   if (loading) return <FlashLoader />;
+
+  if (isLocked) {
+    return (
+      <LockedPage 
+        title="Team Settings Locked"
+        description={lockedReason}
+        requiredRole="Manager"
+        isUpgradeRequired={false}
+      />
+    );
+  }
 
   return (
     <div className="h-full">

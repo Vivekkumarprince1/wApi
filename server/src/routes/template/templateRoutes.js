@@ -21,6 +21,7 @@ const {
   validateTemplatePreview,
   getTemplateCategories,
   getTemplateLibraryStats,
+  getNotificationLibraryTemplates,
   syncTemplates,
   forkApprovedTemplate,
   getTemplateVersions,
@@ -79,6 +80,9 @@ router.get('/categories', getTemplateCategories);
 
 // Get library stats (total, by category, by status)
 router.get('/stats', getTemplateLibraryStats);
+
+// Workspace notification library (approved templates ready for reuse)
+router.get('/notifications/library', getNotificationLibraryTemplates);
 
 // Sync template statuses from provider
 router.get('/sync', requirePhoneActivation, syncTemplates);

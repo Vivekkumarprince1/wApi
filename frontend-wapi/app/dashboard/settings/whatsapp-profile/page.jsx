@@ -6,6 +6,7 @@ import { FaWhatsapp, FaEdit, FaSave, FaImage, FaTrash } from 'react-icons/fa';
 import { toast } from '@/lib/toast';
 import * as api from '@/lib/api';
 import FlashLoader from '@/components/ui/FlashLoader';
+import LockedPage from '@/components/shared/LockedPage';
 
 const ACTIVE_PHONE_STATUSES = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VERIFIED'];
 
@@ -36,6 +37,8 @@ export default function WhatsAppProfilePage() {
   const [savedSnapshot, setSavedSnapshot] = useState(null);
   const [deregistering, setDeregistering] = useState(false);
   const [confirmDeregister, setConfirmDeregister] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockedReason, setLockedReason] = useState(null);
 
   useEffect(() => {
     loadPageData();
@@ -118,11 +121,14 @@ export default function WhatsAppProfilePage() {
       setFormData(loadedForm);
       setSavedSnapshot(loadedForm);
 
-      if (stage1 && !isPhoneConnected(stage1)) {
-        router.replace('/dashboard?connectWhatsApp=1');
-      }
+      // Removed auto-redirect to dashboard when disconnected.
+      // We want users to be able to see their profile even if they need to reconnect.
     } catch (error) {
       console.error('Failed to fetch profile:', error);
+      if (error.status === 403) {
+        setIsLocked(true);
+        setLockedReason("You don't have permission to view or manage the WhatsApp Business profile.");
+      }
     } finally {
       setLoading(false);
     }
@@ -238,6 +244,17 @@ export default function WhatsAppProfilePage() {
   const templateSummary = runtimeLive?.templates?.data;
   const wabaLiveData = runtimeLive?.waba?.data || {};
   const storageBoundary = runtimeProfile?.storageBoundary || {};
+
+  if (isLocked) {
+    return (
+      <LockedPage 
+        title="WhatsApp Profile Locked"
+        description={lockedReason}
+        requiredRole="Manager"
+        isUpgradeRequired={false}
+      />
+    );
+  }
 
   return (
     <div className="p-6">

@@ -21,6 +21,7 @@ import {
   Plus
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import LockedPage from '@/components/shared/LockedPage';
 
 const FEATURE_NAMES = {
   'CRM': 'Sales CRM & Pipelines',
@@ -42,6 +43,8 @@ export default function BillingPage() {
   const [processingRecharge, setProcessingRecharge] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [isLocked, setIsLocked] = useState(false);
+  const [lockedReason, setLockedReason] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -69,8 +72,11 @@ export default function BillingPage() {
       setWallet(walletRes.data);
       setTransactions(transRes.data?.transactions || transRes.data || []);
     } catch (err) {
-      // If status fails, we likely have no sub or it's free
       console.error('Failed to fetch billing status', err);
+      if (err.status === 403) {
+        setIsLocked(true);
+        setLockedReason("You don't have permission to view or manage billing settings.");
+      }
     } finally {
       setLoading(false);
       setLoadingTransactions(false);
@@ -187,6 +193,17 @@ export default function BillingPage() {
   }
 
   const activePlanId = currentPlan?.plan?._id || currentPlan?.plan;
+
+  if (isLocked) {
+    return (
+      <LockedPage 
+        title="Billing & Plan Locked"
+        description={lockedReason}
+        requiredRole="Admin"
+        isUpgradeRequired={false}
+      />
+    );
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-12">

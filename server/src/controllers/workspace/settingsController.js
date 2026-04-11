@@ -1,6 +1,4 @@
 const { Workspace } = require('../../models');
-const RCSConfig = require('../../models/workspace/RCSConfig');
-const SMSConfig = require('../../models/workspace/SMSConfig');
 const WalletTransaction = require('../../models/workspace/WalletTransaction');
 const { encryptToken, isEncrypted } = require('../../utils/tokenEncryption');
 
@@ -397,7 +395,7 @@ function generateRecommendations(debugInfo, wabaFromPhone) {
 // Get Commerce Settings for current workspace
 async function getCommerceSettings(req, res, next) {
   try {
-    const workspace = await Workspace.findById(req.user.workspace);
+    const workspace = await Workspace.findById(req.user.workspace).populate('plan');
 
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
@@ -405,13 +403,15 @@ async function getCommerceSettings(req, res, next) {
 
     // Check plan permissions
     const PLAN_FEATURES = {
-      free: { commerce: true },
+      free: { commerce: true, crm: true },
+      starter: { commerce: true, crm: true },
       basic: { commerce: true },
       premium: { commerce: true },
       enterprise: { commerce: true }
     };
 
-    const canAccessCommerce = PLAN_FEATURES[workspace.plan]?.commerce;
+    const planSlug = workspace.plan?.slug || 'free';
+    const canAccessCommerce = PLAN_FEATURES[planSlug]?.commerce;
 
     if (!canAccessCommerce) {
       return res.status(403).json({
@@ -474,7 +474,7 @@ async function getCommerceSettings(req, res, next) {
 // Update Commerce Settings for current workspace
 async function updateCommerceSettings(req, res, next) {
   try {
-    const workspace = await Workspace.findById(req.user.workspace);
+    const workspace = await Workspace.findById(req.user.workspace).populate('plan');
 
     if (!workspace) {
       return res.status(404).json({ message: 'Workspace not found' });
@@ -482,13 +482,15 @@ async function updateCommerceSettings(req, res, next) {
 
     // Check plan permissions
     const PLAN_FEATURES = {
-      free: { commerce: true },
+      free: { commerce: true, crm: true },
+      starter: { commerce: true, crm: true },
       basic: { commerce: true },
       premium: { commerce: true },
       enterprise: { commerce: true }
     };
 
-    const canAccessCommerce = PLAN_FEATURES[workspace.plan]?.commerce;
+    const planSlug = workspace.plan?.slug || 'free';
+    const canAccessCommerce = PLAN_FEATURES[planSlug]?.commerce;
 
     if (!canAccessCommerce) {
       return res.status(403).json({
@@ -839,170 +841,7 @@ async function updateBusinessInfo(req, res, next) {
   }
 }
 
-// ==========================================
-// RCS & WALLET SETTINGS (DELIVERY OPTIMIZATION)
-// ==========================================
 
-/**
- * Get RCS configuration for current workspace
- */
-async function getRCSConfig(req, res, next) {
-  try {
-    const workspaceId = req.user.workspace;
-    const [config, workspace] = await Promise.all([
-      RCSConfig.findOne({ workspaceId }),
-      Workspace.findById(workspaceId)
-    ]);
-    
-    let activeConfig = config;
-    if (!activeConfig) {
-      activeConfig = new RCSConfig({ workspaceId });
-      await activeConfig.save();
-    }
-
-    // Check if managed by BSP (Gupshup Partner)
-    const isManaged = !!(workspace.gupshupIdentity?.appApiKey || workspace.gupshupAppId);
-
-    res.json({
-      success: true,
-      data: activeConfig,
-      isManaged
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-/**
- * Update RCS configuration
- */
-async function updateRCSConfig(req, res, next) {
-  try {
-    const { provider, credentials } = req.body;
-    const workspaceId = req.user.workspace;
-    const [config, workspace] = await Promise.all([
-      RCSConfig.findOne({ workspaceId }),
-      Workspace.findById(workspaceId)
-    ]);
-
-    let activeConfig = config;
-    if (!activeConfig) {
-      activeConfig = new RCSConfig({ workspaceId });
-    }
-
-    if (provider) activeConfig.provider = provider;
-    if (credentials) {
-      // Sanitize: Don't overwrite with empty strings (allows Workspace fallback)
-      const sanitizedCreds = {};
-      for (const [key, value] of Object.entries(credentials)) {
-        if (value !== undefined && value !== '') {
-          sanitizedCreds[key] = value;
-        }
-      }
-      activeConfig.credentials = { ...(activeConfig.credentials || {}), ...sanitizedCreds };
-    }
-    
-    // Auto-active if we have a senderId and (local key OR managed workspace)
-    const isManaged = !!(workspace.gupshupIdentity?.appApiKey || workspace.gupshupAppId);
-    if (activeConfig.credentials?.senderId && (activeConfig.credentials?.apiKey || isManaged)) {
-      activeConfig.status = 'ACTIVE';
-    } else {
-      activeConfig.status = 'PENDING';
-    }
-    
-    activeConfig.lastTestedAt = new Date();
-    await activeConfig.save();
-
-    res.json({
-      success: true,
-      message: 'RCS configuration updated successfully',
-      data: activeConfig,
-      isManaged
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-/**
- * Get SMS configuration for current workspace
- */
-async function getSMSConfig(req, res, next) {
-  try {
-    const workspaceId = req.user.workspace;
-    const [config, workspace] = await Promise.all([
-      SMSConfig.findOne({ workspaceId }),
-      Workspace.findById(workspaceId)
-    ]);
-    
-    let activeConfig = config;
-    if (!activeConfig) {
-      activeConfig = new SMSConfig({ workspaceId });
-      await activeConfig.save();
-    }
-
-    // Check if managed by BSP (Gupshup Partner)
-    const isManaged = !!(workspace.gupshupIdentity?.appApiKey || workspace.gupshupAppId);
-
-    res.json({
-      success: true,
-      data: activeConfig,
-      isManaged
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-/**
- * Update SMS configuration
- */
-async function updateSMSConfig(req, res, next) {
-  try {
-    const { provider, credentials } = req.body;
-    const workspaceId = req.user.workspace;
-    const [config, workspace] = await Promise.all([
-      SMSConfig.findOne({ workspaceId }),
-      Workspace.findById(workspaceId)
-    ]);
-
-    let activeConfig = config;
-    if (!activeConfig) {
-      activeConfig = new SMSConfig({ workspaceId });
-    }
-
-    if (provider) activeConfig.provider = provider;
-    if (credentials) {
-      // Sanitize: Don't overwrite with empty strings (allows Workspace fallback)
-      const sanitizedCreds = {};
-      for (const [key, value] of Object.entries(credentials)) {
-        if (value !== undefined && value !== '') {
-          sanitizedCreds[key] = value;
-        }
-      }
-      activeConfig.credentials = { ...(activeConfig.credentials || {}), ...sanitizedCreds };
-    }
-    
-    // Auto-active if we have a senderId and (local key OR managed workspace)
-    const isManaged = !!(workspace.gupshupIdentity?.appApiKey || workspace.gupshupAppId);
-    if (activeConfig.credentials?.senderId && (activeConfig.credentials?.apiKey || isManaged)) {
-      activeConfig.status = 'ACTIVE';
-    } else {
-      activeConfig.status = 'PENDING';
-    }
-    
-    activeConfig.lastTestedAt = new Date();
-    await activeConfig.save();
-
-    res.json({
-      success: true,
-      message: 'SMS configuration updated successfully',
-      data: activeConfig,
-      isManaged
-    });
-  } catch (err) {
-    next(err);
-  }
-}
 
 /**
  * Get wallet balance and overview
@@ -1056,10 +895,6 @@ module.exports = {
   validateCommerceConfig,
   getInboxSettings,
   updateInboxSettings,
-  getRCSConfig,
-  updateRCSConfig,
-  getSMSConfig,
-  updateSMSConfig,
   getWalletBalance,
   getWalletTransactions
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaComments, 
@@ -36,7 +37,9 @@ export default function ChatInput({
   const [showMentions, setShowMentions] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
   const [mentionCoords, setMentionCoords] = useState({ top: 0, left: 0 });
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const textareaRef = useRef(null);
+  const emojiOptions = ['😀', '😄', '😎', '😍', '😂', '🥳', '🙏', '👍', '🔥', '💯', '🎉', '✅'];
 
   // Deriving filtered lists for power-user commands
   const qrQuery = (newMessage.match(/\/([a-zA-Z0-9_]*)$/) || [])[1] || '';
@@ -90,6 +93,14 @@ export default function ChatInput({
     }
     
     setShowMentions(false);
+    textareaRef.current?.focus();
+  };
+
+  const insertEmoji = (emoji) => {
+    const cursorPosition = textareaRef.current?.selectionStart || newMessage.length;
+    const newText = `${newMessage.slice(0, cursorPosition)}${emoji}${newMessage.slice(cursorPosition)}`;
+    handleInputChange({ target: { value: newText } });
+    setShowEmojiPicker(false);
     textareaRef.current?.focus();
   };
 
@@ -152,51 +163,19 @@ export default function ChatInput({
         </button>
       </div>
 
-      <div className="flex items-end gap-3.5 w-full relative">
-        {/* Media Preview Overlay */}
-        <AnimatePresence>
-          {mediaPreview && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="absolute bottom-full mb-6 left-0 p-3 bg-card/90 backdrop-blur-xl rounded-2xl shadow-premium border border-border/60 z-40 flex max-w-[280px]"
-            >
-              <div className="relative inline-block w-full">
-                <button
-                  onClick={clearSelectedMedia}
-                  className="absolute -top-4 -right-4 bg-foreground text-background rounded-full p-2 hover:bg-primary transition-all z-50 shadow-lg active:scale-90"
-                  title="Remove Attachment"
-                >
-                  <FaTimes size={10} />
-                </button>
-                <div className="rounded-xl overflow-hidden border border-border/40 shadow-inner">
-                  {mediaPreview.type.startsWith('image/') ? (
-                    <img src={mediaPreview.url} alt="preview" className="h-40 w-full object-cover" />
-                  ) : mediaPreview.type.startsWith('video/') ? (
-                    <video src={mediaPreview.url} className="h-40 w-full object-cover" />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center p-8 h-40 w-full bg-muted text-muted-foreground">
-                      <FaFileAlt className="text-4xl mb-3 text-primary/40" />
-                      <span className="text-[10px] text-center truncate w-full px-2 font-black uppercase tracking-widest">
-                        {mediaPreview.name}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         <div className="flex items-center gap-1.5 mb-1 relative">
-          <button 
-            type="button" 
-            className="p-3 text-muted-foreground/60 hover:text-primary transition-all bg-muted/40 rounded-xl border border-transparent hover:border-primary/20 active:scale-90"
+          <button
+            type="button"
+            onClick={() => {
+              setShowEmojiPicker(prev => !prev);
+              setShowQuickReplies(false);
+            }}
+            title="Emoji picker"
+            className={`p-3 transition-all rounded-xl border ${showEmojiPicker ? 'text-primary bg-primary/10 border-primary/20 shadow-inner scale-105' : 'text-muted-foreground/60 bg-muted/40 hover:text-primary hover:bg-primary/5 hover:border-primary/20 border-transparent'} active:scale-90`}
           >
             <FaSmile className="text-lg" />
           </button>
-          
+
           <button
             type="button"
             className={`p-3 transition-all rounded-xl border ${selectedMedia ? 'text-primary bg-primary/10 border-primary/20 shadow-inner' : isUploading ? 'text-primary bg-primary/10 animate-pulse border-primary/20' : 'text-muted-foreground/60 bg-muted/40 hover:text-primary hover:bg-primary/5 hover:border-primary/20 border-transparent'} active:scale-90`}
@@ -219,13 +198,46 @@ export default function ChatInput({
             ref={fileInputRef}
             className="hidden"
             onChange={handleMediaSelect}
-            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.gif,.webp"
           />
 
-          {/* Quick Replies Overlay */}
+          <AnimatePresence>
+            {showEmojiPicker && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95, originY: 'bottom' }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                className="absolute bottom-full mb-6 left-0 w-72 bg-card/95 backdrop-blur-xl border border-border shadow-premium rounded-2xl z-50 p-3 overflow-hidden"
+              >
+                <div className="px-2 py-2 border-b border-border/50 mb-2 flex items-center justify-between">
+                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.2em] opacity-50">Emoji Picker</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(false)}
+                    className="text-[10px] font-black uppercase tracking-[0.14em] text-muted-foreground hover:text-foreground"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {emojiOptions.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => insertEmoji(emoji)}
+                      className="h-10 rounded-xl bg-muted/40 hover:bg-primary/10 hover:text-primary transition-colors text-lg"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <AnimatePresence>
             {showQuickReplies && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 10, scale: 0.95, originY: 'bottom' }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
@@ -237,7 +249,15 @@ export default function ChatInput({
                 </div>
                 <div className="max-h-64 overflow-y-auto no-scrollbar flex flex-col gap-1 pr-1">
                   {filteredQuickReplies.length === 0 ? (
-                    <p className="px-4 py-8 text-xs text-muted-foreground text-center font-medium italic">No quick replies found.</p>
+                    <div className="px-4 py-8 text-center space-y-3">
+                      <p className="text-xs text-muted-foreground font-medium italic">No quick replies found.</p>
+                      <Link
+                        href="/dashboard/settings/quick-replies"
+                        className="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-primary/10 text-primary text-[11px] font-black uppercase tracking-[0.14em] hover:bg-primary/15 transition-colors"
+                      >
+                        Create in Settings
+                      </Link>
+                    </div>
                   ) : (
                     filteredQuickReplies.map((reply, idx) => (
                       <button
@@ -253,6 +273,12 @@ export default function ChatInput({
                       </button>
                     ))
                   )}
+                </div>
+                <div className="px-3 pt-2 pb-1 border-t border-border/50 mt-2 flex items-center justify-between">
+                  <p className="text-[10px] text-muted-foreground/60 uppercase font-black tracking-[0.18em]">Stored in Settings</p>
+                  <Link href="/dashboard/settings/quick-replies" className="text-[10px] font-black uppercase tracking-[0.14em] text-primary hover:underline">
+                    Open Manager
+                  </Link>
                 </div>
               </motion.div>
             )}
@@ -323,6 +349,5 @@ export default function ChatInput({
           {sending ? <FaSpinner className="animate-spin text-lg" /> : <FaPaperPlane className="text-lg translate-x-[-1px] translate-y-[1px]" />}
         </button>
       </div>
-    </div>
   );
 }

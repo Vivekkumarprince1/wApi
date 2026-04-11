@@ -58,7 +58,7 @@ function requireFeature(featureKey) {
             // Ensure this list mirrors the baseline needed for the app to function
             features: [
                 'CRM', 'ANALYTICS', 'CONTACTS', 'BULK_CAMPAIGN', 'TEMPLATES', 
-                'INBOX', 'TEAM', 'WIDGET', 'INTEGRATIONS'
+                'INBOX', 'TEAM', 'WIDGET', 'INTEGRATIONS', 'COMMERCE', 'WHATSAPP_FORMS'
             ] 
           };
         }

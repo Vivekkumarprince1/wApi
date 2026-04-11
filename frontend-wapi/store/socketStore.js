@@ -60,6 +60,13 @@ export const useSocketStore = create((set, get) => ({
     socketInstance.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
       set({ connected: false });
+      
+      // If server explicitly says user not found, it means the session/token is poisoned
+      if (error.message === 'User not found') {
+        process.nextTick(() => {
+          useAuthStore.getState().logout?.();
+        });
+      }
     });
 
     set({ socket: socketInstance });

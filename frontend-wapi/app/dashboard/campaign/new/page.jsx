@@ -20,7 +20,6 @@ import DetailsStep from '@/components/dashboard/campaign/steps/DetailsStep';
 import AudienceStep from '@/components/dashboard/campaign/steps/AudienceStep';
 import MessageStep from '@/components/dashboard/campaign/steps/MessageStep';
 import ScheduleStep from '@/components/dashboard/campaign/steps/ScheduleStep';
-import OptimizationStep from '@/components/dashboard/campaign/steps/OptimizationStep';
 import ReviewStep from '@/components/dashboard/campaign/steps/ReviewStep';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -31,8 +30,7 @@ const STEPS = [
   { id: 2, label: 'Choose Audience', icon: Users },
   { id: 3, label: 'Create Message', icon: Send },
   { id: 4, label: 'Schedule', icon: Clock },
-  { id: 5, label: 'Optimization', icon: Zap },
-  { id: 6, label: 'Review & Launch', icon: Rocket },
+  { id: 5, label: 'Review & Launch', icon: Rocket },
 ];
 
 function StepIndicator({ currentStep, steps }) {
@@ -93,15 +91,7 @@ function CampaignWizard() {
     variableFallbacks: {},
     scheduleType: 'now',
     scheduleDate: '',
-    scheduleTime: '',
-    deliveryOptimization: {
-      enabled: false,
-      type: 'NONE',
-      rcsConfig: { templateId: '', mapping: {} },
-      retryConfig: { maxAttempts: 1, retryDelayHours: 24 },
-      cascadetoSms: false,
-      fallbackBody: ''
-    }
+    scheduleTime: ''
   });
 
   const [contacts, setContacts] = useState([]);
@@ -228,7 +218,6 @@ function CampaignWizard() {
       case 3: return !!campaignData.templateId;
       case 4: return campaignData.scheduleType === 'later' ? !!(campaignData.scheduleDate && campaignData.scheduleTime) : true;
       case 5: return true;
-      case 6: return true;
       default: return true;
     }
   };
@@ -262,8 +251,7 @@ function CampaignWizard() {
         segmentId: campaignData.audienceMode === 'segment' ? campaignData.segmentId : null,
         variableMapping: campaignData.variableMapping,
         ...(campaignData.audienceMode === 'tags' && { recipientFilter: { type: 'tags', tags: campaignData.selectedTags } }),
-        ...(campaignData.scheduleType === 'later' && { scheduledAt: new Date(`${campaignData.scheduleDate}T${campaignData.scheduleTime}`).toISOString() }),
-        deliveryOptimization: campaignData.deliveryOptimization
+        ...(campaignData.scheduleType === 'later' && { scheduledAt: new Date(`${campaignData.scheduleDate}T${campaignData.scheduleTime}`).toISOString() })
       };
 
       const result = await post('/campaigns', payload);
@@ -280,15 +268,6 @@ function CampaignWizard() {
       } else { throw new Error(result.message || 'Failed to create campaign'); }
     } catch (err) { console.error(err); toast?.error?.(err.message); } finally { setLoading(false); }
   };
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // STEP 1: CAMPAIGN DETAILS
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // STEP 2: CHOOSE AUDIENCE
-  // ═══════════════════════════════════════════════════════════════════════════
-
 
   // ═══════════════════════════════════════════════════════════════════════════
   // MAIN RENDER
@@ -333,8 +312,7 @@ function CampaignWizard() {
               {step === 2 && 'Choose who will receive this campaign'}
               {step === 3 && 'Select an approved template and map variables'}
               {step === 4 && 'Choose when to send your campaign'}
-              {step === 5 && 'Configure fallback and retry strategies'}
-              {step === 6 && 'Review everything and launch your campaign'}
+              {step === 5 && 'Review everything and launch your campaign'}
             </p>
           </div>
 
@@ -370,8 +348,7 @@ function CampaignWizard() {
             />
           )}
           {step === 4 && <ScheduleStep campaignData={campaignData} setCampaignData={setCampaignData} />}
-          {step === 5 && <OptimizationStep campaignData={campaignData} setCampaignData={setCampaignData} />}
-          {step === 6 && (
+          {step === 5 && (
             <ReviewStep 
               campaignData={campaignData}
               audienceCount={audienceCount}
@@ -391,9 +368,9 @@ function CampaignWizard() {
               ← Back
             </button>
 
-            {step < 6 ? (
+            {step < 5 ? (
               <button
-                onClick={() => setStep(s => Math.min(6, s + 1))}
+                onClick={() => setStep(s => Math.min(5, s + 1))}
                 disabled={!isStepValid(step)}
                 className="btn-primary px-7 py-2.5 text-sm font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >

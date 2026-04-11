@@ -3,8 +3,10 @@ const billingLedgerService = require('../../services/billing/billingLedgerServic
 const autoReplyService = require('../../services/automation/autoReplyService');
 const instagramQuickflowService = require('../../services/integration/instagramQuickflowService');
 const answerBotService = require('../../services/automation/answerbotService');
+const checkoutBotService = require('../../services/commerce/checkoutBotService');
 const bspMessagingService = require('../../services/bsp/bspMessagingService');
 const { automationEvents, AUTOMATION_EVENTS } = require('../../services/automation/automationEventEmitter');
+const { processCampaignReply } = require('../../services/campaign/campaignWebhookService');
 const { getIO } = require('../../utils/socket');
 const { runPostOnboardingAutomations } = require('../../services/bsp/gupshupProvisioningService');
 const inboxSocketService = require('../../services/messaging/inboxSocketService');
@@ -368,6 +370,45 @@ async function processInbound(incoming, workspace) {
   // Create message record (req #6)
   const message = await Message.create(messagePayload);
 
+  // Bridge inbound messaging into automation rules
+  automationEvents.customerMessageReceived({
+    workspaceId: workspace._id,
+    conversationId: conversation._id,
+    contactId: contact._id,
+    messageId: message._id,
+    metadata: {
+      message: {
+        type,
+        content: text,
+        direction: 'inbound'
+      },
+      channel,
+      source: 'gupshup'
+    }
+  });
+
+  if (isNewConversation) {
+    automationEvents.conversationCreated({
+      workspaceId: workspace._id,
+      conversationId: conversation._id,
+      contactId: contact._id,
+      messageId: message._id,
+      metadata: {
+        source: 'gupshup',
+        channel,
+        message: {
+          type,
+          content: text,
+          direction: 'inbound'
+        }
+      }
+    });
+  }
+
+  processCampaignReply(contact._id, workspace._id).catch(err => {
+    console.error('[GupshupWebhook] Campaign reply tracking failed:', err.message);
+  });
+
   // Emit socket events for real-time inbox updates (req #7)
   if (isNewConversation) {
     // Richer event for brand-new conversations (shows in inbox list immediately)
@@ -408,12 +449,59 @@ async function processInbound(incoming, workspace) {
         whatsappMessageId: message.meta.whatsappId
       });
 
-      const autoReplyResult = await autoReplyService.checkAutoReply(text, contact, workspace._id);
-      if (autoReplyResult.shouldSend) {
-        await autoReplyService.sendAutoReply(autoReplyResult.autoReplyData, contact, workspace._id, message);
+      if (channel !== 'instagram') {
+        const commerceResult = await checkoutBotService.processInboundMessage(
+          workspace._id,
+          contact._id,
+          conversation._id,
+          text,
+          {
+            incoming,
+            message,
+            contact,
+            channel
+          }
+        );
+
+        if (commerceResult?.handled) {
+          return;
+        }
+      }
+
+      if (channel === 'instagram') {
+        const instagramUserId = rawFrom;
+        const instagramUsername = incoming.contacts?.[0]?.profile?.name || incoming.sender?.name || contact.name || instagramUserId;
+        const triggerType = ['comment', 'dm', 'story_reply', 'mention'].includes(incoming.triggerType)
+          ? incoming.triggerType
+          : 'dm';
+
+        const quickflowResult = await instagramQuickflowService.checkInstagramQuickflow(
+          instagramUserId,
+          instagramUsername,
+          triggerType,
+          text,
+          workspace._id
+        );
+
+        if (quickflowResult.shouldSend) {
+          await instagramQuickflowService.sendInstagramQuickflowResponse(
+            quickflowResult.quickflowData,
+            instagramUserId,
+            instagramUsername,
+            triggerType,
+            text,
+            workspace,
+            workspace.instagramConfig?.accessToken
+          );
+        }
       } else {
-        // Only try AnswerBot if no explicit keyword auto-reply matched
-        await answerBotService.processBotResponse(text, workspace._id, conversation);
+        const autoReplyResult = await autoReplyService.checkAutoReply(text, contact, workspace._id);
+        if (autoReplyResult.shouldSend) {
+          await autoReplyService.sendAutoReply(autoReplyResult.autoReplyData, contact, workspace._id, message);
+        } else {
+          // Only try AnswerBot if no explicit keyword auto-reply matched
+          await answerBotService.processBotResponse(text, workspace._id, conversation);
+        }
       }
     } catch (err) {
       console.error('[GupshupWebhook] Async processing error:', err.message);

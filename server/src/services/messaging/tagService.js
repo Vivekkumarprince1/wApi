@@ -274,6 +274,17 @@ async function addTagsToConversation(workspaceId, conversationId, tagNames, user
     for (const tagName of normalizedTags) {
       await Tag.incrementUsage(workspaceId, tagName, 'conversations');
     }
+
+    if (conversation?.contact) {
+      await Contact.findOneAndUpdate(
+        { _id: conversation.contact, workspace: workspaceId },
+        { $addToSet: { tags: { $each: normalizedTags } } }
+      );
+
+      for (const tagName of normalizedTags) {
+        await Tag.incrementUsage(workspaceId, tagName, 'contacts');
+      }
+    }
     
     logger.info(`[Tags] Added ${normalizedTags.length} tags to conversation ${conversationId}`);
     return conversation;
@@ -304,6 +315,17 @@ async function removeTagsFromConversation(workspaceId, conversationId, tagNames)
     // Update usage counters
     for (const tagName of normalizedTags) {
       await Tag.decrementUsage(workspaceId, tagName, 'conversations');
+    }
+
+    if (conversation?.contact) {
+      await Contact.findOneAndUpdate(
+        { _id: conversation.contact, workspace: workspaceId },
+        { $pull: { tags: { $in: normalizedTags } } }
+      );
+
+      for (const tagName of normalizedTags) {
+        await Tag.decrementUsage(workspaceId, tagName, 'contacts');
+      }
     }
     
     logger.info(`[Tags] Removed ${normalizedTags.length} tags from conversation ${conversationId}`);

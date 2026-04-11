@@ -283,7 +283,7 @@ function CatalogContent() {
 
 export default function CatalogPage() {
   return (
-    <FeatureGate feature="products">
+    <FeatureGate feature="commerce">
       <CatalogContent />
     </FeatureGate>
   );

@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore';
 export function AuthInitializer() {
     const pathname = usePathname();
     const router = useRouter();
-    const { fetchSession, authenticated, loading, nextStep } = useAuthStore();
+    const { fetchSession, authenticated, loading, nextStep, user } = useAuthStore();
 
     // Initial fetch and listener setup
     useEffect(() => {
@@ -39,36 +39,45 @@ export function AuthInitializer() {
     }, [pathname, fetchSession]);
 
     // ═══════════════════════════════════════════════════════════════════
-    // BACKEND-DRIVEN NAVIGATION LOOPS
+    // STATUS-DRIVEN NAVIGATION GUARD
     // ═══════════════════════════════════════════════════════════════════
     useEffect(() => {
-        if (loading || !authenticated || !nextStep) return;
+        if (loading || !authenticated || !user) return;
 
         const isPublicRoute = pathname === '/' ||
             pathname.startsWith('/auth/') ||
             pathname.startsWith('/privacy/') ||
             pathname === '/privacy';
 
-        // Skip redirection logic for public routes (landing, login, etc)
-        if (isPublicRoute) return;
+        const isAdminRoute = pathname.startsWith('/admin');
+        const isAdminUser = user.role === 'admin' || user.role === 'super_admin' || user.role === 'owner';
+        const currentPath = pathname.split('?')[0];
 
-        // Strip query params for comparison
-        const currentBaseDir = pathname.split('?')[0];
-        const nextBaseDir = nextStep.split('?')[0];
-
-        // 1. If we are on an onboarding page but server says go somewhere else
-        // 2. If we are on dashboard but server says go back to onboarding
-        // 3. If we are on onboarding but server says go to dashboard
-        const isOnboarding = pathname.startsWith('/onboarding');
-        const isDashboard = pathname.startsWith('/dashboard');
-
-        if (currentBaseDir !== nextBaseDir) {
-            if (isOnboarding || isDashboard) {
-                console.log(`[AuthRedirect] Backend requested ${nextStep} (currently at ${pathname})`);
-                router.push(nextStep);
+        // 1. If user has completed signup, we mostly stop forced navigation
+        if (user.accountStatus === 'SIGNUP_COMPLETED') {
+            // Only redirect if they are trying to access onboarding pages accidentally
+            if (currentPath.startsWith('/onboarding')) {
+                router.replace('/dashboard');
             }
+            return; // EXIT: No more forced navigation for completed users
         }
-    }, [pathname, nextStep, authenticated, loading, router]);
+
+        // 2. Admin route bypass (for those still in onboarding status but are admins)
+        if (isAdminRoute && isAdminUser) return;
+
+        // 3. Status-driven navigation for users still in onboarding flow
+        if (!nextStep) return;
+        const targetPath = nextStep.split('?')[0];
+
+        // Keep subpages stable if we are already in the right area
+        if (currentPath.startsWith('/dashboard') && targetPath.startsWith('/dashboard')) return;
+        if (currentPath.startsWith('/onboarding') && targetPath.startsWith('/onboarding')) return;
+
+        // Forced redirect to the mandatory next step
+        if (currentPath !== targetPath) {
+            router.replace(targetPath);
+        }
+    }, [pathname, nextStep, authenticated, user, loading, router]);
 
     return null;
 }

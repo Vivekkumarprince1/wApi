@@ -2,241 +2,351 @@
 
 ## Scope
 
-This audit covers the current path from authentication through onboarding and business-info completion into the dashboard and WhatsApp/BSP setup.
+This audit covers the current authentication and business-info onboarding flow across the frontend and backend.
 
 Relevant implementation files:
 
 - [frontend-wapi/app/auth/register/page.jsx](frontend-wapi/app/auth/register/page.jsx)
 - [frontend-wapi/app/auth/login/page.jsx](frontend-wapi/app/auth/login/page.jsx)
+- [frontend-wapi/app/auth/reset/page.jsx](frontend-wapi/app/auth/reset/page.jsx)
 - [frontend-wapi/app/auth/google/callback/page.jsx](frontend-wapi/app/auth/google/callback/page.jsx)
 - [frontend-wapi/app/onboarding/business-info/page.jsx](frontend-wapi/app/onboarding/business-info/page.jsx)
 - [frontend-wapi/store/authStore.js](frontend-wapi/store/authStore.js)
 - [frontend-wapi/lib/api/auth.js](frontend-wapi/lib/api/auth.js)
 - [frontend-wapi/lib/api/onboarding.js](frontend-wapi/lib/api/onboarding.js)
+- [server/src/routes/auth/authRoutes.js](server/src/routes/auth/authRoutes.js)
+- [server/src/routes/workspace/onboardingRoutes.js](server/src/routes/workspace/onboardingRoutes.js)
 - [server/src/controllers/auth/authController.js](server/src/controllers/auth/authController.js)
 - [server/src/controllers/workspace/onboardingController.js](server/src/controllers/workspace/onboardingController.js)
-- [server/src/controllers/bsp/bspOnboardingController.js](server/src/controllers/bsp/bspOnboardingController.js)
 
 ## Current Flow
 
-### 1) Authentication Entry
+### 1) Signup and Login
 
-The app supports the following auth paths:
+The system currently supports multiple auth paths:
 
-- Email/password signup
-- Email/password login
-- Google sign-in
-- Facebook sign-in
-- OTP-based auth flows that remain available in the backend
+- Email/password signup and login
+- OTP-based signup and login
+- Google OAuth
+- Facebook OAuth
 
-The important shift is that the backend now owns the session bootstrap contract. It sets the `auth_token` cookie and returns a unified `/auth/session` response that includes user, workspace, phone, onboarding, stage-1, and `nextStep` data.
+The problem is not the number of options. The problem is that the frontend and backend are not aligned on which flow is canonical.
 
-### 2) Session Bootstrap
+### 2) Register Flow
 
-`/auth/session` is the key orchestration endpoint.
+The register page currently behaves like an OTP-first wizard, but the backend `signup` endpoint creates the user immediately and returns a JWT.
 
-It provides:
+That means the UI assumes:
 
-- user identity and verification flags
-- workspace hydration data
-- phone verification state
-- stage-1 WhatsApp/BSP completion state
-- a server-derived `nextStep`
+- user submits details
+- OTP is sent
+- user verifies OTP
+- account is completed afterward
 
-That means the frontend no longer has to guess the next screen from a collection of local conditions. The server already decides whether the user should go to:
+But the backend actually does:
 
-- email verification
-- mobile verification
-- business info
-- dashboard
+- validate email/password
+- create workspace
+- create user
+- return token immediately
 
-### 3) Register Flow
+This is a major flow mismatch.
 
-The register page creates the user, refreshes session, and routes based on `session.nextStep`.
+### 3) Login Flow
 
-In practice this means:
+The login page does a standard email/password login or social login, stores the token in `localStorage`, mirrors it into a non-httpOnly cookie, then fetches session and onboarding state.
 
-- signup creates the account immediately
-- backend sets the cookie
-- client reloads the unified session
-- frontend uses the server’s onboarding destination
+The redirect decision is based on:
 
-This is a cleaner and safer design than the old OTP-first UX because the route decision is centralized.
+- phone verification
+- business info completion
 
-### 4) Login and Social Login Flow
+### 4) Social Login Flow
 
-Login and social login follow the same pattern:
+Google and Facebook both end up issuing a JWT and then the frontend fetches onboarding state to decide where to route the user.
 
-- authenticate
-- refresh `/auth/session`
-- route to `session.nextStep`
+Google has two distinct flows:
 
-Google callback is also aligned with this model. It waits for session bootstrap and then navigates according to the server-defined next step.
+- frontend button fetches Google auth URL and redirects to Google
+- backend callback exchanges the auth code and redirects back with a JWT in the URL
+
+That callback token handoff works, but it is not the safest pattern.
 
 ### 5) Business Info Flow
 
-The business-info page hydrates from the unified session payload and captures structured business fields:
+The business-info page loads both `/auth/me` and `/onboarding/status`, then pre-fills the form from the workspace object.
 
-- business name
-- industry
-- website
-- address
-- city, state, country, zip code
-- certification type and number
-- description
+On submit it posts to `/onboarding/business-info` and then routes to dashboard.
 
-On save it writes to the onboarding endpoint and then refreshes session so the store stays in sync.
-
-### 6) Post-Business Info Onboarding
-
-Saving business info is not the end of onboarding.
-
-The remaining journey is driven by WhatsApp/BSP completion:
-
-- `stage1Complete`
-- `phoneStatus`
-- BSP connect modal / runtime profile / sync
-
-That separation is correct: business profile completion and WhatsApp activation are related, but they are not the same milestone.
+The backend saves business data into the workspace and marks `businessInfoCompleted = true`.
 
 ## Features Present
 
 ### Auth Features
 
-- Cookie-backed auth session
-- Unified session bootstrap
-- Google and Facebook sign-in
-- Password login and signup
-- Server-derived next-step routing
+- Email/password auth
+- Signup OTP support
+- Login OTP support
+- Google OAuth
+- Facebook OAuth
+- Session fetch and route gating
+- Logout and account deletion support
 
 ### Onboarding Features
 
-- Phone verification before business info
-- Structured business profile capture
-- GST/MSME/PAN document capture
-- Workspace hydration from the session payload
-- Business-info completion tracking
+- Email verification
+- Mobile verification
+- Business info capture
+- Business document capture for GST/MSME/PAN
+- Workspace creation during signup
+- Onboarding status retrieval
+- BSP stage-1 status for WhatsApp-related gating
 
-### WhatsApp/BSP Features
+### State and Access Features
 
-- Stage-1 completion tracking
-- Provider sync / runtime profile support
-- Dashboard gating based on connection state
-- Post-business-info activation path
-
-### State and UX Features
-
-- Zustand-based auth store
-- Session hydration on demand
-- Route gating from the same source of truth
-- Unified onboarding redirects instead of page-specific guesses
+- JWT stored client-side
+- Auth cookie mirrored from the token
+- Zustand auth store
+- Socket auto-connect based on auth state
+- Feature gating based on role and plan
 
 ## Correctness Audit
 
-### Remaining Correctness Risks
+### High Priority Issues
 
-1. The `nextStep` contract is now critical infrastructure.
+1. Register page and backend signup are out of sync.
 
-Because the pages rely on `session.nextStep`, any new auth or onboarding entrypoint must preserve this field. If it is omitted or renamed, the funnel regresses quickly.
+The frontend register page waits for an OTP flow after `registerUser()`, but the backend `/auth/signup` route creates the account immediately and returns `{ token, user }`.
 
+Impact:
 
-4. Social auth parity still needs ongoing discipline.
+- user onboarding is confusing
+- the UI can show OTP-related states that never happen
+- signup behavior is fragile and may regress silently
 
-Google and Facebook are now aligned with the same session bootstrap path as email/password auth, but any new fields or defaults added to the standard signup path should also be mirrored for social-auth users.
+2. Reset page is using login OTP endpoints instead of reset-password endpoints.
 
-5. Save operations that can trigger provider submission should stay idempotent.
+The current reset page sends a login OTP and then logs the user in with the returned token.
 
-`saveBusinessInfo` may also submit business verification when provider credentials are present. That is fine, but it needs to remain tolerant of retries and partial failures.
+But the backend already provides a proper reset flow:
+
+- `/auth/request-password-reset`
+- `/auth/reset-password`
+
+Impact:
+
+- password reset is not really password reset
+- users are being authenticated, not forced to set a new password
+- security expectations are wrong
+
+3. Google callback stores the JWT in the URL.
+
+The backend redirects back to `/auth/google/callback?token=...` and the frontend stores it from query params.
+
+Impact:
+
+- token exposure in browser history
+- token leakage through logs, referrers, or copied URLs
+- avoidable security risk
+
+4. Business info save requires verified email, but the onboarding UI does not make that dependency explicit.
+
+`saveBusinessInfo` rejects unverified emails, while the business-info page only checks phone verification and onboarding status.
+
+Impact:
+
+- some users can get routed to a page that cannot complete successfully
+- Google/Facebook-created users are especially at risk if `emailVerified` is not set
+
+5. Social auth users can be blocked by the business-info email-verification rule.
+
+Google and Facebook user creation paths do not consistently set `emailVerified` the way signup does.
+
+Impact:
+
+- social sign-in may appear successful but fail during onboarding
+- support burden rises because the failure happens later in the flow
+
+### Medium Priority Issues
+
+6. Auth state is split across several endpoints.
+
+The frontend combines:
+
+- `/auth/me`
+- `/onboarding/status`
+- `/onboarding/bsp/stage1-status`
+
+Impact:
+
+- extra round trips
+- inconsistent snapshots
+- hard-to-debug route decisions
+
+7. Token storage is duplicated.
+
+The token is stored in `localStorage` and mirrored into a regular cookie.
+
+Impact:
+
+- wider attack surface than necessary
+- hard to reason about source of truth
+- XSS still exposes the token
+
+8. Session fetch is rate-limited with a fixed 3-second window.
+
+`fetchSession()` uses an in-flight promise plus a minimum interval.
+
+Impact:
+
+- can hide fast auth changes
+- can delay recovery after login/logout
+- can complicate debugging when state appears stale
+
+9. Email verification compares only the first six characters of the token.
+
+The backend token generation and token display are coupled in a fragile way.
+
+Impact:
+
+- verification depends on a presentation detail
+- future token format changes will be risky
+
+10. Business info capture is incomplete relative to backend capability.
+
+The backend accepts more structured business fields than the current form surfaces cleanly, especially around address granularity and document handling.
+
+Impact:
+
+- partially captured profiles
+- extra manual data fixes later
 
 ## Performance Audit
 
-### Current Bottlenecks
+### Main Bottlenecks
 
-1. `/auth/session` is intentionally broad.
+1. Too many post-login reads.
 
-This improves correctness and reduces client-side branching, but it is not the fastest possible first paint.
+After login, the app fetches auth state and onboarding state separately. That is acceptable for small scale, but it is not the fastest or cleanest pattern.
 
-2. Stage-1 and runtime checks can still be expensive.
+2. Duplicate state synchronization.
 
-Anything that reaches live BSP status, runtime profile, or dashboard analytics adds latency compared with a pure auth bootstrap.
+Auth store, socket store, cookie, and localStorage all participate in session management.
 
-3. The dashboard still loads heavy data separately.
+3. Unnecessary route churn.
 
-That is appropriate for the dashboard itself, but it should remain separate from auth/bootstrap so the login path stays fast.
+The app often logs in, fetches session, fetches onboarding, then decides the route.
 
 ### Fast Wins
 
-- Keep `/auth/session` as the only required bootstrap call after auth.
-- Lazy-load analytics, usage, and dashboard metrics after the user reaches the destination page.
-- Cache stable onboarding fields and only refetch them after mutations.
-- Avoid adding more state checks on the client when the server already knows the next route.
-- Keep live BSP/runtime data on the WhatsApp profile and diagnostics screens, not the login path.
+- Merge session + onboarding into a single response shape.
+- Avoid redirecting through a tokenized query string.
+- Reduce duplicate client storage of auth tokens.
+- Precompute the onboarding destination server-side when possible.
+- Cache stable onboarding data until a mutation occurs.
 
 ## Improvement Plan
 
-### Phase 1: Lock the Session Contract
+### Phase 1: Fix Correctness First
 
-1. Treat `nextStep` as a formal API field.
+1. Make register flow canonical.
 
-The frontend should not re-derive onboarding routing from multiple booleans if the server already provides the next destination.
+Pick one signup model and remove the other path from the primary UX.
 
-2. Keep `/auth/session` stable.
+Recommended option:
 
-Any new data added to the session response should be additive and should not force the auth path to change.
+- keep email/password signup as immediate account creation
+- keep OTP only for verification, not as a second hidden signup model
 
-3. Preserve parity across auth methods.
+2. Replace the reset page with the real reset flow.
 
-Email/password, Google, Facebook, and any OTP-based flows should all converge on the same session shape.
+The reset UI should use:
 
-### Phase 2: Split Bootstrap from Heavy Hydration
+- request-password-reset
+- reset-password
 
-1. Keep auth bootstrap fast.
+not login OTP.
 
-If the session payload keeps growing, split non-critical analytics and runtime profile data into secondary fetches after login.
+3. Remove JWT from Google callback URL.
 
-2. Keep onboarding hydration minimal but complete.
+Use one of these instead:
 
-The onboarding pages should only load the data needed to render and route correctly.
+- short-lived one-time code handoff
+- httpOnly session cookie
+- exchange code endpoint with client-side polling
 
-3. Fetch live BSP details only where needed.
+4. Make email verification rules explicit in onboarding.
 
-The WhatsApp profile or BSP settings screens can pay the cost of runtime reads; the auth funnel should not.
+If business info requires a verified email, show that requirement before the form loads.
 
-### Phase 3: Strengthen State Management
+5. Normalize Google/Facebook user creation.
 
-1. Move onboarding into an explicit state model.
+Ensure social auth users get the same onboarding flags and session shape as standard signup users.
 
-The current route contract is already close to a state machine. Making it explicit will reduce illegal transitions and make the funnel easier to reason about.
+### Phase 2: Consolidate State
 
-2. Keep one source of truth for each layer.
+1. Introduce a single session contract.
 
-Recommended split:
+The frontend should consume one normalized response that includes:
 
-- session for auth and routing
-- onboarding for profile completion
-- BSP stage-1 for WhatsApp activation
-- dashboard analytics for usage and reporting
+- user
+- workspace
+- auth status
+- onboarding status
+- feature gating flags
 
-3. Make redirects declarative.
+2. Make onboarding a small state machine.
 
-Use the server-derived `nextStep` and a single route guard pattern instead of page-specific guesses.
+The current boolean-step model should become a single source of truth with explicit stages.
 
-### Phase 4: Security and Hardening
+3. Make route guards read from one store.
 
-1. Add CSRF protection if cookie-based session endpoints become broader.
+The login/register pages, business-info page, and dashboard should all use the same derived session model.
 
-2. Add audit logs for key auth and onboarding events.
+### Phase 3: Optimize for Speed
 
-3. Keep provider-side writes idempotent and retry-safe.
+1. Reduce network calls after login.
 
-4. Continue normalizing social auth user defaults.
+Replace separate auth and onboarding fetches with a single session bootstrap endpoint.
 
-### Phase 5: Make It Fast at Scale
+2. Defer non-critical data.
 
-1. Cache stable onboarding state.
+Load only the data required for routing first, then fetch secondary profile and analytics data after the user reaches the destination.
 
-2. Defer dashboard-heavy reads until after initial route render.
+3. Cache stable state.
 
-3. Keep image/document processing server-side and optimized before storage.
+Onboarding status does not need to be refetched on every render. Refetch it only after a mutation or explicit refresh.
 
-4. Avoid coupling auth boot to analytics payloads.
+4. Simplify auth token handling.
+
+Prefer server-managed session cookies if feasible. If JWT must stay client-managed, keep one storage location and treat it as the single source of truth.
+
+### Phase 4: Harden Security
+
+1. Move away from token-in-URL redirects.
+
+2. Prefer httpOnly cookies for session transport.
+
+3. Add CSRF protection if cookies become the primary session store.
+
+4. Add audit logs for auth and onboarding events.
+
+5. Add stricter server validation for phone and business document data.
+
+## Recommended Target Architecture
+
+The best long-term shape is:
+
+- one auth entrypoint per login method
+- one session bootstrap endpoint
+- one onboarding status machine
+- one redirect decision function
+- one secure session transport strategy
+
+That keeps the flow fast, easier to reason about, and much harder to break during future feature work.
+
+## Bottom Line
+
+The current system has a solid set of features, but the implementation is fragmented. The biggest issues are not cosmetic; they are correctness and consistency problems between frontend expectations and backend behavior.
+
+If we fix the signup/reset mismatches, unify session state, and remove token-in-URL handling, the flow becomes both safer and noticeably faster.

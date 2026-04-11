@@ -47,8 +47,14 @@ api.interceptors.response.use(
     
     // Handle 401
     if (error.response?.status === 401) {
-      // In cookie-based auth, we don't need to manually clear localStorage here
-      // The fetchSession in authStore will handle the state update if the cookie is invalid
+      // Import dynamically to avoid circular dependencies
+      const { useAuthStore } = require('../store/authStore');
+      const isStale = ['STALE_SESSION', 'USER_NOT_FOUND', 'SESSION_EXPIRED'].includes(error.response?.data?.code);
+      
+      if (isStale) {
+        toast.error('Session invalidated. Please login again.');
+        useAuthStore.getState().logout?.();
+      }
     }
 
     // Handle 402 (Payment Required / Plan Limit / Wallet Balance)

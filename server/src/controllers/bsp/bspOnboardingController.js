@@ -699,12 +699,18 @@ async function disconnect(req, res) {
         gupshupAppLive: false,
         gupshupAppHealth: null,
         bspManaged: false,
-        bspSyncStatus: 'INACTIVE'
+        bspSyncStatus: 'INACTIVE',
+
+        // Reset onboarding flags
+        'onboarding.wabaConnectionCompleted': false,
+        'onboarding.whatsappSetupCompleted': false,
+        'onboarding.step': 'business-info', // Revert to business info step
       },
       $unset: {
         gupshupAppId: '',
         gupshupAppName: '',
         wabaId: '',
+        bspWabaId: '', // Missed previously
         wabaName: '',
         phoneNumberId: '',
         bspPhoneNumberId: '',
@@ -712,6 +718,8 @@ async function disconnect(req, res) {
         whatsappPhoneNumberId: '',
         activePhoneNumberId: '',
         verifiedName: '',
+        bspVerifiedName: '', // Missed previously
+        bspDisplayPhoneNumber: '', // Missed previously
         qualityRating: '',
         bspQualityRating: '',
         messagingLimitTier: '',
@@ -720,7 +728,16 @@ async function disconnect(req, res) {
         connectedAt: '',
         bspOnboardedAt: '',
         'gupshupIdentity.partnerAppId': '',
-        'gupshupIdentity.appApiKey': ''
+        'gupshupIdentity.appApiKey': '',
+
+        // Clear refs
+        childBusiness: '',
+        parentWaba: '',
+
+        // Clear legacy/config objects
+        whatsappConfig: '',
+        whatsappSetup: '',
+        businessProfile: ''
       }
     });
 

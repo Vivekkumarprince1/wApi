@@ -260,17 +260,26 @@ function requireConversationAccess(conversationIdParam = 'conversationId') {
         });
       }
 
+      // Check if user is active (Consistent with requireRole and requirePermission)
+      if (permission.isActive === false) {
+        return res.status(403).json({
+          success: false,
+          message: 'User account is disabled',
+          code: 'ACCOUNT_DISABLED'
+        });
+      }
+
       // Owners/admins/managers can access all conversations
       if (permission.role === 'owner' || permission.role === 'admin' || permission.role === 'manager' || 
           permission.permissions?.viewAllConversations) {
         return next();
       }
 
-      // Agents can only access assigned conversations
+      // Agents can only access assigned conversations OR conversations assigned to their team
       const conversation = await Conversation.findOne({
         _id: conversationId,
         workspace: workspaceId
-      }).select('assignedTo').lean();
+      }).select('assignedTo team').lean();
 
       if (!conversation) {
         return res.status(404).json({
@@ -280,14 +289,24 @@ function requireConversationAccess(conversationIdParam = 'conversationId') {
         });
       }
 
-      // Check if conversation is assigned to this agent
-      if (!conversation.assignedTo || 
-          conversation.assignedTo.toString() !== userId.toString()) {
+      // Check if conversation is assigned to this agent OR to their team
+      const isAssignedToAgent = conversation.assignedTo && conversation.assignedTo.toString() === userId.toString();
+      
+      let isAssignedToAgentTeam = false;
+      if (conversation.team) {
+        // Fetch user's team membership
+        const user = await User.findById(userId).select('team').lean();
+        if (user?.team && user.team.toString() === conversation.team.toString()) {
+          isAssignedToAgentTeam = true;
+        }
+      }
+
+      if (!isAssignedToAgent && !isAssignedToAgentTeam) {
         return res.status(403).json({
           success: false,
           message: 'You do not have access to this conversation',
           code: 'CONVERSATION_NOT_ASSIGNED',
-          hint: 'Agents can only access conversations assigned to them'
+          hint: 'Agents can only access conversations assigned to them or their team'
         });
       }
 
@@ -399,12 +418,20 @@ async function canSendMessage(userId, workspaceId, conversationId) {
     const conversation = await Conversation.findOne({
       _id: conversationId,
       workspace: workspaceId
-    }).select('assignedTo').lean();
+    }).select('assignedTo team').lean();
 
     if (!conversation) return false;
     
-    // Allow if assigned to this agent
-    return conversation.assignedTo?.toString() === userId.toString();
+    // 1. Allow if assigned to this agent
+    if (conversation.assignedTo?.toString() === userId.toString()) return true;
+
+    // 2. Allow if assigned to agent's team
+    if (conversation.team) {
+      const user = await User.findById(userId).select('team').lean();
+      if (user?.team && user.team.toString() === conversation.team.toString()) {
+        return true;
+      }
+    }
   }
 
   return false;

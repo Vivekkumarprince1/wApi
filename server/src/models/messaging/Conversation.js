@@ -16,6 +16,7 @@ const ConversationSchema = new mongoose.Schema({
   // ====== STAGE 4: ENHANCED ASSIGNMENT ======
   // Primary assignment
   assignedTo: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' }, // Assigned Team pool
   assignedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   assignedAt: { type: Date },
   
@@ -153,6 +154,7 @@ ConversationSchema.index({ workspace: 1, contact: 1 }, { unique: true });
 ConversationSchema.index({ workspace: 1, status: 1, lastActivityAt: -1 });
 ConversationSchema.index({ workspace: 1, assignedTo: 1, status: 1 });
 ConversationSchema.index({ workspace: 1, assignedTo: 1, lastMessageAt: -1 });
+ConversationSchema.index({ workspace: 1, team: 1, status: 1 });
 
 // Unassigned conversations (for managers to assign)
 ConversationSchema.index({ 

@@ -1961,6 +1961,74 @@ async function getLibraryTemplates(req, res, next) {
 }
 
 /**
+ * Get the workspace notification library from approved templates.
+ * This is the product-facing shelf used by inbox and automation flows.
+ */
+async function getNotificationLibraryTemplates(req, res, next) {
+  try {
+    const workspaceId = req.user.workspace;
+    const workspace = await Workspace.findById(workspaceId);
+
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        message: 'Workspace not found'
+      });
+    }
+
+    const { category, language, q, limit = 50 } = req.query;
+
+    const query = {
+      workspace: workspaceId,
+      status: 'APPROVED'
+    };
+
+    if (category) {
+      query.category = String(category).toUpperCase();
+    }
+
+    if (language) {
+      query.language = String(language);
+    }
+
+    if (q) {
+      query.$or = [
+        { name: { $regex: String(q), $options: 'i' } },
+        { displayName: { $regex: String(q), $options: 'i' } },
+        { 'body.text': { $regex: String(q), $options: 'i' } }
+      ];
+    }
+
+    const templates = await Template.find(query)
+      .sort({ lastUsedAt: -1, updatedAt: -1, createdAt: -1 })
+      .limit(Number(limit) || 50)
+      .lean();
+
+    res.json({
+      success: true,
+      templates: templates.map(template => ({
+        _id: template._id,
+        name: template.name,
+        displayName: template.displayName || template.name,
+        category: template.category,
+        language: template.language,
+        status: template.status,
+        usedInCampaigns: template.usedInCampaigns || 0,
+        lastUsedAt: template.lastUsedAt || null,
+        updatedAt: template.updatedAt,
+        createdAt: template.createdAt,
+        header: template.header,
+        footer: template.footer,
+        buttons: template.buttons,
+        body: template.body
+      }))
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
  * Create a template from Meta's pre-approved library.
  * POST /api/v1/templates/library
  * Body: { elementName, category, languageCode, libraryTemplateName, buttons }
@@ -2110,6 +2178,7 @@ module.exports = {
   validateTemplatePreview,
   getTemplateCategories,
   getTemplateLibraryStats,
+  getNotificationLibraryTemplates,
 
   // Version forking (Stage 2 Hardening)
   forkApprovedTemplate,

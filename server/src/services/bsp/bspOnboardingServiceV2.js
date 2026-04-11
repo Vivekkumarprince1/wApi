@@ -60,6 +60,81 @@ function resolveOnboardingApp(partnerAppsResponse) {
   };
 }
 
+function isUnassignedSandboxApp(app) {
+  if (!app || !app.id) return false;
+
+  const accountMode = String(app.accountMode || app.mode || '').toUpperCase();
+  const customerId = app.customerId || app.customer_id || null;
+  const hasPhone = Boolean(app.phone);
+  const isSandboxMode = accountMode === 'SANDBOX' || !app.live;
+  const isUnassigned = !customerId || String(customerId).trim() === '';
+
+  return isSandboxMode && isUnassigned && !hasPhone;
+}
+
+function resolveReusableSandboxApp(partnerAppsResponse) {
+  const apps = partnerAppsResponse?.partnerAppsList || partnerAppsResponse?.data || [];
+  if (!Array.isArray(apps) || apps.length === 0) {
+    return null;
+  }
+
+  const sandboxCandidates = apps.filter(isUnassignedSandboxApp);
+  if (sandboxCandidates.length === 0) {
+    return null;
+  }
+
+  const preferred =
+    sandboxCandidates.find((app) => app.accountMode === 'SANDBOX') ||
+    sandboxCandidates.find((app) => app.live === false) ||
+    sandboxCandidates[0];
+
+  return {
+    appId: preferred.id,
+    appName: preferred.name,
+    liveStatus: !!preferred.live,
+    phone: preferred.phone || null
+  };
+}
+
+function resolvePublicWebhookUrl() {
+  const direct = String(process.env.WHATSAPP_WEBHOOK_URL || '').trim();
+  if (direct && /^https:\/\//i.test(direct)) {
+    return direct.replace(/\/$/, '');
+  }
+
+  const candidates = [
+    process.env.RENDER_EXTERNAL_URL,
+    process.env.API_BASE_URL,
+    process.env.APP_URL
+  ];
+
+  for (const base of candidates) {
+    const normalizedBase = String(base || '').trim().replace(/\/$/, '');
+    if (!normalizedBase) continue;
+
+    if (/\/api\/v1$/i.test(normalizedBase)) {
+      return `${normalizedBase}/webhook/gupshup`;
+    }
+
+    if (/\/api$/i.test(normalizedBase)) {
+      return `${normalizedBase}/v1/webhook/gupshup`;
+    }
+
+    return `${normalizedBase}/api/v1/webhook/gupshup`;
+  }
+
+  return null;
+}
+
+function buildContactSyncFingerprint({ appId, contactName, contactEmail, contactNumber }) {
+  return [
+    String(appId || '').trim(),
+    String(contactName || '').trim().toLowerCase(),
+    String(contactEmail || '').trim().toLowerCase(),
+    String(contactNumber || '').trim()
+  ].join('|');
+}
+
 async function resolveOrCreateWorkspaceApp(userId) {
   const user = await User.findById(userId).populate('workspace');
   if (!user) {
@@ -68,6 +143,8 @@ async function resolveOrCreateWorkspaceApp(userId) {
 
   let appId;
   let appName;
+
+  const partnerApps = await gupshupService.getPartnerApps();
 
   // Check both fields for existing app (one-time creation policy)
   const existingAppId = user.workspace?.gupshupAppId || user.workspace?.gupshupIdentity?.partnerAppId;
@@ -78,15 +155,11 @@ async function resolveOrCreateWorkspaceApp(userId) {
     appName = user.workspace.name || `workspace-${userId}`;
     console.log(`[BSP-V2] Reusing existing app: ${appId}`);
   } else {
-    // New user — create a fresh app
-    const uniqueSuffix = Date.now().toString(36).substring(4);
-    appName = `waba${userId.toString().substring(0, 10)}${uniqueSuffix}`;
-    try {
-      const newApp = await gupshupService.createPartnerApp(appName);
-      if (!newApp || !newApp.appId) {
-        throw new Error('Failed to create Gupshup app');
-      }
-      appId = newApp.appId;
+    const reusableSandbox = resolveReusableSandboxApp(partnerApps);
+    if (reusableSandbox) {
+      appId = reusableSandbox.appId;
+      appName = reusableSandbox.appName || `workspace-${userId}`;
+      console.log(`[BSP-V2] Reusing unassigned sandbox app: ${appId}`);
 
       if (user.workspace) {
         user.workspace.gupshupAppId = appId;
@@ -94,25 +167,45 @@ async function resolveOrCreateWorkspaceApp(userId) {
         user.workspace.gupshupIdentity.partnerAppId = appId;
         user.workspace.markModified('gupshupIdentity');
         await user.workspace.save();
-      } else {
-        const newWorkspace = await Workspace.create({
-          name: `workspace-${userId}`,
-          owner: userId,
-          gupshupAppId: appId,
-          gupshupIdentity: { partnerAppId: appId },
-          onboardingStatus: 'pending_activation'
-        });
-        await User.findByIdAndUpdate(userId, { workspace: newWorkspace._id });
-        user.workspace = newWorkspace;
       }
-    } catch (error) {
-      console.error('[BSP] Error creating new Gupshup app:', error.response?.data || error.message);
-      throw new Error('Failed to provision a new WhatsApp Business account. Please try again later.');
+    } else {
+      // New user — create a fresh app
+      const uniqueSuffix = Date.now().toString(36).substring(4);
+      appName = `waba${userId.toString().substring(0, 10)}${uniqueSuffix}`;
+      try {
+        const newApp = await gupshupService.createPartnerApp(appName);
+        if (!newApp || !newApp.appId) {
+          throw new Error('Failed to create Gupshup app');
+        }
+        appId = newApp.appId;
+
+        if (user.workspace) {
+          user.workspace.gupshupAppId = appId;
+          if (!user.workspace.gupshupIdentity) user.workspace.gupshupIdentity = {};
+          user.workspace.gupshupIdentity.partnerAppId = appId;
+          user.workspace.markModified('gupshupIdentity');
+          await user.workspace.save();
+        } else {
+          const newWorkspace = await Workspace.create({
+            name: `workspace-${userId}`,
+            owner: userId,
+            gupshupAppId: appId,
+            gupshupIdentity: { partnerAppId: appId },
+            onboardingStatus: 'pending_activation'
+          });
+          await User.findByIdAndUpdate(userId, { workspace: newWorkspace._id });
+          user.workspace = newWorkspace;
+        }
+      } catch (error) {
+        console.error('[BSP] Error creating new Gupshup app:', error.response?.data || error.message);
+        throw new Error('Failed to provision a new WhatsApp Business account. Please try again later.');
+      }
     }
   }
 
   return {
     user,
+    workspace: user.workspace,
     appId,
     appName,
     workspaceId: user.workspace?._id?.toString() || null
@@ -122,16 +215,48 @@ async function resolveOrCreateWorkspaceApp(userId) {
 async function generateBspSignupUrl(userId, options = {}) {
   getBspConfig();
 
-  const { user, appId, appName, workspaceId } = await resolveOrCreateWorkspaceApp(userId);
+  const { user, workspace, appId, appName, workspaceId } = await resolveOrCreateWorkspaceApp(userId);
+
+  const contactPayload = {
+    appId,
+    contactName: options.businessName || appName,
+    contactEmail: options.contactEmail || user.email,
+    contactNumber: options.phone || user.phone
+  };
+  const contactFingerprint = buildContactSyncFingerprint(contactPayload);
+
+  const alreadySynced = workspace?.esbFlow?.contactSyncFingerprint === contactFingerprint;
+
+  if (!alreadySynced) {
+    try {
+      await gupshupService.updateOnboardingContact(contactPayload);
+
+      if (workspace?._id) {
+        await Workspace.findByIdAndUpdate(workspace._id, {
+          $set: {
+            'esbFlow.contactSyncFingerprint': contactFingerprint,
+            'esbFlow.contactSyncedAt': new Date()
+          }
+        });
+      }
+    } catch (_error) {
+    }
+  }
 
   try {
-    await gupshupService.updateOnboardingContact({
-      appId: appId,
-      contactName: options.businessName || appName,
-      contactEmail: options.contactEmail || user.email,
-      contactNumber: options.phone || user.phone
-    });
-  } catch (_error) {
+    const webhookUrl = resolvePublicWebhookUrl();
+    if (webhookUrl) {
+      const appApiKey = await gupshupService.resolveAppScopedToken(appId);
+      if (appApiKey) {
+        await gupshupService.ensureRequiredSubscriptions({
+          appId,
+          appApiKey,
+          webhookUrl
+        });
+      }
+    }
+  } catch (error) {
+    console.warn(`[BSP-V2] Subscription setup skipped for ${appId}:`, error.message);
   }
 
   const embed = await gupshupService.getOnboardingEmbedLink({

@@ -86,7 +86,6 @@ class IntegrationService {
         crm: ['premium', 'enterprise'],
         instagram: ['basic', 'premium', 'enterprise'],
         email: ['basic', 'premium', 'enterprise'],
-        sms: ['basic', 'premium', 'enterprise'],
         openai: ['premium', 'enterprise'],
         custom: ['enterprise']
       };
@@ -276,10 +275,6 @@ class IntegrationService {
           typeSpecificTest = await this.testEmailConfig(decryptedConfig);
           break;
 
-        case 'sms':
-          typeSpecificTest = await this.testSMSConfig(decryptedConfig);
-          break;
-
         case 'openai':
           typeSpecificTest = await this.testOpenAIConfig(decryptedConfig);
           break;
@@ -390,11 +385,6 @@ class IntegrationService {
       case 'email':
         metadata.provider = config.provider;
         metadata.hasAPIKey = !!config.apiKey;
-        break;
-
-      case 'sms':
-        metadata.provider = config.provider;
-        metadata.fromNumber = config.fromNumber;
         break;
 
       case 'openai':
@@ -539,28 +529,7 @@ class IntegrationService {
     }
   }
 
-  static async testSMSConfig(config) {
-    try {
-      const validProviders = ['twilio', 'nexmo', 'sns'];
-      if (!validProviders.includes(config.provider?.toLowerCase())) {
-        return { success: false, error: `Unknown SMS provider: ${config.provider}` };
-      }
 
-      if (!config.fromNumber) {
-        return { success: false, error: 'From number required' };
-      }
-
-      return {
-        success: true,
-        message: `${config.provider} SMS configuration valid`
-      };
-    } catch (err) {
-      return {
-        success: false,
-        error: `SMS test failed: ${err.message}`
-      };
-    }
-  }
 
   static async testOpenAIConfig(config) {
     try {
