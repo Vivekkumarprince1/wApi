@@ -141,13 +141,14 @@ export default function ChatInput({
   };
 
   return (
-    <div className={`p-5 flex flex-col gap-3 border-t border-border/50 z-30 w-full relative transition-all duration-500 ${internalNoteMode ? 'bg-amber-500/5' : 'bg-card/40 backdrop-blur-md'}`}>
+    <div className={`p-4 md:p-5 flex flex-col gap-3 border-t border-border/50 z-30 w-full relative transition-all duration-500 ${internalNoteMode ? 'bg-amber-500/5' : 'bg-card/60 backdrop-blur-md'}`}>
       
       {/* Mode Toggles */}
-      <div className="flex items-center gap-2 px-1">
+      <div className="flex items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-2">
         <button
           onClick={() => setInternalNoteMode(false)}
-          className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center gap-2 border ${!internalNoteMode 
+          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center gap-2 border ${!internalNoteMode 
             ? 'bg-primary text-white border-primary shadow-[0_4px_12px_rgba(20,184,166,0.3)] scale-105' 
             : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted active:scale-95'}`}
         >
@@ -155,15 +156,20 @@ export default function ChatInput({
         </button>
         <button
           onClick={() => setInternalNoteMode(true)}
-          className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center gap-2 border ${internalNoteMode 
+          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center gap-2 border ${internalNoteMode 
             ? 'bg-amber-500 text-white border-amber-500 shadow-[0_4px_12px_rgba(245,158,11,0.3)] scale-105' 
             : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted active:scale-95'}`}
         >
           <FaFlag size={12} /> Internal Note
         </button>
+        </div>
+        <p className="hidden md:block text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground/60">
+          {internalNoteMode ? 'Private team note' : 'Customer reply'}
+        </p>
       </div>
 
-        <div className="flex items-center gap-1.5 mb-1 relative">
+        <div className="flex items-start gap-2 md:gap-2.5 relative">
+          <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => {
@@ -171,14 +177,14 @@ export default function ChatInput({
               setShowQuickReplies(false);
             }}
             title="Emoji picker"
-            className={`p-3 transition-all rounded-xl border ${showEmojiPicker ? 'text-primary bg-primary/10 border-primary/20 shadow-inner scale-105' : 'text-muted-foreground/60 bg-muted/40 hover:text-primary hover:bg-primary/5 hover:border-primary/20 border-transparent'} active:scale-90`}
+            className={`p-2.5 transition-all rounded-xl border ${showEmojiPicker ? 'text-primary bg-primary/10 border-primary/20 shadow-inner scale-105' : 'text-muted-foreground/60 bg-muted/40 hover:text-primary hover:bg-primary/5 hover:border-primary/20 border-transparent'} active:scale-90`}
           >
             <FaSmile className="text-lg" />
           </button>
 
           <button
             type="button"
-            className={`p-3 transition-all rounded-xl border ${selectedMedia ? 'text-primary bg-primary/10 border-primary/20 shadow-inner' : isUploading ? 'text-primary bg-primary/10 animate-pulse border-primary/20' : 'text-muted-foreground/60 bg-muted/40 hover:text-primary hover:bg-primary/5 hover:border-primary/20 border-transparent'} active:scale-90`}
+            className={`p-2.5 transition-all rounded-xl border ${selectedMedia ? 'text-primary bg-primary/10 border-primary/20 shadow-inner' : isUploading ? 'text-primary bg-primary/10 animate-pulse border-primary/20' : 'text-muted-foreground/60 bg-muted/40 hover:text-primary hover:bg-primary/5 hover:border-primary/20 border-transparent'} active:scale-90`}
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
           >
@@ -188,10 +194,11 @@ export default function ChatInput({
           <button
             type="button"
             onClick={() => setShowQuickReplies(!showQuickReplies)}
-            className={`p-3 transition-all rounded-xl border ${showQuickReplies ? 'text-primary bg-primary/10 border-primary/20 shadow-inner scale-105' : 'text-muted-foreground/60 bg-muted/40 hover:text-primary hover:bg-primary/5 hover:border-primary/20 border-transparent'} active:scale-90`}
+            className={`p-2.5 transition-all rounded-xl border ${showQuickReplies ? 'text-primary bg-primary/10 border-primary/20 shadow-inner scale-105' : 'text-muted-foreground/60 bg-muted/40 hover:text-primary hover:bg-primary/5 hover:border-primary/20 border-transparent'} active:scale-90`}
           >
             <FaBolt className="text-lg" />
           </button>
+          </div>
 
           <input
             type="file"
@@ -283,18 +290,41 @@ export default function ChatInput({
               </motion.div>
             )}
           </AnimatePresence>
+
         </div>
 
-        <div className={`flex-1 rounded-2xl shadow-inner border transition-all duration-500 overflow-hidden relative group/input ${internalNoteMode 
+        <div className={`flex-1 rounded-[1.25rem] shadow-inner border transition-all duration-500 overflow-hidden relative group/input ${internalNoteMode 
           ? 'bg-amber-500/5 border-amber-500/20 focus-within:ring-4 focus-within:ring-amber-500/5 focus-within:border-amber-500/40' 
           : 'bg-muted/40 border-border/40 focus-within:bg-card focus-within:ring-4 focus-within:ring-primary/5 focus-within:border-primary/30'}`}>
+          {selectedMedia && (
+            <div className="mx-3 mt-3 flex items-center justify-between gap-3 rounded-2xl border border-border/50 bg-background/80 px-3 py-2 shadow-sm backdrop-blur-sm">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <FaFileAlt className="text-sm" />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-black uppercase tracking-widest text-foreground">{selectedMedia.name}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">Attachment ready</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={clearSelectedMedia}
+                className="rounded-full border border-border/60 p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Remove attachment"
+              >
+                <FaTimes className="text-[11px]" />
+              </button>
+            </div>
+          )}
+
           <textarea
             ref={textareaRef}
             value={newMessage}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder={internalNoteMode ? "Add a private team note... (Type @ to mention)" : "Type a message..."}
-            className="w-full max-h-40 min-h-[48px] bg-transparent border-none py-3.5 px-4 text-[14.5px] focus:ring-0 resize-none text-foreground placeholder:text-muted-foreground/50 font-medium leading-relaxed"
+            className="w-full max-h-40 min-h-[84px] bg-transparent border-none pt-3.5 pb-14 pl-4 pr-20 text-[14.5px] focus:ring-0 resize-none text-foreground placeholder:text-muted-foreground/50 font-medium leading-relaxed"
             rows={1}
             disabled={sending}
           />
@@ -334,20 +364,28 @@ export default function ChatInput({
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
 
-        <button
-          onClick={handleSendMessage}
-          disabled={!bspReady || sending || (!newMessage.trim() && !selectedMedia)}
-          className={`p-3.5 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all cursor-pointer shadow-lg active:scale-95 ${internalNoteMode
-            ? (newMessage.trim() ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20' : 'bg-muted text-muted-foreground/40 cursor-not-allowed')
-            : ((newMessage.trim() || selectedMedia) && !sending && bspReady
-              ? 'bg-primary hover:brightness-110 text-white shadow-primary/20'
-              : 'bg-muted text-muted-foreground/40 cursor-not-allowed')
-            }`}
-        >
-          {sending ? <FaSpinner className="animate-spin text-lg" /> : <FaPaperPlane className="text-lg translate-x-[-1px] translate-y-[1px]" />}
-        </button>
+          <div className="absolute bottom-3 right-3 flex items-center gap-2">
+            <div className={`hidden sm:flex items-center gap-2 rounded-full border px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] shadow-sm ${internalNoteMode ? 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300' : 'border-border/60 bg-background/90 text-muted-foreground'}`}>
+              <span>{internalNoteMode ? 'Private note' : 'Reply'}</span>
+              <span className="opacity-60">Enter to send</span>
+            </div>
+
+            <button
+              onClick={handleSendMessage}
+              disabled={!bspReady || sending || (!newMessage.trim() && !selectedMedia)}
+              className={`h-11 w-11 rounded-2xl flex-shrink-0 flex items-center justify-center transition-all cursor-pointer shadow-lg active:scale-95 border ${internalNoteMode
+                ? (newMessage.trim() ? 'bg-amber-500 hover:bg-amber-600 text-white border-amber-500/30 shadow-amber-500/20' : 'bg-muted text-muted-foreground/40 cursor-not-allowed border-border/30')
+                : ((newMessage.trim() || selectedMedia) && !sending && bspReady
+                  ? 'bg-primary hover:brightness-110 text-white border-primary/30 shadow-primary/20'
+                  : 'bg-muted text-muted-foreground/40 cursor-not-allowed border-border/30')
+                }`}
+              title={internalNoteMode ? 'Send internal note' : 'Send message'}
+            >
+              {sending ? <FaSpinner className="animate-spin text-base" /> : <FaPaperPlane className="text-base translate-x-[-1px] translate-y-[1px]" />}
+            </button>
+          </div>
+        </div>
       </div>
   );
 }

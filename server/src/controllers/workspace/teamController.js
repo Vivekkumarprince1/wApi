@@ -880,6 +880,7 @@ async function autoAssignConversation(req, res, next) {
     }
 
     const availableAgents = await Permission.find(agentFilter)
+      .populate('user', '_id name email team')
       .select('user maxConcurrentChats')
       .lean();
 
@@ -892,7 +893,7 @@ async function autoAssignConversation(req, res, next) {
       availableAgents.map(async (agent) => {
         const count = await Conversation.countDocuments({
           workspace: workspaceId,
-          assignedTo: agent.user,
+          assignedTo: agent.user._id,
           status: { $in: ['open', 'pending'] }
         });
         return { ...agent, currentChats: count };
@@ -922,18 +923,19 @@ async function autoAssignConversation(req, res, next) {
 
     // Assign the conversation
     conversation.assignedTo = selectedAgent.user;
+    conversation.team = selectedAgent.user?.team || team?._id || conversation.team || null;
     await conversation.save();
 
-    const assignedUser = await User.findById(selectedAgent.user).select('name email').lean();
+    const assignedUser = await User.findById(selectedAgent.user._id).select('name email').lean();
 
     logger.info('[TeamController] Auto-assigned conversation:', {
-      conversationId, assignedTo: selectedAgent.user, strategy
+      conversationId, assignedTo: selectedAgent.user._id, strategy
     });
 
     return res.status(200).json({
       success: true,
       assignedTo: {
-        _id: selectedAgent.user,
+        _id: selectedAgent.user._id,
         name: assignedUser?.name,
         email: assignedUser?.email,
       },

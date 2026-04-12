@@ -32,6 +32,7 @@ export default function ConversationsSidebar({
   permissions
 }) {
   const allViews = ['all', 'mine', 'team', 'unassigned', 'resolved', 'snoozed'];
+  const currentUserTeamId = currentUser?.team?._id || currentUser?.team || null;
 
   return (
     <div className="w-[300px] lg:w-[340px] flex-shrink-0 border-r border-border bg-card/80 backdrop-blur-xl flex flex-col z-10 transition-all duration-500">
@@ -64,9 +65,9 @@ export default function ConversationsSidebar({
       <div className="px-4 py-3 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-border/40 scrollbar-hide">
         {allViews.map(view => {
           const isRestricted = !permissions?.viewAllConversations && (view === 'all');
-          const isTeamRestricted = view === 'team' && !currentUser?.team;
+          const isTeamRestricted = view === 'team' && !currentUserTeamId;
           
-          if (view === 'team' && !currentUser?.team) return null; // Hide team tab if user has no team
+          if (view === 'team' && !currentUserTeamId) return null; // Hide team tab if user has no team
 
           return (
             <button

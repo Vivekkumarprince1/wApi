@@ -9,6 +9,7 @@ import {
   addDealNote,
   getPipelines,
   get,
+  fetchAvailableAgents,
   post,
   put,
   del,
@@ -102,15 +103,49 @@ export default function InboxPage() {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [userRes, tagsRes, agentsRes, quickRepliesRes] = await Promise.all([
+        const [userRes, tagsRes, agentsRes, teamsRes, quickRepliesRes] = await Promise.all([
           get('/auth/me'),
           get('/tags'),
-          get('/inbox/agents').catch(() => ({ agents: [] })),
+          fetchAvailableAgents().catch(() => ({ members: [] })),
+          get('/team/teams').catch(() => ({ teams: [] })),
           get('/quick-replies').catch(() => ({ data: [] }))
         ]);
+
+        const normalizedAgents = new Map();
+        const addAgent = (agent) => {
+          const agentId = agent?._id || agent?.id || agent?.user?._id || agent?.user || null;
+          if (!agentId) return;
+
+          const existing = normalizedAgents.get(String(agentId));
+          normalizedAgents.set(String(agentId), {
+            ...existing,
+            ...agent,
+            _id: agentId,
+            team: agent.team || existing?.team || null
+          });
+        };
+
+        (agentsRes.members || agentsRes.agents || agentsRes.data || []).forEach(addAgent);
+        (teamsRes.teams || []).forEach((team) => {
+          (team.members || []).forEach((member) => {
+            const memberUser = member.user || {};
+            addAgent({
+              _id: memberUser._id || memberUser.id || member.user,
+              name: memberUser.name,
+              email: memberUser.email,
+              role: memberUser.role || member.role,
+              team: { _id: team._id, name: team.name },
+              isOnline: memberUser.isOnline,
+              isAvailable: memberUser.isAvailable,
+              maxConcurrentChats: memberUser.maxConcurrentChats,
+              openConversations: memberUser.openConversations
+            });
+          });
+        });
+
         setCurrentUser(userRes.user || userRes.data || null);
         setAvailableTags(tagsRes.tags || tagsRes.data || []);
-        setAgents(agentsRes.agents || agentsRes.data || []);
+        setAgents(Array.from(normalizedAgents.values()));
         setQuickReplies(quickRepliesRes.data || []);
       } catch (err) {
         console.error('Error fetching initial inbox data:', err);
@@ -227,6 +262,46 @@ export default function InboxPage() {
         ? { ...conv, myUnreadCount: 0, unreadCount: data.unreadCount ?? 0 }
         : conv
     ));
+  });
+
+  useSocketEvent('conversation:updated', (data) => {
+    if (!data?.conversationId) return;
+    loadConversations();
+    if (selectedConversationId && String(selectedConversationId) === String(data.conversationId)) {
+      loadConversationDetail(data.conversationId);
+    }
+  });
+
+  useSocketEvent('conversation:assigned', (data) => {
+    if (!data?.conversationId) return;
+    loadConversations();
+    if (selectedConversationId && String(selectedConversationId) === String(data.conversationId)) {
+      loadConversationDetail(data.conversationId);
+    }
+  });
+
+  useSocketEvent('conversation:unassigned', (data) => {
+    if (!data?.conversationId) return;
+    loadConversations();
+    if (selectedConversationId && String(selectedConversationId) === String(data.conversationId)) {
+      loadConversationDetail(data.conversationId);
+    }
+  });
+
+  useSocketEvent('conversation:closed', (data) => {
+    if (!data?.conversationId) return;
+    loadConversations();
+    if (selectedConversationId && String(selectedConversationId) === String(data.conversationId)) {
+      loadConversationDetail(data.conversationId);
+    }
+  });
+
+  useSocketEvent('conversation:reopened', (data) => {
+    if (!data?.conversationId) return;
+    loadConversations();
+    if (selectedConversationId && String(selectedConversationId) === String(data.conversationId)) {
+      loadConversationDetail(data.conversationId);
+    }
   });
 
   // Listen for agent typing indicators (via soft lock)
@@ -447,6 +522,7 @@ export default function InboxPage() {
         toast.success(`Assigned to ${agentName}`);
       }
       loadConversations();
+      await loadConversationDetail(selectedConversationId);
     } catch (error) {
       console.error('Error assigning conversation:', error);
       toast.error('Assignment failed');
@@ -461,6 +537,9 @@ export default function InboxPage() {
       toast.success('Conversation resolved');
       setSelectedContact(null);
       setSelectedConversationId(null);
+      setSelectedConversationDetail(null);
+      setMessages([]);
+      setConversationNotes([]);
       loadConversations();
     } catch (error) {
       console.error('Error resolving conversation:', error);
@@ -518,6 +597,9 @@ export default function InboxPage() {
       toast.success('Marked as spam');
       setSelectedContact(null);
       setSelectedConversationId(null);
+      setSelectedConversationDetail(null);
+      setMessages([]);
+      setConversationNotes([]);
       loadConversations();
     } catch (error) {
       toast.error('Failed to mark as spam');
@@ -827,7 +909,7 @@ export default function InboxPage() {
   const selectedConversation = selectedConversationDetail || conversations.find(c => (c._id || c.id) === selectedConversationId);
 
   return (
-    <div className="fixed top-[60px] left-0 lg:left-[72px] right-0 bottom-0 bg-background text-foreground font-sans overflow-hidden flex z-20 transition-all duration-300">
+    <div className="fixed top-[60px] left-0 lg:left-[72px] right-0 bottom-0 overflow-hidden flex z-20 transition-all duration-300 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.10),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.08),_transparent_24%),linear-gradient(180deg,_hsl(var(--background))_0%,_hsl(var(--background))_55%,_hsl(var(--muted))_100%)] text-foreground font-sans">
       <ConversationsSidebar 
         conversations={conversations}
         loading={loading}
@@ -848,7 +930,7 @@ export default function InboxPage() {
       />
 
       {/* 2. Message Thread Area (Center Pane) */}
-      <div className="flex-1 flex flex-col bg-muted/20 relative border-r border-border shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20">
+      <div className="flex-1 flex flex-col bg-background/60 backdrop-blur-xl relative border-x border-border/60 shadow-[0_18px_60px_-30px_rgba(0,0,0,0.35)] z-20 overflow-hidden">
         {!workspace?.loading && !bspReady && (
           <div className="absolute top-0 left-0 right-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between shadow-sm backdrop-blur-md">
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
@@ -885,7 +967,7 @@ export default function InboxPage() {
               messagesEndRef={messagesEndRef}
               bspReady={bspReady}
               workspace={workspace}
-              assignmentTeamId={selectedConversation?.team?._id || selectedConversation?.team || currentUser?.team?._id || currentUser?.team || null}
+              assignmentTeamId={selectedConversation?.team?._id || selectedConversation?.team || null}
               conversationNotes={conversationNotes}
               conversationDetail={selectedConversation}
             />
@@ -912,9 +994,9 @@ export default function InboxPage() {
             />
           </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-muted/30 border-l border-border">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.08),_transparent_36%),linear-gradient(180deg,_rgba(255,255,255,0.55),_rgba(255,255,255,0.15))] dark:bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.08),_transparent_36%),linear-gradient(180deg,_rgba(15,23,42,0.45),_rgba(15,23,42,0.15))] border-l border-border/50">
             <div className="w-[320px] text-center flex flex-col items-center">
-              <div className="w-24 h-24 bg-card rounded-full flex items-center justify-center mb-6 shadow-sm border border-border text-primary">
+              <div className="w-24 h-24 bg-card/90 rounded-full flex items-center justify-center mb-6 shadow-premium border border-border/70 text-primary backdrop-blur-xl">
                 <FaPaperPlane className="text-4xl translate-x-[-2px] translate-y-[2px]" />
               </div>
               <h3 className="text-2xl font-semibold text-foreground mb-3 tracking-tight">Shared Inbox</h3>

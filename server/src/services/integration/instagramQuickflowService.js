@@ -169,16 +169,19 @@ async function sendInstagramQuickflowResponse(
     });
 
     // Update quickflow statistics
+    const updatePayload = {
+      $inc: { totalTriggered: 1 },
+      lastTriggeredAt: new Date()
+    };
+
+    if (responseSent) {
+      updatePayload.$inc.totalRepliesSent = 1;
+      updatePayload.lastReplySentAt = new Date();
+    }
+
     await InstagramQuickflow.findByIdAndUpdate(
       quickflow._id,
-      {
-        $inc: { totalTriggered: 1 },
-        ...(responseSent && { 
-          $inc: { totalRepliesSent: 1 },
-          lastReplySentAt: new Date()
-        }),
-        lastTriggeredAt: new Date()
-      }
+      updatePayload
     );
 
     return {

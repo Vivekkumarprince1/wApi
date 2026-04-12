@@ -89,6 +89,13 @@ export default function MessageThread({
       })
     : agents;
 
+  const formatAgentOption = (agent) => {
+    const teamName = agent.team?.name ? ` · ${agent.team.name}` : '';
+    const clickability = agent.canAccept === false ? 'unclickable' : 'clickable';
+
+    return `${agent.name === currentUser?.name ? 'Me' : agent.name}${teamName} · ${clickability}`;
+  };
+
   // Group messages with date separators and grouping logic
   const renderItems = [];
   let lastDate = null;
@@ -134,7 +141,7 @@ export default function MessageThread({
   const reversedItems = [...renderItems].reverse();
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 relative border-r border-border shadow-[-4px_0_15px_-3px_rgba(0,0,0,0.05)] z-20 overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 relative border-r border-border/60 shadow-[0_18px_50px_-28px_rgba(0,0,0,0.45)] z-20 overflow-hidden bg-background/40 backdrop-blur-xl">
       {!workspace?.loading && !bspReady && (
         <motion.div
           initial={{ y: -20, opacity: 0 }}
@@ -155,7 +162,7 @@ export default function MessageThread({
       )}
 
       {/* Chat Thread Header */}
-      <div className={`px-6 py-4 bg-card/80 backdrop-blur-xl border-b border-border/50 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-all ${!bspReady ? 'mt-14' : ''}`}>
+      <div className={`px-6 py-4 bg-card/90 backdrop-blur-xl border-b border-border/50 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-all ${!bspReady ? 'mt-14' : ''}`}>
         <div className="flex items-center gap-4">
           <div className="relative">
             <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-primary/20 shadow-inner">
@@ -257,8 +264,13 @@ export default function MessageThread({
             >
               <option value="">Unassigned</option>
               {visibleAgents.map((agent, idx) => (
-                <option key={agent._id || `agent-${idx}`} value={agent._id}>
-                  {agent.name === currentUser?.name ? 'Me' : agent.name}
+                <option
+                  key={agent._id || `agent-${idx}`}
+                  value={agent._id}
+                  disabled={agent.canAccept === false}
+                  title={agent.canAccept === false ? 'At capacity or unavailable' : undefined}
+                >
+                  {formatAgentOption(agent)}
                 </option>
               ))}
             </select>
@@ -283,9 +295,9 @@ export default function MessageThread({
 
       {/* Chat Messages */}
       <div
-        className="flex-1 overflow-y-auto pt-6 pb-2 px-4 flex flex-col-reverse relative bg-[#efeae2] dark:bg-[#0b141a] custom-scrollbar transition-colors duration-500"
+        className="flex-1 overflow-y-auto pt-6 pb-2 px-4 flex flex-col-reverse relative bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.07),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.62),_rgba(243,244,246,0.88))] dark:bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.08),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.65),_rgba(2,6,23,0.92))] custom-scrollbar transition-colors duration-500"
         style={{
-          backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.18), rgba(255,255,255,0.18)), url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
           backgroundBlendMode: 'overlay',
           backgroundSize: '400px'
         }}

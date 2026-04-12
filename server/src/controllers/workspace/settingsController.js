@@ -392,6 +392,39 @@ function generateRecommendations(debugInfo, wabaFromPhone) {
 // COMMERCE SETTINGS CONTROLLER FUNCTIONS
 // ==========================================
 
+async function hasCommerceAccess(workspace) {
+  const plan = workspace?.plan;
+
+  const normalizedFeatures = Array.isArray(plan?.features)
+    ? plan.features.map((feature) => String(feature).toUpperCase())
+    : [];
+
+  if (normalizedFeatures.includes('ALL') || normalizedFeatures.includes('COMMERCE')) {
+    return { allowed: true, plan };
+  }
+
+  const planSlug = String(plan?.slug || '').toLowerCase();
+  if (['free', 'starter', 'basic', 'premium', 'enterprise'].includes(planSlug)) {
+    return { allowed: true, plan };
+  }
+
+  const { Plan } = require('../../models');
+  const fallbackPlan = await Plan.findOne({ slug: 'starter' }).lean();
+
+  if (!fallbackPlan) {
+    return { allowed: false, plan };
+  }
+
+  const fallbackFeatures = Array.isArray(fallbackPlan.features)
+    ? fallbackPlan.features.map((feature) => String(feature).toUpperCase())
+    : [];
+
+  return {
+    allowed: fallbackFeatures.includes('ALL') || fallbackFeatures.includes('COMMERCE'),
+    plan: plan || fallbackPlan
+  };
+}
+
 // Get Commerce Settings for current workspace
 async function getCommerceSettings(req, res, next) {
   try {
@@ -401,22 +434,12 @@ async function getCommerceSettings(req, res, next) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
 
-    // Check plan permissions
-    const PLAN_FEATURES = {
-      free: { commerce: true, crm: true },
-      starter: { commerce: true, crm: true },
-      basic: { commerce: true },
-      premium: { commerce: true },
-      enterprise: { commerce: true }
-    };
-
-    const planSlug = workspace.plan?.slug || 'free';
-    const canAccessCommerce = PLAN_FEATURES[planSlug]?.commerce;
+    const { allowed: canAccessCommerce, plan } = await hasCommerceAccess(workspace);
 
     if (!canAccessCommerce) {
       return res.status(403).json({
         message: 'Commerce features are not available on your plan',
-        currentPlan: workspace.plan,
+        currentPlan: plan,
         upgradeTo: 'premium'
       });
     }
@@ -480,22 +503,12 @@ async function updateCommerceSettings(req, res, next) {
       return res.status(404).json({ message: 'Workspace not found' });
     }
 
-    // Check plan permissions
-    const PLAN_FEATURES = {
-      free: { commerce: true, crm: true },
-      starter: { commerce: true, crm: true },
-      basic: { commerce: true },
-      premium: { commerce: true },
-      enterprise: { commerce: true }
-    };
-
-    const planSlug = workspace.plan?.slug || 'free';
-    const canAccessCommerce = PLAN_FEATURES[planSlug]?.commerce;
+    const { allowed: canAccessCommerce, plan } = await hasCommerceAccess(workspace);
 
     if (!canAccessCommerce) {
       return res.status(403).json({
         message: 'Commerce features are not available on your plan',
-        currentPlan: workspace.plan,
+        currentPlan: plan,
         upgradeTo: 'premium'
       });
     }

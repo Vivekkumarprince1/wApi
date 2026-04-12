@@ -12,7 +12,7 @@
  * - Excludes unavailable agents
  */
 
-const { Conversation, Permission, Workspace } = require('../../models');
+const { Conversation, Permission, Workspace, Team } = require('../../models');
 const inboxSocketService = require('../messaging/inboxSocketService');
 
 /**
@@ -28,7 +28,7 @@ async function getAvailableAgents(workspaceId) {
     isAvailable: true,
     isOnline: true
   })
-    .populate('user', '_id name email')
+    .populate('user', '_id name email team')
     .lean();
 
   // Filter out agents who have reached max concurrent chats
@@ -148,6 +148,22 @@ async function autoAssignConversation(workspaceId, conversationId, options = {})
       return { success: false, reason: 'CONVERSATION_NOT_FOUND' };
     }
 
+    let scopedTeam = null;
+    if (conversation.team) {
+      scopedTeam = await Team.findOne({
+        _id: conversation.team,
+        workspaceId,
+        isActive: true
+      }).select('_id autoAssign members').lean();
+    }
+
+    if (scopedTeam?.autoAssign?.enabled) {
+      workspace.inboxSettings = {
+        ...(workspace.inboxSettings || {}),
+        assignmentStrategy: scopedTeam.autoAssign.strategy || workspace.inboxSettings?.assignmentStrategy || 'ROUND_ROBIN'
+      };
+    }
+
     // Only assign open, unassigned conversations
     if (conversation.assignedTo) {
       return { success: false, reason: 'ALREADY_ASSIGNED' };
@@ -159,8 +175,17 @@ async function autoAssignConversation(workspaceId, conversationId, options = {})
 
     // Get available agents
     const availableAgents = await getAvailableAgents(workspaceId);
+    const teamScopedAgents = scopedTeam
+      ? availableAgents.filter(agent => {
+          const teamId = agent.user?.team?._id?.toString?.() || agent.user?.team?.toString?.() || null;
+          const memberIds = (scopedTeam.members || []).map(member => String(member.user));
+          return teamId === String(scopedTeam._id) || memberIds.includes(String(agent.user?._id));
+        })
+      : availableAgents;
 
-    if (availableAgents.length === 0) {
+    const agentsToUse = scopedTeam ? teamScopedAgents : availableAgents;
+
+    if (agentsToUse.length === 0) {
       return { success: false, reason: 'NO_AVAILABLE_AGENTS' };
     }
 
@@ -170,16 +195,16 @@ async function autoAssignConversation(workspaceId, conversationId, options = {})
 
     switch (strategy) {
       case 'ROUND_ROBIN':
-        selectedAgent = await selectRoundRobin(workspaceId, availableAgents);
+        selectedAgent = await selectRoundRobin(workspaceId, agentsToUse);
         break;
       case 'LEAST_ASSIGNED':
-        selectedAgent = await selectLeastAssigned(workspaceId, availableAgents);
+        selectedAgent = await selectLeastAssigned(workspaceId, agentsToUse);
         break;
       case 'LEAST_UNREAD':
-        selectedAgent = await selectLeastUnread(workspaceId, availableAgents);
+        selectedAgent = await selectLeastUnread(workspaceId, agentsToUse);
         break;
       default:
-        selectedAgent = await selectRoundRobin(workspaceId, availableAgents);
+        selectedAgent = await selectRoundRobin(workspaceId, agentsToUse);
     }
 
     if (!selectedAgent) {
@@ -188,6 +213,7 @@ async function autoAssignConversation(workspaceId, conversationId, options = {})
 
     // Assign conversation
     conversation.assignTo(selectedAgent.user._id, null); // null = system assigned
+    conversation.team = selectedAgent.user?.team || scopedTeam?._id || conversation.team || null;
     conversation.assignmentHistory.push({
       assignedTo: selectedAgent.user._id,
       assignedBy: null,

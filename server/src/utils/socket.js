@@ -100,7 +100,7 @@ function initSocket(server) {
         const conversation = await Conversation.findOne({
           _id: conversationId,
           workspace: socket.user.workspace
-        }).select('assignedTo').lean();
+        }).select('assignedTo team assignedTeam').lean();
         
         if (!conversation) {
           socket.emit('error', { message: 'Conversation not found' });
@@ -114,13 +114,15 @@ function initSocket(server) {
         }).lean();
         
         // Check access (owners/admins/managers see all, agents only assigned or in the same team)
+        const conversationTeamId = conversation.team?._id?.toString?.() || conversation.team?.toString?.() || conversation.assignedTeam?._id?.toString?.() || conversation.assignedTeam?.toString?.() || null;
+
         const canAccess = 
           permission?.role === 'owner' || 
           permission?.role === 'admin' ||
           permission?.role === 'manager' ||
           permission?.permissions?.viewAllConversations ||
           (conversation.assignedTo && conversation.assignedTo.toString() === socket.user._id.toString()) ||
-          (conversation.assignedTeam && socket.user.team && conversation.assignedTeam.toString() === socket.user.team.toString());
+          (conversationTeamId && socket.user.team && conversationTeamId === socket.user.team.toString());
         
         if (!canAccess) {
           socket.emit('error', { message: 'Access denied to conversation' });

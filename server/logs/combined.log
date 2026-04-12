@@ -3042,3 +3042,271 @@
 {"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-11 15:09:52"}
 {"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-11 15:09:52"}
 {"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-11 15:09:52"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 00:58:48"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 00:58:48"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 00:58:48"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 00:58:48"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 00:58:48"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 00:58:48"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 00:58:49"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:30:50"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:30:50"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:30:50"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:30:50"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:30:50"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:30:50"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:30:52"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:26"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:26"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:26"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:26"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:26"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:26"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:29"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:33"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:33"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:33"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:33"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:33"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:33"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:34"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:41"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:41"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:41"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:41"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:41"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:41"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:31:42"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:32:08"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:32:08"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:32:08"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:32:08"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:32:08"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:32:08"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:32:10"}
+{"changes":{"name":"vivek kumar","newRole":"manager","oldRole":"viewer","phone":""},"level":"info","memberId":"69d8fff4ce394936718f6590","message":"[TeamController] Agent updated:","service":"whatsapp-saas","timestamp":"2026-04-12 01:36:52","workspaceId":"699c21048e96ba1b49ab6945"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:33"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:33"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:33"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:33"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:33"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:33"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:34"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:44"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:44"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:44"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:44"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:44"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:44"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:39:45"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:47:28"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:47:28"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:47:28"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:47:28"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:47:29"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:47:29"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:47:37"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:17"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:17"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:17"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:17"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:18"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:18"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:24"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:28"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:28"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:28"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:28"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:28"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:28"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:32"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:37"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:37"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:37"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:37"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:38"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:38"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 01:55:45"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 02:09:53"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 02:09:53"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 02:09:53"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 02:09:53"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 02:09:53"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 02:09:53"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 02:09:55"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 02:14:30"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 02:14:30"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 02:14:30"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 02:14:30"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 02:14:30"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 02:14:30"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 02:14:31"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 02:15:03"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 02:15:03"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 02:15:03"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 02:15:03"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 02:15:03"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 02:15:03"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 02:15:04"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 02:27:25"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 02:27:25"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 02:27:25"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 02:27:25"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 02:27:26"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 02:27:26"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 02:27:27"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 02:32:28"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 02:32:28"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 02:32:28"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 02:32:28"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 02:32:28"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 02:32:28"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 02:32:36"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 02:33:15"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 02:33:15"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 02:33:15"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 02:33:15"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 02:33:15"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 02:33:15"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 02:33:21"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 02:34:53"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 02:34:53"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 02:34:53"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 02:34:53"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 02:34:53"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 02:34:53"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 02:34:56"}
+{"level":"info","message":"[Tags] Removed 1 tags from conversation 69bae7d6a8a1ed877bec6f11","service":"whatsapp-saas","timestamp":"2026-04-12 02:39:42"}
+{"level":"info","message":"[Tags] Removed 1 tags from conversation 69bae7d6a8a1ed877bec6f11","service":"whatsapp-saas","timestamp":"2026-04-12 02:39:42"}
+{"level":"info","message":"[Tags] Removed 1 tags from conversation 69bae7d6a8a1ed877bec6f11","service":"whatsapp-saas","timestamp":"2026-04-12 02:39:43"}
+{"level":"info","message":"[Tags] Removed 1 tags from conversation 69bae7d6a8a1ed877bec6f11","service":"whatsapp-saas","timestamp":"2026-04-12 02:39:43"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 02:46:20"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 02:46:20"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 02:46:20"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 02:46:20"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 02:46:20"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 02:46:20"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 02:46:44"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 02:59:14"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 02:59:14"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 02:59:14"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 02:59:14"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 02:59:14"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 02:59:14"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 02:59:15"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 03:25:14","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 03:25:14"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 03:25:14","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 03:41:30","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 03:41:30"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 03:41:30","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 03:59:07","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 03:59:07"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 03:59:07","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 04:15:34","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 04:15:34"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 04:15:34","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 04:32:04","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 04:32:04"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 04:32:04","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 04:48:52","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 04:48:52"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 04:48:52","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 05:06:26","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 05:06:26"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 05:06:26","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 05:20:36","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 05:20:36"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 05:20:36","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 05:36:59","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 05:36:59"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 05:36:59","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 05:53:14","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 05:53:14"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 05:53:14","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 06:09:14","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 06:09:14"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 06:09:14","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 06:25:12","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 06:25:12"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 06:25:12","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 06:42:41","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 06:42:41"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 06:42:41","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 07:00:31","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 07:00:31"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 07:00:31","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 07:10:14","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 07:10:14"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 07:10:14","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 07:25:56","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 07:25:56"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 07:25:56","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 07:42:29","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 07:42:29"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 07:42:29","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 07:58:08","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 07:58:08"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 07:58:08","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 08:11:14","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 08:11:14"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 08:11:14","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 08:26:51","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 08:26:51"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 08:26:51","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 08:42:36","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 08:42:36"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 08:42:36","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 08:48:11","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 08:48:11"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 08:48:11","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 09:04:54","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 09:04:54"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 09:04:54","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 09:12:14","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 09:12:14"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 09:12:14","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 09:28:04","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 09:28:04"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 09:28:04","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 09:43:29","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 09:43:29"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 09:43:30","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 10:00:03","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 10:00:03"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 10:00:03","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 10:13:13","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 10:13:13"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 10:13:13","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 10:29:13","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 10:29:13"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 10:29:13","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 10:45:26","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 10:45:26"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 10:45:26","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 11:02:12","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 11:02:12"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 11:02:12","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 11:14:13","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 11:14:13"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 11:14:13","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 11:20:29","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 11:20:29"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 11:20:30","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 11:27:43","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 11:27:43"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 11:27:43","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 11:33:33","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 11:33:33"}
+{"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 11:33:34","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 11:38:33","value":"The client is closed"}
+{"level":"info","message":"Attempting to fetch new Gupshup partner token via login...","service":"whatsapp-saas","timestamp":"2026-04-12 11:38:33"}
+{"level":"info","message":"Successfully generated and retrieved new Gupshup partner token.","service":"whatsapp-saas","timestamp":"2026-04-12 11:38:34"}
+{"level":"error","message":"Failed to save partner token to Redis","service":"whatsapp-saas","timestamp":"2026-04-12 11:38:34","value":"The client is closed"}
+{"level":"info","message":"[TokenRefreshCron] Cron job started - runs every 6 hours","service":"whatsapp-saas","timestamp":"2026-04-12 11:40:39"}
+{"level":"info","message":"[UsageLedgerCron] Cron job started - runs daily at 00:30 UTC","service":"whatsapp-saas","timestamp":"2026-04-12 11:40:39"}
+{"level":"info","message":"[GupshupAppSync] Starting autosync jobs...","service":"whatsapp-saas","timestamp":"2026-04-12 11:40:39"}
+{"level":"info","message":"[GupshupAppSync] ✅ Autosync jobs started","service":"whatsapp-saas","timestamp":"2026-04-12 11:40:39"}
+{"level":"info","message":"[AutomationEngine] ✅ Automation engine started","service":"whatsapp-saas","timestamp":"2026-04-12 11:40:39"}
+{"level":"info","message":"[CRMAutomation] Service initialized","service":"whatsapp-saas","timestamp":"2026-04-12 11:40:39"}
+{"level":"info","message":"[MessageRetryQueue] ✅ Queue initialized: message-retry:development","service":"whatsapp-saas","timestamp":"2026-04-12 11:40:41"}

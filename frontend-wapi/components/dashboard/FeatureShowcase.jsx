@@ -19,7 +19,7 @@ const FeatureShowcase = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {[
           { title: 'Bulk Campaigns', desc: 'Send to thousands instantly', icon: Send, color: 'from-emerald-500 to-emerald-600', href: '/dashboard/campaign' },
-          { title: 'Automation', desc: 'Auto-reply & workflows', icon: Bell, color: 'from-blue-500 to-blue-600', href: '/automation/workflows' },
+          { title: 'Automation', desc: 'Auto-reply & workflows', icon: Bell, color: 'from-blue-500 to-blue-600', href: '/automation' },
           { title: 'Commerce', desc: 'Catalog & checkout', icon: Globe, color: 'from-violet-500 to-violet-600', href: '/commerce/catalog' },
           { title: 'Integrations', desc: 'Connect your tools', icon: TrendingUp, color: 'from-amber-500 to-amber-600', href: '/integrations' },
         ].map(f => (

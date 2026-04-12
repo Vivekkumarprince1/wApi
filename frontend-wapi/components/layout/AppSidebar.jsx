@@ -410,6 +410,9 @@ const Sidebar = ({ isOpen, onClose, onSectionChange, currentPath }) => {
             </div>
             {openAutomation && isHovered && (
               <div className="ml-6 mb-4 space-y-1 border-l-2 border-gray-200 dark:border-gray-700 pl-4">
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/automation')}>
+                  <span className="text-sm">✨ Hub</span>
+                </div>
                 <div className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all ${isActive('/automation/workflows') ? 'bg-[#13C18D]/10 text-[#13C18D] font-medium' : 'hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-600 dark:text-gray-400'}`} onClick={() => navigate('/automation/workflows')}>
                   <span className="text-sm">⚡ Workflows</span>
                 </div>

@@ -14,7 +14,7 @@
  */
 
 const mongoose = require('mongoose');
-const { Conversation, Message, Contact, User, Permission } = require('../../models');
+const { Conversation, Message, Contact, User, Permission, Team } = require('../../models');
 const { getIO } = require('../../utils/socket');
 const { uploadBufferToCloudinary } = require('../../utils/cloudinary');
 const inboxSocketService = require('../../services/messaging/inboxSocketService');
@@ -102,6 +102,16 @@ async function ensurePermissions(req) {
   return permission;
 }
 
+async function getUserTeamIds(workspaceId, userId) {
+  const directTeamId = await User.findById(userId).select('team').lean().then(user => user?.team?.toString?.() || null);
+  if (directTeamId) {
+    return [directTeamId];
+  }
+
+  const teams = await Team.find({ workspaceId, 'members.user': userId, isActive: true }).select('_id').lean();
+  return teams.map(team => team._id.toString());
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ASSIGNMENT OPERATIONS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -122,7 +132,7 @@ exports.assignConversation = async (req, res) => {
     // 1. Permission Check
     const permission = await ensurePermissions(req);
     const isGlobalAssigner = ['owner', 'admin'].includes(permission?.role);
-    const actorTeamId = req.user.team?.toString() || null;
+    const actorTeamId = (await getUserTeamIds(workspaceId, assignedById))[0] || null;
     
     // 2. Validate agent exists and belongs to workspace
     const agent = await User.findOne({
@@ -148,7 +158,7 @@ exports.assignConversation = async (req, res) => {
         });
       }
 
-      const targetTeamId = agent.team?.toString() || null;
+      const targetTeamId = (await getUserTeamIds(workspaceId, agentId))[0] || agent.team?.toString() || null;
       const conversation = await Conversation.findOne({
         _id: conversationId,
         workspace: workspaceId
@@ -186,6 +196,20 @@ exports.assignConversation = async (req, res) => {
         success: false,
         message: 'Agent does not have active permissions',
         code: 'AGENT_INACTIVE'
+      });
+    }
+
+    const openConversationCount = await Conversation.countDocuments({
+      workspace: workspaceId,
+      assignedTo: agentId,
+      status: { $in: ['open', 'pending'] }
+    });
+
+    if (agentPermission.isAvailable === false || openConversationCount >= (agentPermission.maxConcurrentChats || 10)) {
+      return res.status(409).json({
+        success: false,
+        message: 'Agent is unavailable or at capacity',
+        code: 'AGENT_NOT_ACCEPTING'
       });
     }
 
@@ -396,6 +420,43 @@ exports.claimConversation = async (req, res) => {
     const { conversationId } = req.params;
     const workspaceId = req.user.workspace;
     const agentId = req.user._id;
+
+    const permission = await ensurePermissions(req);
+    if (!permission) {
+      return res.status(401).json({
+        success: false,
+        message: 'Session expired or user not found. Please login again.',
+        code: 'STALE_SESSION'
+      });
+    }
+
+    const ownPermission = await Permission.findOne({
+      workspace: workspaceId,
+      user: agentId,
+      isActive: true
+    }).lean();
+
+    if (!ownPermission) {
+      return res.status(400).json({
+        success: false,
+        message: 'Agent does not have active permissions',
+        code: 'AGENT_INACTIVE'
+      });
+    }
+
+    const openConversationCount = await Conversation.countDocuments({
+      workspace: workspaceId,
+      assignedTo: agentId,
+      status: { $in: ['open', 'pending'] }
+    });
+
+    if (ownPermission.isAvailable === false || openConversationCount >= (ownPermission.maxConcurrentChats || 10)) {
+      return res.status(409).json({
+        success: false,
+        message: 'Agent is unavailable or at capacity',
+        code: 'AGENT_NOT_ACCEPTING'
+      });
+    }
 
     const conversation = await Conversation.findOne({
       _id: conversationId,
@@ -1121,14 +1182,13 @@ exports.getInbox = async (req, res) => {
       const hasAllAccess = permission.role === 'owner' || permission.role === 'admin' || permission.role === 'manager' || permission.permissions?.viewAllConversations;
       
       if (!hasAllAccess) {
-        const userTeams = await Team.find({ workspaceId, 'members.user': agentId, isActive: true }).select('_id').lean();
-        if (userTeams.length > 0) {
-          query.team = { $in: userTeams.map(t => t._id) };
+        const userTeamIds = await getUserTeamIds(workspaceId, agentId);
+        if (userTeamIds.length > 0) {
+          query.team = { $in: userTeamIds };
         } else {
-          // If no team, and no all-access, they see nothing unassigned? 
-          // Or they see unassigned that are NOT in any team?
-          // Let's hide all if no team membership.
-          query.team = { $exists: false, $eq: null }; 
+          // Teamless agents should still see the teamless unassigned queue.
+          // `null` matches both explicit null and missing team fields in MongoDB.
+          query.team = null;
         }
       }
     } else if (view === 'resolved') {
@@ -1214,6 +1274,7 @@ exports.getInbox = async (req, res) => {
       Conversation.find(query)
         .populate('contact', 'name phone email profilePicture')
         .populate('assignedTo', 'name email')
+        .populate('team', 'name')
         .populate('lastRepliedBy', 'name email')
         .sort({ lastActivityAt: -1 })
         .skip(skip)
@@ -1428,14 +1489,17 @@ exports.getConversation = async (req, res) => {
 exports.getAvailableAgents = async (req, res) => {
   try {
     const workspaceId = req.user.workspace;
-    const teamFilterId = req.query.team ? String(req.query.team) : null;
+    const permission = await ensurePermissions(req);
+    const isGlobalViewer = ['owner', 'admin', 'manager'].includes(permission?.role) || permission?.permissions?.viewAllConversations;
+    const requesterTeamIds = !isGlobalViewer ? await getUserTeamIds(workspaceId, req.user._id) : [];
+    const teamFilterId = req.query.team ? String(req.query.team) : (!isGlobalViewer ? (requesterTeamIds[0] || null) : null);
 
     // Get all active permissions in workspace
     const permissions = await Permission.find({
       workspace: workspaceId,
       isActive: true,
       role: { $in: ['owner', 'admin', 'manager', 'agent'] }
-    }).populate('user', 'name email');
+    }).populate('user', 'name email team');
 
     // Get conversation counts per agent
     const agentCounts = await Conversation.aggregate([
@@ -1465,7 +1529,12 @@ exports.getAvailableAgents = async (req, res) => {
       email: p.user.email,
       role: p.role,
       team: p.user.team || null,
-      activeConversations: countMap[p.user._id.toString()] || 0
+      isOnline: p.isOnline || false,
+      isAvailable: p.isAvailable !== false,
+      maxConcurrentChats: p.maxConcurrentChats || 10,
+      lastSeenAt: p.lastSeenAt || null,
+      openConversations: countMap[p.user._id.toString()] || 0,
+      canAccept: (countMap[p.user._id.toString()] || 0) < (p.maxConcurrentChats || 10) && p.isAvailable !== false && p.isOnline !== false
     })).filter(agent => {
       if (!teamFilterId) return true;
       const agentTeamId = agent.team?._id?.toString?.() || agent.team?.toString?.() || null;

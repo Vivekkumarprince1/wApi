@@ -693,7 +693,8 @@ async function session(req, res, next) {
         country: workspace.country,
         zipCode: workspace.zipCode,
         industry: workspace.industry,
-        website: workspace.website
+        website: workspace.website,
+        wallet: workspace.wallet || { balance: 0, thresholdAmount: 500, currency: 'INR' }
       } : null,
       phone: {
         number: user.phone,
@@ -816,6 +817,7 @@ async function me(req, res, next) {
           businessInfoCompleted: workspace.onboarding?.businessInfoCompleted || false,
           businessInfoCompletedAt: workspace.onboarding?.businessInfoCompletedAt || null
         },
+        wallet: workspace.wallet || { balance: 0, thresholdAmount: 500, currency: 'INR' },
         createdAt: workspace.createdAt
       } : null
     };

@@ -113,3 +113,7 @@ export const fetchTemplatesFromLibrary = async (params = {}) => {
 
 export const createTemplateFromLibrary = async (payload) => post('/templates/library', payload);
 export const markTemplateReviewed = async (templateId, notes) => put(`/admin/templates/${templateId}/status`, { status: 'approved', rejectionReason: notes });
+export const fetchNotificationLibraryTemplates = async (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return get(`/templates/notifications/library${query ? '?' + query : ''}`);
+};

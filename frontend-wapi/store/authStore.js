@@ -31,6 +31,11 @@ export const useAuthStore = create((set, get) => ({
     lastFetchTime: 0,
     inFlightPromise: null,
     nextStep: null,
+    wallet: {
+        balance: 0,
+        thresholdAmount: 500,
+        currency: 'INR'
+    },
 
     // Permissions
     authenticated: false,
@@ -128,11 +133,13 @@ export const useAuthStore = create((set, get) => ({
                     authenticated: true,
                     nextStep: sessionData.nextStep,
                     permissions: userPerms,
+                    wallet: userWorkspace?.wallet || { balance: 0, thresholdAmount: 500, currency: 'INR' },
+                    
                     canCreateTemplates: stage1Complete && (userPerms?.createTemplates ?? ['owner', 'manager', 'admin'].includes(role)),
                     canCreateCampaigns: stage1Complete && (userPerms?.createCampaigns ?? ['owner', 'manager', 'admin'].includes(role)),
                     canSendMessages: stage1Complete && (userPerms?.sendMessages ?? ['owner', 'manager', 'agent', 'admin'].includes(role)),
                     canManageTeam: userPerms?.manageTeam ?? ['owner', 'manager', 'admin'].includes(role),
-                    canViewBilling: userPerms?.billing?.view ?? ['owner', 'admin'].includes(role),
+                    canViewBilling: (userPerms?.manageBilling || userPerms?.billing?.view) ?? ['owner', 'admin'].includes(role),
                     canAccessAdmin: ['owner', 'admin'].includes(role),
                 });
                 return sessionData;
@@ -258,7 +265,7 @@ export function useFeatureGate(feature) {
         ? 'Connect your WhatsApp number to create templates'
         : !hasPlanAccess && !features.includes('BULK_CAMPAIGN')
           ? 'Upgrade required for advanced templates'
-          : !workspace.canCreateTemplates
+          : !workspace.canCreateTemplates || (workspace.permissions && !workspace.permissions.createTemplates)
             ? 'You do not have permission to create templates'
             : undefined
     },
@@ -268,29 +275,29 @@ export function useFeatureGate(feature) {
         ? 'Connect your WhatsApp number to create campaigns'
         : !hasPlanAccess && !features.includes('BULK_CAMPAIGN')
           ? 'Upgrade required for advanced campaigns'
-          : !workspace.canCreateCampaigns
+          : !workspace.canCreateCampaigns || (workspace.permissions && !workspace.permissions.createCampaigns)
             ? 'You do not have permission to create campaigns'
             : undefined
     },
     messaging: {
-      allowed: workspace.canSendMessages,
+      allowed: workspace.canSendMessages && (workspace.permissions?.sendMessages !== false),
       reason: !workspace.stage1Complete
         ? 'Connect your WhatsApp number to send messages'
-        : !workspace.canSendMessages
+        : (workspace.canSendMessages === false || workspace.permissions?.sendMessages === false)
           ? 'You do not have permission to send messages'
           : undefined
     },
     team: {
-      allowed: workspace.canManageTeam && (hasPlanAccess || features.includes('TEAM')),
-      reason: !workspace.canManageTeam
+      allowed: (workspace.canManageTeam || workspace.permissions?.manageTeam) && (hasPlanAccess || features.includes('TEAM')),
+      reason: !(workspace.canManageTeam || workspace.permissions?.manageTeam)
         ? 'You do not have permission to manage team'
         : !hasPlanAccess && !features.includes('TEAM')
           ? 'Upgrade your plan to unlock Team Management'
           : undefined
     },
     billing: {
-      allowed: workspace.canViewBilling,
-      reason: !workspace.canViewBilling
+      allowed: workspace.canViewBilling || workspace.permissions?.manageBilling || workspace.permissions?.billing?.view,
+      reason: !(workspace.canViewBilling || workspace.permissions?.manageBilling || workspace.permissions?.billing?.view)
         ? 'Only the workspace Owner or Admin can access billing'
         : undefined
     },

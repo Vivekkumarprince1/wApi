@@ -6,6 +6,7 @@ const answerBotService = require('../../services/automation/answerbotService');
 const checkoutBotService = require('../../services/commerce/checkoutBotService');
 const bspMessagingService = require('../../services/bsp/bspMessagingService');
 const { automationEvents, AUTOMATION_EVENTS } = require('../../services/automation/automationEventEmitter');
+const autoAssignmentService = require('../../services/automation/autoAssignmentService');
 const { processCampaignReply } = require('../../services/campaign/campaignWebhookService');
 const { getIO } = require('../../utils/socket');
 const { runPostOnboardingAutomations } = require('../../services/bsp/gupshupProvisioningService');
@@ -369,6 +370,22 @@ async function processInbound(incoming, workspace) {
 
   // Create message record (req #6)
   const message = await Message.create(messagePayload);
+
+  // Keep team routing in sync for newly created or reopened conversations.
+  // This uses the shared auto-assignment engine so inbox and team settings stay aligned.
+  if (!conversation.assignedTo) {
+    await autoAssignmentService.autoAssignConversation(workspace._id, conversation._id).catch(err => {
+      console.error('[GupshupWebhook] Auto-assignment failed:', err.message);
+    });
+  }
+
+  conversation = await Conversation.findById(conversation._id)
+    .populate('contact')
+    .populate('assignedTo', 'name email team')
+    .populate('team', 'name')
+    .populate('assignedBy', 'name email')
+    .populate('lastRepliedBy', 'name email')
+    .populate('statusChangedBy', 'name email');
 
   // Bridge inbound messaging into automation rules
   automationEvents.customerMessageReceived({

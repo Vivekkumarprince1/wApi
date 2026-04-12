@@ -12,8 +12,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import Header from './Header';
 import Sidebar from './AppSidebar';
 import AdminSidebar from './AdminSidebar';
+import GlobalAlertBanner from './GlobalAlertBanner';
 import FlashLoader from '../ui/FlashLoader';
-import { useAuthStore as useAuth } from '@/store/authStore';
+import { useAuthStore } from '@/store/authStore';
 import { loadingStore } from '@/lib/api/loadingStore';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +24,18 @@ export default function LayoutWrapper({ children }) {
   const [apiLoading, setApiLoading] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, authenticated, loading } = useAuth();
+  const { user, authenticated, loading, stage1Complete, phoneStatus, wallet, isOnTrial, trialDaysLeft } = useAuthStore();
+
+  const ACTIVE_PHONE_STATUSES = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VERIFIED'];
+  const isWhatsAppConnected = Array.isArray(ACTIVE_PHONE_STATUSES) && stage1Complete || ACTIVE_PHONE_STATUSES.includes(String(phoneStatus || '').toUpperCase());
+
+  const showBanner = authenticated && !pathname.startsWith('/auth/') && (
+    !isWhatsAppConnected ||
+    (wallet?.balance < (wallet?.thresholdAmount || 500)) ||
+    (isOnTrial && trialDaysLeft !== null && trialDaysLeft <= 3)
+  );
+
+  const bannerHeight = showBanner ? 48 : 0;
 
   // Public routes where sidebar/header should NOT be shown
   const publicRoutes = ['/', '/auth/login', '/auth/register', '/auth/reset', '/privacy'];
@@ -72,14 +84,19 @@ export default function LayoutWrapper({ children }) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Header & Banner Container */}
       {authenticated && !isAuthPage && (
-        <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+        <div className="fixed top-0 left-0 right-0 z-50">
+          <GlobalAlertBanner />
+          <div style={{ top: 0 }}>
+             <Header onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
+          </div>
+        </div>
       )}
 
       {/* Sidebar Selection */}
       {shouldShowSidebar && (
-        <>
+        <div style={{ marginTop: `${bannerHeight}px` }}>
           {pathname.startsWith('/admin') ? (
             <AdminSidebar 
               isOpen={sidebarOpen}
@@ -98,18 +115,22 @@ export default function LayoutWrapper({ children }) {
           {/* Mobile overlay */}
           {sidebarOpen && (
             <div
-              className="fixed inset-0 top-[60px] bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+              style={{ top: `${60 + bannerHeight}px` }}
               onClick={() => setSidebarOpen(false)}
             />
           )}
-        </>
+        </div>
       )}
 
       {/* Main Content */}
-      <div className={cn(
-        shouldShowSidebar ? 'lg:ml-[72px] pt-[60px] transition-all duration-300' : 'transition-all duration-300',
-        "min-h-screen bg-background"
-      )}>
+      <div 
+        className={cn(
+          shouldShowSidebar ? 'lg:ml-[72px] transition-all duration-300' : 'transition-all duration-300',
+          "min-h-screen bg-background"
+        )}
+        style={{ paddingTop: `${60 + bannerHeight}px` }}
+      >
         <main className={cn(
           authenticated && !isAuthPage ? "max-w-[1600px] mx-auto w-full p-4 md:p-6 lg:p-8" : ""
         )}>

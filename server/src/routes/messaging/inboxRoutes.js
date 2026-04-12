@@ -42,7 +42,6 @@ router.get('/stats', auth, inboxController.getInboxStats);
  */
 router.get('/agents',
   auth,
-  requireRole(['owner', 'manager']),
   inboxController.getAvailableAgents
 );
 
@@ -153,7 +152,6 @@ router.post('/upload-media',
  */
 router.post('/:conversationId/assign',
   auth,
-  requirePermission('assignConversations'),
   inboxController.assignConversation
 );
 
@@ -163,7 +161,6 @@ router.post('/:conversationId/assign',
  */
 router.post('/:conversationId/unassign',
   auth,
-  requirePermission('assignConversations'),
   inboxController.unassignConversation
 );
 

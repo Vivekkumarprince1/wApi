@@ -39,7 +39,7 @@ const ACTIVE_PHONE_STATUSES = ['CONNECTED', 'RESTRICTED', 'LIVE', 'ACTIVE', 'VER
 const Header = ({ onMenuClick }) => {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const { user, workspace, logout, deleteAccount, phoneStatus, phoneNumber, loading: authLoading } = useAuth();
+  const { user, workspace, logout, deleteAccount, phoneStatus, phoneNumber, wallet: globalWallet, loading: authLoading } = useAuth();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showAccountSummary, setShowAccountSummary] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -48,7 +48,6 @@ const Header = ({ onMenuClick }) => {
   const [loading, setLoading] = useState(false);
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [verification, setVerification] = useState(null);
-  const [wallet, setWallet] = useState({ balance: 0, loading: true });
   const [isRecharging, setIsRecharging] = useState(false);
 
   // Map auth context to component's expected shape
@@ -75,21 +74,16 @@ const Header = ({ onMenuClick }) => {
   const accountRef = useRef(null);
   const settingsRef = useRef(null);
 
-  useEffect(() => {
-    if (user && showAccountSummary) {
-      fetchWallet();
-    }
-  }, [user, showAccountSummary]);
+  // Wallet is now hydrated from global store
+  const wallet = {
+    balance: globalWallet?.balance || 0,
+    loading: authLoading
+  };
 
   const fetchWallet = async () => {
-    try {
-      setWallet(prev => ({ ...prev, loading: true }));
-      const { data } = await api.getWalletStatus();
-      setWallet({ balance: data.balance, loading: false });
-    } catch (err) {
-      console.error('Failed to fetch wallet:', err);
-      setWallet(prev => ({ ...prev, loading: false }));
-    }
+    // Session refetch will update global wallet
+    const { refetch } = require('@/store/authStore');
+    await refetch();
   };
 
   const handleRecharge = async (amountINR) => {

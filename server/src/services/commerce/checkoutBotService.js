@@ -398,10 +398,12 @@ class CheckoutBotService {
       // Add to cart
       cart.addItem(product, quantity);
 
-      // Get workspace for tax/shipping
-      const workspace = await Workspace.findById(workspaceId);
-      const taxPercentage = workspace?.settings?.taxPercentage || 0;
-      const shippingCost = workspace?.settings?.shippingCost || 0;
+      // Pull the active commerce configuration for the workspace
+      const commerceSettings = await CommerceSettings.findOne({ workspaceId, enabled: true });
+      const taxPercentage = commerceSettings?.taxPercentage || 0;
+      const shippingCost = commerceSettings?.shipping?.flatRate?.enabled
+        ? commerceSettings.shipping.flatRate.amount || 0
+        : 0;
 
       // Calculate totals
       cart.calculateTotals(taxPercentage, shippingCost);

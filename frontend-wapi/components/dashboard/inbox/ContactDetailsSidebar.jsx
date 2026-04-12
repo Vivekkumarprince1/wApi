@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaUserCircle, 
@@ -8,8 +9,11 @@ import {
   FaSearch, 
   FaFlag, 
   FaClock,
-  FaUser
+  FaUser,
+  FaShoppingBag,
+  FaBoxOpen
 } from 'react-icons/fa';
+import { get } from '@/lib/api';
 
 export default function ContactDetailsSidebar({
   selectedContact,
@@ -27,6 +31,32 @@ export default function ContactDetailsSidebar({
   conversationNotes = [],
   messages = []
 }) {
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const selectedContactId = selectedContact?._id || selectedContact?.id || selectedConversation?.contact?._id || selectedConversation?.contact?.id || null;
+
+  useEffect(() => {
+    const loadOrders = async () => {
+      if (!selectedContactId) {
+        setOrders([]);
+        return;
+      }
+
+      try {
+        setOrdersLoading(true);
+        const response = await get(`/checkout-bot/orders?contactId=${selectedContactId}&limit=5&sortBy=-createdAt`);
+        const orderData = response?.data || response?.orders || response;
+        setOrders(Array.isArray(orderData) ? orderData : []);
+      } catch (error) {
+        setOrders([]);
+      } finally {
+        setOrdersLoading(false);
+      }
+    };
+
+    loadOrders();
+  }, [selectedContactId]);
+
   if (!selectedContact) return null;
 
   const contactTags = [...new Set([
@@ -35,6 +65,12 @@ export default function ContactDetailsSidebar({
     ...(selectedContact.tags || [])
   ])];
   const assignmentHistory = selectedConversation?.assignmentHistory || [];
+  const snapshotActivityAt = messages[messages.length - 1]?.createdAt || conversationNotes[conversationNotes.length - 1]?.createdAt || orders[0]?.createdAt || selectedConversation?.updatedAt || selectedConversation?.createdAt;
+  const snapshotStats = [
+    { label: 'Messages', value: messages.length },
+    { label: 'Notes', value: conversationNotes.length },
+    { label: 'Orders', value: orders.length }
+  ];
 
   const timelineEvents = [
     ...assignmentHistory.map((event, index) => ({
@@ -105,6 +141,55 @@ export default function ContactDetailsSidebar({
       {/* Smart Cards Section */}
       <div className="p-2 flex-1 scroll-smooth">
         <div className="flex flex-col gap-2">
+          {/* Conversation Snapshot */}
+          <div className="overflow-hidden rounded-2xl bg-card border border-border/60 shadow-sm">
+            <div className="w-full px-5 py-4 flex items-center justify-between text-left text-foreground font-black uppercase tracking-widest text-[11px] border-b border-border/50">
+              <span className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <FaClock size={12} />
+                </div>
+                Conversation Snapshot
+              </span>
+              <span className="text-[9px] text-muted-foreground/60 font-black">
+                Live context
+              </span>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                {snapshotStats.map((stat) => (
+                  <div key={stat.label} className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3 text-center">
+                    <div className="text-[16px] font-black text-foreground leading-none">{stat.value}</div>
+                    <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-2 text-[11px] font-bold text-muted-foreground/80">
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5">
+                  <span className="uppercase tracking-widest text-[9px] text-muted-foreground/50">Status</span>
+                  <span className="text-foreground uppercase tracking-widest text-[10px]">{selectedConversation?.status || 'open'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5">
+                  <span className="uppercase tracking-widest text-[9px] text-muted-foreground/50">Assignee</span>
+                  <span className="text-foreground uppercase tracking-widest text-[10px] truncate text-right">
+                    {selectedConversation?.assignedTo?.name || 'Unassigned'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5">
+                  <span className="uppercase tracking-widest text-[9px] text-muted-foreground/50">Team</span>
+                  <span className="text-foreground uppercase tracking-widest text-[10px] truncate text-right">
+                    {selectedConversation?.team?.name || 'No team'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5">
+                  <span className="uppercase tracking-widest text-[9px] text-muted-foreground/50">Last Activity</span>
+                  <span className="text-foreground uppercase tracking-widest text-[10px] text-right">
+                    {snapshotActivityAt ? new Date(snapshotActivityAt).toLocaleString() : 'No activity yet'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Personal Details Card */}
           <div className={`overflow-hidden rounded-2xl transition-all border ${expandedSections.details ? 'bg-card border-border/60 shadow-md' : 'bg-transparent border-transparent hover:bg-muted/40'}`}>
             <button
@@ -318,6 +403,52 @@ export default function ContactDetailsSidebar({
                 </motion.div>
               )}
             </AnimatePresence>
+          </div>
+
+          {/* Order History Card */}
+          <div className="overflow-hidden rounded-2xl bg-card border border-border/60 shadow-sm">
+            <div className="w-full px-5 py-4 flex items-center justify-between text-left text-foreground font-black uppercase tracking-widest text-[11px] border-b border-border/50">
+              <span className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500">
+                  <FaShoppingBag size={12} />
+                </div>
+                Order History
+              </span>
+              <span className="text-[9px] text-muted-foreground/60 font-black">
+                {orders.length} recent
+              </span>
+            </div>
+            <div className="px-5 py-4">
+              {ordersLoading ? (
+                <div className="flex items-center justify-center py-6 text-muted-foreground/60 text-[11px] font-bold">
+                  Loading orders...
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="px-4 py-6 bg-muted/20 border border-dashed border-border/50 rounded-2xl text-[11px] text-muted-foreground/60 w-full text-center italic font-bold flex items-center justify-center gap-2">
+                  <FaBoxOpen className="text-muted-foreground/30" />
+                  No orders found for this contact
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {orders.map((order, idx) => (
+                    <div key={order._id || idx} className="p-3.5 rounded-2xl bg-muted/30 border border-border/50 hover:border-emerald-500/20 transition-all">
+                      <div className="flex items-center justify-between gap-3 mb-2">
+                        <p className="text-[12px] font-black text-foreground tracking-tight truncate">
+                          {order.orderNumber || order._id}
+                        </p>
+                        <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/10">
+                          {order.status || 'pending'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest">
+                        <span>{new Date(order.createdAt).toLocaleDateString()}</span>
+                        <span>{order.currency || 'INR'} {order.total || 0}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
