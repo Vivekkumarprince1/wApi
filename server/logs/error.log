@@ -273,3 +273,4 @@
 {"level":"error","message":"Failed to fetch Gupshup partner token","service":"whatsapp-saas","timestamp":"2026-04-12 11:33:34","value":"getaddrinfo ENOTFOUND partner.gupshup.io"}
 {"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 11:38:33","value":"The client is closed"}
 {"level":"error","message":"Failed to save partner token to Redis","service":"whatsapp-saas","timestamp":"2026-04-12 11:38:34","value":"The client is closed"}
+{"level":"error","message":"Redis error while getting partner token, falling back to memory","service":"whatsapp-saas","timestamp":"2026-04-12 13:28:46","value":"read ECONNRESET"}

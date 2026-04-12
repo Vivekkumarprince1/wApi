@@ -199,20 +199,6 @@ exports.assignConversation = async (req, res) => {
       });
     }
 
-    const openConversationCount = await Conversation.countDocuments({
-      workspace: workspaceId,
-      assignedTo: agentId,
-      status: { $in: ['open', 'pending'] }
-    });
-
-    if (agentPermission.isAvailable === false || openConversationCount >= (agentPermission.maxConcurrentChats || 10)) {
-      return res.status(409).json({
-        success: false,
-        message: 'Agent is unavailable or at capacity',
-        code: 'AGENT_NOT_ACCEPTING'
-      });
-    }
-
     // Get and update conversation
     const conversation = await Conversation.findOne({
       _id: conversationId,

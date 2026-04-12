@@ -14,13 +14,24 @@ const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../config');
 const { sharedConnection } = require('../services/infrastructure/redisClient');
 
+function readCookieToken(cookieHeader = '') {
+  return cookieHeader.split(';').map(part => part.trim()).find(part => part.startsWith('auth_token='))?.slice('auth_token='.length) || null;
+}
+
 let io;
 
 function initSocket(server) {
   if (io) return io;
   
   io = new Server(server, { 
-    cors: { origin: '*' },
+    cors: {
+      origin: [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        process.env.FRONTEND_URL
+      ].filter(Boolean),
+      credentials: true
+    },
     transports: ['websocket', 'polling'],
     pingTimeout: 60000,
     pingInterval: 25000
@@ -41,7 +52,7 @@ function initSocket(server) {
   // Authentication middleware
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+      const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1] || readCookieToken(socket.handshake.headers.cookie || '');
       
       if (!token) {
         return next(new Error('Authentication error'));

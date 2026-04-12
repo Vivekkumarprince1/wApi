@@ -19,7 +19,8 @@ import { useSocketStore, useSocketEvent } from '@/store/socketStore';
 import { toast } from '@/lib/toast';
 import {
   FaPaperPlane,
-  FaInfoCircle
+  FaInfoCircle,
+  FaEllipsisV
 } from 'react-icons/fa';
 import ConversationsSidebar from '@/components/dashboard/inbox/ConversationsSidebar';
 import MessageThread from '@/components/dashboard/inbox/MessageThread';
@@ -85,6 +86,7 @@ export default function InboxPage() {
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [internalNoteMode, setInternalNoteMode] = useState(false);
   const [showLabelModal, setShowLabelModal] = useState(false);
+  const [showContactDetails, setShowContactDetails] = useState(false);
   const [contactLabels, setContactLabels] = useState(['General', 'Sales', 'Support', 'Billing', 'VIP', 'Urgent']);
   const [activeFilters, setActiveFilters] = useState({
     label: null,
@@ -427,6 +429,7 @@ export default function InboxPage() {
     setSelectedContact(conversation.contact);
     setSelectedConversationDetail(conversation);
     setSelectedConversationId(conversation._id || conversation.id || null);
+    setShowContactDetails(false);
 
     // Clear unread counts natively upon viewing
     setConversations(prev => prev.map(c =>
@@ -908,8 +911,12 @@ export default function InboxPage() {
 
   const selectedConversation = selectedConversationDetail || conversations.find(c => (c._id || c.id) === selectedConversationId);
 
+  useEffect(() => {
+    setShowContactDetails(false);
+  }, [selectedConversationId]);
+
   return (
-    <div className="fixed top-[60px] left-0 lg:left-[72px] right-0 bottom-0 overflow-hidden flex z-20 transition-all duration-300 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.10),_transparent_28%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.08),_transparent_24%),linear-gradient(180deg,_hsl(var(--background))_0%,_hsl(var(--background))_55%,_hsl(var(--muted))_100%)] text-foreground font-sans">
+    <div className="fixed top-[60px] left-0 lg:left-[72px] right-0 bottom-0 overflow-hidden flex z-20 bg-background text-foreground font-sans">
       <ConversationsSidebar 
         conversations={conversations}
         loading={loading}
@@ -930,11 +937,11 @@ export default function InboxPage() {
       />
 
       {/* 2. Message Thread Area (Center Pane) */}
-      <div className="flex-1 flex flex-col bg-background/60 backdrop-blur-xl relative border-x border-border/60 shadow-[0_18px_60px_-30px_rgba(0,0,0,0.35)] z-20 overflow-hidden">
+      <div className="flex-1 flex flex-col bg-background relative border-l border-border z-20 overflow-hidden">
         {!workspace?.loading && !bspReady && (
-          <div className="absolute top-0 left-0 right-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between shadow-sm backdrop-blur-md">
+          <div className="absolute top-0 left-0 right-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-              <FaInfoCircle />
+              <FaInfoCircle className="text-base" />
               <p className="text-sm font-medium">WhatsApp not connected. Connect account to send messages.</p>
             </div>
             <button
@@ -970,6 +977,8 @@ export default function InboxPage() {
               assignmentTeamId={selectedConversation?.team?._id || selectedConversation?.team || null}
               conversationNotes={conversationNotes}
               conversationDetail={selectedConversation}
+              onToggleContactDetails={() => setShowContactDetails(prev => !prev)}
+              isContactDetailsOpen={showContactDetails}
             />
 
             <ChatInput 
@@ -1008,23 +1017,33 @@ export default function InboxPage() {
         )}
       </div>
 
-      {selectedContact && (
-        <ContactDetailsSidebar 
-          selectedContact={selectedContact}
-          selectedConversation={selectedConversation}
-          expandedSections={expandedSections}
-          toggleSection={toggleSection}
-          handleAddTag={handleAddTag}
-          handleRemoveTag={handleRemoveTag}
-          activeDeal={activeDeal}
-          crmLoading={crmLoading}
-          newNote={newNote}
-          setNewNote={setNewNote}
-          handleAddNote={handleAddNote}
-          addingNote={addingNote}
-          conversationNotes={conversationNotes}
-          messages={messages}
-        />
+      {selectedContact && showContactDetails && (
+        <>
+          <button
+            type="button"
+            aria-label="Close contact details"
+            onClick={() => setShowContactDetails(false)}
+            className="fixed inset-0 z-30 cursor-default bg-black/20 backdrop-blur-[1px]"
+          />
+          <div className="fixed top-[60px] right-0 bottom-0 z-40 w-[320px] lg:w-[336px] animate-in slide-in-from-right-4 duration-300">
+            <ContactDetailsSidebar 
+              selectedContact={selectedContact}
+              selectedConversation={selectedConversation}
+              expandedSections={expandedSections}
+              toggleSection={toggleSection}
+              handleAddTag={handleAddTag}
+              handleRemoveTag={handleRemoveTag}
+              activeDeal={activeDeal}
+              crmLoading={crmLoading}
+              newNote={newNote}
+              setNewNote={setNewNote}
+              handleAddNote={handleAddNote}
+              addingNote={addingNote}
+              conversationNotes={conversationNotes}
+              messages={messages}
+            />
+          </div>
+        </>
       )}
 
       {/* Template Selection Modal for 24h Policy Compliance */}

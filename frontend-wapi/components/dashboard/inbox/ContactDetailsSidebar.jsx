@@ -102,28 +102,26 @@ export default function ContactDetailsSidebar({
   ].sort((a, b) => new Date(a.date) - new Date(b.date)).slice(-10);
 
   return (
-    <div className="w-[300px] lg:w-[336px] flex-shrink-0 bg-card/40 backdrop-blur-3xl border-l border-border/50 flex flex-col overflow-y-auto z-30 hidden xl:flex shadow-[-10px_0_30px_-5px_rgba(0,0,0,0.03)] transition-all duration-500 custom-scrollbar">
+    <div className="h-full w-full flex-shrink-0 bg-card border-l border-border flex flex-col overflow-y-auto z-30 custom-scrollbar">
 
       {/* Contact Header Card */}
-      <div className="p-10 flex flex-col items-center justify-center bg-transparent border-b border-border/40 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-br from-primary/5 via-primary/10 to-transparent opacity-80"></div>
-        <div className="relative z-10">
+      <div className="p-8 flex flex-col items-center justify-center bg-background border-b border-border text-center">
+        <div>
           <motion.div 
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-24 h-24 bg-background/50 backdrop-blur-md rounded-3xl flex items-center justify-center mb-5 overflow-hidden border-4 border-background shadow-premium relative mx-auto"
+            className="w-20 h-20 bg-muted/60 rounded-lg flex items-center justify-center mb-4 overflow-hidden border border-border flex-shrink-0 mx-auto"
           >
             {selectedContact.avatarUrl || selectedContact.avatar ? (
               <img src={selectedContact.avatarUrl || selectedContact.avatar} alt={selectedContact.name} className="w-full h-full object-cover" />
             ) : (
-              <FaUserCircle className="text-[96px] text-muted-foreground/20" />
+              <FaUserCircle className="text-4xl text-muted-foreground/30" />
             )}
-            <div className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 border-2 border-background rounded-full"></div>
           </motion.div>
           <motion.h2 
             initial={{ y: 5, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="text-[20px] font-black text-foreground tracking-tight mb-1"
+            className="text-[16px] font-bold text-foreground tracking-tight mb-0.5"
           >
             {selectedContact.name || selectedContact.phone}
           </motion.h2>
@@ -131,7 +129,7 @@ export default function ContactDetailsSidebar({
             initial={{ y: 5, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.1 }}
-            className="text-[12px] text-muted-foreground/70 font-black uppercase tracking-[0.2em]"
+            className="text-[11px] text-muted-foreground font-semibold uppercase tracking-widest"
           >
             {selectedContact.phone}
           </motion.p>
@@ -142,67 +140,40 @@ export default function ContactDetailsSidebar({
       <div className="p-2 flex-1 scroll-smooth">
         <div className="flex flex-col gap-2">
           {/* Conversation Snapshot */}
-          <div className="overflow-hidden rounded-2xl bg-card border border-border/60 shadow-sm">
-            <div className="w-full px-5 py-4 flex items-center justify-between text-left text-foreground font-black uppercase tracking-widest text-[11px] border-b border-border/50">
-              <span className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <FaClock size={12} />
+          <div className="overflow-hidden rounded-lg bg-background border border-border">
+            <div className="w-full px-4 py-3 flex items-center justify-between text-left text-foreground font-semibold uppercase tracking-widest text-[10px] border-b border-border/60">
+              <span className="flex items-center gap-2">
+                <div className="p-1.5 rounded-md bg-muted/60 text-muted-foreground">
+                  <FaClock size={11} />
                 </div>
-                Conversation Snapshot
-              </span>
-              <span className="text-[9px] text-muted-foreground/60 font-black">
-                Live context
+                Context
               </span>
             </div>
-            <div className="px-5 py-4 space-y-4">
+            <div className="px-4 py-3 space-y-2">
               <div className="grid grid-cols-3 gap-2">
                 {snapshotStats.map((stat) => (
-                  <div key={stat.label} className="rounded-xl border border-border/50 bg-muted/30 px-3 py-3 text-center">
-                    <div className="text-[16px] font-black text-foreground leading-none">{stat.value}</div>
-                    <div className="mt-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">{stat.label}</div>
+                  <div key={stat.label} className="rounded-lg border border-border bg-muted/30 px-2 py-2 text-center">
+                    <div className="text-[14px] font-bold text-foreground leading-none">{stat.value}</div>
+                    <div className="mt-1 text-[8px] font-semibold uppercase tracking-widest text-muted-foreground">{stat.label}</div>
                   </div>
                 ))}
-              </div>
-              <div className="space-y-2 text-[11px] font-bold text-muted-foreground/80">
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5">
-                  <span className="uppercase tracking-widest text-[9px] text-muted-foreground/50">Status</span>
-                  <span className="text-foreground uppercase tracking-widest text-[10px]">{selectedConversation?.status || 'open'}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5">
-                  <span className="uppercase tracking-widest text-[9px] text-muted-foreground/50">Assignee</span>
-                  <span className="text-foreground uppercase tracking-widest text-[10px] truncate text-right">
-                    {selectedConversation?.assignedTo?.name || 'Unassigned'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5">
-                  <span className="uppercase tracking-widest text-[9px] text-muted-foreground/50">Team</span>
-                  <span className="text-foreground uppercase tracking-widest text-[10px] truncate text-right">
-                    {selectedConversation?.team?.name || 'No team'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5">
-                  <span className="uppercase tracking-widest text-[9px] text-muted-foreground/50">Last Activity</span>
-                  <span className="text-foreground uppercase tracking-widest text-[10px] text-right">
-                    {snapshotActivityAt ? new Date(snapshotActivityAt).toLocaleString() : 'No activity yet'}
-                  </span>
-                </div>
               </div>
             </div>
           </div>
 
           {/* Personal Details Card */}
-          <div className={`overflow-hidden rounded-2xl transition-all border ${expandedSections.details ? 'bg-card border-border/60 shadow-md' : 'bg-transparent border-transparent hover:bg-muted/40'}`}>
+          <div className={`overflow-hidden rounded-lg transition-all border ${expandedSections.details ? 'bg-background border-border' : 'bg-transparent border-transparent hover:bg-muted/20'}`}>
             <button
               onClick={() => toggleSection('details')}
-              className="w-full px-5 py-4 flex items-center justify-between text-left transition-colors text-foreground font-black uppercase tracking-widest text-[11px]"
+              className="w-full px-4 py-3 flex items-center justify-between text-left transition-colors text-foreground font-semibold uppercase tracking-widest text-[10px]"
             >
-              <span className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl transition-all ${expandedSections.details ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' : 'bg-blue-500/10 text-blue-500'}`}>
-                  <FaInfoCircle size={12} />
+              <span className="flex items-center gap-2">
+                <div className={`p-1.5 rounded-md transition-all ${expandedSections.details ? 'bg-blue-500/20 text-blue-600' : 'bg-muted/40 text-muted-foreground'}`}>
+                  <FaInfoCircle size={11} />
                 </div>
-                Contact Profile
+                Details
               </span>
-              <FaChevronDown className={`text-[10px] text-muted-foreground transition-transform duration-300 ${expandedSections.details ? 'rotate-180' : ''}`} />
+              <FaChevronDown className={`text-[9px] text-muted-foreground transition-transform duration-300 ${expandedSections.details ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
               {expandedSections.details && (
@@ -210,22 +181,21 @@ export default function ContactDetailsSidebar({
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="px-5 pb-6 overflow-hidden"
+                  className="px-4 pb-4 overflow-hidden"
                 >
-                  <div className="space-y-5 pt-2">
+                  <div className="space-y-3 pt-2">
                     <div className="group/field">
-                      <label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.25em] block mb-2 opacity-50">Email Frequency</label>
-                      <div className="p-3.5 bg-muted/40 rounded-xl border border-border/50 font-bold text-xs text-foreground/80 hover:border-primary/20 transition-all flex items-center justify-between">
-                        {selectedContact.email || 'No email attached'}
-                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500/30"></div>
+                      <label className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block mb-1.5">Email</label>
+                      <div className="p-2.5 bg-muted/40 rounded-lg border border-border/60 font-medium text-xs text-foreground/80">
+                        {selectedContact.email || 'No email'}
                       </div>
                     </div>
                     <div className="group/field">
-                      <label className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.25em] block mb-2 opacity-50">Organization</label>
+                      <label className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest block mb-1.5">Organization</label>
                       <input
                         type="text"
-                        placeholder="Assign company..."
-                        className="w-full bg-muted/40 border border-border/50 rounded-xl px-4 py-3 text-[13px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 outline-none transition-all font-bold text-foreground placeholder:opacity-30"
+                        placeholder="Add company..."
+                        className="w-full bg-muted/40 border border-border/60 rounded-lg px-3 py-2 text-[12px] focus:ring-2 focus:ring-primary/20 focus:border-primary/30 outline-none transition-all font-medium text-foreground placeholder:text-muted-foreground/50"
                       />
                     </div>
                   </div>
@@ -235,18 +205,18 @@ export default function ContactDetailsSidebar({
           </div>
 
           {/* Tags Card */}
-          <div className={`overflow-hidden rounded-2xl transition-all border ${expandedSections.tags ? 'bg-card border-border/60 shadow-md' : 'bg-transparent border-transparent hover:bg-muted/40'}`}>
+          <div className={`overflow-hidden rounded-lg transition-all border ${expandedSections.tags ? 'bg-background border-border' : 'bg-transparent border-transparent hover:bg-muted/20'}`}>
             <button
               onClick={() => toggleSection('tags')}
-              className="w-full px-5 py-4 flex items-center justify-between text-left transition-colors text-foreground font-black uppercase tracking-widest text-[11px]"
+              className="w-full px-4 py-3 flex items-center justify-between text-left transition-colors text-foreground font-semibold uppercase tracking-widest text-[10px]"
             >
-              <span className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl transition-all ${expandedSections.tags ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20' : 'bg-purple-500/10 text-purple-500'}`}>
-                  <FaTag size={12} />
+              <span className="flex items-center gap-2">
+                <div className={`p-1.5 rounded-md transition-all ${expandedSections.tags ? 'bg-purple-500/20 text-purple-600' : 'bg-muted/40 text-muted-foreground'}`}>
+                  <FaTag size={11} />
                 </div>
-                Segmentation Tags
+                Tags
               </span>
-              <FaChevronDown className={`text-[10px] text-muted-foreground transition-transform duration-300 ${expandedSections.tags ? 'rotate-180' : ''}`} />
+              <FaChevronDown className={`text-[9px] text-muted-foreground transition-transform duration-300 ${expandedSections.tags ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
               {expandedSections.tags && (
@@ -254,33 +224,33 @@ export default function ContactDetailsSidebar({
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="px-5 pb-6 overflow-hidden"
+                  className="px-4 pb-4 overflow-hidden"
                 >
-                  <div className="flex flex-wrap gap-2 mb-5 pt-2">
+                  <div className="flex flex-wrap gap-2 mb-3 pt-2">
                     {contactTags.map((tag) => (
                       <motion.span 
                         key={tag} 
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
-                        className="px-3 py-1.5 bg-muted/50 text-foreground/80 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group/tag border border-border/50 hover:border-primary/30 transition-all hover:bg-primary/5"
+                        className="px-2.5 py-1.5 bg-muted/50 text-foreground text-[10px] font-semibold uppercase tracking-widest rounded-lg flex items-center gap-2 border border-border/60 hover:border-primary/30 transition-all"
                       >
                         {tag}
-                        <button onClick={() => handleRemoveTag(tag)} className="text-muted-foreground/40 hover:text-destructive transition-all">
-                          <FaPlus className="rotate-45 text-[10px]" />
+                        <button onClick={() => handleRemoveTag(tag)} className="text-muted-foreground/50 hover:text-destructive transition-all">
+                          <FaPlus className="rotate-45 text-[9px]" />
                         </button>
                       </motion.span>
                     ))}
                     {contactTags.length === 0 && (
-                      <span className="px-4 py-3 bg-muted/20 border border-dashed border-border/50 rounded-xl text-[11px] text-muted-foreground/60 w-full text-center italic font-bold">No active segments</span>
+                      <span className="px-3 py-2 bg-muted/20 border border-dashed border-border/60 rounded-lg text-[10px] text-muted-foreground w-full text-center font-medium">No tags</span>
                     )}
                   </div>
 
                   <div className="relative group/search">
-                    <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground/30 group-focus-within/search:text-primary transition-colors" size={10} />
+                    <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40" size={10} />
                     <input
                       type="text"
-                      placeholder="Add marker (e.g. VIP)"
-                      className="w-full pl-10 pr-4 py-3 bg-muted/40 border border-border/50 rounded-xl text-[13px] focus:ring-4 focus:ring-primary/5 focus:border-primary/30 transition-all font-bold text-foreground placeholder:opacity-30"
+                      placeholder="Add tag..."
+                      className="w-full pl-8 pr-3 py-2 bg-muted/40 border border-border/60 rounded-lg text-[12px] focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all font-medium text-foreground placeholder:text-muted-foreground/50 outline-none"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && e.target.value.trim()) {
                           handleAddTag(e.target.value.trim());
@@ -295,18 +265,18 @@ export default function ContactDetailsSidebar({
           </div>
 
           {/* Internal Notes Card */}
-          <div className={`overflow-hidden rounded-2xl transition-all border ${expandedSections.notes ? 'bg-card border-border/60 shadow-md' : 'bg-transparent border-transparent hover:bg-muted/40'}`}>
+          <div className={`overflow-hidden rounded-lg transition-all border ${expandedSections.notes ? 'bg-background border-border' : 'bg-transparent border-transparent hover:bg-muted/20'}`}>
             <button
               onClick={() => toggleSection('notes')}
-              className="w-full px-5 py-4 flex items-center justify-between text-left transition-colors text-foreground font-black uppercase tracking-widest text-[11px]"
+              className="w-full px-4 py-3 flex items-center justify-between text-left transition-colors text-foreground font-semibold uppercase tracking-widest text-[10px]"
             >
-              <span className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl transition-all ${expandedSections.notes ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-amber-500/10 text-amber-500'}`}>
-                  <FaFlag size={12} />
+              <span className="flex items-center gap-2">
+                <div className={`p-1.5 rounded-md transition-all ${expandedSections.notes ? 'bg-amber-500/20 text-amber-600' : 'bg-muted/40 text-muted-foreground'}`}>
+                  <FaFlag size={11} />
                 </div>
-                Collaboration Hub
+                Notes
               </span>
-              <FaChevronDown className={`text-[10px] text-muted-foreground transition-transform duration-300 ${expandedSections.notes ? 'rotate-180' : ''}`} />
+              <FaChevronDown className={`text-[9px] text-muted-foreground transition-transform duration-300 ${expandedSections.notes ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
               {expandedSections.notes && (
@@ -314,45 +284,44 @@ export default function ContactDetailsSidebar({
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="px-5 pb-6 overflow-hidden"
+                  className="px-4 pb-4 overflow-hidden"
                 >
-                  <div className="space-y-4 mb-5 max-h-64 overflow-y-auto no-scrollbar pr-1 pt-2">
+                  <div className="space-y-2 mb-3 max-h-48 overflow-y-auto pr-1 pt-2 custom-scrollbar">
                     {crmLoading ? (
-                      <div className="flex justify-center p-8">
-                        <FaClock className="animate-spin text-primary/40" size={20} />
+                      <div className="flex justify-center p-6">
+                        <FaClock className="animate-spin text-primary/40" size={18} />
                       </div>
                     ) : conversationNotes.length > 0 ? (
                       conversationNotes.map((note, idx) => (
-                        <div key={note._id || idx} className="p-4 bg-muted/30 border border-border/50 rounded-2xl relative overflow-hidden group/note hover:border-amber-500/30 transition-all">
-                          <div className="absolute top-0 right-0 w-2 h-full bg-amber-500/10"></div>
-                          <p className="text-[12.5px] text-foreground/80 leading-relaxed font-bold mb-3">{note.content}</p>
-                          <div className="flex items-center justify-between border-t border-border/30 pt-2.5">
-                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">{note.createdBy?.name || 'Team'}</span>
-                            <span className="text-[9px] text-muted-foreground/60 font-bold">
+                        <div key={note._id || idx} className="p-3 bg-muted/30 border border-border/60 rounded-lg relative">
+                          <p className="text-[12px] text-foreground leading-relaxed font-medium mb-2">{note.content}</p>
+                          <div className="flex items-center justify-between border-t border-border/40 pt-1.5">
+                            <span className="text-[9px] text-muted-foreground uppercase font-semibold">{note.createdBy?.name || 'Team'}</span>
+                            <span className="text-[9px] text-muted-foreground/60 font-medium">
                               {new Date(note.createdAt).toLocaleDateString()}
                             </span>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <div className="px-4 py-8 bg-muted/20 border border-dashed border-border/50 rounded-2xl text-[11px] text-muted-foreground/60 w-full text-center italic font-bold">Share context with the team</div>
+                      <div className="px-3 py-6 bg-muted/20 border border-dashed border-border/60 rounded-lg text-[10px] text-muted-foreground w-full text-center font-medium">No notes yet</div>
                     )}
                   </div>
                   
-                  <form onSubmit={handleAddNote} className="space-y-3">
+                  <form onSubmit={handleAddNote} className="space-y-2">
                     <textarea
                       value={newNote}
                       onChange={(e) => setNewNote(e.target.value)}
-                      placeholder="Capture key insights..."
-                      className="w-full bg-muted/40 border border-border/50 rounded-xl p-4 text-[13px] focus:ring-4 focus:ring-amber-500/5 focus:border-amber-500/40 outline-none min-h-[100px] font-bold text-foreground placeholder:opacity-30 transition-all resize-none"
+                      placeholder="Add a note..."
+                      className="w-full bg-muted/40 border border-border/60 rounded-lg p-3 text-[12px] focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/30 outline-none min-h-[80px] font-medium text-foreground placeholder:text-muted-foreground/50 transition-all resize-none"
                     />
                     <button
                       type="submit"
                       disabled={addingNote || !newNote.trim()}
-                      className="w-full py-3.5 bg-amber-500 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:brightness-110 transition-all disabled:opacity-50 flex items-center justify-center gap-3 shadow-lg shadow-amber-500/20 active:scale-95"
+                      className="w-full py-2.5 bg-amber-500 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-amber-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                     >
-                      {addingNote ? <FaClock className="animate-spin" size={14} /> : <FaPlus size={10} />}
-                      Commit Note
+                      {addingNote ? <FaClock className="animate-spin" size={12} /> : <FaPlus size={10} />}
+                      Save Note
                     </button>
                   </form>
                 </motion.div>
@@ -361,18 +330,18 @@ export default function ContactDetailsSidebar({
           </div>
 
           {/* Interaction History Card */}
-          <div className={`overflow-hidden rounded-2xl transition-all border ${expandedSections.history ? 'bg-card border-border/60 shadow-md' : 'bg-transparent border-transparent hover:bg-muted/40'}`}>
+          <div className={`overflow-hidden rounded-lg transition-all border ${expandedSections.history ? 'bg-background border-border' : 'bg-transparent border-transparent hover:bg-muted/20'}`}>
             <button
               onClick={() => toggleSection('history')}
-              className="w-full px-5 py-4 flex items-center justify-between text-left transition-colors text-foreground font-black uppercase tracking-widest text-[11px]"
+              className="w-full px-4 py-3 flex items-center justify-between text-left transition-colors text-foreground font-semibold uppercase tracking-widest text-[10px]"
             >
-              <span className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl transition-all ${expandedSections.history ? 'bg-zinc-500 text-white shadow-lg' : 'bg-muted text-muted-foreground'}`}>
-                  <FaClock size={12} />
+              <span className="flex items-center gap-2">
+                <div className={`p-1.5 rounded-md transition-all ${expandedSections.history ? 'bg-muted/60 text-muted-foreground' : 'bg-muted/40 text-muted-foreground'}`}>
+                  <FaClock size={11} />
                 </div>
                 Timeline
               </span>
-              <FaChevronDown className={`text-[10px] text-muted-foreground transition-transform duration-300 ${expandedSections.history ? 'rotate-180' : ''}`} />
+              <FaChevronDown className={`text-[9px] text-muted-foreground transition-transform duration-300 ${expandedSections.history ? 'rotate-180' : ''}`} />
             </button>
             <AnimatePresence>
               {expandedSections.history && (
@@ -380,23 +349,23 @@ export default function ContactDetailsSidebar({
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="px-6 pb-10 overflow-hidden"
+                  className="px-4 pb-4 overflow-hidden"
                 >
-                  <div className="space-y-6 relative border-l-2 border-border/50 ml-2 pt-2 pb-2 pl-6">
+                  <div className="space-y-3 relative border-l border-border/60 ml-3 pt-1 pb-2 pl-4">
                     {timelineEvents.length === 0 ? (
                       <div className="relative">
-                        <div className="absolute -left-[31px] top-1.5 w-3 h-3 rounded-full bg-muted border-4 border-card"></div>
-                        <p className="text-[12px] font-bold text-foreground">No timeline events yet</p>
-                        <p className="text-[10px] text-muted-foreground">Conversation activity will appear here.</p>
+                        <div className="absolute -left-[20px] top-1 w-2.5 h-2.5 rounded-full bg-muted border-3 border-background"></div>
+                        <p className="text-[11px] font-semibold text-foreground">No timeline events</p>
+                        <p className="text-[9px] text-muted-foreground">Activity will appear here.</p>
                       </div>
                     ) : timelineEvents.map((event, index) => (
                       <div key={event.key || index} className="relative">
-                        <div className={`absolute -left-[31px] top-1.5 w-3 h-3 rounded-full border-4 border-card ${event.kind === 'note' ? 'bg-amber-500' : event.kind === 'assignment' ? 'bg-primary' : event.kind === 'outbound' ? 'bg-emerald-500' : 'bg-muted'}`}></div>
-                        <p className="text-[12px] font-black text-foreground tracking-tight">{event.title}</p>
-                        <p className="text-[10px] text-muted-foreground font-bold opacity-60 uppercase tracking-widest mt-1">
+                        <div className={`absolute -left-[20px] top-1 w-2.5 h-2.5 rounded-full border-3 border-background ${event.kind === 'note' ? 'bg-amber-500' : event.kind === 'assignment' ? 'bg-primary' : event.kind === 'outbound' ? 'bg-emerald-500' : 'bg-muted'}`}></div>
+                        <p className="text-[11px] font-semibold text-foreground">{event.title}</p>
+                        <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5">
                           {event.meta ? `${event.meta} • ` : ''}{new Date(event.date).toLocaleString()}
                         </p>
-                        <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{event.body}</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{event.body}</p>
                       </div>
                     ))}
                   </div>

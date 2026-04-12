@@ -30,14 +30,15 @@ export const useSocketStore = create((set, get) => ({
       currentSocket.disconnect();
     }
 
-    if (!token || !user || !workspace) {
+    if (!user || !workspace) {
       set({ socket: null, connected: false });
       return;
     }
 
     const socketInstance = io(SOCKET_URL, {
+      withCredentials: true,
       auth: {
-        token: token,
+        ...(token ? { token } : {}),
         userId: user.id || user._id,
         workspaceId: workspace.id || workspace._id
       },
@@ -93,8 +94,8 @@ if (typeof window !== 'undefined') {
         const currentConnected = useSocketStore.getState().connected;
         // Check if we are already connected to avoid duplicate connections
         if (!currentSocket || !currentConnected) {
-             const token = localStorage.getItem('token');
-             useSocketStore.getState().connect(token, user, workspace);
+           const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+           useSocketStore.getState().connect(token, user, workspace);
         } else {
              // If we have a socket, we also need to make sure the socket's auth matches.
              // This logic keeps user/workspace synced if they actually DO change
@@ -105,7 +106,7 @@ if (typeof window !== 'undefined') {
             const workspaceChanged = workspace?.id !== prevWorkspace?.id;
 
             if (userChanged || workspaceChanged) {
-                const token = localStorage.getItem('token');
+              const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
                 useSocketStore.getState().connect(token, user, workspace);
             }
         }

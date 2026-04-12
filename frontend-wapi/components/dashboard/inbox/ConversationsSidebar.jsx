@@ -33,39 +33,65 @@ export default function ConversationsSidebar({
 }) {
   const allViews = ['all', 'mine', 'team', 'unassigned', 'resolved', 'snoozed'];
   const currentUserTeamId = currentUser?.team?._id || currentUser?.team || null;
+  const currentUserId = currentUser?._id || currentUser?.id || null;
+
+  const viewCounts = conversations.reduce((acc, conversation) => {
+    const conversationTeamId = conversation.team?._id?.toString?.() || conversation.team?.toString?.() || null;
+    const assignedToId = conversation.assignedTo?._id?.toString?.() || conversation.assignedTo?.toString?.() || null;
+
+    acc.all += 1;
+    if ((conversation.myUnreadCount || conversation.unreadCount || 0) > 0) acc.unread += 1;
+    if (conversation.status === 'open') acc.open += 1;
+    if (conversation.status === 'resolved') acc.resolved += 1;
+    if (conversation.status === 'snoozed') acc.snoozed += 1;
+    if (!assignedToId) acc.unassigned += 1;
+    if (currentUserId && assignedToId === String(currentUserId)) acc.mine += 1;
+    if (currentUserTeamId && conversationTeamId === String(currentUserTeamId)) acc.team += 1;
+
+    return acc;
+  }, {
+    all: 0,
+    mine: 0,
+    team: 0,
+    unassigned: 0,
+    resolved: 0,
+    snoozed: 0,
+    open: 0,
+    unread: 0
+  });
 
   return (
-    <div className="w-[300px] lg:w-[340px] flex-shrink-0 border-r border-border bg-card/80 backdrop-blur-xl flex flex-col z-10 transition-all duration-500">
+    <div className="w-[300px] lg:w-[340px] flex-shrink-0 border-r border-border flex flex-col z-10 transition-all duration-300 bg-card">  
+
       {/* Search Bar section */}
-      <div className="px-4 py-4 bg-transparent border-b border-border/40">
-        <div className="relative group/search">
+      <div className="px-4 py-3 bg-background border-b border-border/60 flex items-center gap-2">
+        <div className="relative group/search flex-1">
           <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <FaSearch className="text-muted-foreground/50 text-xs group-focus-within/search:text-primary transition-colors" />
+            <FaSearch className="text-muted-foreground/50 text-xs" />
           </div>
           <input
             type="text"
             placeholder="Search conversations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-muted/50 border border-transparent rounded-xl pl-9 pr-3 py-2.5 text-[13px] text-foreground placeholder:text-muted-foreground/60 focus:bg-card focus:border-primary/30 focus:ring-4 focus:ring-primary/5 outline-none font-medium transition-all shadow-sm"
+            className="w-full bg-muted/40 border border-border/60 rounded-lg pl-9 pr-3 py-2 text-[13px] text-foreground placeholder:text-muted-foreground/60 focus:bg-muted focus:border-border outline-none font-medium transition-all"
           />
         </div>
 
-        <div className="flex items-center gap-2 mt-4">
-          <Link
-            href="/dashboard/inbox/analytics"
-            className="p-2.5 bg-card border border-border text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/5 hover:border-primary/20 shadow-sm transition-all group"
-            title="Inbox Analytics"
-          >
-            <FaChartBar size={16} className="group-hover:scale-110 transition-transform" />
-          </Link>
-        </div>
+        <Link
+          href="/dashboard/inbox/analytics"
+          className="p-2 bg-muted/30 border border-border text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted transition-all shrink-0"
+          title="Inbox Analytics"
+        >
+          <FaChartBar size={16} />
+        </Link>
       </div>
 
-      <div className="px-4 py-3 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-border/40 scrollbar-hide">
+      <div className="px-3 py-2.5 flex gap-1.5 overflow-x-auto no-scrollbar border-b border-border/60 bg-background scrollbar-hide">
         {allViews.map(view => {
           const isRestricted = !permissions?.viewAllConversations && (view === 'all');
           const isTeamRestricted = view === 'team' && !currentUserTeamId;
+          const count = viewCounts[view] ?? 0;
           
           if (view === 'team' && !currentUserTeamId) return null; // Hide team tab if user has no team
 
@@ -81,12 +107,15 @@ export default function ConversationsSidebar({
                   setCurrentView(view);
                 }
               }}
-              className={`px-3.5 py-1.5 text-[11px] font-bold rounded-lg capitalize transition-all border whitespace-nowrap flex items-center gap-1.5 ${currentView === view
-                ? 'bg-primary/10 border-primary/20 text-primary shadow-sm'
+              className={`px-3 py-1.5 text-[11px] font-bold rounded-lg capitalize transition-all border whitespace-nowrap flex items-center gap-1.5 ${currentView === view
+                ? 'bg-primary/10 border-primary/20 text-primary'
                 : 'bg-muted/30 border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                 } ${isRestricted ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
               <span>{view}</span>
+              <span className={`min-w-5 rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${currentView === view ? 'bg-primary/15 text-primary' : 'bg-background/70 text-muted-foreground'}`}>
+                {count}
+              </span>
               {isRestricted && <FaLock size={8} className="opacity-70" />}
             </button>
           );
@@ -94,8 +123,8 @@ export default function ConversationsSidebar({
       </div>
 
       {/* Connection Indicator */}
-      <div className="px-5 py-2 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 bg-muted/20 text-muted-foreground/70 border-b border-border/40">
-        <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-destructive shadow-[0_0_8px_rgba(239,68,68,0.5)]'} animate-pulse`} />
+      <div className="px-5 py-2 text-[10px] font-semibold uppercase tracking-widest flex items-center gap-2 bg-muted/40 text-muted-foreground border-b border-border/60">
+        <div className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500' : 'bg-destructive'}`} />
         <span>{connected ? 'Real-time Linked' : 'Stream Disconnected'}</span>
       </div>
 
@@ -129,9 +158,9 @@ export default function ConversationsSidebar({
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ delay: idx * 0.03, type: "spring", stiffness: 300, damping: 30 }}
                     onClick={() => handleSelectContact(conversation)}
-                    className={`group relative px-3 py-3.5 cursor-pointer rounded-2xl transition-all flex items-start gap-3.5 ${isSelected
-                      ? 'bg-primary/5 shadow-premium border border-primary/10'
-                      : 'hover:bg-muted/60 border border-transparent hover:border-border/50'
+                    className={`group relative px-3 py-3 cursor-pointer rounded-lg transition-all flex items-start gap-2.5 border ${isSelected
+                      ? 'bg-primary/5 border-primary/20'
+                      : 'hover:bg-muted/40 border-transparent hover:border-border/50'
                       }`}
                   >
                     {/* Active Indicator Bar */}
@@ -144,7 +173,7 @@ export default function ConversationsSidebar({
 
                     {/* Avatar */}
                     <div className="relative flex-shrink-0">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden border-2 transition-colors ${isSelected ? 'border-primary/20 bg-background' : 'border-border bg-muted/80'}`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden border border-border bg-muted/60 flex-shrink-0`}>
                         {conversation.contact?.avatarUrl || conversation.contact?.avatar ? (
                           <img src={conversation.contact.avatarUrl || conversation.contact.avatar} alt="avatar" className="w-full h-full object-cover" />
                         ) : (
@@ -161,9 +190,8 @@ export default function ConversationsSidebar({
                       )}
 
                       {(conversation.myUnreadCount || conversation.unreadCount || 0) > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
+                        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                         </span>
                       )}
                     </div>

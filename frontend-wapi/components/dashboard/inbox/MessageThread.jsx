@@ -80,7 +80,9 @@ export default function MessageThread({
   messagesEndRef,
   bspReady,
   workspace,
-  assignmentTeamId
+  assignmentTeamId,
+  onToggleContactDetails,
+  isContactDetailsOpen = false
 }) {
   const visibleAgents = assignmentTeamId
     ? agents.filter(agent => {
@@ -141,12 +143,12 @@ export default function MessageThread({
   const reversedItems = [...renderItems].reverse();
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 relative border-r border-border/60 shadow-[0_18px_50px_-28px_rgba(0,0,0,0.45)] z-20 overflow-hidden bg-background/40 backdrop-blur-xl">
+    <div className="flex-1 flex flex-col min-h-0 relative border-r border-border z-20 overflow-hidden bg-background">
       {!workspace?.loading && !bspReady && (
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="absolute top-0 left-0 right-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between shadow-lg backdrop-blur-xl"
+          className="absolute top-0 left-0 right-0 z-50 bg-amber-500/10 border-b border-amber-500/20 px-6 py-3 flex items-center justify-between"
         >
           <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
             <FaInfoCircle className="text-lg" />
@@ -162,113 +164,89 @@ export default function MessageThread({
       )}
 
       {/* Chat Thread Header */}
-      <div className={`px-6 py-4 bg-card/90 backdrop-blur-xl border-b border-border/50 flex items-center justify-between sticky top-0 z-30 shadow-sm transition-all ${!bspReady ? 'mt-14' : ''}`}>
-        <div className="flex items-center gap-4">
+      <div className="px-5 py-2.5 bg-background border-b border-border flex items-center justify-between sticky top-0 z-30 transition-all">
+        <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-primary/20 shadow-inner">
+            <div className="w-8 h-8 bg-muted/70 rounded-lg flex items-center justify-center overflow-hidden border border-border">
               {selectedContact?.avatarUrl || selectedContact?.avatar ? (
                 <img src={selectedContact.avatarUrl || selectedContact.avatar} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <FaUser className="text-primary/60 text-xl" />
+                <FaUser className="text-muted-foreground text-[10px]" />
               )}
             </div>
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-background rounded-full shadow-sm"></div>
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="font-black text-foreground text-[16px] tracking-tight leading-none truncate">
-                {selectedContact?.displayName || selectedContact?.name || selectedContact?.phone}
-              </h2>
-
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${statusStyles[selectedConversation?.status] || 'bg-muted text-muted-foreground border-border/60'}`}>
-                {selectedConversation?.status || 'open'}
-              </span>
-              {selectedConversation?.assignedTo?.name && (
-                <span className="px-2 py-0.5 rounded-md bg-muted/60 text-muted-foreground text-[9px] font-black uppercase tracking-widest border border-border/60">
-                  {selectedConversation.assignedTo.name === currentUser?.name ? 'Assigned to me' : `Assigned to ${selectedConversation.assignedTo.name}`}
-                </span>
-              )}
-              {selectedConversation?.team?.name && (
-                <span className="px-2 py-0.5 rounded-md bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20">
-                  {selectedConversation.team.name}
-                </span>
-              )}
-              {selectedConversation?.snoozedUntil && selectedConversation?.status === 'snoozed' && (
-                <span className="px-2 py-0.5 rounded-md bg-violet-500/10 text-violet-600 text-[9px] font-black uppercase tracking-widest border border-violet-500/20">
-                  Snoozed until {new Date(selectedConversation.snoozedUntil).toLocaleString()}
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-widest">
-              {typingUsers?.[selectedConversationId]?.isTyping && typingUsers[selectedConversationId]?.agentId !== currentUser?._id ? (
-                <span className="text-primary animate-pulse">Typing...</span>
-              ) : (
-                selectedContact?.phone
-              )}
+            <h2 className="font-bold text-foreground text-[13px] truncate">
+              {selectedContact?.displayName || selectedContact?.name || selectedContact?.phone}
+            </h2>
+            <p className="text-[10px] text-muted-foreground mt-0 truncate">
+              {selectedContact?.phone}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Add Label Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setShowLabelModal(!showLabelModal)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border transition-all text-[11px] font-black uppercase tracking-wider ${selectedConversation?.label ? 'border-primary/20 bg-primary/10 text-primary shadow-sm' : 'border-border/60 bg-background text-muted-foreground hover:bg-muted/80'}`}
-            >
-              <FaFlag size={10} />
-              <span>{selectedConversation?.label || 'Label'}</span>
-            </button>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border/60 bg-muted/20">
+          {/* Label Display */}
+          {selectedConversation?.label && (
+            <div className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border border-primary/20 bg-primary/10 text-primary`}>
+              {selectedConversation.label}
+            </div>
+          )}
+          
+          <button
+            onClick={() => setShowLabelModal(!showLabelModal)}
+            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-all"
+            title="Label"
+          >
+            <FaFlag size={10} />
+          </button>
 
-            <AnimatePresence>
-              {showLabelModal && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="absolute top-full mt-3 right-0 w-52 bg-card/95 backdrop-blur-xl border border-border shadow-premium rounded-2xl overflow-hidden z-50 p-2"
-                >
-                  <p className="text-[10px] text-muted-foreground uppercase font-black tracking-[0.15em] px-3 py-2.5 border-b border-border/50 mb-1.5 opacity-50">Choose Segment</p>
-                  <div className="max-h-60 overflow-y-auto no-scrollbar">
-                    {contactLabels.map((l, idx) => (
-                      <button
-                        key={l || `label-${idx}`}
-                        onClick={() => handleSetLabel(l)}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${selectedConversation?.label === l ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground/80'}`}
-                      >
-                        {l}
-                      </button>
-                    ))}
-                    {selectedConversation?.label && (
-                      <button
-                        onClick={handleClearLabel}
-                        className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 mt-2 transition-all border-t border-border/50"
-                      >
-                        Remove Label
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <AnimatePresence>
+            {showLabelModal && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="absolute top-full mt-2 right-0 w-48 bg-card border border-border rounded-lg shadow-xl overflow-hidden z-50 p-2"
+              >
+                <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-widest px-3 py-2 border-b border-border/40 mb-1">Choose Segment</p>
+                <div className="max-h-60 overflow-y-auto no-scrollbar">
+                  {contactLabels.map((l, idx) => (
+                    <button
+                      key={l || `label-${idx}`}
+                      onClick={() => handleSetLabel(l)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${selectedConversation?.label === l ? 'bg-primary/10 text-primary' : 'hover:bg-muted text-foreground/80'}`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                  {selectedConversation?.label && (
+                    <button
+                      onClick={handleClearLabel}
+                      className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold text-destructive hover:bg-destructive/10 mt-2 transition-all border-t border-border/50"
+                    >
+                      Remove Label
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-          <div className="hidden md:flex items-center gap-2.5 px-3.5 py-1.5 border border-border/60 rounded-xl bg-muted/40 backdrop-blur-md">
-            <FaUserCircle className="text-muted-foreground/50" />
+          <div className="w-[1px] h-3 bg-border/40 mx-0.5" />
+
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 border border-border bg-muted/30 rounded-lg">
+            <FaUserCircle className="text-muted-foreground/60 text-sm" />
             <select
               value={selectedConversation?.assignedTo?._id || selectedConversation?.assignedTo || ''}
               onChange={(e) => handleAssignConversation(e.target.value)}
-              className="bg-transparent border-none text-[12px] font-bold text-foreground/80 outline-none cursor-pointer pr-4"
+              className="bg-transparent border-none text-[12px] font-semibold text-foreground outline-none cursor-pointer"
             >
               <option value="">Unassigned</option>
               {visibleAgents.map((agent, idx) => (
                 <option
                   key={agent._id || `agent-${idx}`}
                   value={agent._id}
-                  disabled={agent.canAccept === false}
-                  title={agent.canAccept === false ? 'At capacity or unavailable' : undefined}
                 >
                   {formatAgentOption(agent)}
                 </option>
@@ -281,26 +259,47 @@ export default function MessageThread({
           <button
             onClick={handleResolveConversation}
             disabled={sending}
-            className="p-2.5 rounded-xl bg-emerald-500 shadow-[0_4px_12px_rgba(16,185,129,0.2)] text-white hover:brightness-110 transition-all active:scale-95 disabled:opacity-50"
+            className="p-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition-all disabled:opacity-50"
             title="Resolve Conversation"
           >
             {sending ? <FaSpinner className="animate-spin text-sm" /> : <FaCheck className="text-sm" />}
           </button>
 
-          <button className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-xl transition-all border border-transparent hover:border-border/50">
+          <button
+            type="button"
+            onClick={onToggleContactDetails}
+            className={`p-2.5 rounded-xl transition-all border ${isContactDetailsOpen ? 'text-primary bg-primary/10 border-primary/20 shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted/80 border-transparent hover:border-border/50'}`}
+            title="Contact details"
+          >
             <FaEllipsisV className="text-sm" />
           </button>
         </div>
       </div>
 
+      <div className="px-5 py-3 border-b border-border bg-background flex flex-wrap items-center gap-3">
+        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-border bg-muted/30 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Team
+          <span className="text-foreground font-bold">
+            {selectedConversation?.team?.name || 'No team'}
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-border bg-muted/30 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Assignee
+          <span className="text-foreground font-bold">
+            {selectedConversation?.assignedTo?.name || 'Unassigned'}
+          </span>
+        </span>
+        <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-border bg-muted/30 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Last update
+          <span className="text-foreground font-bold">
+            {selectedConversation?.updatedAt ? new Date(selectedConversation.updatedAt).toLocaleString() : 'Live'}
+          </span>
+        </span>
+      </div>
+
       {/* Chat Messages */}
       <div
-        className="flex-1 overflow-y-auto pt-6 pb-2 px-4 flex flex-col-reverse relative bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.07),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.62),_rgba(243,244,246,0.88))] dark:bg-[radial-gradient(circle_at_top,_rgba(20,184,166,0.08),_transparent_28%),linear-gradient(180deg,_rgba(15,23,42,0.65),_rgba(2,6,23,0.92))] custom-scrollbar transition-colors duration-500"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.18), rgba(255,255,255,0.18)), url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-          backgroundBlendMode: 'overlay',
-          backgroundSize: '400px'
-        }}
+        className="flex-1 overflow-y-auto pt-6 pb-2 px-4 flex flex-col-reverse relative bg-background custom-scrollbar"
       >
         <div ref={messagesEndRef} className="h-4 flex-shrink-0" />
 
@@ -314,7 +313,7 @@ export default function MessageThread({
                   animate={{ opacity: 1, scale: 1 }}
                   className="flex justify-center my-6"
                 >
-                  <span className="px-5 py-2 rounded-xl bg-card/60 backdrop-blur-xl border border-border/30 text-[10px] font-black uppercase tracking-[0.25em] text-muted-foreground shadow-premium">
+                  <span className="px-4 py-1.5 rounded-lg bg-muted/40 border border-border/60 text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
                     {item.date}
                   </span>
                 </motion.div>
@@ -329,7 +328,7 @@ export default function MessageThread({
                   animate={{ opacity: 1 }}
                   className="flex justify-center my-4 px-10"
                 >
-                  <span className="px-6 py-2.5 rounded-2xl bg-black/5 dark:bg-white/5 backdrop-blur-sm border border-black/5 dark:border-white/5 text-[11px] font-bold text-muted-foreground text-center leading-relaxed">
+                  <span className="px-4 py-2 rounded-lg bg-muted/40 border border-border/60 text-[10px] font-medium text-muted-foreground text-center leading-relaxed">
                     {item.body}
                   </span>
                 </motion.div>
@@ -375,23 +374,23 @@ export default function MessageThread({
                 className={`flex ${isOutbound ? 'justify-end' : 'justify-start'} w-full group relative px-2 ${item.isStartOfGroup ? 'mt-4' : 'mt-0.5'}`}
               >
                 <div
-                  className={`relative max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] shadow-sm transition-all pb-1 ${isNote
-                    ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-900 dark:text-amber-100 border-amber-200 dark:border-amber-700/50 border-2'
+                  className={`relative max-w-[85%] sm:max-w-[75%] lg:max-w-[65%] transition-all pb-1 ${isNote
+                    ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100 border border-amber-200/50 dark:border-amber-700/30'
                     : isOutbound
-                      ? 'bg-[#dcf8c6] dark:bg-[#005c4b] text-foreground dark:text-white border-[0.5px] border-black/5'
-                      : 'bg-white dark:bg-[#202c33] text-foreground dark:text-white border-[0.5px] border-black/5'
+                      ? 'bg-primary/15 text-foreground dark:text-foreground border border-primary/20'
+                      : 'bg-muted/40 text-foreground border border-border/60'
                     } ${item.isStartOfGroup
-                      ? (isOutbound ? 'rounded-2xl rounded-tr-none' : 'rounded-2xl rounded-tl-none')
+                      ? (isOutbound ? 'rounded-2xl rounded-br-lg' : 'rounded-2xl rounded-bl-lg')
                       : 'rounded-2xl'
                     }`}
                 >
                   {/* Internal Note Tag */}
                   {isNote && (
-                    <div className="px-3 pt-2 pb-0 flex items-center gap-1.5 opacity-60">
+                    <div className="px-3 pt-2 pb-0 flex items-center gap-1.5 opacity-70">
                       <FaFlag className="text-[9px]" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">Team Note</span>
+                      <span className="text-[9px] font-semibold uppercase tracking-widest">Team Note</span>
                       {message.sentBy?.name && (
-                        <span className="text-[9px] font-black uppercase tracking-widest">• {message.sentBy.name}</span>
+                        <span className="text-[9px] font-semibold uppercase tracking-widest">• {message.sentBy.name}</span>
                       )}
                     </div>
                   )}
