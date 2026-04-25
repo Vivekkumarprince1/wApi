@@ -1,0 +1,116 @@
+import nodemailer from 'nodemailer';
+import { config } from '@/lib/config';
+
+export interface IMailOptions {
+  to: string;
+  subject: string;
+  text?: string;
+  html?: string;
+}
+
+export class MailService {
+  private static transporter: any = null;
+
+  private static async getTransporter() {
+    if (this.transporter) return this.transporter;
+
+    if (config.smtpService && config.smtpUser && config.smtpPass) {
+      this.transporter = nodemailer.createTransport({
+        service: config.smtpService,
+        auth: {
+          user: config.smtpUser.trim(),
+          pass: config.smtpPass.trim().replace(/\s/g, ''), // Remove spaces from App Passwords
+        },
+      });
+
+      return this.transporter;
+    }
+
+    if (config.smtpHost && config.smtpUser && config.smtpPass) {
+      this.transporter = nodemailer.createTransport({
+        host: config.smtpHost,
+        port: config.smtpPort || 587,
+        secure: config.smtpPort === 465,
+        auth: {
+          user: config.smtpUser,
+          pass: config.smtpPass,
+        },
+      });
+
+      return this.transporter;
+    }
+
+    if (config.env === 'production') {
+      throw new Error('Email delivery is not configured in production');
+    }
+
+    console.warn('[MailService] Email credentials missing. Using console fallback.');
+    return null;
+  }
+
+  static async sendMail(options: IMailOptions) {
+    console.log(`[MailService] Preparing to send email to: ${options.to} (Subject: ${options.subject})`);
+    const transporter = await this.getTransporter();
+    
+    const fromName = config.appName || 'wApi';
+    const fromEmail = config.smtpFrom || 'noreply@wapi.com';
+    
+    const mailOptions = {
+      from: `"${fromName}" <${fromEmail}>`,
+      ...options,
+    };
+
+    console.log(`[MailService] Using From address: ${mailOptions.from}`);
+
+    if (!transporter) {
+      console.log('-----------------------------------------');
+      console.log(`[MailService:Fallback] 📧 Sending to: ${options.to}`);
+      console.log(`[MailService:Fallback] 📝 Subject: ${options.subject}`);
+      console.log(`[MailService:Fallback] 📄 Body: ${options.text || options.html}`);
+      console.log('-----------------------------------------');
+      return { success: true, method: 'console', warning: 'SMTP not configured. Email logged to console.' };
+    }
+
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      console.log(`[MailService] Email sent to ${options.to}: ${info.messageId}`);
+      return { success: true, method: 'smtp', messageId: info.messageId };
+    } catch (error: any) {
+      console.error(`[MailService] Error sending email to ${options.to}:`, error.message);
+      return { success: false, method: 'smtp', error: error.message };
+    }
+  }
+
+  /**
+   * Send a Workspace Invitation Email
+   */
+  static async sendInvitation(data: {
+    to: string;
+    inviterName: string;
+    workspaceName: string;
+    role: string;
+    invitationUrl: string;
+  }) {
+    const { to, inviterName, workspaceName, role, invitationUrl } = data;
+    
+    return this.sendMail({
+      to,
+      subject: `You've been invited to join ${workspaceName} on ${config.appName}`,
+      text: `Hello,\n\n${inviterName} has invited you to join the "${workspaceName}" workspace as a ${role}.\n\nAccept your invitation here: ${invitationUrl}\n\nWelcome aboard!`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #6366f1;">Workspace Invitation</h2>
+          <p>Hello,</p>
+          <p><strong>${inviterName}</strong> has invited you to join the <strong>${workspaceName}</strong> workspace on ${config.appName}.</p>
+          <p>Role: <span style="background: #f3f4f6; padding: 2px 8px; border-radius: 4px; font-weight: bold;">${role}</span></p>
+          <div style="margin: 30px 0;">
+            <a href="${invitationUrl}" style="background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Accept Invitation</a>
+          </div>
+          <p style="color: #6b7280; font-size: 0.875rem;">If you don't have an account, you'll be prompted to create one.</p>
+          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #9ca3af; font-size: 0.75rem;">If you were not expecting this invitation, you can safely ignore this email.</p>
+        </div>
+      `,
+    });
+  }
+}

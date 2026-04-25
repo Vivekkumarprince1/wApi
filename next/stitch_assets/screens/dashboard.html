@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SuperAdmin Enterprise Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary": "#ffffff",
+                        "primary-container": "#10b981",
+                        "inverse-on-surface": "#ebf1ff",
+                        "surface-container-high": "#e2e8f8",
+                        "tertiary": "#a43a3a",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#fc7c78",
+                        "tertiary-fixed-dim": "#ffb3af",
+                        "secondary": "#2b6954",
+                        "inverse-primary": "#4edea3",
+                        "on-error-container": "#93000a",
+                        "surface-variant": "#dce2f3",
+                        "secondary-fixed-dim": "#95d3ba",
+                        "on-primary-fixed-variant": "#005236",
+                        "on-surface-variant": "#3c4a42",
+                        "on-secondary-fixed-variant": "#0b513d",
+                        "primary": "#006c49",
+                        "on-primary": "#ffffff",
+                        "on-surface": "#151c27",
+                        "on-secondary-container": "#306d58",
+                        "on-primary-fixed": "#002113",
+                        "primary-fixed-dim": "#4edea3",
+                        "outline-variant": "#bbcabf",
+                        "on-error": "#ffffff",
+                        "on-tertiary-fixed-variant": "#842225",
+                        "tertiary-fixed": "#ffdad7",
+                        "on-tertiary": "#ffffff",
+                        "surface-bright": "#f9f9ff",
+                        "surface-container-low": "#f0f3ff",
+                        "outline": "#6c7a71",
+                        "inverse-surface": "#2a313d",
+                        "on-secondary-fixed": "#002117",
+                        "surface": "#f9f9ff",
+                        "surface-tint": "#006c49",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#711419",
+                        "background": "#f9f9ff",
+                        "secondary-fixed": "#b0f0d6",
+                        "surface-dim": "#d3daea",
+                        "on-tertiary-fixed": "#410005",
+                        "on-primary-container": "#00422b",
+                        "secondary-container": "#adedd3",
+                        "error-container": "#ffdad6",
+                        "primary-fixed": "#6ffbbe",
+                        "surface-container": "#e7eefe",
+                        "on-background": "#151c27",
+                        "surface-container-highest": "#dce2f3"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "margin": "24px",
+                        "gutter": "16px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "container-max": "1440px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "h1": ["Manrope"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "h2": ["Manrope"],
+                        "code": ["Inter"],
+                        "h3": ["Manrope"]
+                    },
+                    "fontSize": {
+                        "h1": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-sm": ["12px", {"lineHeight": "18px", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}],
+                        "h2": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "code": ["13px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}],
+                        "h3": ["20px", {"lineHeight": "28px", "letterSpacing": "0", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-background antialiased">
+<!-- SideNavBar (Updated to Light Mode Consistent Style) -->
+<aside class="h-screen w-64 fixed left-0 top-0 border-r border-slate-200 bg-white z-50 flex flex-col overflow-y-auto font-manrope text-sm">
+<div class="p-lg mb-4">
+<h1 class="text-xl font-bold tracking-tighter text-on-surface">SuperAdmin</h1>
+<p class="text-xs text-outline">Enterprise Portal</p>
+</div>
+<nav class="flex-1 px-md space-y-1">
+<a class="bg-primary/10 text-primary font-semibold px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="domain">domain</span>
+                Workspaces
+            </a>
+<a class="text-outline hover:text-on-surface hover:bg-slate-50 px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+                Users
+            </a>
+<a class="text-outline hover:text-on-surface hover:bg-slate-50 px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+                Billing &amp; Plans
+            </a>
+<a class="text-outline hover:text-on-surface hover:bg-slate-50 px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="hub">hub</span>
+                BSP Providers
+            </a>
+<a class="text-outline hover:text-on-surface hover:bg-slate-50 px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="security">security</span>
+                Security
+            </a>
+<a class="text-outline hover:text-on-surface hover:bg-slate-50 px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+                Audit Logs
+            </a>
+<a class="text-outline hover:text-on-surface hover:bg-slate-50 px-4 py-2.5 rounded-lg flex items-center gap-3 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="mt-auto p-md border-t border-slate-100">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-slate-50 transition-all text-outline hover:text-on-surface" href="#">
+<img alt="System Logo" class="w-8 h-8 rounded-full object-cover border border-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDGRbUeH9LapOzyBmtfO_H1NhQ2N7LeidtedR49JcA32QfbVTxiSm2mhkigfTvzxTePAn8MHrs2lgfYSTCZb4etjws1mADKkoXTHs9euhQy_51TCK2ubjggaQzyyxDH1Iy3AsnN4m672d0KImWxhUHIawIY-Y6xsHaOS60FEkKozMUQtn9h6_HaikOK9LsGGpyYhV7B1zKCNiIHEVcnvWURdf1oaXSCals5iH3e2xj0OCDiLYrR1BWCoIX_oDm01kXCY0E56eDU9hU"/>
+<div class="flex flex-col">
+<span class="text-sm font-semibold truncate w-32">Admin Profile</span>
+<span class="text-[10px] text-outline">Super User</span>
+</div>
+</a>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-64 h-16 border-b border-slate-200 bg-white/80 backdrop-blur-xl shadow-sm flex justify-between items-center px-8 z-40 font-manrope text-[13px] font-medium tracking-wide">
+<div class="flex items-center gap-6 flex-1">
+<span class="text-lg font-black text-slate-900">Admin Console</span>
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="w-full bg-slate-100 border-none rounded-full py-2 pl-10 pr-4 text-xs focus:ring-2 focus:ring-primary/20" placeholder="Search workspaces, providers..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="hover:bg-slate-100 rounded-full p-2 transition-all">
+<span class="material-symbols-outlined text-slate-500" data-icon="notifications">notifications</span>
+</button>
+<button class="hover:bg-slate-100 rounded-full p-2 transition-all">
+<span class="material-symbols-outlined text-slate-500" data-icon="contrast">contrast</span>
+</button>
+<div class="h-8 w-px bg-slate-200 mx-2"></div>
+<img alt="User Avatar" class="h-8 w-8 rounded-lg" data-alt="minimalist user avatar icon with clean lines and soft emerald accents" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdjb4EnCe8ZCKcRxxg4xrKFLMpS2s93oE0JZaDEmYiyduc4bB5Bj2q9HQb6B7Fbng6-QXq3dWBzTgrPq2llc6lkp__deSVMcfWyg3GjTvu1XRX3u16QeRq1eRga_k0lo2HeERVxQ2njdwnVS-GV3JHjq4kbdFwRJCbySXxAErMvQ95-W5H27x9hsnkJFX7KjxHVJweTlcgWU4b1MZSrkkWoIPjAjjlLRegSAoiU2oTNKIn9Jk7AhiUVNwO9tMRX5tsoXousWtj96g"/>
+</div>
+</header>
+<!-- Main Content -->
+<main class="pl-64 pt-16 min-h-screen">
+<div class="p-lg max-w-container-max mx-auto space-y-lg">
+<!-- Breadcrumbs -->
+<div class="flex items-center gap-2 text-body-sm text-outline font-label-md">
+<span>Console</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-primary">Workspaces</span>
+</div>
+<!-- Key Metrics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Total Workspaces -->
+<div class="glass-card p-lg rounded-xl shadow-sm border-l-4 border-primary">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-label-md font-label-md text-outline mb-1 uppercase">Total Workspaces</p>
+<h3 class="font-h2 text-h2 text-on-surface">1,284</h3>
+</div>
+<span class="material-symbols-outlined p-sm bg-primary/10 text-primary rounded-lg">domain</span>
+</div>
+<div class="mt-md flex items-center gap-1 text-primary text-body-sm font-semibold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>12.5% vs last month</span>
+</div>
+</div>
+<!-- Active Subscriptions -->
+<div class="glass-card p-lg rounded-xl shadow-sm border-l-4 border-secondary">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-label-md font-label-md text-outline mb-1 uppercase">Active Subscriptions</p>
+<h3 class="font-h2 text-h2 text-on-surface">942</h3>
+</div>
+<span class="material-symbols-outlined p-sm bg-secondary/10 text-secondary rounded-lg">verified</span>
+</div>
+<div class="mt-md flex items-center gap-1 text-secondary text-body-sm font-semibold">
+<span class="material-symbols-outlined text-sm">check_circle</span>
+<span>88% retention rate</span>
+</div>
+</div>
+<!-- Monthly Revenue -->
+<div class="glass-card p-lg rounded-xl shadow-sm border-l-4 border-emerald-600">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-label-md font-label-md text-outline mb-1 uppercase">Monthly Revenue</p>
+<h3 class="font-h2 text-h2 text-on-surface">$248,500</h3>
+</div>
+<span class="material-symbols-outlined p-sm bg-emerald-100 text-emerald-700 rounded-lg">payments</span>
+</div>
+<div class="mt-md flex items-center gap-1 text-emerald-600 text-body-sm font-semibold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+<span>+18.2% Growth</span>
+</div>
+</div>
+<!-- Active BSPs -->
+<div class="glass-card p-lg rounded-xl shadow-sm border-l-4 border-slate-700">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-label-md font-label-md text-outline mb-1 uppercase">Active BSPs</p>
+<h3 class="font-h2 text-h2 text-on-surface">14</h3>
+</div>
+<span class="material-symbols-outlined p-sm bg-slate-100 text-slate-700 rounded-lg">hub</span>
+</div>
+<div class="mt-md flex items-center gap-1 text-on-surface-variant text-body-sm font-semibold">
+<span class="material-symbols-outlined text-sm">dns</span>
+<span>All systems operational</span>
+</div>
+</div>
+</div>
+<!-- Workspace Management Table -->
+<section class="glass-card rounded-xl shadow-sm overflow-hidden border border-slate-200">
+<div class="p-lg flex justify-between items-center border-b border-slate-100 bg-white/40">
+<h2 class="font-h3 text-h3 text-on-surface">Workspace Management</h2>
+<button class="bg-primary hover:bg-primary/90 text-white px-md py-sm rounded-lg font-label-md transition-all flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span>
+                        Provision New Workspace
+                    </button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-slate-50/50 border-b border-slate-100">
+<th class="px-lg py-md font-label-md text-outline text-label-md uppercase tracking-wider">Workspace Name</th>
+<th class="px-lg py-md font-label-md text-outline text-label-md uppercase tracking-wider">Plan</th>
+<th class="px-lg py-md font-label-md text-outline text-label-md uppercase tracking-wider">BSP Provider</th>
+<th class="px-lg py-md font-label-md text-outline text-label-md uppercase tracking-wider">Status</th>
+<th class="px-lg py-md font-label-md text-outline text-label-md uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100">
+<tr class="hover:bg-slate-50/50 transition-colors">
+<td class="px-lg py-md font-semibold text-on-surface">Acme Global Inc.</td>
+<td class="px-lg py-md text-body-md">Enterprise Pro</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+<span>AWS West-1</span>
+</div>
+</td>
+<td class="px-lg py-md">
+<span class="bg-emerald-100 text-emerald-700 px-sm py-xs rounded-full text-xs font-bold uppercase tracking-tighter">Active</span>
+</td>
+<td class="px-lg py-md text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="text-primary hover:bg-primary/10 p-2 rounded-lg transition-all" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-tertiary hover:bg-tertiary/10 p-2 rounded-lg transition-all" title="Bypass">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 transition-colors">
+<td class="px-lg py-md font-semibold text-on-surface">Horizon Digital</td>
+<td class="px-lg py-md text-body-md">Business Plus</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-blue-500"></div>
+<span>Azure Core</span>
+</div>
+</td>
+<td class="px-lg py-md">
+<span class="bg-emerald-100 text-emerald-700 px-sm py-xs rounded-full text-xs font-bold uppercase tracking-tighter">Active</span>
+</td>
+<td class="px-lg py-md text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="text-primary hover:bg-primary/10 p-2 rounded-lg transition-all" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-tertiary hover:bg-tertiary/10 p-2 rounded-lg transition-all" title="Bypass">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 transition-colors">
+<td class="px-lg py-md font-semibold text-on-surface">Stellar Systems</td>
+<td class="px-lg py-md text-body-md">Free Starter</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-slate-400"></div>
+<span>GCP Regional</span>
+</div>
+</td>
+<td class="px-lg py-md">
+<span class="bg-amber-100 text-amber-700 px-sm py-xs rounded-full text-xs font-bold uppercase tracking-tighter">Maintenance</span>
+</td>
+<td class="px-lg py-md text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="text-primary hover:bg-primary/10 p-2 rounded-lg transition-all" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-tertiary hover:bg-tertiary/10 p-2 rounded-lg transition-all" title="Bypass">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="hover:bg-slate-50/50 transition-colors">
+<td class="px-lg py-md font-semibold text-on-surface">Luna Creative</td>
+<td class="px-lg py-md text-body-md">Enterprise Pro</td>
+<td class="px-lg py-md">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+<span>AWS West-1</span>
+</div>
+</td>
+<td class="px-lg py-md">
+<span class="bg-emerald-100 text-emerald-700 px-sm py-xs rounded-full text-xs font-bold uppercase tracking-tighter">Active</span>
+</td>
+<td class="px-lg py-md text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="text-primary hover:bg-primary/10 p-2 rounded-lg transition-all" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-tertiary hover:bg-tertiary/10 p-2 rounded-lg transition-all" title="Bypass">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-md flex justify-between items-center border-t border-slate-100 bg-white/40">
+<p class="text-body-sm text-outline">Showing 4 of 1,284 workspaces</p>
+<div class="flex gap-1">
+<button class="p-1 px-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all font-label-md text-label-md">Prev</button>
+<button class="p-1 px-3 bg-primary text-white rounded-lg font-label-md text-label-md">1</button>
+<button class="p-1 px-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all font-label-md text-label-md">2</button>
+<button class="p-1 px-3 border border-slate-200 rounded-lg hover:bg-slate-50 transition-all font-label-md text-label-md">Next</button>
+</div>
+</div>
+</section>
+<!-- Subscription & Health Distribution -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
+<!-- Subscription Distribution -->
+<div class="glass-card p-lg rounded-xl shadow-sm space-y-md">
+<div class="flex justify-between items-center">
+<h2 class="font-h3 text-h3 text-on-surface">Plan Distribution</h2>
+<span class="material-symbols-outlined text-outline">pie_chart</span>
+</div>
+<div class="flex items-end gap-2 h-48 pt-lg">
+<div class="flex-1 bg-primary/20 hover:bg-primary/30 transition-all relative group rounded-t-lg" style="height: 65%;">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Paid 65%</div>
+</div>
+<div class="flex-1 bg-secondary/20 hover:bg-secondary/30 transition-all relative group rounded-t-lg" style="height: 35%;">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">Free 35%</div>
+</div>
+</div>
+<div class="flex justify-between text-body-sm text-outline border-t border-slate-100 pt-sm">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<span>Paid Subscription</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<span>Free Tier</span>
+</div>
+</div>
+</div>
+<!-- BSP Provider Health -->
+<div class="glass-card p-lg rounded-xl shadow-sm space-y-md">
+<div class="flex justify-between items-center">
+<h2 class="font-h3 text-h3 text-on-surface">Provider Health</h2>
+<span class="material-symbols-outlined text-outline">query_stats</span>
+</div>
+<div class="space-y-md">
+<div class="space-y-2">
+<div class="flex justify-between text-label-md">
+<span class="font-semibold">AWS Regions (7)</span>
+<span class="text-primary">99.98% Uptime</span>
+</div>
+<div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 99.98%;"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-label-md">
+<span class="font-semibold">Azure Global (4)</span>
+<span class="text-primary">99.92% Uptime</span>
+</div>
+<div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 99.92%;"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-label-md">
+<span class="font-semibold">GCP Mesh (3)</span>
+<span class="text-amber-500">97.45% (Incidents)</span>
+</div>
+<div class="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-amber-500" style="width: 97.45%;"></div>
+</div>
+</div>
+</div>
+<button class="w-full mt-md py-sm border border-slate-200 rounded-lg text-body-sm font-semibold hover:bg-slate-50 transition-all">
+                        View Detailed Systems Log
+                    </button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,273 @@
+
+> new@0.1.0 build
+> NODE_OPTIONS='--max-old-space-size=4096' next build
+
+▲ Next.js 16.2.3 (Turbopack)
+- Environments: .env
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 33.4s
+  Running TypeScript ...
+
+  We detected TypeScript in your project and reconfigured your tsconfig.json file for you.
+  The following suggested values were added to your tsconfig.json. These values can be changed to fit your project's needs:
+
+  	- include was updated to add '.next/dev/types/**/*.ts'
+
+  Finished TypeScript in 33.7s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/188) ...
+  Generating static pages using 7 workers (47/188) 
+  Generating static pages using 7 workers (94/188) 
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+  Generating static pages using 7 workers (141/188) 
+✓ Generating static pages using 7 workers (188/188) in 992ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/analytics/chat/advanced
+├ ƒ /api/analytics/dashboard/overview
+├ ƒ /api/auth/accept-invite
+├ ƒ /api/auth/google/auth-url
+├ ƒ /api/auth/google/callback
+├ ƒ /api/auth/login
+├ ƒ /api/auth/login/send-otp
+├ ƒ /api/auth/login/verify-otp
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/me
+├ ƒ /api/auth/mobile/send-otp
+├ ƒ /api/auth/mobile/verify-otp
+├ ƒ /api/auth/otp/send
+├ ƒ /api/auth/otp/verify
+├ ƒ /api/auth/resend-signup-otp
+├ ƒ /api/auth/session
+├ ƒ /api/auth/signup
+├ ƒ /api/auth/signup/send-otp
+├ ƒ /api/auth/signup/verify-otp
+├ ƒ /api/auth/verify-signup-otp
+├ ƒ /api/automation/ai-intent
+├ ƒ /api/automation/answerbot
+├ ƒ /api/automation/answerbot/faqs
+├ ƒ /api/automation/answerbot/faqs/approve
+├ ƒ /api/automation/answerbot/faqs/generate
+├ ƒ /api/automation/answerbot/settings
+├ ƒ /api/automation/answerbot/sources
+├ ƒ /api/automation/engine/logs
+├ ƒ /api/automation/engine/rules
+├ ƒ /api/automation/engine/rules/[ruleId]
+├ ƒ /api/automation/engine/rules/[ruleId]/execute
+├ ƒ /api/automation/engine/rules/[ruleId]/toggle
+├ ƒ /api/automation/engine/stats
+├ ƒ /api/automation/engine/test
+├ ƒ /api/automation/instagram-quickflows
+├ ƒ /api/automation/instagram-quickflows/[id]
+├ ƒ /api/automation/interaktive-list
+├ ƒ /api/automation/interaktive-list/[id]
+├ ƒ /api/campaigns
+├ ƒ /api/campaigns/[id]
+├ ƒ /api/campaigns/[id]/export
+├ ƒ /api/campaigns/[id]/lifecycle
+├ ƒ /api/campaigns/[id]/messages
+├ ƒ /api/campaigns/create
+├ ƒ /api/commerce/checkout-bot/stats
+├ ƒ /api/commerce/orders
+├ ƒ /api/commerce/products
+├ ƒ /api/commerce/settings
+├ ƒ /api/contacts
+├ ƒ /api/contacts/[id]
+├ ƒ /api/contacts/[id]/send-template
+├ ƒ /api/contacts/import
+├ ƒ /api/crm/analytics
+├ ƒ /api/crm/automation
+├ ƒ /api/crm/contacts/[contactId]/deals
+├ ƒ /api/crm/deals
+├ ƒ /api/crm/deals/[id]
+├ ƒ /api/crm/deals/[id]/stage
+├ ƒ /api/crm/pipelines
+├ ƒ /api/crm/tasks
+├ ƒ /api/crm/tasks/[id]
+├ ƒ /api/crm/tasks/[id]/status
+├ ƒ /api/developer/keys
+├ ƒ /api/inbox
+├ ƒ /api/inbox/[id]
+├ ƒ /api/inbox/[id]/messages
+├ ƒ /api/inbox/[id]/read
+├ ƒ /api/inbox/bootstrap
+├ ƒ /api/inbox/conversations/[contactId]/messages
+├ ƒ /api/inbox/messages/contact/[id]
+├ ƒ /api/inbox/settings
+├ ƒ /api/integrations
+├ ƒ /api/integrations/[type]/sync
+├ ƒ /api/integrations/google/auth-url
+├ ƒ /api/integrations/google/callback
+├ ƒ /api/integrations/google/config
+├ ƒ /api/integrations/google/spreadsheets
+├ ƒ /api/integrations/google/spreadsheets/[id]/sheets
+├ ƒ /api/integrations/google/status
+├ ƒ /api/integrations/petpooja/connect
+├ ƒ /api/messaging/quick-replies
+├ ƒ /api/messaging/quick-replies/[id]
+├ ƒ /api/metrics/messages
+├ ƒ /api/onboarding/bsp/callback
+├ ƒ /api/onboarding/bsp/complete
+├ ƒ /api/onboarding/bsp/disconnect
+├ ƒ /api/onboarding/bsp/register-phone
+├ ƒ /api/onboarding/bsp/runtime-profile
+├ ƒ /api/onboarding/bsp/stage1-status
+├ ƒ /api/onboarding/bsp/start
+├ ƒ /api/onboarding/bsp/status
+├ ƒ /api/onboarding/bsp/sync
+├ ƒ /api/onboarding/business-confirmation
+├ ƒ /api/onboarding/business-info
+├ ƒ /api/onboarding/business-verification
+├ ƒ /api/onboarding/complete
+├ ƒ /api/onboarding/status
+├ ƒ /api/onboarding/verification-status
+├ ƒ /api/segments
+├ ƒ /api/super-admin/actions
+├ ƒ /api/super-admin/audit-log
+├ ƒ /api/super-admin/billing/reconcile
+├ ƒ /api/super-admin/control-plane
+├ ƒ /api/super-admin/entitlements/drift
+├ ƒ /api/super-admin/gupshup/apps/reconcile
+├ ƒ /api/super-admin/gupshup/health
+├ ƒ /api/super-admin/health
+├ ƒ /api/super-admin/plans
+├ ƒ /api/super-admin/plans/[id]
+├ ƒ /api/super-admin/plans/seed
+├ ƒ /api/super-admin/repair-subscriptions
+├ ƒ /api/super-admin/security/emergency-freeze
+├ ƒ /api/super-admin/stats
+├ ƒ /api/super-admin/stop-impersonating
+├ ƒ /api/super-admin/users
+├ ƒ /api/super-admin/whatsapp-requests
+├ ƒ /api/super-admin/workspaces
+├ ƒ /api/super-admin/workspaces/[id]/impersonate
+├ ƒ /api/super-admin/workspaces/[id]/plan
+├ ƒ /api/tags
+├ ƒ /api/templates
+├ ƒ /api/templates/[id]/submit
+├ ƒ /api/templates/categories
+├ ƒ /api/templates/library/stats
+├ ƒ /api/templates/sync
+├ ƒ /api/test-flow-send
+├ ƒ /api/upload/media
+├ ƒ /api/v1/auth/google/callback
+├ ƒ /api/webhooks/whatsapp
+├ ƒ /api/whatsapp-forms
+├ ƒ /api/whatsapp-forms/[id]
+├ ƒ /api/whatsapp-forms/[id]/publish
+├ ƒ /api/whatsapp-forms/[id]/responses
+├ ƒ /api/whatsapp-forms/[id]/sync
+├ ƒ /api/whatsapp-forms/[id]/unpublish
+├ ƒ /api/workspace/billing
+├ ƒ /api/workspace/billing/plan
+├ ƒ /api/workspace/billing/plan/verify
+├ ƒ /api/workspace/billing/recharge
+├ ƒ /api/workspace/billing/recharge/verify
+├ ƒ /api/workspace/business-info
+├ ƒ /api/workspace/pricing
+├ ƒ /api/workspace/settings/tags
+├ ƒ /api/workspace/settings/tags/[id]
+├ ƒ /api/workspace/settings/waba
+├ ƒ /api/workspace/settings/waba/test
+├ ƒ /api/workspace/team
+├ ƒ /api/workspace/team/[id]
+├ ƒ /api/workspace/team/agents
+├ ƒ /api/workspace/team/members
+├ ƒ /api/workspace/team/members/[memberId]
+├ ƒ /api/workspace/team/members/[memberId]/permissions
+├ ƒ /api/workspace/team/permissions
+├ ƒ /api/workspace/team/roles
+├ ƒ /api/workspace/team/roles/[roleId]
+├ ƒ /api/workspace/whatsapp/health
+├ ƒ /api/workspace/whatsapp/profile
+├ ƒ /api/workspace/whatsapp/profile/display-name
+├ ƒ /api/workspace/whatsapp/subscriptions
+├ ○ /auth/accept-invite
+├ ○ /auth/login
+├ ○ /auth/register
+├ ○ /dashboard
+├ ○ /dashboard/ads
+├ ○ /dashboard/analytics/advanced
+├ ○ /dashboard/automation
+├ ○ /dashboard/automation/ai-intent-matching
+├ ○ /dashboard/automation/answerbot
+├ ○ /dashboard/automation/auto-replies
+├ ○ /dashboard/automation/instagram-quickflows
+├ ○ /dashboard/automation/interaktive-list
+├ ○ /dashboard/automation/whatsapp-forms
+├ ƒ /dashboard/automation/whatsapp-forms/[id]/edit
+├ ƒ /dashboard/automation/whatsapp-forms/[id]/responses
+├ ○ /dashboard/automation/whatsapp-forms/create
+├ ○ /dashboard/automation/workflows
+├ ƒ /dashboard/automation/workflows/[id]
+├ ƒ /dashboard/automation/workflows/[id]/edit
+├ ƒ /dashboard/automation/workflows/[id]/view
+├ ƒ /dashboard/automation/workflows/builder/[id]
+├ ○ /dashboard/automation/workflows/create
+├ ○ /dashboard/billing
+├ ○ /dashboard/campaign
+├ ƒ /dashboard/campaign/[id]
+├ ○ /dashboard/campaign/history
+├ ○ /dashboard/campaign/new
+├ ○ /dashboard/commerce
+├ ○ /dashboard/commerce/catalog
+├ ○ /dashboard/commerce/checkout-bot
+├ ○ /dashboard/commerce/orders
+├ ○ /dashboard/commerce/settings
+├ ○ /dashboard/contacts
+├ ƒ /dashboard/contacts/[id]
+├ ○ /dashboard/contacts/segments
+├ ○ /dashboard/crm
+├ ○ /dashboard/crm/pipeline
+├ ○ /dashboard/crm/reports
+├ ○ /dashboard/crm/tasks
+├ ○ /dashboard/inbox
+├ ○ /dashboard/integrations
+├ ○ /dashboard/settings
+├ ○ /dashboard/settings/agents
+├ ○ /dashboard/settings/channels
+├ ○ /dashboard/settings/contacts
+├ ○ /dashboard/settings/developer
+├ ○ /dashboard/settings/developer/keys
+├ ○ /dashboard/settings/developer/webhooks
+├ ○ /dashboard/settings/events
+├ ○ /dashboard/settings/member-profile
+├ ○ /dashboard/settings/permissions
+├ ○ /dashboard/settings/quick-replies
+├ ○ /dashboard/settings/tags
+├ ○ /dashboard/settings/teams
+├ ○ /dashboard/settings/whatsapp-profile
+├ ○ /dashboard/support/chat-assignment
+├ ○ /dashboard/support/macros
+├ ○ /dashboard/templates
+├ ○ /dashboard/templates/analytics
+├ ○ /dashboard/templates/rules
+├ ○ /dashboard/widget
+├ ○ /onboarding/app-assignment
+├ ○ /onboarding/business-confirmation
+├ ○ /onboarding/business-info
+├ ○ /onboarding/business-verification
+├ ○ /onboarding/verify-email
+├ ○ /onboarding/verify-mobile
+├ ○ /super-admin
+├ ○ /super-admin/gupshup
+├ ○ /super-admin/plans
+└ ○ /super-admin/workspaces
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Emerald Admin - BSP Monitoring</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=Manrope:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#ffdad7",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#410005",
+                        "on-primary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "secondary": "#2b6954",
+                        "primary-fixed-dim": "#4edea3",
+                        "on-primary-container": "#00422b",
+                        "outline-variant": "#bbcabf",
+                        "surface-bright": "#f9f9ff",
+                        "on-surface": "#151c27",
+                        "tertiary": "#a43a3a",
+                        "on-surface-variant": "#3c4a42",
+                        "surface-container": "#e7eefe",
+                        "on-secondary-container": "#306d58",
+                        "outline": "#6c7a71",
+                        "inverse-surface": "#2a313d",
+                        "primary-container": "#10b981",
+                        "on-tertiary": "#ffffff",
+                        "secondary-fixed-dim": "#95d3ba",
+                        "on-primary-fixed": "#002113",
+                        "primary": "#006c49",
+                        "inverse-on-surface": "#ebf1ff",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#0b513d",
+                        "surface-container-low": "#f0f3ff",
+                        "tertiary-fixed-dim": "#ffb3af",
+                        "on-background": "#151c27",
+                        "inverse-primary": "#4edea3",
+                        "secondary-container": "#adedd3",
+                        "background": "#f9f9ff",
+                        "surface": "#f9f9ff",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#fc7c78",
+                        "surface-dim": "#d3daea",
+                        "surface-container-high": "#e2e8f8",
+                        "on-tertiary-container": "#711419",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#b0f0d6",
+                        "surface-variant": "#dce2f3",
+                        "surface-container-highest": "#dce2f3",
+                        "on-tertiary-fixed-variant": "#842225",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#6ffbbe",
+                        "surface-tint": "#006c49",
+                        "on-secondary-fixed": "#002117",
+                        "on-primary-fixed-variant": "#005236"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "sm": "8px",
+                        "margin": "24px",
+                        "xl": "32px",
+                        "lg": "24px",
+                        "container-max": "1440px",
+                        "md": "16px",
+                        "base": "4px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "code": ["Inter"],
+                        "h3": ["Manrope"],
+                        "h2": ["Manrope"],
+                        "label-md": ["Inter"],
+                        "h1": ["Manrope"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "code": ["13px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}],
+                        "h3": ["20px", {"lineHeight": "28px", "letterSpacing": "0", "fontWeight": "600"}],
+                        "h2": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                        "h1": ["30px", {"lineHeight": "38px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-sm": ["12px", {"lineHeight": "18px", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-surface {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .dark .glass-surface {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md overflow-x-hidden">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full z-40 flex flex-col h-screen w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+<div class="p-6">
+<span class="text-lg font-bold text-emerald-700 dark:text-emerald-400 tracking-tight">Emerald Admin</span>
+<p class="font-manrope text-xs font-medium tracking-tight text-slate-500 uppercase">Enterprise Control</p>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[22px]">workspaces</span>
+<span class="font-manrope text-sm font-medium tracking-tight">Workspaces</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[22px]">group</span>
+<span class="font-manrope text-sm font-medium tracking-tight">Users</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[22px]">payments</span>
+<span class="font-manrope text-sm font-medium tracking-tight">Billing &amp; Plans</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400 border-r-4 border-emerald-500 font-semibold rounded-l-lg" href="#">
+<span class="material-symbols-outlined text-[22px]" style="font-variation-settings: 'FILL' 1;">health_and_safety</span>
+<span class="font-manrope text-sm font-medium tracking-tight">BSP Providers</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[22px]">security</span>
+<span class="font-manrope text-sm font-medium tracking-tight">Security</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[22px]">receipt_long</span>
+<span class="font-manrope text-sm font-medium tracking-tight">Audit Logs</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<span class="font-manrope text-sm font-medium tracking-tight">Settings</span>
+</a>
+</nav>
+<div class="p-4 mt-auto border-t border-slate-200/50 dark:border-slate-800/50">
+<div class="flex items-center gap-3 px-2">
+<div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-xs">SA</div>
+<div class="overflow-hidden">
+<p class="font-manrope text-sm font-bold text-on-surface truncate">Super Admin</p>
+<p class="text-[10px] text-slate-500 uppercase tracking-widest">Active</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-64 h-16 flex justify-between items-center px-8 z-30 bg-white/60 dark:bg-slate-950/60 backdrop-blur-lg border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+<div class="flex items-center gap-4">
+<h1 class="text-xl font-black text-emerald-700 dark:text-emerald-400 font-manrope">Super Admin Portal</h1>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-lg pl-10 text-xs py-2 focus:ring-2 focus:ring-emerald-500/50" placeholder="Global Search..." type="text"/>
+</div>
+<div class="flex items-center gap-4 text-slate-600 dark:text-slate-400">
+<span class="material-symbols-outlined cursor-pointer hover:text-emerald-500 transition-colors">notifications</span>
+<span class="material-symbols-outlined cursor-pointer hover:text-emerald-500 transition-colors">help_outline</span>
+<img alt="User Avatar" class="w-8 h-8 rounded-full border-2 border-emerald-500/20" data-alt="Close-up professional headshot of a smiling business executive in a high-tech corporate office with bokeh city lights background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcTh6SB4XzkhpUQtF42uUVCMFmgU843SLk8XJc36BH0Xa9v6M64QvWrq_4b1VBC9MthSpHcwlUWLRR-COm8RI1SHC2rNl8o53LFeNMMwIkT-ji__b0C0MMDte4PsGBFNiZyOjxXK15jllhD3VQgP7BaFdaYhH6vgmr8ncLX37OYC2Fekrsi-B8w1UMYCnLAwkI8T3WJbBycfDHWMacP5zBZqSW-ddhB5xYET7wWx0nMKjioxJG3Tfwuhm5jlJW7Cxw6oVpHH-wIkc"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 pt-24 p-8 min-h-screen">
+<!-- Page Header -->
+<div class="mb-8 flex justify-between items-end">
+<div>
+<span class="text-label-md font-label-md uppercase tracking-wider text-primary mb-1 block">Live Monitoring</span>
+<h2 class="text-h1 font-h1 text-on-surface">BSP Infrastructure Health</h2>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-white border border-slate-200 text-on-surface font-label-md rounded-lg flex items-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+                    Region: Global
+                </button>
+<button class="px-4 py-2 bg-primary text-on-primary font-label-md rounded-lg flex items-center gap-2 shadow-sm hover:brightness-110 transition-all active:scale-95">
+<span class="material-symbols-outlined text-sm">refresh</span>
+                    Manual Refresh
+                </button>
+</div>
+</div>
+<!-- Metric Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<!-- Global Uptime -->
+<div class="glass-surface p-6 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+<span class="material-symbols-outlined text-emerald-600" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+0.02%</span>
+</div>
+<p class="text-label-md font-label-md text-slate-500 uppercase mb-1">Global Uptime</p>
+<p class="text-h2 font-h2 text-on-surface">99.982%</p>
+<div class="mt-4 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500 w-[99.9%]"></div>
+</div>
+</div>
+<!-- Avg Latency -->
+<div class="glass-surface p-6 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+<span class="material-symbols-outlined text-blue-600" style="font-variation-settings: 'FILL' 1;">speed</span>
+</div>
+<span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">-12ms</span>
+</div>
+<p class="text-label-md font-label-md text-slate-500 uppercase mb-1">Avg Latency</p>
+<p class="text-h2 font-h2 text-on-surface">42.5ms</p>
+<div class="mt-4 flex gap-1 h-4 items-end">
+<div class="bg-blue-200 w-full h-[40%] rounded-t-sm"></div>
+<div class="bg-blue-200 w-full h-[60%] rounded-t-sm"></div>
+<div class="bg-blue-400 w-full h-[80%] rounded-t-sm"></div>
+<div class="bg-blue-300 w-full h-[50%] rounded-t-sm"></div>
+<div class="bg-blue-500 w-full h-[90%] rounded-t-sm"></div>
+</div>
+</div>
+<!-- Active Alerts -->
+<div class="glass-surface p-6 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+<span class="material-symbols-outlined text-orange-600" style="font-variation-settings: 'FILL' 1;">warning</span>
+</div>
+</div>
+<p class="text-label-md font-label-md text-slate-500 uppercase mb-1">Active Incidents</p>
+<p class="text-h2 font-h2 text-on-surface">03</p>
+<p class="text-[11px] text-slate-400 mt-2 italic">2 minor, 1 regional outage</p>
+</div>
+<!-- Provider Health -->
+<div class="glass-surface p-6 rounded-xl shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 bg-primary-container/20 rounded-lg">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">dns</span>
+</div>
+</div>
+<p class="text-label-md font-label-md text-slate-500 uppercase mb-1">Connected BSPs</p>
+<p class="text-h2 font-h2 text-on-surface">14/14</p>
+<p class="text-[11px] text-emerald-600 font-bold mt-2">All Nodes Operational</p>
+</div>
+</div>
+<!-- Main Dashboard Bento Layout -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Performance Graph (Latency/Throughput) -->
+<div class="col-span-12 lg:col-span-8 space-y-8">
+<div class="glass-surface rounded-xl p-8 shadow-sm">
+<div class="flex justify-between items-center mb-8">
+<h3 class="text-h3 font-h3">Traffic &amp; Performance Analysis</h3>
+<div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+<button class="px-3 py-1 bg-white dark:bg-slate-700 rounded-md shadow-sm text-xs font-bold">Latency</button>
+<button class="px-3 py-1 text-xs font-medium text-slate-500">Throughput</button>
+</div>
+</div>
+<div class="relative h-[300px] w-full flex items-end justify-between px-2 overflow-hidden">
+<!-- Simulated Chart Grid -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
+<div class="border-t border-slate-100 dark:border-slate-800 w-full h-0"></div>
+<div class="border-t border-slate-100 dark:border-slate-800 w-full h-0"></div>
+<div class="border-t border-slate-100 dark:border-slate-800 w-full h-0"></div>
+<div class="border-t border-slate-100 dark:border-slate-800 w-full h-0"></div>
+</div>
+<!-- Simulated Area Graph -->
+<div class="absolute bottom-0 left-0 w-full h-[60%] bg-gradient-to-t from-emerald-500/20 to-transparent clip-path-poly"></div>
+<!-- Bars -->
+<div class="w-4 bg-emerald-500/20 h-[40%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/20 h-[50%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/30 h-[45%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/40 h-[60%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/50 h-[70%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/60 h-[65%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/70 h-[80%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/80 h-[75%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500 h-[90%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/80 h-[85%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/70 h-[70%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/60 h-[60%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/50 h-[50%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/40 h-[55%] rounded-t-sm"></div>
+<div class="w-4 bg-emerald-500/30 h-[40%] rounded-t-sm"></div>
+</div>
+<div class="flex justify-between mt-4 text-[10px] text-slate-400 font-code px-2">
+<span>08:00</span><span>10:00</span><span>12:00</span><span>14:00</span><span>16:00</span><span>18:00</span><span>20:00</span>
+</div>
+</div>
+<!-- Provider High Density Status Indicators -->
+<div class="glass-surface rounded-xl p-8 shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<h3 class="text-h3 font-h3">Regional Service Health</h3>
+<span class="text-xs text-slate-500 font-label-md uppercase tracking-tight">Last 24 Hours</span>
+</div>
+<div class="space-y-6">
+<!-- Provider 1 -->
+<div>
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+<span class="font-bold text-sm">AWS - US-East-1 (N. Virginia)</span>
+</div>
+<span class="text-xs font-code text-slate-500">99.99%</span>
+</div>
+<div class="flex gap-[2px]">
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm" title="Operational"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-400 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+</div>
+</div>
+<!-- Provider 2 -->
+<div>
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-orange-500"></div>
+<span class="font-bold text-sm">GCP - Europe-West1 (Belgium)</span>
+</div>
+<span class="text-xs font-code text-orange-600">98.42%</span>
+</div>
+<div class="flex gap-[2px]">
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-orange-400 rounded-sm" title="Performance Degraded"></div>
+<div class="flex-1 h-6 bg-orange-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-orange-400 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+</div>
+</div>
+<!-- Provider 3 -->
+<div>
+<div class="flex justify-between items-center mb-2">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-emerald-500"></div>
+<span class="font-bold text-sm">Azure - Southeast Asia (Singapore)</span>
+</div>
+<span class="text-xs font-code text-slate-500">99.98%</span>
+</div>
+<div class="flex gap-[2px]">
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+<div class="flex-1 h-6 bg-emerald-500 rounded-sm"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Incident Log & Right Sidebar -->
+<div class="col-span-12 lg:col-span-4 space-y-8">
+<!-- Real-time Incident Log -->
+<div class="glass-surface rounded-xl flex flex-col shadow-sm max-h-[600px]">
+<div class="p-6 border-b border-slate-200/50 dark:border-slate-800/50 flex justify-between items-center">
+<h3 class="text-h3 font-h3">Incident Log</h3>
+<span class="p-1.5 rounded-full bg-emerald-100 text-emerald-600 animate-pulse">
+<span class="material-symbols-outlined text-xs" style="font-variation-settings: 'FILL' 1;">fiber_manual_record</span>
+</span>
+</div>
+<div class="p-4 overflow-y-auto space-y-4">
+<!-- Log Item 1 -->
+<div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border-l-4 border-orange-500">
+<div class="flex justify-between items-start mb-1">
+<span class="text-xs font-bold text-orange-600">Minor Latency Spike</span>
+<span class="text-[10px] font-code text-slate-400">14:22 UTC</span>
+</div>
+<p class="text-xs text-on-surface-variant">GCP Europe-West1 reported increased packet loss in subnet 10.0.4.x.</p>
+<div class="mt-2 flex items-center gap-1">
+<span class="text-[10px] px-1.5 py-0.5 bg-orange-100 text-orange-700 rounded">Investigating</span>
+</div>
+</div>
+<!-- Log Item 2 -->
+<div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border-l-4 border-emerald-500">
+<div class="flex justify-between items-start mb-1">
+<span class="text-xs font-bold text-emerald-600">Deployment Successful</span>
+<span class="text-[10px] font-code text-slate-400">13:05 UTC</span>
+</div>
+<p class="text-xs text-on-surface-variant">V1.4.2 patch successfully propagated to all AWS edge locations.</p>
+</div>
+<!-- Log Item 3 -->
+<div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border-l-4 border-slate-300">
+<div class="flex justify-between items-start mb-1">
+<span class="text-xs font-bold text-slate-500">System Maintenance</span>
+<span class="text-[10px] font-code text-slate-400">09:00 UTC</span>
+</div>
+<p class="text-xs text-on-surface-variant">Scheduled database index optimization completed on US-Central-1.</p>
+</div>
+<!-- Log Item 4 -->
+<div class="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border-l-4 border-emerald-500">
+<div class="flex justify-between items-start mb-1">
+<span class="text-xs font-bold text-emerald-600">Recovery Confirmed</span>
+<span class="text-[10px] font-code text-slate-400">08:14 UTC</span>
+</div>
+<p class="text-xs text-on-surface-variant">API Gateway Latency returned to baseline levels after auto-scaling event.</p>
+</div>
+</div>
+<button class="m-4 p-2 text-xs font-bold text-emerald-600 border border-emerald-100 rounded-lg hover:bg-emerald-50 transition-colors">
+                        View Historical Data
+                    </button>
+</div>
+<!-- Geographic Load -->
+<div class="glass-surface rounded-xl overflow-hidden shadow-sm aspect-square relative">
+<div class="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&amp;fit=crop&amp;q=80&amp;w=600')] bg-cover bg-center" data-alt="Stylized glowing world map with digital network lines and data points representing global connectivity and data centers"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+<div class="relative p-6 h-full flex flex-col justify-between">
+<div>
+<h3 class="text-h3 font-h3">Geographic Load</h3>
+<p class="text-xs text-slate-500">Real-time traffic distribution</p>
+</div>
+<div class="space-y-3">
+<div class="flex items-center justify-between text-xs">
+<span>North America</span>
+<span class="font-bold">42%</span>
+</div>
+<div class="w-full h-1 bg-slate-200/30 rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500 w-[42%]"></div>
+</div>
+<div class="flex items-center justify-between text-xs">
+<span>Europe</span>
+<span class="font-bold">31%</span>
+</div>
+<div class="w-full h-1 bg-slate-200/30 rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500 w-[31%]"></div>
+</div>
+<div class="flex items-center justify-between text-xs">
+<span>Asia-Pacific</span>
+<span class="font-bold">27%</span>
+</div>
+<div class="w-full h-1 bg-slate-200/30 rounded-full overflow-hidden">
+<div class="h-full bg-emerald-500 w-[27%]"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB for Incident Reporting -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-emerald-600 text-white rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined text-3xl">add_alert</span>
+</button>
+</body></html>
