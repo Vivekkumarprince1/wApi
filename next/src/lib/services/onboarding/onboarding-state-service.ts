@@ -5,7 +5,9 @@ export const ONBOARDING_STEP_PATHS: Record<Exclude<OnboardingStep, 'COMPLETED'>,
   EMAIL_VERIFICATION: '/onboarding/verify-email',
   PHONE_VERIFICATION: '/onboarding/verify-mobile',
   BUSINESS_INFO: '/onboarding/business-info',
-  BUSINESS_VERIFICATION: '/onboarding/business-verification'
+  BUSINESS_VERIFICATION: '/onboarding/business-verification',
+  BUSINESS_CONFIRMATION: '/onboarding/confirm-business',
+  APP_ASSIGNMENT: '/onboarding/app-assignment'
 };
 
 export const ONBOARDING_STEPS: OnboardingStep[] = [

@@ -76,7 +76,7 @@ export function SnippetGenerator() {
     const template = templates.find(t => t.name === tName);
     if (!template) return { variables: '[]', hasMedia: false };
 
-    let variablesArray = [];
+    let variablesArray: string[] = [];
     const bodyText = template.bodyText || template.body?.text || "";
     if (bodyText) {
       const matches = bodyText.match(/\{\{(\d+)\}\}/g);

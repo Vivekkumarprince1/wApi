@@ -86,7 +86,7 @@ export class OnboardingOrchestrator {
             });
             wsAfterToken.esbFlow = {
               ...wsAfterToken.esbFlow,
-              contactSyncFingerprint,
+              contactSyncFingerprint: contactFingerprint,
               contactSyncedAt: new Date()
             };
           }

@@ -12,8 +12,8 @@ export interface IWebhookConfigAuditLog {
   appId?: string;
   subscriptionId?: string;
   changeSet?: Record<string, unknown>;
-  before?: Record<string, unknown>;
-  after?: Record<string, unknown>;
+  before?: any;
+  after?: any;
   ip?: string;
   userAgent?: string;
   method?: string;
@@ -33,8 +33,8 @@ export interface IWebhookConfigAuditLogModel extends Model<IWebhookConfigAuditLo
     appId?: string;
     subscriptionId?: string;
     changeSet?: Record<string, unknown>;
-    before?: Record<string, unknown>;
-    after?: Record<string, unknown>;
+    before?: any;
+    after?: any;
     req?: NextRequest;
   }): Promise<IWebhookConfigAuditLogDocument>;
 }

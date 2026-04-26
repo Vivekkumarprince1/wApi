@@ -27,6 +27,7 @@ export interface IInvoice {
   dueAt?: Date;
   paidAt?: Date;
   
+  invoiceNumber?: string;
   providerInvoiceId?: string;
   providerAmountCents?: number;
   providerDeltaCents?: number;

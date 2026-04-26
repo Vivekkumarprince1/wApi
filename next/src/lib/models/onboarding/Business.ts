@@ -7,6 +7,7 @@ export interface IBusiness {
   workspace: Types.ObjectId;
   owner: Types.ObjectId;
   name: string;
+  email?: string;
   category?: string;
   address: {
     line1?: string;
@@ -37,6 +38,7 @@ const BusinessSchema = new Schema<IBusinessDocument>({
   workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, unique: true, index: true },
   owner: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   name: { type: String, required: true, trim: true },
+  email: { type: String, trim: true, lowercase: true },
   category: { type: String, trim: true },
   address: {
     line1: { type: String },

@@ -24,7 +24,7 @@ export class VariableService {
       // 1. Check dot notation (e.g. contact.name)
       if (trimmedKey.includes('.')) {
         const parts = trimmedKey.split('.');
-        let current = context;
+        let current: any = context;
         for (const part of parts) {
           if (current && typeof current === 'object' && part in current) {
             current = current[part];

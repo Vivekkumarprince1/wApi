@@ -89,6 +89,21 @@ export default function CreateTemplateModal({ isOpen, onClose, template }: Creat
         buttons: {
           enabled: !!buttonsItem,
           items: buttonsItem?.buttons || [],
+        },
+        templateType: (template.templateType || 'STANDARD') as 'STANDARD' | 'LTO' | 'CAROUSEL',
+        lto: {
+          enabled: template.templateType === 'LTO',
+          hasExpiration: template.lto?.hasExpiration || false,
+          expirationTimeMs: template.lto?.expirationTimeMs
+        },
+        carousel: {
+          cards: template.carousel?.cards || [{
+            headerFormat: 'IMAGE',
+            mediaUrl: '',
+            mediaHandle: '',
+            bodyText: '',
+            buttons: [{ type: 'QUICK_REPLY', text: '' }]
+          }]
         }
       };
     }

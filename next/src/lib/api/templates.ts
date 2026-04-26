@@ -231,7 +231,7 @@ export interface TemplateRuleTestResponse extends ApiResponse<TemplateRuleTestDa
 
 export const fetchTemplates = async (params = {}): Promise<TemplateListResponse> => {
   const response = await api.get('/templates', { params });
-  return response;
+  return response as any;
 };
 
 export const fetchTemplateCategories = async (): Promise<any> => {
@@ -272,26 +272,26 @@ export const submitTemplateToMeta = async (id: string): Promise<any> => {
 
 // ============= ANALYTICS =============
 
-export const getWorkspaceAnalytics = async (dateRange = {}) => {
+export const getWorkspaceAnalytics = async (dateRange = {}): Promise<any> => {
   const params = new URLSearchParams(dateRange as any).toString();
   const response = await api.get(`/templates/analytics/workspace${params ? '?' + params : ''}`);
-  return response;
+  return response as any;
 };
 
-export const getTopPerformingTemplates = async (limit = 10) => {
+export const getTopPerformingTemplates = async (limit = 10): Promise<any> => {
   const response = await api.get(`/templates/analytics/top-performers?limit=${limit}`);
-  return response;
+  return response as any;
 };
 
-export const getLowPerformingTemplates = async (limit = 10) => {
+export const getLowPerformingTemplates = async (limit = 10): Promise<any> => {
   const response = await api.get(`/templates/analytics/low-performers?limit=${limit}`);
-  return response;
+  return response as any;
 };
 
-export const getTemplateBehavioralInsights = async (params = {}) => {
+export const getTemplateBehavioralInsights = async (params = {}): Promise<any> => {
   const query = new URLSearchParams(params as any).toString();
   const response = await api.get(`/templates/analytics/behavioral${query ? '?' + query : ''}`);
-  return response;
+  return response as any;
 };
 
 export const exportAnalyticsReport = async (format = 'json') => {
@@ -329,52 +329,52 @@ export const fetchTemplateRules = async (
   params: Record<string, string | number | boolean | undefined> = {}
 ): Promise<TemplateRuleListResponse> => {
   const queryString = new URLSearchParams(params as any).toString();
-  const response = await api.get(`/rules${queryString ? '?' + queryString : ''}`);
-  return response;
+  const response = await api.get(`/automation/engine/rules${queryString ? '?' + queryString : ''}`);
+  return response as any;
 };
 
 export const fetchTemplateRule = async (ruleId: string): Promise<ApiResponse<TemplateRule>> => {
-  const response = await api.get(`/rules/${ruleId}`);
-  return response;
+  const response = await api.get(`/automation/engine/rules/${ruleId}`);
+  return response as any;
 };
 
 export const createTemplateRule = async (ruleData: TemplateRuleFormPayload): Promise<ApiResponse<TemplateRule>> => {
-  const response = await api.post('/rules', ruleData);
-  return response;
+  const response = await api.post('/automation/engine/rules', ruleData);
+  return response as any;
 };
 
 export const updateTemplateRule = async (
   ruleId: string,
   updates: TemplateRuleFormPayload
 ): Promise<ApiResponse<TemplateRule>> => {
-  const response = await api.put(`/rules/${ruleId}`, updates);
-  return response;
+  const response = await api.put(`/automation/engine/rules/${ruleId}`, updates);
+  return response as any;
 };
 
 export const deleteTemplateRule = async (ruleId: string): Promise<ApiResponse<null>> => {
-  const response = await api.delete(`/rules/${ruleId}`);
-  return response;
+  const response = await api.delete(`/automation/engine/rules/${ruleId}`);
+  return response as any;
 };
 
 export const toggleTemplateRule = async (
   ruleId: string,
   enabled: boolean
 ): Promise<ApiResponse<{ enabled: boolean }>> => {
-  const response = await api.post(`/rules/${ruleId}/toggle`, { enabled });
-  return response;
+  const response = await api.post(`/automation/engine/rules/${ruleId}/toggle`, { enabled });
+  return response as any;
 };
 
 export const testTemplateRule = async (
   ruleId: string,
   testData: Record<string, unknown>
 ): Promise<TemplateRuleTestResponse> => {
-  const response = await api.post(`/rules/${ruleId}/test`, testData);
-  return response;
+  const response = await api.post(`/automation/engine/rules/${ruleId}/test`, testData);
+  return response as any;
 };
 
 export const getRuleStats = async (ruleId: string): Promise<TemplateRuleStatsResponse> => {
-  const response = await api.get(`/rules/${ruleId}/stats`);
-  return response;
+  const response = await api.get(`/automation/engine/rules/${ruleId}/stats`);
+  return response as any;
 };
 
 // Trigger types for rules

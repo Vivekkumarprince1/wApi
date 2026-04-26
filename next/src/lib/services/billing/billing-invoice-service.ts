@@ -67,7 +67,7 @@ export class BillingInvoiceService {
       issuedAt: new Date(),
       paidAt: new Date(),
       invoiceNumber,
-      providerInvoiceId: transaction.referenceId || transaction._id.toString(), 
+      providerInvoiceId: transaction.referenceId?.toString() || transaction._id.toString(), 
       providerAmountCents: amountPaise,
     });
 

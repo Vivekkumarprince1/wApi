@@ -39,6 +39,12 @@ export const config = {
   msg91AuthKey: process.env.MSG91_AUTH_KEY || '',
   msg91OtpTemplateId: process.env.MSG91_OTP_TEMPLATE_ID || '',
   msg91SenderId: process.env.MSG91_SENDER_ID || '',
+  
+  // Twilio
+  twilioAccountSid: process.env.TWILIO_ACCOUNT_SID || '',
+  twilioAuthToken: process.env.TWILIO_AUTH_TOKEN || '',
+  twilioSenderPhone: process.env.TWILIO_SENDER_PHONE || '',
+  
   smtpService: process.env.SMTP_SERVICE || process.env.EMAIL_SERVICE || '',
   smtpHost: process.env.SMTP_HOST || '',
   smtpPort: parseInt(process.env.SMTP_PORT || '587', 10),

@@ -21,7 +21,7 @@ export const verifyBusinessDocument = async (payload: any) => {
 };
 
 export const confirmBusiness = async (payload: any = {}) => {
-  const response = await post('/onboarding/business-confirmation', payload);
+  const response = await post('/onboarding/business-verification', payload);
   return response;
 };
 

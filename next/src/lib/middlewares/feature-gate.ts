@@ -12,7 +12,7 @@ import { Plan } from "../models";
  * Usage: export const GET = withAuth(withFeature('CRM', async (req, { workspace }) => { ... }))
  */
 export function withFeature(featureKey: string, handler: AuthenticatedHandler) {
-  return async (req: NextRequest, context: { params: any; user: any; workspace: any; isImpersonating?: boolean; permissions: any }) => {
+  return async (req: NextRequest, context: { params: any; user: any; workspace: any; isImpersonating?: boolean; permissions: any; role: any }) => {
     const { workspace } = context;
 
     if (!workspace) {

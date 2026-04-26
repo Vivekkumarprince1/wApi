@@ -8,6 +8,7 @@ import { AuthInitializer } from "@/components/providers/auth-initializer";
 import { CommandCenter } from "@/components/dashboard/command-center";
 import { Inter, Manrope } from "next/font/google";
 
+/*
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -17,6 +18,10 @@ const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
 });
+*/
+
+const inter = { variable: "font-inter" };
+const manrope = { variable: "font-manrope" };
 
 export const metadata: Metadata = {
   title: "wApi - WhatsApp CRM & Engagement Platform",

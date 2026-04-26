@@ -8,6 +8,7 @@ export interface IWalletTransaction {
   workspace: Types.ObjectId;
   type: WalletTransactionType;
   amount: number;
+  currency?: string;
   
   previousBalance?: number;
   newBalance?: number;
@@ -42,6 +43,7 @@ const WalletTransactionSchema = new Schema<IWalletTransactionDocument>({
   },
   
   amount: { type: Number, required: true, min: 0 },
+  currency: { type: String, default: 'INR' },
   
   previousBalance: { type: Number },
   newBalance: { type: Number },

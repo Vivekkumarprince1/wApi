@@ -13,7 +13,8 @@ import {
   Users2,
   Filter,
   UtensilsCrossed,
-  FileUp
+  FileUp,
+  Loader2
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchContacts, fetchTags, fetchSegments } from '@/lib/api/contacts';

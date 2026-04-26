@@ -8,8 +8,14 @@ export interface BillingData {
   };
   plan: {
     name: string;
+    slug: string;
     limits: any;
     usage: any;
+  };
+  subscription: {
+    autoPay: boolean;
+    taxId: string;
+    billingPivotDate?: string;
   };
   transactions: any[];
 }

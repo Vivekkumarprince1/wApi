@@ -9,6 +9,7 @@ export interface Contact {
   avatar?: string;
   avatarUrl?: string;
   lastMessageAt?: string;
+  leadStatus?: string;
   createdAt: string;
 }
 

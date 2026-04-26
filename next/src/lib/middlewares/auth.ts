@@ -12,7 +12,7 @@ import { getWorkspaceAccessDecision, shouldBypassWorkspaceAccessGuard } from "@/
 
 export type AuthenticatedHandler = (
   req: NextRequest,
-  context: { params: any; user: any; workspace: any; isImpersonating?: boolean; permissions: any }
+  context: { params: any; user: any; workspace: any; isImpersonating?: boolean; permissions: any; role: any }
 ) => Promise<NextResponse | Response> | NextResponse | Response;
 
 /**
