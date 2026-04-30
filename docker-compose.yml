@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  original:
+    build: 
+      context: ./original
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - REDIS_URL=redis://redis:6379
+      - AUTOMATION_SERVICE_URL=http://automation-service:3001
+      - CAMPAIGN_SERVICE_URL=http://campaign-service:3002
+      - BILLING_SERVICE_URL=http://billing-service:3003
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./original/.env.example
+
+  automation-service:
+    build:
+      context: ./automation-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./automation-service/.env.example
+
+  campaign-service:
+    build:
+      context: ./campaign-service
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - REDIS_URL=redis://redis:6379
+      - MONOLITH_URL=http://original:3000
+      - BILLING_SERVICE_URL=http://billing-service:3003
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./campaign-service/.env.example
+
+  billing-service:
+    build:
+      context: ./billing-service
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - ./billing-service/.env.example
+
+volumes:
+  redis_data:

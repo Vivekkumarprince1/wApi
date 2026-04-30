@@ -1,0 +1,72 @@
+import { Queue, Worker, Job } from 'bullmq';
+import Redis from 'ioredis';
+import { LedgerService } from '../services/LedgerService';
+import { config } from '../config/index';
+
+const REDIS_URL = config.redisUrl || 'redis://localhost:6379';
+const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
+
+// Queues
+export const billingEventsQueue = new Queue('BillingEventsQueue', { connection });
+export const campaignEventsQueue = new Queue('CampaignEventsQueue', { connection }); // To send events to campaign service
+
+const ledgerService = new LedgerService();
+
+// Handlers
+const handleCampaignCreated = async (data: any) => {
+  console.log(`[EventBus] Handling CampaignCreated for ${data.campaignId}`);
+  try {
+    // 1. Reserve budget
+    await ledgerService.reserveCampaignBudget(data.workspaceId, data.estimatedCost, data.campaignId);
+    
+    // 2. Emit Success Event
+    await campaignEventsQueue.add('BudgetReservedEvent', {
+      campaignId: data.campaignId,
+      workspaceId: data.workspaceId
+    });
+    console.log(`[EventBus] Budget reserved for ${data.campaignId}`);
+  } catch (error: any) {
+    console.error(`[EventBus] Failed to reserve budget for ${data.campaignId}: ${error.message}`);
+    // 3. Emit Failure Event (Compensation)
+    await campaignEventsQueue.add('BudgetReservationFailedEvent', {
+      campaignId: data.campaignId,
+      workspaceId: data.workspaceId,
+      reason: error.message
+    });
+  }
+};
+
+const handleCampaignCompleted = async (data: any) => {
+  console.log(`[EventBus] Handling CampaignCompleted for ${data.campaignId}`);
+  try {
+    await ledgerService.settleCampaignBudget(
+      data.workspaceId, 
+      data.campaignId, 
+      data.reservedAmount, 
+      data.actualSpend
+    );
+    console.log(`[EventBus] Campaign ${data.campaignId} budget settled`);
+  } catch (error: any) {
+    console.error(`[EventBus] Failed to settle budget for ${data.campaignId}: ${error.message}`);
+    // Will be automatically retried by BullMQ
+    throw error;
+  }
+};
+
+// Worker
+export const billingEventWorker = new Worker('BillingEventsQueue', async (job: Job) => {
+  switch (job.name) {
+    case 'CampaignCreatedEvent':
+      await handleCampaignCreated(job.data);
+      break;
+    case 'CampaignCompletedEvent':
+      await handleCampaignCompleted(job.data);
+      break;
+    default:
+      console.warn(`[EventBus] Unknown event type: ${job.name}`);
+  }
+}, { connection });
+
+billingEventWorker.on('failed', (job, err) => {
+  console.error(`[EventBus] Job ${job?.id} failed with error ${err.message}`);
+});
