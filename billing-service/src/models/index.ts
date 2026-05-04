@@ -190,5 +190,8 @@ const MinimalWorkspaceSchema = new Schema<IMinimalWorkspaceDoc>({
 
 export const WorkspaceModel = mongoose.model<IMinimalWorkspaceDoc>('Workspace', MinimalWorkspaceSchema);
 
+export * from './Order';
+export * from './CommerceSettings';
+
 
 

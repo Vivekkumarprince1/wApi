@@ -63,7 +63,13 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 export const internalAuth = (req: Request, res: Response, next: NextFunction) => {
   const secret = req.header('x-internal-service-secret');
 
-  if (!secret || secret !== INTERNAL_SECRET) {
+  if (!secret) {
+    console.warn(`[Billing InternalAuth] Missing secret for ${req.method} ${req.originalUrl}`);
+    return res.status(401).json({ message: 'Unauthorized: Internal service secret missing or invalid' });
+  }
+
+  if (secret !== INTERNAL_SECRET) {
+    console.warn(`[Billing InternalAuth] Invalid secret for ${req.method} ${req.originalUrl}`);
     return res.status(401).json({ message: 'Unauthorized: Internal service secret missing or invalid' });
   }
 

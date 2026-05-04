@@ -1,0 +1,71 @@
+import Razorpay from 'razorpay';
+import { OrderModel } from '../models/Order';
+import { CommerceSettingsModel } from '../models/CommerceSettings';
+import { Types } from 'mongoose';
+
+export class CommercePaymentService {
+  /**
+   * Generate a Razorpay Payment Link for an order
+   */
+  static async generateRazorpayLink(workspaceId: string | Types.ObjectId, orderId: string | Types.ObjectId): Promise<string | null> {
+    try {
+      const settings = await CommerceSettingsModel.findOne({ workspaceId }).lean();
+      const order = await OrderModel.findById(orderId);
+      
+      if (!order || !settings?.paymentMethods?.razorpay?.enabled) {
+          console.warn(`[CommercePaymentService] Skipping Razorpay: Order found? ${!!order}, Razorpay enabled? ${!!settings?.paymentMethods?.razorpay?.enabled}`);
+          return null;
+      }
+
+      const { keyId, keySecret } = settings.paymentMethods.razorpay;
+      if (!keyId || !keySecret) {
+          console.warn(`[CommercePaymentService] Razorpay keys missing for workspace ${workspaceId}`);
+          return null;
+      }
+
+      const razorpay = new Razorpay({
+        key_id: keyId,
+        key_secret: keySecret
+      });
+
+      // Create Payment Link
+      const amountInPaise = Math.round(order.total * 100);
+      
+      const link = await razorpay.paymentLink.create({
+        amount: amountInPaise,
+        currency: (order as any).currency || 'INR',
+        accept_partial: false,
+        description: `Order ${(order as any).orderNumber}`,
+        customer: {
+          name: (order as any).address?.name || 'Customer',
+          email: 'customer@example.com', // In a real app, you'd get this from the contact/order
+          contact: (order as any).address?.phone
+        },
+        notify: {
+          sms: true,
+          email: true,
+          whatsapp: true
+        },
+        reminder_enable: true,
+        notes: {
+          order_id: order._id.toString(),
+          workspace_id: workspaceId.toString(),
+          type: 'commerce_order'
+        },
+        // Callback should point to the monolith which will proxy or redirect
+        callback_url: `${process.env.MONOLITH_URL || 'http://localhost:3000'}/api/payments/callback`,
+        callback_method: 'get'
+      });
+
+      order.paymentId = link.id;
+      order.paymentStatus = 'initiated';
+      order.status = 'payment_initiated';
+      await order.save();
+
+      return link.short_url;
+    } catch (err: any) {
+      console.error("[CommercePaymentService Error]:", err.message);
+      return null;
+    }
+  }
+}

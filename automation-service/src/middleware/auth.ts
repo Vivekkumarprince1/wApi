@@ -1,17 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { config } from '../config';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-const INTERNAL_SECRET = process.env.INTERNAL_SERVICE_SECRET;
-
-if (!JWT_SECRET) {
-  console.error('FATAL: JWT_SECRET environment variable is required for automation-service.');
-  process.exit(1);
-}
-if (!INTERNAL_SECRET) {
-  console.error('FATAL: INTERNAL_SERVICE_SECRET environment variable is required for automation-service.');
-  process.exit(1);
-}
+const JWT_SECRET = config.jwtSecret;
+const INTERNAL_SECRET = config.internalServiceSecret;
 
 export interface AuthRequest extends Request {
   user?: {
@@ -31,6 +23,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   // 1. Check for Gateway Headers (Standard for Microservices)
   const gatewayUserId = req.header('x-user-id');
   const gatewayWorkspaceId = req.header('x-workspace-id');
+  console.log(`[Automation Auth] x-workspace-id header: ${gatewayWorkspaceId}`);
   const gatewayRole = req.header('x-user-role');
 
   console.log(`[Auth] Incoming Headers - User: ${gatewayUserId}, Workspace: ${gatewayWorkspaceId}, Role: ${gatewayRole}`);
@@ -83,7 +76,13 @@ export const authorize = (roles: string[]) => {
 export const internalAuth = (req: Request, res: Response, next: NextFunction) => {
   const secret = req.header('x-internal-service-secret');
 
-  if (!secret || secret !== INTERNAL_SECRET) {
+  if (!secret) {
+    console.warn(`[Automation InternalAuth] Missing secret for ${req.method} ${req.originalUrl}`);
+    return res.status(401).json({ message: 'Unauthorized: Internal service secret missing or invalid' });
+  }
+
+  if (secret !== INTERNAL_SECRET) {
+    console.warn(`[Automation InternalAuth] Invalid secret for ${req.method} ${req.originalUrl}`);
     return res.status(401).json({ message: 'Unauthorized: Internal service secret missing or invalid' });
   }
 

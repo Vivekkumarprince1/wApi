@@ -1,0 +1,26 @@
+src/controllers/commerceController.ts(158,9): error TS2304: Cannot find name 'proxyController'.
+src/controllers/commerceController.ts(162,19): error TS2304: Cannot find name 'user'.
+src/controllers/commerceController.ts(192,30): error TS2304: Cannot find name 'proxyController'.
+src/controllers/commerceController.ts(209,30): error TS2304: Cannot find name 'proxyController'.
+src/controllers/commerceController.ts(224,30): error TS2304: Cannot find name 'proxyController'.
+src/controllers/commerceController.ts(241,30): error TS2304: Cannot find name 'proxyController'.
+src/controllers/commerceController.ts(257,30): error TS2304: Cannot find name 'proxyController'.
+src/controllers/messageController.ts(151,54): error TS2345: Argument of type 'ObjectId' is not assignable to parameter of type 'string'.
+src/controllers/messageController.ts(173,54): error TS2345: Argument of type 'ObjectId' is not assignable to parameter of type 'string'.
+src/controllers/messageController.ts(174,55): error TS2345: Argument of type 'ObjectId' is not assignable to parameter of type 'string'.
+src/controllers/messageController.ts(198,54): error TS2345: Argument of type 'ObjectId' is not assignable to parameter of type 'string'.
+src/controllers/messageController.ts(199,55): error TS2345: Argument of type 'ObjectId' is not assignable to parameter of type 'string'.
+src/controllers/messageController.ts(218,52): error TS2345: Argument of type 'ObjectId' is not assignable to parameter of type 'string'.
+src/controllers/messageController.ts(219,53): error TS2345: Argument of type 'ObjectId' is not assignable to parameter of type 'string'.
+src/controllers/proxyController.ts(255,39): error TS2345: Argument of type 'string | number | true | string[] | AxiosHeaders' is not assignable to parameter of type 'string | number | readonly string[]'.
+  Type 'boolean' is not assignable to type 'string | number | readonly string[]'.
+src/controllers/workspaceController.ts(266,53): error TS2307: Cannot find module '../../api/gupshup-client-factory' or its corresponding type declarations.
+src/controllers/workspaceController.ts(376,23): error TS2339: Property 'scope' does not exist on type 'Document<unknown, {}, IQuickReplyDocument, {}, {}> & IQuickReplyDocument & Required<{ _id: ObjectId; }> & { ...; }'.
+src/controllers/workspaceController.ts(376,56): error TS2339: Property 'owner' does not exist on type 'Document<unknown, {}, IQuickReplyDocument, {}, {}> & IQuickReplyDocument & Required<{ _id: ObjectId; }> & { ...; }'.
+src/controllers/workspaceController.ts(405,21): error TS2339: Property 'scope' does not exist on type 'Document<unknown, {}, IQuickReplyDocument, {}, {}> & IQuickReplyDocument & Required<{ _id: ObjectId; }> & { ...; }'.
+src/controllers/workspaceController.ts(405,54): error TS2339: Property 'owner' does not exist on type 'Document<unknown, {}, IQuickReplyDocument, {}, {}> & IQuickReplyDocument & Required<{ _id: ObjectId; }> & { ...; }'.
+src/models/messaging/QuickReply.ts(37,3): error TS2353: Object literal may only specify known properties, and 'owner' does not exist in type '{ name?: SchemaDefinitionProperty<string, IQuickReplyDocument, Document<unknown, {}, FlatRecord<IQuickReplyDocument>, {}, DefaultSchemaOptions> & FlatRecord<...> & Required<...> & { ...; }> | undefined; ... 11 more ...; mediaType?: SchemaDefinitionProperty<...> | undefined; }'.
+src/services/commerce/checkout-bot-service.ts(5,3): error TS2305: Module '"@/models"' has no exported member 'CommerceSettings'.
+src/services/commerce/checkout-bot-service.ts(7,3): error TS2305: Module '"@/models"' has no exported member 'Order'.
+src/services/marketing/instagram-quickflow.ts(8,10): error TS2305: Module '"@/models"' has no exported member 'InstagramQuickflow'.
+src/services/marketing/instagram-quickflow.ts(8,30): error TS2305: Module '"@/models"' has no exported member 'InstagramQuickflowLog'.

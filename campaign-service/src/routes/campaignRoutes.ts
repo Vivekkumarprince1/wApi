@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import * as CampaignController from '../controllers/CampaignController';
-import { authenticate } from '../middleware/auth';
+import { authenticate, internalAuth } from '../middleware/auth';
 
 const router = Router();
 
@@ -13,5 +13,6 @@ router.post('/campaigns/:id/lifecycle', authenticate, CampaignController.lifecyc
 router.get('/campaigns/:id/messages', authenticate, CampaignController.getMessages);
 router.get('/campaigns/:id/export', authenticate, CampaignController.exportCsv);
 router.post('/campaigns/:id/retarget', authenticate, CampaignController.retargetCampaign);
+router.delete('/internal/purge/:workspaceId', internalAuth, CampaignController.purgeWorkspaceData);
 
 export default router;

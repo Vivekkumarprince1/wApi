@@ -313,3 +313,24 @@ export const retargetCampaign = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const purgeWorkspaceData = async (req: AuthRequest, res: Response) => {
+  try {
+    const { workspaceId } = req.params;
+    if (!workspaceId) {
+      return res.status(400).json({ success: false, message: 'Workspace ID is required' });
+    }
+
+    await Promise.all([
+      CampaignMessage.deleteMany({ workspace: workspaceId }),
+      Campaign.deleteMany({ workspace: workspaceId }),
+    ]);
+
+    const { Segment } = await import('../models');
+    await Segment.deleteMany({ workspace: workspaceId });
+
+    res.json({ success: true, message: 'Workspace campaign data purged' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};

@@ -5,8 +5,13 @@ import { AutomationRule } from '../models';
 export const getAiIntentRules = async (req: AuthRequest, res: Response) => {
   try {
     const workspaceId = req.workspace?.id;
-    const query = { 
-      workspace: workspaceId, 
+    const { Types } = await import('mongoose');
+    const workspaceFilter = workspaceId.length === 24 
+      ? { $in: [workspaceId, new Types.ObjectId(workspaceId)] }
+      : workspaceId;
+
+    const query: any = { 
+      workspace: workspaceFilter, 
       'trigger.type': 'ai_intent',
       $or: [
         { deletedAt: null },
@@ -14,7 +19,7 @@ export const getAiIntentRules = async (req: AuthRequest, res: Response) => {
       ]
     };
     const rules = await AutomationRule.find(query).lean();
-    res.json({ success: true, data: { rules: rules } });
+    res.json({ success: true, data: rules });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

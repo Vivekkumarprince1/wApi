@@ -1,9 +1,9 @@
 import { Queue, Worker, Job } from 'bullmq';
 import { getSharedRedis } from '../redis';
-import { Campaign, ICampaignModel } from '../models';
-import { CampaignBatch, ICampaignBatchModel } from '../models/CampaignBatch';
+import { Campaign, ICampaignModel } from '../../models';
+import { CampaignBatch, ICampaignBatchModel } from '../../models/CampaignBatch';
 import { CampaignQueueService } from '../campaign-queue';
-import { Workspace } from '../models';
+import { Workspace } from '../../models';
 import { monolithWorkerBridge } from '../monolith-worker-client';
 
 const connection = getSharedRedis();

@@ -25,10 +25,10 @@ export const getRules = async (req: AuthRequest, res: Response) => {
     const workspaceId = req.workspace?.id;
     if (!workspaceId) return res.status(400).json({ success: false, error: 'Workspace ID missing' });
 
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+
     const category = req.query.category;
-    
-    // Use a more robust query for deletedAt
-    const query: any = { 
+    const rulesQuery: any = { 
       workspace: workspaceId, 
       $or: [
         { deletedAt: null },
@@ -37,16 +37,17 @@ export const getRules = async (req: AuthRequest, res: Response) => {
     };
 
     if (category) {
-      query.category = category;
+      rulesQuery.category = category;
     }
     
-    let rules = await AutomationRule.find(query).sort({ priority: -1, createdAt: -1 }).lean();
+    let rules = await AutomationRule.find(rulesQuery).sort({ priority: -1, createdAt: -1 }).lean();
     
     // Fallback: If 0 rules, try converting to ObjectId just in case Mongoose didn't auto-cast
     if (rules.length === 0 && workspaceId.length === 24) {
       const { Types } = await import('mongoose');
+      const workspaceFilter = { $in: [workspaceId, new Types.ObjectId(workspaceId)] };
       const fallbackQuery: any = { 
-        workspace: new Types.ObjectId(workspaceId),
+        workspace: workspaceFilter,
         $or: [
           { deletedAt: null },
           { deletedAt: { $exists: false } }
@@ -55,11 +56,11 @@ export const getRules = async (req: AuthRequest, res: Response) => {
       if (category) {
         fallbackQuery.category = category;
       }
-      rules = await AutomationRule.find(fallbackQuery).lean();
+      rules = await AutomationRule.find(fallbackQuery).sort({ priority: -1, createdAt: -1 }).lean();
     }
 
     console.log(`[Debug] getRules - Found ${rules.length} rules.`);
-    res.json({ success: true, data: { rules: rules } });
+    res.json({ success: true, data: rules });
   } catch (error: any) {
     console.error(`[Debug] getRules - Error:`, error.message);
     res.status(500).json({ success: false, error: error.message });
@@ -179,7 +180,7 @@ export const getExecutionLogs = async (req: AuthRequest, res: Response) => {
   try {
     const workspaceId = req.workspace?.id;
     const logs = await AutomationExecution.find({ workspace: workspaceId }).sort({ createdAt: -1 }).limit(100).lean();
-    res.json({ success: true, data: { logs: logs } });
+    res.json({ success: true, data: logs });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -212,9 +213,29 @@ export const getAutomationHubSummary = async (req: AuthRequest, res: Response) =
     const workspaceId = req.workspace?.id;
     if (!workspaceId) return res.status(400).json({ success: false, error: 'Workspace ID missing' });
 
+    // Prevent caching of summary data
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+
     const days = parseInt(req.query.days as string || '7');
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
+
+    const { Types } = await import('mongoose');
+    const workspaceFilter = workspaceId.length === 24 
+      ? { $in: [workspaceId, new Types.ObjectId(workspaceId)] }
+      : workspaceId;
+
+    const baseQuery: any = {
+      workspace: workspaceFilter,
+      $or: [
+        { deletedAt: null },
+        { deletedAt: { $exists: false } }
+      ]
+    };
+
+    console.log(`[Debug] getAutomationHubSummary - workspaceId: ${workspaceId}, using filter:`, workspaceFilter);
 
     // Parallel execution for all module data
     const [
@@ -228,18 +249,26 @@ export const getAutomationHubSummary = async (req: AuthRequest, res: Response) =
       successCount,
       failedCount
     ] = await Promise.all([
-      AutomationRule.find({ workspace: workspaceId, deletedAt: null }).lean(),
-      AnswerBotSettings.findOne({ workspace: workspaceId }).lean(),
-      AnswerBotSource.countDocuments({ workspace: workspaceId }),
-      FAQ.countDocuments({ workspace: workspaceId, status: 'draft' }),
-      InteraktiveList.find({ workspace: workspaceId, deletedAt: null }).lean(),
-      InstagramQuickflow.find({ workspace: workspaceId, deletedAt: null }).lean(),
-      AutomationExecution.countDocuments({ workspace: workspaceId, createdAt: { $gte: startDate } }),
-      AutomationExecution.countDocuments({ workspace: workspaceId, status: 'SUCCESS', createdAt: { $gte: startDate } }),
-      AutomationExecution.countDocuments({ workspace: workspaceId, status: 'FAILED', createdAt: { $gte: startDate } }),
+      AutomationRule.find(baseQuery).lean(),
+      AnswerBotSettings.findOne({ workspace: workspaceFilter }).lean(),
+      AnswerBotSource.countDocuments({ workspace: workspaceFilter }),
+      FAQ.countDocuments({ ...baseQuery, status: 'draft' }),
+      InteraktiveList.find(baseQuery).lean(),
+      InstagramQuickflow.find({ workspace: workspaceFilter }).lean(), // No deletedAt for IG
+      AutomationExecution.countDocuments({ workspace: workspaceFilter, createdAt: { $gte: startDate } }),
+      AutomationExecution.countDocuments({ workspace: workspaceFilter, status: 'SUCCESS', createdAt: { $gte: startDate } }),
+      AutomationExecution.countDocuments({ workspace: workspaceFilter, status: 'FAILED', createdAt: { $gte: startDate } }),
     ]);
 
+    console.log(`[Debug] getAutomationHubSummary - Results:`, {
+      rulesCount: rules.length,
+      listsCount: interaktiveLists.length,
+      quickflowsCount: quickflows.length,
+      faqsCount: answerBotDraftFaqsCount
+    });
+
     // Memory processing (faster than multiple DB queries for small counts)
+    console.log(`[Debug] Rule categories:`, rules.map(r => r.category));
     const workflowsCount = rules.filter(r => r.category === 'workflow').length;
     const autoRepliesCount = rules.filter(r => r.category === 'auto_reply').length;
     const activeRulesCount = rules.filter(r => r.enabled).length;

@@ -7,19 +7,30 @@ import { config } from './config/index';
 import './events/EventBus'; // Initialize worker
 import walletRoutes from './routes/walletRoutes';
 import webhookRoutes from './routes/webhookRoutes';
+import commerceRoutes from './routes/commerceRoutes';
 
 // --- Startup Guards ---
-if (!config.razorpayKeyId || !config.razorpayKeySecret) {
-  console.warn('[Billing Service] WARNING: Razorpay credentials not configured. Payment features will fail.');
-}
+// ... (omitted)
 
 const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
+// Request Logger
+app.use((req, res, next) => {
+  const correlationId = req.headers['x-correlation-id'] || 'system';
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[Billing Service][${correlationId}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
+  });
+  next();
+});
+
 app.use('/api/billing/wallets', walletRoutes);
 app.use('/api/billing/webhooks', webhookRoutes);
+app.use('/api/billing/commerce', commerceRoutes);
 
 app.get('/health', async (req, res) => {
   const dbState = mongoose.connection.readyState;

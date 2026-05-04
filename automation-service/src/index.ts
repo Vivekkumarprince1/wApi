@@ -1,6 +1,8 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
 
@@ -24,10 +26,11 @@ app.use(express.json());
  
 // Request Logger
 app.use((req, res, next) => {
+  const correlationId = req.headers['x-correlation-id'] || 'system';
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
+    console.log(`[Automation Service][${correlationId}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
   });
   next();
 });
@@ -40,12 +43,13 @@ mongoose.connect(MONGODB_URI)
   .catch((err) => console.error('Database connection error:', err));
 
 // Register Routes
-app.use('/api/automation', aiIntentRoutes);
-app.use('/api/automation', answerBotRoutes);
-app.use('/api/automation', engineRoutes);
-app.use('/api/automation', interaktiveListRoutes);
-app.use('/api/automation', instagramQuickflowRoutes);
-app.use('/api/automation', whatsappFormRoutes);
+// Standardize: mount everything under /api/automation/engine
+app.use('/api/automation/engine', aiIntentRoutes);
+app.use('/api/automation/engine', answerBotRoutes);
+app.use('/api/automation/engine', engineRoutes);
+app.use('/api/automation/engine', interaktiveListRoutes);
+app.use('/api/automation/engine', instagramQuickflowRoutes);
+app.use('/api/automation/engine', whatsappFormRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {

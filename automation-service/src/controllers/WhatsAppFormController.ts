@@ -11,7 +11,10 @@ export const syncForm = async (req: AuthRequest, res: Response) => {
         const form = await WhatsAppForm.findOne({
             _id: id,
             workspace: workspaceId,
-            deletedAt: null,
+            $or: [
+                { deletedAt: null },
+                { deletedAt: { $exists: false } }
+            ]
         });
 
         if (!form) {
@@ -33,9 +36,17 @@ export const getForms = async (req: AuthRequest, res: Response) => {
     const workspaceId = req.workspace?.id;
     const { status, search } = req.query;
 
+    const { Types } = await import('mongoose');
+    const workspaceFilter = workspaceId.length === 24 
+      ? { $in: [workspaceId, new Types.ObjectId(workspaceId)] }
+      : workspaceId;
+
     const query: any = {
-      workspace: workspaceId,
-      deletedAt: null,
+      workspace: workspaceFilter,
+      $or: [
+        { deletedAt: null },
+        { deletedAt: { $exists: false } }
+      ]
     };
 
     if (status && status !== 'all') {
@@ -43,7 +54,9 @@ export const getForms = async (req: AuthRequest, res: Response) => {
     }
 
     if (search) {
-      query.name = { $regex: search as string, $options: 'i' };
+      query.$and = [
+        { name: { $regex: search as string, $options: 'i' } }
+      ];
     }
 
     const forms = await WhatsAppForm.find(query)
@@ -67,7 +80,10 @@ export const getFormById = async (req: AuthRequest, res: Response) => {
     const form = await WhatsAppForm.findOne({
       _id: id,
       workspace: workspaceId,
-      deletedAt: null,
+      $or: [
+        { deletedAt: null },
+        { deletedAt: { $exists: false } }
+      ]
     }).lean();
 
     if (!form) {
@@ -132,7 +148,10 @@ export const updateForm = async (req: AuthRequest, res: Response) => {
     const current = await WhatsAppForm.findOne({
       _id: id,
       workspace: workspaceId,
-      deletedAt: null,
+      $or: [
+        { deletedAt: null },
+        { deletedAt: { $exists: false } }
+      ]
     });
 
     if (!current) {
@@ -144,7 +163,14 @@ export const updateForm = async (req: AuthRequest, res: Response) => {
     }
 
     const updated = await WhatsAppForm.findOneAndUpdate(
-      { _id: id, workspace: workspaceId, deletedAt: null },
+      { 
+        _id: id, 
+        workspace: workspaceId, 
+        $or: [
+          { deletedAt: null },
+          { deletedAt: { $exists: false } }
+        ]
+      },
       {
         $set: {
           name: updates.name ?? current.name,
@@ -178,7 +204,14 @@ export const deleteForm = async (req: AuthRequest, res: Response) => {
     const workspaceId = req.workspace?.id;
 
     const form = await WhatsAppForm.findOneAndUpdate(
-      { _id: id, workspace: workspaceId, deletedAt: null },
+      { 
+        _id: id, 
+        workspace: workspaceId, 
+        $or: [
+          { deletedAt: null },
+          { deletedAt: { $exists: false } }
+        ]
+      },
       { $set: { deletedAt: new Date() } },
       { returnDocument: 'after' }
     );
@@ -202,7 +235,10 @@ export const publishForm = async (req: AuthRequest, res: Response) => {
         const existing = await WhatsAppForm.findOne({
             _id: id,
             workspace: workspaceId,
-            deletedAt: null,
+            $or: [
+                { deletedAt: null },
+                { deletedAt: { $exists: false } }
+            ]
         });
 
         if (!existing) {
@@ -225,7 +261,14 @@ export const publishForm = async (req: AuthRequest, res: Response) => {
             `${existing._id}`;
 
         const form = await WhatsAppForm.findOneAndUpdate(
-            { _id: id, workspace: workspaceId, deletedAt: null },
+            { 
+                _id: id, 
+                workspace: workspaceId, 
+                $or: [
+                    { deletedAt: null },
+                    { deletedAt: { $exists: false } }
+                ]
+            },
             { 
                 $set: { 
                     status: 'published', 
@@ -249,7 +292,14 @@ export const unpublishForm = async (req: AuthRequest, res: Response) => {
         const workspaceId = req.workspace?.id;
 
         const form = await WhatsAppForm.findOneAndUpdate(
-            { _id: id, workspace: workspaceId, deletedAt: null },
+            { 
+                _id: id, 
+                workspace: workspaceId, 
+                $or: [
+                    { deletedAt: null },
+                    { deletedAt: { $exists: false } }
+                ]
+            },
             { $set: { status: 'draft' } },
             { returnDocument: 'after' }
         );
@@ -270,7 +320,10 @@ export const getResponses = async (req: AuthRequest, res: Response) => {
         const form = await WhatsAppForm.findOne({
             _id: id,
             workspace: workspaceId,
-            deletedAt: null,
+            $or: [
+                { deletedAt: null },
+                { deletedAt: { $exists: false } }
+            ]
         }).lean();
 
         if (!form) {

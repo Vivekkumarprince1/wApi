@@ -9,13 +9,18 @@ export const getQuickflows = async (req: AuthRequest, res: Response) => {
     const type = req.query.type;
     const triggerType = req.query.triggerType;
 
-    const query: any = { workspace: workspaceId };
+    const { Types } = await import('mongoose');
+    const workspaceFilter = workspaceId.length === 24 
+      ? { $in: [workspaceId, new Types.ObjectId(workspaceId)] }
+      : workspaceId;
+
+    const query: any = { workspace: workspaceFilter };
     if (enabled !== undefined) query.enabled = enabled === 'true';
     if (type) query.type = type;
     if (triggerType) query.triggerType = triggerType;
 
     const quickflows = await InstagramQuickflow.find(query).sort({ createdAt: -1 }).lean();
-    res.json({ success: true, data: { data: quickflows } });
+    res.json({ success: true, data: quickflows });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }

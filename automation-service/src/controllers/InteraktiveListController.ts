@@ -7,8 +7,13 @@ export const getLists = async (req: AuthRequest, res: Response) => {
     const workspaceId = req.workspace?.id;
     const { enabled, search } = req.query;
 
+    const { Types } = await import('mongoose');
+    const workspaceFilter = workspaceId.length === 24 
+      ? { $in: [workspaceId, new Types.ObjectId(workspaceId)] }
+      : workspaceId;
+
     const query: any = { 
-      workspace: workspaceId, 
+      workspace: workspaceFilter, 
       $or: [
         { deletedAt: null },
         { deletedAt: { $exists: false } }
@@ -16,9 +21,13 @@ export const getLists = async (req: AuthRequest, res: Response) => {
     };
     if (enabled !== undefined) query.enabled = enabled === 'true';
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+      query.$and = [
+        {
+          $or: [
+            { name: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } }
+          ]
+        }
       ];
     }
 

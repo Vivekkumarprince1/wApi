@@ -1,11 +1,12 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
+import { config } from '../config';
 import { LedgerService } from '../services/LedgerService';
 import { RazorpayService } from '../services/RazorpayService';
 import { InvoiceService } from '../services/InvoiceService';
 import { PricingService } from '../services/PricingService';
-import { PlanModel, WorkspaceModel, WalletTransactionModel } from '../models';
+import { PlanModel, WorkspaceModel, WalletTransactionModel, OrderModel } from '../models';
 
 const ledgerService = new LedgerService();
 const invoiceService = new InvoiceService();
@@ -415,8 +416,12 @@ export class WalletController {
   static async handleRazorpayWebhook(req: Request, res: Response) {
     try {
       const body = req.body;
-      const signature = req.headers['x-razorpay-signature'] as string;
-      const secret = process.env.RAZORPAY_WEBHOOK_SECRET || "razorpay_secret_123";
+      const signature = req.headers["x-razorpay-signature"] as string;
+      const secret = config.razorpayWebhookSecret;
+      
+      if (!secret) {
+        console.warn('[Webhook] Razorpay Webhook Secret not configured. Verification might fail.');
+      }
 
       // Re-implement signature validation using imported crypto
       const expectedSignature = crypto.createHmac("sha256", secret).update(JSON.stringify(body)).digest("hex");
@@ -463,6 +468,16 @@ export class WalletController {
                       ownerName: payment.notes?.ownerName || "Admin",
                       ownerEmail: payment.notes?.ownerEmail || "support@example.com"
                   });
+              } else if (payment.notes?.type === 'commerce_order') {
+                  const orderId = payment.notes?.order_id;
+                  if (orderId) {
+                      const order = await OrderModel.findById(orderId);
+                      if (order) {
+                          await order.markAsPaid(paymentId, 'razorpay');
+                          await order.save();
+                          console.log(`[Webhook] Commerce Order ${order.orderNumber} marked as PAID via webhook.`);
+                      }
+                  }
               } else {
                   await ledgerService.credit(workspaceId, amount, `Wallet Recharge (Webhook): ${paymentId}`, paymentId);
                   const tx = await WalletTransactionModel.findOne({ externalReferenceId: paymentId }).lean();
