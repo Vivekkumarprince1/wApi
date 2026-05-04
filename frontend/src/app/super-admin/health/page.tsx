@@ -62,7 +62,6 @@ export default function HealthPage() {
   ];
 
   return (
-    <DashboardLayout>
       <div className="flex flex-col gap-8 pb-20 max-w-[1600px] mx-auto p-4 md:p-8 font-inter">
         <SuperAdminPageHeader
           icon={HeartPulse}
@@ -248,6 +247,5 @@ export default function HealthPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }

@@ -83,12 +83,12 @@ export default function AuditLogsPage() {
         <SuperAdminPageHeader
           icon={Shield}
           eyebrow="Governance"
-          title="Security Audit Logs"
-          subtitle="Comprehensive immutable ledger of all administrative maneuvers, system alterations, and security events."
+          title="Audit Logs"
+          subtitle="Monitor and review all administrative actions, system changes, and security events."
           actions={(
             <Button className="bg-white border-slate-200 hover:bg-slate-50 text-slate-900 font-black shadow-sm h-12 px-8 rounded-2xl flex items-center gap-2 group">
               <Download className="h-4 w-4 group-hover:-translate-y-1 transition-transform" />
-              <span className="text-[10px] uppercase tracking-widest">Export Ledger</span>
+              <span className="text-[10px] uppercase tracking-widest">Export Logs</span>
             </Button>
           )}
         />

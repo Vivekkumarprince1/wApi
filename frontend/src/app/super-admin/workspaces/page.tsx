@@ -144,31 +144,31 @@ export default function FleetDirectoryPage() {
         {
             label: 'Total Workspaces',
             value: workspaceRows.length,
-            description: 'Provisioned tenant records',
+            description: 'Active workspace accounts',
             icon: Building2,
             tone: 'text-emerald-600',
             bg: 'bg-emerald-500/10',
         },
         {
-            label: 'Connected WABAs',
+            label: 'Connected',
             value: workspaceRows.filter((ws) => ws.whatsappConnected).length,
-            description: 'Live WhatsApp connections',
+            description: 'WhatsApp API connections',
             icon: Globe,
             tone: 'text-emerald-600',
             bg: 'bg-emerald-500/10',
         },
         {
-            label: 'App IDs Linked',
+            label: 'Configured',
             value: workspaceRows.filter((ws) => ws.gupshupAppId || ws.gupshupIdentity?.partnerAppId).length,
-            description: 'Gupshup app mappings present',
+            description: 'Gupshup app integrations',
             icon: Zap,
             tone: 'text-amber-600',
             bg: 'bg-amber-500/10',
         },
         {
-            label: 'Need Attention',
+            label: 'Needs Attention',
             value: workspaceRows.filter((ws) => ['BANNED', 'DISCONNECTED', 'PENDING', 'INACTIVE'].includes(String(ws.bspPhoneStatus || '').toUpperCase()) || ws.gupshupAppHealth === false || ws.whatsappConnected === false).length,
-            description: 'Records needing review',
+            description: 'Workspaces requiring action',
             icon: ShieldCheck,
             tone: 'text-rose-600',
             bg: 'bg-rose-500/10',
@@ -190,13 +190,12 @@ export default function FleetDirectoryPage() {
   }
 
   return (
-    <DashboardLayout>
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-20">
                 <SuperAdminPageHeader
                     icon={Globe}
                     eyebrow="Workspace Intelligence"
-                    title="Workspace Control"
-                    subtitle={`Inspect ${workspaceRows.length} active workspaces, owners, WABA links, and sync health.`}
+                    title="Workspace Management"
+                    subtitle={`Monitor and manage ${workspaceRows.length} workspaces, their configurations, and connection health.`}
                     actions={(
                         <>
                             <Button variant="outline" className="h-12 border-border/50 bg-background/50 backdrop-blur-sm px-6 rounded-2xl group transition-all hover:bg-muted" onClick={() => refetch()}>
@@ -241,10 +240,10 @@ export default function FleetDirectoryPage() {
           </div>
             <div className="flex flex-wrap items-center gap-2 pr-2 w-full md:w-auto">
               <Button variant={statusFilter === 'all' ? 'default' : 'ghost'} className="h-12 px-5 rounded-2xl font-black uppercase tracking-widest text-[10px]" onClick={() => setStatusFilter('all')}>
-                  <Filter className="h-4 w-4 mr-2" /> All Workspaces
+                  <Filter className="h-4 w-4 mr-2" /> All
               </Button>
               <Button variant={statusFilter === 'connected' ? 'default' : 'ghost'} className="h-12 px-5 rounded-2xl font-black uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-emerald-500/5 hover:text-emerald-600" onClick={() => setStatusFilter('connected')}>
-                  <ShieldCheck className="h-4 w-4 mr-2" /> Connected Only
+                  <ShieldCheck className="h-4 w-4 mr-2" /> Connected
               </Button>
               <Button variant={statusFilter === 'attention' ? 'default' : 'ghost'} className="h-12 px-5 rounded-2xl font-black uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-emerald-500/5 hover:text-emerald-600" onClick={() => setStatusFilter('attention')}>
                   <Zap className="h-4 w-4 mr-2" /> Needs Attention
@@ -258,11 +257,11 @@ export default function FleetDirectoryPage() {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-muted/30 border-b border-border/10">
-                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Workspace Identity</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Workspace</th>
                             <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Plan</th>
-                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">WABA / App ID</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Integration</th>
                             <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">Created</th>
-                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 text-right">Operations</th>
+                            <th className="p-8 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -536,6 +535,5 @@ export default function FleetDirectoryPage() {
                     </Card>
                 </div>
       </div>
-    </DashboardLayout>
   );
 }

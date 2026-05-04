@@ -53,10 +53,8 @@ function AcceptInviteContent() {
 
   const checkAuth = async () => {
     try {
-      // Axios interceptor already unwraps response.data
-      // /api/auth/me returns { success: true, user: { _id, name, email, ... } }
       const response = await api.get('/auth/me') as any;
-      setCurrentUser(response?.user || response?.data || null);
+      setCurrentUser(response?.success && response?.user ? response.user : (response?.user || response?.data || null));
     } catch (err) {
       setCurrentUser(null);
     } finally {
@@ -69,20 +67,20 @@ function AcceptInviteContent() {
   const verifyInvite = async () => {
     console.log(`[Verify] Sending request for token: ${token}, email: ${email}`);
     try {
-      // Axios interceptor returns response.data directly, so `res` = { success, data }
       const res = await api.get(`/auth/invitation/${token}?email=${encodeURIComponent(email || '')}`) as any;
-      const info = res.data || res; // handle both wrapped and unwrapped
+      const info = res.success && res.data ? res.data : res; // handle both wrapped and unwrapped
       console.log(`[Verify] Success:`, info);
       setInviteInfo(info);
       setName(info.name || '');
     } catch (err: any) {
-      // Axios interceptor throws a plain Error; extra fields are attached by the interceptor
-      const msg = err.message || "Invalid or expired invitation";
+      const msg = err.response?.data?.error || err.message || "Invalid or expired invitation";
       console.error(`[Verify] Error:`, msg, err);
 
-      // Smart redirect: if the API found a newer pending invite, auto-navigate to it
-      if (err.redirectToken && err.redirectEmail) {
-        const newUrl = `/auth/accept-invite?token=${err.redirectToken}&email=${encodeURIComponent(err.redirectEmail)}`;
+      const redirectToken = err.response?.data?.redirectToken;
+      const redirectEmail = err.response?.data?.redirectEmail;
+      
+      if (redirectToken && redirectEmail) {
+        const newUrl = `/auth/accept-invite?token=${redirectToken}&email=${encodeURIComponent(redirectEmail)}`;
         router.replace(newUrl);
         return;
       }
@@ -116,25 +114,33 @@ function AcceptInviteContent() {
 
     setIsLoading(true);
     try {
-      await api.post('/auth/accept-invite', {
+      const payload: any = {
         token,
         email,
-        name,
-        password: inviteInfo?.userExists ? undefined : password
-      });
+        name
+      };
+      
+      if (!inviteInfo?.userExists) {
+        payload.password = password;
+      }
+      
+      if (currentUser) {
+        payload.userId = currentUser._id || currentUser.id;
+      }
+
+      await api.post('/auth/accept-invite', payload);
       
       setIsSuccess(true);
       toast.success(inviteInfo?.userExists ? "Joined workspace successfully!" : "Account activated!");
       
-      // Force session refresh to pick up new workspace membership
       window.dispatchEvent(new Event('authChange'));
 
       setTimeout(() => {
-        router.push('/');
+        router.push('/dashboard');
       }, 2000);
     } catch (error: any) {
-      // Axios interceptor throws plain Error with .message = API error message
-      toast.error(error.message || "Failed to accept invitation");
+      const errorMsg = error.response?.data?.error || error.message || "Failed to accept invitation";
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }

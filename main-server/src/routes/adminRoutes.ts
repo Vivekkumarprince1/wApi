@@ -24,6 +24,9 @@ router.get('/whatsapp-requests', adminController.listWhatsAppRequests);
 router.post('/actions', adminController.executeAction);
 router.post('/stop-impersonating', adminController.stopImpersonating);
 
+// Infrastructure monitoring
+router.get('/infrastructure', adminController.getInfrastructure);
+
 // Plans
 router.get('/plans', adminController.listPlans);
 router.get('/plans/:id', adminController.getPlan);

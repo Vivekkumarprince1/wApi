@@ -1,4 +1,3 @@
-import nodemailer from 'nodemailer';
 import { config } from '@/config';
 
 export interface IMailOptions {
@@ -10,9 +9,23 @@ export interface IMailOptions {
 
 export class MailService {
   private static transporter: any = null;
+  private static readonly MAX_RETRIES = 3;
+  private static readonly RETRY_DELAY_MS = 1000;
+
+  private static async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
   private static async getTransporter() {
     if (this.transporter) return this.transporter;
+
+    let nodemailer;
+    try {
+      nodemailer = (await import('nodemailer')).default;
+    } catch (err) {
+      console.warn('[MailService] nodemailer module not found. Falling back to console log.');
+      return null;
+    }
 
     if (config.smtpService && config.smtpUser && config.smtpPass) {
       this.transporter = nodemailer.createTransport({
@@ -71,14 +84,26 @@ export class MailService {
       return { success: true, method: 'console', warning: 'SMTP not configured. Email logged to console.' };
     }
 
-    try {
-      const info = await transporter.sendMail(mailOptions);
-      console.log(`[MailService] Email sent to ${options.to}: ${info.messageId}`);
-      return { success: true, method: 'smtp', messageId: info.messageId };
-    } catch (error: any) {
-      console.error(`[MailService] Error sending email to ${options.to}:`, error.message);
-      return { success: false, method: 'smtp', error: error.message };
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= this.MAX_RETRIES; attempt++) {
+      try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`[MailService] Email sent successfully to ${options.to} (attempt ${attempt}/${this.MAX_RETRIES}): ${info.messageId}`);
+        return { success: true, method: 'smtp', messageId: info.messageId, attempt };
+      } catch (error: any) {
+        lastError = error;
+        console.error(`[MailService] Error sending email to ${options.to} (attempt ${attempt}/${this.MAX_RETRIES}):`, error.message);
+        
+        if (attempt < this.MAX_RETRIES) {
+          const delayMs = this.RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+          console.log(`[MailService] Retrying in ${delayMs}ms...`);
+          await this.delay(delayMs);
+        }
+      }
     }
+
+    console.error(`[MailService] All ${this.MAX_RETRIES} attempts failed for ${options.to}`);
+    return { success: false, method: 'smtp', error: lastError?.message, attempts: this.MAX_RETRIES };
   }
 
   /**

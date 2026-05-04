@@ -45,6 +45,11 @@ router.get('/invitations/pending', apiRateLimit, authenticate, authController.li
 router.get('/account', authenticate, authController.getAccount);
 router.delete('/account', authenticate, authController.deleteAccount);
 
+// Notifications
+router.get('/notifications', apiRateLimit, authenticate, authController.listNotifications);
+router.patch('/notifications/:id/read', apiRateLimit, authenticate, authController.markNotificationRead);
+router.patch('/notifications/read-all', apiRateLimit, authenticate, authController.markAllNotificationsRead);
+
 // Mobile OTP Aliases
 router.post('/mobile/send-otp', authRateLimit, authController.sendOtp);
 router.post('/mobile/verify-otp', authRateLimit, authController.verifyOtp);

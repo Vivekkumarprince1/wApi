@@ -48,7 +48,6 @@ export default function GupshupControlPage() {
   ];
 
   return (
-    <DashboardLayout>
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-20">
         <SuperAdminPageHeader
           icon={Fingerprint}
@@ -163,6 +162,5 @@ export default function GupshupControlPage() {
           </Card>
         </div>
       </div>
-    </DashboardLayout>
   );
 }

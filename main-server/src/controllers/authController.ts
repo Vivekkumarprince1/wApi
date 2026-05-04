@@ -585,28 +585,73 @@ export const authController = {
   async getInvitation(req: Request, res: Response, next: NextFunction) {
     try {
       const { token } = req.params;
-      const { WorkspaceInvitation } = await import('../models');
+      const email = String(req.query.email || '').trim().toLowerCase();
+      const { WorkspaceInvitation, User } = await import('../models');
       
-      const invitation = await WorkspaceInvitation.findOne({ token, isAccepted: false })
-        .populate('workspace', 'name')
-        .populate('invitedBy', 'name email');
-      
-      if (!invitation || invitation.expiresAt < new Date()) {
-        throw new NotFoundError("Invitation expired or invalid");
+      if (!token || !email) {
+        return res.status(400).json({ success: false, error: "Token and Email are required" });
       }
-      
+
+      const cleanEmail = email.trim().toLowerCase();
+      console.log(`[Auth:Verify] Checking token: ${token}, email: ${cleanEmail}`);
+
+      const invitation = await WorkspaceInvitation.findOne({ token }).populate('workspace', 'name');
+
+      if (!invitation) {
+        console.log(`[Auth:Verify] ❌ No invitation found for token: ${token}`);
+        return res.status(404).json({ success: false, error: "Invalid or expired invitation" });
+      }
+
+      if (invitation.email.toLowerCase() !== cleanEmail) {
+        console.log(`[Auth:Verify] ❌ Email mismatch. DB: ${invitation.email}, URL: ${cleanEmail}`);
+        return res.status(403).json({ success: false, error: "This invitation was sent to a different email address." });
+      }
+
+      if (invitation.status === 'accepted') {
+        const newInvite = await WorkspaceInvitation.findOne({
+          email: cleanEmail,
+          workspace: invitation.workspace,
+          status: 'pending',
+          expiresAt: { $gt: new Date() }
+        }).sort({ createdAt: -1 });
+
+        if (newInvite) {
+          return res.status(410).json({
+            success: false,
+            error: "This invitation link is outdated. A newer invitation is available.",
+            redirectToken: newInvite.token,
+            redirectEmail: newInvite.email
+          });
+        }
+
+        return res.status(400).json({ success: false, error: "You have already accepted this invitation!" });
+      }
+
+      if (invitation.status !== 'pending') {
+        console.log(`[Auth:Verify] ❌ Invitation status is ${invitation.status}`);
+        return res.status(400).json({ success: false, error: `This invitation has been ${invitation.status}.` });
+      }
+
+      if (invitation.expiresAt < new Date()) {
+        return res.status(410).json({ success: false, error: "This invitation has expired. Please request a new one." });
+      }
+
+      const existingUser = await User.findOne({ email: cleanEmail });
+
       res.json({
         success: true,
-        invitation: {
-          _id: invitation._id,
+        data: {
           email: invitation.email,
-          workspace: invitation.workspace,
-          invitedBy: invitation.invitedBy,
-          role: invitation.role
+          name: invitation.name,
+          role: invitation.role,
+          workspaceName: (invitation.workspace as any)?.name,
+          userExists: !!existingUser,
+          authProvider: existingUser?.authProvider || 'local'
         }
       });
     } catch (err) {
-      next(err);
+      console.error("[Auth] Invitation info error:", err);
+      res.status(500).json({ success: false, error: "Internal server error" });
     }
   },
 
@@ -615,46 +660,160 @@ export const authController = {
    */
   async acceptInvitation(req: Request, res: Response, next: NextFunction) {
     try {
-      const { token, password, name } = req.body;
-      const { WorkspaceInvitation, User, Permission } = await import('../models');
-      
-      const invitation = await WorkspaceInvitation.findOne({ token, isAccepted: false });
-      if (!invitation || invitation.expiresAt < new Date()) {
-        throw new NotFoundError("Invitation expired");
+      const body = req.body;
+      const { token, email, name, password, userId: providedUserId } = body;
+
+      if (!token || !email) {
+        return res.status(400).json({ success: false, error: "Token and Email are required" });
       }
+
+      const { WorkspaceInvitation, Permission, Team, User, Role, Notification } = await import('../models');
       
-      // Create or find user
-      let user = await User.findOne({ email: invitation.email });
+      const cleanEmail = String(email || '').trim().toLowerCase();
+      
+      const invitation = await WorkspaceInvitation.findOne({ token });
+
+      if (!invitation) {
+        return res.status(404).json({ success: false, error: "Invalid invitation token." });
+      }
+
+      if (invitation.email.toLowerCase() !== cleanEmail) {
+        return res.status(403).json({ success: false, error: "This invitation belongs to a different email address." });
+      }
+
+      if (invitation.status === 'accepted') {
+         return res.status(400).json({ success: false, error: "You have already accepted this invitation!" });
+      }
+
+      if (invitation.status !== 'pending') {
+        return res.status(400).json({ success: false, error: `Invitation is no longer valid (Status: ${invitation.status})` });
+      }
+
+      if (invitation.expiresAt < new Date()) {
+         invitation.status = 'expired';
+         await invitation.save();
+         return res.status(410).json({ success: false, error: "This invitation has expired. Please request a new one." });
+      }
+
+      let user = providedUserId ? await User.findById(providedUserId) : await User.findOne({ email: cleanEmail });
+
       if (!user) {
+        if (!password) {
+          return res.status(400).json({ 
+            success: false,
+            error: "User account not found. A password is required to create your account.",
+            actionRequired: 'signup'
+          });
+        }
+
+        const bcrypt = await import('bcryptjs');
+        const passwordHash = await bcrypt.hash(password, 10);
         user = await User.create({
-          name: name || invitation.email.split('@')[0],
-          email: invitation.email,
-          passwordHash: password ? require('bcryptjs').hashSync(password, 10) : undefined,
-          status: 'active'
+          name: name || invitation.name || email.split('@')[0],
+          email,
+          passwordHash,
+          phone: invitation.phone,
+          status: 'active',
+          activeWorkspace: invitation.workspace,
+          accountStatus: 'SIGNUP_COMPLETED',
+          emailVerified: true,
+          role: invitation.role as any
         });
+      } else {
+        if (user.status === 'removed') {
+          user.status = 'active';
+          await user.save();
+        }
       }
+
+      const existingPerm = await Permission.findOne({ workspace: invitation.workspace, user: user._id });
       
-      // Add permission
-      await Permission.create({
-        workspace: invitation.workspace,
-        user: user._id,
+      let permissions;
+      const systemRoles = ['owner', 'admin', 'manager', 'agent', 'viewer'];
+      
+      if (systemRoles.includes(invitation.role)) {
+        permissions = (Permission as any).getDefaultPermissions(invitation.role);
+      } else {
+        const customRole = await Role.findOne({ workspace: invitation.workspace, name: invitation.role });
+        permissions = customRole?.permissions || (Permission as any).getDefaultPermissions('agent');
+      }
+
+      const permissionData = {
         role: invitation.role,
-        isActive: true
-      });
-      
-      // Mark invitation as accepted
+        permissions: invitation.permissionsOverride || permissions,
+        isActive: true,
+        joinedAt: new Date()
+      };
+
+      if (!existingPerm) {
+        await Permission.create({
+          workspace: invitation.workspace,
+          user: user._id,
+          ...permissionData
+        });
+      } else {
+        await Permission.findByIdAndUpdate(existingPerm._id, { $set: permissionData });
+      }
+
+      if (invitation.teams && invitation.teams.length > 0) {
+        await Team.updateMany(
+          { _id: { $in: invitation.teams }, workspace: invitation.workspace },
+          { $addToSet: { members: { user: user._id, role: 'member', addedAt: new Date() } } }
+        );
+      }
+
+      user.activeWorkspace = invitation.workspace;
+      user.status = 'active';
+      await user.save();
+
       invitation.status = 'accepted';
       invitation.joinedAt = new Date();
       await invitation.save();
-      
+
+      console.log(`[Auth] Invitation accepted: User ${user.email} joined Workspace ${invitation.workspace}`);
+
+      try {
+        const owners = await Permission.find({
+          workspace: invitation.workspace,
+          role: 'owner',
+          isActive: true
+        }).select('user').lean();
+        
+        const ownerIds = owners.map(o => o.user.toString());
+        
+        const recipientIds = new Set<string>();
+        if (invitation.invitedBy) recipientIds.add(invitation.invitedBy.toString());
+        ownerIds.forEach(id => recipientIds.add(id));
+        
+        const notificationsToCreate = Array.from(recipientIds).map(recipientId => ({
+          workspace: invitation.workspace,
+          recipient: recipientId,
+          type: 'invitation_accepted',
+          title: 'New Team Member Joined',
+          message: `${user.name || user.email} has accepted the invitation to join the workspace as ${invitation.role}.`,
+          metadata: {
+            joinedUserId: user._id,
+            role: invitation.role
+          }
+        }));
+
+        if (notificationsToCreate.length > 0) {
+          await Notification.insertMany(notificationsToCreate);
+        }
+      } catch (notifyErr) {
+        console.error("[Auth] Failed to create admin notification:", notifyErr);
+      }
+
       res.json({
         success: true,
-        message: "Invitation accepted",
-        user,
-        workspace: invitation.workspace
+        message: "Successfully joined the workspace",
+        workspaceId: invitation.workspace,
+        userId: user._id
       });
-    } catch (err) {
-      next(err);
+
+    } catch (error: any) {
+      console.error("[Auth] Invitation acceptance error:", error);
+      return res.status(500).json({ success: false, error: "Internal server error" });
     }
   },
 
@@ -673,7 +832,8 @@ export const authController = {
       const workspaces = permissions
         .filter(p => p.workspace)
         .map(p => ({
-          _id: (p.workspace as any)._id,
+          id: (p.workspace as any)._id.toString(),
+          _id: (p.workspace as any)._id.toString(),
           name: (p.workspace as any).name,
           avatar: (p.workspace as any).avatar,
           role: p.role,
@@ -695,7 +855,7 @@ export const authController = {
       
       const invitations = await WorkspaceInvitation.find({
         email: req.user.email,
-        isAccepted: false,
+        status: 'pending',
         expiresAt: { $gt: new Date() }
       }).populate('workspace', 'name').populate('invitedBy', 'name email');
       
@@ -733,6 +893,65 @@ export const authController = {
     }
   },
 
+  /**
+   * List Notifications for Current User
+   */
+  async listNotifications(req: any, res: Response, next: NextFunction) {
+    try {
+      const { Notification } = await import('../models');
+      
+      const notifications = await Notification.find({ 
+        recipient: req.user._id 
+      }).sort({ createdAt: -1 }).limit(50);
+      
+      res.json({ success: true, notifications });
+    } catch (err) {
+      next(err);
+    }
+  },
+  
+  /**
+   * Mark Notification as Read
+   */
+  async markNotificationRead(req: any, res: Response, next: NextFunction) {
+    try {
+      const { Notification } = await import('../models');
+      const { id } = req.params;
+      
+      const notification = await Notification.findOneAndUpdate(
+        { _id: id, recipient: req.user._id },
+        { $set: { read: true, readAt: new Date() } },
+        { new: true }
+      );
+      
+      if (!notification) {
+        throw new NotFoundError("Notification not found");
+      }
+      
+      res.json({ success: true, notification });
+    } catch (err) {
+      next(err);
+    }
+  },
+  
+  /**
+   * Mark All Notifications as Read
+   */
+  async markAllNotificationsRead(req: any, res: Response, next: NextFunction) {
+    try {
+      const { Notification } = await import('../models');
+      
+      await Notification.updateMany(
+        { recipient: req.user._id, read: false },
+        { $set: { read: true, readAt: new Date() } }
+      );
+      
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  },
+  
   /**
    * Permanent Account Deletion (DELETE /api/v1/auth/account)
    */

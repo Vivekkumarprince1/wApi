@@ -113,21 +113,20 @@ export default function BillingPage() {
   const stats = billingData || {};
 
   return (
-    <DashboardLayout>
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-20">
         <SuperAdminPageHeader
           icon={CreditCard}
           eyebrow="Commercial Control"
-          title="Billing & Plans"
-          subtitle="Oversee global subscription health, manage pricing tiers, and audit platform revenue."
+          title="Billing Management"
+          subtitle="Manage subscription plans, pricing tiers, and monitor platform revenue metrics."
           actions={(
             <div className="flex items-center gap-3">
               <Button variant="outline" className="h-12 border-border/50 bg-background/50 backdrop-blur-sm px-6 rounded-2xl group transition-all hover:bg-muted" onClick={() => refetchPlans()}>
                 <Loader2 className={`h-4 w-4 mr-2 ${isLoadingPlans ? 'animate-spin text-emerald-600' : 'text-muted-foreground group-hover:text-emerald-600'}`} />
-                <span className="text-xs font-black uppercase tracking-widest">Sync Registry</span>
+                <span className="text-xs font-black uppercase tracking-widest">Refresh Data</span>
               </Button>
               <Button className="rounded-2xl h-12 px-8 bg-emerald-600 hover:bg-emerald-700 shadow-2xl shadow-emerald-500/20 font-black uppercase tracking-widest text-xs group" onClick={handleCreate}>
-                <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform" /> Create Tier
+                <Plus className="mr-2 h-4 w-4 group-hover:rotate-90 transition-transform" /> Create Plan
               </Button>
             </div>
           )}
@@ -357,6 +356,5 @@ export default function BillingPage() {
           plan={selectedPlan} 
         />
       </div>
-    </DashboardLayout>
   );
 }

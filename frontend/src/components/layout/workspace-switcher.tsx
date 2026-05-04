@@ -46,10 +46,8 @@ export function WorkspaceSwitcher() {
 
   const fetchWorkspaces = async () => {
     try {
-      // Axios interceptor returns response.data already unwrapped
-      // API returns { success: true, data: [...] } → after interceptor, response = { success, data: [...] }
       const response = await api.get('/auth/workspaces') as any;
-      setWorkspaces(response.data || []);
+      setWorkspaces(response.workspaces || []);
     } catch (error) {
       console.error("Failed to fetch workspaces", error);
       setWorkspaces([]);
@@ -119,30 +117,33 @@ export function WorkspaceSwitcher() {
             </DropdownMenuLabel>
             
             <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
-              {workspaces?.map((ws) => (
-                <DropdownMenuItem 
-                  key={ws.id}
-                  onClick={() => handleSwitch(ws.id)}
-                  className={`
-                    flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all
-                    ${ws.isActive ? 'bg-primary/5 text-primary' : 'hover:bg-muted/50'}
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`
-                      w-8 h-8 rounded-xl flex items-center justify-center border
-                      ${ws.isActive ? 'bg-primary/10 border-primary/20' : 'bg-muted border-border/50'}
-                    `}>
-                      <Layers className={`h-4 w-4 ${ws.isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+              {workspaces?.map((ws, index) => {
+                const safeId = ws.id || ws._id || `workspace-${index}`;
+                return (
+                  <DropdownMenuItem 
+                    key={safeId}
+                    onClick={() => handleSwitch(safeId)}
+                    className={`
+                      flex items-center justify-between p-3 rounded-2xl cursor-pointer transition-all
+                      ${ws.isActive ? 'bg-primary/5 text-primary' : 'hover:bg-muted/50'}
+                    `}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`
+                        w-8 h-8 rounded-xl flex items-center justify-center border
+                        ${ws.isActive ? 'bg-primary/10 border-primary/20' : 'bg-muted border-border/50'}
+                      `}>
+                        <Layers className={`h-4 w-4 ${ws.isActive ? 'text-primary' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-black tracking-tight">{ws.name}</span>
+                        <span className="text-[10px] uppercase font-black tracking-tighter opacity-50">{ws.role}</span>
+                      </div>
                     </div>
-                    <div className="flex flex-col">
-                      <span className="text-sm font-black tracking-tight">{ws.name}</span>
-                      <span className="text-[10px] uppercase font-black tracking-tighter opacity-50">{ws.role}</span>
-                    </div>
-                  </div>
-                  {ws.isActive && <Check className="h-4 w-4 text-primary" />}
-                </DropdownMenuItem>
-              ))}
+                    {ws.isActive && <Check className="h-4 w-4 text-primary" />}
+                  </DropdownMenuItem>
+                );
+              })}
             </div>
           </DropdownMenuGroup>
         </DropdownMenuContent>

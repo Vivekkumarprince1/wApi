@@ -137,13 +137,13 @@ export default function SuperAdminDashboard() {
   ).slice(0, 4);
 
   return (
-    <DashboardLayout>
+    // <DashboardLayout>
       <div className="flex flex-col gap-8 pb-20 max-w-[1600px] mx-auto p-4 md:p-8 font-inter">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
           <span>Console</span>
           <ChevronRight className="h-3 w-3" />
-          <span className="text-emerald-600">Overview</span>
+          <span className="text-emerald-600">Dashboard</span>
         </div>
 
         <SuperAdminPageHeader
@@ -195,7 +195,7 @@ export default function SuperAdminDashboard() {
                   <h3 className="font-manrope text-lg font-black uppercase tracking-tight flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-emerald-600" /> Workspace Directory
                   </h3>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Managing 1,284 enterprise nodes</p>
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Managing {stats?.totalWorkspaces || 1284} active workspaces</p>
                 </div>
                 <div className="relative w-full md:w-64 group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-emerald-600 transition-colors" />
@@ -211,10 +211,10 @@ export default function SuperAdminDashboard() {
                <table className="w-full text-left">
                  <thead>
                    <tr>
-                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Workspace / Identity</th>
-                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Active Plan</th>
-                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">BSP Gateway</th>
-                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Verification</th>
+                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Workspace</th>
+                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Plan</th>
+                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Connection Status</th>
+                     <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Actions</th>
                    </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-50">
@@ -243,7 +243,7 @@ export default function SuperAdminDashboard() {
                        <td className="px-8 py-5">
                           <div className="flex items-center gap-2">
                              <div className={cn("h-1.5 w-1.5 rounded-full", ws.whatsappConnected ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-amber-500")} />
-                             <span className="text-[10px] font-black uppercase tracking-widest">{ws.whatsappConnected ? 'Active Gateway' : 'Maintenance'}</span>
+                             <span className="text-[10px] font-black uppercase tracking-widest">{ws.whatsappConnected ? 'Connected' : 'Disconnected'}</span>
                           </div>
                        </td>
                        <td className="px-8 py-5 text-right">
@@ -257,9 +257,9 @@ export default function SuperAdminDashboard() {
                </table>
              </div>
              <div className="p-6 border-t border-slate-50 bg-slate-50/30 flex justify-between items-center">
-                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Node 1-4 of 1,284 provisioned</span>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Showing 1-{Math.min(filteredWorkspaces.length, 4)} of {workspaces?.length || 0} workspaces</span>
                 <Button variant="ghost" className="h-10 rounded-xl font-black uppercase tracking-widest text-[10px] text-emerald-600 group" onClick={() => router.push('/super-admin/workspaces')}>
-                  Master Directory <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                  View All Workspaces <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
              </div>
           </div>
@@ -276,9 +276,9 @@ export default function SuperAdminDashboard() {
                 </div>
                 <div className="space-y-4">
                    {[
-                     { name: 'Gateway Hub', icon: Globe, val: 99.9, color: 'bg-emerald-500' },
-                     { name: 'Data Node', icon: Database, val: 100, color: 'bg-emerald-600' },
-                     { name: 'Auth Router', icon: Lock, val: 99.4, color: 'bg-amber-500' }
+                     { name: 'API Gateway', icon: Globe, val: 99.9, color: 'bg-emerald-500' },
+                     { name: 'Database', icon: Database, val: 100, color: 'bg-emerald-600' },
+                     { name: 'Authentication', icon: Lock, val: 99.4, color: 'bg-amber-500' }
                    ].map((s, i) => (
                      <div key={i} className="p-4 rounded-3xl bg-slate-50/50 border border-slate-100 space-y-3">
                         <div className="flex justify-between items-center">
@@ -302,7 +302,7 @@ export default function SuperAdminDashboard() {
              {/* Plan Distribution */}
              <div className="glass-card p-8 rounded-[2.5rem] border border-slate-200/50 flex flex-col gap-6 shadow-sm bg-slate-900 text-white relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
-                <h3 className="font-manrope text-sm font-black uppercase tracking-tight relative z-10">Commercial Yield</h3>
+                <h3 className="font-manrope text-sm font-black uppercase tracking-tight relative z-10">Revenue Analytics</h3>
                 <div className="h-40 flex items-end gap-3 relative z-10 px-2">
                    {[40, 65, 35].map((h, i) => (
                      <div key={i} className={cn(
@@ -317,7 +317,7 @@ export default function SuperAdminDashboard() {
                       <span className="text-xs font-black">65%</span>
                    </div>
                    <div className="flex flex-col gap-1">
-                      <span className="text-[8px] font-black uppercase text-emerald-300 tracking-widest">Pro</span>
+                      <span className="text-[8px] font-black uppercase text-emerald-300 tracking-widest">Professional</span>
                       <span className="text-xs font-black">25%</span>
                    </div>
                    <div className="flex flex-col gap-1">
@@ -329,6 +329,6 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
+    // </DashboardLayout>
   );
 }

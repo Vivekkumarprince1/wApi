@@ -102,13 +102,12 @@ export default function UserManagementPage() {
   });
 
   return (
-    <DashboardLayout>
       <div className="flex flex-col gap-8 pb-20 max-w-[1600px] mx-auto p-4 md:p-8 font-inter">
         <SuperAdminPageHeader
           icon={Users}
           eyebrow="Console"
-          title="User Directory"
-          subtitle="Manage platform-wide users, global administrative roles, and system access levels."
+          title="User Management"
+          subtitle="Manage platform users, roles, and access permissions across all workspaces."
           actions={(
             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-xl shadow-emerald-500/20 h-12 px-8 rounded-2xl flex items-center gap-2 group" onClick={() => setIsInviteOpen(true)}>
               <UserPlus className="h-4 w-4 group-hover:scale-110 transition-transform" />
@@ -160,11 +159,11 @@ export default function UserManagementPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identity</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Global Role</th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">User</th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Role</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Last Seen</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Control</th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Last Active</th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -213,7 +212,7 @@ export default function UserManagementPage() {
                         "font-black text-[9px] uppercase tracking-widest border-none",
                         u.role === 'admin' ? "bg-indigo-500/10 text-indigo-600" : "bg-slate-500/10 text-slate-600"
                       )}>
-                        {u.role === 'admin' ? 'SYSTEM ADMIN' : 'STANDARD USER'}
+                        {u.role === 'admin' ? 'ADMIN' : 'USER'}
                       </Badge>
                     </td>
                     <td className="px-6 py-5">
@@ -250,9 +249,9 @@ export default function UserManagementPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-slate-200 shadow-2xl backdrop-blur-xl">
                           <DropdownMenuGroup>
-                            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground p-3">Entity Management</DropdownMenuLabel>
+                            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground p-3">User Actions</DropdownMenuLabel>
                             <DropdownMenuItem className="rounded-xl p-3 text-xs font-bold gap-3 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer">
-                              <Settings2 className="h-4 w-4" /> Modify Permissions
+                              <Settings2 className="h-4 w-4" /> Edit Permissions
                             </DropdownMenuItem>
                             <DropdownMenuItem className="rounded-xl p-3 text-xs font-bold gap-3 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer">
                               <ShieldAlert className="h-4 w-4" /> Transfer Ownership
@@ -260,7 +259,7 @@ export default function UserManagementPage() {
                           </DropdownMenuGroup>
                           <DropdownMenuSeparator className="bg-slate-100" />
                           <DropdownMenuItem className="rounded-xl p-3 text-xs font-bold gap-3 text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer">
-                            <Trash2 className="h-4 w-4" /> Terminate Access
+                            <Trash2 className="h-4 w-4" /> Remove User
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -287,9 +286,9 @@ export default function UserManagementPage() {
                 <UserPlus className="h-24 w-24" />
               </div>
               <DialogHeader>
-                <DialogTitle className="font-manrope text-2xl font-black uppercase tracking-tighter">Invite System Entity</DialogTitle>
+                <DialogTitle className="font-manrope text-2xl font-black uppercase tracking-tighter">Invite User</DialogTitle>
                 <DialogDescription className="text-emerald-100 font-medium text-sm mt-2">
-                  Assign platform-wide access and administrative privileges.
+                  Add a new user to the platform with specified role and permissions.
                 </DialogDescription>
               </DialogHeader>
             </div>
@@ -306,7 +305,7 @@ export default function UserManagementPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Global System Role</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">System Role</Label>
                   <div className="grid grid-cols-2 gap-3">
                     <button 
                       type="button"
@@ -317,7 +316,7 @@ export default function UserManagementPage() {
                       onClick={() => setInviteRole('user')}
                     >
                       <Users className={cn("h-6 w-6 mb-2", inviteRole === 'user' ? "text-emerald-600" : "text-slate-400")} />
-                      <span className={cn("text-[10px] font-black uppercase tracking-widest", inviteRole === 'user' ? "text-emerald-700" : "text-slate-500")}>Standard</span>
+                      <span className={cn("text-[10px] font-black uppercase tracking-widest", inviteRole === 'user' ? "text-emerald-700" : "text-slate-500")}>User</span>
                     </button>
                     <button 
                       type="button"
@@ -336,13 +335,13 @@ export default function UserManagementPage() {
               <DialogFooter className="pt-4">
                 <Button type="button" variant="ghost" className="h-12 px-6 rounded-2xl font-black uppercase tracking-widest text-[10px]" onClick={() => setIsInviteOpen(false)}>Cancel</Button>
                 <Button type="submit" className="h-12 px-8 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-emerald-500/20" disabled={inviteMutation.isPending}>
-                  {inviteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Deploy Invitation"}
+                  {inviteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send Invitation"}
                 </Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       </div>
-    </DashboardLayout>
+
   );
 }

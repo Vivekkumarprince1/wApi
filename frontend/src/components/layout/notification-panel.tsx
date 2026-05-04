@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import api from '@/lib/api/client';
+import api from '@/lib/axios';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -31,8 +31,10 @@ export function NotificationPanel() {
   const fetchInvitations = async () => {
     try {
       const response = (await api.get('/auth/invitations/pending')) as any;
-      // Since axios interceptor returns response.data, response here is { success: true, data: [...] }
-      setInvitations(response.data || []);
+      const data = response.success && response.invitations 
+        ? response.invitations 
+        : (response.data || response.invitations || []);
+      setInvitations(data);
     } catch (error) {
       console.error('Failed to fetch invitations:', error);
     } finally {
@@ -95,36 +97,27 @@ export function NotificationPanel() {
             </div>
           ) : (
             <div className="p-2 space-y-1">
-              {invitations.map((item) => (
-                <div 
-                  key={item.id}
-                  className="p-3 rounded-xl hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 group"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={cn(
-                      "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                      item.type === 'invitation' ? "bg-primary/5" : "bg-emerald-500/5"
-                    )}>
-                      {item.type === 'invitation' ? (
+              {invitations.map((item, index) => {
+                const id = item.id || item._id || `invite-${index}`;
+                const workspaceName = item.workspaceName || (item.workspace as any)?.name || '';
+                return (
+                  <div 
+                    key={id}
+                    className="p-3 rounded-xl hover:bg-muted/30 transition-colors border border-transparent hover:border-border/50 group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/5">
                         <Building2 className="h-5 w-5 text-primary" />
-                      ) : (
-                        <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <div className="space-y-1">
-                        <p className="text-xs font-black text-foreground">
-                          {item.type === 'invitation' ? 'New Workspace Invitation' : item.title}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
-                          {item.type === 'invitation' ? (
-                            <>You've been invited to join <span className="text-foreground font-bold">{item.workspaceName}</span> as a <span className="capitalize">{item.role}</span>.</>
-                          ) : (
-                            item.message
-                          )}
-                        </p>
                       </div>
-                      {item.type === 'invitation' ? (
+                      <div className="flex-1 space-y-2">
+                        <div className="space-y-1">
+                          <p className="text-xs font-black text-foreground">
+                            New Workspace Invitation
+                          </p>
+                          <p className="text-[11px] text-muted-foreground font-medium leading-relaxed">
+                            You've been invited to join <span className="text-foreground font-bold">{workspaceName}</span> as a <span className="capitalize">{item.role}</span>.
+                          </p>
+                        </div>
                         <Button 
                           size="sm" 
                           onClick={() => handleAccept(item.token, item.email)}
@@ -132,16 +125,11 @@ export function NotificationPanel() {
                         >
                           Accept Invitation
                         </Button>
-                      ) : (
-                        <div className="flex items-center gap-1.5 opacity-40">
-                          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                          <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Action logged</span>
-                        </div>
-                      )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

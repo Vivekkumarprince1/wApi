@@ -79,9 +79,8 @@ router.patch('/members/:memberId', authorizeRole(['owner', 'admin']), workspaceC
 router.delete('/members/:memberId', authorizeRole(['owner', 'admin']), workspaceController.removeMember);
 router.patch('/team/members/:memberId', authorizeRole(['owner', 'admin']), workspaceController.updateMemberRecord);
 router.delete('/team/members/:memberId', authorizeRole(['owner', 'admin']), workspaceController.removeMember);
-router.post('/team/members/:memberId/resend', authorizeRole(['owner', 'admin']), (req, res) => {
-  res.json({ success: true, message: 'Invitation resend queued' });
-});
+router.post('/members/:invitationId/resend', authorizeRole(['owner', 'admin']), workspaceController.resendInvitation);
+router.post('/team/members/:invitationId/resend', authorizeRole(['owner', 'admin']), workspaceController.resendInvitation);
 router.get('/team/permissions', workspaceController.getPermissionsMatrix);
 router.patch('/team/permissions', authorizeRole(['owner', 'admin']), (_req, res) => {
   res.status(501).json({ success: false, error: 'Dynamic role permission editing is not yet implemented' });

@@ -53,7 +53,6 @@ export default function PlanConfigPage() {
   });
 
   return (
-    <DashboardLayout>
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-20 font-inter">
         {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
@@ -290,6 +289,5 @@ export default function PlanConfigPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }

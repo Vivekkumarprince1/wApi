@@ -1148,21 +1148,45 @@ export const workspaceController = {
   async updateMemberRecord(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { memberId } = req.params;
-      const inv = await WorkspaceInvitation.findOne({ _id: memberId, workspace: req.workspace._id });
+      const workspaceId = req.workspace._id;
+      const { name, phone, role, isActive, teamIds } = req.body;
+      const appBase = config.baseUrl.replace(/\/$/, '');
+      const { MailService } = await import('../services/shared/mail-service');
+      const wsName = (req.workspace as any)?.name || 'Workspace';
+
+      const inv = await WorkspaceInvitation.findOne({ _id: memberId, workspace: workspaceId });
       if (inv) {
-        const { role, name, phone } = req.body;
         if (role) inv.role = role;
         if (name !== undefined) inv.name = name;
         if (phone !== undefined) inv.phone = phone;
+        if (Array.isArray(teamIds)) inv.teams = teamIds;
+        
+        const invitationToken = crypto.randomBytes(32).toString('hex');
+        inv.token = invitationToken;
+        inv.expiresAt = new Date(Date.now() + 7 * 864e5);
+        inv.resendCount = (inv.resendCount || 0) + 1;
+        inv.lastSentAt = new Date();
         await inv.save();
-        return res.json({ success: true, data: inv });
+
+        const invitationUrl = `${appBase}/auth/accept-invite?token=${invitationToken}&email=${encodeURIComponent(inv.email)}`;
+        await MailService.sendInvitation({
+          to: inv.email,
+          inviterName: req.user.name,
+          workspaceName: wsName,
+          role: inv.role,
+          invitationUrl
+        });
+        
+        return res.json({ success: true, data: inv, message: 'Invitation updated and resent' });
       }
-      const { name, phone, role, isActive } = req.body;
+
       const member = await User.findById(memberId);
       if (!member) throw new NotFoundError('User not found');
+      
       if (name !== undefined) member.name = name;
       if (phone !== undefined) member.phone = phone;
       await member.save();
+
       if (role !== undefined || typeof isActive === 'boolean') {
         const update: any = {};
         if (role) {
@@ -1170,9 +1194,69 @@ export const workspaceController = {
           update.permissions = (Permission as any).getDefaultPermissions(role);
         }
         if (typeof isActive === 'boolean') update.isActive = isActive;
-        await Permission.findOneAndUpdate({ user: memberId, workspace: req.workspace._id }, update);
+        await Permission.findOneAndUpdate({ user: memberId, workspace: workspaceId }, update);
       }
+
+      // Handle team membership updates
+      if (Array.isArray(teamIds)) {
+        const { Team } = await import('../models');
+        const mId = new Types.ObjectId(memberId);
+        // Pull from all teams in this workspace
+        await Team.updateMany(
+          { workspace: workspaceId },
+          { $pull: { members: { user: mId } } }
+        );
+        // Push to new ones
+        if (teamIds.length > 0) {
+          await Team.updateMany(
+            { _id: { $in: teamIds.map(id => new Types.ObjectId(id)) }, workspace: workspaceId },
+            { $addToSet: { members: { user: mId, role: 'member', addedAt: new Date() } } }
+          );
+        }
+      }
+
       res.json({ success: true, data: member });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async resendInvitation(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { invitationId } = req.params;
+      const workspaceId = req.workspace._id;
+      const appBase = config.baseUrl.replace(/\/$/, '');
+      const { MailService } = await import('../services/shared/mail-service');
+      const wsName = (req.workspace as any)?.name || 'Workspace';
+
+      const invitation = await WorkspaceInvitation.findOne({
+        _id: invitationId,
+        workspace: workspaceId,
+        status: 'pending'
+      });
+      if (!invitation) throw new NotFoundError('Pending invitation not found');
+
+      const invitationToken = crypto.randomBytes(32).toString('hex');
+      invitation.token = invitationToken;
+      invitation.expiresAt = new Date(Date.now() + 7 * 864e5);
+      invitation.resendCount = (invitation.resendCount || 0) + 1;
+      invitation.lastSentAt = new Date();
+      await invitation.save();
+
+      const invitationUrl = `${appBase}/auth/accept-invite?token=${invitationToken}&email=${encodeURIComponent(invitation.email)}`;
+      await MailService.sendInvitation({
+        to: invitation.email,
+        inviterName: req.user.name,
+        workspaceName: wsName,
+        role: invitation.role,
+        invitationUrl
+      });
+
+      res.json({
+        success: true,
+        message: 'Invitation resent successfully',
+        data: { id: invitation._id, email: invitation.email }
+      });
     } catch (err) {
       next(err);
     }
@@ -1181,16 +1265,58 @@ export const workspaceController = {
   async removeMember(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { memberId } = req.params;
-      const inv = await WorkspaceInvitation.findOne({ _id: memberId, workspace: req.workspace._id });
+      const workspaceId = req.workspace._id;
+
+      const inv = await WorkspaceInvitation.findOne({ _id: memberId, workspace: workspaceId });
       if (inv) {
         await inv.deleteOne();
         return res.json({ success: true, message: 'Invitation removed' });
       }
-      const perm = await Permission.findOne({ workspace: req.workspace._id, user: memberId });
+
+      const perm = await Permission.findOne({ workspace: workspaceId, user: memberId });
       if (!perm) throw new NotFoundError('Member not found');
+
+      // 1. Deactivate permission
       perm.isActive = false;
+      (perm as any).isOnline = false;
+      (perm as any).isAvailable = false;
       await perm.save();
-      res.json({ success: true, message: 'Member removed' });
+
+      // 2. Clean up Team memberships
+      const { Team, Conversation, User } = await import('../models');
+      const mId = new Types.ObjectId(memberId);
+      await Team.updateMany(
+        { workspace: workspaceId },
+        { $pull: { members: { user: mId } } }
+      );
+
+      // 3. Unassign open/pending conversations
+      await Conversation.updateMany(
+        { 
+          workspace: workspaceId, 
+          assignedTo: mId, 
+          status: { $in: ['open', 'pending'] } 
+        },
+        { $unset: { assignedTo: '' } }
+      );
+
+      // 4. If user's active workspace is this one, switch to another active workspace
+      const user = await User.findById(memberId);
+      if (user && user.activeWorkspace?.toString() === workspaceId.toString()) {
+        const otherPerm = await Permission.findOne({ 
+          user: user._id, 
+          isActive: true 
+        }).sort({ createdAt: -1 });
+        
+        if (otherPerm) {
+          user.activeWorkspace = otherPerm.workspace;
+        } else {
+          user.activeWorkspace = null;
+        }
+        await user.save();
+      }
+
+      res.json({ success: true, message: 'Member removed and data cleaned up' });
     } catch (err) {
       next(err);
     }
@@ -1198,21 +1324,49 @@ export const workspaceController = {
 
   async createTeamRecord(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { name, description, members = [] } = req.body;
+      const { name, description, members = [], visibility, autoAssign } = req.body;
+      const workspaceId = req.workspace._id;
+
       if (!name) throw new BadRequestError('Team name is required');
+
+      // 1. Duplicate Check
+      const existing = await Team.findOne({ 
+        workspace: workspaceId, 
+        name: name.trim(), 
+        isActive: true 
+      });
+      if (existing) throw new BadRequestError('A team with this name already exists');
+
+      // 2. Validate Members (ensure they belong to workspace)
+      const memberIds = members.map((m: any) => m.userId || m.user || m);
+      if (memberIds.length > 0) {
+        const validMembers = await Permission.countDocuments({
+          workspace: workspaceId,
+          user: { $in: memberIds },
+          isActive: { $ne: false }
+        });
+        if (validMembers !== memberIds.length) {
+          throw new BadRequestError('Some members do not belong to this workspace');
+        }
+      }
+
       const memberDocs = (members as any[]).map((m) => ({
-        user: m.userId || m.user,
+        user: m.userId || m.user || m,
         role: m.role === 'lead' ? 'lead' : 'member',
         addedAt: new Date()
       }));
+
       const team = await Team.create({
-        name,
-        description,
-        workspace: req.workspace._id,
+        name: name.trim(),
+        description: description?.trim(),
+        workspace: workspaceId,
         members: memberDocs,
+        visibility: visibility || 'team_only',
+        autoAssign: autoAssign || { enabled: false, strategy: 'round_robin' },
         createdBy: req.user._id,
         isActive: true
       });
+
       res.status(201).json({ success: true, data: team });
     } catch (err) {
       next(err);
@@ -1221,20 +1375,49 @@ export const workspaceController = {
 
   async updateTeamRecord(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const team = await Team.findOne({ _id: req.params.id, workspace: req.workspace._id });
+      const workspaceId = req.workspace._id;
+      const team = await Team.findOne({ _id: req.params.id, workspace: workspaceId });
       if (!team) throw new NotFoundError('Team not found');
+
       const { name, description, members, visibility, autoAssign } = req.body;
-      if (name !== undefined) team.name = name;
-      if (description !== undefined) team.description = description;
+      
+      if (name !== undefined) {
+        const trimmedName = name.trim();
+        const existing = await Team.findOne({ 
+          workspace: workspaceId, 
+          name: trimmedName, 
+          _id: { $ne: team._id },
+          isActive: true 
+        });
+        if (existing) throw new BadRequestError('A team with this name already exists');
+        team.name = trimmedName;
+      }
+
+      if (description !== undefined) team.description = description.trim();
       if (visibility !== undefined) team.visibility = visibility;
       if (autoAssign !== undefined) team.autoAssign = { ...team.autoAssign, ...autoAssign };
+
       if (Array.isArray(members)) {
+        // Validate members
+        const memberIds = members.map((m: any) => m.userId || m.user || m);
+        if (memberIds.length > 0) {
+          const validMembers = await Permission.countDocuments({
+            workspace: workspaceId,
+            user: { $in: memberIds },
+            isActive: { $ne: false }
+          });
+          if (validMembers !== memberIds.length) {
+            throw new BadRequestError('Some members do not belong to this workspace');
+          }
+        }
+
         team.members = members.map((m: any) => ({
-          user: m.userId || m.user,
+          user: m.userId || m.user || m,
           role: m.role === 'lead' ? 'lead' : 'member',
           addedAt: m.addedAt || new Date()
         }));
       }
+
       await team.save();
       res.json({ success: true, data: team });
     } catch (err) {

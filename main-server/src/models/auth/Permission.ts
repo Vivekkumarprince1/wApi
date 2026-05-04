@@ -250,7 +250,8 @@ PermissionSchema.statics.checkAccess = async function(
 ): Promise<boolean> {
   const perm = await this.findOne({ 
     workspace: new Types.ObjectId(workspaceId), 
-    user: new Types.ObjectId(userId) 
+    user: new Types.ObjectId(userId),
+    isActive: { $ne: false }
   }).lean();
   
   if (!perm) return false;
@@ -291,6 +292,14 @@ PermissionSchema.statics.isLead = async function(
   userId: Types.ObjectId | string,
   teamId: Types.ObjectId | string
 ): Promise<boolean> {
+  const perm = await this.findOne({
+    workspace: new Types.ObjectId(workspaceId),
+    user: new Types.ObjectId(userId),
+    isActive: { $ne: false }
+  }).lean();
+  
+  if (!perm) return false;
+  
   const { Team } = await import("../index");
   const team = await Team.findOne({
     _id: new Types.ObjectId(teamId),

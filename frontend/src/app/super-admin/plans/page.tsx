@@ -144,7 +144,6 @@ export default function EconomicControlPage() {
   }
 
   return (
-    <DashboardLayout>
       <div className="p-4 md:p-8 max-w-[1600px] mx-auto space-y-10 pb-20">
         <SuperAdminPageHeader
           icon={Package}
@@ -354,6 +353,5 @@ export default function EconomicControlPage() {
            plan={selectedPlan} 
         />
       </div>
-    </DashboardLayout>
   );
 }

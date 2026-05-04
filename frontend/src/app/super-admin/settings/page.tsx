@@ -76,13 +76,12 @@ export default function SettingsPage() {
   };
 
   return (
-    <DashboardLayout>
       <div className="flex flex-col gap-8 pb-20 max-w-[1600px] mx-auto p-4 md:p-8 font-inter">
         <SuperAdminPageHeader
           icon={Settings}
           eyebrow="Governance"
-          title="Platform Governance"
-          subtitle="Enterprise-wide configurations, security protocols, and integration orchestrations."
+          title="System Settings"
+          subtitle="Configure platform-wide settings, security policies, and integration parameters."
           actions={(
             <Button 
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-xl shadow-emerald-500/20 h-12 px-8 rounded-2xl flex items-center gap-2 group"
@@ -103,7 +102,7 @@ export default function SettingsPage() {
                 <div className="p-3 bg-emerald-50 rounded-2xl">
                   <Globe className="h-5 w-5 text-emerald-600" />
                 </div>
-                <h3 className="font-manrope text-lg font-black uppercase tracking-tight">Core Infrastructure</h3>
+                <h3 className="font-manrope text-lg font-black uppercase tracking-tight">System Configuration</h3>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -135,7 +134,7 @@ export default function SettingsPage() {
               <div className="p-6 rounded-3xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-between">
                 <div className="space-y-1">
                   <h4 className="text-sm font-black text-emerald-900 uppercase tracking-tight">Maintenance Protocol</h4>
-                  <p className="text-[11px] text-emerald-700/70 font-medium">Restricts all non-admin access to the platform.</p>
+                  <p className="text-[11px] text-emerald-700/70 font-medium">Enable maintenance mode to restrict access for system updates.</p>
                 </div>
                 <Switch className="data-[state=checked]:bg-emerald-600" />
               </div>
@@ -148,15 +147,15 @@ export default function SettingsPage() {
                   <div className="p-3 bg-indigo-50 rounded-2xl">
                     <Key className="h-5 w-5 text-indigo-600" />
                   </div>
-                  <h3 className="font-manrope text-lg font-black uppercase tracking-tight">API Access Nodes</h3>
+                  <h3 className="font-manrope text-lg font-black uppercase tracking-tight">API Management</h3>
                 </div>
                 <Button variant="ghost" className="text-red-600 font-black uppercase tracking-widest text-[9px] hover:bg-red-50">Revoke All Keys</Button>
               </div>
 
               <div className="space-y-4">
                 {[
-                  { name: "Global Analytics Node", key: "sk_live_••••••••34a1", lastUsed: "2 mins ago", status: "active" },
-                  { name: "Legacy Webhook Router", key: "sk_test_••••••••901b", lastUsed: "14 days ago", status: "inactive" }
+                  { name: "Analytics API", key: "sk_live_••••••••34a1", lastUsed: "2 mins ago", status: "active" },
+                  { name: "Webhook API", key: "sk_test_••••••••901b", lastUsed: "14 days ago", status: "inactive" }
                 ].map((k, i) => (
                   <div key={i} className="group p-5 rounded-3xl border border-slate-100 hover:border-indigo-200 transition-all flex items-center justify-between bg-slate-50/30">
                     <div className="flex items-center gap-4">
@@ -192,7 +191,7 @@ export default function SettingsPage() {
               </div>
 
               <Button className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl">
-                Deploy New Production Node
+                Generate New API Key
               </Button>
             </div>
           </div>
@@ -279,6 +278,5 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
-    </DashboardLayout>
   );
 }

@@ -1,42 +1,42 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface INotification {
   workspace: mongoose.Types.ObjectId;
-  recipient: mongoose.Types.ObjectId; // User ID
-  type: 'info' | 'success' | 'warning' | 'error' | 'assignment' | 'campaign' | 'billing' | 'system';
+  recipient: mongoose.Types.ObjectId;
+  type: 'invitation_accepted' | 'invitation_declined' | 'system_alert' | 'billing_alert';
   title: string;
-  body: string;
-  metadata?: Record<string, any>;
-  read: boolean;
-  readAt?: Date;
+  message: string;
   link?: string;
+  read: boolean;
+  metadata?: any;
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface INotificationDocument extends INotification, Document {}
 
-const NotificationSchema = new Schema<INotificationDocument>({
-  workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
-  recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  type: { 
-    type: String, 
-    enum: ['info', 'success', 'warning', 'error', 'assignment', 'campaign', 'billing', 'system'],
-    default: 'info' 
+const NotificationSchema = new Schema<INotificationDocument>(
+  {
+    workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
+    recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    type: { 
+      type: String, 
+      enum: ['invitation_accepted', 'invitation_declined', 'system_alert', 'billing_alert'],
+      required: true 
+    },
+    title: { type: String, required: true },
+    message: { type: String, required: true },
+    link: { type: String },
+    read: { type: Boolean, default: false },
+    metadata: { type: Schema.Types.Mixed },
   },
-  title: { type: String, required: true },
-  body: { type: String, required: true },
-  metadata: { type: Schema.Types.Mixed },
-  read: { type: Boolean, default: false },
-  readAt: { type: Date },
-  link: { type: String },
-}, {
-  timestamps: true
-});
+  {
+    timestamps: true,
+  }
+);
 
-// Index for fetching unread count quickly
-NotificationSchema.index({ recipient: 1, read: 1 });
-// TTL index: auto-delete notifications after 30 days to keep DB lean
+// Auto-delete notifications after 30 days
 NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
 
-export const Notification = (mongoose.models.Notification as Model<INotificationDocument>) || mongoose.model<INotificationDocument>('Notification', NotificationSchema);
+export const Notification: Model<INotificationDocument> = 
+  mongoose.models.Notification || mongoose.model<INotificationDocument>("Notification", NotificationSchema);
