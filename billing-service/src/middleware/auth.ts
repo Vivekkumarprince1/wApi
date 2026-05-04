@@ -77,6 +77,25 @@ export const internalAuth = (req: Request, res: Response, next: NextFunction) =>
 };
 
 /**
+ * Middleware for endpoints that are used by both the gateway and internal services.
+ */
+export const authenticateOrInternal = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const secret = req.header('x-internal-service-secret');
+
+  if (secret && secret === INTERNAL_SECRET) {
+    req.user = { id: 'internal-service', role: 'system' };
+    const workspaceParam = req.params.workspaceId;
+    const workspaceId = (Array.isArray(workspaceParam) ? workspaceParam[0] : workspaceParam) || req.header('x-workspace-id');
+    if (workspaceId) {
+      req.workspace = { id: workspaceId };
+    }
+    return next();
+  }
+
+  return authenticate(req, res, next);
+};
+
+/**
  * Middleware to restrict access by role.
  */
 export const authorize = (roles: string[]) => {

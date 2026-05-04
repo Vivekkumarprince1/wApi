@@ -25,8 +25,8 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     ActivityLog.create({
       workspace: workspaceId,
       user: userId,
-      action: 'error',
-      entityType: 'api_error',
+      action: 'update',
+      entityType: 'settings',
       status: 'failed',
       errorDetails: `${err.name}: ${err.message}`,
       ipAddress: ip,

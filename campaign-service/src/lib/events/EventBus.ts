@@ -5,6 +5,7 @@ import { CampaignBatch, ICampaignBatchModel } from '../../models/CampaignBatch';
 import { CampaignQueueService } from '../campaign-queue';
 import { Workspace } from '../../models';
 import { monolithWorkerBridge } from '../monolith-worker-client';
+import { SegmentService } from '../../services/SegmentService';
 
 const connection = getSharedRedis();
 
@@ -13,18 +14,41 @@ export const billingEventsQueue = new Queue('BillingEventsQueue', { connection }
 export const campaignEventsQueue = new Queue('CampaignEventsQueue', { connection });
 
 const handleBudgetReserved = async (data: any) => {
-  const { campaignId, workspaceId, totalReservation, contacts, templateSnapshot, variableMapping, templateId } = data;
+  const { campaignId, workspaceId } = data;
   console.log(`[CampaignEventBus] Budget reserved for campaign ${campaignId}. Creating batches...`);
 
   const campaign = await Campaign.findById(campaignId);
   if (!campaign) return;
 
   try {
+    let contacts = data.contacts || campaign.contacts || [];
+    if ((!contacts || contacts.length === 0) && campaign.recipientFilter?.type === 'segment' && campaign.recipientFilter.segmentId) {
+      contacts = await SegmentService.resolveSegmentContacts(workspaceId, campaign.recipientFilter.segmentId);
+      campaign.contacts = contacts;
+    }
+
+    if (!contacts || contacts.length === 0) {
+      throw new Error('NO_RECIPIENTS_FOR_BATCHING');
+    }
+
+    const templateId = data.templateId || campaign.template;
+    const templateSnapshot = data.templateSnapshot || campaign.templateSnapshot;
+    const variableMapping = data.variableMapping ?? campaign.variableMapping;
+    const normalizedContacts = contacts.map((contact: any) => (
+      contact && typeof contact === 'object' && contact._id ? contact : { _id: contact }
+    ));
+
+    const existingBatchCount = await CampaignBatch.countDocuments({ campaign: campaignId });
+    if (existingBatchCount > 0) {
+      console.log(`[CampaignEventBus] Campaign ${campaignId} already has ${existingBatchCount} batch(es). Skipping duplicate batch creation.`);
+      return;
+    }
+
     // 3. Create Batches
     const batches = await (CampaignBatch as ICampaignBatchModel).createBatches(
         campaignId,
         workspaceId,
-        contacts.map((id: any) => ({ _id: id })),
+        normalizedContacts,
         templateId,
         templateSnapshot?.name || 'template',
         variableMapping,
@@ -59,6 +83,7 @@ const handleBudgetReserved = async (data: any) => {
     });
   } catch (error) {
     console.error(`[CampaignEventBus] Error creating batches:`, error);
+    throw error;
   }
 };
 
@@ -96,3 +121,11 @@ export const campaignEventWorker = new Worker('CampaignEventsQueue', async (job:
       console.warn(`[CampaignEventBus] Unknown event type: ${job.name}`);
   }
 }, { connection });
+
+campaignEventWorker.on('completed', (job) => {
+  console.log(`[CampaignEventBus] Job ${job.id} (${job.name}) completed`);
+});
+
+campaignEventWorker.on('failed', (job, err) => {
+  console.error(`[CampaignEventBus] Job ${job?.id} (${job?.name}) failed: ${err.message}`);
+});

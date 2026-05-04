@@ -22,7 +22,12 @@ const handleCampaignCreated = async (data: any) => {
     // 2. Emit Success Event
     await campaignEventsQueue.add('BudgetReservedEvent', {
       campaignId: data.campaignId,
-      workspaceId: data.workspaceId
+      workspaceId: data.workspaceId,
+      totalReservation: data.estimatedCost,
+      contacts: data.contacts,
+      templateId: data.templateId,
+      templateSnapshot: data.templateSnapshot,
+      variableMapping: data.variableMapping,
     });
     console.log(`[EventBus] Budget reserved for ${data.campaignId}`);
   } catch (error: any) {
@@ -69,4 +74,8 @@ export const billingEventWorker = new Worker('BillingEventsQueue', async (job: J
 
 billingEventWorker.on('failed', (job, err) => {
   console.error(`[EventBus] Job ${job?.id} failed with error ${err.message}`);
+});
+
+billingEventWorker.on('completed', (job) => {
+  console.log(`[EventBus] Job ${job.id} (${job.name}) completed`);
 });

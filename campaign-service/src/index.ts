@@ -45,6 +45,9 @@ mongoose.connect(MONGODB_URI, {
   .then(() => {
     console.log('✅ Connected to Campaign Database');
     // Initialize Background Worker ONLY after DB connection
+    import('./lib/events/EventBus')
+      .then(() => console.log('✅ Campaign event workers initialized'))
+      .catch((err) => console.error('❌ Failed to initialize campaign event workers:', err.message));
     new CampaignWorker();
     
     // Start Server ONLY after DB connection

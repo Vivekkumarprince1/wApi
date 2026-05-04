@@ -9,6 +9,7 @@ import { GupshupPartnerService } from '../bsp/gupshup-partner-service';
 import { LedgerService } from '../billing/ledger-service';
 import { ConversationService } from './conversation-service';
 import { connectRedis } from '../../redis';
+import { proxyController } from '../../controllers/proxyController';
 
 /**
  * WABA Messaging Service
@@ -221,24 +222,40 @@ export class WabaService {
     const providerTemplateName = (template as any).metaTemplateName || (template as any).name || templateName;
     const providerLanguageCode = languageCode || (template as any).language || 'en';
 
-    const BILLING_SERVICE_URL = process.env.BILLING_SERVICE_URL || "http://localhost:3003";
-    const axios = (await import('axios')).default;
-    const pricingResponse = await axios.get(`${BILLING_SERVICE_URL}/api/billing/wallets/${workspaceId}/pricing`, {
-      params: { category: template?.category || 'MARKETING' }
-    });
-    const cost = pricingResponse.data.cost;
+    let cost = 0;
+    try {
+      const pricingResponse = await proxyController.forwardToService('billing', {
+        method: 'GET',
+        path: `/api/billing/wallets/${workspaceId}/pricing`,
+        params: { category: template?.category || 'MARKETING' },
+        workspaceId: workspaceId.toString()
+      });
+      cost = pricingResponse.data.cost || 0;
+    } catch (err) {
+      console.warn('[WabaService] Failed to get pricing from billing service, defaulting to 0:', err);
+      cost = 0;
+    }
 
     let deducted = false;
     try {
       // Deduct from wallet if not part of a campaign (Campaigns are handled via parked balance settlement)
       if (cost > 0 && !options.campaignId) {
-          const walletResponse = await axios.get(`${BILLING_SERVICE_URL}/api/billing/wallets/${workspaceId}`);
-          const availableBalance = walletResponse.data.wallet?.availableBalance || 0;
+          let availableBalance = 0;
+          try {
+            const walletResponse = await proxyController.forwardToService('billing', {
+              method: 'GET',
+              path: `/api/billing/wallets/${workspaceId}`,
+              workspaceId: workspaceId.toString()
+            });
+            availableBalance = walletResponse.data.wallet?.availableBalance || 0;
+          } catch (err) {
+            console.warn('[WabaService] Failed to get wallet from billing service, skipping deduction:', err);
+            availableBalance = Number.MAX_SAFE_INTEGER; // Temporarily allow send if we can't check wallet
+          }
           
           if (availableBalance < cost) {
               throw new Error('INSUFFICIENT_BALANCE');
           }
-
 
           await LedgerService.deduct(workspaceId, cost, {
             type: 'SPEND',

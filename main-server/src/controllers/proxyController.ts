@@ -77,11 +77,36 @@ function assertInternalSecret() {
 function normalizeCampaignPath(pathString: string) {
   let relativePath = pathString;
 
-  if (relativePath.startsWith('/campaign/')) relativePath = relativePath.slice('/campaign/'.length);
-  else if (relativePath === '/campaign') relativePath = '';
-  else if (relativePath.startsWith('/campaigns')) relativePath = relativePath.slice(1);
-  else if (relativePath.startsWith('/segments')) relativePath = relativePath.slice(1);
-  else relativePath = relativePath.replace(/^\//, '');
+  // Case 1: Path starts with /campaign/campaigns/ or /campaign/campaigns
+  if (relativePath.startsWith('/campaign/campaigns/')) {
+    relativePath = 'campaigns/' + relativePath.slice('/campaign/campaigns/'.length);
+  } else if (relativePath === '/campaign/campaigns') {
+    relativePath = 'campaigns';
+  }
+  // Case 2: Path starts with /campaign/segments/ or /campaign/segments
+  else if (relativePath.startsWith('/campaign/segments/')) {
+    relativePath = 'segments/' + relativePath.slice('/campaign/segments/'.length);
+  } else if (relativePath === '/campaign/segments') {
+    relativePath = 'segments';
+  }
+  // Case 3: Path starts with /campaign/
+  else if (relativePath.startsWith('/campaign/')) {
+    relativePath = relativePath.slice('/campaign/'.length);
+  }
+  // Case 4: Path is exactly /campaign
+  else if (relativePath === '/campaign') {
+    relativePath = '';
+  }
+  // Case 5: Path starts with /campaigns or /segments (without /campaign prefix)
+  else if (relativePath.startsWith('/campaigns')) {
+    relativePath = relativePath.slice(1);
+  } else if (relativePath.startsWith('/segments')) {
+    relativePath = relativePath.slice(1);
+  }
+  // Default: remove leading slash if any
+  else {
+    relativePath = relativePath.replace(/^\//, '');
+  }
 
   return relativePath;
 }
@@ -92,7 +117,10 @@ function buildServiceUrl(service: ProxyService, targetBaseUrl: string, req: Auth
 
   if (service === 'automation') {
     const relativePath = pathString.replace(/^\/automation\/?/, '');
-    return `${targetBaseUrl}/api/automation${relativePath ? `/${relativePath}` : ''}`;
+    if (relativePath.startsWith('engine/')) {
+      return `${targetBaseUrl}/api/automation/${relativePath}`;
+    }
+    return `${targetBaseUrl}/api/automation/engine${relativePath ? `/${relativePath}` : ''}`;
   }
 
   if (service === 'campaign') {
@@ -262,7 +290,7 @@ export const proxyController = {
       });
 
       const contentType = response.headers['content-type'];
-      if (contentType) {
+      if (contentType && typeof contentType === 'string') {
         res.setHeader('Content-Type', contentType);
       }
 

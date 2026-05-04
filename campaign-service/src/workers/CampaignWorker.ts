@@ -87,11 +87,15 @@ export class CampaignWorker {
     const { template } = await monolithWorkerBridge.getTemplate(campaign.template.toString());
     
     // Fetch pricing from Billing Service
-    const { config } = await import('../config');
-    const axios = (await import('axios')).default;
-    const pricingResponse = await axios.get(`${config.billingServiceUrl}/api/billing/wallets/${workspaceId}/pricing`, {
+    const { serviceRequest } = await import('../lib/service-client');
+    const pricingResponse = await serviceRequest('billing', {
+      method: 'GET',
+      url: `/api/billing/wallets/${workspaceId}/pricing`,
       params: { category: template?.category || 'MARKETING' }
     });
+    if (pricingResponse.status !== 200) {
+      throw new Error(pricingResponse.data?.error || pricingResponse.data?.message || 'Failed to fetch billing pricing');
+    }
     const cost = pricingResponse.data.cost;
 
     const totalReservation = contacts.length * cost;
@@ -166,6 +170,7 @@ export class CampaignWorker {
                   workspaceId,
                   to: contact.phone,
                   templateName: batch.templateName || 'template',
+                  languageCode: (campaign.templateSnapshot as any)?.language,
                   components,
                   options: {
                     contactId: (contact as any)._id,

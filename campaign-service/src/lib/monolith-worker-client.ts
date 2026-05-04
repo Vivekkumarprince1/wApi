@@ -1,13 +1,11 @@
 import axios from 'axios';
-
-const MONOLITH_URL = process.env.MONOLITH_URL || 'http://localhost:3000';
-const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || 'your-service-secret';
+import { config } from '../config';
 
 const client = axios.create({
-  baseURL: MONOLITH_URL,
+  baseURL: config.monolithUrl,
   headers: {
     'Content-Type': 'application/json',
-    'x-internal-service-secret': INTERNAL_SERVICE_SECRET,
+    'x-internal-service-secret': config.internalServiceSecret,
   },
 });
 

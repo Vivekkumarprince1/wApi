@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { WalletController } from '../controllers/WalletController';
-import { authenticate, internalAuth, authorize } from '../middleware/auth';
+import { authenticate, authenticateOrInternal, internalAuth, authorize } from '../middleware/auth';
 
 const router = Router();
 
@@ -24,11 +24,11 @@ router.get('/invoices/:invoiceNumber/download', authenticate, WalletController.d
 // DYNAMIC ROUTES (parameterized with :workspaceId)
 // ══════════════════════════════════════════════
 
-router.get('/:workspaceId', authenticate, WalletController.getWallet);
+router.get('/:workspaceId', authenticateOrInternal, WalletController.getWallet);
 router.post('/:workspaceId/sync', internalAuth, WalletController.syncWallet);
-router.get('/:workspaceId/details', authenticate, WalletController.getWorkspace);
+router.get('/:workspaceId/details', authenticateOrInternal, WalletController.getWorkspace);
 router.get('/:workspaceId/transactions', authenticate, WalletController.getTransactions);
-router.get('/:workspaceId/pricing', authenticate, WalletController.getPricing);
+router.get('/:workspaceId/pricing', authenticateOrInternal, WalletController.getPricing);
 
 router.post('/:workspaceId/recharge', authenticate, WalletController.createRechargeOrder);
 router.post('/:workspaceId/plan', authenticate, WalletController.createPlanOrder);

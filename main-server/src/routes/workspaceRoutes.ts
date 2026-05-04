@@ -6,6 +6,8 @@ const router = Router();
 
 router.use(authenticate);
 
+router.get('/pricing', workspaceController.getPricing);
+
 router.get('/settings', workspaceController.getSettings);
 router.patch('/settings', authorizeRole(['owner', 'admin']), workspaceController.updateSettings);
 router.patch('/business-info', authorizeRole(['owner', 'admin']), workspaceController.updateBusinessInfo);

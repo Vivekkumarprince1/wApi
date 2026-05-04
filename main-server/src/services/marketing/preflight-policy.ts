@@ -1,6 +1,7 @@
 import { Workspace, Template, Contact, ITemplate } from "@/models";
 import dbConnect from "@/db-connect";
 import { Types } from "mongoose";
+import { config } from "@/config";
 
 export const PLAN_LIMITS = {
   free: { messagesDaily: 1000, messagesMonthly: 30000, campaigns: 5 },
@@ -47,12 +48,20 @@ export class PreflightPolicyService {
     }
 
     // 4. Wallet Balance & Status (Fetch from Billing Service)
-    const BILLING_SERVICE_URL = process.env.BILLING_SERVICE_URL || "http://localhost:3003";
+    const BILLING_SERVICE_URL = config.billingServiceUrl;
     const axios = (await import('axios')).default;
+    const billingHeaders = {
+      'x-internal-service-secret': config.internalServiceSecret,
+      'x-workspace-id': workspaceId.toString(),
+    };
     
-    const billingResponse = await axios.get(`${BILLING_SERVICE_URL}/api/billing/wallets/${workspaceId}/details`);
+    const billingResponse = await axios.get(`${BILLING_SERVICE_URL}/api/billing/wallets/${workspaceId}/details`, {
+      headers: billingHeaders,
+    });
     const { workspace: billingData } = billingResponse.data;
-    const walletResponse = await axios.get(`${BILLING_SERVICE_URL}/api/billing/wallets/${workspaceId}`);
+    const walletResponse = await axios.get(`${BILLING_SERVICE_URL}/api/billing/wallets/${workspaceId}`, {
+      headers: billingHeaders,
+    });
     const { wallet: walletData } = walletResponse.data;
 
     if (billingData.billingStatus === 'suspended' || billingData.billingStatus === 'canceled') {
@@ -60,6 +69,7 @@ export class PreflightPolicyService {
     }
 
     const pricingResponse = await axios.get(`${BILLING_SERVICE_URL}/api/billing/wallets/${workspaceId}/pricing`, {
+      headers: billingHeaders,
       params: { category: template.category || 'MARKETING' }
     });
     const costPerMsg = pricingResponse.data.cost;

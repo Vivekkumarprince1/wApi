@@ -39,6 +39,10 @@ export const internalController = {
 
         case 'get-pricing':
           const response = await axios.get(`${appConfig.billingServiceUrl}/api/billing/wallets/${data.workspaceId}/pricing`, {
+            headers: {
+              'x-internal-service-secret': appConfig.internalServiceSecret,
+              'x-workspace-id': data.workspaceId,
+            },
             params: { category: data.category }
           });
           return res.json({ cost: response.data.cost });

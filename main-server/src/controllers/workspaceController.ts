@@ -9,6 +9,38 @@ import { Types } from 'mongoose';
 
 export const workspaceController = {
   /**
+   * Get workspace pricing
+   */
+  async getPricing(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const workspaceId = req.workspace._id.toString();
+      const categories = ['MARKETING', 'UTILITY', 'AUTHENTICATION', 'SERVICE'] as const;
+      const pricing: Record<string, number> = {};
+
+      for (const category of categories) {
+        try {
+          const response = await proxyController.forwardToService('billing', {
+            method: 'GET',
+            path: `/api/billing/wallets/${workspaceId}/pricing`,
+            params: { category },
+            workspaceId
+          });
+          pricing[category] = response.data.cost;
+        } catch {
+          pricing[category] = 0;
+        }
+      }
+
+      res.json({
+        success: true,
+        data: pricing,
+        currency: (req.workspace as any)?.wallet?.currency || 'INR'
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+  /**
    * Get Current Workspace Settings
    */
   async getSettings(req: AuthRequest, res: Response, next: NextFunction) {

@@ -3,6 +3,7 @@ import { AuthRequest } from '../middlewares/authMiddleware';
 import { Product } from '../models';
 import { PaymentService } from '../services/commerce/payment-service';
 import { AutomationClient } from '../services/automation/automation-client';
+import { proxyController } from './proxyController';
 
 export const commerceController = {
   /**
@@ -141,7 +142,7 @@ export const commerceController = {
 
   async getStats(req: AuthRequest, res: Response) {
     try {
-      const { workspace } = req;
+      const { workspace, user } = req;
       const [productStats, billingStatsRes] = await Promise.all([
         Product.aggregate([
           { $match: { workspace: workspace._id, isDeleted: false } },
