@@ -51,12 +51,19 @@ export class FlowExecutorService {
         triggerEvent: context.eventType,
         contact: context.contactId,
         conversation: context.conversationId,
-        status: 'pending',
+        status: 'PENDING',
         startedAt: new Date(),
         actionResults: [],
         isDryRun: context.isDryRun || false,
         contextSnapshot: context // Store full snapshot for audit
       } as any);
+
+      // Publish event: Workflow Started
+      const { publishEvent } = await import("../lib/redis");
+      await publishEvent('automation:events', 'workflow_started', rule.workspace.toString(), {
+        executionId: execution._id.toString(),
+        ruleName: rule.name
+      });
 
       const visited = new Set<string>();
       let currentNode = context?.startNodeId
@@ -133,6 +140,13 @@ export class FlowExecutorService {
       execution.durationMs = Date.now() - startTime;
       await execution.save();
 
+      // Publish event: Workflow Completed
+      await publishEvent('automation:events', 'workflow_completed', rule.workspace.toString(), {
+        executionId: execution._id.toString(),
+        ruleName: rule.name,
+        status: 'SUCCESS'
+      });
+
       return { success: true, executionId: execution._id?.toString() };
     } catch (err: any) {
       console.error("[FlowExecutor Critical Error]:", err.message);
@@ -140,6 +154,14 @@ export class FlowExecutorService {
         execution.status = 'FAILED';
         execution.completedAt = new Date();
         await execution.save();
+
+        const { publishEvent } = await import("../lib/redis");
+        await publishEvent('automation:events', 'workflow_completed', rule.workspace.toString(), {
+          executionId: execution._id.toString(),
+          ruleName: rule?.name || 'Unknown',
+          status: 'FAILED',
+          error: err.message
+        });
       }
       return { success: false, error: err.message };
     }
@@ -162,7 +184,7 @@ export class FlowExecutorService {
           workspaceId,
           contactId: context.contactId,
           conversationId: context.conversationId,
-          phone: context.contact?.phone,
+          phone: context.phone || context.contact?.phone,
           config: node.data?.config || node.data || {}
         }
       });

@@ -57,11 +57,12 @@ export default function InboxPage() {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [assignmentFilter, setAssignmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [channelFilter, setChannelFilter] = useState('all');
   const [isDetailsOpen, setIsDetailsOpen] = useState(true);
 
   // 1. Fetch Conversations
   const { data: convsData, isLoading: isConvsLoading } = useQuery({
-    queryKey: ['conversations', statusFilter, assignmentFilter],
+    queryKey: ['conversations', statusFilter, assignmentFilter, channelFilter],
     queryFn: () => {
       let view = 'mine';
       if (['resolved', 'snoozed', 'spam'].includes(statusFilter)) {
@@ -71,7 +72,8 @@ export default function InboxPage() {
       }
       return fetchConversations({ 
         view,
-        status: ['all', 'open'].includes(statusFilter) ? undefined : statusFilter
+        status: ['all', 'open'].includes(statusFilter) ? undefined : statusFilter,
+        channel: channelFilter === 'all' ? undefined : channelFilter
       });
     }
   });
@@ -140,7 +142,7 @@ export default function InboxPage() {
     if (!isConnected) return;
 
     const handleNewMessage = (data: any) => {
-      console.log('[Inbox:Socket] New Message:', data);
+      console.log('[Inbox:Socket] New Message Received:', data);
       
       // Update cache only if it matches current selected conversation
       if (selectedConversation && String(data.conversationId) === String(selectedConversation._id)) {
@@ -162,13 +164,14 @@ export default function InboxPage() {
           return { ...old, pages: updatedPages };
         });
 
-        markAsRead(selectedConversation._id);
+        markAsRead(selectedConversation._id).catch(() => {});
       }
       
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
     const handleStatusUpdate = (data: any) => {
+      console.log('[Inbox:Socket] Status Update:', data);
       if (!selectedConversation) return;
       queryClient.setQueryData(['messages', selectedConversation._id], (old: any) => {
         if (!old) return old;
@@ -178,7 +181,7 @@ export default function InboxPage() {
             ...page,
             data: page.data.map((msg: any) => 
                String(msg._id) === String(data.messageId) || msg.whatsappMessageId === data.messageId 
-                ? { ...msg, status: data.status } 
+                ? { ...msg, status: data.status, statusUpdatedAt: data.timestamp } 
                 : msg
             )
           }))
@@ -187,6 +190,7 @@ export default function InboxPage() {
     };
 
     const handleStatusBatch = (data: any) => {
+      console.log('[Inbox:Socket] Status Batch Update:', data);
       if (!selectedConversation) return;
       const updates = data.updates || [];
       if (!updates.length) return;
@@ -199,29 +203,24 @@ export default function InboxPage() {
             ...page,
             data: page.data.map((msg: any) => {
               const update = updates.find((u: any) => String(msg._id) === String(u.messageId) || msg.whatsappMessageId === u.messageId);
-              return update ? { ...msg, status: update.status } : msg;
+              return update ? { ...msg, status: update.status, statusUpdatedAt: update.timestamp } : msg;
             })
           }))
         };
       });
     };
-    const handleConversationRefresh = () => queryClient.invalidateQueries({ queryKey: ['conversations'] });
 
-    socket.on('message:created', (payload: any) => {
-      // payload structure from emitter: { type, data: message, timestamp }
-      handleNewMessage({ conversationId: payload.data.conversation, message: payload.data });
-    });
-    socket.on('message:status-updated', handleStatusUpdate);
-    socket.on('message:status', handleStatusUpdate);
-    socket.on('conversation:updated', handleConversationRefresh);
-    socket.on('conversation:status-changed', handleConversationRefresh);
+    // Listen to CORRECT backend event names
+    socket.on('inbox:message_new', handleNewMessage);
+    socket.on('inbox:message_sent', handleNewMessage); // Also treat sent as new message
+    socket.on('inbox:message_status', handleStatusUpdate);
+    socket.on('inbox:status_batch', handleStatusBatch);
 
     return () => {
-      socket.off('message:created');
-      socket.off('message:status-updated');
-      socket.off('message:status');
-      socket.off('conversation:updated');
-      socket.off('conversation:status-changed');
+      socket.off('inbox:message_new', handleNewMessage);
+      socket.off('inbox:message_sent', handleNewMessage);
+      socket.off('inbox:message_status', handleStatusUpdate);
+      socket.off('inbox:status_batch', handleStatusBatch);
     };
   }, [socket, isConnected, selectedConversation, queryClient]);
 
@@ -240,7 +239,7 @@ export default function InboxPage() {
         body: payload.text, 
         isInternalNote: payload.isNote,
         ...(payload.extraData || {})
-      }),
+      }, { 'x-socket-id': socket?.id }),
     
     onMutate: async (payload) => {
       // Optimistic Update
@@ -317,7 +316,7 @@ export default function InboxPage() {
         mediaType: file.type.startsWith('image/') ? 'image' : 'document',
         mimeType: file.type,
         filename: file.name
-      });
+      }, { 'x-socket-id': socket?.id });
     },
     
     onMutate: async (file) => {
@@ -452,10 +451,12 @@ export default function InboxPage() {
           selectedId={selectedConversation?._id || null} 
           onSelect={handleSelectConversation}
           isLoading={isConvsLoading}
-          activeFilter={statusFilter}
+          activeStatus={statusFilter}
           onFilterChange={setStatusFilter}
           activeAssignment={assignmentFilter}
           onAssignmentChange={setAssignmentFilter}
+          activeChannel={channelFilter}
+          onChannelChange={setChannelFilter}
         />
       </div>
 
@@ -572,6 +573,7 @@ export default function InboxPage() {
                 isSending={sendMutation.isPending || mediaMutation.isPending}
                 disabled={false}
                 onTyping={() => socket?.emit('typing', { conversationId: selectedConversation._id, isTyping: true })}
+                channel={selectedConversation.channel}
               />
             </motion.div>
           ) : (

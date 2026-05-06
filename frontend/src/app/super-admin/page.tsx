@@ -95,36 +95,36 @@ export default function SuperAdminDashboard() {
   const displayStats = [
     { 
       label: "Total Workspaces", 
-      value: stats?.totalWorkspaces?.toLocaleString() || "1,284", 
+      value: stats?.totalWorkspaces?.toLocaleString() || "—", 
       icon: Building2, 
-      trend: "+12.5% vs last month",
+      trend: `${stats?.totalUsers || 0} registered users`,
       color: "text-emerald-500", 
       bg: "bg-emerald-50",
       borderColor: "border-emerald-500"
     },
     { 
       label: "Active Subscriptions", 
-      value: stats?.activeSubscriptions?.toLocaleString() || "942", 
+      value: stats?.activeSubscriptions?.toLocaleString() || "—", 
       icon: Verified, 
-      trend: "88% retention rate",
+      trend: stats?.totalWorkspaces ? `${Math.round((stats.activeSubscriptions / stats.totalWorkspaces) * 100)}% conversion` : "—",
       color: "text-indigo-600", 
       bg: "bg-indigo-50",
       borderColor: "border-indigo-600"
     },
     { 
       label: "Monthly Revenue", 
-      value: `₹${stats?.activeRevenue?.toLocaleString() || "248,500"}`, 
+      value: stats?.activeRevenue != null ? `₹${stats.activeRevenue.toLocaleString()}` : "—", 
       icon: CreditCard, 
-      trend: "+18.2% Growth",
+      trend: "Live ledger sync",
       color: "text-emerald-700", 
       bg: "bg-emerald-100",
       borderColor: "border-emerald-700"
     },
     { 
       label: "Active BSPs", 
-      value: stats?.activeBSPs || "14", 
+      value: stats?.activeBSPs?.toLocaleString() || "—", 
       icon: Globe, 
-      trend: "All systems operational",
+      trend: "Mapped app integrations",
       color: "text-slate-700", 
       bg: "bg-slate-100",
       borderColor: "border-slate-700"
@@ -195,7 +195,7 @@ export default function SuperAdminDashboard() {
                   <h3 className="font-manrope text-lg font-black uppercase tracking-tight flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-emerald-600" /> Workspace Directory
                   </h3>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Managing {stats?.totalWorkspaces || 1284} active workspaces</p>
+                  <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Managing {stats?.totalWorkspaces?.toLocaleString() || '—'} active workspaces</p>
                 </div>
                 <div className="relative w-full md:w-64 group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-emerald-600 transition-colors" />
@@ -237,7 +237,7 @@ export default function SuperAdminDashboard() {
                        </td>
                        <td className="px-8 py-5">
                           <Badge variant="outline" className="font-black text-[9px] uppercase tracking-widest border-emerald-500/20 bg-emerald-500/10 text-emerald-600 px-3 py-1">
-                            {ws.plan?.name || 'Enterprise Pro'}
+                            {ws.plan?.name || 'Free Tier'}
                           </Badge>
                        </td>
                        <td className="px-8 py-5">
@@ -272,27 +272,41 @@ export default function SuperAdminDashboard() {
                    <h3 className="font-manrope text-sm font-black uppercase tracking-tight flex items-center gap-2">
                      <Cpu className="h-4 w-4 text-emerald-600" /> Service Pulse
                    </h3>
-                   <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">Nominal</Badge>
+                   <Badge className={cn(
+                     "border-none font-black text-[9px] uppercase tracking-widest px-3 py-1",
+                     health?.services?.every((s: any) => s.status === 'up') 
+                       ? "bg-emerald-500/10 text-emerald-600" 
+                       : "bg-amber-500/10 text-amber-600"
+                   )}>
+                     {health?.services?.every((s: any) => s.status === 'up') ? 'Nominal' : 'Degraded'}
+                   </Badge>
                 </div>
                 <div className="space-y-4">
-                   {[
-                     { name: 'API Gateway', icon: Globe, val: 99.9, color: 'bg-emerald-500' },
-                     { name: 'Database', icon: Database, val: 100, color: 'bg-emerald-600' },
-                     { name: 'Authentication', icon: Lock, val: 99.4, color: 'bg-amber-500' }
-                   ].map((s, i) => (
-                     <div key={i} className="p-4 rounded-3xl bg-slate-50/50 border border-slate-100 space-y-3">
-                        <div className="flex justify-between items-center">
-                           <div className="flex items-center gap-3">
-                              <s.icon className="h-4 w-4 text-slate-400" />
-                              <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">{s.name}</span>
-                           </div>
-                           <span className="text-xs font-black">{s.val}%</span>
-                        </div>
-                        <div className="h-1.5 w-full bg-white rounded-full overflow-hidden">
-                           <div className={cn("h-full rounded-full", s.color)} style={{ width: `${s.val}%` }} />
-                        </div>
-                     </div>
-                   ))}
+                   {healthLoading ? (
+                     Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-3xl" />)
+                   ) : (health?.services || []).slice(0, 4).map((s: any, i: number) => {
+                     const isUp = s.status === 'up';
+                     const uptime = isUp ? 99.9 : 0;
+                     return (
+                       <div key={i} className="p-4 rounded-3xl bg-slate-50/50 border border-slate-100 space-y-3">
+                          <div className="flex justify-between items-center">
+                             <div className="flex items-center gap-3">
+                                <Server className="h-4 w-4 text-slate-400" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">{s.name}</span>
+                             </div>
+                             <Badge variant="outline" className={cn(
+                               "text-[8px] font-black uppercase tracking-widest border-none px-2 py-0.5",
+                               isUp ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"
+                             )}>
+                               {isUp ? 'Operational' : 'Down'}
+                             </Badge>
+                          </div>
+                          <div className="h-1.5 w-full bg-white rounded-full overflow-hidden">
+                             <div className={cn("h-full rounded-full transition-all duration-700", isUp ? "bg-emerald-500" : "bg-red-500")} style={{ width: `${isUp ? uptime : 0}%` }} />
+                          </div>
+                       </div>
+                     );
+                   })}
                 </div>
                 <Button className="w-full h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl" onClick={() => router.push('/super-admin/health')}>
                   Diagnostic Log
@@ -300,32 +314,41 @@ export default function SuperAdminDashboard() {
              </div>
 
              {/* Plan Distribution */}
-             <div className="glass-card p-8 rounded-[2.5rem] border border-slate-200/50 flex flex-col gap-6 shadow-sm bg-slate-900 text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
-                <h3 className="font-manrope text-sm font-black uppercase tracking-tight relative z-10">Revenue Analytics</h3>
-                <div className="h-40 flex items-end gap-3 relative z-10 px-2">
-                   {[40, 65, 35].map((h, i) => (
-                     <div key={i} className={cn(
-                       "flex-1 rounded-t-xl transition-all duration-500",
-                       i === 0 ? "bg-emerald-600" : i === 1 ? "bg-emerald-500" : "bg-white/20"
-                     )} style={{ height: `${h}%` }} />
-                   ))}
-                </div>
-                <div className="grid grid-cols-3 gap-2 relative z-10 pt-4 border-t border-white/10">
-                   <div className="flex flex-col gap-1">
-                      <span className="text-[8px] font-black uppercase text-emerald-400 tracking-widest">Enterprise</span>
-                      <span className="text-xs font-black">65%</span>
+             {(() => {
+               const planCounts: Record<string, number> = {};
+               (workspaces || []).forEach((ws: any) => {
+                 const name = ws.plan?.name || 'Unassigned';
+                 planCounts[name] = (planCounts[name] || 0) + 1;
+               });
+               const total = workspaces?.length || 1;
+               const entries = Object.entries(planCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+               const barColors = ['bg-emerald-600', 'bg-emerald-500', 'bg-white/20'];
+               const labelColors = ['text-emerald-400', 'text-emerald-300', 'text-white/40'];
+               return (
+                 <div className="glass-card p-8 rounded-[2.5rem] border border-slate-200/50 flex flex-col gap-6 shadow-sm bg-slate-900 text-white relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
+                   <h3 className="font-manrope text-sm font-black uppercase tracking-tight relative z-10">Plan Distribution</h3>
+                   <div className="h-40 flex items-end gap-3 relative z-10 px-2">
+                     {entries.length > 0 ? entries.map(([, count], i) => (
+                       <div key={i} className={cn(
+                         "flex-1 rounded-t-xl transition-all duration-500",
+                         barColors[i] || 'bg-white/20'
+                       )} style={{ height: `${Math.max(10, (count / total) * 100)}%` }} />
+                     )) : (
+                       <div className="flex-1 flex items-center justify-center text-white/30 text-[10px] font-black uppercase tracking-widest">No data</div>
+                     )}
                    </div>
-                   <div className="flex flex-col gap-1">
-                      <span className="text-[8px] font-black uppercase text-emerald-300 tracking-widest">Professional</span>
-                      <span className="text-xs font-black">25%</span>
+                   <div className={`grid grid-cols-${Math.min(entries.length, 3)} gap-2 relative z-10 pt-4 border-t border-white/10`}>
+                     {entries.map(([name, count], i) => (
+                       <div key={name} className="flex flex-col gap-1">
+                         <span className={cn("text-[8px] font-black uppercase tracking-widest", labelColors[i] || 'text-white/40')}>{name}</span>
+                         <span className="text-xs font-black">{Math.round((count / total) * 100)}%</span>
+                       </div>
+                     ))}
                    </div>
-                   <div className="flex flex-col gap-1">
-                      <span className="text-[8px] font-black uppercase text-white/40 tracking-widest">Starter</span>
-                      <span className="text-xs font-black">10%</span>
-                   </div>
-                </div>
-             </div>
+                 </div>
+               );
+             })()}
           </div>
         </div>
       </div>

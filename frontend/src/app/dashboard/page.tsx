@@ -2,7 +2,21 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Rocket, Loader2, Zap } from 'lucide-react';
+import { 
+  Rocket, 
+  Loader2, 
+  Zap, 
+  User, 
+  MessageSquare, 
+  Settings, 
+  Plus, 
+  Trash, 
+  Send, 
+  FileUp, 
+  FileDown,
+  Activity,
+  AlertCircle
+} from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import client from '@/lib/api/client';
 import { useAuthStore } from '@/store/auth-store';
@@ -130,11 +144,15 @@ const DashboardPageClient = () => {
           responseRate: Math.round((overview.campaigns?.replyRate || 0) * 100) / 100
         };
 
-        if (overview.recentActivity && overview.recentActivity.length > 0) {
-          recentActivity = overview.recentActivity.map((activity: any) => ({
-            ...activity,
-            time: formatTimeAgo(activity.time)
-          }));
+        if (overview.recentActivity && Array.isArray(overview.recentActivity)) {
+          recentActivity = overview.recentActivity.map((activity: any) => {
+            const rawTime = activity.time || activity.timestamp || activity.createdAt;
+            return {
+              ...activity,
+              time: formatTimeAgo(rawTime) || 'Recently',
+              title: activity.title || `System ${activity.action || 'Activity'}`
+            };
+          });
         }
       }
 
@@ -242,17 +260,51 @@ const DashboardPageClient = () => {
               <button className="text-xs font-black uppercase tracking-widest text-primary hover:opacity-80 transition-opacity">View Logs</button>
             </div>
             <div className="space-y-4 flex-1">
-              {recentActivity.slice(0, 5).map((activity: any, idx: number) => (
-                <div key={idx} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-muted/50 transition-colors group">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                    <Zap className="h-5 w-5" />
+              {recentActivity.slice(0, 5).map((activity: any, idx: number) => {
+                const getIcon = () => {
+                  switch(activity.type) {
+                    case 'contact': return <User className="h-5 w-5" />;
+                    case 'message': return <MessageSquare className="h-5 w-5" />;
+                    case 'conversation': return <MessageSquare className="h-5 w-5" />;
+                    case 'campaign': return <Rocket className="h-5 w-5" />;
+                    case 'automation': return <Zap className="h-5 w-5" />;
+                    case 'settings': return <Settings className="h-5 w-5" />;
+                    default: 
+                      if (activity.action === 'create') return <Plus className="h-5 w-5" />;
+                      if (activity.action === 'delete') return <Trash className="h-5 w-5" />;
+                      if (activity.action === 'send') return <Send className="h-5 w-5" />;
+                      if (activity.action === 'import') return <FileUp className="h-5 w-5" />;
+                      if (activity.action === 'export') return <FileDown className="h-5 w-5" />;
+                      return <Activity className="h-5 w-5" />;
+                  }
+                };
+
+                const getIconColor = () => {
+                  if (activity.status === 'failed') return 'bg-red-500/10 text-red-500';
+                  switch(activity.type) {
+                    case 'contact': return 'bg-blue-500/10 text-blue-500';
+                    case 'message': return 'bg-green-500/10 text-green-500';
+                    case 'campaign': return 'bg-purple-500/10 text-purple-500';
+                    case 'automation': return 'bg-amber-500/10 text-amber-500';
+                    default: return 'bg-primary/10 text-primary';
+                  }
+                };
+
+                return (
+                  <div key={activity.id || idx} className="flex items-center gap-4 p-3 rounded-2xl hover:bg-muted/50 transition-colors group">
+                    <div className={`w-10 h-10 rounded-xl ${getIconColor()} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                      {getIcon()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-foreground truncate">{activity.title || 'System Activity'}</p>
+                        {activity.status === 'failed' && <AlertCircle className="h-3 w-3 text-red-500" />}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground font-medium">{activity.time || 'Just now'}</p>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{activity.title}</p>
-                    <p className="text-[10px] text-muted-foreground font-medium">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
               {recentActivity.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-10 opacity-40 italic">
                   <p className="text-xs font-medium">No recent activity detected</p>

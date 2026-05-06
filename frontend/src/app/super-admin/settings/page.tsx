@@ -109,7 +109,7 @@ export default function SettingsPage() {
                 <div className="space-y-2 md:col-span-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Enterprise Name</Label>
                   <Input 
-                    defaultValue="Emerald Enterprise Solutions" 
+                    defaultValue={settings?.appName || 'wApi'} 
                     className="h-12 rounded-2xl bg-slate-50 border-slate-100 font-bold focus:ring-emerald-500/20"
                   />
                 </div>
@@ -136,7 +136,11 @@ export default function SettingsPage() {
                   <h4 className="text-sm font-black text-emerald-900 uppercase tracking-tight">Maintenance Protocol</h4>
                   <p className="text-[11px] text-emerald-700/70 font-medium">Enable maintenance mode to restrict access for system updates.</p>
                 </div>
-                <Switch className="data-[state=checked]:bg-emerald-600" />
+                <Switch 
+                  checked={settings?.maintenanceMode || false}
+                  onCheckedChange={(enabled) => updateMutation.mutate({ maintenanceMode: enabled })}
+                  className="data-[state=checked]:bg-emerald-600" 
+                />
               </div>
             </div>
 

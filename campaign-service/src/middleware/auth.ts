@@ -6,13 +6,10 @@ const JWT_SECRET = config.jwtSecret;
 const INTERNAL_SECRET = config.internalServiceSecret;
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-  workspace?: {
-    id: string;
-  };
+  user?: any;
+  workspace?: any;
+  role?: string;
+  permissions?: string[];
 }
 
 /**
@@ -25,11 +22,20 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   const gatewayWorkspaceId = req.header('x-workspace-id');
   const gatewayRole = req.header('x-user-role');
 
-  console.log(`[Auth] Incoming Headers - User: ${gatewayUserId}, Workspace: ${gatewayWorkspaceId}, Role: ${gatewayRole}`);
-
-  if (gatewayUserId && gatewayWorkspaceId) {
-    req.user = { id: gatewayUserId, role: gatewayRole || 'agent' };
-    req.workspace = { id: gatewayWorkspaceId };
+  if (gatewayUserId) {
+    req.user = { 
+      id: gatewayUserId, 
+      _id: gatewayUserId,
+      role: gatewayRole || 'agent' 
+    };
+    req.role = gatewayRole || 'agent';
+    
+    if (gatewayWorkspaceId) {
+      req.workspace = { 
+        id: gatewayWorkspaceId,
+        _id: gatewayWorkspaceId
+      };
+    }
     return next();
   }
 
@@ -43,9 +49,18 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET as string);
-    req.user = { id: decoded.id, role: decoded.role || 'agent' };
+    req.user = { 
+      id: decoded.id, 
+      _id: decoded.id,
+      role: decoded.role || 'agent' 
+    };
+    req.role = decoded.role || 'agent';
+    
     if (decoded.workspaceId) {
-      req.workspace = { id: decoded.workspaceId };
+      req.workspace = { 
+        id: decoded.workspaceId,
+        _id: decoded.workspaceId
+      };
     }
     next();
   } catch (err) {

@@ -118,7 +118,7 @@ export function WorkspaceSwitcher() {
             
             <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
               {workspaces?.map((ws, index) => {
-                const safeId = ws.id || ws._id || `workspace-${index}`;
+                const safeId = ws.id || `workspace-${index}`;
                 return (
                   <DropdownMenuItem 
                     key={safeId}

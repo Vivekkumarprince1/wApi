@@ -5,8 +5,26 @@ import api from './client';
  * Paths match main-server /api/v1/auth/* (Next rewrites /api -> /api/v1).
  */
 
+/**
+ * Store auth token in sessionStorage for Socket.io access
+ */
+function storeAuthToken(token: string) {
+  if (typeof window !== 'undefined' && token) {
+    try {
+      sessionStorage.setItem('socket_auth_token', token);
+      console.log('[Auth] ✓ Token stored in sessionStorage for Socket.io');
+    } catch (err) {
+      console.warn('[Auth] Could not store token in sessionStorage:', err);
+    }
+  }
+}
+
 export const loginUser = async (data: any) => {
-  return api.post('/auth/login', data);
+  const response = await api.post('/auth/login', data);
+  if (response?.token) {
+    storeAuthToken(response.token);
+  }
+  return response;
 };
 
 /** Sends signup OTP; user must verify via verifySignupOtp or verifyOtpToken with purpose signup_email */
@@ -15,7 +33,11 @@ export const registerUser = async (userData: any) => {
 };
 
 export const verifySignupOtp = async (email: string, otp: string) => {
-  return api.post('/auth/verify-signup-otp', { email, otp });
+  const response = await api.post('/auth/verify-signup-otp', { email, otp });
+  if (response?.token) {
+    storeAuthToken(response.token);
+  }
+  return response;
 };
 
 export const getGoogleAuthUrl = async (formType: string = 'login') => {

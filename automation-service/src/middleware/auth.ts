@@ -6,62 +6,83 @@ const JWT_SECRET = config.jwtSecret;
 const INTERNAL_SECRET = config.internalServiceSecret;
 
 export interface AuthRequest extends Request {
-  user?: {
-    id: string;
-    role: string;
-  };
-  workspace?: {
-    id: string;
-  };
+  user?: any;
+  workspace?: any;
+  role?: string;
+  permissions?: string[];
 }
 
 /**
- * Middleware to handle authentication.
- * Supports both direct JWT verification and Header-based Auth (from Gateway).
+ * Standardized Authentication Middleware
  */
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
-  // 1. Check for Gateway Headers (Standard for Microservices)
+  // 1. Check Gateway Headers (Priority)
   const gatewayUserId = req.header('x-user-id');
   const gatewayWorkspaceId = req.header('x-workspace-id');
-  console.log(`[Automation Auth] x-workspace-id header: ${gatewayWorkspaceId}`);
   const gatewayRole = req.header('x-user-role');
 
-  console.log(`[Auth] Incoming Headers - User: ${gatewayUserId}, Workspace: ${gatewayWorkspaceId}, Role: ${gatewayRole}`);
-
-  if (gatewayUserId && gatewayWorkspaceId) {
-    req.user = { id: gatewayUserId, role: gatewayRole || 'agent' };
-    req.workspace = { id: gatewayWorkspaceId };
+  if (gatewayUserId) {
+    req.user = { 
+      id: gatewayUserId, 
+      _id: gatewayUserId, // Compatibility with ObjectId checks
+      role: gatewayRole || 'agent' 
+    };
+    req.role = gatewayRole || 'agent';
+    
+    if (gatewayWorkspaceId) {
+      req.workspace = { 
+        id: gatewayWorkspaceId,
+        _id: gatewayWorkspaceId
+      };
+    }
     return next();
   }
 
-  // 2. Fallback: Direct JWT Verification (for direct calls/local testing)
+  // 2. Fallback to JWT
   const authHeader = req.header('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies?.auth_token;
+  const token = authHeader?.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : (req as any).cookies?.auth_token;
 
   if (!token) {
-    return res.status(401).json({ message: 'Authorization denied: No token or headers provided' });
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Authorization denied: No token or gateway headers provided' 
+    });
   }
 
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
-    req.user = { id: decoded.id, role: decoded.role || 'agent' };
-    // Note: Workspace ID might need to be passed separately or fetched if not in JWT
+    req.user = { 
+      id: decoded.id, 
+      _id: decoded.id,
+      role: decoded.role || 'agent' 
+    };
+    req.role = decoded.role || 'agent';
+    
     if (decoded.workspaceId) {
-      req.workspace = { id: decoded.workspaceId };
+      req.workspace = { 
+        id: decoded.workspaceId,
+        _id: decoded.workspaceId
+      };
     }
     next();
   } catch (err) {
-    res.status(401).json({ message: 'Token is not valid' });
+    res.status(401).json({ 
+      success: false, 
+      message: 'Token is not valid' 
+    });
   }
 };
 
 /**
- * Middleware to restrict access by role.
+ * Role-based Authorization
  */
 export const authorize = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ 
+        success: false,
         message: 'Permission denied: You do not have the required role' 
       });
     }
@@ -70,20 +91,17 @@ export const authorize = (roles: string[]) => {
 };
 
 /**
- * Middleware for secure inter-service communication.
- * Verifies the internal service secret header.
+ * Internal Service Authentication
  */
 export const internalAuth = (req: Request, res: Response, next: NextFunction) => {
   const secret = req.header('x-internal-service-secret');
 
-  if (!secret) {
-    console.warn(`[Automation InternalAuth] Missing secret for ${req.method} ${req.originalUrl}`);
-    return res.status(401).json({ message: 'Unauthorized: Internal service secret missing or invalid' });
-  }
-
-  if (secret !== INTERNAL_SECRET) {
-    console.warn(`[Automation InternalAuth] Invalid secret for ${req.method} ${req.originalUrl}`);
-    return res.status(401).json({ message: 'Unauthorized: Internal service secret missing or invalid' });
+  if (!secret || secret !== INTERNAL_SECRET) {
+    console.warn(`[Automation InternalAuth] Unauthorized access from ${req.ip} to ${req.method} ${req.originalUrl}`);
+    return res.status(401).json({ 
+      success: false,
+      message: 'Unauthorized: Internal service secret missing or invalid' 
+    });
   }
 
   next();

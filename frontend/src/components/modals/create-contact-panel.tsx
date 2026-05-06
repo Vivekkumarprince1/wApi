@@ -68,10 +68,8 @@ const CreateContactPanel = ({ isOpen, onClose, contact }: CreateContactPanelProp
   };
 
   const { mutate: handleBulkImport, isPending: isImporting } = useMutation({
-    mutationFn: (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      return importContacts(formData);
+    mutationFn: () => {
+      return importContacts({ contacts: previewContacts });
     },
     onSuccess: (response: any) => {
       toast.success(response.data?.message || `Successfully imported ${previewContacts.length} contacts`);
@@ -161,7 +159,12 @@ const CreateContactPanel = ({ isOpen, onClose, contact }: CreateContactPanelProp
       toast.error('Name and Phone are required');
       return;
     }
-    handleSave(formData);
+
+    // Clean data before sending
+    const payload: any = { ...formData };
+    if (!payload.email) delete payload.email;
+    
+    handleSave(payload);
   };
 
   if (!isOpen) return null;
@@ -310,7 +313,7 @@ const CreateContactPanel = ({ isOpen, onClose, contact }: CreateContactPanelProp
                   </div>
 
                   <button 
-                    onClick={() => handleBulkImport(selectedFile)}
+                    onClick={() => handleBulkImport()}
                     disabled={isImporting}
                     className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2"
                   >

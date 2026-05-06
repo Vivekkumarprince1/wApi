@@ -7,7 +7,8 @@ export const config = {
   env: process.env.NODE_ENV || 'development',
   baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   apiUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
-  socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3005',
+  // Socket connects to backend server via BACKEND_API_URL (not NEXT_PUBLIC, so it's server-side)
+  socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://127.0.0.1:5001',
   
   // Public Integration Keys (Safe for client)
   googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',

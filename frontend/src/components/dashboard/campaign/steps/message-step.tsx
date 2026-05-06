@@ -29,6 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import axios from "axios";
+import { WhatsAppBubble } from "../WhatsAppBubble";
 
 interface MessageStepProps {
   campaignData: any;
@@ -200,175 +201,163 @@ export default function MessageStep({
                     key={template._id}
                     onClick={() => handleTemplateSelect(template._id)}
                     className={`
-                      p-4 rounded-xl border-2 transition-all cursor-pointer group relative overflow-hidden
+                      p-3 rounded-xl border transition-all cursor-pointer group relative overflow-hidden
                       ${
                         campaignData.templateId === template._id
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/20 shadow-premium-sm"
-                          : "border-transparent bg-background hover:bg-muted/30"
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/10 shadow-sm"
+                          : "border-border/50 bg-card hover:bg-muted/50"
                       }
                     `}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span
-                        className={`text-sm font-bold ${campaignData.templateId === template._id ? "text-primary" : "text-foreground"}`}
+                        className={`text-xs font-black uppercase tracking-tight ${campaignData.templateId === template._id ? "text-primary" : "text-foreground"}`}
                       >
                         {template.name}
                       </span>
                       {campaignData.templateId === template._id && (
-                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                        <CheckCircle2 className="h-3 w-3 text-primary" />
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className="text-[8px] font-black h-4 uppercase tracking-tighter opacity-70"
-                      >
-                        {template.category}
-                      </Badge>
-                      <span className="text-[10px] text-muted-foreground font-medium italic truncate">
-                        {template.bodyText || template.body?.text}
-                      </span>
+                      <p className="text-[10px] text-muted-foreground font-medium line-clamp-1 opacity-70">
+                        {template.bodyText || template.body?.text || "No content preview available"}
+                      </p>
                     </div>
-                    <div
-                      className={`absolute bottom-0 right-0 h-1 my-1 mx-1 w-8 bg-primary rounded-full transition-all duration-500 scale-x-0 group-hover:scale-x-100 ${campaignData.templateId === template._id ? "scale-x-100" : ""}`}
-                    />
                     {campaignData.templateId === template._id && (
                       <div
-                        className="mt-4 pt-4 border-t border-border/50 space-y-4 cursor-default"
+                        className="mt-4 pt-4 border-t border-border/50 space-y-6 cursor-default"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="bg-slate-950 dark:bg-slate-900 rounded-3xl p-6 shadow-2xl relative overflow-hidden border border-white/5">
-                          <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none">
-                            <MessageSquare className="h-20 w-20 text-white" />
+                        {/* Media Header Upload */}
+                        {(template?.header?.format === "IMAGE" ||
+                          template?.header?.format === "VIDEO" ||
+                          template?.header?.format === "DOCUMENT") && (
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-amber-500">
+                              <Upload className="h-4 w-4" />
+                              <span className="text-[10px] font-black uppercase tracking-widest">
+                                Media Header Config
+                              </span>
+                            </div>
+                            <div className="p-8 rounded-[32px] border-2 border-dashed border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-4 transition-all hover:border-primary/40 group relative overflow-hidden">
+                              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                              
+                              <input
+                                type="file"
+                                id="media-upload"
+                                className="hidden"
+                                onChange={handleMediaUpload}
+                                accept={
+                                  template.header.format === "IMAGE"
+                                    ? "image/*"
+                                    : template.header.format === "VIDEO"
+                                      ? "video/*"
+                                      : "*/*"
+                                }
+                              />
+                              <label 
+                                htmlFor="media-upload"
+                                className="flex flex-col items-center gap-3 cursor-pointer relative z-10"
+                              >
+                                <div className="p-4 rounded-2xl bg-primary text-white shadow-xl shadow-primary/20 group-hover:scale-110 transition-transform">
+                                  <Upload className="h-6 w-6" />
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-sm font-bold text-foreground">
+                                    {uploadingMedia ? "Uploading..." : `Upload ${template.header.format.toLowerCase()}`}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-1">
+                                    Click or drag and drop
+                                  </p>
+                                </div>
+                              </label>
+                              
+                              {campaignData.variableMapping?.mediaUrl && !uploadingMedia && (
+                                <div className="mt-2 flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 animate-in zoom-in duration-300">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  File Ready: {campaignData.variableMapping.mediaUrl.split('/').pop()}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div className="space-y-4 relative z-10">
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">
-                                Message Content
-                              </p>
-                              <div className="text-slate-100 text-sm leading-relaxed font-medium whitespace-pre-wrap selection:bg-primary/30">
-                                {template.bodyText || template.body?.text}
+                        )}
+
+                        {/* Pro Variable Mapping Canvas */}
+                        {templateVariables.length > 0 && (
+                          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex items-center justify-between border-b border-border pb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-500">
+                                  <Sparkles className="h-5 w-5" />
+                                </div>
+                                <div>
+                                  <h3 className="text-xs font-black uppercase tracking-[0.2em]">Payload Configuration</h3>
+                                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Map dynamic data fields</p>
+                                </div>
                               </div>
+                              <Badge variant="secondary" className="bg-muted text-muted-foreground border-border text-[8px] font-black tracking-widest px-2.5">
+                                {templateVariables.length} SLOTS
+                              </Badge>
                             </div>
 
-                            {(template?.header?.format === "IMAGE" ||
-                              template?.header?.format === "VIDEO" ||
-                              template?.header?.format === "DOCUMENT") && (
-                              <div className="pt-6 space-y-4 border-t border-white/10 mt-6 text-amber-400">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-black uppercase tracking-widest">
-                                    Media Header Upload
-                                  </span>
-                                </div>
-                                <div className="p-4 rounded-xl border border-dashed border-white/20 bg-white/5 flex flex-col items-center justify-center gap-3">
-                                  <input
-                                    type="file"
-                                    className="text-xs text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
-                                    onChange={handleMediaUpload}
-                                    accept={
-                                      template.header.format === "IMAGE"
-                                        ? "image/*"
-                                        : template.header.format === "VIDEO"
-                                          ? "video/*"
-                                          : "*/*"
-                                    }
-                                  />
-                                  {uploadingMedia && (
-                                    <p className="text-xs text-primary animate-pulse">
-                                      Uploading to cloud...
-                                    </p>
-                                  )}
-                                  {campaignData.variableMapping?.mediaUrl &&
-                                    !uploadingMedia && (
-                                      <div className="text-xs text-green-400 max-w-full truncate px-4">
-                                        ✓ Uploaded:{" "}
-                                        {campaignData.variableMapping.mediaUrl}
+                            <div className="grid grid-cols-1 gap-4">
+                              {templateVariables.map((variable) => (
+                                <div
+                                  key={variable}
+                                  className="group relative"
+                                >
+                                  <div className="flex flex-col md:flex-row md:items-center gap-4 bg-muted/20 hover:bg-muted/40 p-4 rounded-2xl border border-border/50 transition-all group-hover:border-primary/20">
+                                    <div className="flex items-center gap-3 min-w-[120px]">
+                                      <div className="w-8 h-8 rounded-lg bg-background flex items-center justify-center font-mono text-[9px] font-black text-primary border border-border">
+                                        {variable}
                                       </div>
-                                    )}
-                                </div>
-                              </div>
-                            )}
-
-                            {templateVariables.length > 0 && (
-                              <div className="pt-6 space-y-4 border-t border-white/10 mt-6">
-                                <div className="flex items-center gap-2 text-amber-400">
-                                  <Sparkles className="h-4 w-4" />
-                                  <span className="text-[10px] font-black uppercase tracking-widest">
-                                    Connect Variables
-                                  </span>
-                                </div>
-
-                                <div className="space-y-4">
-                                  {templateVariables.map((variable) => (
-                                    <div
-                                      key={variable}
-                                      className="flex items-center gap-4 group"
-                                    >
-                                      <div className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-mono text-primary/80 min-w-[80px] text-center">
-                                        {`{{${variable}}}`}
-                                      </div>
-                                      <ArrowRight className="h-3 w-3 text-white/20 group-hover:text-primary transition-colors" />
-                                      <div className="flex-1 flex gap-2">
-                                        <Input
-                                          value={
-                                            campaignData.variableMapping[
-                                              variable
-                                            ] || ""
-                                          }
-                                          onChange={(e) =>
-                                            handleVariableChange(
-                                              variable,
-                                              e.target.value,
-                                            )
-                                          }
-                                          placeholder="Static text or {{firstName}}"
-                                          className="bg-white/5 border-white/10 text-white h-9 rounded-xl placeholder:text-white/30"
-                                        />
-                                        <Select
-                                          value=""
-                                          onValueChange={(val) => {
-                                            const currentVal =
-                                              campaignData.variableMapping[
-                                                variable
-                                              ] || "";
-                                            const newVal =
-                                              currentVal +
-                                              (currentVal &&
-                                              !currentVal.endsWith(" ")
-                                                ? " "
-                                                : "") +
-                                              `{{${val}}}`;
-                                            handleVariableChange(
-                                              variable,
-                                              newVal,
-                                            );
-                                          }}
-                                        >
-                                          <SelectTrigger className="w-[120px] bg-white/5 border-white/10 text-white h-9 rounded-xl shrink-0">
-                                            <span className="text-xs font-bold text-primary">
-                                              Insert Field
-                                            </span>
-                                          </SelectTrigger>
-                                          <SelectContent className="bg-slate-900 border-white/10 text-white rounded-xl shadow-2xl">
-                                            {contactFields.map((field) => (
-                                              <SelectItem
-                                                key={field.value}
-                                                value={field.value}
-                                                className="focus:bg-primary/10 transition-colors"
-                                              >
-                                                {field.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
+                                      <Label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+                                        Key
+                                      </Label>
                                     </div>
-                                  ))}
+
+                                    <div className="flex-1 flex gap-2">
+                                      <div className="flex-1 relative">
+                                        <Input
+                                          value={campaignData.variableMapping[variable] || ""}
+                                          onChange={(e) => handleVariableChange(variable, e.target.value)}
+                                          placeholder="Static value or {{field}}..."
+                                          className="bg-background border-border h-11 rounded-xl placeholder:text-muted-foreground/30 font-mono text-xs focus:ring-primary/10 transition-all pl-4"
+                                        />
+                                      </div>
+                                      
+                                      <Select
+                                        value=""
+                                        onValueChange={(val) => {
+                                          const currentVal = campaignData.variableMapping[variable] || "";
+                                          const newVal = currentVal + (currentVal && !currentVal.endsWith(" ") ? " " : "") + `{{${val}}}`;
+                                          handleVariableChange(variable, newVal);
+                                        }}
+                                      >
+                                        <SelectTrigger className="w-11 h-11 bg-primary text-white border-none rounded-xl shrink-0 p-0 flex justify-center hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/10">
+                                          <Sparkles className="h-4 w-4" />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-xl border-border shadow-premium-sm p-1 min-w-[180px]">
+                                          <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest px-2 py-1.5 opacity-50">System Fields</p>
+                                          {contactFields.map((field) => (
+                                            <SelectItem
+                                              key={field.value}
+                                              value={field.value}
+                                              className="focus:bg-primary/10 transition-colors rounded-lg mx-1 font-bold text-[11px] py-2"
+                                            >
+                                              {field.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )}
                   </div>

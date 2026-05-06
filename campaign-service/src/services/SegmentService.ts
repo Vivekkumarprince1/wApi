@@ -1,6 +1,10 @@
 import { Segment } from '../models';
 import { monolithWorkerBridge } from '../lib/monolith-worker-client';
 import { Types } from 'mongoose';
+import IORedis from 'ioredis';
+import crypto from 'crypto';
+
+const redis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 export class SegmentService {
   /**
@@ -43,7 +47,7 @@ export class SegmentService {
   }
 
   /**
-   * Get total contact count for a specific filter
+   * Get total contact count for a specific filter with Redis caching
    */
   static async getSegmentCount(workspaceId: string | Types.ObjectId, filters: any): Promise<number> {
     const query: any = { 
@@ -59,7 +63,19 @@ export class SegmentService {
       query.tags = { ...(query.tags || {}), $nin: filters.notTags };
     }
 
+    // Cache key based on query hash
+    const queryHash = crypto.createHash('md5').update(JSON.stringify(query)).digest('hex');
+    const cacheKey = `segment_count:${workspaceId}:${queryHash}`;
+
+    // Try cache first
+    const cached = await redis.get(cacheKey);
+    if (cached) return parseInt(cached);
+
     const { count } = await monolithWorkerBridge.countContacts(query);
+    
+    // Cache for 5 minutes
+    await redis.setex(cacheKey, 300, count);
+
     return count;
   }
 }

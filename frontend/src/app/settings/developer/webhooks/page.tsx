@@ -57,21 +57,16 @@ import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 
 const EVENT_TYPES = [
-   { id: 'MESSAGE', label: 'Message', description: "Incoming messages (text, media, interactive)." },
-   { id: 'SENT', label: 'Sent', description: "Confirmation that message was sent to WhatsApp." },
-   { id: 'DELIVERED', label: 'Delivered', description: "Message delivered to user device." },
-   { id: 'READ', label: 'Read', description: "Message read by the recipient." },
-   { id: 'FAILED', label: 'Failed', description: "Message delivery failure alerts." },
-   { id: 'DELETED', label: 'Deleted', description: "User deleted a message." },
-   { id: 'TEMPLATE', label: 'Template', description: "WhatsApp template status approvals/rejections." },
-   { id: 'ACCOUNT', label: 'Account', description: "Business account status changes." },
-   { id: 'BILLING', label: 'Billing', description: "Conversation charges and billing events." },
-   { id: 'PAYMENTS', label: 'Payments', description: "WhatsApp Payment status updates." },
-   { id: 'FLOWS_MESSAGE', label: 'Flows', description: "Interactive flow submission events." },
-   { id: 'ENQUEUED', label: 'Enqueued', description: "Message enqueued in provider network." },
-   { id: 'OTHERS', label: 'Others', description: "System and miscellaneous events." },
-   { id: 'COEXISTENCE', label: 'Coexistence', description: "SMB mobile app echo events (smb_message_echoes)." },
-   { id: 'ALL', label: 'All Events', description: "Subscribe to every available trigger." }
+   { id: 'MESSAGE', label: 'Message Received', description: "Triggered when a new message is received in the platform." },
+   { id: 'SENT', label: 'Message Sent', description: "Triggered when a message is successfully sent to the provider." },
+   { id: 'DELIVERED', label: 'Message Delivered', description: "Triggered when a message is delivered to the user's device." },
+   { id: 'READ', label: 'Message Read', description: "Triggered when a message is read by the recipient." },
+   { id: 'FAILED', label: 'Message Failed', description: "Triggered when a message delivery failure occurs." },
+   { id: 'TEMPLATE', label: 'Template Update', description: "Triggered when a message template status changes." },
+   { id: 'BILLING', label: 'Billing Event', description: "Triggered for conversation charges and billing updates." },
+   { id: 'PAYMENTS', label: 'Payment Update', description: "Triggered for payment status updates." },
+   { id: 'FLOWS_MESSAGE', label: 'Flow Submission', description: "Triggered when an interactive flow is submitted." },
+   { id: 'ALL', label: 'All Events', description: "Subscribe to every available outbound trigger." }
 ];
 
 export default function WebhooksPage() {
@@ -91,7 +86,7 @@ export default function WebhooksPage() {
     }, []);
 
    const { data: subsData, isLoading, error } = useQuery({
-      queryKey: ['whatsapp-subscriptions'],
+      queryKey: ['outbound-webhooks'],
       queryFn: () => getWhatsappSubscriptions(),
       retry: (failureCount, error: any) => {
          if (error?.status === 403) return false;
@@ -107,7 +102,7 @@ export default function WebhooksPage() {
    const updateMutation = useMutation({
       mutationFn: (data: { subscriptionId: string; events: string[]; tag?: string }) => updateWhatsappSubscription(data),
       onSuccess: () => {
-         queryClient.invalidateQueries({ queryKey: ['whatsapp-subscriptions'] });
+         queryClient.invalidateQueries({ queryKey: ['outbound-webhooks'] });
          setIsEditModalOpen(false);
          setEditingSubscription(null);
          toast.success("Endpoint updated successfully");
@@ -120,7 +115,7 @@ export default function WebhooksPage() {
    const createMutation = useMutation({
       mutationFn: (data: { events: string[] }) => createWhatsappSubscription(data),
       onSuccess: () => {
-         queryClient.invalidateQueries({ queryKey: ['whatsapp-subscriptions'] });
+         queryClient.invalidateQueries({ queryKey: ['outbound-webhooks'] });
          setIsAddModalOpen(false);
          toast.success("Endpoint added successfully");
       },
@@ -133,7 +128,7 @@ export default function WebhooksPage() {
    const deleteMutation = useMutation({
       mutationFn: (id?: string) => deleteWhatsappSubscription(id),
       onSuccess: () => {
-         queryClient.invalidateQueries({ queryKey: ['whatsapp-subscriptions'] });
+         queryClient.invalidateQueries({ queryKey: ['outbound-webhooks'] });
          toast.success("Endpoint removed");
       },
       onError: (err: any) => {
@@ -169,34 +164,15 @@ export default function WebhooksPage() {
 
             {/* Webhooks Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-               <div className="flex flex-wrap items-center gap-3">
-                  {/* Tunnel Status Badge */}
-                  {mounted && (
-                     <div className={`px-4 py-2 rounded-xl flex items-center gap-2 border ${
-                        window.location.protocol === 'https:' 
-                           ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600'
-                           : (subsData as any)?.meta?.hasSecureTunnel
-                              ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600'
-                              : 'bg-amber-500/10 border-amber-500/20 text-amber-600'
-                     }`}>
-                        <div className={`h-2 w-2 rounded-full animate-pulse ${
-                           window.location.protocol === 'https:' || (subsData as any)?.meta?.hasSecureTunnel
-                              ? 'bg-current'
-                              : 'bg-amber-500'
-                        }`} />
-                        <span className="text-[10px] font-black uppercase tracking-widest">
-                           {window.location.protocol === 'https:' 
-                              ? 'Secure Connection' 
-                              : (subsData as any)?.meta?.hasSecureTunnel 
-                                 ? 'Smart Tunnel Active' 
-                                 : 'Insecure (HTTPS Required)'}
-                        </span>
+               <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                     <div className="h-10 w-10 rounded-xl bg-indigo-600/10 text-indigo-600 flex items-center justify-center">
+                        <Webhook className="h-6 w-6" />
                      </div>
-                  )}
-
-                  <h1 className="text-3xl font-black tracking-tight uppercase">Developer Webhooks</h1>
+                     <h1 className="text-3xl font-black tracking-tight uppercase">Outbound Webhooks</h1>
+                  </div>
                   <p className="text-muted-foreground flex items-center gap-2 font-medium">
-                     <Webhook className="h-4 w-4" /> Configure endpoints for real-time notifications. {(subsData as any)?.meta?.hasSecureTunnel && <span className="text-[10px] bg-indigo-500/10 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-500/20">Using {new URL((subsData as any).meta.suggestedWebhookUrl).hostname}</span>}
+                     Configure endpoints to receive real-time notifications from our platform.
                   </p>
                </div>
                <div className="flex flex-wrap gap-2">
@@ -466,9 +442,9 @@ export default function WebhooksPage() {
                                        <div className="space-y-1 overflow-hidden">
                                           <h3 className="font-black text-sm tracking-tight truncate">{hook.url}</h3>
                                           <div className="flex items-center gap-2">
-                                             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-none text-[8px] font-black uppercase tracking-widest px-2">V3 ACTIVE</Badge>
+                                             <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-none text-[8px] font-black uppercase tracking-widest px-2">ACTIVE</Badge>
                                              <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                                                <ActivityIcon className="h-3 w-3" /> Successfully synchronized
+                                                <ActivityIcon className="h-3 w-3" /> Endpoint is receiving events
                                              </span>
                                           </div>
                                        </div>
@@ -554,7 +530,7 @@ export default function WebhooksPage() {
                      </div>
 
                      <div className="space-y-2">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">V3 Schema Preview</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">JSON Schema Preview</p>
                         <div className="bg-slate-950 rounded-2xl p-5 font-mono text-[9px] text-indigo-400 overflow-hidden shadow-inner border border-white/5">
                            <pre>
                               {`{

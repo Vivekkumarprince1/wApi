@@ -13,7 +13,9 @@ import {
   Inbox as InboxIcon,
   MessageCircle,
   Camera,
-  Share2
+  Share2,
+  Mail,
+  Smartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Conversation } from '@/lib/api/inbox';
@@ -33,10 +35,12 @@ interface ConversationsListProps {
   selectedId: string | null;
   onSelect: (conv: Conversation) => void;
   isLoading: boolean;
-  activeFilter: string;
+  activeStatus: string;
   onFilterChange: (filter: string) => void;
   activeAssignment: string;
   onAssignmentChange: (assignment: string) => void;
+  activeChannel: string;
+  onChannelChange: (channel: string) => void;
 }
 
 export default function ConversationsList({ 
@@ -44,10 +48,12 @@ export default function ConversationsList({
   selectedId, 
   onSelect, 
   isLoading,
-  activeFilter,
+  activeStatus,
   onFilterChange,
   activeAssignment,
-  onAssignmentChange
+  onAssignmentChange,
+  activeChannel,
+  onChannelChange
 }: ConversationsListProps) {
   const [search, setSearch] = useState('');
 
@@ -55,6 +61,8 @@ export default function ConversationsList({
     switch (channel) {
       case 'messenger': return <MessageSquare className="h-3 w-3 text-blue-600" />;
       case 'instagram': return <Camera className="h-3 w-3 text-pink-600" />;
+      case 'sms': return <Smartphone className="h-3 w-3 text-amber-600" />;
+      case 'email': return <Mail className="h-3 w-3 text-purple-600" />;
       default: return <MessageCircle className="h-3 w-3 text-emerald-600" />;
     }
   };
@@ -105,10 +113,34 @@ export default function ConversationsList({
               onClick={() => onFilterChange(f)}
               className={`
                 flex-1 py-1.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap
-                ${activeFilter === f ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}
+                ${activeStatus === f ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}
               `}
             >
               {f}
+            </button>
+          ))}
+        </div>
+
+        {/* Channel Filters */}
+        <div className="flex gap-2 pb-1 overflow-x-auto no-scrollbar">
+          {[
+            { id: 'all', icon: InboxIcon, label: 'All' },
+            { id: 'whatsapp', icon: MessageCircle, label: 'WA' },
+            { id: 'sms', icon: Smartphone, label: 'SMS' },
+            { id: 'email', icon: Mail, label: 'Mail' }
+          ].map((ch) => (
+            <button
+              key={ch.id}
+              onClick={() => onChannelChange(ch.id)}
+              className={`
+                flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border
+                ${activeChannel === ch.id 
+                  ? 'bg-primary/10 border-primary/20 text-primary' 
+                  : 'bg-background border-border/50 text-muted-foreground hover:border-primary/20 hover:text-foreground'}
+              `}
+            >
+              <ch.icon className="h-3 w-3" />
+              {ch.label}
             </button>
           ))}
         </div>
@@ -143,7 +175,7 @@ export default function ConversationsList({
              <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground opacity-30">
                 <InboxIcon className="h-6 w-6" />
              </div>
-             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-10">No {activeFilter} conversations found</p>
+             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-10">No {activeStatus} conversations found</p>
           </div>
         ) : (
           <div className="flex flex-col px-2 pb-4">

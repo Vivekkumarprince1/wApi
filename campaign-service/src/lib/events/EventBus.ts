@@ -1,6 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
+import mongoose from 'mongoose';
 import { getSharedRedis } from '../redis';
-import { Campaign, ICampaignModel } from '../../models';
+import { Campaign, ICampaignModel, CampaignMessage } from '../../models';
 import { CampaignBatch, ICampaignBatchModel } from '../../models/CampaignBatch';
 import { CampaignQueueService } from '../campaign-queue';
 import { Workspace } from '../../models';
@@ -87,6 +88,72 @@ const handleBudgetReserved = async (data: any) => {
   }
 };
 
+const handleMessageStatusUpdate = async (data: any) => {
+  const { campaignId, status, contactId, whatsappMessageId, timestamp } = data;
+  if (!campaignId || !status) return;
+
+  const campaignObjectId = new mongoose.Types.ObjectId(campaignId as string);
+  const contactObjectId = contactId ? new mongoose.Types.ObjectId(contactId as string) : null;
+
+  let field = '';
+  const updateData: any = { 
+    status,
+    updatedAt: new Date()
+  };
+
+  switch (status) {
+    case 'delivered': 
+      field = 'delivered'; 
+      updateData.deliveredAt = timestamp || new Date();
+      break;
+    case 'read': 
+      field = 'read'; 
+      updateData.readAt = timestamp || new Date();
+      break;
+    case 'failed': 
+      field = 'failed'; 
+      updateData.failedAt = timestamp || new Date();
+      break;
+    case 'sent': 
+      field = 'sent'; 
+      updateData.sentAt = timestamp || new Date();
+      break;
+    default: return;
+  }
+
+  console.log(`[CampaignEventBus] Processing ${field} for campaign ${campaignId} (Contact: ${contactId || 'unknown'})`);
+  
+  try {
+    // 1. Update individual message record for the recipient list
+    let messageUpdate;
+    if (contactObjectId) {
+      messageUpdate = await CampaignMessage.findOneAndUpdate(
+        { campaign: campaignObjectId, contact: contactObjectId },
+        { $set: updateData },
+        { upsert: false, new: true }
+      );
+    } else if (whatsappMessageId) {
+      messageUpdate = await CampaignMessage.findOneAndUpdate(
+        { whatsappMessageId },
+        { $set: updateData },
+        { upsert: false, new: true }
+      );
+    }
+
+    if (messageUpdate) {
+      console.log(`[CampaignEventBus] ✓ Updated CampaignMessage for ${contactId || whatsappMessageId}`);
+    } else {
+      console.warn(`[CampaignEventBus] ⚠ CampaignMessage not found for ${contactId || whatsappMessageId}`);
+    }
+
+    // 2. Increment global campaign totals
+    await Campaign.incrementTotal(campaignId, field);
+    console.log(`[CampaignEventBus] ✓ Incremented ${field} for campaign ${campaignId}`);
+  } catch (err: any) {
+    console.error(`[CampaignEventBus] ❌ Error updating metrics:`, err.message);
+  }
+};
+
 const handleBudgetReservationFailed = async (data: any) => {
   const { campaignId, workspaceId, reason } = data;
   console.log(`[CampaignEventBus] Budget reservation failed for ${campaignId}: ${reason}`);
@@ -116,6 +183,9 @@ export const campaignEventWorker = new Worker('CampaignEventsQueue', async (job:
       break;
     case 'BudgetReservationFailedEvent':
       await handleBudgetReservationFailed(job.data);
+      break;
+    case 'MessageStatusUpdateEvent':
+      await handleMessageStatusUpdate(job.data);
       break;
     default:
       console.warn(`[CampaignEventBus] Unknown event type: ${job.name}`);

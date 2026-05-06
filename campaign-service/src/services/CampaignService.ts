@@ -13,7 +13,7 @@ export class CampaignService {
    */
   static async acquireLock(campaignId: string): Promise<boolean> {
     const lockKey = `lock:campaign:exec:${campaignId}`;
-    const acquired = await redis.set(lockKey, 'locked', 'EX', 1800, 'NX'); // 30 min expiry
+    const acquired = await redis.set(lockKey, 'locked', 'EX', 300, 'NX'); // 5 min expiry
     return acquired === 'OK';
   }
 

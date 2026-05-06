@@ -52,6 +52,14 @@ interface AuthState {
     canManageTeam: boolean;
     canViewBilling: boolean;
     canAccessAdmin: boolean;
+    systemStatus: {
+        maintenanceMode: boolean;
+        systemNotice: {
+            message: string;
+            level: 'info' | 'warning' | 'critical';
+            active: boolean;
+        } | null;
+    };
     isImpersonating: boolean;
     inFlightPromise: Promise<any> | null;
     fetchSession: (force?: boolean) => Promise<any>;
@@ -88,6 +96,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     canManageTeam: false,
     canViewBilling: false,
     canAccessAdmin: false,
+    systemStatus: {
+        maintenanceMode: false,
+        systemNotice: null
+    },
     isImpersonating: false,
     inFlightPromise: null,
 
@@ -130,6 +142,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     return null;
                 }
 
+                // Store token from session for Socket.io access
+                if (sessionData.token && typeof sessionStorage !== 'undefined') {
+                    try {
+                        sessionStorage.setItem('socket_auth_token', sessionData.token);
+                        console.log('[AuthStore] ✓ Token stored in sessionStorage');
+                    } catch (err) {
+                        console.warn('[AuthStore] Could not store token in sessionStorage:', err);
+                    }
+                }
+
                 const { user: userData, workspace: userWorkspace, phone: phoneData, permissions: userPerms } = sessionData;
                 const role = userData.role || 'viewer';
                 const stage1Complete = userWorkspace?.stage1?.complete || false;
@@ -168,6 +190,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     canManageTeam: userPerms?.manageTeam ?? ['owner', 'manager', 'admin'].includes(role),
                     canViewBilling: (userPerms?.manageBilling || userPerms?.billing?.view) ?? ['owner', 'admin'].includes(role),
                     canAccessAdmin: role === 'super_admin',
+                    systemStatus: sessionData.systemStatus || { maintenanceMode: false, systemNotice: null },
                     isImpersonating: !!sessionData.isImpersonating
                 });
                 return sessionData;
@@ -213,9 +236,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             if (res?.success) {
                 window.location.href = res.targetUrl || '/super-admin';
             }
-        } catch (error) {
-            console.error('Failed to restore session', error);
-            throw error;
+        } catch (error: any) {
+            if (error?.response?.status === 403) {
+                console.warn('Permission denied to stop impersonating, redirecting to dashboard');
+                window.location.href = '/dashboard';
+            } else {
+                console.error('Failed to restore session', error);
+                throw error;
+            }
         }
     }
 }));

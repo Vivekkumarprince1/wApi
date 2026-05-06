@@ -11,6 +11,8 @@ export interface IAutomationEvent {
   workspaceId: string;
   type: string;
   contactId: string;
+  contact?: any; // Added for flexibility
+  phone?: string; // Added for action relay
   conversationId?: string;
   messageId?: string;
   metadata?: any;
@@ -35,8 +37,14 @@ export class AutomationService {
     if ((event.depth || 0) >= MAX_DEPTH) return false;
 
     try {
-      // In microservice, we assume these are passed in or we fetch them from monolith if needed
-      // For now, we rely on the event data
+      // Normalize event data: ensures we have contactId and phone even if passed via contact object
+      if (!event.contactId && event.contact) {
+        event.contactId = event.contact._id || event.contact.id;
+      }
+      if (!event.phone && event.contact) {
+        event.phone = event.contact.phone;
+      }
+
       const messageBody = (event.body || "").toLowerCase().trim();
 
       // 1. Checkout Bot (Outsourced to Monolith)
@@ -179,6 +187,8 @@ export class AutomationService {
           payload: {
             workspaceId: event.workspaceId,
             contactId: event.contactId,
+            phone: event.phone,
+            conversationId: event.conversationId,
             config: action.config
           }
         });

@@ -21,7 +21,11 @@ import {
   Loader2,
   Mail,
     Settings,
-    Trash2
+    Trash2,
+    Webhook,
+    RefreshCw,
+    AlertCircle,
+    CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,18 +33,36 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import SuperAdminPageHeader from '@/components/super-admin/super-admin-page-header';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
+  DropdownMenu,
+  DropdownMenuContent,
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import axios from 'axios';
 
 export default function FleetDirectoryPage() {
@@ -49,9 +71,30 @@ export default function FleetDirectoryPage() {
   const [search, setSearch] = React.useState("");
     const [statusFilter, setStatusFilter] = React.useState<'all' | 'connected' | 'attention'>('all');
     const [selectedWorkspaceId, setSelectedWorkspaceId] = React.useState<string | null>(null);
+    const [isAdvancedModalOpen, setIsAdvancedModalOpen] = React.useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = React.useState(false);
+
+    // Form state for webhook management
+    const GUPSHUP_MODES = [
+        'MESSAGE', 'SENT', 'DELIVERED', 'READ', 'FAILED', 
+        'ENQUEUED', 'TEMPLATE', 'ACCOUNT', 'BILLING', 
+        'PAYMENTS', 'FLOWS_MESSAGE'
+    ];
+
+    const [webhookForm, setWebhookForm] = React.useState<{ url: string; modes: string[]; strategy: 'update' | 'add' | 'replace' }>({
+        url: '',
+        modes: GUPSHUP_MODES,
+        strategy: 'update'
+    });
+
+    const [bulkForm, setBulkForm] = React.useState<{ url: string; modes: string[]; strategy: 'update' | 'replace' }>({
+        url: '',
+        modes: GUPSHUP_MODES,
+        strategy: 'update'
+    });
   
     const { data: workspaces = [], isLoading, error, refetch } = useQuery<any[]>({
-    queryKey: ['admin-workspaces'],
+        queryKey: ['admin-workspaces'],
         queryFn: async () => {
                 const response = await apiClient.get('/super-admin/workspaces');
             if (Array.isArray(response)) return response;
@@ -111,6 +154,88 @@ export default function FleetDirectoryPage() {
         }
     };
 
+    // --- WEBHOOK MANAGEMENT LOGIC ---
+    const { 
+        data: webhookStatus, 
+        isLoading: isLoadingWebhook, 
+        isFetching: isFetchingWebhook,
+        refetch: refetchWebhook 
+    } = useQuery({
+        queryKey: ['admin-webhook-status', selectedWorkspaceId],
+        queryFn: async () => {
+            if (!selectedWorkspaceId) return null;
+            // Pass workspaceId to only audit the specific workspace (FAST)
+            const response = await apiClient.get(`/super-admin/gupshup/webhook-status?workspaceId=${selectedWorkspaceId}`);
+            return response; // Backend returns the object directly if workspaceId is provided
+        },
+        enabled: !!selectedWorkspaceId
+    });
+
+    const syncWebhookMutation = useMutation({
+        mutationFn: async (payload: { appId: string, url: string, modes: string[], strategy: string }) => {
+            await apiClient.post(`/super-admin/gupshup/sync-webhook/${payload.appId}`, payload);
+        },
+        onSuccess: () => {
+            toast.success('Infrastructure updated successfully');
+            setIsAdvancedModalOpen(false);
+            refetchWebhook();
+        },
+        onError: (err: any) => {
+            toast.error(err.response?.data?.message || 'Sync failed');
+        }
+    });
+
+    const deleteSubscriptionMutation = useMutation({
+        mutationFn: async ({ appId, subscriptionId }: { appId: string, subscriptionId: string }) => {
+            await apiClient.delete(`/super-admin/gupshup/subscription/${appId}/${subscriptionId}`);
+        },
+        onSuccess: () => {
+            toast.success('Subscription deleted');
+            refetchWebhook();
+        },
+        onError: (err: any) => {
+            toast.error(err.response?.data?.message || 'Failed to delete subscription');
+        }
+    });
+
+    const handleSyncWebhook = () => {
+        if (!selectedWorkspace?.gupshupAppId) {
+            toast.error('No Gupshup App ID assigned to this workspace');
+            return;
+        }
+        syncWebhookMutation.mutate({
+            appId: selectedWorkspace.gupshupAppId,
+            url: webhookForm.url,
+            modes: webhookForm.modes,
+            strategy: webhookForm.strategy
+        });
+    };
+
+    const syncAllMutation = useMutation({
+        mutationFn: async (payload: { url: string, modes: string[], strategy: string }) => {
+            const response = await apiClient.post('/super-admin/gupshup/sync-all-webhooks', payload);
+            return response.data;
+        },
+        onSuccess: (data: any) => {
+            const stats = data?.stats || {};
+            toast.success(`Bulk Sync Completed: ${stats.synced || 0} updated, ${stats.skipped || 0} skipped.`);
+            setIsBulkModalOpen(false);
+            refetch();
+            refetchWebhook();
+        },
+        onError: (err: any) => {
+            toast.error(`Bulk Sync Failed: ${err.message}`);
+        }
+    });
+
+    const handleBulkSync = () => {
+        syncAllMutation.mutate({
+            url: bulkForm.url,
+            modes: bulkForm.modes,
+            strategy: bulkForm.strategy
+        });
+    };
+
     const workspaceRows = workspaces;
 
     const filteredWorkspaces = workspaceRows.filter((ws) => {
@@ -130,7 +255,7 @@ export default function FleetDirectoryPage() {
 
         const matchesSearch = searchTarget.includes(search.toLowerCase());
         const isConnected = Boolean(ws.whatsappConnected) || Boolean(ws.gupshupAppLive) || Boolean(ws.gupshupAppHealth);
-        const hasAttention = ['BANNED', 'DISCONNECTED', 'PENDING', 'INACTIVE'].includes(String(ws.bspPhoneStatus || '').toUpperCase()) || ws.gupshupAppHealth === false || ws.whatsappConnected === false;
+        const hasAttention = ['BANNED', 'DISCONNECTED', 'PENDING', 'INACTIVE'].includes(String(ws.bspPhoneStatus || '').toUpperCase()) || ws.gupshupAppHealth === false || (!ws.whatsappConnected && ws.gupshupAppId);
 
         if (statusFilter === 'connected' && !isConnected) return false;
         if (statusFilter === 'attention' && !hasAttention) return false;
@@ -167,7 +292,7 @@ export default function FleetDirectoryPage() {
         },
         {
             label: 'Needs Attention',
-            value: workspaceRows.filter((ws) => ['BANNED', 'DISCONNECTED', 'PENDING', 'INACTIVE'].includes(String(ws.bspPhoneStatus || '').toUpperCase()) || ws.gupshupAppHealth === false || ws.whatsappConnected === false).length,
+            value: workspaceRows.filter((ws) => ['BANNED', 'DISCONNECTED', 'PENDING', 'INACTIVE'].includes(String(ws.bspPhoneStatus || '').toUpperCase()) || ws.gupshupAppHealth === false || (!ws.whatsappConnected && ws.gupshupAppId)).length,
             description: 'Workspaces requiring action',
             icon: ShieldCheck,
             tone: 'text-rose-600',
@@ -198,9 +323,17 @@ export default function FleetDirectoryPage() {
                     subtitle={`Monitor and manage ${workspaceRows.length} workspaces, their configurations, and connection health.`}
                     actions={(
                         <>
+                            <Button 
+                                variant="outline" 
+                                className="h-12 border-emerald-500/20 bg-emerald-500/5 text-emerald-600 px-6 rounded-2xl group transition-all hover:bg-emerald-600 hover:text-white" 
+                                onClick={() => setIsBulkModalOpen(true)}
+                            >
+                                <Zap className={cn("h-4 w-4 mr-2", syncAllMutation.isPending && "animate-pulse")} />
+                                <span className="text-xs font-black uppercase tracking-widest">Global Webhook Sync</span>
+                            </Button>
                             <Button variant="outline" className="h-12 border-border/50 bg-background/50 backdrop-blur-sm px-6 rounded-2xl group transition-all hover:bg-muted" onClick={() => refetch()}>
                                 <Loader2 className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin text-emerald-600' : 'text-muted-foreground group-hover:text-emerald-600'}`} />
-                                <span className="text-xs font-black uppercase tracking-widest">Refresh Workspace Snapshot</span>
+                                <span className="text-xs font-black uppercase tracking-widest">Refresh Snapshot</span>
                             </Button>
                             <Button className="rounded-2xl h-12 px-8 bg-emerald-600 hover:bg-emerald-700 shadow-2xl shadow-emerald-500/20 font-black uppercase tracking-widest text-xs text-white">
                                 <Plus className="mr-2 h-4 w-4" /> Open Workspace
@@ -338,10 +471,10 @@ export default function FleetDirectoryPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 border-none shadow-2xl bg-background/95 backdrop-blur-xl ring-1 ring-border/50">
-                                                    <DropdownMenuItem className="rounded-xl font-black uppercase tracking-widest text-[10px] py-3 gap-3">
+                                                    <DropdownMenuItem className="rounded-xl font-black uppercase tracking-widest text-[10px] py-3 gap-3" onClick={() => setSelectedWorkspaceId(String(ws._id))}>
                                                         <Settings className="size-4 text-muted-foreground" /> Configure Node
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="rounded-xl font-black uppercase tracking-widest text-[10px] py-3 gap-3">
+                                                    <DropdownMenuItem className="rounded-xl font-black uppercase tracking-widest text-[10px] py-3 gap-3" onClick={() => router.push(`/super-admin/users?workspace=${ws._id}`)}>
                                                         <Users className="size-4 text-muted-foreground" /> Team Directory
                                                     </DropdownMenuItem>
                                                     <div className="h-px bg-border/50 my-1" />
@@ -478,6 +611,274 @@ export default function FleetDirectoryPage() {
                                             Open BSP Provider
                                         </Button>
                                     </div>
+
+                                    {/* Webhook Infrastructure Control */}
+                                    <div className="mt-8 pt-8 border-t border-border/10 space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="font-black uppercase tracking-tight flex items-center gap-2 text-sm">
+                                                <Webhook className="h-4 w-4 text-emerald-600" /> Infrastructure Control
+                                            </h4>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="sm" 
+                                                className="h-8 px-3 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-emerald-50 text-emerald-600"
+                                                onClick={() => refetchWebhook()}
+                                                disabled={isFetchingWebhook}
+                                            >
+                                                <RefreshCw className={cn("h-3 w-3 mr-2", isFetchingWebhook && "animate-spin")} />
+                                                Refresh Status
+                                            </Button>
+                                        </div>
+
+                                        <div className="rounded-2xl border border-emerald-500/10 bg-emerald-500/[0.02] p-5 space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Webhook Status</p>
+                                                    <div className="flex items-center gap-2">
+                                                        {webhookStatus?.subscriptions?.length > 0 ? (
+                                                            <>
+                                                                <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                                                <span className="font-bold text-sm text-emerald-600">Active & Synced</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <AlertCircle className="h-4 w-4 text-amber-500" />
+                                                                <span className="font-bold text-sm text-amber-600">Sync Required</span>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {/* Unified Infrastructure Module */}
+                                            <div className="pt-6 border-t border-border/10 space-y-6">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Endpoint Configuration</p>
+                                                    <Badge variant="secondary" className="h-5 text-[8px] font-black">{webhookStatus?.subscriptions?.length || 0} ACTIVE</Badge>
+                                                </div>
+
+                                                {/* Form Module */}
+                                                <div className="space-y-6 rounded-2xl border border-slate-100 bg-slate-50/50 p-5">
+                                                    <div className="space-y-3">
+                                                        <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Target Callback URL</Label>
+                                                        <div className="relative group">
+                                                            <Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-emerald-600/40" />
+                                                            <Input 
+                                                                placeholder="System Default" 
+                                                                className="pl-9 h-11 rounded-xl bg-white border-slate-200 font-bold text-xs"
+                                                                value={webhookForm.url}
+                                                                onChange={(e) => setWebhookForm({...webhookForm, url: e.target.value})}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div className="space-y-2">
+                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Strategy</Label>
+                                                            <Select value={webhookForm.strategy} onValueChange={(val) => setWebhookForm({...webhookForm, strategy: val as any})}>
+                                                                <SelectTrigger className="h-10 rounded-xl bg-white border-slate-200 text-[10px] font-bold uppercase">
+                                                                    <SelectValue />
+                                                                </SelectTrigger>
+                                                                <SelectContent className="rounded-xl border-none shadow-2xl">
+                                                                    <SelectItem value="update" className="text-[10px] font-bold uppercase">Update Existing</SelectItem>
+                                                                    <SelectItem value="add" className="text-[10px] font-bold uppercase">Force Add New</SelectItem>
+                                                                    <SelectItem value="replace" className="text-[10px] font-bold uppercase text-red-600">Clean Replace</SelectItem>
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                        <div className="flex items-end">
+                                                            <Button 
+                                                                className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[9px] shadow-lg shadow-emerald-500/20"
+                                                                onClick={handleSyncWebhook}
+                                                                disabled={syncWebhookMutation.isPending}
+                                                            >
+                                                                {syncWebhookMutation.isPending ? 'Syncing...' : 'Apply Sync'}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <Label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Events</Label>
+                                                            <button 
+                                                                className="text-[8px] font-black text-emerald-600 uppercase tracking-widest"
+                                                                onClick={() => setWebhookForm({...webhookForm, modes: GUPSHUP_MODES})}
+                                                            >
+                                                                All
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {GUPSHUP_MODES.map((mode) => (
+                                                                <Badge 
+                                                                    key={mode}
+                                                                    variant={webhookForm.modes.includes(mode) ? "default" : "outline"}
+                                                                    className={cn(
+                                                                        "text-[7px] font-black uppercase tracking-tighter px-1.5 py-0.5 cursor-pointer transition-all",
+                                                                        webhookForm.modes.includes(mode) ? "bg-emerald-600 hover:bg-emerald-700" : "text-slate-400 border-slate-200 hover:border-emerald-500/30"
+                                                                    )}
+                                                                    onClick={() => {
+                                                                        if (webhookForm.modes.includes(mode)) setWebhookForm({...webhookForm, modes: webhookForm.modes.filter(m => m !== mode)});
+                                                                        else setWebhookForm({...webhookForm, modes: [...webhookForm.modes, mode]});
+                                                                    }}
+                                                                >
+                                                                    {mode.replace('_', ' ')}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Active Endpoints List */}
+                                                {webhookStatus?.subscriptions?.length > 0 && (
+                                                    <div className="space-y-3">
+                                                        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Active Infrastructure</p>
+                                                        <div className="space-y-2">
+                                                            {webhookStatus.subscriptions.map((sub: any, idx: number) => (
+                                                                <div key={idx} className="flex flex-col gap-2 p-3 rounded-xl bg-white border border-slate-100 group shadow-sm">
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <div className="flex items-start gap-2 min-w-0">
+                                                                            <Globe className="h-3 w-3 text-emerald-600/30 mt-0.5 shrink-0" />
+                                                                            <span className="text-[10px] font-mono text-slate-500 break-all leading-tight">{sub.url}</span>
+                                                                        </div>
+                                                                        <Button 
+                                                                            variant="ghost" 
+                                                                            size="icon" 
+                                                                            className="h-6 w-6 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                                            onClick={() => {
+                                                                                if (window.confirm('Delete this subscription?')) {
+                                                                                    deleteSubscriptionMutation.mutate({ 
+                                                                                        appId: selectedWorkspace.gupshupAppId, 
+                                                                                        subscriptionId: sub.id 
+                                                                                    });
+                                                                                }
+                                                                            }}
+                                                                            disabled={deleteSubscriptionMutation.isPending}
+                                                                        >
+                                                                            {deleteSubscriptionMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                                                        </Button>
+                                                                    </div>
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {(sub.modes || sub.events || []).map((m: string) => (
+                                                                            <Badge key={m} variant="secondary" className="bg-emerald-50 text-emerald-700 text-[7px] font-bold uppercase px-1 py-0 border-transparent">
+                                                                                {m}
+                                                                            </Badge>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+
+                                    {/* Bulk Sync Modal */}
+                                    <Dialog open={isBulkModalOpen} onOpenChange={setIsBulkModalOpen}>
+                                        <DialogContent className="max-w-2xl rounded-3xl border-none shadow-2xl overflow-hidden p-0 bg-background">
+                                            <DialogHeader className="p-8 pb-0">
+                                                <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
+                                                    <Zap className="h-6 w-6 text-amber-600" /> Bulk Infrastructure Sync
+                                                </DialogTitle>
+                                                <DialogDescription className="text-sm font-bold text-muted-foreground/60 uppercase tracking-widest">
+                                                    Apply mass configuration to all {workspaces.length} workspaces
+                                                </DialogDescription>
+                                            </DialogHeader>
+
+                                            <div className="p-8 space-y-8">
+                                                <div className="rounded-2xl border-2 border-amber-500/10 bg-amber-500/[0.03] p-5 flex items-start gap-4">
+                                                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                                                    <p className="text-[11px] font-bold text-amber-900/60 leading-relaxed uppercase tracking-tight">
+                                                        Caution: Bulk sync will trigger Gupshup API calls for all workspaces. 
+                                                        It is recommended to use "Update Matching" unless a platform-wide URL migration is needed.
+                                                    </p>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Global Callback URL</Label>
+                                                        <p className="text-[9px] font-bold text-emerald-600/50 uppercase tracking-tighter italic">Leave empty for system default</p>
+                                                    </div>
+                                                    <div className="relative group">
+                                                        <Globe className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-600/30 group-focus-within:text-amber-600 transition-all" />
+                                                        <Input 
+                                                            placeholder="https://your-domain.com/api/webhooks/whatsapp" 
+                                                            className="pl-11 h-14 rounded-2xl bg-muted/20 border-none font-bold text-sm focus-visible:ring-2 focus-visible:ring-amber-500/20"
+                                                            value={bulkForm.url}
+                                                            onChange={(e) => setBulkForm({...bulkForm, url: e.target.value})}
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bulk Strategy</Label>
+                                                    <RadioGroup 
+                                                        value={bulkForm.strategy} 
+                                                        onValueChange={(val) => setBulkForm({...bulkForm, strategy: val as any})}
+                                                        className="grid grid-cols-2 gap-4"
+                                                    >
+                                                        <div className="relative">
+                                                            <RadioGroupItem value="update" id="bulk-update" className="peer sr-only" />
+                                                            <Label htmlFor="bulk-update" className="flex flex-col items-center justify-center rounded-[24px] border-2 border-muted bg-popover p-4 hover:border-amber-200 peer-data-[state=checked]:border-amber-600 peer-data-[state=checked]:bg-amber-50 cursor-pointer text-center h-24 space-y-1">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest">Update Matching</span>
+                                                                <span className="text-[8px] font-bold text-muted-foreground/40 uppercase">Keep existing URLs</span>
+                                                            </Label>
+                                                        </div>
+                                                        <div className="relative">
+                                                            <RadioGroupItem value="replace" id="bulk-replace" className="peer sr-only" />
+                                                            <Label htmlFor="bulk-replace" className="flex flex-col items-center justify-center rounded-[24px] border-2 border-muted bg-popover p-4 hover:border-red-200 peer-data-[state=checked]:border-red-600 peer-data-[state=checked]:bg-red-50 cursor-pointer text-center h-24 space-y-1">
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-red-600">Force Replace</span>
+                                                                <span className="text-[8px] font-bold text-red-600/40 uppercase">Wipe and overwrite</span>
+                                                            </Label>
+                                                        </div>
+                                                    </RadioGroup>
+                                                </div>
+
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bulk Event Subscription Modes</Label>
+                                                        <button 
+                                                            className="text-[8px] font-black text-amber-600 uppercase tracking-widest"
+                                                            onClick={() => setBulkForm({...bulkForm, modes: GUPSHUP_MODES})}
+                                                        >
+                                                            Select All
+                                                        </button>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {GUPSHUP_MODES.map((mode) => (
+                                                            <Badge 
+                                                                key={mode}
+                                                                variant={bulkForm.modes.includes(mode) ? "default" : "outline"}
+                                                                className={cn(
+                                                                    "text-[8px] font-black uppercase tracking-tighter px-2 py-1 cursor-pointer transition-all",
+                                                                    bulkForm.modes.includes(mode) ? "bg-amber-600 hover:bg-amber-700" : "text-muted-foreground/40 border-muted hover:border-amber-500/30"
+                                                                )}
+                                                                onClick={() => {
+                                                                    if (bulkForm.modes.includes(mode)) setBulkForm({...bulkForm, modes: bulkForm.modes.filter(m => m !== mode)});
+                                                                    else setBulkForm({...bulkForm, modes: [...bulkForm.modes, mode]});
+                                                                }}
+                                                            >
+                                                                {mode.replace('_', ' ')}
+                                                            </Badge>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <DialogFooter className="p-8 bg-muted/20 border-t border-border/10">
+                                                <Button variant="ghost" className="rounded-xl h-12 px-6 font-black uppercase tracking-widest text-[10px]" onClick={() => setIsBulkModalOpen(false)}>
+                                                    Cancel
+                                                </Button>
+                                                <Button 
+                                                    className="rounded-xl h-12 px-10 bg-amber-600 hover:bg-amber-700 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-amber-500/20"
+                                                    onClick={handleBulkSync}
+                                                    disabled={syncAllMutation.isPending}
+                                                >
+                                                    {syncAllMutation.isPending ? 'Syncing System...' : 'Start Bulk Sync'}
+                                                </Button>
+                                            </DialogFooter>
+                                        </DialogContent>
+                                    </Dialog>
 
                                     {Array.isArray(selectedWorkspace.phoneNumbers) && selectedWorkspace.phoneNumbers.length > 0 && (
                                         <div className="rounded-2xl border border-border/40 bg-muted/20 p-5 space-y-3">

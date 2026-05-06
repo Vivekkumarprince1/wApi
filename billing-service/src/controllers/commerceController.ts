@@ -50,7 +50,7 @@ export const commerceController = {
    */
   async listOrders(req: Request, res: Response) {
     try {
-      const workspaceId = req.params.workspaceId;
+      const workspaceId = req.params.workspaceId as string;
       const { page = '1', limit = '10', status, search } = req.query;
 
       const query: any = { workspaceId: new mongoose.Types.ObjectId(workspaceId) };
@@ -89,7 +89,7 @@ export const commerceController = {
    */
   async createOrder(req: Request, res: Response) {
     try {
-      const workspaceId = req.params.workspaceId;
+      const workspaceId = req.params.workspaceId as string;
       const orderData = {
         ...req.body,
         workspaceId: new mongoose.Types.ObjectId(workspaceId),

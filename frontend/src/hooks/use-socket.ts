@@ -40,26 +40,62 @@ const getSocket = async (): Promise<Socket> => {
   // If connection is in progress, return the existing promise
   if (connectionPromise) return connectionPromise;
 
-  connectionPromise = new Promise((resolve, reject) => {
+  connectionPromise = new Promise(async (resolve, reject) => {
     const socketBase = appConfig.socketUrl;
 
-    const allCookies = typeof document !== 'undefined' ? document.cookie : '';
-    const cookieArray = allCookies.split(';');
-    const authCookie = cookieArray.find(row => row.trim().startsWith('auth_token='));
-    const token = authCookie ? authCookie.split('=')[1]?.trim() : null;
+    // Try to get token from multiple sources
+    let token: string | null = null;
+
+    // Source 1: SessionStorage (stored during login)
+    if (typeof sessionStorage !== 'undefined') {
+      token = sessionStorage.getItem('socket_auth_token');
+      if (token) console.log('[Socket:Singleton] 🔐 Found token in sessionStorage');
+    }
+
+    // Source 2: Try to read from auth_token cookie (accessible)
+    if (!token && typeof document !== 'undefined') {
+      const allCookies = document.cookie;
+      const cookieArray = allCookies.split(';');
+      const authCookie = cookieArray.find(row => row.trim().startsWith('auth_token='));
+      token = authCookie ? authCookie.split('=')[1]?.trim() : null;
+      if (token) console.log('[Socket:Singleton] 🍪 Found auth_token cookie');
+    }
+
+    // Source 3: Fetch fresh token from session endpoint if not found
+    if (!token) {
+      try {
+        console.log('[Socket:Singleton] 🔄 Token not found locally, fetching from session endpoint...');
+        const response = await fetch('/api/v1/auth/session', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const session = await response.json();
+          token = session.token; // Backend should return token in session response
+          if (token) {
+            console.log('[Socket:Singleton] ✓ Got token from session endpoint');
+            if (typeof sessionStorage !== 'undefined') {
+              sessionStorage.setItem('socket_auth_token', token);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[Socket:Singleton] ⚠️ Could not fetch token from session:', err);
+      }
+    }
 
     console.log('[Socket:Singleton] 🌐 Connecting to:', socketBase);
     if (token) {
-      console.log('[Socket:Singleton] 🍪 Found auth_token cookie (Length: ' + token.length + ')');
+      console.log('[Socket:Singleton] 🔑 Found auth token (Length: ' + token.length + ')');
     } else {
-      console.warn('[Socket:Singleton] ⚠️ auth_token is missing in cookies!');
+      console.warn('[Socket:Singleton] ⚠️ No auth token available. Will attempt connection with withCredentials.');
     }
 
     const socket = io(socketBase, {
       auth: { token },
       withCredentials: true,
       transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10, // More attempts for local dev
+      reconnectionAttempts: 10,
       reconnectionDelay: 1000,
     });
 

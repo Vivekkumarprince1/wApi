@@ -57,7 +57,7 @@ export default function InfrastructurePage() {
     queryKey: ['admin', 'infrastructure'],
     queryFn: async () => {
       const response = await apiClient.get('/super-admin/infrastructure');
-      return response?.data || response || {};
+      return response.data || response;
     },
   });
 
@@ -75,7 +75,7 @@ export default function InfrastructurePage() {
     cpu: string;
     memory: string;
     connections: string;
-    icon: LucideIcon;
+    icon: string;
     color: string;
     bg: string;
     type: string;
@@ -85,231 +85,9 @@ export default function InfrastructurePage() {
     lastHealthCheck?: string;
     latency?: string;
     details?: Record<string, unknown>;
-  }> = infrastructure?.services || [
-    {
-      name: "Main Server",
-      type: "Core Service",
-      icon: Server,
-      status: infrastructure?.mainServer?.status || "healthy",
-      uptime: infrastructure?.mainServer?.uptime || "99.97%",
-      latency: infrastructure?.mainServer?.latency || "12ms",
-      connections: infrastructure?.mainServer?.connections || 892,
-      memory: infrastructure?.mainServer?.memory || "4.2GB/8GB",
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
-      details: infrastructure?.mainServer?.details || {
-        version: "v2.1.4",
-        endpoints: 156,
-        throughput: "3.2k req/s",
-        errorRate: "0.01%"
-      }
-    },
-    {
-      name: "Automation Service",
-      type: "Microservice",
-      icon: Zap,
-      status: infrastructure?.automationService?.status || "healthy",
-      uptime: infrastructure?.automationService?.uptime || "99.95%",
-      latency: infrastructure?.automationService?.latency || "18ms",
-      connections: infrastructure?.automationService?.connections || 234,
-      memory: infrastructure?.automationService?.memory || "1.8GB/4GB",
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-      details: infrastructure?.automationService?.details || {
-        version: "v1.9.2",
-        workflows: 1247,
-        activeFlows: 89,
-        queueDepth: 12
-      }
-    },
-    {
-      name: "Campaign Service",
-      type: "Microservice",
-      icon: Megaphone,
-      status: infrastructure?.campaignService?.status || "healthy",
-      uptime: infrastructure?.campaignService?.uptime || "99.92%",
-      latency: infrastructure?.campaignService?.latency || "25ms",
-      connections: infrastructure?.campaignService?.connections || 156,
-      memory: infrastructure?.campaignService?.memory || "2.1GB/4GB",
-      color: "text-purple-600",
-      bg: "bg-purple-50",
-      details: infrastructure?.campaignService?.details || {
-        version: "v1.7.8",
-        campaigns: 892,
-        activeCampaigns: 23,
-        messagesSent: 456789
-      }
-    },
-    {
-      name: "Billing Service",
-      type: "Microservice",
-      icon: CreditCard,
-      status: infrastructure?.billingService?.status || "healthy",
-      uptime: infrastructure?.billingService?.uptime || "99.98%",
-      latency: infrastructure?.billingService?.latency || "15ms",
-      connections: infrastructure?.billingService?.connections || 78,
-      memory: infrastructure?.billingService?.memory || "1.2GB/2GB",
-      color: "text-green-600",
-      bg: "bg-green-50",
-      details: infrastructure?.billingService?.details || {
-        version: "v1.5.3",
-        subscriptions: 1247,
-        payments: 8923,
-        revenue: "₹2.4M/month"
-      }
-    },
-    {
-      name: "MongoDB Primary",
-      type: "Database",
-      icon: Database,
-      status: infrastructure?.mongodb?.status || "healthy",
-      uptime: infrastructure?.mongodb?.uptime || "99.98%",
-      latency: infrastructure?.mongodb?.latency || "2.3ms",
-      connections: infrastructure?.mongodb?.connections || 247,
-      memory: infrastructure?.mongodb?.memory || "8.2GB/16GB",
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
-      details: infrastructure?.mongodb?.details || {
-        version: "7.0.2",
-        replicaSet: "rs0",
-        nodes: ["db-primary-01", "db-secondary-01", "db-arbiter-01"],
-        collections: 1247,
-        indexes: 892
-      }
-    },
-    {
-      name: "Redis Cache",
-      type: "Cache",
-      icon: Cpu,
-      status: infrastructure?.redis?.status || "healthy",
-      uptime: infrastructure?.redis?.uptime || "99.95%",
-      latency: infrastructure?.redis?.latency || "0.8ms",
-      connections: infrastructure?.redis?.connections || 156,
-      memory: infrastructure?.redis?.memory || "2.1GB/8GB",
-      color: "text-blue-600",
-      bg: "bg-blue-50",
-      details: infrastructure?.redis?.details || {
-        version: "7.2.1",
-        keys: 45632,
-        hitRate: "94.2%",
-        evictionRate: "0.01%"
-      }
-    },
-    {
-      name: "Message Queue",
-      type: "Queue",
-      icon: MessageSquare,
-      status: infrastructure?.messageQueue?.status || "warning",
-      uptime: infrastructure?.messageQueue?.uptime || "98.45%",
-      latency: infrastructure?.messageQueue?.latency || "12ms",
-      connections: infrastructure?.messageQueue?.connections || 67,
-      memory: infrastructure?.messageQueue?.memory || "512MB/1GB",
-      color: "text-amber-600",
-      bg: "bg-amber-50",
-      details: infrastructure?.messageQueue?.details || {
-        version: "3.12.1",
-        queues: 23,
-        messages: 15432,
-        consumers: 45
-      }
-    },
-    {
-      name: "Gupshup BSP",
-      type: "External",
-      icon: Globe,
-      status: infrastructure?.gupshup?.status || "healthy",
-      uptime: infrastructure?.gupshup?.uptime || "99.94%",
-      latency: infrastructure?.gupshup?.latency || "234ms",
-      connections: infrastructure?.gupshup?.connections || 89,
-      memory: infrastructure?.gupshup?.memory || "N/A",
-      color: "text-green-600",
-      bg: "bg-green-50",
-      details: infrastructure?.gupshup?.details || {
-        apps: 156,
-        messages: 8923412,
-        webhooks: 2341,
-        rateLimit: "95%"
-      }
-    },
-    {
-      name: "File Storage",
-      type: "Storage",
-      icon: HardDrive,
-      status: infrastructure?.fileStorage?.status || "healthy",
-      uptime: infrastructure?.fileStorage?.uptime || "99.92%",
-      latency: infrastructure?.fileStorage?.latency || "89ms",
-      connections: infrastructure?.fileStorage?.connections || 34,
-      memory: infrastructure?.fileStorage?.memory || "45GB/100GB",
-      color: "text-slate-600",
-      bg: "bg-slate-50",
-      details: infrastructure?.fileStorage?.details || {
-        provider: "AWS S3",
-        buckets: 12,
-        objects: 892341,
-        bandwidth: "2.3TB/month"
-      }
-    },
-    {
-      name: "Email Service",
-      type: "External",
-      icon: Mail,
-      status: infrastructure?.emailService?.status || "healthy",
-      uptime: infrastructure?.emailService?.uptime || "99.87%",
-      latency: infrastructure?.emailService?.latency || "156ms",
-      connections: infrastructure?.emailService?.connections || 12,
-      memory: infrastructure?.emailService?.memory || "N/A",
-      color: "text-purple-600",
-      bg: "bg-purple-50",
-      details: infrastructure?.emailService?.details || {
-        provider: "SendGrid",
-        sentToday: 1247,
-        bounceRate: "0.12%",
-        deliverRate: "98.7%"
-      }
-    }
-  ];
+  }> = infrastructure?.services || [];
 
-  const metrics: Array<{
-    label: string;
-    value: string;
-    icon: LucideIcon;
-    color: string;
-    bg: string;
-    change: string;
-  }> = infrastructure?.metrics || [
-    { 
-      label: "System Uptime", 
-      value: "99.96%", 
-      icon: Activity, 
-      color: "text-emerald-600", 
-      bg: "bg-emerald-50", 
-      change: "+0.02%" 
-    },
-    { 
-      label: "Avg Response Time", 
-      value: "67ms", 
-      icon: Clock, 
-      color: "text-blue-600", 
-      bg: "bg-blue-50", 
-      change: "-5ms" 
-    },
-    { 
-      label: "Active Connections", 
-      value: "1,247", 
-      icon: Network, 
-      color: "text-indigo-600", 
-      bg: "bg-indigo-50", 
-      change: "+12%" 
-    },
-    { 
-      label: "Error Rate", 
-      value: "0.03%", 
-      icon: AlertTriangle, 
-      color: "text-red-600", 
-      bg: "bg-red-50", 
-      change: "-0.01%" 
-    },
-  ];
+  const metrics = infrastructure?.metrics || (isLoading ? Array(4).fill({}) : []);
 
   // Parse the icon names if they come as strings from the backend
   const IconMap = {
@@ -322,13 +100,15 @@ export default function InfrastructurePage() {
 
   const resolvedMetrics = metrics.map(stat => ({
     ...stat,
-    icon: typeof stat.icon === 'string' ? (IconMap[stat.icon] || Activity) : stat.icon
+    icon: typeof stat.icon === 'string' ? (IconMap[stat.icon] || Activity) : (stat.icon || Activity)
   }));
 
   const resolvedServices = services.map(service => ({
     ...service,
-    icon: typeof service.icon === 'string' ? (IconMap[service.icon] || Server) : service.icon
+    icon: typeof service.icon === 'string' ? (IconMap[service.icon] || Server) : (service.icon || Server)
   }));
+
+  const activeServiceData = resolvedServices.find(s => s.name === selectedService) || resolvedServices[0];
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -366,11 +146,13 @@ export default function InfrastructurePage() {
                 <div className={cn("p-3 rounded-2xl", stat.bg)}>
                   {React.createElement(stat.icon as React.ElementType, { className: cn("h-5 w-5", stat.color) })}
                 </div>
-                <Badge variant="outline" className={cn(
-                  "text-[9px] font-black tracking-widest border-none px-2 py-0.5",
-                  stat.change.startsWith('+') ? "bg-emerald-50 text-emerald-600" :
-                  stat.change.startsWith('-') ? "bg-blue-50 text-blue-600" : "bg-slate-50 text-slate-500"
-                )}>{stat.change}</Badge>
+                {stat.change && (
+                  <Badge variant="outline" className={cn(
+                    "text-[9px] font-black tracking-widest border-none px-2 py-0.5",
+                    stat.change.startsWith('+') ? "bg-emerald-50 text-emerald-600" :
+                    stat.change.startsWith('-') ? "bg-blue-50 text-blue-600" : "bg-slate-50 text-slate-500"
+                  )}>{stat.change}</Badge>
+                )}
               </div>
               <div className="flex flex-col">
                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">{stat.label}</span>
@@ -517,21 +299,34 @@ export default function InfrastructurePage() {
               </div>
             </div>
 
-            {/* Quick Actions */}
             <div className="glass-card p-8 rounded-[2.5rem] border border-slate-200/50 flex flex-col gap-6 shadow-sm">
               <h3 className="font-manrope text-sm font-black uppercase tracking-tight flex items-center gap-2">
                 <Settings className="h-4 w-4 text-emerald-600" /> Quick Actions
               </h3>
 
               <div className="space-y-3">
-                <Button className="w-full h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl">
-                  <RefreshCw className="h-3 w-3 mr-2" /> Restart Service
+                <Button 
+                  className="w-full h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl"
+                  onClick={async () => {
+                    if (confirm("Are you sure you want to clear all platform caches?")) {
+                      await apiClient.post('/super-admin/actions', { action: 'clear-cache' });
+                      alert("Cache purged successfully");
+                    }
+                  }}
+                >
+                  <Zap className="h-3 w-3 mr-2 text-blue-500" /> Purge Cache
                 </Button>
-                <Button className="w-full h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl">
-                  <Shield className="h-3 w-3 mr-2" /> Run Diagnostics
+                <Button 
+                  className="w-full h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl"
+                  onClick={() => window.location.href = '/super-admin/control-center'}
+                >
+                  <Monitor className="h-3 w-3 mr-2 text-emerald-500" /> System Control Center
                 </Button>
-                <Button className="w-full h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl">
-                  <ExternalLink className="h-3 w-3 mr-2" /> View Logs
+                <Button 
+                  className="w-full h-11 bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl"
+                  onClick={() => window.location.href = '/super-admin/data-explorer'}
+                >
+                  <Database className="h-3 w-3 mr-2 text-purple-500" /> Database Explorer
                 </Button>
               </div>
             </div>

@@ -12,7 +12,8 @@ import {
   ShieldAlert,
   Zap,
   Info,
-  Lock
+  Lock,
+  Megaphone
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -218,6 +219,18 @@ export function SystemBanners() {
       });
       return renderBanners();
     }
+  }
+
+  // 4. System Notice
+  const { systemStatus } = useAuthStore();
+  if (systemStatus?.systemNotice?.active) {
+    addBanner({
+      id: "system-notice",
+      type: systemStatus.systemNotice.level || "info",
+      icon: Megaphone,
+      title: "System Announcement",
+      description: systemStatus.systemNotice.message,
+    });
   }
 
   return renderBanners();

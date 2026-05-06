@@ -22,7 +22,7 @@ export interface IAutomationExecution extends Document {
   conversation?: mongoose.Types.ObjectId;
   contact?: mongoose.Types.ObjectId;
   message?: mongoose.Types.ObjectId;
-  status: 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
+  status: 'PENDING' | 'SUCCESS' | 'PARTIAL' | 'FAILED' | 'SKIPPED';
   skipReason?: string;
   skipDetails?: string;
   failureReason?: string;
@@ -59,7 +59,7 @@ const AutomationExecutionSchema: Schema = new Schema({
   conversation: { type: Schema.Types.ObjectId, ref: 'Conversation', index: true },
   contact: { type: Schema.Types.ObjectId, ref: 'Contact', index: true },
   message: { type: Schema.Types.ObjectId, ref: 'Message' },
-  status: { type: String, enum: ['SUCCESS', 'PARTIAL', 'FAILED', 'SKIPPED'], required: true, index: true },
+  status: { type: String, enum: ['PENDING', 'SUCCESS', 'PARTIAL', 'FAILED', 'SKIPPED'], required: true, index: true },
   skipReason: { type: String },
   skipDetails: { type: String },
   failureReason: { type: String },

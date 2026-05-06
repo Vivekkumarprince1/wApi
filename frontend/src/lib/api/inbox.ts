@@ -19,6 +19,8 @@ export interface Message {
   };
   isInternalNote?: boolean;
   repliedTo?: string;
+  subject?: string;
+  emailHtml?: string;
 }
 
 export interface Conversation {
@@ -30,7 +32,7 @@ export interface Conversation {
     avatar?: string;
     tags?: string[];
   };
-  channel: 'whatsapp' | 'messenger' | 'instagram';
+  channel: 'whatsapp' | 'messenger' | 'instagram' | 'sms' | 'email';
   lastMessage?: Message;
   lastMessageAt: string;
   unreadCount: number;
@@ -49,9 +51,9 @@ export interface Conversation {
 export const fetchConversations = (params?: any) => api.get('/inbox', { params });
 export const fetchMessages = (conversationId: string, params?: any) => api.get(`/inbox/conversations/${conversationId}/messages`, { params });
 export const fetchMessagesByContactId = (contactId: string, params?: any) => api.get(`/inbox/messages/contact/${contactId}`, { params });
-export const sendMessage = (conversationId: string, data: any) => api.post(`/inbox/conversations/${conversationId}/messages`, data);
+export const sendMessage = (conversationId: string, data: any, headers: any = {}) => api.post(`/inbox/conversations/${conversationId}/messages`, data, { headers });
 
-export const sendMediaMessage = (conversationId: string, data: any) => api.post(`/inbox/conversations/${conversationId}/messages`, {
+export const sendMediaMessage = (conversationId: string, data: any, headers: any = {}) => api.post(`/inbox/conversations/${conversationId}/messages`, {
   type: data.mediaType || 'image',
   media: {
     url: data.mediaUrl,
@@ -59,7 +61,7 @@ export const sendMediaMessage = (conversationId: string, data: any) => api.post(
     filename: data.filename,
     caption: data.caption
   }
-});
+}, { headers });
 
 export const markAsRead = (conversationId: string) => api.post(`/inbox/conversations/${conversationId}/read`);
 export const performConversationAction = (conversationId: string, action: string, data = {}) => api.patch(`/inbox/conversations/${conversationId}/action`, { action, ...data });

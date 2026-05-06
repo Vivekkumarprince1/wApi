@@ -1,6 +1,3 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -13,8 +10,6 @@ import engineRoutes from './routes/engineRoutes';
 import interaktiveListRoutes from './routes/interaktiveListRoutes';
 import instagramQuickflowRoutes from './routes/instagramQuickflowRoutes';
 import whatsappFormRoutes from './routes/whatsappFormRoutes';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;

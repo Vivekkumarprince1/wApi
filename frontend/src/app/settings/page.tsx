@@ -52,7 +52,7 @@ export default function SettingsPage() {
     queryKey: ['waba-settings'],
     queryFn: async () => {
       const response: any = await getWABASettings();
-      return response.waba;
+      return response?.waba || response || {};
     }
   });
 

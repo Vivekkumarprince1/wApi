@@ -94,6 +94,57 @@ export default function UserManagementPage() {
     inviteMutation.mutate({ email: inviteEmail, role: inviteRole });
   };
 
+  const updateRoleMutation = useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: string }) => {
+      return await apiClient.patch(`/super-admin/users/${id}/role`, { role });
+    },
+    onSuccess: (resp: any) => {
+      toast.success(resp?.message || "Role updated");
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.message || "Failed to update role"),
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return await apiClient.patch(`/super-admin/users/${id}/status`, { status });
+    },
+    onSuccess: (resp: any) => {
+      toast.success(resp?.message || "Status updated");
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.message || "Failed to update status"),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiClient.delete(`/super-admin/users/${id}`);
+    },
+    onSuccess: () => {
+      toast.success("User decommissioned");
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+    onError: (error: any) => toast.error(error?.response?.data?.message || "Failed to remove user"),
+  });
+
+  const handleEditPermissions = (user: any) => {
+    const newRole = prompt(`Change role for ${user.email}.\nCurrent: ${user.role}\n\nOptions: owner, admin, agent, viewer`, user.role);
+    if (newRole && newRole !== user.role) {
+      updateRoleMutation.mutate({ id: user._id, role: newRole });
+    }
+  };
+
+  const handleToggleStatus = (user: any) => {
+    const currentStatus = user.status || 'active';
+    const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+    updateStatusMutation.mutate({ id: user._id, status: newStatus });
+  };
+
+  const handleDeleteUser = (user: any) => {
+    if (!confirm(`CRITICAL: Remove user ${user.email}?\n\nThis will deactivate their account and revoke all access.`)) return;
+    deleteUserMutation.mutate(user._id);
+  };
+
   const filteredUsers = (users || []).filter((u: any) => {
     const matchesSearch = (u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()));
     const matchesRole = roleFilter === 'all' || u.role === roleFilter;
@@ -250,15 +301,15 @@ export default function UserManagementPage() {
                         <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-slate-200 shadow-2xl backdrop-blur-xl">
                           <DropdownMenuGroup>
                             <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground p-3">User Actions</DropdownMenuLabel>
-                            <DropdownMenuItem className="rounded-xl p-3 text-xs font-bold gap-3 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer">
+                            <DropdownMenuItem className="rounded-xl p-3 text-xs font-bold gap-3 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer" onClick={() => handleEditPermissions(u)}>
                               <Settings2 className="h-4 w-4" /> Edit Permissions
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-xl p-3 text-xs font-bold gap-3 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer">
-                              <ShieldAlert className="h-4 w-4" /> Transfer Ownership
+                            <DropdownMenuItem className="rounded-xl p-3 text-xs font-bold gap-3 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer" onClick={() => handleToggleStatus(u)}>
+                              <ShieldAlert className="h-4 w-4" /> {u.status === 'suspended' ? 'Activate User' : 'Suspend User'}
                             </DropdownMenuItem>
                           </DropdownMenuGroup>
                           <DropdownMenuSeparator className="bg-slate-100" />
-                          <DropdownMenuItem className="rounded-xl p-3 text-xs font-bold gap-3 text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer">
+                          <DropdownMenuItem className="rounded-xl p-3 text-xs font-bold gap-3 text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer" onClick={() => handleDeleteUser(u)}>
                             <Trash2 className="h-4 w-4" /> Remove User
                           </DropdownMenuItem>
                         </DropdownMenuContent>

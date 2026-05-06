@@ -193,6 +193,38 @@
     backdrop-filter: blur(20px) saturate(150%);
     border: 1px solid rgba(255, 255, 255, 0.4);
   }
+
+  .glass-card-elite {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .aurora-bg {
+    position: relative;
+    overflow: hidden;
+    background: #0d0d0d;
+  }
+
+  .aurora-bg::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.15), transparent 40%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.15), transparent 40%),
+                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.15), transparent 40%);
+    animation: aurora-rotate 20s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes aurora-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 }
 
 .dark {

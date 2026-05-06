@@ -32,7 +32,6 @@ const allowedDevOrigins = allowedDevOriginsSource
 const nextConfig: NextConfig = {
   reactCompiler: false,
   allowedDevOrigins,
-  experimental: {},
   images: {
     remotePatterns: [
       {

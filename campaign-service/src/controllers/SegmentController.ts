@@ -1,7 +1,18 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { Segment } from '../models';
+import { SegmentService } from '../services/SegmentService';
 
+export const resolveSegment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params as { id: string };
+    const workspaceId = req.workspace?.id;
+    const contacts = await SegmentService.resolveSegmentContacts(workspaceId!, id);
+    res.json({ success: true, data: contacts });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
 export const listSegments = async (req: AuthRequest, res: Response) => {
   try {
     const workspaceId = req.workspace?.id;

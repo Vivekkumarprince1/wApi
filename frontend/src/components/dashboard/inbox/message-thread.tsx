@@ -384,7 +384,17 @@ const MessageBubble = React.memo(({ message, isFirstInGroup, onReact, onRetryMed
          isLocation ? <LocationRenderer message={message} /> : 
          message.type === 'contacts' ? <ContactsRenderer message={message} /> : 
          isPayment ? <PaymentRenderer message={message} /> : (
-          shouldRenderBody && <p className="text-[14.5px] leading-[1.45] font-medium whitespace-pre-wrap">{message.body}</p>
+          shouldRenderBody && (
+            <div className="space-y-1">
+              {message.subject && (
+                <div className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/5 border-l-2 border-primary mb-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Subject</p>
+                  <p className="text-[13px] font-bold truncate">{message.subject}</p>
+                </div>
+              )}
+              <p className="text-[14.5px] leading-[1.45] font-medium whitespace-pre-wrap">{message.body}</p>
+            </div>
+          )
         )}
         <div className="flex items-center gap-1.5 mt-1 justify-end opacity-50">
           {message.sentBy && typeof message.sentBy === 'object' && <span className="text-[9px] font-black uppercase tracking-tighter mr-1">{(message.sentBy as any).name}</span>}
