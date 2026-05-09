@@ -131,15 +131,28 @@ export default function InboxPage() {
     conversationId: selectedConversation?._id
   });
 
+  // Diagnostic listeners — own effect so they don't get re-registered (and
+  // never cleaned up) every time `isConnected`/`selectedConversation`
+  // change. The previous version registered these in the same effect as
+  // the inbox handlers and returned early when disconnected, leaking
+  // listeners on every reconnect.
   useEffect(() => {
     if (!socket) return;
+    const onConnect = () => console.log('[Inbox:Socket] Connected', socket.id);
+    const onConnectError = (err: any) => console.error('[Inbox:Socket] Connection Error:', err.message);
+    const onPing = (data: any) => console.log('[Inbox:Socket] Heartbeat:', data);
+    socket.on('connect', onConnect);
+    socket.on('connect_error', onConnectError);
+    socket.on('server:ping', onPing);
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('connect_error', onConnectError);
+      socket.off('server:ping', onPing);
+    };
+  }, [socket]);
 
-    // Diagnostic Listeners
-    socket.on('connect', () => console.log('%c[Inbox:Socket] Status: Connected', 'color: green; font-weight: bold;', socket.id));
-    socket.on('connect_error', (err) => console.error('[Inbox:Socket] Connection Error:', err.message));
-    socket.on('server:ping', (data) => console.log('%c[Inbox:Socket] Heartbeat:', 'color: blue;', data));
-
-    if (!isConnected) return;
+  useEffect(() => {
+    if (!socket || !isConnected) return;
 
     const handleNewMessage = (data: any) => {
       console.log('[Inbox:Socket] New Message Received:', data);

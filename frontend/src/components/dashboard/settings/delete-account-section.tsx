@@ -31,17 +31,20 @@ export default function DeleteAccountSection({
   const [codeFromEmail, setCodeFromEmail] = useState('');
   const router = useRouter();
 
-  // Request deletion mutation
+  // Request deletion mutation. The backend identifies the user from the
+  // session cookie, not the email body — but we still send `email` so the
+  // server can reject the request if it ever drifts from the session user.
   const requestDeletionMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/auth/account/delete-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ email }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.message || 'Failed to request deletion');
       }
 
@@ -56,7 +59,9 @@ export default function DeleteAccountSection({
     },
   });
 
-  // Confirm deletion mutation
+  // Confirm deletion mutation. The backend re-checks the OTP against the
+  // session user's email, so the userId field is just a defensive sanity
+  // check and the auth cookie must travel along.
   const confirmDeletionMutation = useMutation({
     mutationFn: async () => {
       if (verificationCode !== codeFromEmail) {
@@ -66,11 +71,12 @@ export default function DeleteAccountSection({
       const response = await fetch('/api/auth/account/delete-confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ userId, verificationCode }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.message || 'Failed to delete account');
       }
 

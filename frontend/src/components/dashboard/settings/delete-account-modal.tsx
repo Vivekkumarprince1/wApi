@@ -40,6 +40,10 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
     try {
       const response = await fetch('/api/auth/account', {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ confirmText }),
       });
 
       const result = await response.json();

@@ -1,6 +1,38 @@
 import { Server, Socket } from 'socket.io';
 import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
+import { Permission } from '../models';
+
+async function userIsWorkspaceMember(userId: any, workspaceId: string): Promise<boolean> {
+  if (!userId || !workspaceId) return false;
+  if (!mongoose.isValidObjectId(workspaceId)) return false;
+  try {
+    const membership = await Permission.findOne({
+      user: userId,
+      workspace: workspaceId,
+      isActive: { $ne: false },
+    }).lean();
+    return !!membership;
+  } catch (err) {
+    console.warn('[Socket] Membership lookup failed:', (err as any)?.message);
+    return false;
+  }
+}
+
+async function userCanJoinConversation(userId: any, conversationId: string): Promise<boolean> {
+  if (!userId || !conversationId) return false;
+  if (!mongoose.isValidObjectId(conversationId)) return false;
+  try {
+    const Conversation = mongoose.models.Conversation;
+    if (!Conversation) return false;
+    const convo: any = await Conversation.findById(conversationId).select('workspace').lean();
+    if (!convo?.workspace) return false;
+    return userIsWorkspaceMember(userId, String(convo.workspace));
+  } catch (err) {
+    console.warn('[Socket] Conversation membership lookup failed:', (err as any)?.message);
+    return false;
+  }
+}
 
 export const handleSocketEvents = (io: Server, socket: any) => {
   // --- Authentication Middleware for Sockets ---
@@ -31,24 +63,34 @@ export const handleSocketEvents = (io: Server, socket: any) => {
   }
 
   /**
-   * Workspace Join
+   * Workspace Join — must be authenticated AND a member of the workspace.
    */
-  socket.on("workspace:join", (data: { workspaceId: string }) => {
-    const { workspaceId } = data;
-    if (workspaceId) {
-      const workspaceRoom = `workspace:${workspaceId.toString()}`;
-      socket.join(workspaceRoom);
-      console.log(`[Socket] ${socket.user?.email || 'Unknown'} joined ${workspaceRoom}`);
-      
-      // Broadcast online status
-      if (socket.user) {
-        socket.to(workspaceRoom).emit("agent:online", {
-          userId: socket.user._id,
-          name: socket.user.name,
-          email: socket.user.email,
-        });
-      }
+  socket.on("workspace:join", async (data: { workspaceId: string }) => {
+    const { workspaceId } = data || ({} as any);
+    if (!workspaceId) return;
+
+    if (!socket.user?._id) {
+      console.warn(`[Socket] Refused workspace:join — unauthenticated socket ${socket.id}`);
+      socket.emit('socket:error', { event: 'workspace:join', reason: 'unauthenticated' });
+      return;
     }
+
+    const isMember = await userIsWorkspaceMember(socket.user._id, String(workspaceId));
+    if (!isMember && socket.user?.role !== 'super_admin') {
+      console.warn(`[Socket] Refused workspace:join for ${socket.user.email} → ${workspaceId} (not a member)`);
+      socket.emit('socket:error', { event: 'workspace:join', reason: 'forbidden', workspaceId });
+      return;
+    }
+
+    const workspaceRoom = `workspace:${String(workspaceId)}`;
+    socket.join(workspaceRoom);
+    console.log(`[Socket] ${socket.user?.email || 'Unknown'} joined ${workspaceRoom}`);
+
+    socket.to(workspaceRoom).emit("agent:online", {
+      userId: socket.user._id,
+      name: socket.user.name,
+      email: socket.user.email,
+    });
   });
 
   /**
@@ -64,20 +106,34 @@ export const handleSocketEvents = (io: Server, socket: any) => {
   });
 
   /**
-   * Conversation Join
+   * Conversation Join — must be a member of the conversation's workspace.
    */
   socket.on("conversation:join", async (data: { conversationId: string }) => {
-    const { conversationId } = data;
-    if (conversationId) {
-      const conversationRoom = `conversation:${conversationId.toString()}`;
-      socket.join(conversationRoom);
-      console.log(`[Socket] ${socket.user?.email || 'Unknown'} joined ${conversationRoom}`);
+    const { conversationId } = data || ({} as any);
+    if (!conversationId) return;
 
-      socket.to(conversationRoom).emit("conversation:user-joined", {
-        conversationId,
-        user: socket.user ? { _id: socket.user._id, name: socket.user.name } : null,
-      });
+    if (!socket.user?._id) {
+      console.warn(`[Socket] Refused conversation:join — unauthenticated socket ${socket.id}`);
+      socket.emit('socket:error', { event: 'conversation:join', reason: 'unauthenticated' });
+      return;
     }
+
+    const allowed = socket.user?.role === 'super_admin'
+      || await userCanJoinConversation(socket.user._id, String(conversationId));
+    if (!allowed) {
+      console.warn(`[Socket] Refused conversation:join for ${socket.user.email} → ${conversationId} (not a member)`);
+      socket.emit('socket:error', { event: 'conversation:join', reason: 'forbidden', conversationId });
+      return;
+    }
+
+    const conversationRoom = `conversation:${String(conversationId)}`;
+    socket.join(conversationRoom);
+    console.log(`[Socket] ${socket.user?.email || 'Unknown'} joined ${conversationRoom}`);
+
+    socket.to(conversationRoom).emit("conversation:user-joined", {
+      conversationId,
+      user: { _id: socket.user._id, name: socket.user.name },
+    });
   });
 
   /**
@@ -162,57 +218,51 @@ export const socketAuthMiddleware = async (socket: any, next: any) => {
     }
 
     if (!token) {
-      console.warn(`[Socket Auth] ⚠️ No auth token found for socket ${socket.id}`);
-      console.debug(`[Socket Auth] Available sources - Auth: ${!!socket.handshake.auth?.token}, Header: ${!!socket.handshake.headers.authorization}, Cookies: ${!!(socket.handshake.headers.cookie || socket.request.headers.cookie)}`);
-      // Allow connection but mark as unauthenticated
-      socket.user = null;
-      return next();
+      console.warn(`[Socket Auth] No auth token found for socket ${socket.id}`);
+      return next(new Error('Unauthorized: missing auth token'));
     }
 
-    console.log(`[Socket Auth] ✓ Token found from: ${tokenSource} (Socket: ${socket.id})`);
+    console.log(`[Socket Auth] Token found from: ${tokenSource} (Socket: ${socket.id})`);
 
     const { config } = await import('../config');
     let decoded: any;
-    
+
     try {
       decoded = jwt.verify(token, config.jwtSecret);
     } catch (jwtErr: any) {
-      console.warn(`[Socket Auth] ⚠️ Invalid token for socket ${socket.id}: ${jwtErr.message}`);
-      socket.user = null;
-      return next(); // Allow connection but unauthenticated
+      console.warn(`[Socket Auth] Invalid token for socket ${socket.id}: ${jwtErr.message}`);
+      return next(new Error('Unauthorized: invalid token'));
     }
 
     if (!decoded?.id) {
-      console.warn(`[Socket Auth] ⚠️ Token missing user ID for socket ${socket.id}`);
-      socket.user = null;
-      return next();
+      return next(new Error('Unauthorized: token missing user id'));
     }
 
     const User = mongoose.models.User;
     const user = await User.findById(decoded.id).select("-passwordHash");
 
     if (!user) {
-      console.warn(`[Socket Auth] ⚠️ User not found for token ID ${decoded.id} on socket ${socket.id}`);
-      socket.user = null;
-      return next();
+      return next(new Error('Unauthorized: user not found'));
     }
 
-    console.log(`[Socket Auth] ✓ Authenticated as user: ${user.email} (Socket: ${socket.id})`);
+    console.log(`[Socket Auth] Authenticated as ${user.email} (Socket: ${socket.id})`);
     socket.user = user;
-    
-    // Auto-join workspace room
-    if (user.activeWorkspace || user.workspace) {
-      const wsId = user.activeWorkspace || user.workspace;
-      socket.join(`workspace:${wsId.toString()}`);
-      console.log(`[Socket Auth] ✓ Joined workspace room: workspace:${wsId.toString()}`);
+
+    // Auto-join the user's active workspace room only if they actually
+    // have membership; otherwise let workspace:join run the explicit check.
+    const wsId = user.activeWorkspace || user.workspace;
+    if (wsId) {
+      const isMember = await userIsWorkspaceMember(user._id, String(wsId));
+      if (isMember || user.role === 'super_admin') {
+        socket.join(`workspace:${String(wsId)}`);
+        console.log(`[Socket Auth] Joined workspace room: workspace:${String(wsId)}`);
+      }
     }
 
     next();
   } catch (err: any) {
-    console.error("[Socket Auth] ❌ Unexpected error during auth:", err.message);
-    // Allow connection even if auth fails, but mark as unauthenticated
-    socket.user = null;
-    next();
+    console.error("[Socket Auth] Unexpected error during auth:", err.message);
+    next(new Error('Unauthorized: internal error'));
   }
 };
 

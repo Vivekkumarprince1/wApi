@@ -174,22 +174,29 @@ export const lifecycleAction = async (req: AuthRequest, res: Response) => {
         return res.status(400).json({ success: false, message: 'Only paused campaigns can be resumed' });
       }
 
-      // Update status in DB
-      campaign.status = 'RUNNING';
-      campaign.startedAt = campaign.startedAt || new Date();
+      // Don't flip status to RUNNING here. The EventBus's
+      // BudgetReservedEvent handler does that after billing has actually
+      // parked the funds; otherwise the UI/API would briefly report RUNNING
+      // with no reservation if billing fails downstream.
       campaign.pausedAt = null;
       campaign.pausedReason = null;
-      // Trigger campaign start via local service
+      campaign.startedAt = campaign.startedAt || new Date();
+      await campaign.save();
+
       try {
         const { CampaignService } = await import('../services/CampaignService');
         await CampaignService.startCampaign(id as string, workspaceId as string, userId as string);
-        console.log(`[Lifecycle] ✅ Campaign ${id} started/resumed successfully`);
+        console.log(`[Lifecycle] Campaign ${id} start requested; awaiting budget reservation`);
       } catch (err: any) {
-        console.error(`[Lifecycle] ❌ Failed to start campaign:`, err.message);
+        console.error(`[Lifecycle] Failed to start campaign:`, err.message);
         return res.status(500).json({ success: false, error: err.message });
       }
 
-      return res.json({ success: true, message: isResume ? 'Campaign resumed' : 'Campaign started', data: { status: 'RUNNING' } });
+      return res.json({
+        success: true,
+        message: isResume ? 'Campaign resume requested' : 'Campaign start requested',
+        data: { status: campaign.status, awaitingBudget: true }
+      });
     }
 
     if (action === 'pause') {

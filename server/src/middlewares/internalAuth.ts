@@ -1,26 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import { config } from '../config';
 
 /**
  * Middleware to verify that the request is coming from a trusted microservice.
- * Checks the x-internal-service-secret header.
+ * Uses constant-time compare for the shared secret so a rapid attacker can't
+ * extract the value via response-timing side channels.
  */
 export const internalAuth = (req: Request, res: Response, next: NextFunction) => {
-  const secret = req.header('x-internal-service-secret');
+  const provided = req.header('x-internal-service-secret') || '';
+  const expected = config.internalServiceSecret || '';
 
-  if (!secret) {
-    console.warn(`[InternalAuth] Missing internal service secret from ${req.ip} (${req.method} ${req.originalUrl})`);
-    return res.status(401).json({ 
-        success: false, 
-        message: 'Unauthorized: Internal service secret missing or invalid' 
-    });
-  }
+  const providedBuf = Buffer.from(provided, 'utf8');
+  const expectedBuf = Buffer.from(expected, 'utf8');
 
-  if (secret !== config.internalServiceSecret) {
-    console.warn(`[InternalAuth] Invalid internal service secret from ${req.ip} (${req.method} ${req.originalUrl})`);
-    return res.status(401).json({ 
-        success: false, 
-        message: 'Unauthorized: Internal service secret missing or invalid' 
+  const ok =
+    expectedBuf.length > 0 &&
+    providedBuf.length === expectedBuf.length &&
+    crypto.timingSafeEqual(providedBuf, expectedBuf);
+
+  if (!ok) {
+    console.warn(`[InternalAuth] Rejecting internal request from ${req.ip} (${req.method} ${req.originalUrl})`);
+    return res.status(401).json({
+      success: false,
+      message: 'Unauthorized: Internal service secret missing or invalid'
     });
   }
 

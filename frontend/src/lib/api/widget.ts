@@ -1,4 +1,5 @@
 import api from './client';
 
-export const getWidgetConfig = () => api.get('/widget/config').then((res: any) => res.data || res);
+// `apiClient` already strips `response.data`.
+export const getWidgetConfig = () => api.get('/widget/config');
 export const updateWidgetConfig = (data: any) => api.post('/widget/config', data);

@@ -2,31 +2,29 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Global Next.js Middleware (using proxy.ts convention for this version)
- * Handles page-level redirections for authentication and workspace state.
+ * Global Next.js Proxy/Middleware.
+ * Next.js 16.2.3 uses the `proxy.ts` convention.
  */
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('auth_token')?.value;
-  
+
   const isOnboardingRoute = pathname.startsWith('/onboarding');
   const isBillingRoute = pathname.startsWith('/dashboard/billing');
   const isAuthRoute = pathname.startsWith('/auth');
   const isInviteRoute = pathname.startsWith('/auth/accept-invite');
 
-  // Let the client-side handle the accept-invite page logic entirely
   if (isInviteRoute) {
     return NextResponse.next();
   }
 
-  // Public routes that should always be accessible without auth
   const isPublicRoute =
     pathname === '/' ||
     isAuthRoute ||
     pathname.startsWith('/privacy') ||
+    pathname.startsWith('/terms') ||
     pathname === '/favicon.ico';
 
-  // Everything else is protected.
   if (!isPublicRoute && !token) {
     const loginUrl = new URL('/auth/login', request.url);
     loginUrl.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search || ''}`);
@@ -48,7 +46,7 @@ export default async function middleware(request: NextRequest) {
 
       if (!res.ok) {
         if (isPublicRoute) return NextResponse.next();
-        
+
         const loginUrl = new URL('/auth/login', request.url);
         loginUrl.searchParams.set('callbackUrl', `${pathname}${request.nextUrl.search || ''}`);
         const redirect = NextResponse.redirect(loginUrl);
@@ -63,7 +61,16 @@ export default async function middleware(request: NextRequest) {
         : null;
       const targetPath = accessRestriction?.targetPath || nextStep;
 
-      // Handle Redirection Logic
+      // Block non-super-admin users from /super-admin routes at the edge.
+      // The backend rejects API calls with isSuperAdmin, but the UI shell
+      // was previously reachable. Send them to /dashboard instead.
+      if (pathname.startsWith('/super-admin')) {
+        const role = session?.user?.role;
+        if (role !== 'super_admin') {
+          return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+      }
+
       if (targetPath) {
         if (!isOnboardingRoute && !isAuthRoute && pathname !== targetPath && !(accessRestriction?.kind === 'billing' && isBillingRoute)) {
           return NextResponse.redirect(new URL(targetPath, request.url));
@@ -91,7 +98,7 @@ export default async function middleware(request: NextRequest) {
 
       return NextResponse.next();
     } catch (error) {
-      console.error("[Proxy Middleware Error]:", error);
+      console.error('[Middleware] Session check failed:', error);
       if (isPublicRoute) return NextResponse.next();
       return NextResponse.next();
     }

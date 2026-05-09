@@ -228,8 +228,7 @@ MessageSchema.index({ workspace: 1, whatsappMessageId: 1 }, { unique: true, spar
 MessageSchema.index({ workspace: 1, direction: 1, createdAt: -1 });
 MessageSchema.index({ workspace: 1, status: 1, createdAt: -1 });
 MessageSchema.index({ workspace: 1, 'campaign.id': 1 });
-
-// Methods
+MessageSchema.index({ workspace: 1, body: 'text' });
 MessageSchema.methods.updateStatus = async function (this: IMessageDocument, newStatus: MessageStatus, timestamp?: number) {
   this.status = newStatus;
   const now = timestamp ? new Date(timestamp * 1000) : new Date();

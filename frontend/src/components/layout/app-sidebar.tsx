@@ -28,6 +28,7 @@ import {
   Terminal,
   Server,
   Database,
+  Settings,
 } from "lucide-react";
 
 import {
@@ -91,8 +92,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
   React.useEffect(() => {
     if (pathname.startsWith('/super-admin') && !isAdminMode) {
       setIsAdminMode(true);
-    } else if (!pathname.startsWith('/super-admin') && isAdminMode && !pathname.includes('billing')) {
-       // Only auto-switch off if not in a shared area like billing (though billing has separate routes)
+    } else if (!pathname.startsWith('/super-admin') && isAdminMode) {
+       setIsAdminMode(false);
     }
   }, [pathname]);
 
@@ -221,7 +222,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
             icon: CreditCard,
             children: [
               { title: "Billing & Plans", url: "/super-admin/billing", icon: CreditCard },
-              { title: "Plan Config", url: "/super-admin/plan-config", icon: Zap },
             ]
           },
           {
@@ -230,11 +230,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
             icon: Radar,
             children: [
               { title: "BSP Providers", url: "/super-admin/gupshup", icon: Radar },
-              { title: "Infrastructure", url: "/super-admin/infrastructure", icon: Server },
-              { title: "Control Center", url: "/super-admin/control-center", icon: Terminal },
               { title: "Data Explorer", url: "/super-admin/data-explorer", icon: Database },
-              { title: "Provider Health", url: "/super-admin/health", icon: Activity },
-              { title: "BSP Developer", url: "/super-admin/bsp-developer", icon: Terminal },
             ]
           },
           {

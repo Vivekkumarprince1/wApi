@@ -14,7 +14,8 @@ import cookieParser from 'cookie-parser';
 import { setIO } from './services/socket-bridge';
 import { initWorkers } from './services/worker-registry';
 import { initSocketEmitter } from './services/socket-emitter';
-import { authRateLimit, apiRateLimit, bulkRateLimit, exportRateLimit } from './middlewares/rateLimitMiddleware';
+import { authRateLimit, apiRateLimit, bulkRateLimit } from './middlewares/rateLimitMiddleware';
+import { correlationIdMiddleware, logger } from './utils/logger';
 import authRoutes from './routes/authRoutes';
 import webhookRoutes from './routes/webhookRoutes';
 import healthRoutes from './routes/healthRoutes';
@@ -70,7 +71,12 @@ app.use(cors({
   methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
   credentials: true
 }));
-app.use(morgan('dev'));
+// Stamp every request with an x-correlation-id (echoed on response) so
+// logs/jobs/cross-service calls can be traced as a single flow.
+app.use(correlationIdMiddleware);
+// Verbose dev-style logs only in development. Use 'combined' in
+// production for proxy-friendly access logs.
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({
   verify: (req: any, res, buf) => {
     req.rawBody = buf.toString();
@@ -80,18 +86,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // --- DATABASE ---
-mongoose.connect(process.env.MONGODB_URI!)
-  .then(async () => {
-    console.log("[Main Server] Connected to MongoDB");
-    
-    // Global Webhook Sync (Safe & Idempotent) - DISABLED ON STARTUP (Managed via Super Admin Dashboard)
-    // const { WebhookSyncService } = await import('./services/bsp/webhook-sync-service');
-    // WebhookSyncService.syncAll()
-    //   .then(() => console.log("[Main Server] Webhook sync completed successfully"))
-    //   .catch(err => console.error("[Main Server] Initial Webhook Sync failed:", err.message));
-    // Note: NOT awaited - server starts immediately
-  })
-  .catch(err => console.error("[Main Server] MongoDB connection error:", err));
+// Connect is awaited inside startServer() below, before httpServer.listen().
+// Mongoose buffering is disabled there to surface "DB not connected" errors
+// instead of silently queueing operations.
 
 // --- SOCKET.IO ---
 const httpServer = createServer(app);
@@ -112,16 +109,8 @@ io.adapter(createAdapter(pubClient, subClient));
 // Set IO instance for services
 setIO(io);
 
-// --- WORKERS & EMITTERS ---
+// --- WORKERS & EMITTERS (initialized inside startServer once DB is ready) ---
 import { MicroserviceEventBridge } from './services/microservice-event-bridge';
-
-initWorkers();
-initSocketEmitter();
-
-const eventBridge = new MicroserviceEventBridge(io);
-eventBridge.start().catch(err => console.error("[Main Server] Event Bridge failed to start:", err));
-
-console.log("[Main Server] Background workers, socket emitter, and event bridge initialized.");
 
 // --- ROUTES ---
 import crmRoutes from './routes/crmRoutes';
@@ -183,38 +172,53 @@ app.get('/', (req: express.Request, res: express.Response) => {
   });
 });
 
-// Porting API routes will go here
-// app.use('/api/v1/auth', authRoutes);
-// app.use('/api/v1/messaging', messagingRoutes);
-
 // --- ERROR HANDLING ---
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 
 app.use(notFoundHandler);
-
 app.use(errorHandler);
 
-// --- START SERVER ---
-// Set timeout to warn if startup is taking too long (indicates MongoDB/Redis issues)
-const startupTimeout = setTimeout(() => {
-  console.warn("\x1b[33m[Main Server] WARNING: Startup taking longer than 20 seconds\x1b[0m");
-  console.warn("\x1b[33m[Main Server] Check MongoDB and Redis connections\x1b[0m");
-}, 20000);
-
-httpServer.listen(port, '0.0.0.0', () => {
-  clearTimeout(startupTimeout);
-  console.log(`\x1b[32m[Main Server] Running at http://0.0.0.0:${port}\x1b[0m`);
-  console.log(`\x1b[36m[Main Server] Socket.io initialized with origins: ${allowedOrigins.join(', ')}\x1b[0m`);
-  const { getAuthCookieOptions } = require('./utils/auth-utils');
-  console.log(`\x1b[35m[Main Server] Auth Cookie httpOnly: ${getAuthCookieOptions().httpOnly}\x1b[0m`);
-  console.log(`\x1b[32m[Main Server] Server is READY for requests\x1b[0m`);
-});
-
-// --- SOCKET HANDLERS (Migrated from server.js) ---
+// --- SOCKET HANDLERS ---
 import { handleSocketEvents, socketAuthMiddleware } from './sockets/socketHandler';
 
 io.use(socketAuthMiddleware);
-
 io.on("connection", (socket) => {
   handleSocketEvents(io, socket);
 });
+
+// --- START SERVER ---
+async function startServer() {
+  const startupTimeout = setTimeout(() => {
+    console.warn("\x1b[33m[Main Server] WARNING: Startup taking longer than 20 seconds\x1b[0m");
+    console.warn("\x1b[33m[Main Server] Check MongoDB and Redis connections\x1b[0m");
+  }, 20000);
+
+  try {
+    // Disable buffering so DB ops fail fast if Mongo isn't ready instead
+    // of queueing silently.
+    mongoose.set('bufferCommands', false);
+    await mongoose.connect(process.env.MONGODB_URI!);
+    console.log("[Main Server] Connected to MongoDB");
+
+    initWorkers();
+    initSocketEmitter();
+    const eventBridge = new MicroserviceEventBridge(io);
+    eventBridge.start().catch(err => console.error("[Main Server] Event Bridge failed to start:", err));
+    console.log("[Main Server] Background workers, socket emitter, and event bridge initialized.");
+
+    httpServer.listen(port, '0.0.0.0', () => {
+      clearTimeout(startupTimeout);
+      console.log(`\x1b[32m[Main Server] Running at http://0.0.0.0:${port}\x1b[0m`);
+      console.log(`\x1b[36m[Main Server] Socket.io initialized with origins: ${allowedOrigins.join(', ')}\x1b[0m`);
+      const { getAuthCookieOptions } = require('./utils/auth-utils');
+      console.log(`\x1b[35m[Main Server] Auth Cookie httpOnly: ${getAuthCookieOptions().httpOnly}\x1b[0m`);
+      console.log(`\x1b[32m[Main Server] Server is READY for requests\x1b[0m`);
+    });
+  } catch (err) {
+    clearTimeout(startupTimeout);
+    console.error("[Main Server] FATAL: Startup failed:", err);
+    process.exit(1);
+  }
+}
+
+startServer();

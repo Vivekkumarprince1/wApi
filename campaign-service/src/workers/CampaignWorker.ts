@@ -84,7 +84,7 @@ export class CampaignWorker {
     }
 
     // 2. Budget Parking (Bridged/Direct)
-    const { template } = await monolithWorkerBridge.getTemplate(campaign.template.toString());
+    const { template } = await monolithWorkerBridge.getTemplate(workspaceId, campaign.template.toString());
     
     // Fetch pricing from Billing Service
     const { serviceRequest } = await import('../lib/service-client');
@@ -150,7 +150,7 @@ export class CampaignWorker {
         const chunk = activeRecipients.slice(i, i + CONCURRENCY);
         await Promise.all(chunk.map(async (recipient: any) => {
             try {
-                const { contact } = await monolithWorkerBridge.getContact(recipient.contactId);
+                const { contact } = await monolithWorkerBridge.getContact(workspaceId, recipient.contactId);
                 if (!contact) return;
 
                 const components: any[] = [];
@@ -229,7 +229,7 @@ export class CampaignWorker {
     if (isLastBatch) {
         const finalized = await Campaign.findOneAndUpdate({ _id: campaignId, status: { $ne: 'COMPLETED' } }, { $set: { status: 'COMPLETED', completedAt: new Date() } }, { new: true });
         if (finalized) {
-            const { template } = await monolithWorkerBridge.getTemplate(finalized.template.toString());
+            const { template } = await monolithWorkerBridge.getTemplate(workspaceId, finalized.template.toString());
             const { cost } = await monolithWorkerBridge.getPricing(workspaceId, template?.category || 'MARKETING');
             
             const successAmount = (finalized.totals?.sent || 0) * cost;

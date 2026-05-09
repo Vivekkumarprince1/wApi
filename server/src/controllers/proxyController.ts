@@ -4,6 +4,7 @@ import pRetry from 'p-retry';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { config } from '../config';
 import { logActivity } from '../services/activity-logging-service';
+import { getCorrelationId } from '../utils/logger';
 
 type ProxyService = 'automation' | 'campaign' | 'billing';
 
@@ -29,9 +30,9 @@ type CircuitState = {
   isOpen: boolean;
 };
 
-const FAILURE_THRESHOLD = 5;
-const RESET_TIMEOUT = 30000;
-const REQUEST_TIMEOUT = 10000;
+const FAILURE_THRESHOLD = 3; // Reduced from 5
+const RESET_TIMEOUT = 60000; // Increased to 60s
+const REQUEST_TIMEOUT = 5000; // Reduced from 10s
 
 const circuitState: Record<ProxyService, CircuitState> = {
   automation: { failures: 0, lastFailure: 0, isOpen: false },
@@ -207,7 +208,8 @@ function buildProxyHeaders(context: ProxyContext = {}, extraHeaders: Record<stri
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'x-internal-service-secret': config.internalServiceSecret,
-    'x-correlation-id': context.correlationId || generateCorrelationId(),
+    'x-correlation-id':
+      context.correlationId || getCorrelationId() || generateCorrelationId(),
     ...extraHeaders,
   };
 
@@ -267,6 +269,9 @@ export const proxyController = {
     console.log(`[ProxyController] forwardToService - data: ${JSON.stringify(options.data)}`);
     console.log(`[ProxyController] forwardToService - workspaceId: ${options.workspaceId}, userId: ${options.userId}`);
 
+    const timeout = parseInt(options.headers?.['x-timeout'] || '') || REQUEST_TIMEOUT;
+    const retries = options.headers?.['x-no-retry'] ? 0 : 2;
+
     try {
       const response = await pRetry(
         async () =>
@@ -277,11 +282,12 @@ export const proxyController = {
             params: options.params,
             headers,
             responseType: options.responseType,
-            timeout: REQUEST_TIMEOUT,
+            timeout,
             validateStatus: () => true,
           }),
         {
-          retries: 2,
+          retries,
+          minTimeout: 500,
           onFailedAttempt: (error: any) => {
             const status = error.response?.status;
             const msg = error.response?.data?.message || error.message || 'Unknown Error';

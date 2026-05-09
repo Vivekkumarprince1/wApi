@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
-import { Contact, Conversation, Message } from '../models';
+import { Contact, Conversation, Message, FormSubmission } from '../models';
 import { AutomationClient } from '../services/automation/automation-client';
 import { normalizePhoneNumber } from '../utils/phone-utils';
 import { UsageTracker } from '../services/workspace/usage-tracker';
@@ -109,6 +109,32 @@ export const contactController = {
         success: true,
         data: contact
       });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
+   * WhatsApp Flow / form submissions linked to this contact (timeline API).
+   */
+  async listFormSubmissions(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const exists = await Contact.exists({ _id: id, workspace: req.workspace._id });
+      if (!exists) {
+        throw new NotFoundError('Contact not found');
+      }
+
+      const limit = Math.min(Number(req.query.limit) || 50, 100);
+      const rows = await FormSubmission.find({
+        workspace: req.workspace._id,
+        contact: id,
+      })
+        .sort({ receivedAt: -1 })
+        .limit(limit)
+        .lean();
+
+      res.json({ success: true, data: rows });
     } catch (err) {
       next(err);
     }

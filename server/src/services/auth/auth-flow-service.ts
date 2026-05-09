@@ -34,7 +34,7 @@ export async function sendAuthOtp(input: {
     metadata = {
       name: input.name,
       email,
-      passwordHash: await bcrypt.hash(input.password, 10)
+      passwordHash: await bcrypt.hash(input.password, 12)
     };
     identifier = email;
   }

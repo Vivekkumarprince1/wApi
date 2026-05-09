@@ -25,7 +25,14 @@ export const conversationController = {
         (Team as any).findByUser(workspace._id, user._id)
       ]);
 
-      const hasAllAccess = ['owner', 'admin', 'manager'].includes(user.role) || (permission as any)?.permissions?.viewAllConversations;
+      // Use the workspace-scoped role (Permission.role), not the global
+      // User.role. The previous logic mistreated workspace owners/admins as
+      // plain members whenever User.role was the default.
+      const workspaceRole = (permission as any)?.role || req.role;
+      const isSuperAdmin = user.role === 'super_admin';
+      const hasAllAccess = isSuperAdmin
+        || ['owner', 'admin', 'manager'].includes(workspaceRole)
+        || (permission as any)?.permissions?.viewAllConversations;
       const userTeamIds = userTeams.map((t: any) => t._id);
 
       const query: any = { workspace: workspace._id };
@@ -90,12 +97,71 @@ export const conversationController = {
       }
 
       if (search) {
-        const searchRegex = { $regex: search, $options: 'i' };
-        const [matchingMessages, matchingContacts] = await Promise.all([
-          Message.find({ workspace: workspace._id, body: searchRegex }).limit(500).select('conversation').distinct('conversation'),
-          Contact.find({ workspace: workspace._id, $or: [{ name: searchRegex }, { phone: searchRegex }] }).limit(500).select('_id').distinct('_id')
-        ]);
-        query.$or = [...(query.$or || []), { contact: { $in: matchingContacts } }, { _id: { $in: matchingMessages } }];
+        // Prefer MongoDB $text when indexes exist (workspace-scoped compound
+        // text on Message.body / Contact.name). Fall back to bounded regex for
+        // phone-like queries or when $text errors (e.g. bad operator syntax).
+        const SEARCH_HIT_CAP = Number(process.env.INBOX_SEARCH_HIT_CAP || 200);
+        const trimmed = String(search).trim();
+        const mostlyDigits = /^[\d\s\-+()]{6,}$/.test(trimmed);
+        const useText = process.env.INBOX_TEXT_SEARCH !== '0' && trimmed.length > 0 && !mostlyDigits;
+
+        let matchingMessages: unknown[] = [];
+        let matchingContacts: unknown[] = [];
+
+        if (useText) {
+          try {
+            const safeText = trimmed.replace(/[^\p{L}\p{N}\s@-]/gu, ' ').slice(0, 256);
+            if (safeText.length > 0) {
+              const [msgConv, contactIds] = await Promise.all([
+                Message.find({
+                  workspace: workspace._id,
+                  $text: { $search: safeText },
+                })
+                  .limit(SEARCH_HIT_CAP)
+                  .select('conversation')
+                  .distinct('conversation'),
+                Contact.find({
+                  workspace: workspace._id,
+                  $text: { $search: safeText },
+                })
+                  .limit(SEARCH_HIT_CAP)
+                  .select('_id')
+                  .distinct('_id'),
+              ]);
+              matchingMessages = msgConv;
+              matchingContacts = contactIds;
+            }
+          } catch {
+            matchingMessages = [];
+            matchingContacts = [];
+          }
+        }
+
+        if (matchingMessages.length === 0 && matchingContacts.length === 0) {
+          const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const searchRegex = { $regex: escaped, $options: 'i' };
+          const [msgConv2, contactIds2] = await Promise.all([
+            Message.find({ workspace: workspace._id, body: searchRegex })
+              .limit(SEARCH_HIT_CAP)
+              .select('conversation')
+              .distinct('conversation'),
+            Contact.find({
+              workspace: workspace._id,
+              $or: [{ name: searchRegex }, { phone: searchRegex }],
+            })
+              .limit(SEARCH_HIT_CAP)
+              .select('_id')
+              .distinct('_id'),
+          ]);
+          matchingMessages = msgConv2;
+          matchingContacts = contactIds2;
+        }
+
+        query.$or = [
+          ...(query.$or || []),
+          { contact: { $in: matchingContacts } },
+          { _id: { $in: matchingMessages } },
+        ];
       }
 
       const skip = (page - 1) * limit;
@@ -250,7 +316,11 @@ export const conversationController = {
         Pipeline.find({ workspace: workspace._id }).select('name stages').lean()
       ]);
 
-      const hasAllAccess = ['owner', 'admin', 'manager'].includes(user.role) || (permission as any)?.permissions?.viewAllConversations;
+      // Workspace-scoped role drives RBAC; super_admin bypasses.
+      const workspaceRole = (permission as any)?.role || req.role;
+      const hasAllAccess = user.role === 'super_admin'
+        || ['owner', 'admin', 'manager'].includes(workspaceRole)
+        || (permission as any)?.permissions?.viewAllConversations;
       
       const leadTeamIds = userTeams
         .filter((t: any) => t.members.some((m: any) => m.user.toString() === user._id.toString() && m.role === 'lead'))

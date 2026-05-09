@@ -171,7 +171,10 @@ export const authController = {
         throw new AuthenticationError("Not authenticated");
       }
 
-      // Refresh cookie with current settings (specifically httpOnly: false for sockets)
+      // Refresh the cookie so its lifetime extends on activity. The
+      // settings come from getAuthCookieOptions(), which now sets
+      // httpOnly: true; sockets bootstrap their token via the
+      // /auth/session endpoint instead of reading the cookie from JS.
       const cookieOptions = getAuthCookieOptions();
       const currentToken = req.cookies.auth_token || req.headers.authorization?.split(' ')[1];
       
@@ -220,7 +223,7 @@ export const authController = {
                 workspaceId: workspaceToUse._id.toString(),
                 userId: user._id.toString(),
                 userRole: user.role,
-                headers: { 'x-timeout': '3000' } // Hint for shorter timeout if supported
+                headers: { 'x-timeout': '2000', 'x-no-retry': 'true' }
             });
             
             if (walletResponse.status === 200) {
@@ -712,7 +715,7 @@ export const authController = {
         }
 
         const bcrypt = await import('bcryptjs');
-        const passwordHash = await bcrypt.hash(password, 10);
+        const passwordHash = await bcrypt.hash(password, 12);
         user = await User.create({
           name: name || invitation.name || email.split('@')[0],
           email,
@@ -959,10 +962,12 @@ export const authController = {
   
   /**
    * Permanent Account Deletion (DELETE /api/v1/auth/account)
+   * One-shot endpoint requiring `confirmText: 'DELETE'`. Used by the
+   * compact deletion modal.
    */
   async deleteAccount(req: any, res: Response, next: NextFunction) {
     try {
-      const { confirmText } = req.body;
+      const { confirmText } = req.body || {};
       if (confirmText !== 'DELETE') {
         throw new BadRequestError("Please type 'DELETE' to confirm");
       }
@@ -974,6 +979,83 @@ export const authController = {
       res.json({
         success: true,
         message: "Your account and all associated data have been permanently deleted."
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
+   * Step 1 of two-step deletion. Sends a one-time code to the
+   * authenticated user's email and stores a short-lived challenge.
+   * POST /api/v1/auth/account/delete-request
+   */
+  async requestAccountDeletion(req: any, res: Response, next: NextFunction) {
+    try {
+      const user = req.user;
+      if (!user?.email) {
+        throw new BadRequestError('Authenticated user has no email on file');
+      }
+
+      const { createAndSendOtp } = await import('../services/auth/otp-service');
+      const result = await createAndSendOtp({
+        identifier: user.email,
+        purpose: 'email_verification',
+        metadata: {
+          requestIp: req.ip,
+          intent: 'account-delete',
+          userId: user._id.toString(),
+        },
+      });
+
+      res.json({
+        success: true,
+        message: 'Verification code sent. Check your email.',
+        challengeId: result.challengeId,
+        maskedIdentifier: result.maskedIdentifier,
+        expiresIn: result.expiresIn,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  /**
+   * Step 2 of two-step deletion. Validates the OTP for the authenticated
+   * user's email, then deletes the account.
+   * POST /api/v1/auth/account/delete-confirm
+   */
+  async confirmAccountDeletion(req: any, res: Response, next: NextFunction) {
+    try {
+      const user = req.user;
+      if (!user?.email) {
+        throw new BadRequestError('Authenticated user has no email on file');
+      }
+      const code = String(req.body?.verificationCode || req.body?.code || '').trim();
+      if (!/^\d{6}$/.test(code)) {
+        throw new BadRequestError('A valid 6-digit verification code is required');
+      }
+      // The frontend may pass `userId` for legacy reasons; if it does, it
+      // must match the authenticated user — never trust it for the delete.
+      const bodyUserId = req.body?.userId ? String(req.body.userId) : null;
+      if (bodyUserId && bodyUserId !== user._id.toString()) {
+        throw new ForbiddenError('You can only delete your own account');
+      }
+
+      const { verifyOtp } = await import('../services/auth/otp-service');
+      await verifyOtp({
+        identifier: user.email,
+        purpose: 'email_verification',
+        otp: code,
+      });
+
+      const { AccountDeletionService } = await import('../services/auth/account-deletion-service');
+      await AccountDeletionService.deleteAccount(user._id);
+
+      res.clearCookie('auth_token', getAuthCookieOptions());
+      res.json({
+        success: true,
+        message: 'Your account and all associated data have been permanently deleted.',
       });
     } catch (err) {
       next(err);

@@ -471,19 +471,34 @@ export default function FleetDirectoryPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 border-none shadow-2xl bg-background/95 backdrop-blur-xl ring-1 ring-border/50">
-                                                    <DropdownMenuItem className="rounded-xl font-black uppercase tracking-widest text-[10px] py-3 gap-3" onClick={() => setSelectedWorkspaceId(String(ws._id))}>
+                                                    <DropdownMenuItem 
+                                                        className="rounded-xl font-black uppercase tracking-widest text-[10px] py-3 gap-3" 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedWorkspaceId(String(ws._id));
+                                                            // Provide visual feedback if they click it but it's already selected
+                                                            toast.success('Workspace details loaded', { duration: 1000 });
+                                                        }}
+                                                    >
                                                         <Settings className="size-4 text-muted-foreground" /> Configure Node
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem className="rounded-xl font-black uppercase tracking-widest text-[10px] py-3 gap-3" onClick={() => router.push(`/super-admin/users?workspace=${ws._id}`)}>
+                                                    <DropdownMenuItem 
+                                                        className="rounded-xl font-black uppercase tracking-widest text-[10px] py-3 gap-3" 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            router.push(`/super-admin/users?workspace=${ws._id}`);
+                                                        }}
+                                                    >
                                                         <Users className="size-4 text-muted-foreground" /> Team Directory
                                                     </DropdownMenuItem>
                                                     <div className="h-px bg-border/50 my-1" />
                                                     <DropdownMenuItem
                                                         className="rounded-xl font-black uppercase tracking-widest text-[10px] py-3 gap-3 text-red-500 focus:bg-red-50 focus:text-red-600"
-                                                        onSelect={(event) => {
+                                                        onClick={(event) => {
                                                             event.preventDefault();
                                                             event.stopPropagation();
-                                                            handleDeleteWorkspace(ws._id, ws.name);
+                                                            // Small delay to allow menu to start closing before prompt blocks the thread
+                                                            setTimeout(() => handleDeleteWorkspace(ws._id, ws.name), 50);
                                                         }}
                                                     >
                                                         <Trash2 className="size-4" /> Delete Workspace

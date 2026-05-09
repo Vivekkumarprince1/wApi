@@ -55,12 +55,12 @@ export class MicroserviceEventBridge {
 
     console.log(`[EventBridge][${workspaceId}] Relaying event: ${event}`);
 
-    // Emit to the specific workspace room
-    // All clients in a workspace join a room named by their workspaceId
-    this.io.to(workspaceId).emit(event, payload);
-    
-    // Also emit a generic microservice event for global listeners if needed
-    this.io.to(workspaceId).emit('microservice_event', {
+    // Clients join `workspace:${workspaceId}` in socketHandler.ts; the
+    // bridge MUST broadcast to the same room name or events will be dropped.
+    const room = `workspace:${workspaceId}`;
+    this.io.to(room).emit(event, payload);
+
+    this.io.to(room).emit('microservice_event', {
       service: channel.split(':')[0],
       event,
       payload

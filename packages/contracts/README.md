@@ -1,0 +1,26 @@
+# @wapi/contracts
+
+Shared TypeScript types between the wApi services and frontend.
+
+## What lives here
+
+- **worker-bridge.ts** — request/response shapes for `POST /api/internal/worker-bridge`.
+- **automation-actions.ts** — action types + payload shape posted to `POST /api/internal/actions`.
+- **billing-events.ts** — BullMQ saga events between billing/campaign services and the billing pub/sub envelope.
+- **socket-events.ts** — names + payload shapes for Socket.io events.
+- **common.ts** — shared envelope (`ApiResponse`, `PaginationInfo`, `ObjectIdString`).
+
+## Adoption
+
+The contracts package is wired into the monorepo but call-sites still
+hold private duplicates. Migrate one at a time:
+
+1. Replace local types in `automation-service/src/services/external/index.ts`
+   with `AutomationActionType` + `AutomationActionEnvelope`.
+2. Replace local types in `campaign-service/src/lib/monolith-worker-client.ts`
+   with `WorkerBridgeRequest` discriminated union.
+3. Replace ad-hoc payload types in `frontend/src/components/layout/socket-hub.tsx`
+   with the named payload interfaces.
+
+Each step keeps the wire format identical — only the call-site loses its
+copy of the type.

@@ -39,6 +39,8 @@ export * from './commerce/CheckoutCart';
 export * from './commerce/Order';
 export * from './messaging/InstagramQuickflow';
 export * from './messaging/InstagramQuickflowLog';
+export * from './messaging/FormSubmission';
+export type { IFormSubmission, IFormSubmissionDocument } from './messaging/FormSubmission';
 // Commerce settings are re-exported from migrated-models to avoid duplicate exports
 export * from './commerce/CommerceSettings';
 

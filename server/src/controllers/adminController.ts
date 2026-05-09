@@ -1,10 +1,11 @@
 import { Response } from 'express';
 import os from 'os';
 import { AuthRequest } from '../middlewares/authMiddleware';
-import { Workspace, User, Plan, AuditLog, WebhookPolicy, BusinessAppMap, SystemSettings } from '../models';
+import { Workspace, User, Plan, AuditLog, WebhookPolicy, BusinessAppMap, SystemSettings, Template } from '../models';
 import { signToken } from '../utils/auth-utils';
 import mongoose from 'mongoose';
 import { proxyController } from './proxyController';
+import { AccountDeletionService } from '../services/auth/account-deletion-service';
 
 export const adminController = {
   /**
@@ -21,6 +22,22 @@ export const adminController = {
       res.json(workspaces);
     } catch (err: any) {
       console.error("[Workspaces Admin API Error]:", err.message);
+      res.status(500).json({ message: "Server Error", error: err.message });
+    }
+  },
+
+  /**
+   * List all templates across all workspaces
+   */
+  async listTemplates(req: AuthRequest, res: Response) {
+    try {
+      const templates = await Template.find({})
+        .populate('workspace', 'name gupshupAppId')
+        .populate('createdBy', 'name email')
+        .sort({ createdAt: -1 });
+      res.json(templates);
+    } catch (err: any) {
+      console.error("[Templates Admin API Error]:", err.message);
       res.status(500).json({ message: "Server Error", error: err.message });
     }
   },
@@ -1077,15 +1094,37 @@ export const adminController = {
         return res.status(400).json({ success: false, message: "Workspace name confirmation does not match" });
       }
 
-      await Workspace.findByIdAndUpdate(id, {
-        $set: {
-          status: 'deleted',
-          deletedAt: new Date(),
-          deletedBy: req.user._id
+      // Execute full account deletion (purges everything related to the owner)
+      if (workspace.owner) {
+        const ownerUser = await User.findById(workspace.owner);
+        if (ownerUser && (ownerUser as any).isSuperAdmin) {
+          // If the owner is a super admin, DO NOT delete their account. Only delete the workspace.
+          await AccountDeletionService.deleteWorkspace(workspace._id.toString());
+        } else {
+          // Normal user: delete their entire account and all their workspaces
+          await AccountDeletionService.deleteAccount(workspace.owner.toString());
         }
-      });
+      } else {
+        // Fallback for workspaces without an owner record
+        await AccountDeletionService.deleteWorkspace(workspace._id.toString());
+      }
+      
+      // Log the admin action
+      if ((AuditLog as any).logAdminAction) {
+        await (AuditLog as any).logAdminAction({
+          userId: req.user._id,
+          action: 'WORKSPACE_PURGE_DELETE',
+          resource: { type: 'Workspace', id: workspace._id, name: workspace.name },
+          details: { 
+            ownerId: workspace.owner,
+            fullPurge: true,
+            deregisteredGupshup: true
+          },
+          req
+        });
+      }
 
-      res.json({ success: true, message: "Workspace marked as deleted" });
+      res.json({ success: true, message: "Workspace and all related user data have been permanently purged." });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
     }

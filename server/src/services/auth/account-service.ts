@@ -42,7 +42,7 @@ export async function createOwnerAccount(input: {
 }) {
   const email = normalizeEmail(input.email);
   const phone = normalizePhone(input.phone);
-  const passwordHash = input.passwordHash || (input.password ? await bcrypt.hash(input.password, 10) : undefined);
+  const passwordHash = input.passwordHash || (input.password ? await bcrypt.hash(input.password, 12) : undefined);
   const displayName =
     input.name ||
     (email ? email.split('@')[0] : '') ||

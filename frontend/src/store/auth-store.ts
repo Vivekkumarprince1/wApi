@@ -213,6 +213,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     logout: () => {
         clearAuthCookie();
+        // Tear down the shared socket so the next user doesn't inherit the
+        // previous user's rooms or auth token.
+        try {
+            // Lazy import to avoid pulling socket.io into the auth store
+            // bundle on cold paths that never authenticate.
+            import('@/hooks/use-socket').then(mod => mod.disconnectGlobalSocket?.()).catch(() => {});
+        } catch {}
         set({
             user: null,
             workspace: null,

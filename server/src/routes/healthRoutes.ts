@@ -2,8 +2,15 @@ import { Router, Request, Response } from 'express';
 import { Workspace } from '@/models';
 import { GupshupPartnerService } from '@/services/bsp/gupshup-partner-service';
 import { config } from '@/config';
+import { authenticate, isSuperAdmin } from '@/middlewares/authMiddleware';
 
 const router = Router();
+
+// Diagnostic endpoints in this file enumerate workspace ids, Gupshup app
+// ids, secret lengths, and webhook subscription state — that is privileged
+// recon data, not a public liveness probe. Lock down everything to
+// authenticated super-admins.
+router.use(authenticate, isSuperAdmin);
 
 /**
  * GET /api/health/webhooks

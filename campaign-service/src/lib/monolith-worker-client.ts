@@ -1,22 +1,33 @@
 import axios from 'axios';
+import { randomUUID } from 'crypto';
 import { config } from '../config';
 
+// 15s timeout matches the automation-service client. Without it, slow
+// monolith responses would tie up worker concurrency indefinitely.
 const client = axios.create({
   baseURL: config.monolithUrl,
+  timeout: 15_000,
   headers: {
     'Content-Type': 'application/json',
     'x-internal-service-secret': config.internalServiceSecret,
   },
 });
 
+client.interceptors.request.use((reqConfig) => {
+  if (!reqConfig.headers['x-correlation-id']) {
+    reqConfig.headers['x-correlation-id'] = randomUUID();
+  }
+  return reqConfig;
+});
+
 export const monolithWorkerBridge = {
-  async sendTemplate(data: { 
-    workspaceId: string; 
-    to: string; 
-    templateName: string; 
-    languageCode?: string; 
-    components?: any[]; 
-    options?: any 
+  async sendTemplate(data: {
+    workspaceId: string;
+    to: string;
+    templateName: string;
+    languageCode?: string;
+    components?: any[];
+    options?: any;
   }) {
     const response = await client.post('/api/internal/worker-bridge', {
       action: 'send-template',
@@ -32,10 +43,19 @@ export const monolithWorkerBridge = {
     });
   },
 
-  async billingSettle(workspaceId: string, campaignId: string, successAmount: number, failAmount: number) {
+  /**
+   * Settle parked campaign budget. `reservedAmount` / `actualSpend` are paise
+   * and must match the monolith worker-bridge billing-settle contract.
+   */
+  async billingSettle(
+    workspaceId: string,
+    campaignId: string,
+    reservedAmount: number,
+    actualSpend: number
+  ) {
     await client.post('/api/internal/worker-bridge', {
       action: 'billing-settle',
-      data: { workspaceId, campaignId, successAmount, failAmount },
+      data: { workspaceId, campaignId, reservedAmount, actualSpend },
     });
   },
 
@@ -62,34 +82,38 @@ export const monolithWorkerBridge = {
     return response.data;
   },
 
-  async getTemplate(templateId: string) {
+  // workspaceId is now mandatory on every read so the monolith can scope
+  // the lookup to a single tenant. The previous unscoped variants were
+  // removed when the worker-bridge dispatcher started rejecting calls
+  // without it.
+  async getTemplate(workspaceId: string, templateId: string) {
     const response = await client.post('/api/internal/worker-bridge', {
       action: 'get-template',
-      data: { templateId },
+      data: { workspaceId, templateId },
     });
     return response.data;
   },
 
-  async getContact(contactId: string) {
+  async getContact(workspaceId: string, contactId: string) {
     const response = await client.post('/api/internal/worker-bridge', {
       action: 'get-contact',
-      data: { contactId },
+      data: { workspaceId, contactId },
     });
     return response.data;
   },
 
-  async queryContacts(query: any) {
+  async queryContacts(workspaceId: string, query: any) {
     const response = await client.post('/api/internal/worker-bridge', {
       action: 'query-contacts',
-      data: { query },
+      data: { workspaceId, query },
     });
     return response.data;
   },
 
-  async countContacts(query: any) {
+  async countContacts(workspaceId: string, query: any) {
     const response = await client.post('/api/internal/worker-bridge', {
       action: 'count-contacts',
-      data: { query },
+      data: { workspaceId, query },
     });
     return response.data;
   },

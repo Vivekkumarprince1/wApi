@@ -7,9 +7,18 @@ import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { Contact, Message, Conversation } from '../models';
 import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
+import { getSharedRedis } from '../utils/ioredis';
 
-const redis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
+// Shared connection + queue handles. The previous version constructed a
+// new Queue (and Redis connection) per request, which leaked file
+// descriptors at scale. The shared client also wires an `error` handler.
+const importQueue = new Queue('contact-imports', { connection: getSharedRedis() });
+const messageQueue = new Queue('bulk-messages', { connection: getSharedRedis() });
+
+const BULK_QUEUES: Record<string, Queue> = {
+  'contact-imports': importQueue,
+  'bulk-messages': messageQueue,
+};
 
 export const bulkOperationsController = {
   /**
@@ -24,8 +33,6 @@ export const bulkOperationsController = {
         return res.status(400).json({ success: false, error: 'contacts array required' });
       }
 
-      // Enqueue bulk import job
-      const importQueue = new Queue('contact-imports', { connection: redis });
       const job = await importQueue.add('bulk-import', {
         workspaceId,
         contacts,
@@ -35,6 +42,7 @@ export const bulkOperationsController = {
       res.status(202).json({
         success: true,
         jobId: job.id,
+        queue: 'contact-imports',
         message: 'Bulk import started',
         status: 'pending'
       });
@@ -173,8 +181,6 @@ export const bulkOperationsController = {
         return res.status(400).json({ success: false, error: 'message or template required' });
       }
 
-      // Enqueue bulk message job
-      const messageQueue = new Queue('bulk-messages', { connection: redis });
       const job = await messageQueue.add('send-mass-messages', {
         workspaceId,
         contactIds,
@@ -187,6 +193,7 @@ export const bulkOperationsController = {
       res.status(202).json({
         success: true,
         jobId: job.id,
+        queue: 'bulk-messages',
         message: 'Bulk message sending started',
         status: 'pending'
       });
@@ -196,12 +203,17 @@ export const bulkOperationsController = {
   },
 
   /**
-   * Export contacts to CSV
+   * Export contacts to CSV by streaming a Mongo cursor.
+   *
+   * Previous version did `Contact.find(query).lean()` which loaded the
+   * full result set into memory before writing the response — easy OOM
+   * on large workspaces. We now stream rows as they're read and buffer at
+   * most one chunk at a time.
    */
   async exportContacts(req: AuthRequest, res: Response, next: Function) {
     try {
       const workspaceId = req.workspace._id;
-      const tags = (req.query.tags as string)?.split(',') || [];
+      const tags = (req.query.tags as string)?.split(',').filter(Boolean) || [];
       const search = req.query.search as string;
 
       const query: any = { workspace: workspaceId };
@@ -214,57 +226,80 @@ export const bulkOperationsController = {
         ];
       }
 
-      const contacts = await Contact.find(query)
-        .select('name phone metadata.email tags createdAt lastMessageAt status leadStatus')
-        .lean() as any[];
-
-      // Convert to CSV
       const headers = ['ID', 'Name', 'Phone', 'Email', 'Tags', 'Created', 'Last Message', 'Status', 'Lead Status', 'Custom Fields'];
-      const rows = contacts.map(c => [
-        c._id.toString(),
-        c.name || '',
-        c.phone || '',
-        c.metadata?.email || '',
-        (c.tags || []).join(';'),
-        new Date(c.createdAt).toISOString(),
-        c.lastMessageAt ? new Date(c.lastMessageAt).toISOString() : '',
-        c.status || '',
-        c.leadStatus || '',
-        JSON.stringify(c.metadata?.customFields || {})
-      ]);
+      const csvCell = (cell: unknown) => `"${String(cell ?? '').replace(/"/g, '""')}"`;
+      const csvRow = (cells: unknown[]) => cells.map(csvCell).join(',');
 
-      const csv = [headers, ...rows].map(row =>
-        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-      ).join('\n');
-
-      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="contacts.csv"');
-      res.send(csv);
+      res.write(csvRow(headers) + '\n');
+
+      const cursor = Contact.find(query)
+        .select('name phone metadata.email tags createdAt lastMessageAt status leadStatus metadata.customFields')
+        .lean()
+        .cursor();
+
+      for await (const c of cursor as any) {
+        const row = [
+          c._id.toString(),
+          c.name || '',
+          c.phone || '',
+          c.metadata?.email || '',
+          (c.tags || []).join(';'),
+          c.createdAt ? new Date(c.createdAt).toISOString() : '',
+          c.lastMessageAt ? new Date(c.lastMessageAt).toISOString() : '',
+          c.status || '',
+          c.leadStatus || '',
+          JSON.stringify(c.metadata?.customFields || {}),
+        ];
+        if (!res.write(csvRow(row) + '\n')) {
+          // Backpressure: pause the cursor until the socket drains.
+          await new Promise<void>((resolve) => res.once('drain', () => resolve()));
+        }
+      }
+
+      res.end();
     } catch (err: any) {
       next(err);
     }
   },
 
   /**
-   * Get bulk operation status
+   * Get bulk operation status. Looks up the job in both the contact-import
+   * queue and the bulk-message queue, optionally narrowed by `?queue=...`
+   * for callers that already know which one to ask.
    */
   async getBulkOperationStatus(req: AuthRequest, res: Response, next: Function) {
     try {
       const { jobId } = req.params;
-      const importQueue = new Queue('contact-imports', { connection: redis });
-      const job = await importQueue.getJob(jobId);
+      const queueHint = String(req.query.queue || '').trim();
 
-      if (!job) {
+      const queuesToCheck: Array<{ name: string; queue: Queue }> = queueHint && BULK_QUEUES[queueHint]
+        ? [{ name: queueHint, queue: BULK_QUEUES[queueHint] }]
+        : Object.entries(BULK_QUEUES).map(([name, queue]) => ({ name, queue }));
+
+      let found: { name: string; job: any } | null = null;
+      for (const { name, queue } of queuesToCheck) {
+        const job = await queue.getJob(jobId);
+        if (job) {
+          found = { name, job };
+          break;
+        }
+      }
+
+      if (!found) {
         return res.status(404).json({ success: false, error: 'Job not found' });
       }
 
-      const progress = (job as any).progress();
-      const state = await (job as any).getState();
-      const progress_value = typeof progress === 'object' ? (progress as any).value || 0 : progress;
+      const job: any = found.job;
+      const rawProgress = typeof job.progress === 'function' ? job.progress() : job.progress;
+      const state = await job.getState();
+      const progress_value = typeof rawProgress === 'object' ? (rawProgress?.value || 0) : (rawProgress || 0);
 
       res.json({
         success: true,
         jobId,
+        queue: found.name,
         status: state,
         progress: progress_value,
         data: job.data

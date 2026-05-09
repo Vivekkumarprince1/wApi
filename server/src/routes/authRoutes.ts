@@ -44,6 +44,8 @@ router.get('/invitations/pending', apiRateLimit, authenticate, authController.li
 // Account Management
 router.get('/account', authenticate, authController.getAccount);
 router.delete('/account', authenticate, authController.deleteAccount);
+router.post('/account/delete-request', authRateLimit, authenticate, authController.requestAccountDeletion);
+router.post('/account/delete-confirm', authRateLimit, authenticate, authController.confirmAccountDeletion);
 
 // Notifications
 router.get('/notifications', apiRateLimit, authenticate, authController.listNotifications);

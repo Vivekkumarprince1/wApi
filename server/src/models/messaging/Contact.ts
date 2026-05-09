@@ -106,6 +106,7 @@ ContactSchema.index({ workspace: 1, 'metadata.email': 1 });
 ContactSchema.index({ workspace: 1, createdAt: -1 });
 ContactSchema.index({ workspace: 1, updatedAt: -1 });
 ContactSchema.index({ workspace: 1, tags: 1 });
+ContactSchema.index({ workspace: 1, name: 'text' });
 
 ContactSchema.pre<IContactDocument>('save', function () {
   this.updatedAt = new Date();

@@ -33,16 +33,17 @@ export const messageController = {
 
       console.log(`[getMessages] Found ${messages.length} messages for conversation ${conversationId || contactId}`);
 
-      const total = await Message.countDocuments({
-        workspace: workspaceId,
-        conversation: conversationId || query.conversation,
-        isInternalNote: false
-      });
+      // Count using the SAME scope as the find. The previous version
+      // filtered on `conversation: conversationId || query.conversation`,
+      // which evaluated to `undefined` when only contactId was provided,
+      // returning a workspace-wide total.
+      const totalQuery: any = { workspace: workspaceId, isInternalNote: false };
+      if (conversationId) totalQuery.conversation = conversationId;
+      else if (contactId) totalQuery.contact = contactId;
 
-      const hasMore = total > (messages.length + (before ? limit : 0)); // Rough estimate or just check limit
-      // More accurate hasMore:
+      const total = await Message.countDocuments(totalQuery);
+
       const actualHasMore = messages.length === limit;
-      
       const lastTimestamp = messages.length > 0 ? messages[messages.length - 1].createdAt : null;
 
       res.json({

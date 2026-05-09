@@ -42,7 +42,7 @@ export class SegmentService {
       Object.assign(query, filters.customQuery);
     }
 
-    const { contacts } = await monolithWorkerBridge.queryContacts(query);
+    const { contacts } = await monolithWorkerBridge.queryContacts(String(workspaceId), query);
     return contacts as Types.ObjectId[];
   }
 
@@ -71,9 +71,8 @@ export class SegmentService {
     const cached = await redis.get(cacheKey);
     if (cached) return parseInt(cached);
 
-    const { count } = await monolithWorkerBridge.countContacts(query);
-    
-    // Cache for 5 minutes
+    const { count } = await monolithWorkerBridge.countContacts(String(workspaceId), query);
+
     await redis.setex(cacheKey, 300, count);
 
     return count;

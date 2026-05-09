@@ -24,6 +24,13 @@ router.post('/',
   contactController.createContact
 );
 
+router.get(
+  '/:id/form-submissions',
+  authenticate,
+  requirePermission('contacts.view'),
+  contactController.listFormSubmissions
+);
+
 router.get('/:id', authenticate, requirePermission('contacts.view'), contactController.getContact);
 
 router.patch('/:id', 

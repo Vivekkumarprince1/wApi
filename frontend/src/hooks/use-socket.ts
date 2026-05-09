@@ -12,6 +12,26 @@ import { config as appConfig } from '@/lib/config';
 let globalSocket: Socket | null = null;
 let connectionPromise: Promise<Socket> | null = null;
 
+/**
+ * Disconnect the shared singleton socket. Call this on logout so the next
+ * user does not inherit the previous user's socket / room subscriptions.
+ */
+export function disconnectGlobalSocket() {
+  if (globalSocket) {
+    try {
+      globalSocket.removeAllListeners();
+      globalSocket.disconnect();
+    } catch (err) {
+      console.warn('[Socket:Singleton] Error during disconnect:', err);
+    }
+  }
+  globalSocket = null;
+  connectionPromise = null;
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.removeItem('socket_auth_token');
+  }
+}
+
 interface SocketOptions {
   workspaceId?: string;
   conversationId?: string;
@@ -61,26 +81,28 @@ const getSocket = async (): Promise<Socket> => {
       if (token) console.log('[Socket:Singleton] 🍪 Found auth_token cookie');
     }
 
-    // Source 3: Fetch fresh token from session endpoint if not found
+    // Source 3: Fetch fresh token from session endpoint if not found.
+    // Note: Next.js rewrites `/api/:path*` → `/api/v1/:path*`, so this URL
+    // must NOT include `/v1` itself or the backend host will see `/v1/v1`.
     if (!token) {
       try {
-        console.log('[Socket:Singleton] 🔄 Token not found locally, fetching from session endpoint...');
-        const response = await fetch('/api/v1/auth/session', {
+        console.log('[Socket:Singleton] Token not found locally, fetching from session endpoint...');
+        const response = await fetch('/api/auth/session', {
           method: 'GET',
           credentials: 'include',
         });
         if (response.ok) {
           const session = await response.json();
-          token = session.token; // Backend should return token in session response
+          token = session.token;
           if (token) {
-            console.log('[Socket:Singleton] ✓ Got token from session endpoint');
+            console.log('[Socket:Singleton] Got token from session endpoint');
             if (typeof sessionStorage !== 'undefined') {
               sessionStorage.setItem('socket_auth_token', token);
             }
           }
         }
       } catch (err) {
-        console.warn('[Socket:Singleton] ⚠️ Could not fetch token from session:', err);
+        console.warn('[Socket:Singleton] Could not fetch token from session:', err);
       }
     }
 
@@ -141,38 +163,49 @@ export const useSocket = (options: SocketOptions = {}) => {
     return () => { isMounted.current = false; };
   }, []);
 
-  // Initialize/Retrieve Connection
+  // Initialize/Retrieve Connection.
+  //
+  // The previous version returned a cleanup function from inside the inner
+  // async `init()` instead of from `useEffect` itself, so listeners were
+  // never removed when `authenticated`/`user` changed and they accumulated
+  // on every render. Track the registered handlers in a closure-scoped ref
+  // and unregister them in the effect's cleanup.
   useEffect(() => {
     if (!authenticated || !user) return;
 
-    const init = async () => {
+    let activeSocket: Socket | null = null;
+    let onConnect: (() => void) | null = null;
+    let onDisconnect: (() => void) | null = null;
+
+    (async () => {
       try {
         const s = await getSocket();
         if (!isMounted.current) return;
-        
+
+        activeSocket = s;
         setSocket(s);
         setIsConnected(s.connected);
 
-        const onConnect = () => {
+        onConnect = () => {
           if (isMounted.current) setIsConnected(true);
         };
-        const onDisconnect = () => {
-             if (isMounted.current) setIsConnected(false);
+        onDisconnect = () => {
+          if (isMounted.current) setIsConnected(false);
         };
 
         s.on('connect', onConnect);
         s.on('disconnect', onDisconnect);
-
-        return () => {
-          s.off('connect', onConnect);
-          s.off('disconnect', onDisconnect);
-        };
       } catch (err) {
         console.error('[useSocket] Initialization failed:', err);
       }
-    };
+    })();
 
-    init();
+    return () => {
+      if (activeSocket) {
+        if (onConnect) activeSocket.off('connect', onConnect);
+        if (onDisconnect) activeSocket.off('disconnect', onDisconnect);
+      }
+    };
   }, [authenticated, user]);
 
   // Handle Room Subscriptions (Robust Multi-Registration)

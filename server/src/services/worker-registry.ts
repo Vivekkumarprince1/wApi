@@ -3,10 +3,12 @@ import { SnoozeWorker } from "./messaging/snooze-worker";
 import { IntegrationSyncWorker } from "./integrations/integration-sync-worker";
 import { initImportWorker } from "../workers/importWorker";
 import { initBulkMessageWorker } from "../workers/bulkMessageWorker";
+import { getStaleFailedJobs } from "./messaging/webhook-queue";
+import { logger } from "../utils/logger";
 
 /**
  * Worker Registry
- * 
+ *
  * Central entry point to initialize all background BullMQ workers.
  */
 
@@ -16,39 +18,57 @@ const globalWorkerReg = global as unknown as {
   _bulkMessageWorker?: any;
   _snoozeWorker?: any;
   _integrationSyncWorker?: any;
+  _webhookFailureMonitor?: NodeJS.Timeout;
 };
+
+const WEBHOOK_FAILURE_CHECK_MS = Number(process.env.WEBHOOK_FAILURE_CHECK_MS || 60_000);
+const WEBHOOK_FAILURE_AGE_MS = Number(process.env.WEBHOOK_FAILURE_AGE_MS || 5 * 60 * 1000);
+
+function startWebhookFailureMonitor() {
+  if (globalWorkerReg._webhookFailureMonitor) return;
+  globalWorkerReg._webhookFailureMonitor = setInterval(async () => {
+    try {
+      const stale = await getStaleFailedJobs(WEBHOOK_FAILURE_AGE_MS);
+      if (stale.length > 0) {
+        logger.error('webhook queue has stale failed jobs', {
+          count: stale.length,
+          oldestAgeMs: Math.max(...stale.map((j) => j.ageMs || 0)),
+          sample: stale.slice(0, 3).map((j) => ({ id: j.id, reason: j.failedReason })),
+        });
+      }
+    } catch (err: any) {
+      logger.warn('webhook failure monitor poll error', { error: err?.message });
+    }
+  }, WEBHOOK_FAILURE_CHECK_MS).unref?.();
+}
 
 export function initWorkers() {
   if (globalWorkerReg.__workersInitialized) return;
   globalWorkerReg.__workersInitialized = true;
 
-  // 1. Import Engine
   if (!globalWorkerReg._importWorker) {
     globalWorkerReg._importWorker = initImportWorker();
-    console.log("[WorkerRegistry] Import Worker initialized.");
+    logger.info('Import Worker initialized');
   }
 
-  // 2. Bulk Messaging
   if (!globalWorkerReg._bulkMessageWorker) {
     globalWorkerReg._bulkMessageWorker = initBulkMessageWorker();
-    console.log("[WorkerRegistry] Bulk Message Worker initialized.");
+    logger.info('Bulk Message Worker initialized');
   }
 
-  // 3. Webhook Processor
   initWebhookWorker();
-  console.log("[WorkerRegistry] Webhook Processor initialized.");
+  logger.info('Webhook Processor initialized');
 
-  // 4. Snooze Monitor
   if (!globalWorkerReg._snoozeWorker) {
     globalWorkerReg._snoozeWorker = new SnoozeWorker();
-    console.log("[WorkerRegistry] Snooze Worker initialized.");
+    logger.info('Snooze Worker initialized');
   }
 
-  // 5. Integration Sync Worker
   if (!globalWorkerReg._integrationSyncWorker) {
     globalWorkerReg._integrationSyncWorker = new IntegrationSyncWorker();
-    console.log("[WorkerRegistry] Integration Sync Worker initialized.");
+    logger.info('Integration Sync Worker initialized');
   }
 
-  console.log("[WorkerRegistry] All background workers initialized.");
+  startWebhookFailureMonitor();
+  logger.info('All background workers initialized');
 }

@@ -6,22 +6,33 @@
 import { Request, Response, NextFunction } from 'express';
 import { ApiError, ValidationError, NotFoundError, ForbiddenError, ConflictError, BadRequestError } from '../utils/errors';
 import { ActivityLog } from '../models';
+import { logger } from '../utils/logger';
 
 /**
- * Centralized error handler middleware
+ * Centralized error handler middleware. Errors >=500 are always recorded
+ * to ActivityLog (workspace-scoped if available, system-scoped otherwise).
+ * 4xx errors with workspace context are also recorded so unauthorized /
+ * forbidden / validation patterns are visible in the audit trail.
  */
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error(`[Error Handler] ${err.name || 'Error'}:`, err.message);
+  const statusCode: number = err.statusCode || (err instanceof ApiError ? err.statusCode : 500);
 
-  // Extract context from request
+  logger.error(`${err.name || 'Error'}: ${err.message}`, {
+    statusCode,
+    method: req.method,
+    path: req.path,
+  });
+
   const workspaceId = (req as any).workspace?._id;
   const userId = (req as any).user?._id;
   const ip = req.ip || req.connection?.remoteAddress || 'unknown';
   const method = req.method;
   const path = req.path;
 
-  // Log error activity if we have workspace and user context
-  if (workspaceId && userId) {
+  // Log to ActivityLog when we have at least a workspace, OR for any 5xx
+  // even without context (helps catch problems in unauthenticated flows).
+  const shouldLog = !!workspaceId || statusCode >= 500;
+  if (shouldLog) {
     ActivityLog.create({
       workspace: workspaceId,
       user: userId,
@@ -33,10 +44,12 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
       metadata: {
         method,
         path,
-        statusCode: err.statusCode || 500,
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-      }
-    }).catch(logErr => console.error('[ActivityLog] Error logging failed:', logErr.message));
+        statusCode,
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+      },
+    }).catch((logErr) =>
+      logger.warn('ActivityLog write failed', { error: logErr?.message })
+    );
   }
 
   // Handle custom API errors
@@ -145,17 +158,15 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     });
   }
 
-  // Default error response
+  // Default error response. Never expose `details: err` (which can leak
+  // internal objects/keys); only ship a stack trace in development.
   return res.status(err.statusCode || 500).json({
     success: false,
-    error: process.env.NODE_ENV === 'production' 
+    error: process.env.NODE_ENV === 'production'
       ? 'Internal server error'
       : err.message,
     errorCode: 'INTERNAL_ERROR',
-    ...(process.env.NODE_ENV === 'development' && { 
-      stack: err.stack,
-      details: err
-    })
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 };
 

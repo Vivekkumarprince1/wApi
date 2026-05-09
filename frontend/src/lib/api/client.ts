@@ -1,11 +1,31 @@
-import axios from 'axios';
+import axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+} from 'axios';
 import { toast } from 'react-hot-toast';
 
 /**
  * API CLIENT
- * Handles all requests to the backend main-server via the /api proxy.
+ *
+ * The response interceptor below strips `response.data`, so every method
+ * returns the parsed JSON body directly. We re-type the standard axios
+ * methods so callers get the body type instead of `AxiosResponse<T>`.
+ *
+ * For new code, prefer importing types from `@wapi/contracts` and using
+ * `apiClient.get<T>('/route')` so the call site is fully typed.
  */
-export const apiClient: any = axios.create({
+export interface ApiClient extends Omit<AxiosInstance,
+  'get' | 'post' | 'put' | 'patch' | 'delete'
+> {
+  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>;
+  put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>;
+  patch<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>;
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
+}
+
+const baseClient = axios.create({
   baseURL: '/api',
   withCredentials: true,
   headers: {
@@ -13,22 +33,28 @@ export const apiClient: any = axios.create({
   },
 });
 
-apiClient.interceptors.response.use(
-  (response: any) => response.data, // Return data directly for convenience
-  (error: any) => {
-    const message = error.response?.data?.message || 'Something went wrong';
-    if (error.response?.status !== 401) {
+baseClient.interceptors.response.use(
+  (response: AxiosResponse) => response.data,
+  (error) => {
+    const message = error?.response?.data?.message || 'Something went wrong';
+    if (error?.response?.status !== 401) {
       toast.error(message);
     }
     return Promise.reject(error);
   }
 );
 
-// Helper exports to match existing API usage patterns
-export const get = (url: string, config = {}) => apiClient.get(url, config) as any;
-export const post = (url: string, data?: any, config = {}) => apiClient.post(url, data, config) as any;
-export const put = (url: string, data?: any, config = {}) => apiClient.put(url, data, config) as any;
-export const patch = (url: string, data?: any, config = {}) => apiClient.patch(url, data, config) as any;
-export const del = (url: string, config = {}) => apiClient.delete(url, config) as any;
+export const apiClient = baseClient as unknown as ApiClient;
+
+export const get = <T = unknown>(url: string, config?: AxiosRequestConfig) =>
+  apiClient.get<T>(url, config);
+export const post = <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+  apiClient.post<T>(url, data, config);
+export const put = <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+  apiClient.put<T>(url, data, config);
+export const patch = <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+  apiClient.patch<T>(url, data, config);
+export const del = <T = unknown>(url: string, config?: AxiosRequestConfig) =>
+  apiClient.delete<T>(url, config);
 
 export default apiClient;

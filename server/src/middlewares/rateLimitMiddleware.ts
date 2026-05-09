@@ -4,11 +4,12 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import IORedis from 'ioredis';
 import { AuthRequest } from './authMiddleware';
+import { getSharedRedis } from '../utils/ioredis';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-const redis = new IORedis(redisUrl);
+// Reuse the shared Redis client so we don't open yet another connection
+// for rate limiting (the shared client also has an error handler wired).
+const redis = getSharedRedis();
 
 /**
  * Simple rate limiter using Redis
@@ -29,6 +30,11 @@ export const rateLimit = (options: {
 
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (redis.status !== 'ready') {
+        console.warn('[RateLimit] Redis is not ready, bypassing rate limit for:', req.path);
+        return next();
+      }
+
       const key = `rate-limit:${keyGenerator(req)}`;
       const current = await redis.incr(key);
 
@@ -153,6 +159,10 @@ export const distributedRateLimit = (options: {
 } = {}) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      if (redis.status !== 'ready') {
+        return next();
+      }
+
       const key = `distributed-rate-limit:${options.keyGenerator?.(req) || req.ip}`;
       const windowMs = options.windowMs || 15 * 60 * 1000;
       const maxRequests = options.max || 100;

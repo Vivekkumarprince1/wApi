@@ -4,10 +4,14 @@ import { authenticate, isSuperAdmin } from '../middlewares/authMiddleware';
 
 const router = Router();
 
-// All routes here require Super Admin role
+// Some routes need to bypass isSuperAdmin (like when impersonating a non-admin)
+router.post('/stop-impersonating', authenticate, adminController.stopImpersonating);
+
+// All other routes here require Super Admin role
 router.use(authenticate, isSuperAdmin);
 
 router.get('/workspaces', adminController.listWorkspaces);
+router.get('/templates', adminController.listTemplates);
 router.get('/workspaces/:id', adminController.getWorkspace);
 router.get('/users', adminController.listUsers);
 router.post('/users/invite', adminController.inviteUser);
@@ -25,7 +29,6 @@ router.get('/audit-log', adminController.getAuditLogs);
 router.get('/audit-logs', adminController.getAuditLogs);
 router.get('/whatsapp-requests', adminController.listWhatsAppRequests);
 router.post('/actions', adminController.executeAction);
-router.post('/stop-impersonating', adminController.stopImpersonating);
 
 // Data Explorer
 router.get('/data/collections', adminController.listCollections);
@@ -64,7 +67,7 @@ router.patch('/workspaces/:id/plan', adminController.updateWorkspacePlan);
 router.get('/billing-stats', adminController.billingStats);
 router.get('/invoices', adminController.listInvoices);
 router.post('/billing/reconcile', adminController.reconcileBilling);
-router.get('/billing/*', (req, res, next) => adminController.billingStats(req as any, res, next));
+router.get('/billing/*path', (req, res, next) => adminController.billingStats(req as any, res, next));
 
 // Repair & Audit
 router.get('/entitlements/drift', adminController.getEntitlementDrift);

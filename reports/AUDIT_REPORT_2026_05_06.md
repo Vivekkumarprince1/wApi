@@ -1,5 +1,7 @@
 # Project Audit Report - May 6, 2026
 
+> **Sync May 8, 2026:** Billing commerce routes (internal auth for pay/status), checkout orders on billing, `GET` order-by-id, and migration scripts are documented in [`PLATFORM_AUDIT_SYNC_2026_05_08.md`](PLATFORM_AUDIT_SYNC_2026_05_08.md).
+
 ## Executive Summary
 Complete audit of the wApi microservices project conducted. **2 critical issues fixed**, all services now build successfully, and the project is deployment-ready.
 

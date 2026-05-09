@@ -13,7 +13,13 @@ export const webhookController = {
     const hubVerifyToken = req.query['hub.verify_token'];
 
     if (hubMode === 'subscribe' && hubChallenge) {
-      if (config.whatsappWebhookVerifyToken && hubVerifyToken !== config.whatsappWebhookVerifyToken) {
+      // Verification MUST require a configured token. Without it, anyone
+      // hitting this endpoint could complete Meta's subscription handshake.
+      if (!config.whatsappWebhookVerifyToken) {
+        console.error('[Webhook:Verify] Refusing handshake: WHATSAPP_WEBHOOK_VERIFY_TOKEN is not configured.');
+        return res.status(500).send('Webhook verify token not configured');
+      }
+      if (hubVerifyToken !== config.whatsappWebhookVerifyToken) {
         return res.status(403).send('Forbidden');
       }
       return res.status(200).send(hubChallenge);
@@ -69,7 +75,17 @@ export const webhookController = {
 const V3_STATUS_TYPES = new Set(['status', 'enqueued', 'accepted', 'sent', 'delivered', 'read', 'seen', 'failed']);
 
 function isWebhookSignatureValid(rawBody: string, req: Request) {
-  if (!config.whatsappWebhookSecret) return true;
+  // Fail closed in production when the shared secret is missing. In
+  // development we allow unsigned payloads so local Gupshup/Meta replays
+  // still work, but log loudly so it cannot ship by accident.
+  if (!config.whatsappWebhookSecret) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[Webhook] Rejecting payload: WHATSAPP_WEBHOOK_SECRET is not configured in production.');
+      return false;
+    }
+    console.warn('[Webhook] WARNING: WHATSAPP_WEBHOOK_SECRET not set; accepting payload (development only).');
+    return true;
+  }
 
   const digest = crypto
     .createHmac('sha256', config.whatsappWebhookSecret)
@@ -83,7 +99,11 @@ function isWebhookSignatureValid(rawBody: string, req: Request) {
 
   const gupshupSignature = req.headers['x-gupshup-signature'] as string;
   if (gupshupSignature) {
-    return safeCompare(gupshupSignature, digest);
+    // Gupshup historically sends the bare digest, but some integrations
+    // prefix it. Try both forms with the timing-safe compare so neither is
+    // a leak.
+    return safeCompare(gupshupSignature, digest)
+      || safeCompare(gupshupSignature, `sha256=${digest}`);
   }
 
   return false;

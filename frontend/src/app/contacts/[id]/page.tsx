@@ -39,6 +39,23 @@ export default function ContactProfilePage() {
     enabled: !!id
   });
 
+  const { data: formSubmissionData } = useQuery({
+    queryKey: ['contact', id, 'form-submissions'],
+    queryFn: async () => {
+      const resp = await api.get(`/contacts/${id}/form-submissions`);
+      return (resp as any).data?.data ?? [];
+    },
+    enabled: !!id,
+  });
+
+  const formSubmissions = (formSubmissionData || []) as Array<{
+    _id: string;
+    flowToken?: string;
+    flowId?: string;
+    receivedAt?: string;
+    data?: Record<string, unknown>;
+  }>;
+
   const contact = contactData as any;
 
   if (isLoading) return <FlashLoader />;
@@ -152,21 +169,53 @@ export default function ContactProfilePage() {
               </div>
            </div>
 
-           {/* Activity Timeline Placeholder */}
+           {/* Activity timeline: WhatsApp Flow / form submissions */}
            <div className="bg-card border border-border/50 rounded-[32px] overflow-hidden shadow-sm flex flex-col h-full min-h-[400px]">
               <div className="px-8 py-6 border-b border-border/40 bg-muted/10 flex items-center justify-between">
                  <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground flex items-center gap-3">
                    <Clock className="h-4 w-4 text-primary" />
-                   Activity Timeline
+                   Activity timeline
                  </h4>
+                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                   Form submissions
+                 </span>
               </div>
-              <div className="flex-1 p-12 flex flex-col items-center justify-center text-center opacity-40">
-                 <div className="h-20 w-20 rounded-[32px] bg-muted flex items-center justify-center mb-4">
-                    <Calendar className="h-10 w-10" />
-                 </div>
-                 <h5 className="text-lg font-black uppercase tracking-tight">Timeline Construction</h5>
-                 <p className="text-sm font-medium max-w-[300px] mx-auto">This contact has no recent history recorded in the unified CRM timeline yet.</p>
-              </div>
+              <ScrollArea className="flex-1 max-h-[480px]">
+                <div className="p-6 space-y-4">
+                  {formSubmissions.length === 0 ? (
+                    <div className="py-12 flex flex-col items-center justify-center text-center opacity-50">
+                      <Calendar className="h-10 w-10 mb-3 text-muted-foreground" />
+                      <p className="text-sm font-medium max-w-[320px]">
+                        No WhatsApp Flow submissions are linked to this contact yet. Submissions appear here after automation records them.
+                      </p>
+                    </div>
+                  ) : (
+                    formSubmissions.map((sub) => (
+                      <div
+                        key={sub._id}
+                        className="rounded-2xl border border-border/40 bg-muted/20 p-4 text-left"
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                            Flow
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[180px]">
+                            {sub.flowId || sub.flowToken || sub._id}
+                          </span>
+                        </div>
+                        {sub.receivedAt && (
+                          <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wide">
+                            {new Date(sub.receivedAt).toLocaleString()}
+                          </p>
+                        )}
+                        <pre className="text-xs font-mono bg-background/80 rounded-xl p-3 overflow-x-auto border border-border/30 max-h-40 overflow-y-auto whitespace-pre-wrap break-words">
+                          {JSON.stringify(sub.data ?? {}, null, 2)}
+                        </pre>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
            </div>
         </div>
       </div>

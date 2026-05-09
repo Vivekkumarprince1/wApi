@@ -1,5 +1,7 @@
 # Comprehensive Microservices Audit Report
 
+> **May 8, 2026 — Audit sync:** Commerce, checkout → billing, worker-bridge `list-orders`, migration scripts, **pass 4** (correlation-id propagation, inbox `$text` search, FormSubmission API + contact UI, canvas) — see [`reports/PLATFORM_AUDIT_SYNC_2026_05_08.md`](reports/PLATFORM_AUDIT_SYNC_2026_05_08.md). **Cursor canvas:** `~/.cursor/projects/.../canvases/wApi-platform-audit.canvas.tsx`. Use that pair as the **authoritative delta** for current open issues; tables below remain the **May 6 snapshot**.
+
 **Audit Date:** May 6, 2026  
 **Services Analyzed:** 5 (automation-service, billing-service, campaign-service, frontend, server)  
 **Total Issues Found:** 47  

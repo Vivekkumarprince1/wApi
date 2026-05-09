@@ -29,12 +29,23 @@ export function isWorkspaceBillingValid(workspace?: any) {
 }
 
 export function shouldBypassWorkspaceAccessGuard(pathname: string) {
-  return [
+  // Routes are mounted under /api/v1/* in server/src/index.ts. Webhooks and
+  // health are unversioned. Older /api/* prefixes are kept as a defensive
+  // alias in case the gateway strips the version segment.
+  const prefixes = [
+    '/api/v1/auth/',
+    '/api/v1/onboarding/',
+    '/api/v1/workspace/billing',
+    '/api/v1/super-admin/',
+    '/api/webhooks/',
+    '/api/health',
+    '/api/internal/',
     '/api/auth/',
     '/api/onboarding/',
     '/api/workspace/billing',
     '/api/super-admin/'
-  ].some((prefix) => pathname.startsWith(prefix));
+  ];
+  return prefixes.some((prefix) => pathname.startsWith(prefix));
 }
 
 export async function getWorkspaceAccessDecision(user: any, workspace?: any): Promise<WorkspaceAccessDecision> {

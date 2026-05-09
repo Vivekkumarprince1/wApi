@@ -8,7 +8,7 @@ router.get('/', authenticate, templateController.listTemplates);
 router.post('/', authenticate, templateController.createTemplate);
 router.get('/categories', authenticate, templateController.getCategories);
 router.post('/sync', authenticate, templateController.syncTemplates);
-router.get('/analytics/*', authenticate, templateController.getAnalytics);
+router.get('/analytics/*path', authenticate, templateController.getAnalytics);
 router.get('/library/stats', authenticate, templateController.getLibraryStats);
 router.get('/rules', authenticate, templateController.listRules);
 router.post('/rules', authenticate, templateController.createRule);

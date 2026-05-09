@@ -4,7 +4,6 @@ import {
   Product,
   CommerceSettings,
   Contact,
-  Order,
   Deal, 
   DealStatus, 
   DealPriority,
@@ -12,6 +11,7 @@ import {
 } from "@/models";
 import { PaymentService } from "./payment-service";
 import { WabaService } from "@/services/messaging/waba-service";
+import { proxyController } from "@/controllers/proxyController";
 import dbConnect from "@/db-connect";
 import { Types } from "mongoose";
 
@@ -240,29 +240,69 @@ export class CheckoutBotService {
   }
 
   private static async finalizeOrder(cart: ICheckoutCartDocument, paymentMethod: 'cod' | 'razorpay' | 'stripe') {
-    // 1. Generate Order Number
-    const orderNumber = (Order as any).generateOrderNumber(cart.workspaceId);
+    const addr = cart.address;
+    const address = {
+      name: addr.name || 'Customer',
+      phone: addr.phone || '',
+      street: addr.street || '',
+      city: addr.city || '',
+      state: addr.state,
+      pincode: addr.pincode || '',
+      country: addr.country || 'India',
+    };
 
-    // 2. Create Order
-    const order = await Order.create({
-      workspaceId: cart.workspaceId,
+    const items = cart.items.map((it) => ({
+      productId: it.productId,
+      productName: it.productName,
+      price: it.price,
+      quantity: it.quantity,
+      subtotal: it.subtotal,
+      ...(it.image ? { image: it.image } : {}),
+    }));
+
+    const wsId = String(cart.workspaceId);
+
+    const orderPayload = {
       contactId: cart.contactId,
       conversationId: cart.conversationId,
       checkoutCartId: cart._id,
-      orderNumber,
-      items: cart.items,
+      items,
       subtotal: cart.subtotal,
       tax: cart.tax,
-      taxPercentage: (cart as any).taxPercentage || 0,
+      taxPercentage: (cart as { taxPercentage?: number }).taxPercentage || 0,
       shippingCost: cart.shipping,
+      discount: 0,
       total: cart.total,
-      address: cart.address,
+      address,
       paymentMethod,
       paymentStatus: paymentMethod === 'cod' ? 'pending' : 'initiated',
-      status: paymentMethod === 'cod' ? 'confirmed' : 'pending',
-      confirmedAt: paymentMethod === 'cod' ? new Date() : undefined,
-      source: 'whatsapp_checkout_bot'
+      status: (paymentMethod === 'cod' ? 'confirmed' : 'pending') as 'confirmed' | 'pending',
+      ...(paymentMethod === 'cod' ? { confirmedAt: new Date() } : {}),
+      source: 'whatsapp_checkout_bot' as const,
+    };
+
+    const response = await proxyController.forwardToService('billing', {
+      method: 'POST',
+      path: `/api/billing/commerce/wallets/${wsId}/orders`,
+      workspaceId: wsId,
+      data: orderPayload,
     });
+
+    if (response.status !== 201 && response.status !== 200) {
+      const msg =
+        (response.data as { error?: string; message?: string })?.error ||
+        (response.data as { message?: string })?.message ||
+        'Failed to create order in billing service';
+      throw new Error(msg);
+    }
+
+    const order =
+      (response.data as { data?: { _id: Types.ObjectId; orderNumber: string } })?.data ||
+      (response.data as { _id?: Types.ObjectId; orderNumber?: string });
+
+    if (!order?._id || !order?.orderNumber) {
+      throw new Error('Billing service returned an invalid order payload');
+    }
 
     // 3. Deduct Stock
     for (const item of cart.items) {
@@ -284,14 +324,14 @@ export class CheckoutBotService {
           workspace: cart.workspaceId,
           contact: cart.contactId,
           pipeline: pipeline._id,
-          title: `WhatsApp Order: ${orderNumber}`,
-          value: order.total,
+          title: `WhatsApp Order: ${order.orderNumber}`,
+          value: cart.total,
           stage: firstStage,
           status: DealStatus.ACTIVE,
           priority: DealPriority.MEDIUM,
           source: 'whatsapp_checkout_bot',
           sourceId: order._id as Types.ObjectId,
-          description: `Automatically created from WhatsApp Checkout Bot order ${orderNumber}. Address: ${order.address.city}`
+          description: `Automatically created from WhatsApp Checkout Bot order ${order.orderNumber}. Address: ${address.city}`
         });
       }
     } catch (crmErr) {
@@ -303,7 +343,7 @@ export class CheckoutBotService {
     cart.state = 'order_completed';
     await cart.save();
 
-    return { orderNumber, id: order._id };
+    return { orderNumber: order.orderNumber, id: order._id };
   }
 
   private static async reply(cart: ICheckoutCartDocument, text: string) {

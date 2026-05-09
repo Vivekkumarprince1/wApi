@@ -1,9 +1,17 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
 
 const JWT_SECRET = config.jwtSecret;
 const INTERNAL_SECRET = config.internalServiceSecret;
+
+function safeEqualSecret(provided: string | undefined): boolean {
+  if (!provided || !INTERNAL_SECRET) return false;
+  const a = Buffer.from(provided, 'utf8');
+  const b = Buffer.from(INTERNAL_SECRET, 'utf8');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 // The startup check is handled by the config module, but we double-check here
 if (!JWT_SECRET) {
@@ -75,21 +83,15 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 };
 
 /**
- * Middleware for secure inter-service communication.
+ * Middleware for secure inter-service communication. Uses constant-time
+ * compare so the secret can't be probed via timing.
  */
 export const internalAuth = (req: Request, res: Response, next: NextFunction) => {
-  const secret = req.header('x-internal-service-secret');
-
-  if (!secret) {
-    console.warn(`[Billing InternalAuth] Missing secret for ${req.method} ${req.originalUrl}`);
+  const provided = req.header('x-internal-service-secret');
+  if (!safeEqualSecret(provided)) {
+    console.warn(`[Billing InternalAuth] Rejecting ${req.method} ${req.originalUrl}`);
     return res.status(401).json({ message: 'Unauthorized: Internal service secret missing or invalid' });
   }
-
-  if (secret !== INTERNAL_SECRET) {
-    console.warn(`[Billing InternalAuth] Invalid secret for ${req.method} ${req.originalUrl}`);
-    return res.status(401).json({ message: 'Unauthorized: Internal service secret missing or invalid' });
-  }
-
   next();
 };
 
@@ -97,9 +99,7 @@ export const internalAuth = (req: Request, res: Response, next: NextFunction) =>
  * Middleware for endpoints that are used by both the gateway and internal services.
  */
 export const authenticateOrInternal = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const secret = req.header('x-internal-service-secret');
-
-  if (secret && secret === INTERNAL_SECRET) {
+  if (safeEqualSecret(req.header('x-internal-service-secret'))) {
     req.user = { id: 'internal-service', _id: 'internal-service', role: 'system' };
     req.role = 'system';
     const workspaceParam = req.params.workspaceId;

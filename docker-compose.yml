@@ -14,24 +14,40 @@ services:
       timeout: 5s
       retries: 5
 
-  original:
-    build: 
-      context: ./original
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Main monolith API. The folder used to be `original/` but is now `server/`.
+  server:
+    build:
+      context: ./server
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "5001:5001"
     environment:
       - NODE_ENV=production
-      - PORT=3000
+      - BACKEND_PORT=5001
       - REDIS_URL=redis://redis:6379
+      - MONGODB_URI=mongodb://mongo:27017/wa_saas
       - AUTOMATION_SERVICE_URL=http://automation-service:3001
       - CAMPAIGN_SERVICE_URL=http://campaign-service:3002
       - BILLING_SERVICE_URL=http://billing-service:3003
     depends_on:
       redis:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
     env_file:
-      - ./original/.env.example
+      - ./server/.env
 
   automation-service:
     build:
@@ -43,11 +59,17 @@ services:
       - NODE_ENV=production
       - PORT=3001
       - REDIS_URL=redis://redis:6379
+      - MONGODB_URI_AUTOMATION=mongodb://mongo:27017/wapi_automation
+      - MONOLITH_INTERNAL_URL=http://server:5001
     depends_on:
       redis:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
+      server:
+        condition: service_started
     env_file:
-      - ./automation-service/.env.example
+      - ./automation-service/.env
 
   campaign-service:
     build:
@@ -59,13 +81,18 @@ services:
       - NODE_ENV=production
       - PORT=3002
       - REDIS_URL=redis://redis:6379
-      - MONOLITH_URL=http://original:3000
+      - MONGODB_URI_CAMPAIGN=mongodb://mongo:27017/wa_campaigns
+      - MONOLITH_URL=http://server:5001
       - BILLING_SERVICE_URL=http://billing-service:3003
     depends_on:
       redis:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
+      server:
+        condition: service_started
     env_file:
-      - ./campaign-service/.env.example
+      - ./campaign-service/.env
 
   billing-service:
     build:
@@ -77,11 +104,32 @@ services:
       - NODE_ENV=production
       - PORT=3003
       - REDIS_URL=redis://redis:6379
+      - MONGODB_URI=mongodb://mongo:27017/wapi_billing
     depends_on:
       redis:
         condition: service_healthy
+      mongo:
+        condition: service_healthy
     env_file:
-      - ./billing-service/.env.example
+      - ./billing-service/.env
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - BACKEND_API_URL=http://server:5001
+      - NEXT_PUBLIC_SOCKET_URL=http://localhost:5001
+      - NEXT_PUBLIC_API_URL=http://localhost:5001
+    depends_on:
+      server:
+        condition: service_started
+    env_file:
+      - ./frontend/.env
 
 volumes:
   redis_data:
+  mongo_data:

@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^16.2.4",
-    "@types/node": "^20",
+    "@types/node": "20.19.40",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",

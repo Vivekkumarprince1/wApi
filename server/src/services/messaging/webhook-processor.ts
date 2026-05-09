@@ -173,30 +173,13 @@ async function processStatuses(statuses: any[], workspaceId: any, jobId: string)
       ]
     });
 
-    // 2. Fallback search: If not found, try searching GLOBALLY by ID
-    // (This helps catch cases where the workspace resolution might be slightly off or mismatched)
+    // The previous code had a "global fallback" that searched without the
+    // workspace filter. With provider IDs that can collide across tenants
+    // (especially during re-resolution), that risked attaching status
+    // updates to the wrong workspace's message. We now refuse the update
+    // when the message can't be found inside the resolved workspace.
     if (!message) {
-      console.warn(`[WebhookProcessor][Job ${jobId}] Message not found in workspace ${workspaceId}. Attempting global fallback...`);
-      message = await Message.findOne({
-        $or: [
-          { whatsappMessageId: providerId },
-          { 'meta.providerEnvelopeId': providerId },
-          { 'meta.gs_id': providerId }
-        ]
-      });
-
-      if (message) {
-        console.log(`[WebhookProcessor][Job ${jobId}] ✓ Found message via global fallback. Message Workspace: ${message.workspace}, Webhook Workspace: ${workspaceId}`);
-        // Optional: If we found it in a different workspace, we should probably update it anyway 
-        // if we trust the provider ID is unique enough.
-      }
-    }
-
-    if (!message) {
-      console.warn(`[WebhookProcessor] Message not found for providerId: ${providerId} in workspace ${workspaceId}`);
-      // Log latest messages in this workspace to see what IDs we HAVE
-      const latestMsgs = await Message.find({ workspace: workspaceId }).sort({ createdAt: -1 }).limit(3).select('whatsappMessageId direction body createdAt');
-      console.log(`[WebhookProcessor] Latest 3 messages in workspace ${workspaceId}:`, JSON.stringify(latestMsgs, null, 2));
+      console.warn(`[WebhookProcessor] Message not found for providerId: ${providerId} in workspace ${workspaceId}. Skipping status update to avoid cross-tenant write.`);
       continue;
     }
 

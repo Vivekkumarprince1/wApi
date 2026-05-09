@@ -478,9 +478,15 @@ export class WalletController {
       const secret = config.razorpayWebhookSecret;
       
       if (!secret) {
-        console.warn(`[Billing Webhook][${correlationId}] Razorpay Webhook Secret not configured. Skipping verification.`);
+        // Refuse unsigned payloads in production. Only allow the dev-only
+        // pass-through if NODE_ENV is not production, and log loudly so it
+        // can be spotted in CI/test envs.
+        if (process.env.NODE_ENV === 'production') {
+          console.error(`[Billing Webhook][${correlationId}] RAZORPAY_WEBHOOK_SECRET is not configured. Rejecting request in production.`);
+          return res.status(500).json({ success: false, message: "Webhook secret not configured" });
+        }
+        console.warn(`[Billing Webhook][${correlationId}] WARNING: Razorpay Webhook Secret not configured. Skipping verification (development only).`);
       } else {
-        // Use rawBody for accurate signature verification
         const rawBody = (req as any).rawBody;
         if (!rawBody) {
            console.error(`[Billing Webhook][${correlationId}] Raw body missing for signature verification.`);
@@ -492,7 +498,14 @@ export class WalletController {
           .update(rawBody)
           .digest("hex");
 
-        if (expectedSignature !== signature) {
+        // Constant-time compare so an attacker can't time-side-channel the
+        // signature.
+        const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+        const providedBuf = Buffer.from(String(signature || ''), 'utf8');
+        if (
+          expectedBuf.length !== providedBuf.length ||
+          !crypto.timingSafeEqual(expectedBuf, providedBuf)
+        ) {
           console.warn(`[Billing Webhook][${correlationId}] Invalid Razorpay signature detected.`);
           return res.status(400).json({ success: false, message: "Invalid signature" });
         }

@@ -15,8 +15,17 @@ export default function CloudWidgetHubPage() {
   });
   const [copied, setCopied] = React.useState(false);
 
+  // Widget runtime URL is sourced from env so each deployment can point at
+  // its own CDN/origin instead of the previous hard-coded `cdn.wapi.com`,
+  // which never resolved.
+  const widgetRuntimeUrl =
+    process.env.NEXT_PUBLIC_WIDGET_URL || '/widget/runtime.js';
+  const widgetId = (config as any)?.widgetId || 'YOUR_WIDGET_ID';
+  const snippet = `<script src="${widgetRuntimeUrl}" data-id="${widgetId}"></script>`;
+  const snippetPreview = `<script src="${widgetRuntimeUrl}" ...`;
+
   const copySnippet = () => {
-    navigator.clipboard.writeText('<script src="https://cdn.wapi.com/widget.js" data-id="YOUR_WIDGET_ID"></script>');
+    navigator.clipboard.writeText(snippet);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -74,7 +83,7 @@ export default function CloudWidgetHubPage() {
             </div>
             <div className="mt-6 bg-black/20 rounded-2xl p-4 flex items-center justify-between border border-white/10 group cursor-pointer" onClick={copySnippet}>
                 <code className="text-[10px] font-mono opacity-80 truncate mr-4">
-                    &lt;script src="https://cdn.wapi.com/widget.js" ...
+                    {snippetPreview}
                 </code>
                 {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-white opacity-50 group-hover:opacity-100 transition-opacity" />}
             </div>

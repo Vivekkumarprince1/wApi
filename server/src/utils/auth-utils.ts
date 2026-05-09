@@ -17,10 +17,13 @@ export interface TokenPayload {
 }
 
 /**
- * Sign a JWT token for 30 days
+ * Sign a JWT token. Default lifetime is 7 days; override with
+ * `AUTH_TOKEN_TTL` env var (e.g. `2h`, `24h`, `7d`). Long-lived 30-day
+ * tokens combined with non-httpOnly cookies were a large XSS blast radius.
  */
 export function signToken(payload: TokenPayload): string {
-  return jwt.sign(payload, config.jwtSecret, { expiresIn: '30d' });
+  const expiresIn = (process.env.AUTH_TOKEN_TTL || '7d') as any;
+  return jwt.sign(payload, config.jwtSecret, { expiresIn });
 }
 
 /**
@@ -35,17 +38,20 @@ export function verifyToken(token: string): TokenPayload | null {
 }
 
 /**
- * Standard Cookie Options for Auth Token
+ * Standard Cookie Options for Auth Token. httpOnly so JS cannot read the
+ * cookie (XSS-stealable token was the previous default). The socket
+ * handshake should rely on the dedicated session endpoint to obtain a
+ * short-lived token rather than reading this cookie directly.
  */
 export function getAuthCookieOptions() {
   const isProduction = config.env === 'production';
-  
+
   return {
     name: 'auth_token',
-    httpOnly: false,
+    httpOnly: true,
     secure: isProduction || config.cookieSecure,
     sameSite: (isProduction ? 'strict' : 'lax') as 'strict' | 'lax',
-    maxAge: 30 * 24 * 60 * 60, // 30 days in seconds (Next.js cookies.set uses seconds)
+    maxAge: 7 * 24 * 60 * 60, // 7 days in seconds, matches default JWT TTL
     path: '/',
   };
 }

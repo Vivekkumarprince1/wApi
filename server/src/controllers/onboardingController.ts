@@ -106,7 +106,7 @@ export const onboardingController = {
 
       const { syncOnboardingState, getOnboardingPath } = await import('../services/onboarding/onboarding-state-service');
       const onboardingState = updatedWorkspace ? await syncOnboardingState(user, updatedWorkspace) : null;
-      const nextStep = onboardingState ? (getOnboardingPath(onboardingState.currentStep) || '/dashboard') : '/dashboard';
+      const nextStep = onboardingState ? getOnboardingPath(onboardingState.currentStep) : null;
 
       res.json({
         success: true,
@@ -155,7 +155,7 @@ export const onboardingController = {
           success: true,
           verification: { status: 'verified', provider: 'none' },
           business,
-          nextStep: getOnboardingPath(onboardingState.currentStep) || '/dashboard'
+          nextStep: getOnboardingPath(onboardingState.currentStep)
         });
       }
 
@@ -192,7 +192,7 @@ export const onboardingController = {
         success: true,
         verification: { status: business.verificationStatus, provider: result.provider },
         business,
-        nextStep: getOnboardingPath(onboardingState.currentStep) || '/dashboard'
+        nextStep: getOnboardingPath(onboardingState.currentStep)
       });
     } catch (err: any) {
       console.error("[Verify Business Error]:", err.message);

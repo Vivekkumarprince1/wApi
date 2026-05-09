@@ -29,7 +29,16 @@ import {
   Deal,
   Pipeline,
   Product,
-  Task
+  Task,
+  Order,
+  CheckoutCart,
+  FormSubmission,
+  InstagramQuickflow,
+  InstagramQuickflowLog,
+  WhatsAppFlow,
+  SupportTicket,
+  Macro,
+  Notification
 } from '@/models';
 import { GupshupPartnerService } from '@/services/bsp/gupshup-partner-service';
 import { proxyController } from '@/controllers/proxyController';
@@ -40,29 +49,35 @@ export class AccountDeletionService {
    * Performs a comprehensive deletion of a user account and all owned workspaces.
    */
   static async deleteAccount(userId: string) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const ownedWorkspaces = await Workspace.find({ owner: userId });
+
+    // Step 1: Perform all external (non-DB) cleanups first, OUTSIDE any transaction
+    // External network requests within a MongoDB transaction cause write conflicts & timeouts
+    for (const workspace of ownedWorkspaces) {
+      await this.cleanupExternalWorkspaceData(workspace);
+    }
+
+    // Step 2: Perform the database deletions inside a transaction
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      const user = await User.findById(userId).session(session);
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      // 1. Find all workspaces owned by the user
-      const ownedWorkspaces = await Workspace.find({ owner: userId }).session(session);
-
       for (const workspace of ownedWorkspaces) {
         await this.deleteWorkspaceInternal(workspace, session);
       }
 
-      // 2. Remove user from other teams (where they are not the owner)
+      // Remove user from other teams (where they are not the owner)
       await Team.updateMany(
         { 'members.user': userId },
         { $pull: { members: { user: userId } } }
       ).session(session);
 
-      // 3. Delete user record
+      // Delete user record
       await User.findByIdAndDelete(userId).session(session);
 
       await session.commitTransaction();
@@ -79,18 +94,22 @@ export class AccountDeletionService {
   /**
    * Deletes a specific workspace and all its associated data.
    */
-  static async deleteWorkspace(workspaceId: string, ownerId: string) {
+  static async deleteWorkspace(workspaceId: string, ownerId?: string) {
+    const query: any = { _id: workspaceId };
+    if (ownerId) query.owner = ownerId;
+    const workspace = await Workspace.findOne(query);
+    if (!workspace) {
+      throw new Error('Workspace not found or unauthorized');
+    }
+
+    // Perform external cleanup outside transaction
+    await this.cleanupExternalWorkspaceData(workspace);
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      const workspace = await Workspace.findOne({ _id: workspaceId, owner: ownerId }).session(session);
-      if (!workspace) {
-        throw new Error('Workspace not found or unauthorized');
-      }
-
       await this.deleteWorkspaceInternal(workspace, session);
-
       await session.commitTransaction();
     } catch (error) {
       await session.abortTransaction();
@@ -101,22 +120,19 @@ export class AccountDeletionService {
   }
 
   /**
-   * Internal helper for workspace deletion logic
+   * Helper to perform external API calls (Gupshup, Microservices) outside of DB transactions.
    */
-  private static async deleteWorkspaceInternal(workspace: any, session: mongoose.ClientSession) {
+  private static async cleanupExternalWorkspaceData(workspace: any) {
     const workspaceId = workspace._id;
     const gupshupAppId = workspace.gupshupAppId || workspace.gupshupIdentity?.partnerAppId;
 
-    console.log(`[AccountDeletion] Purging workspace ${workspaceId} (${workspace.name})...`);
+    console.log(`[AccountDeletion] Cleaning up external data for workspace ${workspaceId} (${workspace.name})...`);
 
     await this.purgeMicroserviceWorkspaceData(workspaceId.toString());
 
-    // 1. Gupshup Integration Cleanup
     if (gupshupAppId && !String(gupshupAppId).startsWith('mock_')) {
       try {
         console.log(`[AccountDeletion] Cleaning up Gupshup app ${gupshupAppId}...`);
-
-        // Remove all webhooks for this app
         const subscriptions = await GupshupPartnerService.listSubscriptions(gupshupAppId).catch(() => []);
         if (Array.isArray(subscriptions)) {
           for (const sub of subscriptions) {
@@ -125,13 +141,28 @@ export class AccountDeletionService {
               await GupshupPartnerService.deleteSubscription(gupshupAppId, subId).catch(err => {
                 console.warn(`[AccountDeletion] Failed to delete Gupshup subscription ${subId}:`, err.message);
               });
-              // Rate limiting protection
               await new Promise(resolve => setTimeout(resolve, 500));
             }
           }
         }
+      } catch (error: any) {
+        console.error(`[AccountDeletion] Gupshup cleanup failed for workspace ${workspaceId}:`, error.message);
+      }
+    }
+  }
 
-        // Return app to pool if sandbox, or mark as disconnected
+  /**
+   * Internal helper for workspace database deletion logic
+   */
+  private static async deleteWorkspaceInternal(workspace: any, session: mongoose.ClientSession) {
+    const workspaceId = workspace._id;
+    const gupshupAppId = workspace.gupshupAppId || workspace.gupshupIdentity?.partnerAppId;
+
+    console.log(`[AccountDeletion] Purging database records for workspace ${workspaceId} (${workspace.name})...`);
+
+    // Clean up local Gupshup records inside the transaction
+    if (gupshupAppId && !String(gupshupAppId).startsWith('mock_')) {
+      try {
         const gApp = await GupshupApp.findOne({ gupshupAppId }).session(session);
         if (gApp) {
           gApp.assigned = false;
@@ -141,15 +172,12 @@ export class AccountDeletionService {
           await gApp.save({ session });
         }
 
-        // Deactivate BusinessAppMap
         await BusinessAppMap.updateMany(
           { workspace: workspaceId, gupshupAppId },
           { $set: { active: false, disconnectedAt: new Date() } }
         ).session(session);
-
       } catch (error: any) {
-        console.error(`[AccountDeletion] Gupshup cleanup failed for workspace ${workspaceId}:`, error.message);
-        // We continue anyway to ensure database cleanup
+        console.error(`[AccountDeletion] Gupshup local db cleanup failed for workspace ${workspaceId}:`, error.message);
       }
     }
 
@@ -190,6 +218,15 @@ export class AccountDeletionService {
       { model: Team, field: 'workspace' },
       { model: WorkspaceInvitation, field: 'workspace' },
       { model: WebhookLog, field: 'workspace' },
+      { model: Order, field: 'workspaceId' },
+      { model: CheckoutCart, field: 'workspaceId' },
+      { model: FormSubmission, field: 'workspace' },
+      { model: InstagramQuickflow, field: 'workspace' },
+      { model: InstagramQuickflowLog, field: 'workspace' },
+      { model: WhatsAppFlow, field: 'workspace' },
+      { model: SupportTicket, field: 'workspace' },
+      { model: Macro, field: 'workspace' },
+      { model: Notification, field: 'workspace' },
     ];
 
     try {
@@ -215,22 +252,23 @@ export class AccountDeletionService {
       { service: 'campaign' as const, path: `/api/campaign/internal/purge/${workspaceId}` },
     ];
 
-    await Promise.all(
-      purgeTargets.map(async ({ service, path }) => {
-        try {
-          const response = await proxyController.forwardToService(service, {
-            method: 'DELETE',
-            path,
-          });
+    for (const { service, path } of purgeTargets) {
+      try {
+        const response = await proxyController.forwardToService(service, {
+          method: 'DELETE',
+          path,
+        });
 
-          if (response.status >= 400) {
-            throw new Error(response.data?.message || response.data?.error || `Purge failed with status ${response.status}`);
-          }
-        } catch (error: any) {
-          console.error(`[AccountDeletion] ${service} purge failed for workspace ${workspaceId}:`, error.message);
-          throw error;
+        if (response.status >= 400) {
+          console.warn(`[AccountDeletion] ${service} purge returned status ${response.status} for workspace ${workspaceId}`);
+        } else {
+          console.log(`[AccountDeletion] Successfully purged ${service} data for workspace ${workspaceId}`);
         }
-      })
-    );
+      } catch (error: any) {
+        // We log the error but do NOT re-throw. This ensures that even if a microservice is down
+        // (common in local development or partial outages), the main account deletion can still finish.
+        console.error(`[AccountDeletion] Skipping ${service} purge for workspace ${workspaceId} (Service unreachable):`, error.message);
+      }
+    }
   }
 }

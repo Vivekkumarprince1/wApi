@@ -1,7 +1,9 @@
 import axios from 'axios';
 import mongoose from 'mongoose';
 import IORedis from 'ioredis';
+import { Queue } from 'bullmq';
 import { config } from '../config';
+import { getSharedRedis } from '../utils/ioredis';
 
 export type ServiceHealth = {
   status: 'ok' | 'degraded' | 'down';
@@ -9,9 +11,24 @@ export type ServiceHealth = {
   message?: string;
 };
 
+export type QueueDepth = {
+  name: string;
+  waiting: number;
+  active: number;
+  delayed: number;
+  failed: number;
+  oldestWaitingMs?: number;
+};
+
+const QUEUES_TO_PROBE = [
+  'webhook-queue',
+  'bulk-messages',
+  'contact-imports',
+];
+
 export class HealthService {
   /**
-   * Check health of a specific microservice
+   * Check health of a specific microservice (HTTP /health probe).
    */
   static async checkMicroservice(url: string): Promise<ServiceHealth> {
     const start = Date.now();
@@ -31,19 +48,23 @@ export class HealthService {
   }
 
   /**
-   * Check Redis connectivity
+   * Quick Redis liveness probe with a short connect timeout. Uses a
+   * short-lived dedicated connection so a hung shared client doesn't make
+   * the health endpoint hang too.
    */
   static async checkRedis(): Promise<ServiceHealth> {
-    const redis = new IORedis(process.env.REDIS_URL as string, { 
+    const redis = new IORedis(process.env.REDIS_URL as string, {
       maxRetriesPerRequest: 0,
       connectTimeout: 2000,
-      retryStrategy: () => null 
+      retryStrategy: () => null,
     });
-    
+
+    const start = Date.now();
     try {
       await redis.ping();
+      const latency = Date.now() - start;
       redis.disconnect();
-      return { status: 'ok' };
+      return { status: 'ok', latency };
     } catch (err: any) {
       redis.disconnect();
       return { status: 'down', message: err.message };
@@ -51,31 +72,80 @@ export class HealthService {
   }
 
   /**
-   * Get system-wide health report
+   * Mongo connection state + a cheap ping for read-latency.
+   */
+  static async checkMongo(): Promise<ServiceHealth> {
+    const ready = mongoose.connection.readyState === 1;
+    if (!ready) {
+      return { status: 'down', message: `readyState=${mongoose.connection.readyState}` };
+    }
+    const start = Date.now();
+    try {
+      await mongoose.connection.db?.admin().ping();
+      return { status: 'ok', latency: Date.now() - start };
+    } catch (err: any) {
+      return { status: 'degraded', message: err.message };
+    }
+  }
+
+  /**
+   * BullMQ queue depths + age of oldest waiting job. Useful for
+   * autoscaler / on-call dashboards to spot back-pressure.
+   */
+  static async checkQueues(): Promise<QueueDepth[]> {
+    const connection = getSharedRedis();
+    const results: QueueDepth[] = [];
+
+    for (const name of QUEUES_TO_PROBE) {
+      try {
+        const queue = new Queue(name, { connection });
+        const counts = await queue.getJobCounts('waiting', 'active', 'delayed', 'failed');
+        const [oldestWaiting] = await queue.getJobs(['waiting'], 0, 0);
+        let oldestWaitingMs: number | undefined;
+        if (oldestWaiting?.timestamp) {
+          oldestWaitingMs = Date.now() - oldestWaiting.timestamp;
+        }
+        results.push({
+          name,
+          waiting: counts.waiting || 0,
+          active: counts.active || 0,
+          delayed: counts.delayed || 0,
+          failed: counts.failed || 0,
+          oldestWaitingMs,
+        });
+      } catch (err: any) {
+        results.push({ name, waiting: -1, active: -1, delayed: -1, failed: -1, oldestWaitingMs: undefined });
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Deep system-wide health report. Includes:
+   * - Downstream microservices reachability + latency
+   * - Mongo readyState + ping latency
+   * - Redis ping latency
+   * - BullMQ queue depths + oldest-waiting age
    */
   static async getFullReport() {
-    const [automation, campaign, billing, redis] = await Promise.all([
+    const [automation, campaign, billing, redis, mongo, queues] = await Promise.all([
       this.checkMicroservice(config.automationServiceUrl),
       this.checkMicroservice(config.campaignServiceUrl),
       this.checkMicroservice(config.billingServiceUrl),
-      this.checkRedis()
+      this.checkRedis(),
+      this.checkMongo(),
+      this.checkQueues(),
     ]);
 
-    const dbState = mongoose.connection.readyState;
-    const dbStatus = dbState === 1 ? 'ok' : 'down';
+    const overallOk = [automation, campaign, billing, redis, mongo].every(s => s.status === 'ok');
 
     return {
-      status: [automation, campaign, billing, redis].every(s => s.status === 'ok') && dbStatus === 'ok' ? 'ok' : 'degraded',
+      status: overallOk ? 'ok' : 'degraded',
       timestamp: new Date(),
-      services: {
-        automation,
-        campaign,
-        billing
-      },
-      infrastructure: {
-        mongodb: { status: dbStatus },
-        redis
-      }
+      services: { automation, campaign, billing },
+      infrastructure: { mongodb: mongo, redis },
+      queues,
     };
   }
 }

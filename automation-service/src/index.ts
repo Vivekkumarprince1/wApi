@@ -33,12 +33,7 @@ app.use((req, res, next) => {
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI_AUTOMATION || 'mongodb://localhost:27017/wapi_automation';
 
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('Connected to Automation Database'))
-  .catch((err) => console.error('Database connection error:', err));
-
 // Register Routes
-// Standardize: mount everything under /api/automation/engine
 app.use('/api/automation/engine', aiIntentRoutes);
 app.use('/api/automation/engine', answerBotRoutes);
 app.use('/api/automation/engine', engineRoutes);
@@ -50,23 +45,50 @@ app.use('/api/automation/engine', whatsappFormRoutes);
 app.get('/health', (req, res) => {
   const dbState = mongoose.connection.readyState;
   const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
-  res.json({ 
-    status: dbState === 1 ? 'ok' : 'degraded', 
-    service: 'automation-service', 
+  res.json({
+    status: dbState === 1 ? 'ok' : 'degraded',
+    service: 'automation-service',
     db: dbStatus,
-    timestamp: new Date() 
+    timestamp: new Date()
   });
 });
 
-// Start Server
-const server = app.listen(PORT, () => {
-  console.log(`Automation Service listening on port ${PORT}`);
-});
+// Start Server (await Mongo first so HTTP traffic can't hit a disconnected DB).
+let server: ReturnType<typeof app.listen> | null = null;
+
+(async () => {
+  try {
+    await mongoose.connect(MONGODB_URI);
+    console.log('Connected to Automation Database');
+    server = app.listen(PORT, () => {
+      console.log(`Automation Service listening on port ${PORT}`);
+    });
+
+    // Start the time-based scheduler once the DB is ready. Without this
+    // any AutomationRule whose `trigger.event === 'schedule'` would never
+    // fire — there was no cron in this service before.
+    try {
+      const { startScheduler } = await import('./workers/scheduler');
+      await startScheduler();
+    } catch (err: any) {
+      console.error('Scheduler failed to start:', err?.message);
+    }
+  } catch (err) {
+    console.error('FATAL: Database connection error during startup:', err);
+    process.exit(1);
+  }
+})();
 
 // Graceful Shutdown
 function gracefulShutdown(signal: string) {
   console.log(`[${signal}] Received. Shutting down gracefully...`);
-  server.close(async () => {
+  const closeServer = (): Promise<void> =>
+    new Promise((resolve) => {
+      if (!server) return resolve();
+      server.close(() => resolve());
+    });
+
+  closeServer().then(async () => {
     console.log('HTTP server closed.');
     try {
       await mongoose.connection.close(false);
@@ -78,7 +100,6 @@ function gracefulShutdown(signal: string) {
     }
   });
 
-  // Force shutdown after 10 seconds
   setTimeout(() => {
     console.error('Could not close connections in time, forcefully shutting down');
     process.exit(1);

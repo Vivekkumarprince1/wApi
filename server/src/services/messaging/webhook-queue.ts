@@ -71,3 +71,23 @@ export async function enqueueWebhook(payload: any, deliveryId?: string) {
     jobId
   });
 }
+
+/**
+ * Returns a snapshot of any failed jobs older than `staleAfterMs` (default
+ * 5 minutes). Used by the periodic alert job (started in
+ * `worker-registry.ts`) to surface back-pressure to operators.
+ */
+export async function getStaleFailedJobs(staleAfterMs = 5 * 60 * 1000) {
+  const failed = await webhookQueue.getFailed(0, 50);
+  const cutoff = Date.now() - staleAfterMs;
+  return failed
+    .filter((job) => (job.finishedOn || job.timestamp || 0) < cutoff)
+    .map((job) => ({
+      id: job.id,
+      name: job.name,
+      attemptsMade: job.attemptsMade,
+      finishedOn: job.finishedOn,
+      failedReason: job.failedReason,
+      ageMs: Date.now() - (job.finishedOn || job.timestamp || 0),
+    }));
+}
