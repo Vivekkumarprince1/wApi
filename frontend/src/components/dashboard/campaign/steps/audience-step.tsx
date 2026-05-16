@@ -37,17 +37,17 @@ export default function AudienceStep({ campaignData, setCampaignData }: Audience
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   
-  const { data: contactsData, isLoading: loadingContacts } = useQuery({
+  const { data: contactsData, isLoading: loadingContacts } = useQuery<any>({
     queryKey: ['contacts', 1, 100],
     queryFn: () => fetchContacts(1, 100)
   });
 
-  const { data: tagsData, isLoading: loadingTags } = useQuery({
+  const { data: tagsData, isLoading: loadingTags } = useQuery<any>({
     queryKey: ['tags'],
     queryFn: () => fetchTags()
   });
 
-  const { data: segmentsData, isLoading: loadingSegments } = useQuery({
+  const { data: segmentsData, isLoading: loadingSegments } = useQuery<any>({
     queryKey: ['segments'],
     queryFn: () => fetchSegments()
   });

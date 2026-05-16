@@ -54,7 +54,11 @@ export default function SettingsPage() {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   
   // Control center states
-  const [broadcast, setBroadcast] = useState({ title: '', message: '', level: 'info' as const });
+  const [broadcast, setBroadcast] = useState<{ title: string; message: string; level: 'info' | 'warning' | 'critical' }>({ 
+    title: '', 
+    message: '', 
+    level: 'info' 
+  });
 
   // Settings Query
   const { data: settings, isLoading: isSettingsLoading } = useQuery({
@@ -458,9 +462,9 @@ export default function SettingsPage() {
                                     variant={broadcast.level === level ? 'default' : 'outline'}
                                     className={cn(
                                     "flex-1 rounded-xl h-10 font-black tracking-widest text-[9px] uppercase transition-all",
-                                    broadcast.level === level && level === 'info' && "bg-blue-600 shadow-lg shadow-blue-500/20",
-                                    broadcast.level === level && level === 'warning' && "bg-amber-600 shadow-lg shadow-amber-500/20",
-                                    broadcast.level === level && level === 'critical' && "bg-red-600 shadow-lg shadow-red-500/20"
+                                    broadcast.level === level && (level as any) === 'info' && "bg-blue-600 shadow-lg shadow-blue-500/20",
+                                    broadcast.level === level && (level as any) === 'warning' && "bg-amber-600 shadow-lg shadow-amber-500/20",
+                                    broadcast.level === level && (level as any) === 'critical' && "bg-red-600 shadow-lg shadow-red-500/20"
                                     )}
                                     onClick={() => setBroadcast({ ...broadcast, level })}
                                 >

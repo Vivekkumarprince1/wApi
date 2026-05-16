@@ -119,8 +119,8 @@ const DashboardPageClient = () => {
     queryKey: ['dashboardOverview'],
     queryFn: async () => {
       const [response, messageMetrics] = await Promise.all([
-        client.get('/analytics/dashboard/overview').catch(() => ({ data: null })),
-        client.get('/metrics/messages?days=7').catch(() => null)
+        client.get<any>('/analytics/dashboard/overview').catch(() => ({ data: null })),
+        client.get<any>('/metrics/messages?days=7').catch(() => null)
       ]);
 
       const overview = response?.data;

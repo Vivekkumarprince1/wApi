@@ -36,7 +36,7 @@ export default function CommerceOverviewPage() {
     queryKey: ['commerce-stats'],
     queryFn: async () => {
       // We'll simulate some stats for now or fetch from a real endpoint if available
-      const response = await api.get('/commerce/stats').catch(() => ({ data: {
+      const response = await api.get<any>('/commerce/stats').catch(() => ({ data: {
         totalSales: 0,
         orderCount: 0,
         activeProducts: 0,

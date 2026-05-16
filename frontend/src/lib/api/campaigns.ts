@@ -19,9 +19,9 @@ export interface Campaign {
   scheduledAt?: string;
 }
 
-export const fetchCampaigns = (params?: any) => api.get('/campaign/campaigns', { params });
+export const fetchCampaigns = (params?: any) => api.get<any>('/campaign/campaigns', { params });
 export const fetchCampaignById = (id: string) => api.get(`/campaign/campaigns/${id}`);
-export const createCampaign = (data: any) => api.post('/campaign/campaigns/create', data);
+export const createCampaign = (data: any) => api.post<any>('/campaign/campaigns/create', data);
 export const updateCampaign = (id: string, data: any) => api.put(`/campaign/campaigns/${id}`, data);
 export const deleteCampaign = (id: string) => api.delete(`/campaign/campaigns/${id}`);
 export const performCampaignAction = (id: string, action: any) => api.post(`/campaign/campaigns/${id}/lifecycle`, { action });

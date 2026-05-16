@@ -98,12 +98,12 @@ export default function InfrastructurePage() {
     Megaphone, CreditCard, Mail
   } as Record<string, React.ElementType>;
 
-  const resolvedMetrics = metrics.map(stat => ({
+  const resolvedMetrics = metrics.map((stat: any) => ({
     ...stat,
     icon: typeof stat.icon === 'string' ? (IconMap[stat.icon] || Activity) : (stat.icon || Activity)
   }));
 
-  const resolvedServices = services.map(service => ({
+  const resolvedServices = services.map((service: any) => ({
     ...service,
     icon: typeof service.icon === 'string' ? (IconMap[service.icon] || Server) : (service.icon || Server)
   }));
@@ -140,7 +140,7 @@ export default function InfrastructurePage() {
 
         {/* System Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {resolvedMetrics.map((stat, i) => (
+          {resolvedMetrics.map((stat: any, i: number) => (
             <div key={i} className="glass-card p-6 rounded-[2rem] border border-slate-200/50 flex flex-col gap-4">
               <div className="flex justify-between items-center">
                 <div className={cn("p-3 rounded-2xl", stat.bg)}>
@@ -177,7 +177,7 @@ export default function InfrastructurePage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {resolvedServices.map((service, i) => (
+                {resolvedServices.map((service: any, i: number) => (
                   <div
                     key={i}
                     className={cn(

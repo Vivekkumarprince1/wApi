@@ -117,7 +117,7 @@ export default function AdsPage() {
           </>
         ) : (
           <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4">
-             {ads.map((ad: any) => (
+             {ads?.map((ad: any) => (
                <Card key={ad._id} className="p-6 rounded-3xl text-left border-border/40">
                   <div className="flex items-center justify-between mb-4">
                      <h4 className="font-black text-sm uppercase tracking-tight">{ad.name}</h4>

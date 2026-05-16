@@ -18,11 +18,11 @@ import { toast } from 'react-hot-toast';
 export interface ApiClient extends Omit<AxiosInstance,
   'get' | 'post' | 'put' | 'patch' | 'delete'
 > {
-  get<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
-  post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>;
-  put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>;
-  patch<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>;
-  delete<T = unknown>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  post<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>;
+  put<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>;
+  patch<T = any>(url: string, data?: unknown, config?: AxiosRequestConfig): Promise<T>;
+  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
 }
 
 const baseClient = axios.create({
@@ -46,15 +46,15 @@ baseClient.interceptors.response.use(
 
 export const apiClient = baseClient as unknown as ApiClient;
 
-export const get = <T = unknown>(url: string, config?: AxiosRequestConfig) =>
+export const get = <T = any>(url: string, config?: AxiosRequestConfig) =>
   apiClient.get<T>(url, config);
-export const post = <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+export const post = <T = any>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
   apiClient.post<T>(url, data, config);
-export const put = <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+export const put = <T = any>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
   apiClient.put<T>(url, data, config);
-export const patch = <T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
+export const patch = <T = any>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
   apiClient.patch<T>(url, data, config);
-export const del = <T = unknown>(url: string, config?: AxiosRequestConfig) =>
+export const del = <T = any>(url: string, config?: AxiosRequestConfig) =>
   apiClient.delete<T>(url, config);
 
 export default apiClient;

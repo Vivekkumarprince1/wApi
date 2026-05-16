@@ -48,9 +48,9 @@ export interface Conversation {
   labels?: string[];
 }
 
-export const fetchConversations = (params?: any) => api.get('/inbox', { params });
-export const fetchMessages = (conversationId: string, params?: any) => api.get(`/inbox/conversations/${conversationId}/messages`, { params });
-export const fetchMessagesByContactId = (contactId: string, params?: any) => api.get(`/inbox/messages/contact/${contactId}`, { params });
+export const fetchConversations = (params?: any) => api.get<any>('/inbox', { params });
+export const fetchMessages = (conversationId: string, params?: any) => api.get<any>(`/inbox/conversations/${conversationId}/messages`, { params });
+export const fetchMessagesByContactId = (contactId: string, params?: any) => api.get<any>(`/inbox/messages/contact/${contactId}`, { params });
 export const sendMessage = (conversationId: string, data: any, headers: any = {}) => api.post(`/inbox/conversations/${conversationId}/messages`, data, { headers });
 
 export const sendMediaMessage = (conversationId: string, data: any, headers: any = {}) => api.post(`/inbox/conversations/${conversationId}/messages`, {
@@ -66,8 +66,8 @@ export const sendMediaMessage = (conversationId: string, data: any, headers: any
 export const markAsRead = (conversationId: string) => api.post(`/inbox/conversations/${conversationId}/read`);
 export const performConversationAction = (conversationId: string, action: string, data = {}) => api.patch(`/inbox/conversations/${conversationId}/action`, { action, ...data });
 
-export const fetchTeams = () => api.get('/workspace/teams');
-export const fetchMembers = () => api.get('/workspace/team/members');
+export const fetchTeams = () => api.get<any>('/workspace/teams');
+export const fetchMembers = () => api.get<any>('/workspace/team/members');
 
 export const uploadMedia = (file: File) => {
   const formData = new FormData();
