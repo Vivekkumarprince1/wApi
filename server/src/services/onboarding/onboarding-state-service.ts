@@ -1,5 +1,5 @@
 import { Business, BusinessAppMap, OnboardingState, type OnboardingStep, Workspace } from '@/models';
-import { isBusinessVerificationMandatory } from './business-verification-policy-service';
+import { isBusinessVerificationMandatory } from '../business/business-verification-policy-service';
 
 export const ONBOARDING_STEP_PATHS: Record<Exclude<OnboardingStep, 'COMPLETED'>, string> = {
   EMAIL_VERIFICATION: '/onboarding/verify-email',

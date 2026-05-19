@@ -9,7 +9,7 @@ import {
   SystemSettings,
 } from '@/models';
 import { SuperAdminControlPlaneSnapshot } from '@/super-admin/control-plane-types';
-import { getBusinessVerificationPolicy } from '@/services/onboarding/business-verification-policy-service';
+import { getBusinessVerificationPolicy } from '@/services/business/business-verification-policy-service';
 import { LedgerService } from '../billing/ledger-service';
 
 type PlanCountResult = {

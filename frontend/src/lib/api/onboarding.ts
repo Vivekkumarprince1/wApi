@@ -10,21 +10,6 @@ export const getVerificationStatus = async () => {
   return response;
 };
 
-export const saveBusinessInfo = async (businessInfo: any) => {
-  const response = await post<any>('/onboarding/business-info', businessInfo);
-  return response;
-};
-
-export const verifyBusinessDocument = async (payload: any) => {
-  const response = await post<any>('/onboarding/business-verification', payload);
-  return response;
-};
-
-export const confirmBusiness = async (payload: any = {}) => {
-  const response = await post<any>('/onboarding/business-verification', payload);
-  return response;
-};
-
 export const completeOnboarding = async () => {
   const response = await post<any>('/onboarding/complete');
   return response;

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, Globe, MapPin, Briefcase, CheckCircle, Loader2, CreditCard } from 'lucide-react';
-import { saveBusinessInfo } from '@/lib/api/onboarding';
+import { saveBusinessInfo } from '@/lib/api/business';
 import { useAuthStore } from '@/store/auth-store';
 
 export default function BusinessInfoPage() {

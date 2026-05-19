@@ -1219,7 +1219,7 @@ export const adminController = {
           const enabled = typeof payload?.enabled === 'boolean'
             ? payload.enabled
             : String(payload?.enabled).toLowerCase() === 'true';
-          const { setBusinessVerificationMandatory } = await import('../services/onboarding/business-verification-policy-service');
+          const { setBusinessVerificationMandatory } = await import('../services/business/business-verification-policy-service');
           const updatedPolicy = await setBusinessVerificationMandatory(enabled, String(req.user?._id || ''), payload?.notes ? String(payload.notes) : undefined);
           return res.json({
             success: true,

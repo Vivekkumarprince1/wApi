@@ -6,8 +6,6 @@ const router = Router();
 
 router.get('/status', authenticate, onboardingController.getStatus);
 router.get('/verification-status', authenticate, onboardingController.getStatus);
-router.post('/business-info', authenticate, onboardingController.saveBusinessInfo);
-router.post('/business-verification', authenticate, onboardingController.verifyBusiness);
 router.post('/complete', authenticate, onboardingController.completeOnboarding);
 
 // BSP Routes

@@ -28,6 +28,8 @@ import workspaceRoutes from './routes/workspaceRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import templateRoutes from './routes/templateRoutes';
 import onboardingRoutes from './routes/onboardingRoutes';
+import businessRoutes from './routes/businessRoutes';
+
 import flowRoutes from './routes/flowRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
@@ -142,6 +144,8 @@ app.use('/api/v1/billing', authenticate, proxyMiddleware.proxyTo('billing'));
 app.use('/api/v1', compatRoutes);
 app.use('/api/v1/templates', templateRoutes);
 app.use('/api/v1/onboarding', onboardingRoutes);
+app.use('/api/v1/business', businessRoutes);
+
 app.use('/api/v1/flows', flowRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/analytics', analyticsRoutes);

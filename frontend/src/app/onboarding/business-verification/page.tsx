@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Building2, CheckCircle, CreditCard, Loader2, ShieldCheck } from 'lucide-react';
-import { getOnboardingStatus, verifyBusinessDocument } from '@/lib/api/onboarding';
+import { getOnboardingStatus } from '@/lib/api/onboarding';
+import { verifyBusinessDocument } from '@/lib/api/business';
 
 export default function BusinessVerificationPage() {
   const router = useRouter();

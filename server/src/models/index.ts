@@ -53,9 +53,9 @@ export type { IActivityLog } from './ActivityLog';
 
 
 // Onboarding domain
-export * from './onboarding/Business';
+export * from './business/Business';
 export * from './onboarding/GupshupApp';
-export * from './onboarding/BusinessAppMap';
+export * from './business/BusinessAppMap';
 export * from './onboarding/OnboardingState';
 
 // Campaign domain — FULLY MIGRATED TO campaign-service
