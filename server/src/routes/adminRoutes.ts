@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { adminController } from '../controllers/adminController';
 import { authenticate, isSuperAdmin } from '../middlewares/authMiddleware';
+import { proxyController } from '../controllers/proxyController';
 
 const router = Router();
 
@@ -39,12 +40,12 @@ router.patch('/data/collections/:collectionName/:id', adminController.updateDocu
 router.get('/infrastructure', adminController.getInfrastructure);
 
 // Plans
-router.get('/plans', adminController.listPlans);
-router.get('/plans/:id', adminController.getPlan);
-router.post('/plans', adminController.createPlan);
-router.post('/plans/seed', adminController.seedPlans);
-router.patch('/plans/:id', adminController.updatePlan);
-router.delete('/plans/:id', adminController.deletePlan);
+router.get('/plans', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.get('/plans/:id', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.post('/plans', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.post('/plans/seed', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.patch('/plans/:id', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.delete('/plans/:id', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
 
 // Gupshup Admin
 router.post('/gupshup/reconcile', adminController.reconcileGupshup);

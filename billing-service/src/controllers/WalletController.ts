@@ -614,5 +614,105 @@ export class WalletController {
       res.status(500).json({ success: false, error: err.message });
     }
   }
+
+  // --- Plan CRUD Endpoints ---
+  static async listPlans(req: Request, res: Response) {
+    try {
+      const activeOnly = req.query.activeOnly !== 'false';
+      const query = activeOnly ? { isActive: true } : {};
+      const plans = await PlanModel.find(query).sort({ monthlyBaseFeeCents: 1 });
+      res.json({ success: true, data: plans });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async getPlan(req: Request, res: Response) {
+    try {
+      const id = req.params.id as string;
+      const query = mongoose.Types.ObjectId.isValid(id) ? { _id: id } : { slug: id };
+      const plan = await PlanModel.findOne(query);
+      if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+      res.json({ success: true, data: plan });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async createPlan(req: Request, res: Response) {
+    try {
+      const plan = await PlanModel.create(req.body);
+      res.status(201).json({ success: true, data: plan });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  }
+
+  static async updatePlan(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const plan = await PlanModel.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+      if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+      res.json({ success: true, data: plan });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  }
+
+  static async deletePlan(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const plan = await PlanModel.findByIdAndDelete(id);
+      if (!plan) return res.status(404).json({ success: false, message: 'Plan not found' });
+      res.json({ success: true, message: 'Plan deleted successfully' });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  }
+
+  static async seedPlans(req: Request, res: Response) {
+    const DEFAULT_PLANS = [
+      {
+        name: "Free Tier",
+        slug: "free",
+        monthlyBaseFeeCents: 0,
+        yearlyBaseFeeCents: 0,
+        currency: "INR",
+        isActive: true,
+        isDefault: true
+      },
+      {
+        name: "Growth",
+        slug: "growth",
+        monthlyBaseFeeCents: 499900,
+        yearlyBaseFeeCents: 4999000,
+        currency: "INR",
+        isActive: true
+      },
+      {
+        name: "Enterprise",
+        slug: "enterprise",
+        monthlyBaseFeeCents: 1499900,
+        yearlyBaseFeeCents: 14999000,
+        currency: "INR",
+        isActive: true
+      }
+    ];
+
+    try {
+      const results = [];
+      for (const planData of DEFAULT_PLANS) {
+        const plan = await PlanModel.findOneAndUpdate(
+          { slug: planData.slug },
+          { $set: planData },
+          { upsert: true, new: true }
+        );
+        results.push(plan);
+      }
+      res.json({ success: true, message: "Default plans initialized", plans: results });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: "Failed to seed plans", error: err.message });
+    }
+  }
 }
 

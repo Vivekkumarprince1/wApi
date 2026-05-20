@@ -6,7 +6,7 @@ import { config } from '../config';
 import { logActivity } from '../services/activity-logging-service';
 import { getCorrelationId } from '../utils/logger';
 
-type ProxyService = 'automation' | 'campaign' | 'billing';
+type ProxyService = 'automation' | 'campaign' | 'billing' | 'bsp';
 
 type ProxyContext = {
   workspaceId?: string;
@@ -38,6 +38,7 @@ const circuitState: Record<ProxyService, CircuitState> = {
   automation: { failures: 0, lastFailure: 0, isOpen: false },
   campaign: { failures: 0, lastFailure: 0, isOpen: false },
   billing: { failures: 0, lastFailure: 0, isOpen: false },
+  bsp: { failures: 0, lastFailure: 0, isOpen: false },
 };
 
 function stripApiPrefix(originalUrl: string) {
@@ -51,6 +52,7 @@ function getServiceBaseUrl(service: ProxyService) {
     automation: config.automationServiceUrl,
     campaign: config.campaignServiceUrl,
     billing: config.billingServiceUrl,
+    bsp: config.bspServiceUrl,
   };
 
   const url = serviceUrls[service];
@@ -150,6 +152,27 @@ function buildServiceUrl(service: ProxyService, targetBaseUrl: string, req: Auth
     return `${targetBaseUrl}/api/billing/${relativePath}`;
   }
 
+  if (pathString.startsWith('/super-admin/plans')) {
+    const relativePath = pathString.slice('/super-admin/plans'.length);
+    if (relativePath.startsWith('/seed')) {
+      return `${targetBaseUrl}/api/billing/admin/plans/seed`;
+    }
+    if (relativePath === '' || relativePath === '/') {
+      if (req.method === 'POST') {
+        return `${targetBaseUrl}/api/billing/admin/plans`;
+      }
+      return `${targetBaseUrl}/api/billing/plans`;
+    }
+    const planId = relativePath.replace(/^\//, '');
+    if (req.method === 'PUT' || req.method === 'PATCH') {
+      return `${targetBaseUrl}/api/billing/admin/plans/${planId}`;
+    }
+    if (req.method === 'DELETE') {
+      return `${targetBaseUrl}/api/billing/admin/plans/${planId}`;
+    }
+    return `${targetBaseUrl}/api/billing/plans/${planId}`;
+  }
+
   if (pathString.startsWith('/workspace/billing/')) {
     const relativePath = pathString.slice('/workspace/billing/'.length);
     console.log(`[ProxyController] /workspace/billing/ handler - relativePath: ${relativePath}, workspaceId: ${workspaceId}`);
@@ -199,6 +222,23 @@ function buildServiceUrl(service: ProxyService, targetBaseUrl: string, req: Auth
     return url;
   }
 
+  if (service === 'bsp') {
+    if (pathString.startsWith('/onboarding/bsp/')) {
+      const relativePath = pathString.replace(/^\/onboarding\/bsp\/?/, '');
+      return `${targetBaseUrl}/bsp/v1/onboarding/${relativePath}`;
+    }
+    if (pathString.startsWith('/onboarding/')) {
+      const relativePath = pathString.replace(/^\/onboarding\/?/, '');
+      return `${targetBaseUrl}/bsp/v1/onboarding/${relativePath}`;
+    }
+    if (pathString.startsWith('/bsp/')) {
+      const relativePath = pathString.replace(/^\/bsp\/?/, '');
+      return `${targetBaseUrl}/bsp/v1/${relativePath}`;
+    }
+    const relativePath = pathString.replace(/^\//, '');
+    return `${targetBaseUrl}/bsp/v1/${relativePath}`;
+  }
+
   return `${targetBaseUrl}/api/billing`;
 }
 
@@ -207,6 +247,8 @@ function buildProxyHeaders(context: ProxyContext = {}, extraHeaders: Record<stri
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    'x-internal-service': 'main-service',
+    'x-internal-secret': config.internalServiceSecret,
     'x-internal-service-secret': config.internalServiceSecret,
     'x-correlation-id':
       context.correlationId || getCorrelationId() || generateCorrelationId(),

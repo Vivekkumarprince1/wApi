@@ -3,6 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
 import { config } from './config/index';
+import { logger, correlationIdMiddleware, getCorrelationId } from './lib/logger';
+import { mountSwaggerUI } from '@wapi/contracts';
+import { openapiDocument } from './openapi';
 
 import './events/EventBus'; // Initialize worker
 import walletRoutes from './routes/walletRoutes';
@@ -23,16 +26,25 @@ app.use(express.json({
   }
 }));
 
-// Request Logger
+app.use(correlationIdMiddleware);
+
+// Request Logger — structured, correlated, ships to Better Stack via shared logger
 app.use((req, res, next) => {
-  const correlationId = req.headers['x-correlation-id'] || 'system';
   const start = Date.now();
   res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`[Billing Service][${correlationId}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
+    logger.info('http.request', {
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - start,
+      correlationId: getCorrelationId(),
+    });
   });
   next();
 });
+
+// API Docs — Swagger UI at /docs, raw spec at /docs/openapi.json
+mountSwaggerUI(app, openapiDocument);
 
 app.use('/api/billing/wallets', walletRoutes);
 app.use('/api/billing/webhooks', webhookRoutes);

@@ -6,6 +6,7 @@ import { signToken } from '../utils/auth-utils';
 import mongoose from 'mongoose';
 import { proxyController } from './proxyController';
 import { AccountDeletionService } from '../services/auth/account-deletion-service';
+import { BspServiceClient } from '../services/microservices/bsp-service-client';
 
 export const adminController = {
   /**
@@ -16,7 +17,7 @@ export const adminController = {
       const workspaces = await Workspace.find({})
         .populate('owner', 'name email')
         .populate('plan', 'name slug features limits isActive')
-        .select('name owner plan billingStatus whatsappConnected bspPhoneStatus wallet walletBalance walletParkedBalance walletCurrency walletThreshold createdAt updatedAt gupshupIdentity gupshupAppId gupshupAppName gupshupAppLive gupshupAppHealth gupshupWalletBalance bspSyncStatus bspLastSyncedAt bspPhoneNumberId bspDisplayPhoneNumber bspVerifiedName bspQualityRating bspMessagingTier whatsappPhoneNumber whatsappPhoneNumberId phoneNumbers businessId wabaId childWabaId metaBusinessId businessAccountId esbFlow')
+        .select('name owner plan billingStatus whatsappConnected bspPhoneStatus bspPhoneNumberId gupshupAppId bspWabaId bspLastSyncedAt wallet walletBalance walletParkedBalance walletCurrency walletThreshold esbFlow createdAt updatedAt')
         .sort({ createdAt: -1 });
 
       res.json(workspaces);
@@ -155,99 +156,42 @@ export const adminController = {
     }
   },
 
-  /**
-   * Sync Gupshup Webhooks for all active workspaces
-   */
   async syncGupshupWebhooks(req: AuthRequest, res: Response) {
     try {
-      const { url, modes, strategy } = req.body;
-      const { WebhookSyncService } = await import('../services/bsp/webhook-sync-service');
-      const stats = await WebhookSyncService.syncAll({ url, modes, strategy });
-      res.json({ success: true, message: "Global webhook sync completed", stats });
+      const data = await BspServiceClient.request({
+        method: 'POST',
+        path: '/internal/v1/bsp/admin/sync-webhooks',
+        data: req.body,
+      });
+      res.json({ success: true, ...data });
     } catch (err: any) {
-      console.error("[Gupshup Webhook Sync Error]:", err.message);
-      res.status(500).json({ success: false, message: "Sync failed", error: err.message });
-    }
-  },
-
-  /**
-   * Get overall webhook status for all apps
-   */
-  async getWebhookStatus(req: AuthRequest, res: Response) {
-    try {
-      const { workspaceId } = req.query;
-      const { Workspace } = await import('../models');
-      const { GupshupPartnerService } = await import('../services/bsp/gupshup-partner-service');
-      
-      const query: any = { gupshupAppId: { $exists: true, $ne: null } };
-      if (workspaceId) {
-        query._id = workspaceId;
-      }
-
-      const workspaces = await Workspace.find(query).select('name gupshupAppId bspDisplayPhoneNumber');
-      
-      const results = [];
-      for (const ws of workspaces) {
-        try {
-          // Rate limit protection: only if auditing multiple workspaces
-          if (workspaces.length > 1) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-          
-          const subs = await GupshupPartnerService.listSubscriptions(ws.gupshupAppId!);
-          results.push({
-            id: String(ws._id),
-            name: ws.name,
-            appId: ws.gupshupAppId,
-            phone: ws.bspDisplayPhoneNumber,
-            subscriptions: subs || []
-          });
-        } catch (err) {
-          results.push({
-            id: String(ws._id),
-            name: ws.name,
-            appId: ws.gupshupAppId,
-            error: 'Failed to fetch status'
-          });
-        }
-      }
-      
-      // If single workspace requested, return object directly; else return array
-      res.json(workspaceId ? results[0] || null : results);
-    } catch (err: any) {
-      console.error("[Gupshup Status Audit Error]:", err.message);
       res.status(500).json({ success: false, message: err.message });
     }
   },
 
-  /**
-   * Sync a specific app's webhook
-   */
+  async getWebhookStatus(req: AuthRequest, res: Response) {
+    try {
+      const { workspaceId } = req.query;
+      const qs = workspaceId ? `?workspaceId=${workspaceId}` : '';
+      const data = await BspServiceClient.request({
+        method: 'GET',
+        path: `/internal/v1/bsp/admin/webhook-status${qs}`,
+      });
+      res.json({ success: true, data });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  },
+
   async syncSpecificWebhook(req: AuthRequest, res: Response) {
     try {
       const { appId } = req.params;
-      const { url, modes, strategy } = req.body;
-      const { GupshupPartnerService } = await import('../services/bsp/gupshup-partner-service');
-      const { config } = await import('../config');
-      
-      await GupshupPartnerService.setSubscription({
-        appId,
-        url: url || config.whatsappWebhookUrl,
-        events: modes,
-        strategy: strategy || 'update'
+      const data = await BspServiceClient.request({
+        method: 'POST',
+        path: `/internal/v1/bsp/admin/sync-webhook/${encodeURIComponent(appId)}`,
+        data: req.body,
       });
-
-      if ((AuditLog as any).logAdminAction) {
-        await (AuditLog as any).logAdminAction({
-          userId: req.user._id,
-          action: 'GUPSHUP_WEBHOOK_SYNC',
-          resource: { type: 'GupshupApp', id: appId as any },
-          details: { url, modes, strategy },
-          req
-        });
-      }
-
-      res.json({ success: true, message: `Successfully synced app ${appId}` });
+      res.json({ success: true, ...data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
     }
@@ -256,12 +200,12 @@ export const adminController = {
   async deleteGupshupSubscription(req: AuthRequest, res: Response) {
     try {
       const { appId, subscriptionId } = req.params;
-      const { GupshupPartnerService } = await import('../services/bsp/gupshup-partner-service');
-      
-      await GupshupPartnerService.deleteSubscription(appId, subscriptionId);
-      res.json({ success: true, message: `Successfully deleted subscription ${subscriptionId}` });
+      const data = await BspServiceClient.request({
+        method: 'DELETE',
+        path: `/internal/v1/bsp/admin/subscription/${encodeURIComponent(appId)}/${encodeURIComponent(subscriptionId)}`,
+      });
+      res.json({ success: true, ...data });
     } catch (err: any) {
-      console.error("[Gupshup Subscription Delete Error]:", err.message);
       res.status(500).json({ success: false, message: err.message });
     }
   },
@@ -370,88 +314,26 @@ export const adminController = {
    */
   async reconcileGupshup(req: AuthRequest, res: Response) {
     try {
-      const { workspaceId } = req.body;
-      const query: any = workspaceId ? { _id: workspaceId } : { whatsappConnected: true };
-      
-      const { Workspace } = await import('../models');
-      const { Business } = await import('../models');
-      const { syncAssignedGupshupApp } = await import('../services/bsp/gupshup-app-assignment-service');
-
-      const workspaces = await Workspace.find(query).sort({ updatedAt: -1 }).limit(workspaceId ? 1 : 200);
-      
-      const results = {
-        total: workspaces.length,
-        processed: 0,
-        failed: 0,
-        details: [] as Array<{ workspaceId: string; workspaceName: string; status: string; error?: string }>,
-      };
-
-      for (const workspace of workspaces) {
-        try {
-          const business = await Business.findOne({ workspace: workspace._id });
-          await syncAssignedGupshupApp(req.user, workspace as any, business as any);
-          results.processed += 1;
-          results.details.push({ workspaceId: String(workspace._id), workspaceName: workspace.name, status: 'reconciled' });
-        } catch (error: any) {
-          results.failed += 1;
-          results.details.push({
-            workspaceId: String(workspace._id),
-            workspaceName: workspace.name,
-            status: 'failed',
-            error: error?.message || 'Unknown error',
-          });
-        }
-      }
-
-      res.json({
-        success: true,
-        message: workspaceId
-          ? `Reconciled Gupshup state for ${results.processed} workspace.`
-          : `Reconciled Gupshup state for ${results.processed} of ${results.total} workspaces.`,
-        results,
+      const data = await BspServiceClient.request({
+        method: 'POST',
+        path: '/internal/v1/bsp/admin/reconcile',
+        data: req.body,
       });
+      res.json({ success: true, ...data });
     } catch (err: any) {
-      console.error("[Gupshup Reconcile Admin Error]:", err.message);
-      res.status(500).json({ message: "Server Error", error: err.message });
+      res.status(500).json({ message: 'Server Error', error: err.message });
     }
   },
 
-  /**
-   * Get Gupshup system health
-   */
   async gupshupHealth(req: AuthRequest, res: Response) {
     try {
-      const { Workspace } = await import('../models');
-      const { BusinessAppMap } = await import('../models');
-      const { BspHealth } = await import('../models');
-
-      const [totalWorkspaces, whatsappConnected, mappedApps, orphanedMappings, bspHealth] = await Promise.all([
-        Workspace.countDocuments({}),
-        Workspace.countDocuments({ whatsappConnected: true }),
-        BusinessAppMap.countDocuments({ active: true }),
-        BusinessAppMap.countDocuments({
-          active: true,
-          $or: [{ workspace: null }, { app: null }, { gupshupAppId: { $in: [null, ''] } }],
-        }),
-        BspHealth.findOne({ key: 'system_token' })
-      ]);
-
-      res.json({
-        success: true,
-        data: {
-          status: bspHealth?.status || 'unknown',
-          isValid: bspHealth?.isValid ?? false,
-          totalWorkspaces,
-          whatsappConnected,
-          mappedApps,
-          orphanedMappings,
-          lastCheckedAt: bspHealth?.checkedAt || null,
-          error: bspHealth?.error || null,
-        },
+      const data = await BspServiceClient.request({
+        method: 'GET',
+        path: '/internal/v1/bsp/admin/health',
       });
+      res.json({ success: true, data });
     } catch (err: any) {
-      console.error("[Gupshup Health Admin Error]:", err.message);
-      res.status(500).json({ message: "Server Error", error: err.message });
+      res.status(500).json({ message: 'Server Error', error: err.message });
     }
   },
 
@@ -716,19 +598,13 @@ export const adminController = {
   async repairSubscriptions(req: AuthRequest, res: Response) {
     try {
       const { appId } = req.query;
-      const { syncAssignedGupshupApp } = await import('../services/bsp/gupshup-app-assignment-service');
-      const { Business } = await import('../models');
-
       const query: any = { 
         whatsappConnected: true, 
         bspManaged: true 
       };
       
       if (appId) {
-        query.$or = [
-            { gupshupAppId: appId },
-            { 'gupshupIdentity.partnerAppId': appId }
-        ];
+        query.gupshupAppId = appId;
       }
 
       const workspaces = await Workspace.find(query);
@@ -741,8 +617,12 @@ export const adminController = {
 
       for (const ws of workspaces) {
         try {
-          const business = await Business.findOne({ workspace: ws._id });
-          await syncAssignedGupshupApp(req.user, ws as any, business as any);
+          await BspServiceClient.request({
+            method: 'GET',
+            path: `/internal/v1/bsp/apps/${encodeURIComponent((ws as any).gupshupAppId || '')}`,
+            workspaceId: String(ws._id),
+            userId: String(req.user._id)
+          });
           results.processed++;
         } catch (err: any) {
           results.failed++;
@@ -800,11 +680,11 @@ export const adminController = {
         workspaceName: workspace.name,
         owner: workspace.owner,
         businessId: workspace.bspWabaId || 'Pending',
-        phoneNumber: workspace.whatsappPhoneNumber || 'Pending',
+        phoneNumber: workspace.bspPhoneNumberId || 'Pending',
         status: workspace.esbFlow?.status,
-        startedAt: workspace.esbFlow?.startedAt || workspace.createdAt,
-        completedAt: workspace.esbFlow?.completedAt,
-        failureReason: workspace.esbFlow?.failureReason
+        startedAt: workspace.createdAt,
+        completedAt: null,
+        failureReason: null
       }));
 
       res.json({
@@ -819,18 +699,11 @@ export const adminController = {
 
   async getGupshupDeveloperConfig(req: AuthRequest, res: Response) {
     try {
-      const { config } = await import('../config');
-      res.json({
-        success: true,
-        data: {
-          partnerBaseUrl: config.gupshupPartnerBaseUrl,
-          apiBaseUrl: config.gupshupApiBaseUrl,
-          partnerEmail: config.gupshupPartnerEmail || '',
-          hasPartnerPassword: !!config.gupshupPartnerPassword,
-          hasPartnerToken: !!config.gupshupPartnerToken,
-          defaultRegion: config.gupshupDefaultRegion
-        }
+      const data = await BspServiceClient.request({
+        method: 'GET',
+        path: '/internal/v1/bsp/admin/developer-config',
       });
+      res.json({ success: true, data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
     }
@@ -838,11 +711,12 @@ export const adminController = {
 
   async patchGupshupDeveloperConfig(req: AuthRequest, res: Response) {
     try {
-      res.json({
-        success: true,
-        message:
-          'Partner API credentials are managed via environment variables (GUPSHUP_PARTNER_*). Restart the server after changing .env.'
+      const data = await BspServiceClient.request({
+        method: 'PATCH',
+        path: '/internal/v1/bsp/admin/developer-config',
+        data: req.body,
       });
+      res.json({ success: true, data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
     }

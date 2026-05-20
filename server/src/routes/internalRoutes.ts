@@ -31,4 +31,16 @@ router.post('/conversations/metadata', internalController.updateConversationMeta
  */
 router.post('/checkout/process', internalController.processCheckout);
 
+/**
+ * @route POST /api/internal/bsp/sync-esb-flow
+ * @desc Sync ESB flow status from BSP service to workspace cache
+ */
+router.post('/bsp/sync-esb-flow', internalController.syncEsbFlow);
+
+/**
+ * @route POST /api/internal/bsp/sync-app-cache
+ * @desc Sync BSP app cache fields from bsp-service to workspace
+ */
+router.post('/bsp/sync-app-cache', internalController.syncBspAppCache);
+
 export default router;

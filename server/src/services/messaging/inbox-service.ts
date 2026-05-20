@@ -2,7 +2,6 @@ import { Types } from 'mongoose';
 import { Conversation } from '../../models/messaging/Conversation';
 import { Template } from '../../models/template/Template';
 import { WabaService } from './waba-service';
-import { GupshupService } from './gupshup-service';
 import { SmsService } from './sms-service';
 import { EmailService } from './email-service';
 const { getIO } = require('../socket-bridge');

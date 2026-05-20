@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import axios from 'axios';
 import { OtpChallenge, type OtpPurpose } from '@/models';
 import { config } from '@/config';
-import { GupshupService } from '@/services/messaging/gupshup-service';
+import { BspServiceClient } from '@/services/microservices/bsp-service-client';
 import { maskIdentifier, normalizeEmail, normalizePhone } from './account-service';
 
 const OTP_TTL_MS = 5 * 60 * 1000;
@@ -74,24 +74,30 @@ async function sendEmailOtp(identifier: string, otp: string, purpose: OtpPurpose
 }
 
 async function sendPhoneOtpViaGupshup(identifier: string, otp: string) {
-  if (!config.gupshupAppId || !config.gupshupApiKey || !config.gupshupOtpTemplateName) {
-    throw new Error('Gupshup OTP template is not configured');
+  if (!config.bspOtpAppId || !config.bspOtpTemplateName) {
+    throw new Error('BSP OTP template is not configured');
   }
 
-  const result = await GupshupService.sendTemplate(
-    config.gupshupAppId,
-    undefined,
-    identifier,
-    config.gupshupOtpTemplateName,
-    'en',
-    [{
-      type: 'body',
-      parameters: [{ type: 'text', text: otp }]
-    }]
-  );
+  const result = await BspServiceClient.sendMessage({
+    workspaceId: 'system',
+    appId: config.bspOtpAppId,
+    to: identifier,
+    type: 'template',
+    payload: {
+      type: 'template',
+      template: {
+        name: config.bspOtpTemplateName,
+        language: { code: 'en' },
+        components: [{
+          type: 'body',
+          parameters: [{ type: 'text', text: otp }]
+        }]
+      }
+    }
+  });
 
   if (!result.success) {
-    throw new Error(result.error || 'Gupshup OTP failed');
+    throw new Error(result.errorMessage || 'BSP OTP failed');
   }
 }
 

@@ -15,7 +15,7 @@ export const widgetController = {
           success: true,
           data: {
             workspace: req.workspace._id,
-            phoneNumber: req.workspace.whatsappPhoneNumber || '',
+            phoneNumber: req.workspace.bspPhoneNumberId || '',
             bubbleText: "Chat with us",
             welcomeMessage: "Hi! How can we help you today?",
             position: 'right',

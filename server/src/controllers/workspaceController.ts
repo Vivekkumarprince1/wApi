@@ -5,6 +5,7 @@ import { NotFoundError, ApiError, ForbiddenError, BadRequestError } from '../uti
 import { config } from '../config';
 import { proxyController } from './proxyController';
 import { logActivity } from '../services/activity-logging-service';
+import { BspServiceClient } from '../services/microservices/bsp-service-client';
 import crypto from 'crypto';
 import { Types } from 'mongoose';
 
@@ -104,9 +105,7 @@ export const workspaceController = {
             country,
             zipCode,
             description,
-            ...(businessDocuments ? { businessDocuments: { ...(req.workspace.businessDocuments || {}), ...businessDocuments } } : {}),
-            'onboarding.businessInfoCompleted': true,
-            'onboarding.businessInfoCompletedAt': new Date()
+            ...(businessDocuments ? { businessDocuments: { ...(req.workspace.businessDocuments || {}), ...businessDocuments } } : {})
           }
         },
         { new: true }
@@ -261,91 +260,44 @@ export const workspaceController = {
     }
   },
 
-  /**
-   * Get WABA Settings
-   */
+  // Moved to bsp-service: GET /bsp/v1/workspace/waba
   async getWABASettings(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const workspace = await Workspace.findById(req.workspace._id);
-      res.json({
-        success: true,
-        waba: {
-          whatsappPhoneNumberId: workspace?.bspPhoneNumberId,
-          whatsappVerifyToken: workspace?.whatsappVerifyToken, 
-          wabaId: workspace?.wabaId,
-          businessAccountId: workspace?.businessAccountId,
-          hasToken: !!workspace?.whatsappAccessToken,
-          connectedAt: workspace?.bspLastSyncedAt,
-          phoneStatus: workspace?.bspPhoneStatus
-        }
+      const data = await BspServiceClient.request({
+        method: 'GET',
+        path: '/bsp/v1/workspace/waba',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
       });
-    } catch (err) {
-      next(err);
-    }
+      res.json(data);
+    } catch (err) { next(err); }
   },
 
-  /**
-   * Get WABA Subscription Status from Gupshup
-   */
+  // Moved to bsp-service: GET /bsp/v1/workspace/waba/subscription-status
   async getWABASubscriptionStatus(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const workspace = await Workspace.findById(req.workspace._id).select('gupshupAppId gupshupIdentity').lean();
-      const appId = (workspace as any)?.gupshupAppId || (workspace as any)?.gupshupIdentity?.partnerAppId;
-      
-      if (!appId) {
-        return res.json({ 
-          success: false, 
-          message: "No Gupshup app linked to this workspace",
-          status: 'UNLINKED'
-        });
-      }
-
-      const GupshupClientFactory = (await import('../api/gupshup-client-factory')).GupshupClientFactory;
-      const client = GupshupClientFactory.getClient(appId);
-
-      // Call Gupshup Partner API to check subscription status
-      // We wrap in a try-catch to return a graceful status instead of 500
-      try {
-        const response = await client.get(`/partner/app/${appId}/v3/subscription/status`);
-        return res.json({
-          success: true,
-          data: response.data
-        });
-      } catch (apiErr: any) {
-        console.warn("[WorkspaceController:Subscription] API call failed:", apiErr.message);
-        return res.json({
-          success: true,
-          data: {
-            status: 'UNKNOWN',
-            message: 'Provider API unreachable or returned error',
-            error: apiErr.response?.data || apiErr.message
-          }
-        });
-      }
-    } catch (err) {
-      next(err);
-    }
+      const data = await BspServiceClient.request({
+        method: 'GET',
+        path: '/bsp/v1/workspace/waba/subscription-status',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
+      });
+      res.json(data);
+    } catch (err) { next(err); }
   },
 
-  /**
-   * Update WABA Settings
-   */
+  // Moved to bsp-service: PATCH /bsp/v1/workspace/waba
   async updateWABASettings(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { whatsappAccessToken, whatsappPhoneNumberId, whatsappVerifyToken, wabaId, businessAccountId } = req.body;
-      
-      const updateData: any = {};
-      if (whatsappAccessToken) updateData.whatsappAccessToken = whatsappAccessToken;
-      if (whatsappPhoneNumberId) updateData.bspPhoneNumberId = whatsappPhoneNumberId;
-      if (whatsappVerifyToken) updateData.whatsappVerifyToken = whatsappVerifyToken;
-      if (wabaId) updateData.wabaId = wabaId;
-      if (businessAccountId) updateData.businessAccountId = businessAccountId;
-
-      const updated = await Workspace.findByIdAndUpdate(req.workspace._id, { $set: updateData }, { new: true });
-      res.json({ success: true, workspace: updated });
-    } catch (err) {
-      next(err);
-    }
+      const data = await BspServiceClient.request({
+        method: 'PATCH',
+        path: '/bsp/v1/workspace/waba',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
+        data: req.body,
+      });
+      res.json(data);
+    } catch (err) { next(err); }
   },
 
   /**
@@ -723,372 +675,72 @@ export const workspaceController = {
   /**
    * Get WABA Profile (Frontend expects /workspace/profile)
    */
+  // Moved to bsp-service: GET /bsp/v1/workspace/profile
   async getProfile(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const workspace = await Workspace.findById(req.workspace._id).lean();
-      if (!workspace) throw new NotFoundError("Workspace not found");
-
-      const bp = workspace.businessProfile || {};
-      const statusFromPhone = String(workspace.bspPhoneStatus || '').toUpperCase();
-      const connected = workspace.whatsappConnected || statusFromPhone === 'CONNECTED';
-
-      res.json({
-        success: true,
-        data: {
-          displayName: bp.displayName || workspace.bspVerifiedName || workspace.name || "",
-          description: bp.description || workspace.description || "",
-          address: bp.address || workspace.address || "",
-          email: bp.email || "",
-          vertical: bp.vertical || workspace.industry || "PROFESSIONAL_SERVICES",
-          websites: bp.websites || (workspace.website ? [workspace.website] : []),
-          profilePicUrl: bp.profilePicUrl || null,
-          status: connected ? 'CONNECTED' : (statusFromPhone || 'DISCONNECTED'),
-          quality: String(workspace.bspQualityRating || 'UNKNOWN').toUpperCase(),
-          limit: workspace.bspMessagingTier || "UNKNOWN",
-          lastSyncedAt: workspace.bspLastSyncedAt || null
-        }
+      const data = await BspServiceClient.request({
+        method: 'GET',
+        path: '/bsp/v1/workspace/profile',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
       });
-    } catch (err) {
-      next(err);
-    }
+      res.json(data);
+    } catch (err) { next(err); }
   },
 
+  // Moved to bsp-service: PATCH /bsp/v1/workspace/profile
   async updateProfile(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { displayName, description, address, email, vertical, websites } = req.body;
-      const updated = await Workspace.findByIdAndUpdate(
-        req.workspace._id,
-        {
-          $set: {
-            'businessProfile.displayName': displayName,
-            'businessProfile.description': description,
-            'businessProfile.address': address,
-            'businessProfile.email': email,
-            'businessProfile.vertical': vertical,
-            'businessProfile.websites': websites,
-            description: description || req.workspace.description,
-            address: address || req.workspace.address,
-            industry: vertical || req.workspace.industry,
-            website: websites?.[0] || req.workspace.website
-          }
-        },
-        { new: true }
-      );
-
-      // Push to Gupshup if app assigned
-      if (updated?.gupshupAppId) {
-        const { GupshupPartnerService } = await import('../services/bsp/gupshup-partner-service');
-        await GupshupPartnerService.updateBusinessProfile(updated.gupshupAppId, {
-          description,
-          address,
-          email,
-          vertical,
-          websites
-        }).catch(e => console.error("[WABA Profile Update] Push failed:", e.message));
-      }
-
-      res.json({ success: true, data: updated?.businessProfile });
-      await logActivity(req, 'update', 'settings', {
-        entityName: 'Business Profile',
-        status: 'success'
-      }).catch(() => null);
-    } catch (err) {
-      next(err);
-    }
+      const data = await BspServiceClient.request({
+        method: 'PATCH',
+        path: '/bsp/v1/workspace/profile',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
+        data: req.body,
+      });
+      await logActivity(req, 'update', 'settings', { entityName: 'Business Profile', status: 'success' }).catch(() => null);
+      res.json(data);
+    } catch (err) { next(err); }
   },
 
+  // Moved to bsp-service: POST /bsp/v1/workspace/profile/sync
   async syncProfile(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const workspace = await Workspace.findById(req.workspace._id);
-      if (!workspace?.gupshupAppId) throw new Error("No Gupshup app assigned");
-
-      const { GupshupPartnerService } = await import('../services/bsp/gupshup-partner-service');
-      const remote = await GupshupPartnerService.getBusinessProfile(workspace.gupshupAppId);
-      
-      const updated = await Workspace.findByIdAndUpdate(
-        workspace._id,
-        { $set: { businessProfile: remote, bspLastSyncedAt: new Date() } },
-        { new: true }
-      );
-
-      res.json({ success: true, data: updated?.businessProfile });
-    } catch (err) {
-      next(err);
-    }
+      const data = await BspServiceClient.request({
+        method: 'POST',
+        path: '/bsp/v1/workspace/profile/sync',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
+      });
+      res.json(data);
+    } catch (err) { next(err); }
   },
 
+  // Moved to bsp-service: PATCH /bsp/v1/workspace/profile/display-name
   async updateDisplayName(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const name = req.body.name || req.body.displayName;
-      const workspace = await Workspace.findById(req.workspace._id);
-      if (!workspace?.gupshupAppId) throw new Error("No Gupshup app assigned");
-
-      const { GupshupPartnerService } = await import('../services/bsp/gupshup-partner-service');
-      await GupshupPartnerService.updateProfileDisplayName(workspace.gupshupAppId, name);
-
-      await Workspace.findByIdAndUpdate(workspace._id, { $set: { 'businessProfile.displayName': name } });
-      res.json({ success: true, message: "Display name update initiated" });
-    } catch (err) {
-      next(err);
-    }
+      const data = await BspServiceClient.request({
+        method: 'PATCH',
+        path: '/bsp/v1/workspace/profile/display-name',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
+        data: req.body,
+      });
+      res.json(data);
+    } catch (err) { next(err); }
   },
 
+  // Moved to bsp-service: GET /bsp/v1/workspace/whatsapp/health
   async getWhatsappHealth(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const workspace = await Workspace.findById(req.workspace._id).lean();
-      res.json({
-        success: true,
-        data: {
-          qualityRating: workspace?.bspQualityRating || "UNKNOWN",
-          messagingLimit: workspace?.bspMessagingTier || "UNKNOWN",
-          phoneStatus: workspace?.bspPhoneStatus || (workspace?.whatsappConnected ? "CONNECTED" : "DISCONNECTED"),
-          webhookPulse: "OPERATIONAL",
-          lastChecked: new Date()
-        }
-      });
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  /**
-   * Billing Summary
-   */
-  async getBillingSummary(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const { workspace, user } = req;
-      
-      const [txRes, walletRes, fullWs] = await Promise.all([
-        proxyController.forwardToService('billing', {
-          method: 'GET',
-          path: `/api/billing/wallets/${workspace._id}/transactions`,
-          params: { limit: 20 },
-          workspaceId: workspace._id.toString(),
-          userId: user._id.toString(),
-          userRole: req.role || req.user?.role,
-        }),
-        proxyController.forwardToService('billing', {
-          method: 'GET',
-          path: `/api/billing/wallets/${workspace._id}`,
-          workspaceId: workspace._id.toString(),
-          userId: user._id.toString(),
-          userRole: req.role || req.user?.role,
-        }),
-        Workspace.findById(workspace._id).populate('plan').lean()
-      ]);
-
-      res.json({
-        wallet: {
-          balance: (walletRes.data.wallet?.availableBalance ?? 0) / 100,
-          currency: walletRes.data.wallet?.currency ?? 'INR',
-          status: fullWs?.billingStatus || 'active',
-        },
-        subscription: {
-          billingPivotDate: fullWs?.billingPivotDate,
-          autoPay: (fullWs as any)?.autoPay ?? true,
-        },
-        plan: {
-          name: (fullWs?.plan as any)?.name || fullWs?.planId || 'Free',
-          slug: (fullWs?.plan as any)?.slug || 'free',
-          limits: (fullWs?.plan as any)?.limits || fullWs?.planLimits || {},
-        },
-        transactions: (txRes.data.transactions || []).map((tx: any) => ({
-          ...tx,
-          amount: (tx.amount || 0) / 100
-        }))
-      });
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  /**
-   * Get Available Plans
-   */
-  async getPlans(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const { Plan } = await import('../models');
-      const plans = await Plan.find({ isActive: true }).sort({ monthlyBaseFeeCents: 1 });
-      res.json({ success: true, data: plans });
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  /**
-   * Switch Plan (or Initiate Purchase)
-   */
-  async switchPlan(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const { planId, planSlug } = req.body;
-      console.log(`[switchPlan] Received request - planId: ${planId}, planSlug: ${planSlug}, workspaceId: ${req.workspace._id}`);
-      
-      // Fetch the full plan details from main server database
-      const { Plan } = await import('../models');
-      const plan = planId 
-        ? await Plan.findById(planId)
-        : await Plan.findOne({ slug: planSlug });
-      
-      if (!plan) {
-        return res.status(404).json({ success: false, message: 'Plan not found' });
-      }
-
-      console.log(`[switchPlan] Found plan: ${(plan as any).slug}, monthlyBaseFeeCents: ${(plan as any).monthlyBaseFeeCents}`);
-      
-      // Proxy to billing service with full plan details
-      const response = await proxyController.forwardToService('billing', {
-        method: 'POST',
-        path: `/api/billing/wallets/${req.workspace._id}/plan`,
-        data: {
-          planId: plan._id.toString(),
-          planSlug: (plan as any).slug,
-          planName: (plan as any).name,
-          monthlyBaseFeeCents: (plan as any).monthlyBaseFeeCents,
-          yearlyBaseFeeCents: (plan as any).yearlyBaseFeeCents,
-          currency: (plan as any).currency || 'INR'
-        },
+      const data = await BspServiceClient.request({
+        method: 'GET',
+        path: '/bsp/v1/workspace/whatsapp/health',
         workspaceId: req.workspace._id.toString(),
-        userId: req.user._id.toString()
+        userId: req.user._id.toString(),
       });
-
-      console.log(`[switchPlan] Billing service response - status: ${response.status}, data: ${JSON.stringify(response.data)}`);
-
-      // If billing service says activation was successful (Scenario 2: Free Plan)
-      if (response.data.success && !response.data.requiresPayment) {
-        await Workspace.findByIdAndUpdate(req.workspace._id, {
-          $set: {
-            plan: plan._id,
-            planId: (plan as any).slug,
-            planLimits: (plan as any).limits,
-            billingStatus: 'active'
-          }
-        });
-      }
-
-      res.status(response.status).json(response.data);
-    } catch (err) {
-      console.error(`[switchPlan] Error: ${err}`);
-      next(err);
-    }
-  },
-
-  /**
-   * Update Billing Settings
-   */
-  async updateBillingSettings(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const { autoPay, taxId } = req.body;
-      const updateData: any = {};
-      if (autoPay !== undefined) updateData.autoPay = autoPay;
-      if (taxId !== undefined) updateData.taxId = taxId;
-
-      const updated = await Workspace.findByIdAndUpdate(
-        req.workspace._id,
-        { $set: updateData },
-        { new: true }
-      );
-      res.json({ success: true, workspace: updated });
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  /**
-   * Initiate Wallet Recharge
-   */
-  async initiateRecharge(req: AuthRequest, res: Response, next: NextFunction) {
-    return proxyController.proxyTo('billing', req, res, next);
-  },
-
-  /**
-   * Verify Wallet Recharge
-   */
-  async verifyRecharge(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const response = await proxyController.forwardToService('billing', {
-        method: 'POST',
-        path: `/api/billing/wallets/recharge/verify`,
-        data: { 
-          ...req.body, 
-          workspaceId: req.workspace._id.toString(),
-          workspaceDetails: {
-            workspaceName: req.workspace.name,
-            ownerName: req.user.name,
-            ownerEmail: req.user.email,
-            country: req.workspace.country,
-            walletCurrency: req.workspace.walletCurrency || 'INR'
-          }
-        },
-        workspaceId: req.workspace._id.toString(),
-        userId: req.user._id.toString()
-      });
-
-      res.json({
-        success: true,
-        message: 'Wallet credited successfully',
-        ...response.data
-      });
-    } catch (err) {
-      next(err);
-    }
-  },
-
-  /**
-   * Initiate Payment Method Verification
-   */
-  async initiatePaymentMethod(req: AuthRequest, res: Response, next: NextFunction) {
-    return proxyController.proxyTo('billing', req, res, next);
-  },
-
-  /**
-   * Verify Payment Method
-   */
-  async verifyPaymentMethod(req: AuthRequest, res: Response, next: NextFunction) {
-    return proxyController.proxyTo('billing', req, res, next);
-  },
-
-  /**
-   * Verify Plan Upgrade
-   */
-  async verifyPlanUpgrade(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      const response = await proxyController.forwardToService('billing', {
-        method: 'POST',
-        path: `/api/billing/wallets/plan/verify`,
-        data: { 
-          ...req.body, 
-          workspaceId: req.workspace._id.toString(),
-          workspaceDetails: {
-            workspaceName: req.workspace.name,
-            ownerName: req.user.name,
-            ownerEmail: req.user.email
-          }
-        },
-        workspaceId: req.workspace._id.toString(),
-        userId: req.user._id.toString()
-      });
-
-      // If successful, update the main server's workspace record too
-      if (response.data.success) {
-        const { planSlug } = response.data;
-        const { Plan } = await import('../models');
-        const targetPlan = await Plan.findOne({ slug: planSlug });
-        if (targetPlan) {
-          await Workspace.findByIdAndUpdate(req.workspace._id, {
-            $set: {
-              plan: targetPlan._id,
-              planId: targetPlan.slug,
-              planLimits: targetPlan.limits,
-              billingStatus: 'active'
-            }
-          });
-        }
-      }
-
-      res.json(response.data);
-    } catch (err) {
-      next(err);
-    }
+      res.json(data);
+    } catch (err) { next(err); }
   },
 
   async searchTeamMemberByEmail(req: AuthRequest, res: Response, next: NextFunction) {
@@ -1561,68 +1213,78 @@ export const workspaceController = {
     }
   },
 
+  // Moved to bsp-service: GET /bsp/v1/workspace/webhooks
   async listWebhooks(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const ws = await Workspace.findById(req.workspace._id).select('webhookSubscriptions').lean();
-      res.json({ success: true, data: ws?.webhookSubscriptions || [] });
+      const data = await BspServiceClient.request({
+        method: 'GET',
+        path: '/bsp/v1/workspace/webhooks',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
+      });
+      res.json(data);
     } catch (err) {
       next(err);
     }
   },
 
+  // Moved to bsp-service: POST /bsp/v1/workspace/webhooks
   async createWebhook(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const { url, events = [], secret, isActive = true } = req.body;
-      if (!url) throw new BadRequestError('Webhook URL is required');
-      const sub: any = { url, events, secret, isActive, createdAt: new Date() };
-      const updated = await Workspace.findByIdAndUpdate(
-        req.workspace._id,
-        { $push: { webhookSubscriptions: sub } },
-        { new: true }
-      ).select('webhookSubscriptions');
-      const list = updated?.webhookSubscriptions || [];
-      res.status(201).json({ success: true, data: list[list.length - 1] });
+      const data = await BspServiceClient.request({
+        method: 'POST',
+        path: '/bsp/v1/workspace/webhooks',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
+        data: req.body,
+      });
+      res.status(201).json(data);
     } catch (err) {
       next(err);
     }
   },
 
+  // Moved to bsp-service: PATCH /bsp/v1/workspace/webhooks/:id
   async updateWebhookRecord(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const ws = await Workspace.findById(req.workspace._id);
-      if (!ws) throw new NotFoundError('Workspace not found');
-      const sub = (ws.webhookSubscriptions as any).id(req.params.id);
-      if (!sub) throw new NotFoundError('Webhook not found');
-      const { url, events, secret, isActive } = req.body;
-      if (url !== undefined) sub.url = url;
-      if (events !== undefined) sub.events = events;
-      if (secret !== undefined) sub.secret = secret;
-      if (isActive !== undefined) sub.isActive = isActive;
-      await ws.save();
-      res.json({ success: true, data: sub });
+      const data = await BspServiceClient.request({
+        method: 'PATCH',
+        path: `/bsp/v1/workspace/webhooks/${req.params.id}`,
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
+        data: req.body,
+      });
+      res.json(data);
     } catch (err) {
       next(err);
     }
   },
 
+  // Moved to bsp-service: DELETE /bsp/v1/workspace/webhooks/:id
   async deleteWebhookRecord(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      await Workspace.findByIdAndUpdate(req.workspace._id, {
-        $pull: { webhookSubscriptions: { _id: req.params.id } }
+      const data = await BspServiceClient.request({
+        method: 'DELETE',
+        path: `/bsp/v1/workspace/webhooks/${req.params.id}`,
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
       });
-      res.json({ success: true, message: 'Webhook removed' });
+      res.json(data);
     } catch (err) {
       next(err);
     }
   },
 
+  // Moved to bsp-service: POST /bsp/v1/workspace/waba/test
   async testWabaConnection(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const workspace = await Workspace.findById(req.workspace._id);
-      if (!workspace?.gupshupAppId) throw new BadRequestError('No Gupshup app linked to this workspace');
-      const { GupshupPartnerService } = await import('../services/bsp/gupshup-partner-service');
-      await GupshupPartnerService.getPartnerApp(workspace.gupshupAppId);
-      res.json({ success: true, message: 'WhatsApp Cloud API reachable' });
+      const data = await BspServiceClient.request({
+        method: 'POST',
+        path: '/bsp/v1/workspace/waba/test',
+        workspaceId: req.workspace._id.toString(),
+        userId: req.user._id.toString(),
+      });
+      res.json(data);
     } catch (err) {
       next(err);
     }

@@ -12,6 +12,16 @@ const router = Router();
 router.get('/admin/all-invoices', authenticate, authorize(['super_admin']), WalletController.getAllInvoices);
 router.get('/admin/stats', authenticate, authorize(['super_admin']), WalletController.getBillingStats);
 
+// Plan routes
+router.get('/plans', authenticate, WalletController.listPlans);
+router.get('/plans/:id', authenticate, WalletController.getPlan);
+
+// Admin Plan routes
+router.post('/admin/plans', authenticate, authorize(['super_admin']), WalletController.createPlan);
+router.put('/admin/plans/:id', authenticate, authorize(['super_admin']), WalletController.updatePlan);
+router.delete('/admin/plans/:id', authenticate, authorize(['super_admin']), WalletController.deletePlan);
+router.post('/admin/plans/seed', authenticate, authorize(['super_admin']), WalletController.seedPlans);
+
 // Verification routes (no workspaceId param in path)
 router.post('/recharge/verify', authenticate, WalletController.verifyRecharge);
 router.post('/plan/verify', authenticate, WalletController.verifyPlanUpgrade);

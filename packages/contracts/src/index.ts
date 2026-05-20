@@ -11,8 +11,13 @@
  * events, and the Socket.io event payloads.
  */
 
+export * from './logger';
+export * from './openapi';
 export * from './worker-bridge';
 export * from './automation-actions';
 export * from './billing-events';
+export * from './billing-internal';
+export * from './bsp';
+export * from './campaign-events';
 export * from './socket-events';
 export * from './common';

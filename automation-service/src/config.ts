@@ -23,4 +23,5 @@ export const config = {
   jwtSecret,
   internalServiceSecret,
   monolithInternalUrl,
+  bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
 };

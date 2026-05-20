@@ -107,9 +107,8 @@ export function withAuth(handler: AuthenticatedHandler) {
             message: restriction.description,
             accessRestriction: restriction,
             nextStep: accessDecision.nextStep,
-            upgradeRequired: restriction.kind === 'billing',
-            onboardingRequired: restriction.kind === 'onboarding'
-          }, { status: restriction.kind === 'billing' ? 402 : 403 });
+            upgradeRequired: true
+          }, { status: 402 });
         }
       }
 

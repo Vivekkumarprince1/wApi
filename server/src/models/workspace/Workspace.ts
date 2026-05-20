@@ -27,48 +27,15 @@ export interface IBusinessVerification {
   isTestMode: boolean;
 }
 
+// Kept for internalController esbFlow sync from bsp-service
 export interface IEsbFlow {
   status: 'not_started' | 'signup_initiated' | 'code_received' | 'token_exchanged' |
     'business_verified' | 'phone_registered' | 'otp_sent' | 'otp_verified' |
     'system_user_created' | 'waba_activated' | 'completed' | 'failed' | 'phone_pending' | 'disconnected';
-  authState?: string;
-  authCode?: string;
-  authCodeExpiresAt?: Date;
-  userAccessToken?: string;
-  userRefreshToken?: string;
-  tokenExpiry?: Date;
-  systemUserId?: string;
-  systemUserToken?: string;
-  systemUserTokenExpiry?: Date;
-  phoneNumberIdForOTP?: string;
-  phoneOTPCode?: string;
-  phoneOTPExpiry?: Date;
-  phoneOTPAttempts: number;
-  phoneOTPVerifiedAt?: Date;
-  callbackState?: string;
-  callbackReceived: boolean;
-  callbackReceivedAt?: Date;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  callbackData?: any;
-  contactSyncFingerprint?: string;
-  contactSyncedAt?: Date;
-  subscriptionSyncedAt?: Date;
-  embedUrl?: string;
-  startedAt?: Date;
-  completedAt?: Date;
-  failedAt?: Date;
-  failureReason?: string;
-  createdBy?: string;
-  notes?: string;
-  metaAccountStatus?: string;
-  metaAccountStatusUpdatedAt?: Date;
   accountBlocked: boolean;
-  accountBlockedReason?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metaCapabilities?: any;
   capabilityBlocked: boolean;
+  accountBlockedReason?: string;
   capabilityBlockedReason?: string;
-  metaDecisionStatus?: string;
   lastTokenRefreshAttempt?: Date;
   lastTokenRefreshError?: string;
 }
@@ -81,34 +48,6 @@ export interface IWebhookSubscription {
   createdAt: Date;
 }
 
-export interface IWorkspaceOnboarding {
-  step?: string;
-  status?: 'not-started' | 'in-progress' | 'completed';
-  businessInfoCompleted?: boolean;
-  businessInfoCompletedAt?: Date;
-  businessVerificationCompleted?: boolean;
-  businessVerificationCompletedAt?: Date;
-  businessConfirmationCompleted?: boolean;
-  businessConfirmationCompletedAt?: Date;
-  wabaConnectionInitiated?: boolean;
-  wabaConnectionInitiatedAt?: Date;
-  wabaConnectionCompleted?: boolean;
-  wabaConnectionCompletedAt?: Date;
-  whatsappSetupCompleted?: boolean;
-  templateSetupCompleted?: boolean;
-  completed?: boolean;
-  completedAt?: Date;
-  accountVerifiedAt?: Date;
-}
-
-export interface IGupshupIdentity {
-  partnerAppId?: string;
-  appApiKey?: string;
-  appApiKeyExpiresAt?: Date;
-  appApiKeyRefreshedAt?: Date;
-  appStatus?: 'pending' | 'created' | 'active' | 'suspended';
-  source?: string;
-}
 
 export interface IWorkspaceWallet {
   balance: number;
@@ -119,17 +58,6 @@ export interface IWorkspaceWallet {
   thresholdAmount: number;
 }
 
-export interface IBspAudit {
-  phoneAssignedAt?: Date;
-  phoneAssignedBy?: string;
-  lastStatusCheck?: Date;
-  lastQualityUpdate?: Date;
-  warnings?: Array<{
-    type?: string;
-    message?: string;
-    createdAt?: Date;
-  }>;
-}
 
 export interface IContactCustomFieldDefinition {
   key: string;
@@ -175,59 +103,17 @@ export interface IWorkspace {
 
   businessDocuments?: IBusinessDocuments;
   businessVerification: IBusinessVerification;
-  onboarding?: IWorkspaceOnboarding;
   esbFlow: IEsbFlow;
   
-  // Backwards compatibility / BSP
+  // BSP cache — kept in sync by bsp-service via POST /api/internal/bsp/sync-app-cache
   bspManaged: boolean;
-  businessId?: string;
-  wabaId?: string;
-  childWabaId?: string;
-  metaBusinessId?: string;
-  businessAccountId?: string;
   whatsappConnected: boolean;
-  whatsappAccessToken?: string;
-  whatsappVerifyToken?: string;
-  connectedAt?: Date;
-  wabaStatus?: string;
-  verifiedName?: string;
-  qualityRating?: string;
-  messagingLimitTier?: string;
-  codeVerificationStatus?: string;
-  nameStatus?: string;
-  isOfficialAccount: boolean;
-  accessToken?: string;
-  tokenExpiresAt?: Date;
-  gupshupIdentity?: IGupshupIdentity;
-  bspWabaId?: string;
   gupshupAppId?: string;
-  gupshupAppName?: string;
-  onboardingStatus?: string;
-  gupshupAppLive?: boolean;
-  gupshupAppHealth?: boolean | null;
-  gupshupWalletBalance?: number;
-  gupshupRatings?: any;
-  bspLastSyncedAt?: Date;
-  bspSyncStatus?: string;
-  bspPhoneNumberId: string;
-  bspDisplayPhoneNumber?: string;
-  bspVerifiedName?: string;
-  whatsappPhoneNumberId?: string;
-  whatsappPhoneNumber?: string;
+  bspWabaId?: string;
+  bspPhoneNumberId?: string;
   phoneNumberId?: string;
   bspPhoneStatus: string;
-  bspQualityRating: string;
-  bspMessagingTier: string;
-  bspOnboardedAt?: Date;
-  bspAudit?: IBspAudit;
-  businessProfile?: Record<string, unknown>;
-  phoneNumbers?: Array<{
-    id?: string;
-    displayPhoneNumber?: string;
-    verifiedName?: string;
-    qualityRating?: string;
-    status?: string;
-  }>;
+  bspLastSyncedAt?: Date;
 
   // Developer Portal
   apiKeys: Array<{
@@ -367,26 +253,6 @@ const WorkspaceSchema = new Schema<IWorkspaceDocument>({
     isTestMode: { type: Boolean, default: false }
   },
 
-  onboarding: {
-    step: { type: String, default: 'business-info' },
-    status: { type: String, enum: ['not-started', 'in-progress', 'completed'], default: 'not-started' },
-    businessInfoCompleted: { type: Boolean, default: false },
-    businessInfoCompletedAt: { type: Date },
-    businessVerificationCompleted: { type: Boolean, default: false },
-    businessVerificationCompletedAt: { type: Date },
-    businessConfirmationCompleted: { type: Boolean, default: false },
-    businessConfirmationCompletedAt: { type: Date },
-    wabaConnectionInitiated: { type: Boolean, default: false },
-    wabaConnectionInitiatedAt: { type: Date },
-    wabaConnectionCompleted: { type: Boolean, default: false },
-    wabaConnectionCompletedAt: { type: Date },
-    whatsappSetupCompleted: { type: Boolean, default: false },
-    templateSetupCompleted: { type: Boolean, default: false },
-    completed: { type: Boolean, default: false },
-    completedAt: { type: Date },
-    accountVerifiedAt: { type: Date }
-  },
-
   esbFlow: {
     status: {
       type: String,
@@ -395,112 +261,23 @@ const WorkspaceSchema = new Schema<IWorkspaceDocument>({
         'system_user_created', 'waba_activated', 'completed', 'failed', 'phone_pending', 'disconnected'],
       default: 'not_started'
     },
-    authState: { type: String },
-    authCode: { type: String },
-    authCodeExpiresAt: { type: Date },
-    userAccessToken: { type: String },
-    userRefreshToken: { type: String },
-    tokenExpiry: { type: Date },
-    systemUserId: { type: String },
-    systemUserToken: { type: String },
-    systemUserTokenExpiry: { type: Date },
-    phoneNumberIdForOTP: { type: String },
-    phoneOTPCode: { type: String },
-    phoneOTPExpiry: { type: Date },
-    phoneOTPAttempts: { type: Number, default: 0 },
-    phoneOTPVerifiedAt: { type: Date },
-    callbackState: { type: String },
-    callbackReceived: { type: Boolean, default: false },
-    callbackReceivedAt: { type: Date },
-    callbackData: { type: Schema.Types.Mixed },
-    contactSyncFingerprint: { type: String },
-    contactSyncedAt: { type: Date },
-    subscriptionSyncedAt: { type: Date },
-    embedUrl: { type: String },
-    startedAt: { type: Date },
-    completedAt: { type: Date },
-    failedAt: { type: Date },
-    failureReason: { type: String },
-    createdBy: { type: String },
-    notes: { type: String },
-    metaAccountStatus: { type: String },
-    metaAccountStatusUpdatedAt: { type: Date },
     accountBlocked: { type: Boolean, default: false },
-    accountBlockedReason: { type: String },
-    metaCapabilities: { type: Schema.Types.Mixed },
     capabilityBlocked: { type: Boolean, default: false },
+    accountBlockedReason: { type: String },
     capabilityBlockedReason: { type: String },
-    metaDecisionStatus: { type: String },
     lastTokenRefreshAttempt: { type: Date },
     lastTokenRefreshError: { type: String }
   },
 
+  // BSP cache — kept in sync by bsp-service via POST /api/internal/bsp/sync-app-cache
   bspManaged: { type: Boolean, default: true },
-  businessId: { type: String },
-  wabaId: { type: String },
-  childWabaId: { type: String },
-  metaBusinessId: { type: String },
-  businessAccountId: { type: String },
   whatsappConnected: { type: Boolean, default: false },
-  whatsappAccessToken: { type: String },
-  whatsappVerifyToken: { type: String },
-  connectedAt: { type: Date },
-  wabaStatus: { type: String },
-  verifiedName: { type: String },
-  qualityRating: { type: String, default: 'UNKNOWN' },
-  messagingLimitTier: { type: String },
-  codeVerificationStatus: { type: String },
-  nameStatus: { type: String },
-  isOfficialAccount: { type: Boolean, default: false },
-  accessToken: { type: String },
-  tokenExpiresAt: { type: Date },
-  gupshupIdentity: {
-    partnerAppId: { type: String },
-    appApiKey: { type: String },
-    appApiKeyExpiresAt: { type: Date },
-    appApiKeyRefreshedAt: { type: Date },
-    appStatus: { type: String, enum: ['pending', 'created', 'active', 'suspended'] },
-    source: { type: String }
-  },
-  bspWabaId: { type: String },
   gupshupAppId: { type: String },
-  gupshupAppName: { type: String },
-  onboardingStatus: { type: String },
-  gupshupAppLive: { type: Boolean, default: false },
-  gupshupAppHealth: { type: Boolean },
-  gupshupWalletBalance: { type: Number },
-  gupshupRatings: { type: Schema.Types.Mixed },
-  bspLastSyncedAt: { type: Date },
-  bspSyncStatus: { type: String, default: 'INACTIVE' },
-  bspPhoneNumberId: { type: String, unique: true, sparse: true },
-  bspDisplayPhoneNumber: { type: String },
-  bspVerifiedName: { type: String },
-  whatsappPhoneNumberId: { type: String },
-  whatsappPhoneNumber: { type: String },
+  bspWabaId: { type: String },
+  bspPhoneNumberId: { type: String, sparse: true },
   phoneNumberId: { type: String },
   bspPhoneStatus: { type: String, default: 'PENDING' },
-  bspQualityRating: { type: String, default: 'UNKNOWN' },
-  bspMessagingTier: { type: String, default: 'TIER_1K' },
-  bspOnboardedAt: { type: Date },
-  bspAudit: {
-    phoneAssignedAt: { type: Date },
-    phoneAssignedBy: { type: String },
-    lastStatusCheck: { type: Date },
-    lastQualityUpdate: { type: Date },
-    warnings: [{
-      type: { type: String },
-      message: { type: String },
-      createdAt: { type: Date, default: Date.now }
-    }]
-  },
-  businessProfile: { type: Schema.Types.Mixed },
-  phoneNumbers: [{
-    id: { type: String },
-    displayPhoneNumber: { type: String },
-    verifiedName: { type: String },
-    qualityRating: { type: String },
-    status: { type: String }
-  }],
+  bspLastSyncedAt: { type: Date },
   
   // Developer Portal
   apiKeys: [{
@@ -626,23 +403,11 @@ const WorkspaceSchema = new Schema<IWorkspaceDocument>({
 WorkspaceSchema.index({ createdAt: 1 });
 WorkspaceSchema.index({ owner: 1, updatedAt: -1 });
 WorkspaceSchema.index({ gupshupAppId: 1 }, { sparse: true });
-WorkspaceSchema.index({ whatsappPhoneNumberId: 1 }, { unique: true, sparse: true });
 WorkspaceSchema.index({ phoneNumberId: 1 }, { unique: true, sparse: true });
-WorkspaceSchema.index({ 'gupshupIdentity.partnerAppId': 1 }, { unique: true, sparse: true });
 WorkspaceSchema.index({ bspManaged: 1, bspPhoneStatus: 1 });
 
 WorkspaceSchema.pre<IWorkspaceDocument>('save', function () {
   this.updatedAt = new Date();
-  
-  if (this.bspManaged) {
-    if (this.bspPhoneNumberId && !this.whatsappPhoneNumberId) {
-      this.whatsappPhoneNumberId = this.bspPhoneNumberId;
-    }
-    if (this.bspDisplayPhoneNumber && !this.whatsappPhoneNumber) {
-      this.whatsappPhoneNumber = this.bspDisplayPhoneNumber;
-    }
-  }
-
 });
 
 WorkspaceSchema.methods.ensureWorkspaceBspReady = function (): boolean {
@@ -654,8 +419,6 @@ WorkspaceSchema.methods.ensureWorkspaceBspReady = function (): boolean {
 
 WorkspaceSchema.methods.getMessagingCapabilityState = function () {
   const esbFlow = this.esbFlow || {};
-  const phoneStatus = String(this.bspPhoneStatus || '').toUpperCase();
-  const phoneOperational = phoneStatus === 'CONNECTED' || this.whatsappConnected === true;
 
   if (esbFlow.accountBlocked) {
     return { blocked: true, stale: false, reason: esbFlow.accountBlockedReason || 'Account is blocked' };

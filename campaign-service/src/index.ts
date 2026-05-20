@@ -3,6 +3,9 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
+import { logger, correlationIdMiddleware, getCorrelationId } from './lib/logger';
+import { mountSwaggerUI } from '@wapi/contracts';
+import { openapiDocument } from './openapi';
 
 // Route Imports
 import campaignRoutes from './routes/campaignRoutes';
@@ -16,14 +19,19 @@ const PORT = process.env.PORT || 3002;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+app.use(correlationIdMiddleware);
 
-// Request Logger
+// Request Logger — structured, correlated, ships to Better Stack via shared logger
 app.use((req, res, next) => {
-  const correlationId = req.headers['x-correlation-id'] || 'system';
   const start = Date.now();
   res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`[Campaign Service][${correlationId}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
+    logger.info('http.request', {
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - start,
+      correlationId: getCorrelationId(),
+    });
   });
   next();
 });
@@ -59,6 +67,9 @@ mongoose.connect(MONGODB_URI, {
     if (err.reason) console.error('Reason:', JSON.stringify(err.reason, null, 2));
     process.exit(1);
   });
+
+// API Docs — Swagger UI at /docs, raw spec at /docs/openapi.json
+mountSwaggerUI(app, openapiDocument);
 
 // Register Routes
 app.use('/api/campaign', campaignRoutes);

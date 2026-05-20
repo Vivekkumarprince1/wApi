@@ -337,5 +337,76 @@ export const internalController = {
       console.error("[InternalCheckout] Error:", error.message);
       res.status(500).json({ success: false, error: error.message });
     }
+  },
+
+  /**
+   * SYNC ESB FLOW STATUS (Used by BSP Service)
+   * Cache ESB flow status from BSP service to workspace
+   */
+  async syncEsbFlow(req: Request, res: Response) {
+    try {
+      const { workspaceId, status, accountBlocked, capabilityBlocked, accountBlockedReason, capabilityBlockedReason, lastTokenRefreshAttempt, lastTokenRefreshError } = req.body;
+
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, error: 'workspaceId is required' });
+      }
+
+      const { Workspace } = await import('../models');
+      const updated = await Workspace.findByIdAndUpdate(
+        workspaceId,
+        {
+          $set: {
+            'esbFlow.status': status,
+            'esbFlow.accountBlocked': accountBlocked ?? false,
+            'esbFlow.capabilityBlocked': capabilityBlocked ?? false,
+            'esbFlow.accountBlockedReason': accountBlockedReason,
+            'esbFlow.capabilityBlockedReason': capabilityBlockedReason,
+            'esbFlow.lastTokenRefreshAttempt': lastTokenRefreshAttempt,
+            'esbFlow.lastTokenRefreshError': lastTokenRefreshError,
+            updatedAt: new Date(),
+          },
+        },
+        { new: true }
+      );
+
+      res.json({ success: true, workspace: updated });
+    } catch (error: any) {
+      console.error("[InternalEsbFlowSync] Error:", error.message);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * SYNC BSP APP CACHE (Used by BSP Service)
+   * Cache minimal BSP app fields from bsp-service to workspace
+   */
+  async syncBspAppCache(req: Request, res: Response) {
+    try {
+      const { workspaceId, bspAppId, whatsappConnected, bspPhoneNumberId, bspPhoneStatus, gupshupAppId } = req.body;
+
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, error: 'workspaceId is required' });
+      }
+
+      const { Workspace } = await import('../models');
+      const updatePayload: Record<string, any> = { updatedAt: new Date() };
+
+      if (bspAppId !== undefined) updatePayload.bspAppId = bspAppId;
+      if (whatsappConnected !== undefined) updatePayload.whatsappConnected = whatsappConnected;
+      if (bspPhoneNumberId !== undefined) updatePayload.bspPhoneNumberId = bspPhoneNumberId;
+      if (bspPhoneStatus !== undefined) updatePayload.bspPhoneStatus = bspPhoneStatus;
+      if (gupshupAppId !== undefined) updatePayload.gupshupAppId = gupshupAppId;
+
+      const updated = await Workspace.findByIdAndUpdate(
+        workspaceId,
+        { $set: updatePayload },
+        { new: true }
+      );
+
+      res.json({ success: true, workspace: updated });
+    } catch (error: any) {
+      console.error("[InternalBspAppCache] Error:", error.message);
+      res.status(500).json({ success: false, error: error.message });
+    }
   }
 };

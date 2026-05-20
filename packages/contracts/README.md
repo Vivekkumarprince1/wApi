@@ -7,6 +7,9 @@ Shared TypeScript types between the wApi services and frontend.
 - **worker-bridge.ts** — request/response shapes for `POST /api/internal/worker-bridge`.
 - **automation-actions.ts** — action types + payload shape posted to `POST /api/internal/actions`.
 - **billing-events.ts** — BullMQ saga events between billing/campaign services and the billing pub/sub envelope.
+- **billing-internal.ts** — REST request/response shapes for billing preflight, reserve, settle, and release calls.
+- **bsp.ts** — REST request/response shapes for BSP onboarding, provider message dispatch, template sync, and normalized webhooks.
+- **campaign-events.ts** — campaign execution and progress events emitted by the campaign-messaging service.
 - **socket-events.ts** — names + payload shapes for Socket.io events.
 - **common.ts** — shared envelope (`ApiResponse`, `PaginationInfo`, `ObjectIdString`).
 

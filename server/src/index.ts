@@ -27,7 +27,6 @@ import adminRoutes from './routes/adminRoutes';
 import workspaceRoutes from './routes/workspaceRoutes';
 import settingsRoutes from './routes/settingsRoutes';
 import templateRoutes from './routes/templateRoutes';
-import onboardingRoutes from './routes/onboardingRoutes';
 import businessRoutes from './routes/businessRoutes';
 
 import flowRoutes from './routes/flowRoutes';
@@ -87,6 +86,13 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// --- API DOCS ---
+// Swagger UI at /docs, raw spec at /docs/openapi.json. Mounted before
+// route handlers so it's reachable without auth.
+import { mountSwaggerUI } from '@wapi/contracts';
+import { openapiDocument } from './openapi';
+mountSwaggerUI(app, openapiDocument);
+
 // --- DATABASE ---
 // Connect is awaited inside startServer() below, before httpServer.listen().
 // Mongoose buffering is disabled there to surface "DB not connected" errors
@@ -137,13 +143,14 @@ app.use('/api/webhooks', webhookRoutes);
 app.use('/api/health', healthRoutes);
 
 // Microservice Proxies
+app.use('/api/v1/onboarding/callback', proxyMiddleware.proxyTo('bsp'));
+app.use('/api/v1/onboarding', authenticate, proxyMiddleware.proxyTo('bsp'));
 app.use('/api/v1/automation', authenticate, proxyMiddleware.proxyTo('automation'));
 app.use('/api/v1/campaign', authenticate, proxyMiddleware.proxyTo('campaign'));
 app.use('/api/v1/billing', authenticate, proxyMiddleware.proxyTo('billing'));
 
 app.use('/api/v1', compatRoutes);
 app.use('/api/v1/templates', templateRoutes);
-app.use('/api/v1/onboarding', onboardingRoutes);
 app.use('/api/v1/business', businessRoutes);
 
 app.use('/api/v1/flows', flowRoutes);

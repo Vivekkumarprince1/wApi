@@ -35,14 +35,7 @@ export class PreflightPolicyService {
       return { valid: false, reason: 'WHATSAPP_DISCONNECTED', details: 'WABA connection is required to send campaigns.' };
     }
 
-    // 2. Token Expiry (Modern parity)
-    if (workspace.esbFlow?.tokenExpiry) {
-      if (new Date() > new Date(workspace.esbFlow.tokenExpiry)) {
-        return { valid: false, reason: 'TOKEN_EXPIRED', details: 'System access token has expired. Please refresh connection.' };
-      }
-    }
-
-    // 3. Template Status
+    // 2. Template Status
     if (template.status !== 'APPROVED') {
       return { valid: false, reason: 'TEMPLATE_NOT_APPROVED', details: `Template status is ${template.status}. Only APPROVED templates can be used.` };
     }

@@ -1,7 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { Template } from '../models';
-import { GupshupService } from '../services/messaging/gupshup-service';
 import { WabaService } from '../services/messaging/waba-service';
 import { proxyController } from './proxyController';
 

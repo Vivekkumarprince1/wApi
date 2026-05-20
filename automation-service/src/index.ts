@@ -2,6 +2,9 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
+import { logger, correlationIdMiddleware, getCorrelationId } from './lib/logger';
+import { mountSwaggerUI } from '@wapi/contracts';
+import { openapiDocument } from './openapi';
 
 // Route Imports
 import aiIntentRoutes from './routes/aiIntentRoutes';
@@ -18,20 +21,28 @@ const PORT = process.env.PORT || 3001;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
- 
-// Request Logger
+app.use(correlationIdMiddleware);
+
+// Request Logger — structured, correlated, ships to Better Stack via shared logger
 app.use((req, res, next) => {
-  const correlationId = req.headers['x-correlation-id'] || 'system';
   const start = Date.now();
   res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`[Automation Service][${correlationId}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
+    logger.info('http.request', {
+      method: req.method,
+      url: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - start,
+      correlationId: getCorrelationId(),
+    });
   });
   next();
 });
 
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI_AUTOMATION || 'mongodb://localhost:27017/wapi_automation';
+
+// API Docs — Swagger UI at /docs, raw spec at /docs/openapi.json
+mountSwaggerUI(app, openapiDocument);
 
 // Register Routes
 app.use('/api/automation/engine', aiIntentRoutes);

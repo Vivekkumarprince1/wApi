@@ -19,6 +19,7 @@ export const config = {
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
   razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+  bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
   jwtSecret,
   internalServiceSecret,
 };

@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import { Permission, User, Workspace, Plan } from '@/models';
-import { syncOnboardingState } from '@/services/onboarding/onboarding-state-service';
 
 export function normalizeEmail(email?: string) {
   return String(email || '').trim().toLowerCase();
@@ -64,13 +63,6 @@ export async function createOwnerAccount(input: {
       maxActiveDeals: 50,
       maxPipelines: 3
     } : undefined,
-    onboarding: {
-      step: 'business-info',
-      status: 'not-started',
-      businessInfoCompleted: false,
-      whatsappSetupCompleted: false,
-      completed: false
-    },
     businessVerification: { status: 'not_submitted', isTestMode: false },
     esbFlow: { status: 'not_started' }
   });
@@ -95,7 +87,6 @@ export async function createOwnerAccount(input: {
   workspace.owner = user._id;
   await workspace.save();
   await (Permission as any).seedOwnerPermissions(workspace._id, user._id);
-  await syncOnboardingState(user, workspace);
 
   return { user, workspace };
 }
@@ -105,6 +96,5 @@ export async function touchLogin(user: any) {
   user.accountStatus = getAccountStatusForUser(user);
   await user.save();
   const workspace = user.workspace?._id ? user.workspace : await Workspace.findById(user.workspace);
-  if (workspace) await syncOnboardingState(user, workspace);
   return { user, workspace };
 }

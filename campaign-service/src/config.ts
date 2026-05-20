@@ -17,6 +17,7 @@ export const config = {
   mongodbUri: process.env.MONGODB_URI_CAMPAIGN || 'mongodb://localhost:27017/wa_campaigns',
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   billingServiceUrl: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
+  bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
   monolithUrl: process.env.MONOLITH_URL || 'http://localhost:3000',
   jwtSecret,
   internalServiceSecret,

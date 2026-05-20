@@ -9,7 +9,6 @@ import {
   normalizePhone,
   touchLogin
 } from './account-service';
-import { getNextOnboardingPath, syncOnboardingState } from '@/services/onboarding/onboarding-state-service';
 import type { OtpPurpose } from '@/models';
 
 export async function sendAuthOtp(input: {
@@ -96,14 +95,12 @@ export async function loginWithPassword(emailInput: string, password: string) {
   if (!ok) throw Object.assign(new Error('Invalid credentials'), { status: 401 });
 
   const { workspace } = await touchLogin(user);
-  const nextStep = await getNextOnboardingPath(user, workspace);
   const token = signToken({ id: user._id.toString() });
 
   return {
     token,
     authenticated: true,
-    user: publicUser(user),
-    nextStep
+    user: publicUser(user)
   };
 }
 
@@ -178,7 +175,6 @@ export async function verifyAuthOtp(input: {
     user.accountStatus = getAccountStatusForUser(user);
     await user.save();
     workspace = await Workspace.findById(user.workspace);
-    if (workspace) await syncOnboardingState(user, workspace);
   }
 
   if (purpose === 'phone_verification') {
@@ -188,19 +184,16 @@ export async function verifyAuthOtp(input: {
     user.accountStatus = getAccountStatusForUser(user);
     await user.save();
     workspace = await Workspace.findById(user.workspace);
-    if (workspace) await syncOnboardingState(user, workspace);
   }
 
   if (!user) throw Object.assign(new Error('Unable to resolve user'), { status: 400 });
   if (!workspace) workspace = await Workspace.findById(user.workspace);
 
-  const nextStep = await getNextOnboardingPath(user, workspace);
   const token = signToken({ id: user._id.toString() });
 
   return {
     token,
     authenticated: true,
-    user: publicUser(user),
-    nextStep
+    user: publicUser(user)
   };
 }

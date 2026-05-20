@@ -45,3 +45,9 @@ yarn-error.log*
 next-env.d.ts
 
 dist
+
+# Turborepo
+.turbo/
+
+# Misc local artifacts
+requests.log

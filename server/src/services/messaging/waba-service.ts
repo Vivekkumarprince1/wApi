@@ -4,8 +4,7 @@ import { Message, IMessageDocument, MessageStatus, MessageType } from '../../mod
 import { Conversation } from '../../models/messaging/Conversation';
 import { Contact } from '../../models/messaging/Contact';
 import { Template } from '../../models/template/Template';
-import { GupshupService } from './gupshup-service';
-import { GupshupPartnerService } from '../bsp/gupshup-partner-service';
+import { BspServiceClient, normalizePhoneNumber } from '../microservices/bsp-service-client';
 import { LedgerService } from '../billing/ledger-service';
 import { ConversationService } from './conversation-service';
 import { connectRedis } from '../../redis';
@@ -28,6 +27,29 @@ export interface ISendMessageOptions {
 }
 
 export class WabaService {
+  private static async dispatchBspMessage(
+    workspaceId: string | Types.ObjectId,
+    appId: string,
+    to: string,
+    type: string,
+    payload: Record<string, unknown>,
+    sourcePhone?: string,
+    options: ISendMessageOptions = {}
+  ) {
+    return BspServiceClient.sendMessage({
+      workspaceId: workspaceId.toString(),
+      appId,
+      to,
+      type,
+      sourcePhone,
+      contactId: options.contactId?.toString(),
+      conversationId: options.conversationId?.toString(),
+      campaignId: options.campaignId?.toString(),
+      payload,
+      metadata: options.metadata,
+    });
+  }
+
   private static renderTemplateBody(templateBody: string, components: any[] = []): string {
     if (!templateBody) return '';
     const bodyComp = Array.isArray(components)
@@ -50,7 +72,7 @@ export class WabaService {
     phoneNumber: string,
     contactId?: Types.ObjectId | string
   ): Promise<boolean> {
-    const from = GupshupService.normalizePhoneNumber(phoneNumber);
+    const from = normalizePhoneNumber(phoneNumber);
     
     // Find contact and conversation to check window
     const contact = contactId
@@ -130,7 +152,7 @@ export class WabaService {
     // 1. Resolve Workspace Info
     const { appId, sourcePhone } = await this.resolveWorkspaceConfig(workspaceId);
 
-    const normalizedTo = GupshupService.normalizePhoneNumber(to);
+    const normalizedTo = normalizePhoneNumber(to);
     if (sourcePhone && normalizedTo === sourcePhone) {
       throw new Error('SELF_SEND_NOT_ALLOWED');
     }
@@ -142,7 +164,18 @@ export class WabaService {
     }
 
     // 3. Dispatch to provider
-    const result = await GupshupService.sendText(appId, undefined, to, text, sourcePhone);
+    const result = await BspServiceClient.sendMessage({
+      workspaceId: workspaceId.toString(),
+      appId,
+      to,
+      type: 'text',
+      sourcePhone,
+      contactId: options.contactId?.toString(),
+      conversationId: options.conversationId?.toString(),
+      campaignId: options.campaignId?.toString(),
+      payload: { type: 'text', text: { body: text } },
+      metadata: options.metadata,
+    });
 
     // 4. Log to database
     const message = await Message.create({
@@ -153,19 +186,18 @@ export class WabaService {
       type: 'text',
       body: text,
       status: result.success ? 'sent' : 'failed',
-      whatsappMessageId: result.messageId,
-      failureReason: result.error,
+      whatsappMessageId: result.providerMessageId,
+      failureReason: result.errorMessage,
       sentBy: options.sentBy,
-      recipientPhone: GupshupService.normalizePhoneNumber(to),
+      recipientPhone: normalizePhoneNumber(to),
       meta: {
         ...options.metadata,
         providerEnvelopeId: result.providerEnvelopeId,
-        gs_id: result.data?.gs_id || result.data?.gsId,
-        providerResponse: result.data
+        providerResponse: result.providerResponse
       }
     });
 
-    console.log(`[WabaService] Created outbound message ${message._id} with providerId: ${result.messageId} in workspace ${workspaceId}`);
+    console.log(`[WabaService] Created outbound message ${message._id} with providerId: ${result.providerMessageId} in workspace ${workspaceId}`);
     
     // 5. Sync to Conversation Hub (Ensures inbox visibility)
     await ConversationService.syncMessage(message._id, options.socketId);
@@ -187,7 +219,7 @@ export class WabaService {
     // 1. Resolve Workspace Info
     const { appId, sourcePhone } = await this.resolveWorkspaceConfig(workspaceId);
 
-    const normalizedTo = GupshupService.normalizePhoneNumber(to);
+    const normalizedTo = normalizePhoneNumber(to);
     if (sourcePhone && normalizedTo === sourcePhone) {
       return { success: false, result: { error: 'SELF_SEND_NOT_ALLOWED' }, message: null };
     }
@@ -268,23 +300,33 @@ export class WabaService {
           deducted = true;
       }
 
-    // 3. Dispatch to Provider (Gupshup)
-    const result = await GupshupService.sendTemplate(
+    // 3. Dispatch to provider through bsp-service
+    const result = await BspServiceClient.sendMessage({
+      workspaceId: workspaceId.toString(),
       appId,
-      undefined,
       to,
-      providerTemplateName,
-      providerLanguageCode,
-      components,
-      sourcePhone
-    );
+      type: 'template',
+      sourcePhone,
+      contactId: options.contactId?.toString(),
+      conversationId: options.conversationId?.toString(),
+      campaignId: options.campaignId?.toString(),
+      payload: {
+        type: 'template',
+        template: {
+          name: providerTemplateName,
+          language: { code: providerLanguageCode },
+          components,
+        }
+      },
+      metadata: options.metadata,
+    });
 
     if (!result.success) {
       // Refund if deduction happened but send failed
       if (deducted) {
           await LedgerService.credit(workspaceId, cost, {
             type: 'REFUND',
-            description: `Refund: ${providerTemplateName} dispatch failed: ${result.error || 'Unknown Error'}`,
+	            description: `Refund: ${providerTemplateName} dispatch failed: ${result.errorMessage || 'Unknown Error'}`,
             referenceType: 'messaging'
           });
         }
@@ -324,19 +366,19 @@ export class WabaService {
             footerText: (template as any)?.footer?.text,
         },
         status: result.success ? 'sent' : 'failed',
-        whatsappMessageId: result.messageId,
-        failureReason: result.error,
+        whatsappMessageId: result.providerMessageId,
+        failureReason: result.errorMessage,
         sentBy: options.sentBy,
         campaign: options.campaignId ? { id: options.campaignId } : undefined,
-        recipientPhone: GupshupService.normalizePhoneNumber(to),
+        recipientPhone: normalizePhoneNumber(to),
         meta: {
           ...options.metadata,
             providerEnvelopeId: result.providerEnvelopeId,
-          providerResponse: result.data
+          providerResponse: result.providerResponse
         }
       });
 
-      console.log(`[WabaService] Created template message ${message._id} with providerId: ${result.messageId} in workspace ${workspaceId}`);
+      console.log(`[WabaService] Created template message ${message._id} with providerId: ${result.providerMessageId} in workspace ${workspaceId}`);
 
       // 5. Sync to Conversation Hub (Ensures inbox visibility)
       await ConversationService.syncMessage(message._id, options.socketId);
@@ -376,7 +418,7 @@ export class WabaService {
     // 1. Resolve Workspace Info
     const { appId, sourcePhone } = await this.resolveWorkspaceConfig(workspaceId);
 
-    const normalizedTo = GupshupService.normalizePhoneNumber(to);
+    const normalizedTo = normalizePhoneNumber(to);
     if (sourcePhone && normalizedTo === sourcePhone) {
       throw new Error('SELF_SEND_NOT_ALLOWED');
     }
@@ -388,7 +430,25 @@ export class WabaService {
     }
 
     // 3. Dispatch to provider
-    const result = await GupshupService.sendMedia(appId, undefined, to, type, mediaUrl, caption, filename, sourcePhone);
+    const result = await BspServiceClient.sendMessage({
+      workspaceId: workspaceId.toString(),
+      appId,
+      to,
+      type,
+      sourcePhone,
+      contactId: options.contactId?.toString(),
+      conversationId: options.conversationId?.toString(),
+      campaignId: options.campaignId?.toString(),
+      payload: {
+        type,
+        [type]: {
+          link: mediaUrl,
+          ...(caption ? { caption } : {}),
+          ...(filename ? { filename } : {}),
+        }
+      },
+      metadata: options.metadata,
+    });
     if (!result.success) {
       return { success: false, result, message: null };
     }
@@ -402,10 +462,10 @@ export class WabaService {
       type,
       body: caption || `[${type}]`,
       status: result.success ? 'sent' : 'failed',
-      whatsappMessageId: result.messageId,
-      failureReason: result.error,
+      whatsappMessageId: result.providerMessageId,
+      failureReason: result.errorMessage,
       sentBy: options.sentBy,
-      recipientPhone: GupshupService.normalizePhoneNumber(to),
+      recipientPhone: normalizePhoneNumber(to),
       media: {
         url: mediaUrl,
         mimeType,
@@ -415,8 +475,7 @@ export class WabaService {
       meta: {
         ...options.metadata,
         providerEnvelopeId: result.providerEnvelopeId,
-        gs_id: result.data?.gs_id || result.data?.gsId,
-        providerResponse: result.data
+        providerResponse: result.providerResponse
       }
     });
 
@@ -430,8 +489,7 @@ export class WabaService {
    * Submit a DRAFT template to Meta for approval
    */
   static async submitTemplateForApproval(workspaceId: string | Types.ObjectId, templateId: string) {
-    const { appId, appApiKey } = await (this as any).resolveWorkspaceConfig(workspaceId);
-    if (!appApiKey) throw new Error('APP_TOKEN_MISSING');
+    const { appId } = await (this as any).resolveWorkspaceConfig(workspaceId);
 
     const template = await Template.findById(templateId);
     if (!template) throw new Error('TEMPLATE_NOT_FOUND');
@@ -446,12 +504,17 @@ export class WabaService {
       components
     };
 
-    // 2. Dispatch to provider
-    const result = await GupshupService.createTemplate(appId, appApiKey, payload);
+    // 2. Dispatch to provider through bsp-service
+    const result = await BspServiceClient.submitTemplate(workspaceId.toString(), templateId, {
+      workspaceId: workspaceId.toString(),
+      provider: 'gupshup',
+      appId,
+      providerData: payload,
+    });
     
     // 3. Update internal status
     template.status = 'PENDING';
-    template.metaTemplateId = result.data?.id || result.id;
+    template.metaTemplateId = (result as any).data?.id || (result as any).id || template.metaTemplateId;
     template.submittedAt = new Date();
     await template.save();
 
@@ -462,12 +525,8 @@ export class WabaService {
    * Sync all templates from Gupshup to local database
    */
   static async syncTemplates(workspaceId: string | Types.ObjectId) {
-    const { appId, appApiKey } = await (this as any).resolveWorkspaceConfig(workspaceId);
-    // console.log(`[WabaService] Syncing templates for appId: ${appId} (Token present: ${!!appApiKey})`);
-    
-    if (!appApiKey) throw new Error('APP_TOKEN_MISSING');
-
-    const result = await GupshupService.fetchTemplates(appId, appApiKey);
+    const { appId } = await (this as any).resolveWorkspaceConfig(workspaceId);
+    const result = await BspServiceClient.templateSync(workspaceId.toString(), appId, true);
     const templates = Array.isArray(result) ? result : (result.templates || result.data || []);
 
     let synced = 0;
@@ -677,7 +736,11 @@ export class WabaService {
       const appId = (workspace as any).gupshupAppId || (workspace as any).gupshupIdentity?.partnerAppId;
       if (!appId) return;
 
-      const info = await GupshupPartnerService.getWabaInfo(appId);
+      const info: any = await BspServiceClient.providerAction({
+        workspaceId: workspaceId.toString(),
+        appId,
+        action: 'get_waba_info',
+      });
       
       // Look for the Meta Phone Number ID in various Gupshup response variants
       const phoneNumberId = 
@@ -727,23 +790,17 @@ export class WabaService {
     options: ISendMessageOptions = {}
   ) {
     const { appId, sourcePhone } = await this.resolveWorkspaceConfig(workspaceId);
-    if (sourcePhone && GupshupService.normalizePhoneNumber(to) === sourcePhone) {
+    if (sourcePhone && normalizePhoneNumber(to) === sourcePhone) {
       throw new Error('SELF_SEND_NOT_ALLOWED');
     }
 
     const sessionActive = await this.canSendSessionMessage(workspaceId, to, options.contactId);
     if (!sessionActive) throw new Error('SESSION_EXPIRED');
 
-    const result = await GupshupService.sendLocation(
-      appId,
-      undefined,
-      to,
-      location.latitude,
-      location.longitude,
-      location.name,
-      location.address,
-      sourcePhone
-    );
+    const result = await this.dispatchBspMessage(workspaceId, appId, to, 'location', {
+      type: 'location',
+      location,
+    }, sourcePhone, options);
 
     const message = await Message.create({
       workspace: workspaceId,
@@ -753,10 +810,10 @@ export class WabaService {
       type: 'location',
       body: location.name || location.address || `[Location: ${location.latitude}, ${location.longitude}]`,
       status: result.success ? 'sent' : 'failed',
-      whatsappMessageId: result.messageId,
-      failureReason: result.error,
+      whatsappMessageId: result.providerMessageId,
+      failureReason: result.errorMessage,
       sentBy: options.sentBy,
-      recipientPhone: GupshupService.normalizePhoneNumber(to),
+      recipientPhone: normalizePhoneNumber(to),
       meta: {
         ...options.metadata,
         location: {
@@ -766,8 +823,7 @@ export class WabaService {
           address: location.address
         },
         providerEnvelopeId: result.providerEnvelopeId,
-        gs_id: result.data?.gs_id || result.data?.gsId,
-        providerResponse: result.data
+        providerResponse: result.providerResponse
       }
     });
 
@@ -785,14 +841,17 @@ export class WabaService {
     options: ISendMessageOptions = {}
   ) {
     const { appId, sourcePhone } = await this.resolveWorkspaceConfig(workspaceId);
-    if (sourcePhone && GupshupService.normalizePhoneNumber(to) === sourcePhone) {
+    if (sourcePhone && normalizePhoneNumber(to) === sourcePhone) {
       throw new Error('SELF_SEND_NOT_ALLOWED');
     }
 
     const sessionActive = await this.canSendSessionMessage(workspaceId, to, options.contactId);
     if (!sessionActive) throw new Error('SESSION_EXPIRED');
 
-    const result = await GupshupService.sendContact(appId, undefined, to, contacts, sourcePhone);
+    const result = await this.dispatchBspMessage(workspaceId, appId, to, 'contacts', {
+      type: 'contacts',
+      contacts,
+    }, sourcePhone, options);
 
     const message = await Message.create({
       workspace: workspaceId,
@@ -802,14 +861,14 @@ export class WabaService {
       type: 'contacts',
       body: `👤 Contact: ${contacts[0]?.name?.formatted_name || 'Business Card'}`,
       status: result.success ? 'sent' : 'failed',
-      whatsappMessageId: result.messageId,
-      failureReason: result.error,
+      whatsappMessageId: result.providerMessageId,
+      failureReason: result.errorMessage,
       sentBy: options.sentBy,
-      recipientPhone: GupshupService.normalizePhoneNumber(to),
+      recipientPhone: normalizePhoneNumber(to),
       meta: {
         ...options.metadata,
         contacts,
-        providerResponse: result.data
+        providerResponse: result.providerResponse
       }
     });
 
@@ -828,14 +887,17 @@ export class WabaService {
     options: ISendMessageOptions = {}
   ) {
     const { appId, sourcePhone } = await this.resolveWorkspaceConfig(workspaceId);
-    if (sourcePhone && GupshupService.normalizePhoneNumber(to) === sourcePhone) {
+    if (sourcePhone && normalizePhoneNumber(to) === sourcePhone) {
       throw new Error('SELF_SEND_NOT_ALLOWED');
     }
 
     const sessionActive = await this.canSendSessionMessage(workspaceId, to, options.contactId);
     if (!sessionActive) throw new Error('SESSION_EXPIRED');
 
-    const result = await GupshupService.sendInteractive(appId, undefined, to, interactive, sourcePhone);
+    const result = await this.dispatchBspMessage(workspaceId, appId, to, 'interactive', {
+      type: 'interactive',
+      interactive,
+    }, sourcePhone, options);
 
     const message = await Message.create({
       workspace: workspaceId,
@@ -845,16 +907,15 @@ export class WabaService {
       type: 'interactive',
       body: interactive.body?.text || '[Interactive Message]',
       status: result.success ? 'sent' : 'failed',
-      whatsappMessageId: result.messageId,
-      failureReason: result.error,
+      whatsappMessageId: result.providerMessageId,
+      failureReason: result.errorMessage,
       sentBy: options.sentBy,
-      recipientPhone: GupshupService.normalizePhoneNumber(to),
+      recipientPhone: normalizePhoneNumber(to),
       meta: {
         ...options.metadata,
         interactive,
         providerEnvelopeId: result.providerEnvelopeId,
-        gs_id: result.data?.gs_id || result.data?.gsId,
-        providerResponse: result.data
+        providerResponse: result.providerResponse
       }
     });
 
@@ -877,14 +938,17 @@ export class WabaService {
     options: ISendMessageOptions = {}
   ) {
     const { appId, sourcePhone } = await this.resolveWorkspaceConfig(workspaceId);
-    if (sourcePhone && GupshupService.normalizePhoneNumber(to) === sourcePhone) {
+    if (sourcePhone && normalizePhoneNumber(to) === sourcePhone) {
       throw new Error('SELF_SEND_NOT_ALLOWED');
     }
 
     const sessionActive = await this.canSendSessionMessage(workspaceId, to, options.contactId);
     if (!sessionActive) throw new Error('SESSION_EXPIRED');
 
-    const result = await GupshupService.sendFlow(appId, undefined, to, flow, sourcePhone);
+    const result = await this.dispatchBspMessage(workspaceId, appId, to, 'flow', {
+      type: 'flow',
+      flow,
+    }, sourcePhone, options);
 
     const message = await Message.create({
       workspace: workspaceId,
@@ -894,15 +958,15 @@ export class WabaService {
       type: 'interactive',
       body: flow?.body?.text || '[Flow Message]',
       status: result.success ? 'sent' : 'failed',
-      whatsappMessageId: result.messageId,
-      failureReason: result.error,
+      whatsappMessageId: result.providerMessageId,
+      failureReason: result.errorMessage,
       sentBy: options.sentBy,
-      recipientPhone: GupshupService.normalizePhoneNumber(to),
+      recipientPhone: normalizePhoneNumber(to),
       meta: {
         ...options.metadata,
         flow,
         providerEnvelopeId: result.providerEnvelopeId,
-        providerResponse: result.data
+        providerResponse: result.providerResponse
       }
     });
 
@@ -935,7 +999,10 @@ export class WabaService {
     
     // Note: Reactions usually require an active session on Meta, but Gupshup handles window logic.
     // We log it as a separate 'reaction' message that target UI can attach to the original message.
-    const result = await GupshupService.sendReaction(appId, undefined, to, providerTargetMessageId, emoji, sourcePhone);
+    const result = await this.dispatchBspMessage(workspaceId, appId, to, 'reaction', {
+      type: 'reaction',
+      reaction: { message_id: providerTargetMessageId, emoji },
+    }, sourcePhone, options);
 
     if (!result.success) {
       return { success: false, result, message: null };
@@ -949,9 +1016,9 @@ export class WabaService {
       type: 'reaction',
       body: emoji,
       status: 'sent',
-      whatsappMessageId: result.messageId,
+      whatsappMessageId: result.providerMessageId,
       sentBy: options.sentBy,
-      recipientPhone: GupshupService.normalizePhoneNumber(to),
+      recipientPhone: normalizePhoneNumber(to),
       meta: {
         ...options.metadata,
         reactedTo: providerTargetMessageId,
@@ -996,7 +1063,10 @@ export class WabaService {
     const sessionActive = await this.canSendSessionMessage(workspaceId, to, options.contactId);
     if (!sessionActive) throw new Error('SESSION_EXPIRED');
 
-    const result = await GupshupService.sendPix(appId, undefined, to, pix, sourcePhone);
+    const result = await this.dispatchBspMessage(workspaceId, appId, to, 'pix', {
+      type: 'pix',
+      pix,
+    }, sourcePhone, options);
 
     const message = await Message.create({
       workspace: workspaceId,
@@ -1006,13 +1076,13 @@ export class WabaService {
       type: 'pix',
       body: `💳 PIX Payment: ${pix.amount} BRL`,
       status: result.success ? 'sent' : 'failed',
-      whatsappMessageId: result.messageId,
+      whatsappMessageId: result.providerMessageId,
       sentBy: options.sentBy,
-      recipientPhone: GupshupService.normalizePhoneNumber(to),
+      recipientPhone: normalizePhoneNumber(to),
       meta: {
         ...options.metadata,
         pix,
-        providerResponse: result.data
+        providerResponse: result.providerResponse
       }
     });
 
@@ -1034,7 +1104,10 @@ export class WabaService {
     const sessionActive = await this.canSendSessionMessage(workspaceId, to, options.contactId);
     if (!sessionActive) throw new Error('SESSION_EXPIRED');
 
-    const result = await GupshupService.sendBoleto(appId, undefined, to, boleto, sourcePhone);
+    const result = await this.dispatchBspMessage(workspaceId, appId, to, 'boleto', {
+      type: 'boleto',
+      boleto,
+    }, sourcePhone, options);
 
     const message = await Message.create({
       workspace: workspaceId,
@@ -1044,13 +1117,13 @@ export class WabaService {
       type: 'boleto',
       body: `📄 Boleto: ${boleto.amount} BRL`,
       status: result.success ? 'sent' : 'failed',
-      whatsappMessageId: result.messageId,
+      whatsappMessageId: result.providerMessageId,
       sentBy: options.sentBy,
-      recipientPhone: GupshupService.normalizePhoneNumber(to),
+      recipientPhone: normalizePhoneNumber(to),
       meta: {
         ...options.metadata,
         boleto,
-        providerResponse: result.data
+        providerResponse: result.providerResponse
       }
     });
 

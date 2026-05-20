@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { WhatsAppFlow } from '../models';
-import { GupshupPartnerService } from '../services/bsp/gupshup-partner-service';
+import { BspServiceClient } from '../services/microservices/bsp-service-client';
 
 export const flowController = {
   /**
@@ -28,8 +28,13 @@ export const flowController = {
         return res.status(400).json({ success: false, message: "WhatsApp not configured" });
       }
 
-      // 1. Create on Gupshup
-      const gsResult = await GupshupPartnerService.createFlow(workspace.gupshupAppId, name, categories);
+      // 1. Create on provider through bsp-service
+      const gsResult: any = await BspServiceClient.providerAction({
+        workspaceId: workspace._id.toString(),
+        appId: workspace.gupshupAppId,
+        action: 'create_flow',
+        payload: { name, categories }
+      });
       
       // 2. Save locally
       const flow = await WhatsAppFlow.create({
@@ -84,17 +89,32 @@ export const flowController = {
 
       switch (action) {
         case 'updateJson':
-          result = await GupshupPartnerService.updateFlowJson(workspace.gupshupAppId, gFlowId, name || flow.name, json);
+          result = await BspServiceClient.providerAction({
+            workspaceId: workspace._id.toString(),
+            appId: workspace.gupshupAppId,
+            action: 'update_flow_json',
+            payload: { flowId: gFlowId, name: name || flow.name, json }
+          });
           break;
 
         case 'updateCategories':
-          result = await GupshupPartnerService.updateFlow(workspace.gupshupAppId, gFlowId, categories);
+          result = await BspServiceClient.providerAction({
+            workspaceId: workspace._id.toString(),
+            appId: workspace.gupshupAppId,
+            action: 'update_flow',
+            payload: { flowId: gFlowId, categories }
+          });
           flow.categories = categories;
           await flow.save();
           break;
 
         case 'preview':
-          result = await GupshupPartnerService.getFlowPreviewUrl(workspace.gupshupAppId, gFlowId);
+          result = await BspServiceClient.providerAction({
+            workspaceId: workspace._id.toString(),
+            appId: workspace.gupshupAppId,
+            action: 'get_flow_preview_url',
+            payload: { flowId: gFlowId }
+          });
           if (result?.preview_url || result?.data?.preview_url) {
             (flow as any).previewUrl = result.preview_url || result.data.preview_url;
             await flow.save();
@@ -102,19 +122,34 @@ export const flowController = {
           break;
 
         case 'publish':
-          result = await GupshupPartnerService.publishFlow(workspace.gupshupAppId, gFlowId);
+          result = await BspServiceClient.providerAction({
+            workspaceId: workspace._id.toString(),
+            appId: workspace.gupshupAppId,
+            action: 'publish_flow',
+            payload: { flowId: gFlowId }
+          });
           flow.status = 'PUBLISHED';
           await flow.save();
           break;
 
         case 'deprecate':
-          result = await GupshupPartnerService.deprecateFlow(workspace.gupshupAppId, gFlowId);
+          result = await BspServiceClient.providerAction({
+            workspaceId: workspace._id.toString(),
+            appId: workspace.gupshupAppId,
+            action: 'deprecate_flow',
+            payload: { flowId: gFlowId }
+          });
           flow.status = 'DEPRECATED';
           await flow.save();
           break;
 
         case 'sync':
-          result = await GupshupPartnerService.getFlowById(workspace.gupshupAppId, gFlowId);
+          result = await BspServiceClient.providerAction({
+            workspaceId: workspace._id.toString(),
+            appId: workspace.gupshupAppId,
+            action: 'get_flow_by_id',
+            payload: { flowId: gFlowId }
+          });
           if (result) {
             flow.status = result.status || flow.status;
             flow.categories = result.categories || flow.categories;

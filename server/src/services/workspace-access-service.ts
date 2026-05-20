@@ -1,6 +1,4 @@
-import { getNextOnboardingPath } from '@/services/onboarding/onboarding-state-service';
-
-export type WorkspaceAccessRestrictionKind = 'onboarding' | 'billing';
+export type WorkspaceAccessRestrictionKind = 'billing';
 
 export interface WorkspaceAccessRestriction {
   kind: WorkspaceAccessRestrictionKind;
@@ -12,7 +10,7 @@ export interface WorkspaceAccessRestriction {
 
 export interface WorkspaceAccessDecision {
   accessRestriction: WorkspaceAccessRestriction | null;
-  nextStep: string | null;
+  nextStep: null;
   billingStatus: string | null;
   isBillingValid: boolean;
 }
@@ -34,14 +32,12 @@ export function shouldBypassWorkspaceAccessGuard(pathname: string) {
   // alias in case the gateway strips the version segment.
   const prefixes = [
     '/api/v1/auth/',
-    '/api/v1/onboarding/',
     '/api/v1/workspace/billing',
     '/api/v1/super-admin/',
     '/api/webhooks/',
     '/api/health',
     '/api/internal/',
     '/api/auth/',
-    '/api/onboarding/',
     '/api/workspace/billing',
     '/api/super-admin/'
   ];
@@ -58,22 +54,6 @@ export async function getWorkspaceAccessDecision(user: any, workspace?: any): Pr
       nextStep: null,
       billingStatus,
       isBillingValid: true
-    };
-  }
-
-  const nextStep = await getNextOnboardingPath(user, workspace);
-  if (nextStep) {
-    return {
-      accessRestriction: {
-        kind: 'onboarding',
-        title: 'Finish onboarding',
-        description: 'Complete onboarding to unlock the dashboard and protected features.',
-        targetPath: nextStep,
-        actionLabel: 'Continue'
-      },
-      nextStep,
-      billingStatus,
-      isBillingValid
     };
   }
 

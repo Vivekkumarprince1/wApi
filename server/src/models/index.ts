@@ -52,11 +52,9 @@ export * from './ActivityLog';
 export type { IActivityLog } from './ActivityLog';
 
 
-// Onboarding domain
+// Business domain
 export * from './business/Business';
-export * from './onboarding/GupshupApp';
 export * from './business/BusinessAppMap';
-export * from './onboarding/OnboardingState';
 
 // Campaign domain — FULLY MIGRATED TO campaign-service
 
@@ -79,10 +77,6 @@ export * from './integration/WidgetConfig';
 
 // Migrated Domain (Automation Microservice) - DEPRECATED
 // export * from './migrated-models';
-
-// BSP domain
-export * from './bsp/BspHealth';
-export * from './bsp/WebhookLog';
 
 // Admin domain
 export * from './super-admin/AuditLog';

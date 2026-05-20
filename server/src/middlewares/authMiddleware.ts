@@ -87,12 +87,11 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
       const accessDecision = await getWorkspaceAccessDecision(user, workspace);
       if (accessDecision.accessRestriction) {
         const restriction = accessDecision.accessRestriction;
-        return res.status(restriction.kind === 'billing' ? 402 : 403).json({
+        return res.status(402).json({
           message: restriction.description,
           accessRestriction: restriction,
           nextStep: accessDecision.nextStep,
-          upgradeRequired: restriction.kind === 'billing',
-          onboardingRequired: restriction.kind === 'onboarding'
+          upgradeRequired: true
         });
       }
     }

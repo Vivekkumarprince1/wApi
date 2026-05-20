@@ -4,6 +4,7 @@ import { getAuthCookieOptions } from '../utils/auth-utils';
 import { User, Workspace, Permission, SystemSettings } from '../models';
 import { AuthenticationError, BadRequestError, ForbiddenError, NotFoundError } from '../utils/errors';
 import { proxyController } from './proxyController';
+import { BspServiceClient } from '../services/microservices/bsp-service-client';
 
 async function getUserFromCookie(req: Request): Promise<any> {
   if ((req as any).user) return (req as any).user;
@@ -188,7 +189,6 @@ export const authController = {
         });
       }
 
-      const { getNextOnboardingPath } = await import('../services/onboarding/onboarding-state-service');
       const { getWorkspaceAccessDecision, getWorkspaceBillingStatus, isWorkspaceBillingValid } = await import('../services/workspace-access-service');
       const workspaceToUse = workspace;
 
@@ -197,10 +197,12 @@ export const authController = {
           const lastSync = workspaceToUse.bspLastSyncedAt ? new Date(workspaceToUse.bspLastSyncedAt).getTime() : 0;
           const now = Date.now();
           if (now - lastSync > 3600000) {
-              const { syncAssignedGupshupApp } = await import("../services/bsp/gupshup-app-assignment-service");
-              const { Business } = await import("../models");
-              const business = await Business.findOne({ workspace: workspaceToUse._id });
-              syncAssignedGupshupApp(user, workspaceToUse, business).catch(err => 
+              BspServiceClient.request({
+                method: 'GET',
+                path: `/internal/v1/bsp/apps/${encodeURIComponent(workspaceToUse.gupshupAppId || '')}`,
+                workspaceId: workspaceToUse._id.toString(),
+                userId: user._id.toString()
+              }).catch(err =>
                   console.error(`[SessionSync] Failed auto-sync for ${workspaceToUse.name}:`, err.message)
               );
           }
@@ -314,8 +316,7 @@ export const authController = {
           plan: workspaceToUse.plan || 'free',
           billingStatus: workspaceToUse.billingStatus || 'trialing',
           whatsappConnected: workspaceToUse.whatsappConnected || stage1Complete,
-          onboarding: workspaceToUse.onboarding,
-          stage1: { 
+          stage1: {
             complete: stage1Complete,
             phoneStatus: workspaceToUse.bspPhoneStatus || (workspaceToUse.whatsappConnected ? 'CONNECTED' : 'NOT_CONNECTED')
           }, 
@@ -374,9 +375,8 @@ export const authController = {
 
       if (!user) {
         const name = googleUser.name || googleUser.email.split('@')[0];
-        const workspace = await Workspace.create({ 
+        const workspace = await Workspace.create({
           name: `${name}'s workspace`,
-          onboarding: { step: 'industry_selection', completed: false }
         });
 
         user = await User.create({

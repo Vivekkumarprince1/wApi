@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { workspaceController } from '../controllers/workspaceController';
 import { authenticate, authorizeRole } from '../middlewares/authMiddleware';
+import { proxyController } from '../controllers/proxyController';
 
 const router = Router();
 
@@ -107,18 +108,18 @@ router.patch('/whatsapp/profile/display-name', workspaceController.updateDisplay
 router.get('/whatsapp/health', workspaceController.getWhatsappHealth);
 
 // Billing & Plans
-router.get('/billing', workspaceController.getBillingSummary);
-router.get('/billing/info', workspaceController.getBillingSummary);
-router.get('/billing/plan', workspaceController.getPlans);
-router.post('/billing/plan', workspaceController.switchPlan);
-router.post('/billing/plan/verify', workspaceController.verifyPlanUpgrade);
-router.patch('/billing/settings', workspaceController.updateBillingSettings);
+router.get('/billing', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.get('/billing/info', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.get('/billing/plan', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.post('/billing/plan', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.post('/billing/plan/verify', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.patch('/billing/settings', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
 
 // Recharge & Payment Method
-router.post('/billing/recharge', workspaceController.initiateRecharge);
-router.post('/billing/recharge/verify', workspaceController.verifyRecharge);
-router.post('/billing/payment-method', workspaceController.initiatePaymentMethod);
-router.post('/billing/payment-method/verify', workspaceController.verifyPaymentMethod);
+router.post('/billing/recharge', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.post('/billing/recharge/verify', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.post('/billing/payment-method', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
+router.post('/billing/payment-method/verify', (req, res, next) => proxyController.proxyTo('billing', req as any, res, next));
 
 // Inbox Settings
 router.get('/inbox-settings', workspaceController.getInboxSettings);

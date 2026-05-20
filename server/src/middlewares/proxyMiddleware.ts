@@ -11,9 +11,9 @@ export const proxyMiddleware = {
   /**
    * Returns a middleware that proxies the request to the specified service.
    * 
-   * @param service - The target microservice name ('automation' | 'campaign' | 'billing')
+   * @param service - The target microservice name ('automation' | 'campaign' | 'billing' | 'bsp')
    */
-  proxyTo: (service: 'automation' | 'campaign' | 'billing') => {
+  proxyTo: (service: 'automation' | 'campaign' | 'billing' | 'bsp') => {
     return async (req: Request, res: Response, next: NextFunction) => {
       try {
         // We cast req to AuthRequest because the gateway expects authenticated context

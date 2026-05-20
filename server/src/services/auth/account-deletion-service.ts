@@ -12,8 +12,6 @@ import {
   TemplateMetric,
   Business,
   BusinessAppMap,
-  GupshupApp,
-  OnboardingState,
   InternalNote,
   Team,
   WorkspaceInvitation,
@@ -24,8 +22,6 @@ import {
   AuditLog,
   WorkspaceIntegration,
   WidgetConfig,
-  BspHealth,
-  WebhookLog,
   Deal,
   Pipeline,
   Product,
@@ -40,7 +36,7 @@ import {
   Macro,
   Notification
 } from '@/models';
-import { GupshupPartnerService } from '@/services/bsp/gupshup-partner-service';
+import { BspServiceClient } from '@/services/microservices/bsp-service-client';
 import { proxyController } from '@/controllers/proxyController';
 import mongoose from 'mongoose';
 
@@ -124,7 +120,7 @@ export class AccountDeletionService {
    */
   private static async cleanupExternalWorkspaceData(workspace: any) {
     const workspaceId = workspace._id;
-    const gupshupAppId = workspace.gupshupAppId || workspace.gupshupIdentity?.partnerAppId;
+    const gupshupAppId = workspace.gupshupAppId;
 
     console.log(`[AccountDeletion] Cleaning up external data for workspace ${workspaceId} (${workspace.name})...`);
 
@@ -132,19 +128,14 @@ export class AccountDeletionService {
 
     if (gupshupAppId && !String(gupshupAppId).startsWith('mock_')) {
       try {
-        console.log(`[AccountDeletion] Cleaning up Gupshup app ${gupshupAppId}...`);
-        const subscriptions = await GupshupPartnerService.listSubscriptions(gupshupAppId).catch(() => []);
-        if (Array.isArray(subscriptions)) {
-          for (const sub of subscriptions) {
-            const subId = sub.id || sub.subscriptionId || sub.data?.id;
-            if (subId) {
-              await GupshupPartnerService.deleteSubscription(gupshupAppId, subId).catch(err => {
-                console.warn(`[AccountDeletion] Failed to delete Gupshup subscription ${subId}:`, err.message);
-              });
-              await new Promise(resolve => setTimeout(resolve, 500));
-            }
-          }
-        }
+        console.log(`[AccountDeletion] Cleaning up BSP app ${gupshupAppId}...`);
+        await BspServiceClient.request({
+          method: 'DELETE',
+          path: `/internal/v1/bsp/apps/${encodeURIComponent(gupshupAppId)}`,
+          workspaceId: workspaceId.toString(),
+        }).catch(err => {
+          console.warn(`[AccountDeletion] Failed to delete BSP app ${gupshupAppId}:`, err.message);
+        });
       } catch (error: any) {
         console.error(`[AccountDeletion] Gupshup cleanup failed for workspace ${workspaceId}:`, error.message);
       }
@@ -156,22 +147,13 @@ export class AccountDeletionService {
    */
   private static async deleteWorkspaceInternal(workspace: any, session: mongoose.ClientSession) {
     const workspaceId = workspace._id;
-    const gupshupAppId = workspace.gupshupAppId || workspace.gupshupIdentity?.partnerAppId;
+    const gupshupAppId = workspace.gupshupAppId;
 
     console.log(`[AccountDeletion] Purging database records for workspace ${workspaceId} (${workspace.name})...`);
 
-    // Clean up local Gupshup records inside the transaction
+    // Clean up local BSP mapping records inside the transaction
     if (gupshupAppId && !String(gupshupAppId).startsWith('mock_')) {
       try {
-        const gApp = await GupshupApp.findOne({ gupshupAppId }).session(session);
-        if (gApp) {
-          gApp.assigned = false;
-          gApp.assignedToWorkspace = undefined;
-          gApp.assignedToBusiness = undefined;
-          gApp.status = 'disconnected';
-          await gApp.save({ session });
-        }
-
         await BusinessAppMap.updateMany(
           { workspace: workspaceId, gupshupAppId },
           { $set: { active: false, disconnectedAt: new Date() } }
@@ -213,11 +195,9 @@ export class AccountDeletionService {
       { model: WorkspaceIntegration, field: 'workspace' },
       { model: WidgetConfig, field: 'workspace' },
       { model: Business, field: 'workspace' },
-      { model: OnboardingState, field: 'workspace' },
       { model: InternalNote, field: 'workspace' },
       { model: Team, field: 'workspace' },
       { model: WorkspaceInvitation, field: 'workspace' },
-      { model: WebhookLog, field: 'workspace' },
       { model: Order, field: 'workspaceId' },
       { model: CheckoutCart, field: 'workspaceId' },
       { model: FormSubmission, field: 'workspace' },

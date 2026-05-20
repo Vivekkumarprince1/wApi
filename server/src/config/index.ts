@@ -31,21 +31,11 @@ export const config = {
   facebookAppId: process.env.FACEBOOK_APP_ID || '',
   facebookAppSecret: process.env.FACEBOOK_APP_SECRET || '',
   
-  // WhatsApp / Gupshup
-  gupshupApiKey: process.env.GUPSHUP_API_KEY || '',
-  gupshupSourceNumber: process.env.GUPSHUP_SOURCE_NUMBER || '',
-  gupshupAppId: process.env.GUPSHUP_APP_ID || '',
-  gupshupPartnerToken: process.env.GUPSHUP_PARTNER_TOKEN || '',
-  gupshupPartnerEmail: process.env.GUPSHUP_PARTNER_EMAIL || '',
-  gupshupPartnerPassword: process.env.GUPSHUP_PARTNER_PASSWORD || process.env.GUPSHUP_PARTNER_CLIENT_SECRET || '',
-  gupshupPartnerClientSecret: process.env.GUPSHUP_PARTNER_CLIENT_SECRET || '',
-  gupshupPartnerBaseUrl: process.env.GUPSHUP_PARTNER_BASE_URL || 'https://partner.gupshup.io',
-  gupshupApiBaseUrl: process.env.GUPSHUP_API_BASE_URL || 'https://api.gupshup.io',
-  gupshupOtpTemplateName: process.env.GUPSHUP_OTP_TEMPLATE_NAME || '',
-  gupshupDefaultRegion: process.env.GUPSHUP_DEFAULT_REGION || 'IN',
+  // BSP-owned WhatsApp provider configuration. Main only keeps app-level
+  // references needed for compatibility; provider credentials live in bsp-service.
+  bspOtpAppId: process.env.BSP_OTP_APP_ID || process.env.GUPSHUP_APP_ID || '',
+  bspOtpTemplateName: process.env.BSP_OTP_TEMPLATE_NAME || process.env.GUPSHUP_OTP_TEMPLATE_NAME || '',
   whatsappWebhookUrl: process.env.WHATSAPP_WEBHOOK_URL || '',
-  whatsappWebhookSecret: process.env.GUPSHUP_WEBHOOK_SECRET || '',
-  whatsappWebhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '',
 
   // OTP / communication
   otpPepper: process.env.OTP_PEPPER || '',
@@ -92,6 +82,7 @@ export const config = {
   billingServiceUrl: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
   campaignServiceUrl: process.env.CAMPAIGN_SERVICE_URL || 'http://localhost:3002',
   automationServiceUrl: process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001',
+  bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
   internalServiceSecret: _internalServiceSecret,
 
   appName: process.env.NEXT_PUBLIC_APP_NAME || 'wApi',

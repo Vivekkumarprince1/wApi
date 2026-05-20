@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import {
-  BspHealth,
   BusinessAppMap,
   Message,
   Plan,
@@ -32,18 +31,12 @@ export class SuperAdminControlPlaneService {
       orphanedGupshupMappings,
       billingStats,
       planDistributionRaw,
-      bspHealth,
     ] = await Promise.all([
       Workspace.countDocuments({}),
       User.countDocuments({}),
       Message.countDocuments({ createdAt: { $gte: thirtyDaysAgo }, isInternalNote: false }),
       Workspace.countDocuments({ whatsappConnected: true }),
-      Workspace.countDocuments({
-        $or: [
-          { onboardingStatus: { $exists: false } },
-          { onboardingStatus: { $nin: ['completed', 'COMPLETED'] } },
-        ],
-      }),
+      Workspace.countDocuments({ whatsappConnected: false }),
       BusinessAppMap.countDocuments({ active: true }),
       BusinessAppMap.countDocuments({
         active: true,
@@ -67,7 +60,6 @@ export class SuperAdminControlPlaneService {
         { $sort: { count: -1 } },
         { $limit: 8 },
       ]),
-      BspHealth.findOne({ key: 'system_token' }).lean<{ status?: string }>(),
     ]);
     const businessVerificationPolicy = await getBusinessVerificationPolicy();
     const systemSettings = await (SystemSettings as any).getSettings();
@@ -114,7 +106,7 @@ export class SuperAdminControlPlaneService {
       },
       health: {
         database: mongoose.connection.readyState === 1 ? 'operational' : 'degraded',
-        bspStatus: bspHealth?.status || 'unknown',
+        bspStatus: 'delegated',
       },
       policy: {
         businessVerificationMandatory: businessVerificationPolicy.mandatory,

@@ -2,8 +2,8 @@ import { Response } from 'express';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { Conversation, Message, Team, Contact, Permission, Pipeline } from '../models';
 import * as SocketService from '../services/socket-service';
-import { GupshupService } from '../services/messaging/gupshup-service';
 import { WabaService } from '../services/messaging/waba-service';
+import { BspServiceClient } from '../services/microservices/bsp-service-client';
 
 export const conversationController = {
   /**
@@ -277,18 +277,21 @@ export const conversationController = {
 
         if (lastInbound?.whatsappMessageId) {
           try {
-            const { appId, appApiKey } = await WabaService.resolveWorkspaceConfig(req.workspace._id);
+            const { appId } = await WabaService.resolveWorkspaceConfig(req.workspace._id);
             const customerPhone = contact?.phone || (lastInbound as any).recipientPhone || (lastInbound as any).from;
             
             if (appId && customerPhone) {
               console.log(`[Conversation] Syncing READ status to WhatsApp for message ${lastInbound.whatsappMessageId}`);
               // Fire and forget - don't block the user interface for provider latency
-              GupshupService.markRead(
+              BspServiceClient.providerAction({
+                workspaceId: req.workspace._id.toString(),
                 appId,
-                appApiKey,
-                customerPhone,
-                lastInbound.whatsappMessageId
-              ).catch(err => console.error("[Conversation] WhatsApp Read Sync Failed:", err.message));
+                action: 'mark_read',
+                payload: {
+                  customerPhone,
+                  messageId: lastInbound.whatsappMessageId
+                }
+              }).catch(err => console.error("[Conversation] WhatsApp Read Sync Failed:", err.message));
             }
           } catch (configErr: any) {
             console.warn("[Conversation] Skipping WhatsApp Read Sync: Workspace not fully configured or not BSP managed", configErr.message);
