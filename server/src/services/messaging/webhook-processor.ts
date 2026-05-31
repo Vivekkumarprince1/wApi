@@ -59,7 +59,7 @@ export const initWebhookWorker = () => {
         throw error;
       }
     },
-    { connection }
+    { connection: connection as any }
   );
 
   return globalWebhook.webhookWorkerInstance;
@@ -241,7 +241,7 @@ async function processStatuses(statuses: any[], workspaceId: any, jobId: string)
           
           // Initialize queue once (BullMQ handles connection reuse internally if using the same connection object)
           const campaignEventsQueue = new Queue('CampaignEventsQueue', { 
-            connection: getSharedConnection(),
+            connection: getSharedConnection() as any,
             defaultJobOptions: { removeOnComplete: true }
           });
           

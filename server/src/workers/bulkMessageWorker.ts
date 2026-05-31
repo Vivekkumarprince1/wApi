@@ -142,7 +142,7 @@ export const initBulkMessageWorker = () => {
       return { processed, failed, total };
     },
     {
-      connection: getConnectionForWorker('bulkMessageWorker'),
+      connection: getConnectionForWorker('bulkMessageWorker') as any,
       concurrency: WORKER_CONCURRENCY,
     }
   );

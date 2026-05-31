@@ -12,7 +12,7 @@ export class IntegrationSyncWorker {
   private queue: Queue;
 
   constructor() {
-    this.queue = new Queue(SYNC_QUEUE_NAME, { connection: getSharedConnection() });
+    this.queue = new Queue(SYNC_QUEUE_NAME, { connection: getSharedConnection() as any });
     
     this.worker = new Worker(
       SYNC_QUEUE_NAME,
@@ -38,7 +38,7 @@ export class IntegrationSyncWorker {
           }
         }
       },
-      { connection: getSharedConnection(), concurrency: 1 }
+      { connection: getSharedConnection() as any, concurrency: 1 }
     );
 
     this.setupRepeatableJobs();

@@ -80,7 +80,7 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(cookieParser() as any);
 
 // --- DATABASE ---
 // Connect is awaited inside startServer() below, before httpServer.listen().

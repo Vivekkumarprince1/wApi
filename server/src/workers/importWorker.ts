@@ -82,7 +82,7 @@ export const initImportWorker = () => {
       return { imported, total };
     },
     {
-      connection: getConnectionForWorker('importWorker'),
+      connection: getConnectionForWorker('importWorker') as any,
       concurrency: IMPORT_WORKER_CONCURRENCY,
     }
   );

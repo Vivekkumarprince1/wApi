@@ -21,7 +21,7 @@ export class SnoozeWorker {
     // We use a regular BullMQ worker structure, but we also initiate a local timer
     // to periodically "pulse" the check if we aren't using a separate scheduler.
     this.worker = new Worker('snooze-monitor', this.processJob.bind(this), {
-      connection,
+      connection: connection as any,
     });
 
     console.log('[SnoozeWorker] 🚀 Snooze monitor started');

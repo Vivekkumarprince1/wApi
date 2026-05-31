@@ -51,7 +51,7 @@ export class BulkOperationsService {
 
   constructor() {
     this.bulkQueue = new Queue('bulk-operations', {
-      connection: redis,
+      connection: redis as any,
       defaultJobOptions: {
         attempts: 2,
         backoff: {
@@ -189,7 +189,7 @@ export class BulkOperationsService {
         };
       },
       {
-        connection: redis,
+        connection: redis as any,
         concurrency: 3,
       }
     );

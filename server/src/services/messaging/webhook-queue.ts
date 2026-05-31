@@ -29,7 +29,7 @@ async function reserveDeliveryId(deliveryId: string): Promise<boolean> {
 }
 
 export const webhookQueue = new Queue('whatsapp-webhooks', {
-  connection,
+  connection: connection as any,
   defaultJobOptions: {
     attempts: 3,
     backoff: {

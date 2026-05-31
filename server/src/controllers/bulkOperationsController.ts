@@ -12,8 +12,8 @@ import { getSharedRedis } from '../utils/ioredis';
 // Shared connection + queue handles. The previous version constructed a
 // new Queue (and Redis connection) per request, which leaked file
 // descriptors at scale. The shared client also wires an `error` handler.
-const importQueue = new Queue('contact-imports', { connection: getSharedRedis() });
-const messageQueue = new Queue('bulk-messages', { connection: getSharedRedis() });
+const importQueue = new Queue('contact-imports', { connection: getSharedRedis() as any });
+const messageQueue = new Queue('bulk-messages', { connection: getSharedRedis() as any });
 
 const BULK_QUEUES: Record<string, Queue> = {
   'contact-imports': importQueue,

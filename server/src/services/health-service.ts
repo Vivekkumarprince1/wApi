@@ -98,7 +98,7 @@ export class HealthService {
 
     for (const name of QUEUES_TO_PROBE) {
       try {
-        const queue = new Queue(name, { connection });
+        const queue = new Queue(name, { connection: connection as any });
         const counts = await queue.getJobCounts('waiting', 'active', 'delayed', 'failed');
         const [oldestWaiting] = await queue.getJobs(['waiting'], 0, 0);
         let oldestWaitingMs: number | undefined;

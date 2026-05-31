@@ -11,7 +11,7 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 // Initialize the queue
 const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
-const automationQueue = new Queue('automation-triggers', { connection });
+const automationQueue = new Queue('automation-triggers', { connection: connection as any });
 
 export class AutomationClient {
   /**

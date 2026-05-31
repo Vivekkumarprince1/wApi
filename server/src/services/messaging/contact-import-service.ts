@@ -38,7 +38,7 @@ export class ContactImportService {
 
   constructor() {
     this.importQueue = new Queue('contact-import', {
-      connection: redis,
+      connection: redis as any,
       defaultJobOptions: {
         attempts: 3,
         backoff: {
@@ -302,7 +302,7 @@ export class ContactImportService {
         };
       },
       {
-        connection: redis,
+        connection: redis as any,
         concurrency: 2,
       }
     );
