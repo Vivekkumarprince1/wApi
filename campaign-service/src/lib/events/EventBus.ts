@@ -11,8 +11,8 @@ import { SegmentService } from '../../services/SegmentService';
 const connection = getSharedRedis();
 
 // Queues
-export const billingEventsQueue = new Queue('BillingEventsQueue', { connection });
-export const campaignEventsQueue = new Queue('CampaignEventsQueue', { connection });
+export const billingEventsQueue = new Queue('BillingEventsQueue', { connection: connection as any });
+export const campaignEventsQueue = new Queue('CampaignEventsQueue', { connection: connection as any });
 
 const handleBudgetReserved = async (data: any) => {
   const { campaignId, workspaceId } = data;
@@ -190,7 +190,7 @@ export const campaignEventWorker = new Worker('CampaignEventsQueue', async (job:
     default:
       console.warn(`[CampaignEventBus] Unknown event type: ${job.name}`);
   }
-}, { connection });
+}, { connection: connection as any });
 
 campaignEventWorker.on('completed', (job) => {
   console.log(`[CampaignEventBus] Job ${job.id} (${job.name}) completed`);

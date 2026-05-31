@@ -7,8 +7,8 @@ const REDIS_URL = config.redisUrl || 'redis://localhost:6379';
 const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
 
 // Queues
-export const billingEventsQueue = new Queue('BillingEventsQueue', { connection });
-export const campaignEventsQueue = new Queue('CampaignEventsQueue', { connection }); // To send events to campaign service
+export const billingEventsQueue = new Queue('BillingEventsQueue', { connection: connection as any });
+export const campaignEventsQueue = new Queue('CampaignEventsQueue', { connection: connection as any }); // To send events to campaign service
 
 const ledgerService = new LedgerService();
 
@@ -70,7 +70,7 @@ export const billingEventWorker = new Worker('BillingEventsQueue', async (job: J
     default:
       console.warn(`[EventBus] Unknown event type: ${job.name}`);
   }
-}, { connection });
+}, { connection: connection as any });
 
 billingEventWorker.on('failed', (job, err) => {
   console.error(`[EventBus] Job ${job?.id} failed with error ${err.message}`);

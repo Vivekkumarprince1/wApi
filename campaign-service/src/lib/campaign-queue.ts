@@ -7,7 +7,7 @@ const connection = getSharedRedis();
 // Main Campaign Queue. Name comes from the shared contracts registry so the
 // monolith and this service can never drift apart on a string literal.
 export const campaignQueue = new Queue(QUEUE_NAMES.CAMPAIGN_ENGINE, {
-  connection,
+  connection: connection as any,
   defaultJobOptions: {
     removeOnComplete: { count: 1000, age: 24 * 3600 },
     removeOnFail: { count: 5000, age: 7 * 24 * 3600 },

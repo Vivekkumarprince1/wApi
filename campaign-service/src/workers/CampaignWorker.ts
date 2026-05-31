@@ -20,7 +20,7 @@ export class CampaignWorker {
 
   constructor() {
     this.worker = new Worker(QUEUE_NAMES.CAMPAIGN_ENGINE, this.processJob.bind(this), {
-      connection: getSharedRedis(),
+      connection: getSharedRedis() as any,
       concurrency: 5,
     });
 

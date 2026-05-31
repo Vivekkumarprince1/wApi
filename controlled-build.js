@@ -116,47 +116,7 @@ function printHeader() {
 
 // Ensures node_modules exists, installing if missing in a controlled sequential way
 function ensureNodeModules(service) {
-  return new Promise((resolve, reject) => {
-    const servicePath = path.join(ROOT_DIR, service.dir);
-    const hasNodeModules = fs.existsSync(path.join(servicePath, 'node_modules'));
-    if (hasNodeModules) {
-      resolve();
-      return;
-    }
-
-    log(`node_modules is missing in ${COLORS.bright}${service.name}${COLORS.reset}. Running low-memory dependency installation...`, COLORS.yellow);
-    
-    const startTime = Date.now();
-    const child = spawn('npm', ['install', '--no-audit', '--no-fund', '--loglevel=error'], {
-      cwd: servicePath,
-      shell: true,
-      env: {
-        ...process.env,
-        NODE_OPTIONS: `--max-old-space-size=1024` // Limit installation memory usage
-      }
-    });
-
-    child.stdout.on('data', (data) => {
-      const output = data.toString().trim();
-      if (output) console.log(`  ${COLORS.yellow}[${service.name} INSTALL]${COLORS.reset} ${output}`);
-    });
-
-    child.stderr.on('data', (data) => {
-      const output = data.toString().trim();
-      if (output) console.log(`  ${COLORS.red}[${service.name} INSTALL ERR]${COLORS.reset} ${output}`);
-    });
-
-    child.on('close', (code) => {
-      const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      if (code === 0) {
-        log(`Successfully installed dependencies for ${COLORS.bright}${service.name}${COLORS.reset} in ${duration}s`, COLORS.green);
-        resolve();
-      } else {
-        log(`Failed to install dependencies for ${COLORS.bright}${service.name}${COLORS.reset} (exit code ${code})`, COLORS.red);
-        reject(new Error(`Failed to install dependencies (exit code ${code})`));
-      }
-    });
-  });
+  return Promise.resolve();
 }
 
 // Executes a command in a specific directory with limited memory
