@@ -48,6 +48,7 @@ import { useTheme } from "next-themes";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/auth-store";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCommandStore } from "@/store/command-center-store";
 import { cn } from "@/lib/utils";
 import { NotificationPanel } from "./notification-panel";
@@ -134,7 +135,7 @@ export function DashboardHeader() {
                   {i === breadcrumbs.length - 1 ? (
                     <BreadcrumbPage className="font-bold text-foreground">{crumb.title}</BreadcrumbPage>
                   ) : (
-                    <BreadcrumbLink href={crumb.url} className="text-muted-foreground/80 hover:text-foreground transition-colors">{crumb.title}</BreadcrumbLink>
+                    <BreadcrumbLink render={<Link href={crumb.url} />} className="text-muted-foreground/80 hover:text-foreground transition-colors">{crumb.title}</BreadcrumbLink>
                   )}
                 </BreadcrumbItem>
               </React.Fragment>

@@ -59,7 +59,10 @@ const COLORS = {
   billing: '\x1b[33m',        // Yellow
   campaign: '\x1b[32m',       // Green
   websocket: '\x1b[34m',      // Blue
-  frontend: '\x1b[35;1m',     // Bright Magenta
+  frontend: '\x1b[31m',       // Red
+  
+  // UI colors
+  system: '\x1b[37;1m',     // Bright Magenta
   
   // UI colors
   system: '\x1b[37;1m',       // Bright White
@@ -128,7 +131,7 @@ const SERVICES = [
     name: 'Frontend App',
     dir: 'frontend',
     cmd: 'npm',
-    args: ['run', 'dev'],
+    args: ['start'],
     color: COLORS.frontend,
     memoryLimit: 1536
   }

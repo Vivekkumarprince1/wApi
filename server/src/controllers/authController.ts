@@ -572,7 +572,7 @@ export const authController = {
   async googleUrl(req: Request, res: Response, next: NextFunction) {
     try {
       const clientId = process.env.GOOGLE_CLIENT_ID;
-      const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3005/api/v1/auth/google/callback';
+      const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3004/api/v1/auth/google/callback';
       
       const url = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
         client_id: clientId || '',

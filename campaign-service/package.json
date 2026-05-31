@@ -14,7 +14,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@wapi/contracts": "workspace:*",
+    "@wapi/contracts": "*",
     "axios": "^1.15.2",
     "bullmq": "^5.76.4",
     "cors": "^2.8.6",

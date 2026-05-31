@@ -7,6 +7,7 @@ import ToastProvider from "@/components/providers/toast-provider";
 import { AuthInitializer } from "@/components/providers/auth-initializer";
 import { CommandCenter } from "@/components/dashboard/command-center";
 import GlobalDashboardLayout from "@/components/layout/dashboard-layout";
+import NextTopLoader from "nextjs-toploader";
 
 /*
 const inter = Inter({
@@ -38,6 +39,17 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${manrope.variable} antialiased min-h-screen bg-background font-sans`}
       >
+        <NextTopLoader
+          color="var(--primary)"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px var(--primary),0 0 5px var(--primary)"
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
