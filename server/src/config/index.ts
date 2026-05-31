@@ -33,9 +33,9 @@ export const config = {
   
   // WhatsApp / Gupshup
   gupshupApiKey: process.env.GUPSHUP_API_KEY || '',
-  // gupshupSourceNumber: process.env.GUPSHUP_SOURCE_NUMBER || '',
-  // gupshupAppId: process.env.GUPSHUP_APP_ID || '',
-  // gupshupPartnerToken: process.env.GUPSHUP_PARTNER_TOKEN || '',
+  gupshupSourceNumber: process.env.GUPSHUP_SOURCE_NUMBER || '',
+  gupshupAppId: process.env.GUPSHUP_APP_ID || '',
+  gupshupPartnerToken: process.env.GUPSHUP_PARTNER_TOKEN || '',
   gupshupPartnerEmail: process.env.GUPSHUP_PARTNER_EMAIL || '',
   gupshupPartnerPassword: process.env.GUPSHUP_PARTNER_PASSWORD || process.env.GUPSHUP_PARTNER_CLIENT_SECRET || '',
   gupshupPartnerClientSecret: process.env.GUPSHUP_PARTNER_CLIENT_SECRET || '',
