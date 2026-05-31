@@ -31,4 +31,22 @@ router.post('/conversations/metadata', internalController.updateConversationMeta
  */
 router.post('/checkout/process', internalController.processCheckout);
 
+/**
+ * @route GET /api/internal/verify/user/:userId
+ * @desc Verify user existence and retrieve socket-relevant details
+ */
+router.get('/verify/user/:userId', internalController.verifyUser);
+
+/**
+ * @route GET /api/internal/verify/workspace-member
+ * @desc Verify if a user is an active member of a workspace
+ */
+router.get('/verify/workspace-member', internalController.verifyWorkspaceMember);
+
+/**
+ * @route GET /api/internal/verify/conversation-member
+ * @desc Verify if a user can access a conversation (member of its workspace)
+ */
+router.get('/verify/conversation-member', internalController.verifyConversationAccess);
+
 export default router;

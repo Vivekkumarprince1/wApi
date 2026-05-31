@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { WabaService } from '../services/messaging/waba-service';
 import { PreflightPolicyService } from '../services/marketing/preflight-policy';
 import * as SocketService from '../services/socket-service';
-import { Contact, Template, Conversation, Integration } from '../models';
+import { Contact, Template, Conversation, Integration, User, Permission } from '../models';
 import { DealService } from '../services/commerce/deal-service';
 import { ContactService } from '../services/messaging/contact-service';
 import { CheckoutBotService } from '../services/commerce/checkout-bot-service';
@@ -335,6 +335,75 @@ export const internalController = {
       res.json({ success: true, data: result });
     } catch (error: any) {
       console.error("[InternalCheckout] Error:", error.message);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * VERIFY USER DETAILS (Used by Standalone WebSocket Service)
+   */
+  async verifyUser(req: Request, res: Response) {
+    try {
+      const { userId } = req.params;
+      const user = await User.findById(userId).select('-passwordHash').lean();
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+      res.json({ success: true, user });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * VERIFY WORKSPACE MEMBERSHIP (Used by Standalone WebSocket Service)
+   */
+  async verifyWorkspaceMember(req: Request, res: Response) {
+    try {
+      const userId = req.query.userId as string;
+      const workspaceId = req.query.workspaceId as string;
+
+      if (!userId || !workspaceId) {
+        return res.status(400).json({ success: false, error: 'userId and workspaceId are required' });
+      }
+
+      const membership = await Permission.findOne({
+        user: userId,
+        workspace: workspaceId,
+        isActive: { $ne: false },
+      }).lean();
+
+      res.json({ success: true, isMember: !!membership });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * VERIFY CONVERSATION ACCESS (Used by Standalone WebSocket Service)
+   */
+  async verifyConversationAccess(req: Request, res: Response) {
+    try {
+      const userId = req.query.userId as string;
+      const conversationId = req.query.conversationId as string;
+
+      if (!userId || !conversationId) {
+        return res.status(400).json({ success: false, error: 'userId and conversationId are required' });
+      }
+
+      const convo: any = await Conversation.findById(conversationId).select('workspace').lean();
+      if (!convo || !convo.workspace) {
+        return res.json({ success: true, hasAccess: false });
+      }
+
+      const membership = await Permission.findOne({
+        user: userId,
+        workspace: convo.workspace,
+        isActive: { $ne: false },
+      }).lean();
+
+      res.json({ success: true, hasAccess: !!membership });
+    } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
   }

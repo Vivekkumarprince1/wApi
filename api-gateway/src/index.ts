@@ -48,7 +48,7 @@ const start = async () => {
     url: '/socket.io/*',
     // Standard HTTP GET fallback handler (polling phase)
     handler: async (request, reply) => {
-      return reply.from(`${config.coreServerUrl}${request.url}`, {
+      return reply.from(`${config.websocketServiceUrl}${request.url}`, {
         rewriteRequestHeaders: (originalReq, headers) => {
           const newHeaders = { ...headers };
           newHeaders['x-internal-service-secret'] = config.internalServiceSecret;
@@ -58,9 +58,9 @@ const start = async () => {
     },
     // WebSocket upgrades handler
     wsHandler: (connection, request) => {
-      const backendWsUrl = config.coreServerUrl.replace(/^http/, 'ws') + request.url;
+      const backendWsUrl = config.websocketServiceUrl.replace(/^http/, 'ws') + request.url;
       
-      fastify.log.debug(`[Gateway WS Proxy] Connecting to backend: ${backendWsUrl}`);
+      fastify.log.debug(`[Gateway WS Proxy] Connecting to dedicated websocket service: ${backendWsUrl}`);
 
       const backendSocket = new WebSocket(backendWsUrl, {
         headers: {
@@ -111,7 +111,7 @@ const start = async () => {
 
   // Handle Socket.io HTTP polling POST requests
   fastify.post('/socket.io/*', async (request, reply) => {
-    return reply.from(`${config.coreServerUrl}${request.url}`, {
+    return reply.from(`${config.websocketServiceUrl}${request.url}`, {
       rewriteRequestHeaders: (originalReq, headers) => {
         const newHeaders = { ...headers };
         newHeaders['x-internal-service-secret'] = config.internalServiceSecret;

@@ -31,6 +31,9 @@ const allowedDevOrigins = allowedDevOriginsSource
 
 const nextConfig: NextConfig = {
   reactCompiler: false,
+  experimental: {
+    webpackMemoryOptimizations: true,
+  },
   allowedDevOrigins,
   images: {
     remotePatterns: [

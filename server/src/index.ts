@@ -1,17 +1,12 @@
 import 'dotenv/config';
 
 import express from 'express';
-import { createServer } from 'http';
-import { Server as SocketIOServer } from 'socket.io';
-import { createAdapter } from '@socket.io/redis-adapter';
-import IORedis from 'ioredis';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 
-import { setIO } from './services/socket-bridge';
 import { initWorkers } from './services/worker-registry';
 import { initSocketEmitter } from './services/socket-emitter';
 import { authRateLimit, apiRateLimit, bulkRateLimit } from './middlewares/rateLimitMiddleware';
@@ -92,27 +87,6 @@ app.use(cookieParser());
 // Mongoose buffering is disabled there to surface "DB not connected" errors
 // instead of silently queueing operations.
 
-// --- SOCKET.IO ---
-const httpServer = createServer(app);
-const io = new SocketIOServer(httpServer, {
-  cors: {
-    origin: allowedOrigins,
-    credentials: true,
-  },
-  transports: ["websocket", "polling"],
-});
-
-// Redis Adapter
-const redisUrl = process.env.REDIS_URL;
-const pubClient = new IORedis(redisUrl!, { maxRetriesPerRequest: null });
-const subClient = pubClient.duplicate();
-io.adapter(createAdapter(pubClient, subClient));
-
-// Set IO instance for services
-setIO(io);
-
-// --- WORKERS & EMITTERS (initialized inside startServer once DB is ready) ---
-import { MicroserviceEventBridge } from './services/microservice-event-bridge';
 
 // --- ROUTES ---
 import crmRoutes from './routes/crmRoutes';
@@ -178,13 +152,6 @@ import { errorHandler, notFoundHandler } from './middlewares/errorHandler';
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// --- SOCKET HANDLERS ---
-import { handleSocketEvents, socketAuthMiddleware } from './sockets/socketHandler';
-
-io.use(socketAuthMiddleware);
-io.on("connection", (socket) => {
-  handleSocketEvents(io, socket);
-});
 
 // --- START SERVER ---
 async function startServer() {
@@ -202,14 +169,11 @@ async function startServer() {
 
     initWorkers();
     initSocketEmitter();
-    const eventBridge = new MicroserviceEventBridge(io);
-    eventBridge.start().catch(err => console.error("[Main Server] Event Bridge failed to start:", err));
-    console.log("[Main Server] Background workers, socket emitter, and event bridge initialized.");
+    console.log("[Main Server] Background workers and socket emitter initialized.");
 
-    httpServer.listen(port, '0.0.0.0', () => {
+    app.listen(port, '0.0.0.0', () => {
       clearTimeout(startupTimeout);
       console.log(`\x1b[32m[Main Server] Running at http://0.0.0.0:${port}\x1b[0m`);
-      console.log(`\x1b[36m[Main Server] Socket.io initialized with origins: ${allowedOrigins.join(', ')}\x1b[0m`);
       const { getAuthCookieOptions } = require('./utils/auth-utils');
       console.log(`\x1b[35m[Main Server] Auth Cookie httpOnly: ${getAuthCookieOptions().httpOnly}\x1b[0m`);
       console.log(`\x1b[32m[Main Server] Server is READY for requests\x1b[0m`);
