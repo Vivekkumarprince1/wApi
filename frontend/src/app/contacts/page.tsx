@@ -34,6 +34,7 @@ import {
   parseISO 
 } from 'date-fns';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -312,7 +313,9 @@ export default function ContactsPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
-                           <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors cursor-pointer">{contact.name}</span>
+                           <Link href={`/contacts/${contact._id}`} className="text-sm font-bold text-foreground group-hover:text-primary transition-colors cursor-pointer hover:underline">
+                             {contact.name}
+                           </Link>
                            <span className="text-[11px] font-medium text-muted-foreground">{contact.phone}</span>
                         </div>
                       </div>
@@ -358,9 +361,11 @@ export default function ContactsPage() {
                           <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50">
                              <DropdownMenuItem 
                                className="rounded-xl font-bold h-10 cursor-pointer"
-                               onClick={() => router.push(`/contacts/${contact._id}`)}
+                               asChild
                              >
-                               <Eye className="mr-2 h-4 w-4" /> View Profile
+                               <Link href={`/contacts/${contact._id}`} className="flex items-center w-full">
+                                 <Eye className="mr-2 h-4 w-4" /> View Profile
+                               </Link>
                              </DropdownMenuItem>
                              <DropdownMenuItem 
                                className="rounded-xl font-bold h-10 cursor-pointer"

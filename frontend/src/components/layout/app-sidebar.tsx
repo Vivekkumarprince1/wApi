@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   LayoutDashboard,
   Inbox,
@@ -280,7 +281,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
     <ShadSidebar collapsible="icon" className="border-border/50 bg-background/95 backdrop-blur-sm" {...props}>
       <SidebarHeader className="flex flex-col gap-4 p-4 border-b border-border/50">
         <div className="flex flex-col gap-4 group-data-[collapsible=icon]:items-center">
-            <div className="flex items-center gap-2 group cursor-pointer" onClick={() => router.push("/")}>
+            <Link href="/" className="flex items-center gap-2 group cursor-pointer">
                 <div className={`flex aspect-square size-8 items-center justify-center rounded-lg shadow-lg transition-all duration-500 group-hover:scale-105 ${isAdmin ? 'bg-indigo-600 text-white shadow-indigo-500/30' : 'bg-primary text-primary-foreground shadow-primary/20'}`}>
                     {isAdmin ? <Shield className="size-5" /> : <MessageSquare className="size-5" />}
                 </div>
@@ -292,7 +293,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
                         {isAdmin ? 'SuperAdmin Console' : (user?.role === 'owner' ? 'Enterprise' : 'Workspace')}
                     </span>
                 </div>
-            </div>
+            </Link>
 
             <div className="group-data-[collapsible=icon]:hidden">
                 <WorkspaceSwitcher />
@@ -418,7 +419,7 @@ function SidebarNavItem({
                 ? 'data-[active=true]:bg-indigo-600 data-[active=true]:text-white' 
                 : 'data-[active=true]:bg-primary/10 data-[active=true]:text-primary'
         } ${isLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
-        onClick={() => !isLocked && router.push(item.url)}
+        render={!isLocked ? <Link href={item.url} /> : undefined}
       >
         <item.icon className="size-5" />
         <span className="font-bold flex items-center justify-between gap-2 tracking-tight flex-1">
@@ -490,7 +491,7 @@ function SidebarNavSubItem({
             <SidebarMenuSubButton
                 isActive={pathname === subItem.url}
                 className={`h-8 hover:text-primary transition-colors text-xs ${isSubLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
-                onClick={() => !isSubLocked && router.push(subItem.url)}
+                render={!isSubLocked ? <Link href={subItem.url} /> : undefined}
             >
                 <div className="flex items-center gap-2">
                     <span>{subItem.title}</span>

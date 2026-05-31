@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { 
   Rocket, 
   Loader2, 
@@ -324,19 +325,21 @@ const DashboardPageClient = () => {
             <p className="text-slate-400 text-base max-w-md">Join businesses growing with our industrial-strength messaging platform.</p>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <button
-              onClick={() => router.push('/campaign')}
-              className="bg-primary hover:brightness-110 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-xl hover:shadow-primary/20 flex items-center gap-2 group/btn"
-            >
-              <Rocket className="h-5 w-5 transition-transform group-hover/btn:-translate-y-1 group-hover/btn:translate-x-1" />
-              Launch Campaign
-            </button>
-            <button
-              onClick={() => router.push('/support')}
-              className="bg-white/5 hover:bg-white/10 text-white px-8 py-3.5 rounded-xl font-bold transition-all border border-white/10 backdrop-blur-md"
-            >
-              Get Help
-            </button>
+            <Link href="/campaign">
+              <button
+                className="bg-primary hover:brightness-110 text-white px-8 py-3.5 rounded-xl font-bold transition-all shadow-xl hover:shadow-primary/20 flex items-center gap-2 group/btn"
+              >
+                <Rocket className="h-5 w-5 transition-transform group-hover/btn:-translate-y-1 group-hover/btn:translate-x-1" />
+                Launch Campaign
+              </button>
+            </Link>
+            <Link href="/support">
+              <button
+                className="bg-white/5 hover:bg-white/10 text-white px-8 py-3.5 rounded-xl font-bold transition-all border border-white/10 backdrop-blur-md"
+              >
+                Get Help
+              </button>
+            </Link>
           </div>
         </div>
       </div>

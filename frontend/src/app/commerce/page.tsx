@@ -25,6 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import api from '@/lib/axios';
 import FlashLoader from '@/components/ui/flash-loader';
@@ -131,12 +132,13 @@ export default function CommerceOverviewPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-             <Button 
-               onClick={() => router.push('/commerce/catalog')}
-               className="rounded-2xl h-12 px-8 font-black shadow-lg shadow-primary/25 bg-primary text-primary-foreground text-[10px] uppercase tracking-[0.2em] gap-2 group"
-             >
-               <Plus className="size-4 group-hover:rotate-90 transition-transform duration-500" /> New Product
-             </Button>
+             <Link href="/commerce/catalog">
+               <Button 
+                 className="rounded-2xl h-12 px-8 font-black shadow-lg shadow-primary/25 bg-primary text-primary-foreground text-[10px] uppercase tracking-[0.2em] gap-2 group"
+               >
+                 <Plus className="size-4 group-hover:rotate-90 transition-transform duration-500" /> New Product
+               </Button>
+             </Link>
           </div>
         </div>
 
@@ -180,19 +182,24 @@ export default function CommerceOverviewPage() {
            </div>
            <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-4 gap-6">
               {QUICK_LINKS.map((link, i) => (
-                <motion.div
-                  key={link.path}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  whileHover={{ y: -5 }}
-                  onClick={() => router.push(link.path)}
-                  className={cn(
-                    "group cursor-pointer p-8 rounded-[40px] border-2 transition-all relative overflow-hidden bg-card shadow-premium-sm",
-                    link.border,
-                    "hover:shadow-premium hover:border-primary/30"
-                  )}
-                >
+                <Link href={link.path} key={link.path} className="block">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 260, 
+                      damping: 20, 
+                      delay: i * 0.05 
+                    }}
+                    whileHover={{ y: -8, scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={cn(
+                      "group cursor-pointer p-8 rounded-[40px] border-2 transition-all relative overflow-hidden bg-card shadow-premium-sm",
+                      link.border,
+                      "hover:shadow-premium hover:border-primary/30"
+                    )}
+                  >
                    <div className="flex items-start justify-between mb-8 relative z-10">
                       <div className={cn("p-4 rounded-[24px] shadow-lg transition-transform group-hover:scale-110", link.bg, link.color)}>
                          <link.icon className="size-6" />
@@ -222,7 +229,8 @@ export default function CommerceOverviewPage() {
 
                    {/* Background Glow */}
                    <div className={cn("absolute -top-20 -right-20 w-48 h-48 blur-[80px] opacity-0 group-hover:opacity-20 transition-opacity rounded-full", link.bg)} />
-                </motion.div>
+                  </motion.div>
+                </Link>
               ))}
            </div>
         </div>

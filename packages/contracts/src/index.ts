@@ -16,3 +16,4 @@ export * from './automation-actions';
 export * from './billing-events';
 export * from './socket-events';
 export * from './common';
+export * from './queues';

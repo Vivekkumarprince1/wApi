@@ -175,9 +175,11 @@ export default function WorkflowsPage() {
         <div className="flex items-center gap-3">
           <Button 
              className="rounded-2xl h-12 px-6 font-black shadow-lg shadow-primary/20 bg-primary group"
-              onClick={() => router.push('/automation/workflows/builder/create')}
+             asChild
           >
-            <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform" /> Design New Workflow
+            <Link href="/automation/workflows/builder/create">
+              <Plus className="h-4 w-4 mr-2 group-hover:rotate-90 transition-transform" /> Design New Workflow
+            </Link>
           </Button>
         </div>
       </div>
@@ -262,9 +264,11 @@ export default function WorkflowsPage() {
               <Button 
                 variant="outline" 
                 className="mt-10 rounded-2xl h-14 px-10 border-primary text-primary font-black hover:bg-primary hover:text-white transition-all shadow-xl shadow-primary/10"
-              onClick={() => router.push('/automation/workflows/builder/create')}
+                asChild
               >
-                + Design Your First Flow
+                <Link href="/automation/workflows/builder/create">
+                  + Design Your First Flow
+                </Link>
               </Button>
             </motion.div>
           ) : (

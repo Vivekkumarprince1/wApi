@@ -400,10 +400,10 @@ export default function InstagramQuickflowsPage() {
 
                 <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[60vh] overflow-y-auto">
                     {PRESET_TEMPLATES.map((preset) => (
-                      <div 
+                      <Link 
                         key={preset.id}
-                        onClick={() => router.push(`/automation/instagram-quickflows/create?preset=${preset.id}`)}
-                        className="group bg-muted/30 border border-border/50 rounded-[40px] p-8 hover:border-pink-500/30 hover:bg-card transition-all cursor-pointer relative overflow-hidden"
+                        href={`/automation/instagram-quickflows/create?preset=${preset.id}`}
+                        className="group bg-muted/30 border border-border/50 rounded-[40px] p-8 hover:border-pink-500/30 hover:bg-card transition-all cursor-pointer relative overflow-hidden block"
                       >
                          <div className="flex items-start gap-6 relative z-10">
                             <div className={cn("w-16 h-16 rounded-[24px] flex items-center justify-center text-4xl shadow-inner group-hover:scale-110 transition-transform", preset.color)}>
@@ -419,16 +419,16 @@ export default function InstagramQuickflowsPage() {
                             </div>
                          </div>
                          <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-pink-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
+                      </Link>
                     ))}
-                    <div 
-                        onClick={() => router.push('/automation/instagram-quickflows/create')}
-                        className="bg-slate-900 rounded-[40px] p-8 flex flex-col items-center justify-center text-center group hover:bg-slate-800 transition-all cursor-pointer border border-white/5"
+                    <Link 
+                        href="/automation/instagram-quickflows/create"
+                        className="bg-slate-900 rounded-[40px] p-8 flex flex-col items-center justify-center text-center group hover:bg-slate-800 transition-all cursor-pointer border border-white/5 block"
                     >
                        <Plus className="h-12 w-12 text-white/20 mb-4 group-hover:scale-110 group-hover:text-pink-500 transition-all" />
                        <h3 className="text-xl font-black text-white mb-1">Custom Builder</h3>
                        <p className="text-sm font-medium text-white/40 leading-relaxed">Design your own logic from scratch</p>
-                    </div>
+                    </Link>
                 </div>
 
                 <div className="p-10 bg-muted/20 border-t border-border/50 flex justify-end gap-4">

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { 
   Play, 
   Pause, 
@@ -79,12 +80,44 @@ const CampaignsPage = () => {
 
   const actionMutation = useMutation({
     mutationFn: ({ id, action }: { id: string, action: any }) => performCampaignAction(id, action),
+    onMutate: async ({ id, action }) => {
+      // Cancel outgoing refetches so they don't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: ['campaigns'] });
+      
+      // Snapshot the previous cache value
+      const previousCampaigns = queryClient.getQueryData(['campaigns']);
+      
+      // Optimistically update the cache list
+      queryClient.setQueryData(['campaigns'], (old: any) => {
+        if (!old || !old.campaigns) return old;
+        return {
+          ...old,
+          campaigns: old.campaigns.map((c: any) => {
+            if (c._id === id) {
+              let newStatus = c.status;
+              if (action === 'start') newStatus = 'running';
+              else if (action === 'pause') newStatus = 'paused';
+              else if (action === 'resume') newStatus = 'running';
+              return { ...c, status: newStatus };
+            }
+            return c;
+          })
+        };
+      });
+
+      return { previousCampaigns };
+    },
     onSuccess: (_, { action }) => {
       toast.success(`Campaign ${action} successful`);
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
     },
-    onError: (err: any) => {
+    onError: (err: any, { action }, context: any) => {
       toast.error(err.message || 'Action failed');
+      if (context?.previousCampaigns) {
+        queryClient.setQueryData(['campaigns'], context.previousCampaigns);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
     }
   });
 
@@ -123,13 +156,14 @@ const CampaignsPage = () => {
       <p className="text-sm text-muted-foreground mb-8 max-w-sm mx-auto font-medium">
         Broadcast your message to thousands of customers in just a few clicks.
       </p>
-      <Button 
-        onClick={() => router.push('/campaign/new')}
-        className="rounded-xl px-8 h-12 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-bold group"
-      >
-        <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" /> 
-        Create First Campaign
-      </Button>
+      <Link href="/campaign/new">
+        <Button 
+          className="rounded-xl px-8 h-12 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-bold group"
+        >
+          <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" /> 
+          Create First Campaign
+        </Button>
+      </Link>
     </div>
   );
 
@@ -153,13 +187,14 @@ const CampaignsPage = () => {
             <FileDown className="h-4 w-4 mr-2 text-muted-foreground group-hover:text-primary transition-colors" />
             Export
           </Button>
-          <Button 
-            onClick={() => router.push('/campaign/new')}
-            className="rounded-2xl px-6 h-12 shadow-premium hover:shadow-primary/20 transition-all font-bold bg-primary group"
-          >
-            <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" />
-            New Campaign
-          </Button>
+          <Link href="/campaign/new">
+            <Button 
+              className="rounded-2xl px-6 h-12 shadow-premium hover:shadow-primary/20 transition-all font-bold bg-primary group"
+            >
+              <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" />
+              New Campaign
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -170,19 +205,27 @@ const CampaignsPage = () => {
             { id: 'one-time', label: 'One-Time' },
             { id: 'ongoing', label: 'Ongoing' },
             { id: 'api', label: 'API' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === tab.id 
-                  ? 'bg-background text-primary shadow-sm shadow-black/5 ring-1 ring-border/50' 
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/10'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+          ].map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-bold transition-all relative ${
+                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/10'
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabIndicator"
+                    className="absolute inset-0 bg-background rounded-xl shadow-sm shadow-black/5 ring-1 ring-border/50"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
         
         <div className="relative flex-1 w-full group">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCampaignById, performCampaignAction } from "@/lib/api/campaigns";
 import { 
@@ -93,8 +94,10 @@ export default function CampaignDetailsPage() {
       <div className="flex flex-col items-center justify-center min-h-[400px] text-muted-foreground space-y-4">
         <AlertCircle className="h-12 w-12 text-destructive" />
         <h2 className="text-xl font-bold text-foreground">Campaign Not Found</h2>
-        <Button variant="outline" onClick={() => router.push('/campaign')}>
-          Back to Campaigns
+        <Button variant="outline" asChild>
+          <Link href="/campaign">
+            Back to Campaigns
+          </Link>
         </Button>
       </div>
     );
@@ -179,9 +182,11 @@ export default function CampaignDetailsPage() {
             variant="ghost" 
             size="icon" 
             className="rounded-full h-10 w-10 bg-background border border-border/50 shadow-sm"
-            onClick={() => router.push('/campaign')}
+            asChild
           >
-            <ArrowLeft className="h-4 w-4" />
+            <Link href="/campaign">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
           </Button>
           <div>
             <div className="flex items-center gap-3 mb-1">

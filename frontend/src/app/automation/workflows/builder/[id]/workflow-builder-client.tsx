@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   ReactFlow,
@@ -424,8 +425,10 @@ export default function WorkflowBuilderPage() {
     <div className="flex flex-col h-screen w-full bg-slate-50">
       <div className="h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/automation/workflows')}>
-            <ArrowLeft className="h-4 w-4" />
+          <Button variant="ghost" size="icon" asChild>
+            <Link href="/automation/workflows">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
           </Button>
           <div className="h-6 w-[2px] bg-slate-200" />
           <Input
