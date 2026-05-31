@@ -3,38 +3,11 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const normalizeAllowedDevOrigin = (origin: string): string | undefined => {
-  const trimmed = origin.trim();
-  if (!trimmed || trimmed === "*" || trimmed === "**") {
-    return undefined;
-  }
-
-  try {
-    const url = trimmed.includes("://") ? trimmed : `http://${trimmed}`;
-    return new URL(url).origin;
-  } catch {
-    return trimmed;
-  }
-};
-
-const isString = (value: string | undefined): value is string =>
-  typeof value === "string" && value.length > 0;
-
-const allowedDevOriginsSource = process.env.ALLOWED_DEV_ORIGINS || process.env.ALLOWED_ORIGINS;
-
-const allowedDevOrigins = allowedDevOriginsSource
-  ? allowedDevOriginsSource
-    .split(",")
-    .map(normalizeAllowedDevOrigin)
-    .filter(isString)
-  : undefined;
-
 const nextConfig: NextConfig = {
   reactCompiler: false,
   experimental: {
     webpackMemoryOptimizations: true,
   },
-  allowedDevOrigins,
   images: {
     remotePatterns: [
       {
