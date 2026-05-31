@@ -1,0 +1,25 @@
+# pnpm workspace — single install, one node_modules store (8GB-friendly).
+# After `pnpm install`, @wapi/contracts is linked into every service that
+# declares it as a "workspace:*" dependency (no manual symlinks needed).
+packages:
+  - "frontend"
+  - "api-gateway"
+  - "server"
+  - "automation-service"
+  - "campaign-service"
+  - "billing-service"
+  - "websocket-service"
+  - "packages/*"
+
+# Single source of truth for shared dependency versions. Reference these in
+# each service's package.json as e.g. "mongoose": "catalog:" so versions can
+# never drift across services again. Verified against npm on 2026-05-31.
+catalog:
+  typescript: ~6.0.3
+  mongoose: ^9.6.3
+  express: ^5.2.1
+  zod: ^4.4.3
+  bullmq: ^5.77.6
+  ioredis: ^5.10.1
+  "@types/node": ^25.9.1
+  fastify: ^5.8.5

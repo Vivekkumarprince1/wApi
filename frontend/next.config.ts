@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
   reactCompiler: false,
   experimental: {
     webpackMemoryOptimizations: true,
+    optimizePackageImports: [
+      "lucide-react",
+      "recharts",
+      "@base-ui/react",
+      "framer-motion",
+      "@xyflow/react",
+      "date-fns"
+    ]
   },
   allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS
     ? process.env.ALLOWED_DEV_ORIGINS.split(",")

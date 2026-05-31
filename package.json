@@ -1,0 +1,20 @@
+{
+  "name": "wapi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "wApi — WhatsApp BSP platform monorepo (pnpm workspace)",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build --concurrency=1",
+    "build:legacy": "node controlled-build.js",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
+  },
+  "packageManager": "pnpm@11.5.0",
+  "devDependencies": {
+    "turbo": "^2.9.16"
+  }
+}

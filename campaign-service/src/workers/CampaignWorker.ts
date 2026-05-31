@@ -1,4 +1,5 @@
 import { Worker, Job } from 'bullmq';
+import { QUEUE_NAMES } from '@wapi/contracts';
 import { Campaign, CampaignBatch, CampaignMessage, ICampaignModel, ICampaignBatchModel, Workspace } from "../models";
 import { JOB_TYPES, CampaignQueueService } from "../lib/campaign-queue";
 import { CampaignService } from "../services/CampaignService";
@@ -18,7 +19,7 @@ export class CampaignWorker {
   private worker: Worker;
 
   constructor() {
-    this.worker = new Worker('campaign-engine', this.processJob.bind(this), {
+    this.worker = new Worker(QUEUE_NAMES.CAMPAIGN_ENGINE, this.processJob.bind(this), {
       connection: getSharedRedis(),
       concurrency: 5,
     });

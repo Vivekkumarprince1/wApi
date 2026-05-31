@@ -409,38 +409,48 @@ function SidebarNavItem({
     : isActive(item.url);
   const isExpanded = Boolean(openSections[item.title]);
 
+  const button = (
+    <SidebarMenuButton
+      tooltip={item.title}
+      isActive={isItemActive}
+      className={`h-11 hover:bg-muted/50 transition-all duration-300 data-[active=true]:shadow-sm rounded-xl px-3 ${
+          variant === 'admin' 
+              ? 'data-[active=true]:bg-indigo-600 data-[active=true]:text-white' 
+              : 'data-[active=true]:bg-primary/10 data-[active=true]:text-primary'
+      } ${isLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
+      render={!isLocked ? <span /> : undefined}
+    >
+      <item.icon className="size-5" />
+      <span className="font-bold flex items-center justify-between gap-2 tracking-tight flex-1">
+        <div className="flex items-center gap-2">
+          {item.title}
+          {isLocked && <Lock className="h-3 w-3 text-primary animate-pulse" />}
+          {item.status && (
+             <div className={`h-1.5 w-1.5 rounded-full ${item.status === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]' : 'bg-amber-500'} animate-pulse`} />
+          )}
+        </div>
+        {item.badge && (
+           <Badge variant="outline" className={`ml-auto text-[8px] font-black tracking-widest px-1.5 py-0 border-none h-4 min-w-[1.2rem] justify-center ${
+              variant === 'admin' 
+                  ? (item.badgeVariant === 'indigo' ? 'bg-white text-indigo-600' : 'bg-indigo-500/20 text-indigo-200') 
+                  : 'bg-primary/10 text-primary'
+           }`}>
+              {item.badge}
+           </Badge>
+        )}
+      </span>
+    </SidebarMenuButton>
+  );
+
   return (
     <SidebarMenuItem key={item.title}>
-      <SidebarMenuButton
-        tooltip={item.title}
-        isActive={isItemActive}
-        className={`h-11 hover:bg-muted/50 transition-all duration-300 data-[active=true]:shadow-sm rounded-xl px-3 ${
-            variant === 'admin' 
-                ? 'data-[active=true]:bg-indigo-600 data-[active=true]:text-white' 
-                : 'data-[active=true]:bg-primary/10 data-[active=true]:text-primary'
-        } ${isLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
-        render={!isLocked ? <Link href={item.url} /> : undefined}
-      >
-        <item.icon className="size-5" />
-        <span className="font-bold flex items-center justify-between gap-2 tracking-tight flex-1">
-          <div className="flex items-center gap-2">
-            {item.title}
-            {isLocked && <Lock className="h-3 w-3 text-primary animate-pulse" />}
-            {item.status && (
-               <div className={`h-1.5 w-1.5 rounded-full ${item.status === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]' : 'bg-amber-500'} animate-pulse`} />
-            )}
-          </div>
-          {item.badge && (
-             <Badge variant="outline" className={`ml-auto text-[8px] font-black tracking-widest px-1.5 py-0 border-none h-4 min-w-[1.2rem] justify-center ${
-                variant === 'admin' 
-                    ? (item.badgeVariant === 'indigo' ? 'bg-white text-indigo-600' : 'bg-indigo-500/20 text-indigo-200') 
-                    : 'bg-primary/10 text-primary'
-             }`}>
-                {item.badge}
-             </Badge>
-          )}
-        </span>
-      </SidebarMenuButton>
+      {!isLocked ? (
+        <Link href={item.url} className="w-full block" passHref>
+          {button}
+        </Link>
+      ) : (
+        button
+      )}
 
       {hasChildren ? (
         <SidebarMenuAction
@@ -486,18 +496,28 @@ function SidebarNavSubItem({
     const subFeatureGate = useFeatureGate(subItem.feature || "");
     const isSubLocked = subItem.feature ? !subFeatureGate.gate.allowed : false;
 
+    const subButton = (
+        <SidebarMenuSubButton
+            isActive={pathname === subItem.url}
+            className={`h-8 hover:text-primary transition-colors text-xs ${isSubLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
+            render={!isSubLocked ? <span /> : undefined}
+        >
+            <div className="flex items-center gap-2">
+                <span>{subItem.title}</span>
+                {isSubLocked && <Lock className="h-2.5 w-2.5 text-primary" />}
+            </div>
+        </SidebarMenuSubButton>
+    );
+
     return (
         <SidebarMenuSubItem key={subItem.title}>
-            <SidebarMenuSubButton
-                isActive={pathname === subItem.url}
-                className={`h-8 hover:text-primary transition-colors text-xs ${isSubLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
-                render={!isSubLocked ? <Link href={subItem.url} /> : undefined}
-            >
-                <div className="flex items-center gap-2">
-                    <span>{subItem.title}</span>
-                    {isSubLocked && <Lock className="h-2.5 w-2.5 text-primary" />}
-                </div>
-            </SidebarMenuSubButton>
+            {!isSubLocked ? (
+                <Link href={subItem.url} className="w-full block" passHref>
+                    {subButton}
+                </Link>
+            ) : (
+                subButton
+            )}
         </SidebarMenuSubItem>
     );
 }

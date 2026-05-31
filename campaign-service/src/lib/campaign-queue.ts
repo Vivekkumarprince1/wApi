@@ -1,10 +1,12 @@
 import { Queue, QueueEvents } from 'bullmq';
+import { QUEUE_NAMES, CAMPAIGN_JOB_TYPES } from '@wapi/contracts';
 import { getSharedRedis } from './redis';
 
 const connection = getSharedRedis();
 
-// Main Campaign Queue (Must match name in monolith)
-export const campaignQueue = new Queue('campaign-engine', {
+// Main Campaign Queue. Name comes from the shared contracts registry so the
+// monolith and this service can never drift apart on a string literal.
+export const campaignQueue = new Queue(QUEUE_NAMES.CAMPAIGN_ENGINE, {
   connection,
   defaultJobOptions: {
     removeOnComplete: { count: 1000, age: 24 * 3600 },
@@ -17,13 +19,9 @@ export const campaignQueue = new Queue('campaign-engine', {
   },
 });
 
-export const JOB_TYPES = {
-  CAMPAIGN_START: 'campaign-start',
-  BATCH_PROCESS: 'batch-process',
-  CAMPAIGN_CHECK: 'campaign-check',
-  SCHEDULED_START: 'scheduled-start',
-  CLEANUP: 'cleanup'
-} as const;
+// Re-exported from the shared registry so existing imports (`JOB_TYPES`)
+// keep working while the values now live in one place.
+export const JOB_TYPES = CAMPAIGN_JOB_TYPES;
 
 export class CampaignQueueService {
   /**
