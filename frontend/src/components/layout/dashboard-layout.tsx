@@ -22,7 +22,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isImpersonating, stopImpersonating, user, workspace, loading, accessRestriction } = useAuthStore();
+  const { isImpersonating, stopImpersonating, user, workspace, loading, accessRestriction, authenticated } = useAuthStore();
   const [isExiting, setIsExiting] = React.useState(false);
   const pathname = usePathname();
 
@@ -54,24 +54,6 @@ export default function DashboardLayout({
     return <>{children}</>;
   }
 
-  if (loading && !user) {
-    return <FlashLoader />;
-  }
-
-  if (accessRestriction && !(accessRestriction.kind === 'billing' && isBillingPage)) {
-    return (
-      <AccessRestrictedState
-        title={accessRestriction.title}
-        description={accessRestriction.description}
-        actionLabel={accessRestriction.actionLabel}
-        targetPath={accessRestriction.targetPath}
-        secondaryLabel={accessRestriction.kind === 'onboarding' ? 'Open billing' : 'Go to dashboard'}
-        secondaryPath={accessRestriction.kind === 'onboarding' ? '/billing' : '/'}
-        statusLabel={accessRestriction.kind === 'billing' ? workspace?.billingStatus || null : null}
-      />
-    );
-  }
-
   const handleExit = async () => {
     setIsExiting(true);
     const toastId = toast.loading("Restoring administrative session...");
@@ -85,7 +67,7 @@ export default function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background transition-colors duration-300">
+      <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1 min-w-0 bg-background/50">
           
@@ -117,11 +99,27 @@ export default function DashboardLayout({
           )}
 
           <DashboardHeader />
-          <SystemBanners />
-          <SocketHub />
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-            <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-2 duration-500">
-              {featureRequired ? (
+          {authenticated && <SystemBanners />}
+          {authenticated && <SocketHub />}
+          
+          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 flex flex-col justify-start">
+            <div className="mx-auto max-w-7xl w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+              {loading && !user ? (
+                <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 animate-pulse">Syncing Secure Session...</p>
+                </div>
+              ) : accessRestriction && !(accessRestriction.kind === 'billing' && isBillingPage) ? (
+                <AccessRestrictedState
+                  title={accessRestriction.title}
+                  description={accessRestriction.description}
+                  actionLabel={accessRestriction.actionLabel}
+                  targetPath={accessRestriction.targetPath}
+                  secondaryLabel={accessRestriction.kind === 'onboarding' ? 'Open billing' : 'Go to dashboard'}
+                  secondaryPath={accessRestriction.kind === 'onboarding' ? '/billing' : '/'}
+                  statusLabel={accessRestriction.kind === 'billing' ? workspace?.billingStatus || null : null}
+                />
+              ) : featureRequired ? (
                 <FeatureGate 
                   feature={featureRequired} 
                   featureName={featureMeta?.name}
