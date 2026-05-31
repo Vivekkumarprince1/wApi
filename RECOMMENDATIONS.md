@@ -199,8 +199,29 @@ Stack is **modern and healthy**: Next **16.2.x** (latest 16.2.6), React **19.2.x
 
 ---
 
+## ⚠️ Found during PoC: broken bullmq install in campaign-service
+`campaign-service/node_modules/bullmq/package.json` declares `"types": "./dist/esm/index.d.ts"` but **that file does not exist on disk** — the install is partial/corrupted (consistent with the 8GB-RAM installs freezing mid-way, see the build-constraints note). This produces 9 pre-existing `tsc --noEmit` errors (TS7016 + cascading TS7006 implicit-any) that have nothing to do with the queue refactor. The `dev`/`build` scripts hide it by using `ts-node-dev --transpile-only` / not running a strict typecheck. **Fix:** clean reinstall (`rm -rf node_modules && pnpm install` once the workspace is adopted) so bullmq's bundled types land. Until then, full `tsc` type-checking of this service will report those 9 errors regardless of source code.
+
 ## PoC applied in this pass (safe, additive only)
 - **`packages/contracts/src/queues.ts`** — new: typed `QUEUE_NAMES` registry + `QueuePayloads`/`JobPayload<>` map + `CAMPAIGN_JOB_TYPES`.
 - **`packages/contracts/src/index.ts`** — added `export * from './queues'`.
 
-No existing code was modified and no versions were changed — those are left for your approval. Build the contracts package (`npm run build` in `packages/contracts`) to confirm the new file compiles cleanly.
+### Workspace + queue wiring applied this pass
+- **`package.json`** (root, new) — pnpm workspace root: `turbo run build --concurrency=1` (memory-safe), keeps `controlled-build.js` as `build:legacy`.
+- **`pnpm-workspace.yaml`** (new) — workspace globs + version **catalog** (TS, Mongoose, Express, zod, bullmq, ioredis, @types/node, fastify).
+- **`turbo.json`** (new) — build/dev/lint/test pipeline with `^build` ordering (contracts builds first automatically).
+- **`.nvmrc`** (new) — pins Node 22.
+- **`campaign-service/package.json`** — added `"@wapi/contracts": "workspace:*"`.
+- **`campaign-service/node_modules/@wapi/contracts`** — symlink → `packages/contracts` (manual stand-in for what `pnpm install` will create; lets it compile now without a full reinstall).
+- **`campaign-service/src/lib/campaign-queue.ts`** — uses `QUEUE_NAMES.CAMPAIGN_ENGINE`; `JOB_TYPES` now re-exports `CAMPAIGN_JOB_TYPES` from contracts (existing imports unchanged).
+- **`campaign-service/src/workers/CampaignWorker.ts`** — uses `QUEUE_NAMES.CAMPAIGN_ENGINE`.
+
+**Verification:** `tsc --noEmit` on campaign-service reports **9 errors, all pre-existing** from the broken bullmq install above — **0 from the contracts wiring**. An isolated import probe of `QUEUE_NAMES`/`CAMPAIGN_JOB_TYPES`/`JobPayload` type-checks clean (exit 0). The contracts package itself builds clean.
+
+### To finalize (your call — needs a one-time install)
+1. `npm i -g pnpm@11` (pnpm isn't installed yet).
+2. From repo root: `pnpm install` — replaces the manual symlink with a real workspace link and fixes the bullmq install.
+3. Roll the same `QUEUE_NAMES` wiring into `server/src/services/worker-registry.ts`, `bulkMessageWorker.ts`, webhook/import/snooze workers, and automation-service.
+4. Switch each service's shared deps to `"catalog:"` to lock versions.
+
+No service runtime behavior changed (queue name string value is identical: `"campaign-engine"`). Build the contracts package (`npm run build` in `packages/contracts`) any time you edit it.

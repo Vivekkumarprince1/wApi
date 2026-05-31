@@ -361,11 +361,9 @@ export default function ContactsPage() {
                           <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50">
                              <DropdownMenuItem 
                                className="rounded-xl font-bold h-10 cursor-pointer"
-                               asChild
+                               render={<Link href={`/contacts/${contact._id}`} className="flex items-center w-full" />}
                              >
-                               <Link href={`/contacts/${contact._id}`} className="flex items-center w-full">
-                                 <Eye className="mr-2 h-4 w-4" /> View Profile
-                               </Link>
+                               <Eye className="mr-2 h-4 w-4" /> View Profile
                              </DropdownMenuItem>
                              <DropdownMenuItem 
                                className="rounded-xl font-bold h-10 cursor-pointer"
