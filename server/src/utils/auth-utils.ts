@@ -10,6 +10,8 @@ import { config } from '../config';
 
 export interface TokenPayload {
   id: string;
+  workspaceId?: string;
+  role?: string;
   adminId?: string; // Original admin ID if impersonating
   isImpersonating?: boolean;
   iat?: number;

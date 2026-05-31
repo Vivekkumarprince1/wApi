@@ -413,7 +413,20 @@ export const authController = {
         if (needsSave) await user.save();
       }
 
-      const token = signToken({ id: user._id.toString() });
+      const workspaceId = user.activeWorkspace?.toString() || user.workspace?.toString();
+      let role = user.role;
+      if (workspaceId) {
+        const permission = await Permission.findOne({ workspace: workspaceId, user: user._id });
+        if (permission) {
+          role = permission.role;
+        }
+      }
+
+      const token = signToken({ 
+        id: user._id.toString(),
+        workspaceId,
+        role
+      });
 
       const cookieOptions = getAuthCookieOptions();
       res.cookie('auth_token', token, {

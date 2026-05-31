@@ -56,7 +56,7 @@ if (process.env.INTERNAL_SERVICE_SECRET === 'your-service-secret') {
 }
 
 const app = express();
-const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5001", 10);
+const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5005", 10);
 console.log(`[Main Server] Configured port: ${port} (BACKEND_PORT=${process.env.BACKEND_PORT}, PORT=${process.env.PORT})`);
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
@@ -119,7 +119,6 @@ import crmRoutes from './routes/crmRoutes';
 
 import developerRoutes from './routes/developerRoutes';
 
-import { proxyMiddleware } from './middlewares/proxyMiddleware';
 import { authenticate } from './middlewares/authMiddleware';
 
 app.use('/api/v1/auth', authRoutes);
@@ -136,10 +135,7 @@ app.use('/api/v1/crm', crmRoutes);
 app.use('/api/webhooks', webhookRoutes);
 app.use('/api/health', healthRoutes);
 
-// Microservice Proxies
-app.use('/api/v1/automation', authenticate, proxyMiddleware.proxyTo('automation'));
-app.use('/api/v1/campaign', authenticate, proxyMiddleware.proxyTo('campaign'));
-app.use('/api/v1/billing', authenticate, proxyMiddleware.proxyTo('billing'));
+
 
 app.use('/api/v1', compatRoutes);
 app.use('/api/v1/templates', templateRoutes);

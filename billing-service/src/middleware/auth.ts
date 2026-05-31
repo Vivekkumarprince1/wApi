@@ -31,12 +31,13 @@ export interface AuthRequest extends Request {
  * Supports both Gateway Headers and Direct JWT.
  */
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
-  // 1. Check for Gateway Headers
+  // 1. Check for Gateway Headers - ONLY trusted if internal secret matches
+  const internalSecret = req.header('x-internal-service-secret');
   const gatewayUserId = req.header('x-user-id');
   const gatewayWorkspaceId = req.header('x-workspace-id');
   const gatewayRole = req.header('x-user-role');
 
-  if (gatewayUserId) {
+  if (safeEqualSecret(internalSecret) && gatewayUserId) {
     req.user = { 
       id: gatewayUserId, 
       _id: gatewayUserId,

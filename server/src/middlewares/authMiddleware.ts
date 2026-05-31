@@ -13,6 +13,39 @@ export interface AuthRequest extends Request {
 
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    // Gateway Trusted Header Resolution
+    const internalSecret = req.headers['x-internal-service-secret'];
+    if (internalSecret && internalSecret === process.env.INTERNAL_SERVICE_SECRET) {
+      const gatewayUserId = req.headers['x-user-id'];
+      const gatewayWorkspaceId = req.headers['x-workspace-id'];
+      const gatewayRole = req.headers['x-user-role'];
+
+      if (gatewayUserId) {
+        const user = await User.findById(gatewayUserId).select("-passwordHash");
+        if (user) {
+          req.user = user;
+          
+          if (gatewayWorkspaceId) {
+            req.workspace = await Workspace.findById(gatewayWorkspaceId).populate('plan');
+          }
+          
+          req.role = (gatewayRole as string) || undefined;
+          
+          if (gatewayWorkspaceId) {
+            const { Permission } = await import("../models");
+            const permission = await Permission.findOne({
+              workspace: gatewayWorkspaceId,
+              user: user._id,
+              isActive: { $ne: false }
+            });
+            req.permissions = (permission?.permissions as any) || undefined;
+          }
+          
+          return next();
+        }
+      }
+    }
+
     const token = req.cookies.auth_token || req.headers.authorization?.split(' ')[1];
 
     if (!token) {

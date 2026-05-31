@@ -24,6 +24,7 @@ export interface SuperAdminControlPlaneSnapshot {
   };
   systemStatus: {
     maintenanceMode: boolean;
+    maintenanceMessage?: string;
     systemNotice: {
       message: string;
       level: 'info' | 'warning' | 'critical';

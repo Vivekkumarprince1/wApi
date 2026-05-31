@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { User, Workspace } from '@/models';
+import { User, Workspace, Permission } from '@/models';
 import { signToken } from '@/utils/auth-utils';
 import { createAndSendOtp, verifyOtp } from './otp-service';
 import {
@@ -97,7 +97,21 @@ export async function loginWithPassword(emailInput: string, password: string) {
 
   const { workspace } = await touchLogin(user);
   const nextStep = await getNextOnboardingPath(user, workspace);
-  const token = signToken({ id: user._id.toString() });
+
+  const workspaceId = workspace?._id?.toString() || user.activeWorkspace?.toString() || user.workspace?.toString();
+  let role = user.role;
+  if (workspaceId) {
+    const permission = await Permission.findOne({ workspace: workspaceId, user: user._id });
+    if (permission) {
+      role = permission.role;
+    }
+  }
+
+  const token = signToken({
+    id: user._id.toString(),
+    workspaceId,
+    role
+  });
 
   return {
     token,
@@ -195,7 +209,21 @@ export async function verifyAuthOtp(input: {
   if (!workspace) workspace = await Workspace.findById(user.workspace);
 
   const nextStep = await getNextOnboardingPath(user, workspace);
-  const token = signToken({ id: user._id.toString() });
+
+  const workspaceId = workspace?._id?.toString() || user.activeWorkspace?.toString() || user.workspace?.toString();
+  let role = user.role;
+  if (workspaceId) {
+    const permission = await Permission.findOne({ workspace: workspaceId, user: user._id });
+    if (permission) {
+      role = permission.role;
+    }
+  }
+
+  const token = signToken({
+    id: user._id.toString(),
+    workspaceId,
+    role
+  });
 
   return {
     token,

@@ -17,12 +17,13 @@ export interface AuthRequest extends Request {
  * Supports both direct JWT verification and Header-based Auth (from Gateway).
  */
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
-  // 1. Check for Gateway Headers (Standard for Microservices)
+  // 1. Check for Gateway Headers (Standard for Microservices) - ONLY trusted if internal secret matches
+  const internalSecret = req.header('x-internal-service-secret');
   const gatewayUserId = req.header('x-user-id');
   const gatewayWorkspaceId = req.header('x-workspace-id');
   const gatewayRole = req.header('x-user-role');
 
-  if (gatewayUserId) {
+  if (internalSecret && internalSecret === INTERNAL_SECRET && gatewayUserId) {
     req.user = { 
       id: gatewayUserId, 
       _id: gatewayUserId,

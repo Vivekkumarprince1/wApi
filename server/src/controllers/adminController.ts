@@ -568,7 +568,9 @@ export const adminController = {
       const token = signToken({ 
         id: targetUser._id.toString(),
         adminId: adminUser._id.toString(),
-        isImpersonating: true
+        isImpersonating: true,
+        workspaceId: workspace._id.toString(),
+        role: 'owner'
       });
 
       res.cookie('auth_token', token, {
@@ -608,7 +610,12 @@ export const adminController = {
       const adminUser = await User.findById(decoded.adminId);
       if (!adminUser) return res.status(404).json({ error: "Original identity not found" });
 
-      const newToken = signToken({ id: adminUser._id.toString() });
+      const workspaceId = adminUser.activeWorkspace?.toString() || adminUser.workspace?.toString();
+      const newToken = signToken({ 
+        id: adminUser._id.toString(),
+        workspaceId,
+        role: adminUser.role || 'super_admin'
+      });
 
       res.cookie('auth_token', newToken, {
         httpOnly: true,
@@ -655,7 +662,7 @@ export const adminController = {
         await (AuditLog as any).logAdminAction({
           userId: req.user._id,
           action: id ? 'WEBHOOK_POLICY_UPDATE' : 'WEBHOOK_POLICY_CREATE',
-          resource: { type: 'WebhookPolicy', id: policy._id },
+          resource: { type: 'WebhookPolicy', id: policy?._id },
           details: { data },
           req
         });
