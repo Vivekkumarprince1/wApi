@@ -12,6 +12,39 @@
 
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+
+// Helper to parse allowed origins from gateway env and return hostnames
+function getGatewayAllowedOrigins() {
+  try {
+    const envPath = path.join(__dirname, 'api-gateway', '.env');
+    if (!fs.existsSync(envPath)) return null;
+    
+    const content = fs.readFileSync(envPath, 'utf8');
+    const match = content.match(/^ALLOWED_ORIGINS\s*=\s*(.+)$/m);
+    if (!match) return null;
+    
+    const origins = match[1].trim();
+    const parsedHosts = origins.split(',')
+      .map(origin => {
+        const trimmed = origin.trim();
+        if (!trimmed) return null;
+        try {
+          const url = trimmed.includes('://') ? trimmed : `http://${trimmed}`;
+          const parsed = new URL(url);
+          return parsed.hostname;
+        } catch {
+          return trimmed.replace(/^(https?:)?\/\//i, '').split(':')[0].split('/')[0];
+        }
+      })
+      .filter(Boolean);
+      
+    // Deduplicate
+    return Array.from(new Set(parsedHosts));
+  } catch (err) {
+    return null;
+  }
+}
 
 // Color constants for beautiful prefix logging
 const COLORS = {
@@ -130,6 +163,14 @@ function startService(service) {
     ...process.env,
     NODE_OPTIONS: `--max-old-space-size=${service.memoryLimit} ${process.env.NODE_OPTIONS || ''}`.trim()
   };
+
+  // Dynamically inject ALLOWED_DEV_ORIGINS from API gateway into Frontend App to prevent cross-origin warnings
+  if (service.id === 'frontend') {
+    const allowedHosts = getGatewayAllowedOrigins();
+    if (allowedHosts && allowedHosts.length > 0) {
+      env.ALLOWED_DEV_ORIGINS = allowedHosts.join(',');
+    }
+  }
 
   logSystem(`Starting ${service.name} (RAM Limit: ${service.memoryLimit}MB)...`, 'system');
 
