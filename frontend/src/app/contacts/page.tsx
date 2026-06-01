@@ -144,6 +144,37 @@ export default function ContactsPage() {
     }
   };
 
+  const handleExportContacts = () => {
+    if (filteredContacts.length === 0) {
+      toast.error("No contacts to export");
+      return;
+    }
+
+    const headers = ['ID', 'Name', 'Phone', 'Email', 'Tags', 'Status', 'Created At'];
+    
+    const rows = filteredContacts.map(c => [
+      c._id || '',
+      c.name || '',
+      c.phone || '',
+      c.email || '',
+      (c.tags || []).join('; '),
+      c.status || '',
+      c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''
+    ]);
+
+    const csvString = [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `contacts_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Contacts exported successfully");
+  };
+
   if (isLoading) return <FlashLoader />;
 
   return (
@@ -252,7 +283,7 @@ export default function ContactsPage() {
         </div>
         
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <Button variant="outline" className="rounded-xl h-13 px-4 border-border/50 font-bold bg-card shadow-sm">
+          <Button onClick={handleExportContacts} variant="outline" className="rounded-xl h-13 px-4 border-border/50 font-bold bg-card shadow-sm">
             <Download className="h-4 w-4 mr-2" /> Export
           </Button>
           <DropdownMenu>

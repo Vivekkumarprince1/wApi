@@ -9,6 +9,7 @@ import * as SocketService from '../socket-service';
 import dbConnect from '@/db-connect';
 import { getConnectionForWorker } from '../../utils/ioredis';
 import { normalizePhoneNumber } from '../../utils/phone-utils';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 /**
  * Webhook Processor
@@ -21,7 +22,7 @@ export const initWebhookWorker = () => {
   if (globalWebhook.webhookWorkerInstance) return globalWebhook.webhookWorkerInstance;
 
   globalWebhook.webhookWorkerInstance = new Worker(
-    'whatsapp-webhooks',
+    QUEUE_NAMES.WEBHOOKS,
     async (job: Job) => {
       const { payload, deliveryId } = job.data;
       console.log(`[WebhookProcessor] Processing job ${job.id} (deliveryId: ${deliveryId})`);
@@ -240,7 +241,7 @@ async function processStatuses(statuses: any[], workspaceId: any, jobId: string)
           const { getSharedConnection } = await import('../../utils/ioredis');
           
           // Initialize queue once (BullMQ handles connection reuse internally if using the same connection object)
-          const campaignEventsQueue = new Queue('CampaignEventsQueue', { 
+          const campaignEventsQueue = new Queue(QUEUE_NAMES.CAMPAIGN_EVENTS, { 
             connection: getSharedConnection() as any,
             defaultJobOptions: { removeOnComplete: true }
           });

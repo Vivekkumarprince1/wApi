@@ -12,6 +12,7 @@
     "migrate:orders-to-billing": "node --import tsx src/scripts/migrate-orders-to-billing.ts"
   },
   "dependencies": {
+    "@wapi/contracts": "*",
     "@socket.io/redis-adapter": "^8.2.1",
     "@socket.io/redis-emitter": "^5.1.0",
     "axios": "^1.6.2",

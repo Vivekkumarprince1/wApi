@@ -4,6 +4,7 @@ import IORedis from 'ioredis';
 import { Queue } from 'bullmq';
 import { config } from '../config';
 import { getSharedRedis } from '../utils/ioredis';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 export type ServiceHealth = {
   status: 'ok' | 'degraded' | 'down';
@@ -21,9 +22,9 @@ export type QueueDepth = {
 };
 
 const QUEUES_TO_PROBE = [
-  'webhook-queue',
-  'bulk-messages',
-  'contact-imports',
+  QUEUE_NAMES.WEBHOOKS,
+  QUEUE_NAMES.BULK_MESSAGES,
+  QUEUE_NAMES.IMPORT_JSON,
 ];
 
 export class HealthService {

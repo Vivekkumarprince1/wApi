@@ -8,16 +8,17 @@ import { AuthRequest } from '../middlewares/authMiddleware';
 import { Contact, Message, Conversation } from '../models';
 import { Queue } from 'bullmq';
 import { getSharedRedis } from '../utils/ioredis';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 // Shared connection + queue handles. The previous version constructed a
 // new Queue (and Redis connection) per request, which leaked file
 // descriptors at scale. The shared client also wires an `error` handler.
-const importQueue = new Queue('contact-imports', { connection: getSharedRedis() as any });
-const messageQueue = new Queue('bulk-messages', { connection: getSharedRedis() as any });
+const importQueue = new Queue(QUEUE_NAMES.IMPORT_JSON, { connection: getSharedRedis() as any });
+const messageQueue = new Queue(QUEUE_NAMES.BULK_MESSAGES, { connection: getSharedRedis() as any });
 
 const BULK_QUEUES: Record<string, Queue> = {
-  'contact-imports': importQueue,
-  'bulk-messages': messageQueue,
+  [QUEUE_NAMES.IMPORT_JSON]: importQueue,
+  [QUEUE_NAMES.BULK_MESSAGES]: messageQueue,
 };
 
 export const bulkOperationsController = {
@@ -42,7 +43,7 @@ export const bulkOperationsController = {
       res.status(202).json({
         success: true,
         jobId: job.id,
-        queue: 'contact-imports',
+        queue: QUEUE_NAMES.IMPORT_JSON,
         message: 'Bulk import started',
         status: 'pending'
       });
@@ -193,7 +194,7 @@ export const bulkOperationsController = {
       res.status(202).json({
         success: true,
         jobId: job.id,
-        queue: 'bulk-messages',
+        queue: QUEUE_NAMES.BULK_MESSAGES,
         message: 'Bulk message sending started',
         status: 'pending'
       });

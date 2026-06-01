@@ -4,6 +4,7 @@ import { parse } from 'csv-parse';
 import { getIO } from '../socket-bridge';
 import { Contact, Workspace } from '../../models';
 import redis from '../../redis';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 interface ContactImportProgress {
   jobId: string;
@@ -37,7 +38,7 @@ export class ContactImportService {
   private progressMap: Map<string, ContactImportProgress>;
 
   constructor() {
-    this.importQueue = new Queue('contact-import', {
+    this.importQueue = new Queue(QUEUE_NAMES.IMPORT_CSV, {
       connection: redis as any,
       defaultJobOptions: {
         attempts: 3,
@@ -234,7 +235,7 @@ export class ContactImportService {
    */
   private initializeWorker() {
     const worker = new Worker(
-      'contact-import',
+      QUEUE_NAMES.IMPORT_CSV,
       async (job: Job) => {
         const { workspaceId, userId, contacts, totalCount, parseErrors } = job.data;
 

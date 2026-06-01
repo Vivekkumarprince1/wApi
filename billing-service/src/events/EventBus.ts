@@ -2,13 +2,14 @@ import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { LedgerService } from '../services/LedgerService';
 import { config } from '../config/index';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 const REDIS_URL = config.redisUrl || 'redis://localhost:6379';
 const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
 
 // Queues
-export const billingEventsQueue = new Queue('BillingEventsQueue', { connection: connection as any });
-export const campaignEventsQueue = new Queue('CampaignEventsQueue', { connection: connection as any }); // To send events to campaign service
+export const billingEventsQueue = new Queue(QUEUE_NAMES.BILLING_EVENTS, { connection: connection as any });
+export const campaignEventsQueue = new Queue(QUEUE_NAMES.CAMPAIGN_EVENTS, { connection: connection as any }); // To send events to campaign service
 
 const ledgerService = new LedgerService();
 
@@ -59,7 +60,7 @@ const handleCampaignCompleted = async (data: any) => {
 };
 
 // Worker
-export const billingEventWorker = new Worker('BillingEventsQueue', async (job: Job) => {
+export const billingEventWorker = new Worker(QUEUE_NAMES.BILLING_EVENTS, async (job: Job) => {
   switch (job.name) {
     case 'CampaignCreatedEvent':
       await handleCampaignCreated(job.data);

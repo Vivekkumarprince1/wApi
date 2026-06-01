@@ -13,12 +13,18 @@ export class PricingService {
   }
 
   static async getCost(workspaceId: string, category: ConversationCategory): Promise<number> {
-    const workspace = await WorkspaceModel.findById(workspaceId).select('planId').lean();
+    const workspace = await WorkspaceModel.findById(workspaceId).select('plan planId').lean();
     
-    // Fallback if Workspace not found in billing DB (e.g. hasn't been synced yet)
-    let planId = (workspace as any)?.planId;
+    let planId = (workspace as any)?.plan;
     
-    // If we don't have the workspace, we try to find the default plan
+    if (!planId && (workspace as any)?.planId) {
+      const planBySlug = await PlanModel.findOne({ slug: (workspace as any).planId }).lean();
+      if (planBySlug) {
+        planId = planBySlug._id;
+      }
+    }
+    
+    // Fallback if Workspace/plan not found in billing DB (e.g. hasn't been synced yet)
     if (!planId) {
         const defaultPlan = await PlanModel.findOne({ isDefault: true }).lean();
         planId = defaultPlan?._id;

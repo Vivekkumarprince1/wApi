@@ -2,6 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import { config } from '../../config';
 import { getSharedConnection } from '../../utils/ioredis';
 import { connectRedis } from '@/redis';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 /**
  * Webhook Queue
@@ -28,7 +29,7 @@ async function reserveDeliveryId(deliveryId: string): Promise<boolean> {
   }
 }
 
-export const webhookQueue = new Queue('whatsapp-webhooks', {
+export const webhookQueue = new Queue(QUEUE_NAMES.WEBHOOKS, {
   connection: connection as any,
   defaultJobOptions: {
     attempts: 3,

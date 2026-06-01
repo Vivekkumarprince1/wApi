@@ -85,7 +85,18 @@ export function CampaignRecipientTable({ campaignId, externalStatus, onStatusCha
   const handleExport = async () => {
     try {
         toast.info("Preparing report download...");
-        window.open(`/api/campaigns/${campaignId}/export`, '_blank');
+        const response = await api.get(`/campaigns/${campaignId}/export`, {
+          responseType: 'blob'
+        });
+        const blob = new Blob([response as any], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `campaign_report_${campaignId}_${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Report downloaded successfully");
     } catch (error) {
         toast.error("Failed to start export");
     }

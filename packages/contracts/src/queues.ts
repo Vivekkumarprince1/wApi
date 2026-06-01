@@ -17,15 +17,21 @@ export const QUEUE_NAMES = {
   /** Campaign engine — start/batch/check/cleanup (campaign-service + monolith). */
   CAMPAIGN_ENGINE: "campaign-engine",
   /** Inbound provider webhooks (server: webhook-processor). */
-  WEBHOOKS: "webhooks",
-  /** Contact/CSV import (server: importWorker). */
-  IMPORT: "import",
+  WEBHOOKS: "whatsapp-webhooks",
+  /** JSON-based contact import (server: importWorker). */
+  IMPORT_JSON: "contact-imports",
+  /** CSV-based contact import (server: contact-import-service). */
+  IMPORT_CSV: "contact-import",
   /** Snooze / scheduled re-open (server: snooze-worker). */
-  SNOOZE: "snooze",
+  SNOOZE: "snooze-monitor",
   /** Third-party integration sync (server: integration-sync-worker). */
-  INTEGRATION_SYNC: "integration-sync",
+  INTEGRATION_SYNC: "integration-sync-queue",
   /** Answerbot site crawl (automation-service). */
   ANSWERBOT_CRAWL: "answerbot-crawl",
+  /** Shared campaign events queue. */
+  CAMPAIGN_EVENTS: "CampaignEventsQueue",
+  /** Shared billing events queue. */
+  BILLING_EVENTS: "BillingEventsQueue",
   /**
    * WABA provisioning after Meta Embedded Signup (bsp-service).
    * Today this runs synchronously inside the onboarding `completeSignup`
@@ -95,10 +101,13 @@ export interface QueuePayloads {
     enqueuedAt?: string;
   };
   [QUEUE_NAMES.WEBHOOKS]: { workspaceId?: string; provider: string; raw: unknown };
-  [QUEUE_NAMES.IMPORT]: { workspaceId: string; fileId: string; createdBy?: string };
-  [QUEUE_NAMES.SNOOZE]: { workspaceId: string; conversationId: string; wakeAt: string };
-  [QUEUE_NAMES.INTEGRATION_SYNC]: { workspaceId: string; integrationId: string };
+  [QUEUE_NAMES.IMPORT_JSON]: { workspaceId: string; contacts: any[] };
+  [QUEUE_NAMES.IMPORT_CSV]: { workspaceId: string; userId: string; fileName: string; csvContent: string };
+  [QUEUE_NAMES.SNOOZE]: { workspaceId: string; conversationId: string; wakeAt: string } | undefined;
+  [QUEUE_NAMES.INTEGRATION_SYNC]: { type: 'google_sheets' | 'petpooja' };
   [QUEUE_NAMES.ANSWERBOT_CRAWL]: { workspaceId: string; botId: string; url: string };
+  [QUEUE_NAMES.CAMPAIGN_EVENTS]: any;
+  [QUEUE_NAMES.BILLING_EVENTS]: any;
   [QUEUE_NAMES.WABA_PROVISION]: {
     workspaceId: string;
     /** Step to (re)start provisioning from; enables resuming a failed run. */

@@ -8,6 +8,7 @@ router.get('/instagram-quickflows', authenticate, InstagramQuickflowController.g
 router.get('/instagram-quickflows/:id', authenticate, InstagramQuickflowController.getQuickflowById);
 router.post('/instagram-quickflows', authenticate, InstagramQuickflowController.createQuickflow);
 router.patch('/instagram-quickflows/:id', authenticate, InstagramQuickflowController.updateQuickflow);
+router.patch('/instagram-quickflows/:id/toggle', authenticate, InstagramQuickflowController.toggleQuickflow);
 router.put('/instagram-quickflows/:id', authenticate, InstagramQuickflowController.updateQuickflow);
 router.delete('/instagram-quickflows/:id', authenticate, InstagramQuickflowController.deleteQuickflow);
 

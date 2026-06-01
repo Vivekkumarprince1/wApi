@@ -284,7 +284,14 @@ export default function CRMTasksPage() {
                  <h3 className="text-3xl font-black tracking-tight">Clean Slate</h3>
                  <p className="text-muted-foreground font-semibold leading-relaxed opacity-60">No pending tasks found for these criteria. Perfect time to generate some leads or plan your next move.</p>
                </div>
-               <Button size="lg" className="rounded-[24px] h-16 px-12 font-black shadow-2xl shadow-primary/30 text-primary-foreground text-[11px] uppercase tracking-widest">
+               <Button 
+                 size="lg" 
+                 onClick={() => {
+                   setTaskToEdit(undefined);
+                   setIsTaskDialogOpen(true);
+                 }}
+                 className="rounded-[24px] h-16 px-12 font-black shadow-2xl shadow-primary/30 text-primary-foreground text-[11px] uppercase tracking-widest"
+               >
                   Create Master Task
                </Button>
             </motion.div>

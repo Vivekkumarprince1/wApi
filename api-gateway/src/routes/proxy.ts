@@ -75,6 +75,12 @@ export const registerProxyRoutes = (fastify: FastifyInstance) => {
     return reply.from(`${config.coreServerUrl}${request.url}`, getProxyOptions(request));
   });
 
+  // --- INTERNAL ROUTING FOR SERVICE-TO-SERVICE COMMUNICATION ---
+  // Proxies internal microservice validations and hooks to the core server bypass boundaries
+  fastify.all('/api/internal/*', async (request, reply) => {
+    return reply.from(`${config.coreServerUrl}${request.url}`, getProxyOptions(request));
+  });
+
   // --- PROTECTED MICROSERVICE ROUTING ---
 
   // Automation Service

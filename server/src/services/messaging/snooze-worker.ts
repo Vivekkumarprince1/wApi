@@ -3,8 +3,8 @@ import IORedis from 'ioredis';
 import { Conversation } from "@/models";
 import dbConnect from "@/db-connect";
 import { getIO } from "../socket-bridge";
-
 import { getConnectionForWorker } from '../../utils/ioredis';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 const connection = getConnectionForWorker('client');
 
@@ -20,7 +20,7 @@ export class SnoozeWorker {
   constructor() {
     // We use a regular BullMQ worker structure, but we also initiate a local timer
     // to periodically "pulse" the check if we aren't using a separate scheduler.
-    this.worker = new Worker('snooze-monitor', this.processJob.bind(this), {
+    this.worker = new Worker(QUEUE_NAMES.SNOOZE, this.processJob.bind(this), {
       connection: connection as any,
     });
 

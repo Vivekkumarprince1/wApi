@@ -62,6 +62,40 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR' }: Rec
         amountPaise: amountNum * 100
       });
 
+      // Detect if we should use Mock Bypass Mode
+      if (!orderData.keyId || orderData.keyId.startsWith('dummy') || (orderData.orderId && orderData.orderId.startsWith('order_mock_'))) {
+        toast.info('Mock Mode: Simulating payment checkout...');
+        setTimeout(async () => {
+          try {
+            const mockPaymentId = `pay_mock_${orderData.amount}_RECHARGE_${Math.random().toString(36).substring(2, 9)}`;
+            const verifyData: any = await apiClient.post('/workspace/billing/recharge/verify', {
+              razorpay_order_id: orderData.orderId,
+              razorpay_payment_id: mockPaymentId,
+              razorpay_signature: 'mock_signature'
+            });
+
+            if (verifyData.success) {
+              setIsSuccess(true);
+              toast.success('Wallet recharged successfully (Mock)!');
+              queryClient.invalidateQueries({ queryKey: ['billing'] });
+              
+              const { useAuthStore } = await import('@/store/auth-store');
+              useAuthStore.getState().fetchSession(true);
+
+              setTimeout(() => {
+                onClose();
+                setIsSuccess(false);
+              }, 2000);
+            }
+          } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Payment verification failed');
+          } finally {
+            setIsProcessing(false);
+          }
+        }, 1200);
+        return;
+      }
+
       // 2. Open Razorpay Checkout
       const options = {
         key: orderData.keyId,

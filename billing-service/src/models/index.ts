@@ -176,14 +176,16 @@ export const PlanModel = mongoose.model<IPlanDoc>('Plan', PlanSchema);
 // --- Workspace Minimal (for Plan mapping) ---
 
 export interface IMinimalWorkspaceDoc extends Document {
-  planId: mongoose.Types.ObjectId;
+  plan?: mongoose.Types.ObjectId;
+  planId?: string;
   billingStatus: 'trialing' | 'active' | 'past_due' | 'suspended' | 'canceled';
   createdAt: Date;
   updatedAt: Date;
 }
 
 const MinimalWorkspaceSchema = new Schema<IMinimalWorkspaceDoc>({
-  planId: { type: Schema.Types.ObjectId, ref: 'Plan' },
+  plan: { type: Schema.Types.ObjectId, ref: 'Plan' },
+  planId: { type: String },
   billingStatus: { type: String, enum: ['trialing', 'active', 'past_due', 'suspended', 'canceled'], default: 'trialing' }
 }, { timestamps: true });
 

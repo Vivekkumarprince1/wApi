@@ -15,12 +15,12 @@ export class WalletController {
   static async getWorkspace(req: Request, res: Response) {
     try {
       const { workspaceId } = req.params;
-      const workspace = await WorkspaceModel.findById(workspaceId).populate('planId');
+      const workspace = await WorkspaceModel.findById(workspaceId).populate('plan');
       if (!workspace) {
           // Sync on the fly or return default
           return res.json({ success: true, workspace: { billingStatus: 'active', planSlug: 'free' } });
       }
-      res.json({ success: true, workspace: { ...workspace.toObject(), planSlug: (workspace.planId as any)?.slug || 'free' } });
+      res.json({ success: true, workspace: { ...workspace.toObject(), planSlug: (workspace.plan as any)?.slug || workspace.planId || 'free' } });
 
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
@@ -90,7 +90,8 @@ export class WalletController {
       // If amount is 0, this is a free plan activation
       if (amountPaise === 0) {
         await WorkspaceModel.findByIdAndUpdate(workspaceId, { 
-          planId: planId,
+          plan: planId,
+          planId: planSlug,
           billingStatus: 'active'
         });
         return res.json({ 
@@ -248,7 +249,8 @@ export class WalletController {
       const plan = await PlanModel.findOne({ slug: planSlug });
       if (plan) {
         await WorkspaceModel.findByIdAndUpdate(workspaceId, { 
-          planId: plan._id,
+          plan: plan._id,
+          planId: planSlug,
           billingStatus: 'active'
         });
       }
@@ -557,7 +559,8 @@ export class WalletController {
               const plan = await PlanModel.findOne({ slug: planSlug });
               if (plan) {
                 await WorkspaceModel.findByIdAndUpdate(workspaceId, { 
-                  planId: plan._id,
+                  plan: plan._id,
+                  planId: planSlug,
                   billingStatus: 'active'
                 });
               }

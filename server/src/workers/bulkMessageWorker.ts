@@ -3,6 +3,7 @@ import { Contact, Message, Conversation, Workspace } from '../models';
 import { InboxService } from '../services/messaging/inbox-service';
 import { getConnectionForWorker } from '../utils/ioredis';
 import { logger } from '../utils/logger';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 /**
  * Bulk Message Worker
@@ -33,7 +34,7 @@ async function chunkPause(messagesInChunk: number, mps: number) {
 
 export const initBulkMessageWorker = () => {
   const worker = new Worker(
-    'bulk-messages',
+    QUEUE_NAMES.BULK_MESSAGES,
     async (job: Job) => {
       const { workspaceId, contactIds, message, channel, template, createdBy } = job.data;
       const total = Array.isArray(contactIds) ? contactIds.length : 0;

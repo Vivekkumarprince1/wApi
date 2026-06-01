@@ -4,18 +4,17 @@ import { Integration } from '../../models/integration/Integration';
 import { GoogleSheetsService } from './google-sheets-service';
 import { PetpoojaService } from './petpooja-service';
 import dbConnect from '../../db-connect';
-
-const SYNC_QUEUE_NAME = 'integration-sync-queue';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 export class IntegrationSyncWorker {
   private worker: Worker;
   private queue: Queue;
 
   constructor() {
-    this.queue = new Queue(SYNC_QUEUE_NAME, { connection: getSharedConnection() as any });
+    this.queue = new Queue(QUEUE_NAMES.INTEGRATION_SYNC, { connection: getSharedConnection() as any });
     
     this.worker = new Worker(
-      SYNC_QUEUE_NAME,
+      QUEUE_NAMES.INTEGRATION_SYNC,
       async (job) => {
         await dbConnect();
         const { type } = job.data;

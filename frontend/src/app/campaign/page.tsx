@@ -167,6 +167,41 @@ const CampaignsPage = () => {
     </div>
   );
 
+  const handleExportCSV = () => {
+    if (filteredCampaigns.length === 0) {
+      toast.error("No campaigns to export");
+      return;
+    }
+
+    const headers = ['ID', 'Name', 'Type', 'Status', 'Template', 'Sent', 'Delivered', 'Read', 'Failed', 'Total Recipients', 'Created At'];
+    
+    const rows = filteredCampaigns.map(c => [
+      c._id || '',
+      c.name || '',
+      c.campaignType || 'one-time',
+      c.status || 'draft',
+      c.template?.name || '',
+      c.sentCount || 0,
+      c.deliveredCount || 0,
+      c.readCount || 0,
+      (c.totalContacts || 0) - (c.sentCount || 0) > 0 ? (c.totalContacts || 0) - (c.sentCount || 0) : 0,
+      c.totalContacts || 0,
+      c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''
+    ]);
+
+    const csvString = [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `campaigns_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Campaigns exported successfully");
+  };
+
   if (isLoading) return <FlashLoader />;
 
   return (
@@ -183,7 +218,7 @@ const CampaignsPage = () => {
           <p className="text-muted-foreground text-sm font-medium">Manage and track your message broadcasts.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-2xl px-6 h-12 font-bold border-border/50 group">
+          <Button onClick={handleExportCSV} variant="outline" className="rounded-2xl px-6 h-12 font-bold border-border/50 group">
             <FileDown className="h-4 w-4 mr-2 text-muted-foreground group-hover:text-primary transition-colors" />
             Export
           </Button>

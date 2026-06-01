@@ -454,21 +454,6 @@ export default function AutoRepliesPage() {
          )}
       </div>
 
-      {/* Global Performance Summary */}
-      <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/5 rounded-[40px] p-8 border border-emerald-500/20 flex items-center justify-between">
-         <div className="flex items-center gap-6">
-            <div className="h-14 w-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-               <TrendingUp className="h-7 w-7" />
-            </div>
-            <div>
-               <h3 className="text-xl font-black tracking-tight text-foreground">Auto-Response Efficiency</h3>
-               <p className="text-sm font-medium text-muted-foreground">Your logic rules are handling <span className="text-emerald-600 font-bold">4.2k messages</span> monthly without human intervention.</p>
-            </div>
-         </div>
-         <Button variant="outline" className="rounded-xl font-black uppercase text-[10px] tracking-widest h-10 px-6 border-emerald-500/20 hover:bg-emerald-500/10 transition-all">
-            Optimize Speed
-         </Button>
-      </div>
 
       <AnimatePresence>
         {isModalOpen && (

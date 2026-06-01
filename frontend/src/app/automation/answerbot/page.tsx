@@ -49,6 +49,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import FlashLoader from '@/components/ui/flash-loader';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
 
 export default function AnswerBotPage() {
   const queryClient = useQueryClient();
@@ -59,6 +67,12 @@ export default function AnswerBotPage() {
   const [showAddSource, setShowAddSource] = useState(false);
   const [selectedFaqIds, setSelectedFaqIds] = useState<Set<string>>(new Set());
   const [expandedFaqIds, setExpandedFaqIds] = useState<Set<string>>(new Set());
+
+  // Local state for adding a training source
+  const [sourceType, setSourceType] = useState<'url' | 'document' | 'text'>('url');
+  const [sourceTitle, setSourceTitle] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [sourceText, setSourceText] = useState('');
 
   // Data Fetching
   const { data: settingsData, isLoading: isSettingsLoading } = useQuery({
@@ -405,6 +419,138 @@ export default function AnswerBotPage() {
            </div>
         </TabsContent>
       </Tabs>
+
+      {/* Add Data Source Dialog */}
+      <Dialog open={showAddSource} onOpenChange={setShowAddSource}>
+        <DialogContent className="sm:max-w-[500px] rounded-[32px] p-8 space-y-6">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black">Add Training Data Source</DialogTitle>
+            <DialogDescription className="font-medium text-sm">
+              Feed knowledge to your AI chatbot. It will scan and extract FAQs automatically.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Tabs for Source Type selection */}
+            <div className="grid grid-cols-3 gap-2 bg-muted/30 p-1 rounded-xl">
+              {(['url', 'document', 'text'] as const).map((type) => (
+                <Button
+                  key={type}
+                  type="button"
+                  variant={sourceType === type ? 'default' : 'ghost'}
+                  className="rounded-lg text-xs font-bold py-1 h-9 capitalize"
+                  onClick={() => setSourceType(type)}
+                >
+                  {type}
+                </Button>
+              ))}
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Source Title (Optional)</label>
+                <Input
+                  placeholder="e.g. FAQ Document or Help Center URL"
+                  value={sourceTitle}
+                  onChange={(e) => setSourceTitle(e.target.value)}
+                  className="rounded-xl h-11 bg-muted/20 border-none font-bold"
+                />
+              </div>
+
+              {sourceType === 'url' && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Website / FAQ URL</label>
+                  <Input
+                    placeholder="https://example.com/faq"
+                    value={sourceUrl}
+                    onChange={(e) => setSourceUrl(e.target.value)}
+                    className="rounded-xl h-11 bg-muted/20 border-none font-bold"
+                  />
+                  <p className="text-[10px] text-muted-foreground italic px-1">Ensure the URL starts with http:// or https://</p>
+                </div>
+              )}
+
+              {sourceType === 'text' && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Plain Text Content</label>
+                  <Textarea
+                    placeholder="Paste your raw text, knowledge articles, or custom FAQs here..."
+                    value={sourceText}
+                    onChange={(e) => setSourceText(e.target.value)}
+                    className="min-h-[150px] rounded-xl bg-muted/20 border-none font-medium p-3"
+                  />
+                </div>
+              )}
+
+              {sourceType === 'document' && (
+                <div className="border-2 border-dashed border-border/60 rounded-2xl p-8 text-center flex flex-col items-center justify-center space-y-3 bg-muted/10">
+                  <FileText className="h-8 w-8 text-indigo-500 opacity-60 animate-pulse" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold">Document uploading is coming soon</p>
+                    <p className="text-[10px] text-muted-foreground">For now, please use the URL or Plain Text options to add data.</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="flex justify-end gap-3 pt-4 border-t border-border/10">
+            <Button
+              type="button"
+              variant="ghost"
+              className="rounded-xl h-11 px-6 font-bold"
+              onClick={() => {
+                setShowAddSource(false);
+                setSourceTitle('');
+                setSourceUrl('');
+                setSourceText('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold"
+              disabled={
+                addSourceMutation.isPending ||
+                (sourceType === 'url' && !sourceUrl) ||
+                (sourceType === 'text' && !sourceText) ||
+                sourceType === 'document'
+              }
+              onClick={() => {
+                const payload: any = {
+                  sourceType,
+                  title: sourceTitle || (sourceType === 'url' ? sourceUrl : 'Plain Text Source'),
+                };
+
+                if (sourceType === 'url') {
+                  if (!sourceUrl.startsWith('http://') && !sourceUrl.startsWith('https://')) {
+                    toast.error("URL must start with http:// or https://");
+                    return;
+                  }
+                  payload.websiteUrl = sourceUrl;
+                } else if (sourceType === 'text') {
+                  payload.textContent = sourceText;
+                }
+
+                addSourceMutation.mutate(payload, {
+                  onSuccess: () => {
+                    setSourceTitle('');
+                    setSourceUrl('');
+                    setSourceText('');
+                  }
+                });
+              }}
+            >
+              {addSourceMutation.isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                'Add & Train'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { normalizePhoneNumber } from '../utils/phone-utils';
 import { UsageTracker } from '../services/workspace/usage-tracker';
 import { getConnectionForWorker } from '../utils/ioredis';
 import { logger } from '../utils/logger';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 /**
  * Import Worker
@@ -21,7 +22,7 @@ const IMPORT_WORKER_CONCURRENCY = Number(process.env.IMPORT_WORKER_CONCURRENCY |
 
 export const initImportWorker = () => {
   const worker = new Worker(
-    'contact-imports',
+    QUEUE_NAMES.IMPORT_JSON,
     async (job: Job) => {
       const { contacts, workspaceId } = job.data;
       const total = Array.isArray(contacts) ? contacts.length : 0;

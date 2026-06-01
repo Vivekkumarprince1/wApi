@@ -7,12 +7,13 @@ import { CampaignQueueService } from '../campaign-queue';
 import { Workspace } from '../../models';
 import { monolithWorkerBridge } from '../monolith-worker-client';
 import { SegmentService } from '../../services/SegmentService';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 const connection = getSharedRedis();
 
 // Queues
-export const billingEventsQueue = new Queue('BillingEventsQueue', { connection: connection as any });
-export const campaignEventsQueue = new Queue('CampaignEventsQueue', { connection: connection as any });
+export const billingEventsQueue = new Queue(QUEUE_NAMES.BILLING_EVENTS, { connection: connection as any });
+export const campaignEventsQueue = new Queue(QUEUE_NAMES.CAMPAIGN_EVENTS, { connection: connection as any });
 
 const handleBudgetReserved = async (data: any) => {
   const { campaignId, workspaceId } = data;
@@ -176,7 +177,7 @@ const handleBudgetReservationFailed = async (data: any) => {
   }
 };
 
-export const campaignEventWorker = new Worker('CampaignEventsQueue', async (job: Job) => {
+export const campaignEventWorker = new Worker(QUEUE_NAMES.CAMPAIGN_EVENTS, async (job: Job) => {
   switch (job.name) {
     case 'BudgetReservedEvent':
       await handleBudgetReserved(job.data);

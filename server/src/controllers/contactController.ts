@@ -8,6 +8,7 @@ import { NotFoundError, ConflictError, ApiError, BadRequestError } from '../util
 import { InboxService } from '../services/messaging/inbox-service';
 import * as SocketService from '../services/socket-service';
 import { logActivity, getDifferences } from '../services/activity-logging-service';
+import { QUEUE_NAMES } from '@wapi/contracts';
 
 export const contactController = {
   /**
@@ -251,7 +252,7 @@ export const contactController = {
       // For large imports (> 50), offload to background worker
       if (contacts.length > 50) {
         const { Queue } = await import('bullmq');
-        const importQueue = new Queue('contact-imports', {
+        const importQueue = new Queue(QUEUE_NAMES.IMPORT_JSON, {
           connection: { host: process.env.REDIS_HOST || 'localhost', port: parseInt(process.env.REDIS_PORT || '6379') }
         });
         

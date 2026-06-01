@@ -25,6 +25,7 @@ export default function BillingPage() {
   const [isRechargeOpen, setIsRechargeOpen] = React.useState(false);
   const [isPlanSelectionOpen, setIsPlanSelectionOpen] = React.useState(false);
   const [isAddingPaymentMethod, setIsAddingPaymentMethod] = React.useState(false);
+  const [autoPayOptimistic, setAutoPayOptimistic] = React.useState<boolean | null>(null);
 
   if (isLoading) return <FlashLoader />;
 
@@ -36,6 +37,7 @@ export default function BillingPage() {
   const wallet = billing?.wallet || { balance: 0, currency: 'INR', status: 'active' };
   const plan = billing?.plan || { name: 'Free', limits: {}, usage: {}, slug: 'free' };
   const subscription = billing?.subscription || { autoPay: true, taxId: '' };
+  const subscriptionAutoPay = autoPayOptimistic !== null ? autoPayOptimistic : subscription.autoPay;
   const transactions = billing?.transactions || [];
 
   // Helper to calculate days remaining until next billing event
@@ -51,6 +53,29 @@ export default function BillingPage() {
     try {
       // 1. Create Verification Order (₹1)
       const orderData: any = await apiClient.post('/workspace/billing/payment-method', {});
+
+      // Detect if we should use Mock Bypass Mode
+      if (!orderData.keyId || orderData.keyId.startsWith('dummy') || (orderData.orderId && orderData.orderId.startsWith('order_mock_'))) {
+        toast.info('Mock Mode: Simulating payment verification...');
+        setTimeout(async () => {
+          try {
+            const mockPaymentId = `pay_mock_${orderData.amount}_RECHARGE_${Math.random().toString(36).substring(2, 9)}`;
+            await apiClient.post('/workspace/billing/payment-method/verify', {
+              razorpay_order_id: orderData.orderId,
+              razorpay_payment_id: mockPaymentId,
+              razorpay_signature: 'mock_signature'
+            });
+
+            toast.success('Payment method added successfully (Mock)!');
+            refetch();
+          } catch (err: any) {
+            toast.error('Failed to verify payment method');
+          } finally {
+            setIsAddingPaymentMethod(false);
+          }
+        }, 1200);
+        return;
+      }
 
       // 2. Open Razorpay Checkout
       const options = {
@@ -155,8 +180,8 @@ export default function BillingPage() {
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Current Plan</p>
                 <h3 className="text-2xl font-black text-foreground capitalize">{plan.name}</h3>
                 <div className="flex flex-col gap-2 items-start">
-                    <Badge variant="outline" className={`border-none px-3 py-1 font-bold rounded-full ${subscription.autoPay ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
-                        {subscription.autoPay ? 'Auto-renewing' : 'Manual Renewal'}
+                    <Badge variant="outline" className={`border-none px-3 py-1 font-bold rounded-full ${subscriptionAutoPay ? 'bg-emerald-500/10 text-emerald-600' : 'bg-amber-500/10 text-amber-600'}`}>
+                        {subscriptionAutoPay ? 'Auto-renewing' : 'Manual Renewal'}
                     </Badge>
                     {subscription.billingPivotDate && (
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -325,22 +350,27 @@ export default function BillingPage() {
                                 </p>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{subscription.autoPay ? 'Enabled' : 'Disabled'}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{subscriptionAutoPay ? 'Enabled' : 'Disabled'}</span>
                                 <Button 
-                                    variant={subscription.autoPay ? 'default' : 'outline'}
+                                    variant={subscriptionAutoPay ? 'default' : 'outline'}
                                     size="sm"
                                     className="rounded-xl h-8 text-[10px] font-black uppercase tracking-widest"
                                     onClick={async () => {
+                                        const nextVal = !subscriptionAutoPay;
+                                        setAutoPayOptimistic(nextVal);
                                         try {
-                                            await apiClient.patch('/workspace/billing/settings', { autoPay: !subscription.autoPay });
-                                            toast.success(`Autopay ${!subscription.autoPay ? 'enabled' : 'disabled'}`);
+                                            await apiClient.patch('/workspace/billing/settings', { autoPay: nextVal });
+                                            toast.success(`Autopay ${nextVal ? 'enabled' : 'disabled'}`);
                                             refetch();
                                         } catch (err) {
+                                            setAutoPayOptimistic(null);
                                             toast.error("Failed to update Autopay setting");
+                                        } finally {
+                                            setAutoPayOptimistic(null);
                                         }
                                     }}
                                 >
-                                    {subscription.autoPay ? 'Turn Off' : 'Turn On'}
+                                    {subscriptionAutoPay ? 'Turn Off' : 'Turn On'}
                                 </Button>
                             </div>
                         </div>

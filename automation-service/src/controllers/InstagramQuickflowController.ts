@@ -86,3 +86,17 @@ export const deleteQuickflow = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const toggleQuickflow = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const workspaceId = req.workspace?.id;
+    const quickflow = await InstagramQuickflow.findOne({ _id: id, workspace: workspaceId });
+    if (!quickflow) return res.status(404).json({ success: false, error: 'Quickflow not found' });
+    quickflow.enabled = !quickflow.enabled;
+    await quickflow.save();
+    res.json({ success: true, data: quickflow });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
