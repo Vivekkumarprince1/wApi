@@ -18,12 +18,21 @@ export class CampaignService {
    */
   static async acquireLock(campaignId: string): Promise<boolean> {
     const lockKey = `lock:campaign:exec:${campaignId}`;
-    const acquired = await redis.set(lockKey, 'locked', 'EX', this.LOCK_TTL_SECONDS, 'NX');
-    return acquired === 'OK';
+    try {
+      const acquired = await redis.set(lockKey, 'locked', 'EX', this.LOCK_TTL_SECONDS, 'NX');
+      return acquired === 'OK';
+    } catch (err: any) {
+      console.error(`[CampaignService] Redis acquireLock failed:`, err?.message);
+      throw new Error(`REDIS_UNAVAILABLE: ${err?.message || 'redis error'}`);
+    }
   }
 
   static async releaseLock(campaignId: string): Promise<void> {
-    await redis.del(`lock:campaign:exec:${campaignId}`);
+    try {
+      await redis.del(`lock:campaign:exec:${campaignId}`);
+    } catch (err: any) {
+      console.warn(`[CampaignService] Redis releaseLock failed (non-fatal):`, err?.message);
+    }
   }
 
   /**
@@ -61,8 +70,13 @@ export class CampaignService {
         campaign.contacts = recipients;
       }
 
-      const { CampaignQueueService } = await import("../lib/campaign-queue");
-      await CampaignQueueService.enqueue(campaignId, workspaceId);
+      try {
+        const { CampaignQueueService } = await import("../lib/campaign-queue");
+        await CampaignQueueService.enqueue(campaignId, workspaceId);
+      } catch (err: any) {
+        console.error(`[CampaignService] BullMQ enqueue failed:`, err?.message);
+        throw new Error(`QUEUE_UNAVAILABLE: ${err?.message || 'queue error'}`);
+      }
 
       // Audit only — actual status flip is deferred to handleBudgetReserved.
       await (Campaign as ICampaignModel).addAuditEntry(campaign._id.toString(), 'STARTED', { userId });

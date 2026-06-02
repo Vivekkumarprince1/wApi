@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { CreditCard, Plus, Clock, ShieldCheck, Zap, ArrowUpRight, DollarSign, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import PlanSelectionModal from '@/components/billing/PlanSelectionModal';
 
 export default function BillingPage() {
   const { fetchSession } = useAuthStore();
+  const queryClient = useQueryClient();
   const { data: billing, isLoading, refetch } = useQuery({
     queryKey: ['billing'],
     queryFn: fetchBillingInfo
@@ -26,6 +27,20 @@ export default function BillingPage() {
   const [isPlanSelectionOpen, setIsPlanSelectionOpen] = React.useState(false);
   const [isAddingPaymentMethod, setIsAddingPaymentMethod] = React.useState(false);
   const [autoPayOptimistic, setAutoPayOptimistic] = React.useState<boolean | null>(null);
+  const [isSavingAutoPay, setIsSavingAutoPay] = React.useState(false);
+  const [taxIdOptimistic, setTaxIdOptimistic] = React.useState<string | null>(null);
+  const [isSavingTaxId, setIsSavingTaxId] = React.useState(false);
+
+  const patchBillingSettings = (payload: { autoPay?: boolean; taxId?: string }) =>
+    apiClient.patch('/workspace/billing/settings', payload).then(() => {
+      queryClient.setQueryData(['billing'], (prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          subscription: { ...(prev.subscription || {}), ...payload }
+        };
+      });
+    });
 
   if (isLoading) return <FlashLoader />;
 
@@ -38,6 +53,7 @@ export default function BillingPage() {
   const plan = billing?.plan || { name: 'Free', limits: {}, usage: {}, slug: 'free' };
   const subscription = billing?.subscription || { autoPay: true, taxId: '' };
   const subscriptionAutoPay = autoPayOptimistic !== null ? autoPayOptimistic : subscription.autoPay;
+  const subscriptionTaxId = taxIdOptimistic !== null ? taxIdOptimistic : (subscription.taxId || '');
   const transactions = billing?.transactions || [];
 
   // Helper to calculate days remaining until next billing event
@@ -351,25 +367,28 @@ export default function BillingPage() {
                             </div>
                             <div className="flex items-center gap-3">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{subscriptionAutoPay ? 'Enabled' : 'Disabled'}</span>
-                                <Button 
+                                <Button
                                     variant={subscriptionAutoPay ? 'default' : 'outline'}
                                     size="sm"
+                                    disabled={isSavingAutoPay}
                                     className="rounded-xl h-8 text-[10px] font-black uppercase tracking-widest"
                                     onClick={async () => {
                                         const nextVal = !subscriptionAutoPay;
                                         setAutoPayOptimistic(nextVal);
+                                        setIsSavingAutoPay(true);
                                         try {
-                                            await apiClient.patch('/workspace/billing/settings', { autoPay: nextVal });
+                                            await patchBillingSettings({ autoPay: nextVal });
                                             toast.success(`Autopay ${nextVal ? 'enabled' : 'disabled'}`);
-                                            refetch();
                                         } catch (err) {
                                             setAutoPayOptimistic(null);
                                             toast.error("Failed to update Autopay setting");
                                         } finally {
                                             setAutoPayOptimistic(null);
+                                            setIsSavingAutoPay(false);
                                         }
                                     }}
                                 >
+                                    {isSavingAutoPay && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
                                     {subscriptionAutoPay ? 'Turn Off' : 'Turn On'}
                                 </Button>
                             </div>
@@ -385,22 +404,32 @@ export default function BillingPage() {
                              <h4 className="text-sm font-black uppercase tracking-wide text-foreground">Tax Identification (GSTIN/VAT)</h4>
                              <p className="text-[10px] text-muted-foreground leading-relaxed">Required for generating valid tax-compliant invoices.</p>
                         </div>
-                        <div className="flex gap-2">
-                            <Input 
-                                placeholder="Enter GSTIN or VAT Number" 
+                        <div className="flex gap-2 items-center">
+                            <Input
+                                placeholder="Enter GSTIN or VAT Number"
                                 className="rounded-xl h-11 bg-muted/20 border-border/50 font-bold"
-                                defaultValue={subscription.taxId}
+                                value={subscriptionTaxId}
+                                disabled={isSavingTaxId}
+                                onChange={(e) => setTaxIdOptimistic(e.target.value)}
                                 onBlur={async (e) => {
-                                    if (e.target.value === (subscription.taxId || '')) return;
+                                    const nextVal = e.target.value;
+                                    if (nextVal === (subscription.taxId || '')) {
+                                        setTaxIdOptimistic(null);
+                                        return;
+                                    }
+                                    setIsSavingTaxId(true);
                                     try {
-                                        await apiClient.patch('/workspace/billing/settings', { taxId: e.target.value });
+                                        await patchBillingSettings({ taxId: nextVal });
                                         toast.success("Tax ID updated successfully");
-                                        refetch();
                                     } catch (err) {
+                                        setTaxIdOptimistic(null);
                                         toast.error("Failed to save Tax ID");
+                                    } finally {
+                                        setIsSavingTaxId(false);
                                     }
                                 }}
                             />
+                            {isSavingTaxId && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
                         </div>
                     </div>
                 </div>

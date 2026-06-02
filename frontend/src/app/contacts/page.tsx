@@ -22,7 +22,8 @@ import {
   Edit2,
   MessageSquare,
   Calendar,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { 
   format, 
@@ -40,6 +41,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { fetchContacts, Contact, deleteContact } from '@/lib/api/contacts';
+import { apiClient } from '@/lib/api/client';
+import { triggerDownload } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -144,35 +147,19 @@ export default function ContactsPage() {
     }
   };
 
-  const handleExportContacts = () => {
-    if (filteredContacts.length === 0) {
-      toast.error("No contacts to export");
-      return;
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportContacts = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await apiClient.get<Blob>('/contacts/export', { responseType: 'blob' });
+      triggerDownload(blob, `contacts_export_${Date.now()}.csv`);
+      toast.success("Contacts exported successfully");
+    } catch {
+      // apiClient interceptor already surfaces a toast.error
+    } finally {
+      setIsExporting(false);
     }
-
-    const headers = ['ID', 'Name', 'Phone', 'Email', 'Tags', 'Status', 'Created At'];
-    
-    const rows = filteredContacts.map(c => [
-      c._id || '',
-      c.name || '',
-      c.phone || '',
-      c.email || '',
-      (c.tags || []).join('; '),
-      c.status || '',
-      c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''
-    ]);
-
-    const csvString = [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `contacts_export_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success("Contacts exported successfully");
   };
 
   if (isLoading) return <FlashLoader />;
@@ -283,8 +270,9 @@ export default function ContactsPage() {
         </div>
         
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <Button onClick={handleExportContacts} variant="outline" className="rounded-xl h-13 px-4 border-border/50 font-bold bg-card shadow-sm">
-            <Download className="h-4 w-4 mr-2" /> Export
+          <Button onClick={handleExportContacts} disabled={isExporting} variant="outline" className="rounded-xl h-13 px-4 border-border/50 font-bold bg-card shadow-sm">
+            {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+            Export
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

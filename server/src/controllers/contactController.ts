@@ -437,5 +437,43 @@ export const contactController = {
     } catch (err) {
       next(err);
     }
+  },
+
+  /**
+   * Export all contacts for the workspace as CSV
+   */
+  async exportContacts(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const workspaceId = req.workspace._id;
+      const csvEscape = (val: any) => {
+        const s = val === undefined || val === null ? '' : String(val);
+        return `"${s.replace(/"/g, '""')}"`;
+      };
+
+      const headers = ['ID', 'Name', 'Phone', 'Email', 'Tags', 'Lead Status', 'Opted Out', 'Created At'];
+      const filename = `contacts_${workspaceId}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.write(headers.map(csvEscape).join(',') + '\n');
+
+      const cursor = Contact.find({ workspace: workspaceId }).sort({ createdAt: -1 }).lean().cursor();
+      for await (const c of cursor as any) {
+        const row = [
+          c._id,
+          c.name || c.metadata?.firstName || '',
+          c.phone || '',
+          c.metadata?.email || '',
+          Array.isArray(c.tags) ? c.tags.join('; ') : '',
+          c.leadStatus || '',
+          c.optOut?.status ? 'yes' : 'no',
+          c.createdAt ? new Date(c.createdAt).toISOString() : ''
+        ];
+        res.write(row.map(csvEscape).join(',') + '\n');
+      }
+      res.end();
+    } catch (err) {
+      next(err);
+    }
   }
 };

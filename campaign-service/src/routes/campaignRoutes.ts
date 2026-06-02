@@ -5,6 +5,7 @@ import { authenticate, internalAuth } from '../middleware/auth';
 const router = Router();
 
 router.get('/campaigns', authenticate, CampaignController.listCampaigns);
+router.get('/campaigns/export', authenticate, CampaignController.exportAllCsv);
 router.post('/campaigns/create', authenticate, CampaignController.createCampaign);
 router.get('/campaigns/:id', authenticate, CampaignController.getCampaignById);
 router.put('/campaigns/:id', authenticate, CampaignController.updateCampaign);

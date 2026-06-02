@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "NODE_OPTIONS=--max-old-space-size=2048 tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {
     "typescript": "^6.0.3"

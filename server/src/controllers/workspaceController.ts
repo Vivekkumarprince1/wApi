@@ -886,6 +886,7 @@ export const workspaceController = {
         subscription: {
           billingPivotDate: fullWs?.billingPivotDate,
           autoPay: (fullWs as any)?.autoPay ?? true,
+          taxId: (fullWs as any)?.taxId || '',
         },
         plan: {
           name: (fullWs?.plan as any)?.name || fullWs?.planId || 'Free',

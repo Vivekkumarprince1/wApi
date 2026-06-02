@@ -188,7 +188,20 @@ export const lifecycleAction = async (req: AuthRequest, res: Response) => {
         await CampaignService.startCampaign(id as string, workspaceId as string, userId as string);
         console.log(`[Lifecycle] Campaign ${id} start requested; awaiting budget reservation`);
       } catch (err: any) {
-        console.error(`[Lifecycle] Failed to start campaign:`, err.message);
+        console.error(`[Lifecycle] Failed to start campaign:`, err.message, err.stack);
+        const msg = String(err?.message || '');
+        if (msg.startsWith('PREFLIGHT_UNAVAILABLE') || msg.startsWith('REDIS_UNAVAILABLE') || msg.startsWith('QUEUE_UNAVAILABLE')) {
+          return res.status(503).json({ success: false, error: msg });
+        }
+        if (msg === 'CAMPAIGN_ALREADY_RUNNING') {
+          return res.status(409).json({ success: false, error: 'Campaign is already running' });
+        }
+        if (msg === 'INVALID_CAMPAIGN_STATUS') {
+          return res.status(400).json({ success: false, error: 'Campaign is not in a startable status' });
+        }
+        if (msg.startsWith('PREFLIGHT_FAILED')) {
+          return res.status(400).json({ success: false, error: msg.replace(/^PREFLIGHT_FAILED:\s*/, '') });
+        }
         return res.status(500).json({ success: false, error: err.message });
       }
 
@@ -248,6 +261,45 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, messages, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const csvEscape = (val: any) => {
+  const s = val === undefined || val === null ? '' : String(val);
+  return `"${s.replace(/"/g, '""')}"`;
+};
+
+/**
+ * GET /campaigns/export — CSV download of all campaigns in the workspace
+ */
+export const exportAllCsv = async (req: AuthRequest, res: Response) => {
+  try {
+    const workspaceId = req.workspace?.id;
+    const campaigns = await Campaign.find({ workspace: workspaceId }).sort({ createdAt: -1 }).lean();
+
+    const headers = ['ID', 'Name', 'Type', 'Status', 'Template', 'Sent', 'Delivered', 'Read', 'Failed', 'Total Recipients', 'Created At'];
+    const rows = campaigns.map((c: any) => [
+      c._id,
+      c.name,
+      c.campaignType || 'one-time',
+      c.status || 'DRAFT',
+      c.templateSnapshot?.name || '',
+      c.sentCount || 0,
+      c.deliveredCount || 0,
+      c.readCount || 0,
+      c.failedCount || 0,
+      c.totalContacts || 0,
+      c.createdAt ? new Date(c.createdAt).toISOString() : ''
+    ]);
+
+    const csv = [headers.map(csvEscape).join(','), ...rows.map(r => r.map(csvEscape).join(','))].join('\n');
+    const filename = `campaigns_${workspaceId}_${new Date().toISOString().slice(0, 10)}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csv);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message || 'Failed to export campaigns' });
   }
 };
 

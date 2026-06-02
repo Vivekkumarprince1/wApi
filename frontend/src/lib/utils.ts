@@ -27,3 +27,15 @@ export function formatMoneyFromMinorUnits(
     })}`
   }
 }
+
+export function triggerDownload(data: Blob | string, filename: string, mimeType = 'text/csv;charset=utf-8;') {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}

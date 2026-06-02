@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { randomUUID } from 'crypto';
 import { config } from '../config';
 
@@ -60,11 +60,20 @@ export const monolithWorkerBridge = {
   },
 
   async preflightValidate(workspaceId: string, templateId: string, contactsCount: number) {
-    const response = await client.post('/api/internal/worker-bridge', {
-      action: 'preflight-validate',
-      data: { workspaceId, templateId, contactsCount },
-    });
-    return response.data;
+    try {
+      const response = await client.post('/api/internal/worker-bridge', {
+        action: 'preflight-validate',
+        data: { workspaceId, templateId, contactsCount },
+      });
+      return response.data;
+    } catch (err) {
+      const axiosErr = err as AxiosError<any>;
+      const status = axiosErr.response?.status;
+      const code = axiosErr.code;
+      const detail = (axiosErr.response?.data as any)?.message || axiosErr.message;
+      console.error(`[monolith-bridge] preflightValidate failed code=${code} status=${status} msg=${detail}`);
+      throw new Error(`PREFLIGHT_UNAVAILABLE: ${code || status || 'unknown'}${detail ? ` (${detail})` : ''}`);
+    }
   },
 
   async socketBroadcast(workspaceId: string, event: string, payload: any) {

@@ -17,6 +17,8 @@ const contactValidation = [
 
 router.get('/', authenticate, requirePermission('contacts.view'), contactController.listContacts);
 
+router.get('/export', authenticate, requirePermission('contacts.view'), contactController.exportContacts);
+
 router.post('/', 
   authenticate, 
   requirePermission('contacts.create'), 

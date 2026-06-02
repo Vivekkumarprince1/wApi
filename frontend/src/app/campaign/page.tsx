@@ -21,13 +21,16 @@ import {
   FileDown,
   Filter,
   ChevronRight,
-  MoreVertical
+  MoreVertical,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { fetchCampaigns, performCampaignAction, deleteCampaign, Campaign } from '@/lib/api/campaigns';
+import { apiClient } from '@/lib/api/client';
+import { triggerDownload } from '@/lib/utils';
 import { useAuthStore } from '@/store/auth-store';
 import FlashLoader from '@/components/ui/flash-loader';
 import { Button } from '@/components/ui/button';
@@ -167,39 +170,19 @@ const CampaignsPage = () => {
     </div>
   );
 
-  const handleExportCSV = () => {
-    if (filteredCampaigns.length === 0) {
-      toast.error("No campaigns to export");
-      return;
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportCSV = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await apiClient.get<Blob>('/campaign/campaigns/export', { responseType: 'blob' });
+      triggerDownload(blob, `campaigns_export_${Date.now()}.csv`);
+      toast.success("Campaigns exported successfully");
+    } catch {
+      // apiClient interceptor already surfaces a toast.error
+    } finally {
+      setIsExporting(false);
     }
-
-    const headers = ['ID', 'Name', 'Type', 'Status', 'Template', 'Sent', 'Delivered', 'Read', 'Failed', 'Total Recipients', 'Created At'];
-    
-    const rows = filteredCampaigns.map(c => [
-      c._id || '',
-      c.name || '',
-      c.campaignType || 'one-time',
-      c.status || 'draft',
-      c.template?.name || '',
-      c.sentCount || 0,
-      c.deliveredCount || 0,
-      c.readCount || 0,
-      (c.totalContacts || 0) - (c.sentCount || 0) > 0 ? (c.totalContacts || 0) - (c.sentCount || 0) : 0,
-      c.totalContacts || 0,
-      c.createdAt ? new Date(c.createdAt).toLocaleDateString() : ''
-    ]);
-
-    const csvString = [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `campaigns_export_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast.success("Campaigns exported successfully");
   };
 
   if (isLoading) return <FlashLoader />;
@@ -218,8 +201,10 @@ const CampaignsPage = () => {
           <p className="text-muted-foreground text-sm font-medium">Manage and track your message broadcasts.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={handleExportCSV} variant="outline" className="rounded-2xl px-6 h-12 font-bold border-border/50 group">
-            <FileDown className="h-4 w-4 mr-2 text-muted-foreground group-hover:text-primary transition-colors" />
+          <Button onClick={handleExportCSV} disabled={isExporting} variant="outline" className="rounded-2xl px-6 h-12 font-bold border-border/50 group">
+            {isExporting
+              ? <Loader2 className="h-4 w-4 mr-2 animate-spin text-muted-foreground" />
+              : <FileDown className="h-4 w-4 mr-2 text-muted-foreground group-hover:text-primary transition-colors" />}
             Export
           </Button>
           <Link href="/campaign/new">
