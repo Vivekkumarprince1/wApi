@@ -10,6 +10,7 @@
     "test": "tsc -p tsconfig.test.json && node dist-test/__tests__/roles.test.js && node dist-test/__tests__/redis-config.test.js"
   },
   "devDependencies": {
+    "@types/node": "^22.13.0",
     "typescript": "^6.0.3"
   }
 }
