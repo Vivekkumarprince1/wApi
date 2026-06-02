@@ -127,10 +127,67 @@ app.use('/api/v1/widget', widgetRoutes);
 app.use('/api/internal', internalRoutes);
 
 import { HealthService } from './services/health-service';
+import { getSharedConnection, ensureRedisPolicy } from './utils/ioredis';
+import { readMaxMemoryPolicy, REQUIRED_MAXMEMORY_POLICY } from '@wapi/contracts';
 
 app.get('/health', async (req, res) => {
   const report = await HealthService.getFullReport();
   res.json(report);
+});
+
+app.get('/live', (_req, res) => {
+  res.json({ status: 'ok', service: 'core-server', uptime: process.uptime() });
+});
+
+app.get('/ready', async (_req, res) => {
+  const dbOk = mongoose.connection.readyState === 1;
+  let redisOk = false;
+  try {
+    const conn = getSharedConnection();
+    redisOk = (await conn.ping()) === 'PONG';
+  } catch {
+    redisOk = false;
+  }
+  const ok = dbOk && redisOk;
+  res.status(ok ? 200 : 503).json({
+    status: ok ? 'ready' : 'not_ready',
+    service: 'core-server',
+    db: dbOk ? 'ok' : 'down',
+    redis: redisOk ? 'ok' : 'down',
+  });
+});
+
+app.get('/health/redis', async (_req, res) => {
+  try {
+    const conn = getSharedConnection();
+    const policy = await readMaxMemoryPolicy(conn as any);
+    const ok = policy === REQUIRED_MAXMEMORY_POLICY;
+    res.json({
+      service: 'core-server',
+      policy,
+      required: REQUIRED_MAXMEMORY_POLICY,
+      ok,
+      url: (process.env.REDIS_URL || '').replace(/:[^:@\/]*@/, ':***@'),
+    });
+  } catch (err: any) {
+    res.status(503).json({ ok: false, error: err?.message || String(err) });
+  }
+});
+
+app.get('/metrics', (_req, res) => {
+  const mem = process.memoryUsage();
+  const lines = [
+    `# HELP process_uptime_seconds Process uptime`,
+    `# TYPE process_uptime_seconds gauge`,
+    `process_uptime_seconds ${process.uptime()}`,
+    `# HELP process_resident_memory_bytes RSS memory`,
+    `# TYPE process_resident_memory_bytes gauge`,
+    `process_resident_memory_bytes ${mem.rss}`,
+    `# HELP process_heap_used_bytes V8 heap used`,
+    `# TYPE process_heap_used_bytes gauge`,
+    `process_heap_used_bytes ${mem.heapUsed}`,
+  ];
+  res.type('text/plain').send(lines.join('\n') + '\n');
 });
 
 // --- ROOT ENDPOINT (for tunnel connectivity verification) ---
@@ -166,6 +223,8 @@ async function startServer() {
     mongoose.set('bufferCommands', false);
     await mongoose.connect(process.env.MONGODB_URI!);
     console.log("[Main Server] Connected to MongoDB");
+
+    await ensureRedisPolicy();
 
     initWorkers();
     initSocketEmitter();

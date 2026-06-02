@@ -30,11 +30,17 @@ const start = async () => {
     credentials: true,
   });
 
-  // Register reply-from for robust stream-based HTTP proxying
+  // Register reply-from for robust stream-based HTTP proxying.
+  // `bodyLimit` and `undici.headersTimeout` cap how long the gateway
+  // will wait on a slow upstream — without this, a hung billing-service
+  // would tie up gateway connections indefinitely.
+  const UPSTREAM_TIMEOUT_MS = Number(process.env.GATEWAY_UPSTREAM_TIMEOUT_MS || 8000);
   await fastify.register(replyFrom, {
     undici: {
       connections: 100,
       pipelining: 10,
+      headersTimeout: UPSTREAM_TIMEOUT_MS,
+      bodyTimeout: UPSTREAM_TIMEOUT_MS,
     },
   });
 

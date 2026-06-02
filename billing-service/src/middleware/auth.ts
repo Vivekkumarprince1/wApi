@@ -2,15 +2,39 @@ import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
+import { isPlatformAdmin, normalizeRole, Roles } from '@wapi/contracts';
 
 const JWT_SECRET = config.jwtSecret;
 const INTERNAL_SECRET = config.internalServiceSecret;
+
+/** sha-256 prefix of the secret — for debug logs only, never the secret itself. */
+function secretFingerprint(s: string | undefined): string {
+  if (!s) return 'empty';
+  return crypto.createHash('sha256').update(s).digest('hex').slice(0, 8);
+}
 
 function safeEqualSecret(provided: string | undefined): boolean {
   if (!provided || !INTERNAL_SECRET) return false;
   const a = Buffer.from(provided, 'utf8');
   const b = Buffer.from(INTERNAL_SECRET, 'utf8');
   return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+// Track whether we've already warned about a fingerprint mismatch for a
+// given upstream secret. Without this dedupe the log line fires every
+// single request and drowns the actual auth signal.
+const warnedFingerprints = new Set<string>();
+
+function warnSecretMismatch(req: Request, provided: string | undefined) {
+  const providedFp = secretFingerprint(provided);
+  const expectedFp = secretFingerprint(INTERNAL_SECRET);
+  const key = `${providedFp}->${expectedFp}`;
+  if (warnedFingerprints.has(key)) return;
+  warnedFingerprints.add(key);
+  console.warn(
+    `[Billing Auth] x-internal-service-secret mismatch on ${req.method} ${req.originalUrl}: ` +
+      `provided=${providedFp} expected=${expectedFp}. Check INTERNAL_SERVICE_SECRET in both .env files.`
+  );
 }
 
 // The startup check is handled by the config module, but we double-check here
@@ -38,20 +62,31 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   const gatewayRole = req.header('x-user-role');
 
   if (safeEqualSecret(internalSecret) && gatewayUserId) {
-    req.user = { 
-      id: gatewayUserId, 
+    // 'system' is a marker for internal service callers, not a user
+    // role. Preserve it as-is so commerce controller's
+    // `req.role === 'system'` checks still work.
+    const canonicalRole = gatewayRole === 'system' ? 'system' : normalizeRole(gatewayRole, Roles.Agent);
+    req.user = {
+      id: gatewayUserId,
       _id: gatewayUserId,
-      role: gatewayRole || 'agent' 
+      role: canonicalRole,
     };
-    req.role = gatewayRole || 'agent';
-    
+    req.role = canonicalRole;
+
     if (gatewayWorkspaceId) {
-      req.workspace = { 
+      req.workspace = {
         id: gatewayWorkspaceId,
         _id: gatewayWorkspaceId
       };
     }
     return next();
+  }
+
+  // Diagnostic: surface secret drift loudly in dev so config issues
+  // don't masquerade as billing bugs. Only fires when something looks
+  // like a gateway call (we have user-id but the secret didn't match).
+  if (internalSecret && gatewayUserId) {
+    warnSecretMismatch(req, internalSecret);
   }
 
   // 2. Fallback: Direct JWT
@@ -64,15 +99,16 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
-    req.user = { 
-      id: decoded.id, 
+    const canonicalRole = normalizeRole(decoded.role, Roles.Agent);
+    req.user = {
+      id: decoded.id,
       _id: decoded.id,
-      role: decoded.role || 'agent' 
+      role: canonicalRole,
     };
-    req.role = decoded.role || 'agent';
-    
+    req.role = canonicalRole;
+
     if (decoded.workspaceId) {
-      req.workspace = { 
+      req.workspace = {
         id: decoded.workspaceId,
         _id: decoded.workspaceId
       };
@@ -90,7 +126,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 export const internalAuth = (req: Request, res: Response, next: NextFunction) => {
   const provided = req.header('x-internal-service-secret');
   if (!safeEqualSecret(provided)) {
-    console.warn(`[Billing InternalAuth] Rejecting ${req.method} ${req.originalUrl}`);
+    warnSecretMismatch(req, provided);
     return res.status(401).json({ message: 'Unauthorized: Internal service secret missing or invalid' });
   }
   next();
@@ -115,15 +151,37 @@ export const authenticateOrInternal = (req: AuthRequest, res: Response, next: Ne
 };
 
 /**
- * Middleware to restrict access by role.
+ * Middleware to restrict access by role. Compares against the canonical
+ * role enum, so the legacy 'admin' string is treated as workspace admin
+ * (not super admin) and aliases like 'superadmin' / 'staff' map back to
+ * super_admin.
  */
 export const authorize = (roles: string[]) => {
+  const allowed = new Set(roles.map((r) => normalizeRole(r)));
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'Permission denied: You do not have the required role' 
+    if (!req.user) {
+      return res.status(403).json({ message: 'Permission denied: You do not have the required role' });
+    }
+    const current = normalizeRole(req.user.role);
+    if (!allowed.has(current)) {
+      return res.status(403).json({
+        message: 'Permission denied: You do not have the required role',
       });
     }
     next();
   };
+};
+
+/**
+ * Convenience middleware for platform-admin-only endpoints. Accepts the
+ * canonical `super_admin` role and its documented aliases (`staff`,
+ * `superadmin`, …) — never the legacy workspace `admin`.
+ */
+export const requireSuperAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (!isPlatformAdmin(req.user?.role)) {
+    return res.status(403).json({
+      message: 'Permission denied: super_admin required',
+    });
+  }
+  next();
 };

@@ -10,6 +10,7 @@ import engineRoutes from './routes/engineRoutes';
 import interaktiveListRoutes from './routes/interaktiveListRoutes';
 import instagramQuickflowRoutes from './routes/instagramQuickflowRoutes';
 import whatsappFormRoutes from './routes/whatsappFormRoutes';
+import { redisClient, ensureRedisPolicy } from './lib/redis';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -53,6 +54,43 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/live', (_req, res) => {
+  res.json({ status: 'ok', service: 'automation-service', uptime: process.uptime() });
+});
+
+app.get('/ready', async (_req, res) => {
+  const dbOk = mongoose.connection.readyState === 1;
+  let redisOk = false;
+  try {
+    redisOk = (await redisClient.ping()) === 'PONG';
+  } catch {
+    redisOk = false;
+  }
+  const ok = dbOk && redisOk;
+  res.status(ok ? 200 : 503).json({
+    status: ok ? 'ready' : 'not_ready',
+    service: 'automation-service',
+    db: dbOk ? 'ok' : 'down',
+    redis: redisOk ? 'ok' : 'down',
+  });
+});
+
+app.get('/metrics', (_req, res) => {
+  const mem = process.memoryUsage();
+  const lines = [
+    `# HELP process_uptime_seconds Process uptime`,
+    `# TYPE process_uptime_seconds gauge`,
+    `process_uptime_seconds ${process.uptime()}`,
+    `# HELP process_resident_memory_bytes RSS memory`,
+    `# TYPE process_resident_memory_bytes gauge`,
+    `process_resident_memory_bytes ${mem.rss}`,
+    `# HELP process_heap_used_bytes V8 heap used`,
+    `# TYPE process_heap_used_bytes gauge`,
+    `process_heap_used_bytes ${mem.heapUsed}`,
+  ];
+  res.type('text/plain').send(lines.join('\n') + '\n');
+});
+
 // Start Server (await Mongo first so HTTP traffic can't hit a disconnected DB).
 let server: ReturnType<typeof app.listen> | null = null;
 
@@ -60,6 +98,7 @@ let server: ReturnType<typeof app.listen> | null = null;
   try {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to Automation Database');
+    await ensureRedisPolicy();
     server = app.listen(PORT, () => {
       console.log(`Automation Service listening on port ${PORT}`);
     });

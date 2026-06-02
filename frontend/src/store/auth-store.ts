@@ -62,7 +62,9 @@ interface AuthState {
     };
     isImpersonating: boolean;
     inFlightPromise: Promise<any> | null;
+    lastFetchedAt: number;
     fetchSession: (force?: boolean) => Promise<any>;
+    invalidateSession: () => Promise<any>;
     logout: () => void;
     stopImpersonating: () => Promise<void>;
     getRole: () => string;
@@ -70,6 +72,18 @@ interface AuthState {
     getIsOnTrial: () => boolean;
     isSuperAdmin: () => boolean;
 }
+
+/**
+ * Minimum interval between successive *forced* session refetches.
+ *
+ * Sized to absorb a React render-cycle storm (multiple effects /
+ * children firing fetchSession(true) in the same mount sequence)
+ * without affecting real human-time mutations, which are always
+ * separated by at least an HTTP round-trip + a click. Post-mutation
+ * code paths that absolutely need a fresh fetch should call
+ * `invalidateSession()` — it bypasses this window.
+ */
+const MIN_SESSION_REFETCH_MS = 300;
 
 export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
@@ -102,6 +116,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
     isImpersonating: false,
     inFlightPromise: null,
+    lastFetchedAt: 0,
 
     getRole: () => get().user?.role || 'viewer',
 
@@ -120,9 +135,32 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     isSuperAdmin: () => get().user?.role === 'super_admin',
 
+    invalidateSession: async () => {
+        // Single entry point post-mutation. Bypasses the dedupe in
+        // fetchSession by clearing inFlightPromise + lastFetchedAt, so
+        // the next caller actually hits the network.
+        set({ inFlightPromise: null, lastFetchedAt: 0 });
+        return get().fetchSession(true);
+    },
+
     fetchSession: async (force = false) => {
-        const { inFlightPromise } = get();
+        const { inFlightPromise, lastFetchedAt, user, workspace, authenticated, nextStep, accessRestriction } = get();
         if (inFlightPromise) return inFlightPromise;
+
+        // Re-entrant forced calls collapse to the cached snapshot if
+        // the previous fetch completed less than MIN_SESSION_REFETCH_MS
+        // ago. We return a sessionData-shaped object built from the
+        // current store so callers that read e.g. session.accessRestriction
+        // continue to work (login page, billing page, etc.).
+        if (force && authenticated && lastFetchedAt && Date.now() - lastFetchedAt < MIN_SESSION_REFETCH_MS) {
+            return {
+                authenticated: true,
+                user,
+                workspace,
+                nextStep,
+                accessRestriction,
+            };
+        }
 
         const doFetch = async () => {
             try {
@@ -202,7 +240,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 set({ user: null, authenticated: false, isImpersonating: false, accessRestriction: null });
                 return null;
             } finally {
-                set({ loading: false, inFlightPromise: null });
+                set({ loading: false, inFlightPromise: null, lastFetchedAt: Date.now() });
             }
         };
 
@@ -226,7 +264,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             stage1Complete: false,
             authenticated: false,
             accessRestriction: null,
-            isImpersonating: false
+            isImpersonating: false,
+            // Reset throttle window so the next login flow gets a real fetch.
+            lastFetchedAt: 0,
+            inFlightPromise: null,
         });
         api.post('/auth/logout')
             .catch(() => {})

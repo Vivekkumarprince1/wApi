@@ -225,35 +225,43 @@ async function readPersistedAppToken(appId: string): Promise<string | null> {
   return null;
 }
 
-export async function resolvePartnerToken(forceRefresh = false): Promise<string> {
-  if (forceRefresh) {
-    console.log('[GupshupTokenService] Forced refresh requested for Partner Token - clearing cache');
-    await deleteCacheKey(PARTNER_TOKEN_CACHE_KEY);
-    (partnerMemoryCache as any) = null;
-  }
+// In-process single-flight for partner-token refreshes. A burst of
+// callers (e.g. multiple app-token consumers all 401ing at once) used
+// to wipe the cache, race the Redis lock, and log "Forced refresh
+// requested" on every iteration. With this promise everyone awaits the
+// same network call.
+let inflightPartnerRefresh: Promise<string> | null = null;
 
-  // 1. Check Memory Cache (Fastest)
+export async function resolvePartnerToken(forceRefresh = false): Promise<string> {
+  // 1. Check Memory Cache (Fastest). Honour cache even on forceRefresh
+  //    so far as the cool-down lets us — the previous version wiped
+  //    the cache *before* checking the cool-down, which left a 30s
+  //    window of unnecessary inconsistency.
   if (!forceRefresh && partnerMemoryCache && partnerMemoryCache.expiresAt > Date.now()) {
     return partnerMemoryCache.token;
   }
 
   // 2. Check Redis Cache
   const cached = await readJson<PartnerTokenCache>(PARTNER_TOKEN_CACHE_KEY);
-  
-  // Prevent hammering forced refresh if it happened in last 30s
+
+  // Prevent hammering forced refresh if it happened in last 30s. We
+  // check this BEFORE wiping any caches so the cool-down is a true
+  // no-op rather than a destructive one.
   const lastRefreshed = cached?.refreshedAt ? new Date(cached.refreshedAt).getTime() : 0;
   const isTooSoonForForce = Date.now() - lastRefreshed < 30000;
-
   if (forceRefresh && isTooSoonForForce && cached?.token) {
-    console.log('[GupshupTokenService] Forced refresh ignored - already refreshed in last 30s');
+    // Quietly satisfied — no log, callers see the cached token.
+    (partnerMemoryCache as any) = {
+      token: cached.token,
+      expiresAt: Date.now() + MEMORY_CACHE_TTL_MS,
+    };
     return cached.token;
   }
 
   if (!forceRefresh && cached?.token && !isExpiringSoon(cached.expiresAt)) {
-    // Backfill memory cache
-    (partnerMemoryCache as any) = { 
-        token: cached.token, 
-        expiresAt: Date.now() + MEMORY_CACHE_TTL_MS 
+    (partnerMemoryCache as any) = {
+      token: cached.token,
+      expiresAt: Date.now() + MEMORY_CACHE_TTL_MS,
     };
     return cached.token;
   }
@@ -261,52 +269,73 @@ export async function resolvePartnerToken(forceRefresh = false): Promise<string>
   const hasLoginCredentials = Boolean(config.gupshupPartnerEmail && (config.gupshupPartnerPassword || config.gupshupPartnerClientSecret));
   const envToken = normalizeToken(config.gupshupPartnerToken);
 
-  // Static token can be used as fallback, but forced refresh should prefer a fresh login when possible.
   if (envToken && (!forceRefresh || !hasLoginCredentials)) {
     return envToken;
   }
 
-  const lockKey = PARTNER_TOKEN_LOCK_KEY;
-  const lockAcquired = await acquireLock(lockKey);
-
-  if (!lockAcquired) {
-    for (const delayMs of [150, 300, 600]) {
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-      const retryCached = await readJson<PartnerTokenCache>(PARTNER_TOKEN_CACHE_KEY);
-      if (retryCached?.token && !isExpiringSoon(retryCached.expiresAt)) {
-        return retryCached.token;
-      }
-    }
+  // Single-flight: collapse concurrent refreshes to one HTTP login.
+  if (inflightPartnerRefresh) {
+    return inflightPartnerRefresh;
   }
 
+  inflightPartnerRefresh = (async () => {
+    // Only NOW do we actually invalidate the cache, and only once.
+    if (forceRefresh) {
+      console.log('[GupshupTokenService] Refreshing Partner Token');
+      await deleteCacheKey(PARTNER_TOKEN_CACHE_KEY);
+      (partnerMemoryCache as any) = null;
+    }
+
+    const lockKey = PARTNER_TOKEN_LOCK_KEY;
+    const lockAcquired = await acquireLock(lockKey);
+
+    if (!lockAcquired) {
+      for (const delayMs of [150, 300, 600]) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        const retryCached = await readJson<PartnerTokenCache>(PARTNER_TOKEN_CACHE_KEY);
+        if (retryCached?.token && !isExpiringSoon(retryCached.expiresAt)) {
+          return retryCached.token;
+        }
+      }
+    }
+
+    try {
+      if (hasLoginCredentials) {
+        const fresh = await loginPartnerToken();
+        await writeJson(PARTNER_TOKEN_CACHE_KEY, fresh, DEFAULT_PARTNER_TOKEN_TTL_SECONDS);
+        (partnerMemoryCache as any) = {
+          token: fresh.token,
+          expiresAt: Date.now() + MEMORY_CACHE_TTL_MS,
+        };
+        return fresh.token;
+      }
+
+      if (envToken) {
+        return envToken;
+      }
+
+      throw Object.assign(new Error('Gupshup partner credentials are not configured'), {
+        status: 503,
+        code: 'GUPSHUP_NOT_CONFIGURED',
+      });
+    } finally {
+      await releaseLock(lockKey);
+    }
+  })();
+
   try {
-    if (hasLoginCredentials) {
-      const fresh = await loginPartnerToken();
-      await writeJson(PARTNER_TOKEN_CACHE_KEY, fresh, DEFAULT_PARTNER_TOKEN_TTL_SECONDS);
-      return fresh.token;
-    }
-
-    if (envToken) {
-      return envToken;
-    }
-
-    throw Object.assign(new Error('Gupshup partner credentials are not configured'), {
-      status: 503,
-      code: 'GUPSHUP_NOT_CONFIGURED'
-    });
+    return await inflightPartnerRefresh;
   } finally {
-    await releaseLock(lockKey);
+    inflightPartnerRefresh = null;
   }
 }
 
-export async function resolveAppToken(appId: string, forceRefresh = false): Promise<string> {
-  if (forceRefresh) {
-    console.log(`[GupshupTokenService] Forced refresh requested for App Token: ${appId} - clearing cache`);
-    await deleteCacheKey(`${APP_TOKEN_CACHE_PREFIX}${appId}`);
-    appMemoryCache.delete(appId);
-  }
+// Per-app single-flight. A 401-storm on one app collapses to a single
+// re-login, instead of every caller racing the Redis lock.
+const inflightAppRefresh = new Map<string, Promise<string>>();
 
-  // 1. Check Memory Cache (Fastest)
+export async function resolveAppToken(appId: string, forceRefresh = false): Promise<string> {
+  // 1. Check Memory Cache (Fastest) — short-circuit before invalidation.
   const memCached = appMemoryCache.get(appId);
   if (!forceRefresh && memCached && memCached.expiresAt > Date.now()) {
     return memCached.token;
@@ -315,10 +344,9 @@ export async function resolveAppToken(appId: string, forceRefresh = false): Prom
   // 2. Check Redis Cache
   const cached = await readJson<AppTokenCache>(`${APP_TOKEN_CACHE_PREFIX}${appId}`);
   if (!forceRefresh && cached?.token && !isExpiringSoon(cached.expiresAt)) {
-    // Backfill memory cache
-    appMemoryCache.set(appId, { 
-        token: cached.token, 
-        expiresAt: Date.now() + MEMORY_CACHE_TTL_MS 
+    appMemoryCache.set(appId, {
+      token: cached.token,
+      expiresAt: Date.now() + MEMORY_CACHE_TTL_MS,
     });
     return cached.token;
   }
@@ -328,41 +356,60 @@ export async function resolveAppToken(appId: string, forceRefresh = false): Prom
     return persisted;
   }
 
-  const lockKey = `${APP_TOKEN_LOCK_PREFIX}${appId}`;
-  const lockAcquired = await acquireLock(lockKey);
+  // Collapse concurrent refreshes for the same appId.
+  const existing = inflightAppRefresh.get(appId);
+  if (existing) return existing;
 
-  if (!lockAcquired) {
-    for (const delayMs of [150, 300, 600]) {
-      await new Promise((resolve) => setTimeout(resolve, delayMs));
-      const retryCached = await readJson<AppTokenCache>(`${APP_TOKEN_CACHE_PREFIX}${appId}`);
-      if (retryCached?.token && !isExpiringSoon(retryCached.expiresAt)) {
-        return retryCached.token;
-      }
-      const retryPersisted = await readPersistedAppToken(appId);
-      if (retryPersisted) {
-        return retryPersisted;
+  const refresh = (async () => {
+    if (forceRefresh) {
+      console.log(`[GupshupTokenService] Refreshing App Token: ${appId}`);
+      await deleteCacheKey(`${APP_TOKEN_CACHE_PREFIX}${appId}`);
+      appMemoryCache.delete(appId);
+    }
+
+    const lockKey = `${APP_TOKEN_LOCK_PREFIX}${appId}`;
+    const lockAcquired = await acquireLock(lockKey);
+
+    if (!lockAcquired) {
+      for (const delayMs of [150, 300, 600]) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        const retryCached = await readJson<AppTokenCache>(`${APP_TOKEN_CACHE_PREFIX}${appId}`);
+        if (retryCached?.token && !isExpiringSoon(retryCached.expiresAt)) {
+          return retryCached.token;
+        }
+        const retryPersisted = await readPersistedAppToken(appId);
+        if (retryPersisted) {
+          return retryPersisted;
+        }
       }
     }
-  }
 
-  try {
-    let partnerToken = await resolvePartnerToken(forceRefresh);
-    let fresh;
     try {
-      fresh = await fetchAppToken(appId, partnerToken);
-    } catch (error: any) {
-      const status = Number(error?.response?.status || 0);
-      if (!forceRefresh && (status === 401 || status === 403)) {
-        partnerToken = await resolvePartnerToken(true);
+      let partnerToken = await resolvePartnerToken(forceRefresh);
+      let fresh;
+      try {
         fresh = await fetchAppToken(appId, partnerToken);
-      } else {
-        throw error;
+      } catch (error: any) {
+        const status = Number(error?.response?.status || 0);
+        if (!forceRefresh && (status === 401 || status === 403)) {
+          partnerToken = await resolvePartnerToken(true);
+          fresh = await fetchAppToken(appId, partnerToken);
+        } else {
+          throw error;
+        }
       }
+      await persistAppToken(appId, fresh);
+      return fresh.token;
+    } finally {
+      await releaseLock(lockKey);
     }
-    await persistAppToken(appId, fresh);
-    return fresh.token;
+  })();
+
+  inflightAppRefresh.set(appId, refresh);
+  try {
+    return await refresh;
   } finally {
-    await releaseLock(lockKey);
+    inflightAppRefresh.delete(appId);
   }
 }
 

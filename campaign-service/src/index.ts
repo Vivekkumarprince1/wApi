@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import campaignRoutes from './routes/campaignRoutes';
 import segmentRoutes from './routes/segmentRoutes';
 import { CampaignWorker } from './workers/CampaignWorker';
+import redis, { ensureRedisPolicy } from './lib/redis';
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -40,14 +41,15 @@ mongoose.connect(MONGODB_URI, {
   socketTimeoutMS: 45000,
   maxPoolSize: 10,
 })
-  .then(() => {
+  .then(async () => {
     console.log('✅ Connected to Campaign Database');
+    await ensureRedisPolicy();
     // Initialize Background Worker ONLY after DB connection
     import('./lib/events/EventBus')
       .then(() => console.log('✅ Campaign event workers initialized'))
       .catch((err) => console.error('❌ Failed to initialize campaign event workers:', err.message));
     new CampaignWorker();
-    
+
     // Start Server ONLY after DB connection
     server = app.listen(PORT, () => {
       console.log(`🚀 Campaign Service listening on port ${PORT}`);
@@ -68,12 +70,49 @@ app.use('/api/campaign', segmentRoutes);
 app.get('/health', (req, res) => {
   const dbState = mongoose.connection.readyState;
   const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
-  res.json({ 
-    status: dbState === 1 ? 'ok' : 'degraded', 
-    service: 'campaign-service', 
+  res.json({
+    status: dbState === 1 ? 'ok' : 'degraded',
+    service: 'campaign-service',
     db: dbStatus,
-    timestamp: new Date() 
+    timestamp: new Date()
   });
+});
+
+app.get('/live', (_req, res) => {
+  res.json({ status: 'ok', service: 'campaign-service', uptime: process.uptime() });
+});
+
+app.get('/ready', async (_req, res) => {
+  const dbOk = mongoose.connection.readyState === 1;
+  let redisOk = false;
+  try {
+    redisOk = (await redis.ping()) === 'PONG';
+  } catch {
+    redisOk = false;
+  }
+  const ok = dbOk && redisOk;
+  res.status(ok ? 200 : 503).json({
+    status: ok ? 'ready' : 'not_ready',
+    service: 'campaign-service',
+    db: dbOk ? 'ok' : 'down',
+    redis: redisOk ? 'ok' : 'down',
+  });
+});
+
+app.get('/metrics', (_req, res) => {
+  const mem = process.memoryUsage();
+  const lines = [
+    `# HELP process_uptime_seconds Process uptime`,
+    `# TYPE process_uptime_seconds gauge`,
+    `process_uptime_seconds ${process.uptime()}`,
+    `# HELP process_resident_memory_bytes RSS memory`,
+    `# TYPE process_resident_memory_bytes gauge`,
+    `process_resident_memory_bytes ${mem.rss}`,
+    `# HELP process_heap_used_bytes V8 heap used`,
+    `# TYPE process_heap_used_bytes gauge`,
+    `process_heap_used_bytes ${mem.heapUsed}`,
+  ];
+  res.type('text/plain').send(lines.join('\n') + '\n');
 });
 
 // Graceful Shutdown

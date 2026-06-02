@@ -1,11 +1,13 @@
 import IORedis from 'ioredis';
-import { config } from '../config';
+import {
+  assertRedisPolicy,
+  bullmqConnectionOptions,
+  resolveRedisUrl,
+} from '@wapi/contracts';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const redisUrl = process.env.REDIS_URL || resolveRedisUrl();
 
-export const redisClient = new IORedis(redisUrl, {
-  maxRetriesPerRequest: null,
-});
+export const redisClient = new IORedis(redisUrl, bullmqConnectionOptions());
 
 redisClient.on('error', (err) => {
   console.error('[Redis Service] Connection Error:', err);
@@ -14,6 +16,24 @@ redisClient.on('error', (err) => {
 redisClient.on('connect', () => {
   console.log('[Redis Service] Connected to Redis');
 });
+
+let policyChecked = false;
+
+export async function ensureRedisPolicy() {
+  if (policyChecked) return;
+  policyChecked = true;
+  try {
+    await assertRedisPolicy({
+      client: redisClient as any,
+      service: 'automation-service',
+    });
+  } catch (err: any) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[automation-service] fatal redis policy error:', err?.message || err);
+      process.exit(1);
+    }
+  }
+}
 
 /**
  * Publish an event to the global event bridge

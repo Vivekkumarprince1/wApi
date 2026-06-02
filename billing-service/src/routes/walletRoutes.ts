@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { WalletController } from '../controllers/WalletController';
-import { authenticate, authenticateOrInternal, internalAuth, authorize } from '../middleware/auth';
+import { authenticate, authenticateOrInternal, internalAuth, authorize, requireSuperAdmin } from '../middleware/auth';
 
 const router = Router();
 
@@ -8,9 +8,9 @@ const router = Router();
 // STATIC ROUTES (must be defined BEFORE dynamic :workspaceId routes)
 // ══════════════════════════════════════════════
 
-// Admin routes
-router.get('/admin/all-invoices', authenticate, authorize(['super_admin']), WalletController.getAllInvoices);
-router.get('/admin/stats', authenticate, authorize(['super_admin']), WalletController.getBillingStats);
+// Admin routes (platform super-admin only)
+router.get('/admin/all-invoices', authenticate, requireSuperAdmin, WalletController.getAllInvoices);
+router.get('/admin/stats', authenticate, requireSuperAdmin, WalletController.getBillingStats);
 
 // Verification routes (no workspaceId param in path)
 router.post('/recharge/verify', authenticate, WalletController.verifyRecharge);

@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import axios from 'axios';
 import { config } from './config';
+import { assertRedisPolicy, bullmqConnectionOptions } from '@wapi/contracts';
 
 const app = express();
 app.use(cors({
@@ -23,11 +24,56 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+app.get('/live', (_req: Request, res: Response) => {
+  res.json({ status: 'ok', service: 'wapi-websocket-service', uptime: process.uptime() });
+});
+
+app.get('/ready', async (_req: Request, res: Response) => {
+  let redisOk = false;
+  try {
+    redisOk = (await pubClient.ping()) === 'PONG';
+  } catch {
+    redisOk = false;
+  }
+  res.status(redisOk ? 200 : 503).json({
+    status: redisOk ? 'ready' : 'not_ready',
+    service: 'wapi-websocket-service',
+    redis: redisOk ? 'ok' : 'down',
+  });
+});
+
+app.get('/metrics', (_req: Request, res: Response) => {
+  const mem = process.memoryUsage();
+  const lines = [
+    `# HELP process_uptime_seconds Process uptime`,
+    `# TYPE process_uptime_seconds gauge`,
+    `process_uptime_seconds ${process.uptime()}`,
+    `# HELP process_resident_memory_bytes RSS memory`,
+    `# TYPE process_resident_memory_bytes gauge`,
+    `process_resident_memory_bytes ${mem.rss}`,
+    `# HELP process_heap_used_bytes V8 heap used`,
+    `# TYPE process_heap_used_bytes gauge`,
+    `process_heap_used_bytes ${mem.heapUsed}`,
+  ];
+  res.type('text/plain').send(lines.join('\n') + '\n');
+});
+
 const httpServer = createServer(app);
 
 // Initialize Redis Pub/Sub client for Socket.io scaling
-const pubClient = new Redis(config.redisUrl, { maxRetriesPerRequest: null });
+const pubClient = new Redis(config.redisUrl, bullmqConnectionOptions());
 const subClient = pubClient.duplicate();
+
+// Validate Redis policy once. Fails fast in production.
+assertRedisPolicy({
+  client: pubClient as any,
+  service: 'websocket-service',
+}).catch((err) => {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[websocket-service] fatal redis policy error:', err?.message || err);
+    process.exit(1);
+  }
+});
 
 const io = new Server(httpServer, {
   cors: {
@@ -53,9 +99,7 @@ class MicroserviceEventBridge {
 
   constructor(ioServer: Server) {
     this.ioServer = ioServer;
-    this.subRedis = new Redis(config.redisUrl, {
-      maxRetriesPerRequest: null,
-    });
+    this.subRedis = new Redis(config.redisUrl, bullmqConnectionOptions());
   }
 
   async start() {

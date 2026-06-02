@@ -17,3 +17,5 @@ export * from './billing-events';
 export * from './socket-events';
 export * from './common';
 export * from './queues';
+export * from './roles';
+export * from './redis-config';

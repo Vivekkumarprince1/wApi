@@ -1,10 +1,14 @@
 import IORedis, { Redis as IORedisType, RedisOptions } from 'ioredis';
+import {
+  assertRedisPolicy,
+  bullmqConnectionOptions,
+  resolveRedisUrl,
+} from '@wapi/contracts';
 
-const redisUrl = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
+const redisUrl = process.env.REDIS_URL || resolveRedisUrl();
 
 const baseOptions: RedisOptions = {
-  // BullMQ workers require this; harmless for general use.
-  maxRetriesPerRequest: null,
+  ...bullmqConnectionOptions(),
 };
 
 /**
@@ -49,6 +53,24 @@ export const getSharedConnection = (): IORedisType => sharedRedis;
 
 /** Alias to keep grep-friendly naming consistent across the codebase. */
 export const getSharedRedis = getSharedConnection;
+
+let policyChecked = false;
+
+export async function ensureRedisPolicy(): Promise<void> {
+  if (policyChecked) return;
+  policyChecked = true;
+  try {
+    await assertRedisPolicy({
+      client: sharedRedis as any,
+      service: 'core-server',
+    });
+  } catch (err: any) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[core-server] fatal redis policy error:', err?.message || err);
+      process.exit(1);
+    }
+  }
+}
 
 export { sharedRedis as redis };
 export default sharedRedis;

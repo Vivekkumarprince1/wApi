@@ -20,12 +20,14 @@ export function AuthInitializer() {
         if (isPublicRoute) return;
 
         fetchSession();
-        
+
+        // Only listen for explicit authChange events from the auth
+        // store. We deliberately do NOT listen for the broad `storage`
+        // event because it fires on any cross-tab localStorage write
+        // and triggered redundant session fetches.
         const handleAuthChange = () => fetchSession(true);
-        window.addEventListener('storage', handleAuthChange);
         window.addEventListener('authChange', handleAuthChange);
         return () => {
-            window.removeEventListener('storage', handleAuthChange);
             window.removeEventListener('authChange', handleAuthChange);
         };
     }, [fetchSession, isPublicRoute]);

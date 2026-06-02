@@ -188,7 +188,6 @@ export const authController = {
         });
       }
 
-      const { getNextOnboardingPath } = await import('../services/onboarding/onboarding-state-service');
       const { getWorkspaceAccessDecision, getWorkspaceBillingStatus, isWorkspaceBillingValid } = await import('../services/workspace-access-service');
       const workspaceToUse = workspace;
 
@@ -212,84 +211,95 @@ export const authController = {
         workspaceToUse?.bspPhoneStatus === 'CONNECTED'
       );
 
-      // SINGLE SOURCE OF TRUTH: Fetch wallet data from Billing Microservice
-      let walletData = { balance: 0, thresholdAmount: 5, currency: 'INR', isServiceDown: false };
-      
-      if (workspaceToUse?._id) {
+      // Run independent IO in parallel: wallet (billing service),
+      // access decision (mongo), and system settings (mongo + cached).
+      // Used to be sequential — main contributor to 1.2s /auth/session.
+      const localBalancePaise = workspaceToUse?.wallet?.balance ?? workspaceToUse?.walletBalance ?? 0;
+      const fetchWallet = async () => {
+        if (!workspaceToUse?._id) {
+          return { balance: 0, thresholdAmount: 5, currency: 'INR', isServiceDown: false };
+        }
         try {
-            const walletResponse = await proxyController.forwardToService('billing', {
-                method: 'GET',
-                path: `/api/billing/wallets/${workspaceToUse._id}`,
+          const walletResponse = await proxyController.forwardToService('billing', {
+            method: 'GET',
+            path: `/api/billing/wallets/${workspaceToUse._id}`,
+            workspaceId: workspaceToUse._id.toString(),
+            userId: user._id.toString(),
+            userRole: user.role,
+            headers: { 'x-timeout': '2000', 'x-no-retry': 'true' }
+          });
+          if (walletResponse.status !== 200) {
+            return { balance: 0, thresholdAmount: 5, currency: 'INR', isServiceDown: false };
+          }
+          let remoteWallet = walletResponse.data.wallet || walletResponse.data.data || {};
+
+          // Gate the legacy-sync RPC on actual need: only fire when the
+          // local balance is positive AND we haven't synced before.
+          // Skipping when localBalancePaise === 0 (the common case)
+          // removes a 200-400ms hop from the session path.
+          if (!remoteWallet.isLegacySynced && localBalancePaise > 0) {
+            console.log(`[SessionSync] Merging legacy balance for ${workspaceToUse.name}: ${localBalancePaise} paise`);
+            try {
+              const syncRes = await proxyController.forwardToService('billing', {
+                method: 'POST',
+                path: `/api/billing/wallets/${workspaceToUse._id}/sync`,
+                data: { balancePaise: localBalancePaise },
                 workspaceId: workspaceToUse._id.toString(),
                 userId: user._id.toString(),
-                userRole: user.role,
-                headers: { 'x-timeout': '2000', 'x-no-retry': 'true' }
-            });
-            
-            if (walletResponse.status === 200) {
-                let remoteWallet = walletResponse.data.wallet || walletResponse.data.data || {};
-                
-                // Automated Sync Check: If remote has not synced legacy balance yet, trigger it now.
-                const localBalancePaise = workspaceToUse?.wallet?.balance ?? workspaceToUse?.walletBalance ?? 0;
-                if (!remoteWallet.isLegacySynced && localBalancePaise > 0) {
-                    console.log(`[SessionSync] Merging legacy balance for ${workspaceToUse.name}: ${localBalancePaise} paise`);
-                    try {
-                        const syncRes = await proxyController.forwardToService('billing', {
-                            method: 'POST',
-                            path: `/api/billing/wallets/${workspaceToUse._id}/sync`,
-                            data: { balancePaise: localBalancePaise },
-                            workspaceId: workspaceToUse._id.toString(),
-                            userId: user._id.toString(),
-                            userRole: user.role
-                        });
-                        if (syncRes.status === 200) {
-                            remoteWallet = syncRes.data.wallet || syncRes.data.data || remoteWallet;
-                        }
-                    } catch (syncErr: any) {
-                        console.error(`[SessionSync] Legacy sync failed for ${workspaceToUse.name}:`, syncErr.message);
-                    }
-                }
-
-                walletData = {
-                    balance: (remoteWallet.availableBalance ?? 0) / 100,
-                    thresholdAmount: (remoteWallet.thresholdAmount ?? 50000) / 100,
-                    currency: remoteWallet.currency ?? 'INR',
-                    isServiceDown: false
-                };
+                userRole: user.role
+              });
+              if (syncRes.status === 200) {
+                remoteWallet = syncRes.data.wallet || syncRes.data.data || remoteWallet;
+              }
+            } catch (syncErr: any) {
+              console.error(`[SessionSync] Legacy sync failed for ${workspaceToUse.name}:`, syncErr.message);
             }
+          }
+
+          return {
+            balance: (remoteWallet.availableBalance ?? 0) / 100,
+            thresholdAmount: (remoteWallet.thresholdAmount ?? 50000) / 100,
+            currency: remoteWallet.currency ?? 'INR',
+            isServiceDown: false
+          };
         } catch (billingErr: any) {
-            const isCircuitOpen = billingErr.message === 'CIRCUIT_OPEN';
-            console.error(`[SessionWalletFetch] Billing service ${isCircuitOpen ? 'CIRCUIT_OPEN' : 'unreachable'} for ${workspaceToUse._id}:`, billingErr.message);
-            walletData = {
-              balance: 0,
-              thresholdAmount: 5,
-              currency: 'INR',
-              isServiceDown: true
-            };
+          const isCircuitOpen = billingErr.message === 'CIRCUIT_OPEN';
+          console.error(`[SessionWalletFetch] Billing service ${isCircuitOpen ? 'CIRCUIT_OPEN' : 'unreachable'} for ${workspaceToUse._id}:`, billingErr.message);
+          return { balance: 0, thresholdAmount: 5, currency: 'INR', isServiceDown: true };
         }
-      }
+      };
 
-      const isWorkspaceOwner = role === 'owner';
-      let accessDecision;
+      const fetchAccessDecision = async () => {
+        const isWorkspaceOwner = role === 'owner';
+        if (!isWorkspaceOwner && role) {
+          const billingStatus = getWorkspaceBillingStatus(workspaceToUse);
+          const isBillingValid = isWorkspaceBillingValid(workspaceToUse);
+          return {
+            accessRestriction: isBillingValid ? null : {
+              kind: 'billing' as const,
+              title: 'No valid plan',
+              description: `This workspace does not have an active plan.`,
+              targetPath: '/dashboard/billing',
+              actionLabel: 'View Billing'
+            },
+            nextStep: null,
+            billingStatus,
+            isBillingValid
+          };
+        }
+        return getWorkspaceAccessDecision(user, workspaceToUse);
+      };
 
-      if (!isWorkspaceOwner && role) {
-        const billingStatus = getWorkspaceBillingStatus(workspaceToUse);
-        const isBillingValid = isWorkspaceBillingValid(workspaceToUse);
-        accessDecision = {
-          accessRestriction: isBillingValid ? null : {
-            kind: 'billing' as const,
-            title: 'No valid plan',
-            description: `This workspace does not have an active plan.`,
-            targetPath: '/dashboard/billing',
-            actionLabel: 'View Billing'
-          },
-          nextStep: null,
-          billingStatus,
-          isBillingValid
-        };
-      } else {
-        accessDecision = await getWorkspaceAccessDecision(user, workspaceToUse);
-      }
+      const [walletData, accessDecision, systemSettings] = await Promise.all([
+        fetchWallet(),
+        fetchAccessDecision(),
+        (SystemSettings as any).getSettings(),
+      ]);
+
+      // Allow the browser to re-use the response for ~2 seconds. Stops
+      // back-to-back React mounts (auth-initializer + page + child)
+      // from each landing a request inside the same render cycle.
+      res.setHeader('Cache-Control', 'private, max-age=2');
 
       res.json({
         success: true,
@@ -336,8 +346,8 @@ export const authController = {
         nextStep: accessDecision.nextStep,
         accessRestriction: accessDecision.accessRestriction,
         systemStatus: {
-          maintenanceMode: (await (SystemSettings as any).getSettings()).maintenanceMode,
-          systemNotice: (await (SystemSettings as any).getSettings()).systemNotice
+          maintenanceMode: systemSettings?.maintenanceMode || false,
+          systemNotice: systemSettings?.systemNotice || null,
         },
         isImpersonating: !!isImpersonating,
         token: currentToken // Token for Socket.io / client-side use

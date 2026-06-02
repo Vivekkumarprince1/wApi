@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import jwt from 'jsonwebtoken';
 import { config } from '../config';
+import { normalizeRole } from '@wapi/contracts';
 
 export interface GatewayUser {
   id: string;
@@ -56,11 +57,17 @@ export const authenticateGateway = async (request: FastifyRequest, reply: Fastif
       });
     }
 
-    // Attach stateless user payload to request
+    // Attach stateless user payload to request. We normalize the role
+    // through the canonical enum here so downstream services never see
+    // alias drift like 'workspace_admin' or 'staff'. If the JWT didn't
+    // carry a role at all, leave it undefined — the proxy layer will
+    // skip the x-user-role header and the downstream service falls
+    // back to its own default (typically 'agent'), preserving legacy
+    // behaviour for old tokens.
     request.user = {
       id: decoded.id,
       workspaceId: decoded.workspaceId,
-      role: decoded.role,
+      role: decoded.role ? normalizeRole(decoded.role) : undefined,
       isImpersonating: !!decoded.isImpersonating,
     };
   } catch (err: any) {

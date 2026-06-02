@@ -5,6 +5,7 @@ import { AuthRequest } from '../middlewares/authMiddleware';
 import { config } from '../config';
 import { logActivity } from '../services/activity-logging-service';
 import { getCorrelationId } from '../utils/logger';
+import { normalizeRole } from '@wapi/contracts';
 
 type ProxyService = 'automation' | 'campaign' | 'billing';
 
@@ -213,17 +214,22 @@ function buildProxyHeaders(context: ProxyContext = {}, extraHeaders: Record<stri
     ...extraHeaders,
   };
 
-  if (context.workspaceId) headers['x-workspace-id'] = context.workspaceId;
-  if (context.userId) headers['x-user-id'] = context.userId;
-  if (context.userRole) headers['x-user-role'] = context.userRole;
-
-  console.log(`[buildProxyHeaders] Built headers:`, {
-    'x-workspace-id': headers['x-workspace-id'],
-    'x-user-id': headers['x-user-id'],
-    'x-user-role': headers['x-user-role'],
-    'x-correlation-id': headers['x-correlation-id'],
-    'x-internal-service-secret': headers['x-internal-service-secret'] ? '***' : 'NOT SET'
-  });
+  // Always forward the auth tuple for user-id / workspace-id (even
+  // when empty) so the downstream service can distinguish "header
+  // lost in transit" from "no value". For role we keep the original
+  // "omit when missing" behavior so downstream's `gatewayRole ||
+  // 'agent'` fallback stays intact.
+  headers['x-user-id'] = context.userId || '';
+  headers['x-workspace-id'] = context.workspaceId || '';
+  if (context.userRole) {
+    // The 'system' marker (set by internal-only middlewares) must
+    // pass through unchanged — it is not a user role and downstream
+    // services (e.g. billing commerce controller) check for it
+    // literally.
+    headers['x-user-role'] = context.userRole === 'system'
+      ? 'system'
+      : normalizeRole(context.userRole);
+  }
 
   return headers;
 }
