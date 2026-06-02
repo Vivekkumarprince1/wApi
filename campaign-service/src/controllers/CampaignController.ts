@@ -190,19 +190,27 @@ export const lifecycleAction = async (req: AuthRequest, res: Response) => {
       } catch (err: any) {
         console.error(`[Lifecycle] Failed to start campaign:`, err.message, err.stack);
         const msg = String(err?.message || '');
-        if (msg.startsWith('PREFLIGHT_UNAVAILABLE') || msg.startsWith('REDIS_UNAVAILABLE') || msg.startsWith('QUEUE_UNAVAILABLE')) {
-          return res.status(503).json({ success: false, error: msg });
+        if (
+          msg.startsWith('MONOLITH_UNREACHABLE') ||
+          msg.startsWith('MONOLITH_UNAVAILABLE') ||
+          msg.startsWith('MONOLITH_ROUTE_NOT_FOUND') ||
+          msg.startsWith('MONOLITH_ERROR') ||
+          msg.startsWith('PREFLIGHT_UNAVAILABLE') ||
+          msg.startsWith('REDIS_UNAVAILABLE') ||
+          msg.startsWith('QUEUE_UNAVAILABLE')
+        ) {
+          return res.status(503).json({ success: false, message: msg });
         }
         if (msg === 'CAMPAIGN_ALREADY_RUNNING') {
-          return res.status(409).json({ success: false, error: 'Campaign is already running' });
+          return res.status(409).json({ success: false, message: 'Campaign is already running' });
         }
         if (msg === 'INVALID_CAMPAIGN_STATUS') {
-          return res.status(400).json({ success: false, error: 'Campaign is not in a startable status' });
+          return res.status(400).json({ success: false, message: 'Campaign is not in a startable status' });
         }
         if (msg.startsWith('PREFLIGHT_FAILED')) {
-          return res.status(400).json({ success: false, error: msg.replace(/^PREFLIGHT_FAILED:\s*/, '') });
+          return res.status(400).json({ success: false, message: msg.replace(/^PREFLIGHT_FAILED:\s*/, '') });
         }
-        return res.status(500).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, message: err.message });
       }
 
       return res.json({

@@ -2,9 +2,8 @@
 
 /**
  * Controlled Build Coordinator for wApi
- * 
- * Sequentially builds all microservices and frontend with strict memory limits
- * to prevent Out-of-Memory (OOM) crashes on low-RAM machines.
+ *
+ * Sequentially builds all microservices and frontend.
  */
 
 const { spawn } = require('child_process');
@@ -31,70 +30,14 @@ const ROOT_DIR = __dirname;
 
 // Define services and their build configurations
 const SERVICES = [
-  {
-    name: 'Shared Contracts',
-    dir: 'packages/contracts',
-    buildCmd: 'npm',
-    buildArgs: ['run', 'build'],
-    memoryLimit: 1024,
-    required: true
-  },
-  {
-    name: 'API Gateway',
-    dir: 'api-gateway',
-    buildCmd: 'npm',
-    buildArgs: ['run', 'build'],
-    memoryLimit: 1536,
-    required: true
-  },
-  {
-    name: 'Automation Service',
-    dir: 'automation-service',
-    buildCmd: 'npm',
-    buildArgs: ['run', 'build'],
-    memoryLimit: 1536,
-    required: true
-  },
-  {
-    name: 'Billing Service',
-    dir: 'billing-service',
-    buildCmd: 'npm',
-    buildArgs: ['run', 'build'],
-    memoryLimit: 1536,
-    required: true
-  },
-  {
-    name: 'Campaign Service',
-    dir: 'campaign-service',
-    buildCmd: 'npm',
-    buildArgs: ['run', 'build'],
-    memoryLimit: 1536,
-    required: true
-  },
-  {
-    name: 'WebSocket Service',
-    dir: 'websocket-service',
-    buildCmd: 'npm',
-    buildArgs: ['run', 'build'],
-    memoryLimit: 1536,
-    required: true
-  },
-  {
-    name: 'Core Server',
-    dir: 'server',
-    buildCmd: 'npm',
-    buildArgs: ['run', 'build'],
-    memoryLimit: 2048,
-    required: true
-  },
-  {
-    name: 'Frontend App',
-    dir: 'frontend',
-    buildCmd: 'npm',
-    buildArgs: ['run', 'build'],
-    memoryLimit: 2048,
-    required: true
-  }
+  { name: 'Shared Contracts',   dir: 'packages/contracts',   buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'API Gateway',        dir: 'api-gateway',          buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Automation Service', dir: 'automation-service',   buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Billing Service',    dir: 'billing-service',      buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Campaign Service',   dir: 'campaign-service',     buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'WebSocket Service',  dir: 'websocket-service',    buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Core Server',        dir: 'server',               buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Frontend App',       dir: 'frontend',             buildCmd: 'npm', buildArgs: ['run', 'build'], required: true }
 ];
 
 // Helper to log with timestamps and colors
@@ -105,11 +48,11 @@ function log(msg, color = COLORS.reset) {
 
 function printHeader() {
   console.log('\n' + COLORS.bright + COLORS.bgBlue + ' ⚡ wApi SEQUENTIAL CONTROLLED BUILD SYSTEM ⚡ ' + COLORS.reset);
-  console.log(COLORS.cyan + 'Resolving memory issues & ensuring controlled compilation for low-RAM machines\n' + COLORS.reset);
-  
+  console.log(COLORS.cyan + 'Sequentially compiling all services and the frontend\n' + COLORS.reset);
+
   console.log(`${COLORS.bright}Build targets in order:${COLORS.reset}`);
   SERVICES.forEach((service, index) => {
-    console.log(`  ${index + 1}. ${COLORS.bright}${service.name}${COLORS.reset} (${COLORS.dim}${service.dir}${COLORS.reset}) | limit: ${service.memoryLimit}MB`);
+    console.log(`  ${index + 1}. ${COLORS.bright}${service.name}${COLORS.reset} (${COLORS.dim}${service.dir}${COLORS.reset})`);
   });
   console.log('\n' + COLORS.dim + '---------------------------------------------------------' + COLORS.reset + '\n');
 }
@@ -128,18 +71,12 @@ function buildService(service) {
     log(`Directory: ${COLORS.dim}${service.dir}${COLORS.reset}`);
 
     const startTime = Date.now();
-    
-    // Set custom NODE_OPTIONS to limit max-old-space-size
-    const env = { 
-      ...process.env, 
-      NODE_OPTIONS: `--max-old-space-size=${service.memoryLimit}`
-    };
 
-    log(`Running: ${service.buildCmd} ${service.buildArgs.join(' ')} with memory limit: ${service.memoryLimit}MB`, COLORS.dim);
+    log(`Running: ${service.buildCmd} ${service.buildArgs.join(' ')}`, COLORS.dim);
 
     const child = spawn(service.buildCmd, service.buildArgs, {
       cwd: servicePath,
-      env: env,
+      env: process.env,
       shell: true
     });
 

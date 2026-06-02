@@ -20,6 +20,39 @@ client.interceptors.request.use((reqConfig) => {
   return reqConfig;
 });
 
+// Normalize every worker-bridge failure into a typed error so callers
+// (CampaignService → CampaignController) can map them to meaningful HTTP
+// statuses instead of leaking the raw axios message as a 500.
+client.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    const axiosErr = err as AxiosError<any>;
+    const action = (axiosErr.config as any)?.data ? safeParseAction((axiosErr.config as any).data) : 'unknown';
+    const url = `${axiosErr.config?.baseURL || ''}${axiosErr.config?.url || ''}`;
+    const status = axiosErr.response?.status;
+    const code = axiosErr.code;
+    const detail = (axiosErr.response?.data as any)?.message || (axiosErr.response?.data as any)?.error || axiosErr.message;
+    console.error(`[monolith-bridge] action=${action} url=${url} code=${code} status=${status} msg=${detail}`);
+    const tag = status === 404
+      ? 'MONOLITH_ROUTE_NOT_FOUND'
+      : status && status >= 500
+        ? 'MONOLITH_UNAVAILABLE'
+        : code === 'ECONNREFUSED' || code === 'ECONNABORTED' || code === 'ENOTFOUND'
+          ? 'MONOLITH_UNREACHABLE'
+          : 'MONOLITH_ERROR';
+    return Promise.reject(new Error(`${tag}: action=${action} url=${url} (${detail})`));
+  }
+);
+
+function safeParseAction(raw: unknown): string {
+  try {
+    const body = typeof raw === 'string' ? JSON.parse(raw) : (raw as any);
+    return body?.action || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
 export const monolithWorkerBridge = {
   async sendTemplate(data: {
     workspaceId: string;
@@ -60,20 +93,11 @@ export const monolithWorkerBridge = {
   },
 
   async preflightValidate(workspaceId: string, templateId: string, contactsCount: number) {
-    try {
-      const response = await client.post('/api/internal/worker-bridge', {
-        action: 'preflight-validate',
-        data: { workspaceId, templateId, contactsCount },
-      });
-      return response.data;
-    } catch (err) {
-      const axiosErr = err as AxiosError<any>;
-      const status = axiosErr.response?.status;
-      const code = axiosErr.code;
-      const detail = (axiosErr.response?.data as any)?.message || axiosErr.message;
-      console.error(`[monolith-bridge] preflightValidate failed code=${code} status=${status} msg=${detail}`);
-      throw new Error(`PREFLIGHT_UNAVAILABLE: ${code || status || 'unknown'}${detail ? ` (${detail})` : ''}`);
-    }
+    const response = await client.post('/api/internal/worker-bridge', {
+      action: 'preflight-validate',
+      data: { workspaceId, templateId, contactsCount },
+    });
+    return response.data;
   },
 
   async socketBroadcast(workspaceId: string, event: string, payload: any) {

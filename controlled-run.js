@@ -2,12 +2,11 @@
 
 /**
  * ⚡ wApi UNIFIED MULTI-SERVICE RUNNER & LOG CONSOLIDATOR ⚡
- * 
+ *
  * Simultaneously runs all microservices and frontend with:
- *  1. Strict heap memory limits per service to prevent low-RAM VM crashes
- *  2. Staggered/spaced startup to prevent CPU spikes and freezing
- *  3. Distinct color-coded prefix log outputs for absolute readability
- *  4. Robust multi-platform signal handling to completely eliminate orphan processes
+ *  1. Staggered/spaced startup to prevent CPU spikes and freezing
+ *  2. Distinct color-coded prefix log outputs for absolute readability
+ *  3. Robust multi-platform signal handling to completely eliminate orphan processes
  */
 
 const { spawn } = require('child_process');
@@ -72,69 +71,13 @@ const COLORS = {
 };
 
 const SERVICES = [
-  {
-    id: 'server',
-    name: 'Core Server',
-    dir: 'server',
-    cmd: 'npm',
-    args: ['run', 'dev'],
-    color: COLORS.server,
-    memoryLimit: 1024
-  },
-  {
-    id: 'gateway',
-    name: 'API Gateway',
-    dir: 'api-gateway',
-    cmd: 'npm',
-    args: ['run', 'dev'],
-    color: COLORS.gateway,
-    memoryLimit: 768
-  },
-  {
-    id: 'automation',
-    name: 'Automation Service',
-    dir: 'automation-service',
-    cmd: 'npm',
-    args: ['run', 'dev'],
-    color: COLORS.automation,
-    memoryLimit: 768
-  },
-  {
-    id: 'billing',
-    name: 'Billing Service',
-    dir: 'billing-service',
-    cmd: 'npm',
-    args: ['run', 'dev'],
-    color: COLORS.billing,
-    memoryLimit: 768
-  },
-  {
-    id: 'campaign',
-    name: 'Campaign Service',
-    dir: 'campaign-service',
-    cmd: 'npm',
-    args: ['run', 'dev'],
-    color: COLORS.campaign,
-    memoryLimit: 768
-  },
-  {
-    id: 'websocket',
-    name: 'WebSocket Service',
-    dir: 'websocket-service',
-    cmd: 'npm',
-    args: ['run', 'dev'],
-    color: COLORS.websocket,
-    memoryLimit: 768
-  },
-  {
-    id: 'frontend',
-    name: 'Frontend App',
-    dir: 'frontend',
-    cmd: 'npm',
-    args: ['start'],
-    color: COLORS.frontend,
-    memoryLimit: 1536
-  }
+  { id: 'server',     name: 'Core Server',        dir: 'server',             cmd: 'npm', args: ['run', 'dev'], color: COLORS.server },
+  { id: 'gateway',    name: 'API Gateway',        dir: 'api-gateway',        cmd: 'npm', args: ['run', 'dev'], color: COLORS.gateway },
+  { id: 'automation', name: 'Automation Service', dir: 'automation-service', cmd: 'npm', args: ['run', 'dev'], color: COLORS.automation },
+  { id: 'billing',    name: 'Billing Service',    dir: 'billing-service',    cmd: 'npm', args: ['run', 'dev'], color: COLORS.billing },
+  { id: 'campaign',   name: 'Campaign Service',   dir: 'campaign-service',   cmd: 'npm', args: ['run', 'dev'], color: COLORS.campaign },
+  { id: 'websocket',  name: 'WebSocket Service',  dir: 'websocket-service',  cmd: 'npm', args: ['run', 'dev'], color: COLORS.websocket },
+  { id: 'frontend',   name: 'Frontend App',       dir: 'frontend',           cmd: 'npm', args: ['start'],      color: COLORS.frontend }
 ];
 
 const children = [];
@@ -160,12 +103,8 @@ function logSystem(message, type = 'system') {
 // Run a single service
 function startService(service) {
   const dirPath = path.join(__dirname, service.dir);
-  
-  // Set memory limits via NODE_OPTIONS env variable
-  const env = {
-    ...process.env,
-    NODE_OPTIONS: `--max-old-space-size=${service.memoryLimit} ${process.env.NODE_OPTIONS || ''}`.trim()
-  };
+
+  const env = { ...process.env };
 
   // Dynamically inject ALLOWED_DEV_ORIGINS from API gateway into Frontend App to prevent cross-origin warnings
   if (service.id === 'frontend') {
@@ -175,7 +114,7 @@ function startService(service) {
     }
   }
 
-  logSystem(`Starting ${service.name} (RAM Limit: ${service.memoryLimit}MB)...`, 'system');
+  logSystem(`Starting ${service.name}...`, 'system');
 
   const child = spawn(service.cmd, service.args, {
     cwd: dirPath,
@@ -226,7 +165,7 @@ async function main() {
   console.log(`${COLORS.bright}${COLORS.success}`);
   console.log(` ⚡ wApi UNIFIED MULTI-SERVICE RUNNER ⚡ `);
   console.log(`=========================================`);
-  console.log(`Memory-capped concurrent dev environment `);
+  console.log(`Concurrent dev environment               `);
   console.log(`${COLORS.reset}`);
 
   logSystem(`Spawning ${SERVICES.length} services with staggered spacing (1.5s delay)...`, 'system');
