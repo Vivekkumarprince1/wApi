@@ -16,7 +16,7 @@ const fs = require('fs');
 // Helper to parse allowed origins from gateway env and return hostnames
 function getGatewayAllowedOrigins() {
   try {
-    const envPath = path.join(__dirname, 'api-gateway', '.env');
+    const envPath = path.join(__dirname, 'services', 'api-gateway', '.env');
     if (!fs.existsSync(envPath)) return null;
     
     const content = fs.readFileSync(envPath, 'utf8');
@@ -59,7 +59,8 @@ const COLORS = {
   campaign: '\x1b[32m',       // Green
   websocket: '\x1b[34m',      // Blue
   frontend: '\x1b[31m',       // Red
-  
+  admin: '\x1b[38;5;201m',    // Pink/Magenta — Admin Portal
+
   // UI colors
   system: '\x1b[37;1m',     // Bright Magenta
   
@@ -71,13 +72,14 @@ const COLORS = {
 };
 
 const SERVICES = [
-  { id: 'server',     name: 'Core Server',        dir: 'server',             cmd: 'npm', args: ['run', 'dev'], color: COLORS.server },
-  { id: 'gateway',    name: 'API Gateway',        dir: 'api-gateway',        cmd: 'npm', args: ['run', 'dev'], color: COLORS.gateway },
-  { id: 'automation', name: 'Automation Service', dir: 'automation-service', cmd: 'npm', args: ['run', 'dev'], color: COLORS.automation },
-  { id: 'billing',    name: 'Billing Service',    dir: 'billing-service',    cmd: 'npm', args: ['run', 'dev'], color: COLORS.billing },
-  { id: 'campaign',   name: 'Campaign Service',   dir: 'campaign-service',   cmd: 'npm', args: ['run', 'dev'], color: COLORS.campaign },
-  { id: 'websocket',  name: 'WebSocket Service',  dir: 'websocket-service',  cmd: 'npm', args: ['run', 'dev'], color: COLORS.websocket },
-  { id: 'frontend',   name: 'Frontend App',       dir: 'frontend',           cmd: 'npm', args: ['start'],      color: COLORS.frontend }
+  { id: 'server',     name: 'Core Server',        dir: 'services/core-server',        cmd: 'npm', args: ['run', 'dev'], color: COLORS.server },
+  { id: 'gateway',    name: 'API Gateway',        dir: 'services/api-gateway',        cmd: 'npm', args: ['run', 'dev'], color: COLORS.gateway },
+  { id: 'automation', name: 'Automation Service', dir: 'services/automation-service', cmd: 'npm', args: ['run', 'dev'], color: COLORS.automation },
+  { id: 'billing',    name: 'Billing Service',    dir: 'services/billing-service',    cmd: 'npm', args: ['run', 'dev'], color: COLORS.billing },
+  { id: 'campaign',   name: 'Campaign Service',   dir: 'services/campaign-service',   cmd: 'npm', args: ['run', 'dev'], color: COLORS.campaign },
+  { id: 'websocket',  name: 'WebSocket Service',  dir: 'services/websocket-service',  cmd: 'npm', args: ['run', 'dev'], color: COLORS.websocket },
+  { id: 'frontend',   name: 'Customer Portal',    dir: 'apps/customer-portal',        cmd: 'npm', args: ['run', 'dev'], color: COLORS.frontend },
+  { id: 'admin',      name: 'Admin Portal',       dir: 'apps/admin-portal',           cmd: 'npm', args: ['run', 'dev'], color: COLORS.admin }
 ];
 
 const children = [];
@@ -104,7 +106,21 @@ function logSystem(message, type = 'system') {
 function startService(service) {
   const dirPath = path.join(__dirname, service.dir);
 
+  // Skip not-yet-created targets (e.g. admin portal under construction).
+  if (!fs.existsSync(dirPath)) {
+    logSystem(`Skipping ${service.name} — directory not found (${service.dir})`, 'warning');
+    return;
+  }
+
   const env = { ...process.env };
+
+  // Admin Portal runs on its own port (8GB-RAM machine: keep dev heap modest).
+  if (service.id === 'admin') {
+    env.PORT = env.ADMIN_PORT || '3100';
+    env.NODE_OPTIONS = env.NODE_OPTIONS
+      ? `${env.NODE_OPTIONS} --max-old-space-size=2048`
+      : '--max-old-space-size=2048';
+  }
 
   // Dynamically inject ALLOWED_DEV_ORIGINS from API gateway into Frontend App to prevent cross-origin warnings
   if (service.id === 'frontend') {

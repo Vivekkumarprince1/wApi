@@ -82,3 +82,97 @@ const WORKSPACE_RANK: Record<Role, number> = {
 export function roleAtLeast(role: unknown, minimum: Role): boolean {
   return WORKSPACE_RANK[normalizeRole(role)] >= WORKSPACE_RANK[minimum];
 }
+
+/* ------------------------------------------------------------------ *
+ * Platform admin roles (Super Admin Portal)
+ *
+ * These are distinct from the workspace roles above. They gate access
+ * to the standalone admin portal (`apps/admin-portal`) only — customer
+ * workspace roles (owner/admin/agent/...) are NEVER accepted there.
+ *
+ * `super_admin` is the existing canonical platform role and remains the
+ * full-privilege role. The three scoped roles below are subsets used to
+ * grant least-privilege access to support / finance / read-only staff.
+ * ------------------------------------------------------------------ */
+
+export const AdminRoles = {
+  SuperAdmin: 'super_admin',
+  Support: 'super_admin_support',
+  Finance: 'super_admin_finance',
+  ReadOnly: 'super_admin_readonly',
+} as const;
+
+export type AdminRole = (typeof AdminRoles)[keyof typeof AdminRoles];
+
+export const ALL_ADMIN_ROLES: readonly AdminRole[] = [
+  AdminRoles.SuperAdmin,
+  AdminRoles.Support,
+  AdminRoles.Finance,
+  AdminRoles.ReadOnly,
+];
+
+const ADMIN_ROLE_SET = new Set<string>(ALL_ADMIN_ROLES);
+
+const ADMIN_ALIASES: Record<string, AdminRole> = {
+  superadmin: AdminRoles.SuperAdmin,
+  'super-admin': AdminRoles.SuperAdmin,
+  staff: AdminRoles.SuperAdmin,
+  'super_admin_support': AdminRoles.Support,
+  'super-admin-support': AdminRoles.Support,
+  support: AdminRoles.Support,
+  'super_admin_finance': AdminRoles.Finance,
+  'super-admin-finance': AdminRoles.Finance,
+  finance: AdminRoles.Finance,
+  'super_admin_readonly': AdminRoles.ReadOnly,
+  'super-admin-readonly': AdminRoles.ReadOnly,
+  readonly: AdminRoles.ReadOnly,
+  'read-only': AdminRoles.ReadOnly,
+};
+
+/**
+ * Returns a canonical admin role for any incoming string, or `null` if the
+ * value is not an admin role. Used by the admin portal to reject customer
+ * roles (owner/admin/agent) at the door.
+ */
+export function normalizeAdminRole(input: unknown): AdminRole | null {
+  if (typeof input !== 'string') return null;
+  const trimmed = input.trim().toLowerCase();
+  if (!trimmed) return null;
+  if (ADMIN_ROLE_SET.has(trimmed)) return trimmed as AdminRole;
+  return ADMIN_ALIASES[trimmed] ?? null;
+}
+
+/** True for any of the four platform-admin roles. */
+export function isAdminRole(role: unknown): boolean {
+  return normalizeAdminRole(role) !== null;
+}
+
+/**
+ * Capabilities the admin portal gates on. Keep this list small and
+ * coarse — fine-grained per-endpoint checks layer on top in the portal.
+ */
+export type AdminCapability =
+  | 'read'        // dashboards, lists, analytics, monitoring, audit logs
+  | 'workspaces'  // suspend / activate / impersonate workspaces, users
+  | 'billing'     // plans, refunds, wallet/billing operations
+  | 'operations'  // campaign/automation/gupshup/webhook control
+  | 'system';     // global settings, emergency freeze, compliance
+
+const ADMIN_CAPABILITIES: Record<AdminRole, ReadonlySet<AdminCapability>> = {
+  [AdminRoles.SuperAdmin]: new Set<AdminCapability>([
+    'read', 'workspaces', 'billing', 'operations', 'system',
+  ]),
+  [AdminRoles.Support]: new Set<AdminCapability>(['read', 'workspaces']),
+  [AdminRoles.Finance]: new Set<AdminCapability>(['read', 'billing']),
+  [AdminRoles.ReadOnly]: new Set<AdminCapability>(['read']),
+};
+
+/**
+ * Whether an admin role is allowed a given capability. Unknown / non-admin
+ * roles are denied everything.
+ */
+export function adminCan(role: unknown, capability: AdminCapability): boolean {
+  const normalized = normalizeAdminRole(role);
+  if (!normalized) return false;
+  return ADMIN_CAPABILITIES[normalized].has(capability);
+}

@@ -30,14 +30,17 @@ const ROOT_DIR = __dirname;
 
 // Define services and their build configurations
 const SERVICES = [
-  { name: 'Shared Contracts',   dir: 'packages/contracts',   buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
-  { name: 'API Gateway',        dir: 'api-gateway',          buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
-  { name: 'Automation Service', dir: 'automation-service',   buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
-  { name: 'Billing Service',    dir: 'billing-service',      buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
-  { name: 'Campaign Service',   dir: 'campaign-service',     buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
-  { name: 'WebSocket Service',  dir: 'websocket-service',    buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
-  { name: 'Core Server',        dir: 'server',               buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
-  { name: 'Frontend App',       dir: 'frontend',             buildCmd: 'npm', buildArgs: ['run', 'build'], required: true }
+  { name: 'Shared Contracts',   dir: 'packages/contracts',         buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Database Models',    dir: 'packages/database-models',   buildCmd: 'npm', buildArgs: ['run', 'build'], required: false },
+  { name: 'API Gateway',        dir: 'services/api-gateway',         buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Automation Service', dir: 'services/automation-service',  buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Billing Service',    dir: 'services/billing-service',     buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Campaign Service',   dir: 'services/campaign-service',    buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'WebSocket Service',  dir: 'services/websocket-service',   buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Core Server',        dir: 'services/core-server',         buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  { name: 'Customer Portal',    dir: 'apps/customer-portal',         buildCmd: 'npm', buildArgs: ['run', 'build'], required: true },
+  // Admin portal builds with a capped heap (8GB-RAM machine constraint).
+  { name: 'Admin Portal',       dir: 'apps/admin-portal',            buildCmd: 'npm', buildArgs: ['run', 'build'], required: false, nodeHeapMb: 2048 }
 ];
 
 // Helper to log with timestamps and colors
@@ -74,9 +77,19 @@ function buildService(service) {
 
     log(`Running: ${service.buildCmd} ${service.buildArgs.join(' ')}`, COLORS.dim);
 
+    // Cap the V8 heap for memory-heavy builds (8GB-RAM machine constraint).
+    const buildEnv = { ...process.env };
+    if (service.nodeHeapMb) {
+      const heapFlag = `--max-old-space-size=${service.nodeHeapMb}`;
+      buildEnv.NODE_OPTIONS = buildEnv.NODE_OPTIONS
+        ? `${buildEnv.NODE_OPTIONS} ${heapFlag}`
+        : heapFlag;
+      log(`Capping heap: NODE_OPTIONS=${heapFlag}`, COLORS.dim);
+    }
+
     const child = spawn(service.buildCmd, service.buildArgs, {
       cwd: servicePath,
-      env: process.env,
+      env: buildEnv,
       shell: true
     });
 
@@ -151,6 +164,11 @@ async function run() {
 
   for (const service of targets) {
     console.log(COLORS.dim + '---------------------------------------------------------' + COLORS.reset);
+    // Skip not-yet-created optional targets (e.g. packages/apps under construction).
+    if (!fs.existsSync(path.join(ROOT_DIR, service.dir))) {
+      log(`Skipping ${COLORS.bright}${service.name}${COLORS.reset} — directory not found (${service.dir})`, COLORS.yellow);
+      continue;
+    }
     try {
       await ensureNodeModules(service);
       const report = await buildService(service);

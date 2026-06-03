@@ -1,0 +1,57 @@
+'use client';
+
+import { useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/auth-store';
+
+export function AuthInitializer() {
+    const pathname = usePathname();
+    const router = useRouter();
+    const { fetchSession, authenticated, loading, nextStep, user, accessRestriction } = useAuthStore();
+
+    const isPublicRoute =
+        pathname === '/' ||
+        pathname.startsWith('/auth/') ||
+        pathname.startsWith('/auth') ||
+        pathname.startsWith('/privacy/') ||
+        pathname === '/privacy';
+
+    useEffect(() => {
+        if (isPublicRoute) return;
+
+        fetchSession();
+
+        // Only listen for explicit authChange events from the auth
+        // store. We deliberately do NOT listen for the broad `storage`
+        // event because it fires on any cross-tab localStorage write
+        // and triggered redundant session fetches.
+        const handleAuthChange = () => fetchSession(true);
+        window.addEventListener('authChange', handleAuthChange);
+        return () => {
+            window.removeEventListener('authChange', handleAuthChange);
+        };
+    }, [fetchSession, isPublicRoute]);
+
+    useEffect(() => {
+        if (loading || !authenticated || !user || isPublicRoute) return;
+
+        const currentPath = pathname.split('?')[0];
+        const targetPath = (accessRestriction?.targetPath || nextStep || '').split('?')[0] || null;
+
+        if (user.accountStatus === 'SIGNUP_COMPLETED') {
+            if (currentPath.startsWith('/onboarding') && !targetPath) {
+                router.replace('/');
+            }
+        }
+
+        if (!targetPath) return;
+
+        if (currentPath.startsWith('/') && targetPath.startsWith('/') && currentPath === targetPath) return;
+        if (currentPath.startsWith('/onboarding') && targetPath.startsWith('/onboarding') && currentPath === targetPath) return;
+        if (currentPath === targetPath) return;
+
+        router.replace(targetPath);
+    }, [pathname, nextStep, authenticated, user, accessRestriction, loading, router]);
+
+    return null;
+}

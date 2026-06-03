@@ -5,6 +5,12 @@
   "description": "Shared request/response types and event payloads for wApi services.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "tsc -p tsconfig.test.json && node dist-test/__tests__/roles.test.js && node dist-test/__tests__/redis-config.test.js"
