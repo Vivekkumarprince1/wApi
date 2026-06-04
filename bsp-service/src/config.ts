@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+// Trigger watch reload to pick up AUTH_SERVICE_URL and ESB_CALLBACK_URL from .env
 const internalServiceSecret = process.env.INTERNAL_SERVICE_SECRET;
 
 if (!internalServiceSecret) {
@@ -9,7 +10,11 @@ if (!internalServiceSecret) {
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3004', 10),
-  mongodbUri: process.env.MONGODB_URI_BSP || process.env.MONGODB_URI || 'mongodb://localhost:27017/wapi_bsp',
+  mongodbUri:
+    process.env.MONGO_URI ||
+    process.env.MONGODB_URI_BSP ||
+    process.env.MONGODB_URI ||
+    'mongodb://localhost:27017/wapi_bsp',
   redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
   internalServiceSecret,
   mainServiceUrl: process.env.MAIN_SERVICE_URL || 'http://localhost:5001',
@@ -19,9 +24,14 @@ export const config = {
     partnerBaseUrl: process.env.GUPSHUP_PARTNER_BASE_URL || 'https://partner.gupshup.io',
     apiBaseUrl: process.env.GUPSHUP_API_BASE_URL || 'https://api.gupshup.io',
     partnerEmail: process.env.GUPSHUP_PARTNER_EMAIL || '',
-    partnerPassword: process.env.GUPSHUP_PARTNER_PASSWORD || process.env.GUPSHUP_PARTNER_CLIENT_SECRET || '',
+    partnerPassword: process.env.GUPSHUP_PARTNER_CLIENT_SECRET || process.env.GUPSHUP_PARTNER_PASSWORD || '',
     partnerToken: process.env.GUPSHUP_PARTNER_TOKEN || '',
     webhookSecret: process.env.GUPSHUP_WEBHOOK_SECRET || '',
     verifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '',
+  },
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_URL || '',
+    apiKey: process.env.CLOUDINARY_API_KEY || '',
+    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
   },
 };

@@ -2,7 +2,7 @@ import {
   AutomationRule,
   AutomationExecution
 } from "../models";
-import { monolithClient } from "../lib/internal-client";
+import { chatInternalClient } from "../lib/internal-client";
 import { SafetyGuards } from "./safety-guards";
 
 /**
@@ -59,8 +59,8 @@ export class FlowExecutorService {
       } as any);
 
       // Publish event: Workflow Started
-      const { publishEvent } = await import("../lib/redis");
-      await publishEvent('automation:events', 'workflow_started', rule.workspace.toString(), {
+      const { publishAutomationEvent } = await import("../lib/event-bus");
+      await publishAutomationEvent('workflow_started', rule.workspace.toString(), {
         executionId: execution._id.toString(),
         ruleName: rule.name
       });
@@ -141,7 +141,7 @@ export class FlowExecutorService {
       await execution.save();
 
       // Publish event: Workflow Completed
-      await publishEvent('automation:events', 'workflow_completed', rule.workspace.toString(), {
+      await publishAutomationEvent('workflow_completed', rule.workspace.toString(), {
         executionId: execution._id.toString(),
         ruleName: rule.name,
         status: 'SUCCESS'
@@ -155,8 +155,8 @@ export class FlowExecutorService {
         execution.completedAt = new Date();
         await execution.save();
 
-        const { publishEvent } = await import("../lib/redis");
-        await publishEvent('automation:events', 'workflow_completed', rule.workspace.toString(), {
+        const { publishAutomationEvent } = await import("../lib/event-bus");
+        await publishAutomationEvent('workflow_completed', rule.workspace.toString(), {
           executionId: execution._id.toString(),
           ruleName: rule?.name || 'Unknown',
           status: 'FAILED',
@@ -177,7 +177,7 @@ export class FlowExecutorService {
     const bridgeActions = ['messageNode', 'templateNode', 'interactiveNode', 'flowNode', 'add_tag', 'assign_conversation', 'create_deal'];
 
     if (bridgeActions.includes(type)) {
-      const response = await monolithClient.post('/api/internal/actions', {
+      const response = await chatInternalClient.post('/api/internal/actions', {
         type: type === 'messageNode' ? 'send_message' :
           type === 'templateNode' ? 'send_template' : type,
         payload: {

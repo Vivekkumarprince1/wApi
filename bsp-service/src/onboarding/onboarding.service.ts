@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { randomUUID } from 'crypto';
 import { BspOnboardingSession } from '../models/bsp-onboarding-session.schema';
 import { BspApp } from '../models/bsp-app.schema';
@@ -84,6 +84,52 @@ export class OnboardingService {
       throw new Error('Missing BSP appId for onboarding completion');
     }
 
+    const bspSession = (session?.metadata || {}) as any;
+    const connectionType = bspSession.connectionType || bspSession.fallbackPayload?.connectionType;
+
+    if (connectionType === 'new_number' && appId && !String(appId).startsWith('mock_')) {
+      const phone = String(bspSession.phoneNumber || bspSession.userEmail || '').replace(/\D/g, '');
+      if (phone) {
+        await this.gupshup.registerPhoneForApp({
+          appId,
+          region: bspSession.region || 'IN',
+          phoneNumber: phone,
+        }).catch(e => console.warn('[Complete] Phone reg fail:', e.message));
+      }
+    }
+
+    // Profile Contact details sync with base64 fingerprint checking
+    if (appId && !String(appId).startsWith('mock_')) {
+      const businessName = bspSession.businessName || 'Business Owner';
+      const email = bspSession.userEmail || `${input.workspaceId}@placeholder.com`;
+      const phone = String(bspSession.phoneNumber || '').replace(/\D/g, '') || undefined;
+
+      const contactFingerprint = Buffer.from(`${businessName}:${email}:${phone || ''}`).toString('base64');
+      
+      const appRecord = await this.appModel.findOne({ workspaceId: input.workspaceId, appId });
+      const oldFingerprint = (appRecord?.providerData as any)?.contactSyncFingerprint;
+
+      if (oldFingerprint !== contactFingerprint) {
+        console.log(`[OnboardingService:complete] Syncing profile contact details for ${appId}...`);
+        await this.gupshup.updateOnboardingContact({
+          appId,
+          contactName: businessName,
+          contactEmail: email,
+          contactNumber: phone,
+        }).then(async () => {
+          await this.appModel.findOneAndUpdate(
+            { workspaceId: input.workspaceId, appId },
+            {
+              $set: {
+                'providerData.contactSyncFingerprint': contactFingerprint,
+                'providerData.contactSyncedAt': new Date(),
+              },
+            }
+          );
+        }).catch(e => console.warn('[Complete] Profile contact sync failed:', e.message));
+      }
+    }
+
     const app = await this.appModel.findOneAndUpdate(
       { workspaceId: input.workspaceId, provider: input.provider || 'gupshup', appId },
       {
@@ -93,6 +139,11 @@ export class OnboardingService {
         },
       },
       { upsert: true, new: true },
+    );
+
+    // Trigger auto sync after connection
+    await this.bspSync({ workspaceId: input.workspaceId, appId }).catch(e =>
+      console.warn('[Complete] Auto sync failed:', e.message)
     );
 
     return { app, connectedAt: new Date().toISOString() };
@@ -192,18 +243,101 @@ export class OnboardingService {
   }
 
   async bspStart(input: any) {
-    const { workspaceId, userId, businessId, callbackUrl, provider = 'gupshup' } = input;
+    const { workspaceId, userId, provider = 'gupshup' } = input;
+    const businessId = input.businessId || input.business_id || workspaceId;
+    const callbackUrl =
+      input.callbackUrl ||
+      input.callback_url ||
+      process.env.ESB_CALLBACK_URL ||
+      'http://localhost:5001/api/v1/onboarding/bsp/callback';
     const state = randomUUID();
     const sessionId = randomUUID();
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
-    const providerResult = await this.gupshup.createEmbeddedOnboardingLink({
+    let businessName = input.businessName || input.business_id || businessId;
+    let userEmail = input.userEmail || input.email;
+
+    try {
+      const db = this.appModel.db.useDb('wapi');
+      if (businessId && Types.ObjectId.isValid(businessId)) {
+        const businessDoc = await db.collection('businesses').findOne({ _id: new Types.ObjectId(businessId) });
+        if (businessDoc) {
+          businessName = businessDoc.name || businessDoc.legalName || businessName;
+        }
+      }
+    } catch (err: any) {
+      console.warn('[OnboardingService] Failed to fetch business details:', err.message);
+    }
+
+    try {
+      const db = this.appModel.db.useDb('wapi');
+      if (userId && Types.ObjectId.isValid(userId)) {
+        const userDoc = await db.collection('users').findOne({ _id: new Types.ObjectId(userId) });
+        if (userDoc) {
+          userEmail = userDoc.email || userDoc.username || userDoc.emailAddress || userEmail;
+        }
+      }
+    } catch (err: any) {
+      console.warn('[OnboardingService] Failed to fetch user details:', err.message);
+    }
+
+    // Cost-saving database sandbox app reclaim waterfall step
+    let existingApp = await this.appModel.findOne({
       workspaceId,
-      businessId,
-      callbackUrl,
-      state,
-      metadata: input.metadata,
+      provider,
+      status: { $in: ['sandbox', 'inactive', 'disconnected'] },
     });
+
+    if (!existingApp) {
+      existingApp = await this.appModel.findOne({
+        provider,
+        workspaceId: { $exists: false },
+        status: { $in: ['sandbox', 'inactive', 'disconnected'] },
+      });
+    }
+
+    let providerResult: any;
+    if (existingApp?.appId) {
+      console.log(`[OnboardingService:bspStart] Reclaiming existing local sandbox app: ${existingApp.appId}`);
+      
+      const pToken = await this.gupshup.getPartnerToken();
+      const embed = await this.gupshup.partnerClient.get(
+        `/partner/app/${existingApp.appId}/onboarding/embed/link?user=${encodeURIComponent(userEmail || 'system')}&lang=en`,
+        {
+          headers: {
+            token: pToken,
+            Accept: 'application/json',
+          },
+        }
+      ).catch(() => null);
+
+      if (embed?.data?.status === 'success' && embed?.data?.link) {
+        providerResult = {
+          appId: existingApp.appId,
+          url: embed.data.link,
+          providerResponse: {
+            mode: 'live',
+            provider: 'gupshup',
+            reclaimed: true,
+            embedLinkResponse: embed.data,
+          },
+        };
+      }
+    }
+
+    if (!providerResult) {
+      providerResult = await this.gupshup.createEmbeddedOnboardingLink({
+        workspaceId,
+        businessId,
+        callbackUrl,
+        state,
+        metadata: {
+          ...input.metadata,
+          businessName,
+        },
+        user: userEmail,
+      });
+    }
 
     await this.sessionModel.create({
       sessionId,
@@ -216,7 +350,11 @@ export class OnboardingService {
       callbackUrl,
       status: 'started',
       expiresAt,
-      metadata: input.metadata || {},
+      metadata: {
+        ...(input.metadata || {}),
+        businessName,
+        userEmail,
+      },
     });
 
     await this.appModel.findOneAndUpdate(
@@ -247,19 +385,187 @@ export class OnboardingService {
 
   async bspSync(input: any) {
     const { workspaceId, appId } = input;
-    const app = await this.appModel.findOne({ workspaceId, appId });
+    let targetAppId = appId;
+
+    if (!targetAppId) {
+      const activeApp = await this.appModel.findOne({ workspaceId }).sort({ updatedAt: -1 });
+      targetAppId = activeApp?.appId;
+    }
+
+    let app = targetAppId ? await this.appModel.findOne({ workspaceId, appId: targetAppId }) : null;
 
     if (!app) {
+      // Self-healing: optimistically auto-heal/reclaim if recorded on the workspace document
+      try {
+        const db = this.appModel.db.useDb('wapi');
+        const workspaceDoc = await db.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
+        const workspaceAppId = workspaceDoc?.gupshupAppId || workspaceDoc?.gupshupIdentity?.partnerAppId;
+        if (workspaceAppId) {
+          const appName = workspaceDoc?.gupshupAppName || `waba_${workspaceId}`;
+          app = await this.appModel.create({
+            workspaceId: new Types.ObjectId(workspaceId),
+            provider: 'gupshup',
+            appId: workspaceAppId,
+            appName,
+            status: workspaceDoc?.whatsappConnected ? 'connected' : 'onboarding',
+            whatsappConnected: !!workspaceDoc?.whatsappConnected,
+          });
+          targetAppId = workspaceAppId;
+        }
+      } catch (err: any) {
+        console.warn('[OnboardingService:bspSync] Failed workspace recovery:', err.message);
+      }
+    }
+
+    if (!app || !targetAppId) {
       throw new Error('No BSP app found to sync');
+    }
+
+    const isMock = String(targetAppId).startsWith('mock_');
+    let updates: Record<string, any> = {
+      updatedAt: new Date(),
+    };
+
+    if (isMock) {
+      updates = {
+        ...updates,
+        status: 'connected',
+        connectedAt: app.connectedAt || new Date(),
+        displayPhoneNumber: 'mock-phone',
+        whatsappPhoneNumber: 'mock-phone',
+        bspDisplayPhoneNumber: 'mock-phone',
+        whatsappConnected: true,
+        bspPhoneStatus: 'CONNECTED',
+      };
+    } else {
+      // Query WABA Info
+      const wabaInfo = await this.gupshup.getWabaInfo(targetAppId).catch(() => null);
+      const info = wabaInfo?.wabaInfo || wabaInfo?.data || {};
+
+      // OBO Whitelisting Flow: new WABA ID detection & Whitelisting
+      const currentWabaId = info.wabaId || app.wabaId;
+      const oldWabaId = app.wabaId;
+      if (currentWabaId && currentWabaId !== oldWabaId) {
+        console.log(`[BSP Sync] New WABA ID detected: ${currentWabaId}. Triggering OBO Whitelisting...`);
+        await this.gupshup.whitelistWaba(targetAppId, currentWabaId).catch(err => console.error('[BSP Sync] Whitelist failed:', err.message));
+        await this.gupshup.verifyCreditLine(targetAppId).catch(err => console.error('[BSP Sync] Credit line verify failed:', err.message));
+      }
+
+      // Fetch metrics
+      const [health, balance, ratings] = await Promise.all([
+        this.gupshup.getHealth(targetAppId).catch(() => null),
+        this.gupshup.getWalletBalance(targetAppId).catch(() => null),
+        this.gupshup.getRatings(targetAppId).catch(() => null),
+      ]);
+
+      let subscriptionCount = 0;
+      try {
+        const subscriptions = await this.gupshup.listSubscriptions(targetAppId);
+        subscriptionCount = Array.isArray(subscriptions) ? subscriptions.length : 0;
+      } catch (subErr: any) {
+        console.warn(`[BSP Sync] Subscription query failed for ${targetAppId}:`, subErr.message);
+      }
+
+      const live = Boolean(info.accountStatus === 'ACTIVE' || wabaInfo?.status === 'success');
+      const phone = info.phone || app.displayPhoneNumber;
+
+      updates = {
+        ...updates,
+        status: live || phone ? 'connected' : 'onboarding',
+        connectedAt: live || phone ? (app.connectedAt || new Date()) : app.connectedAt,
+        displayPhoneNumber: phone,
+        whatsappPhoneNumber: phone,
+        bspDisplayPhoneNumber: phone,
+        wabaId: currentWabaId || targetAppId,
+        bspWabaId: currentWabaId || targetAppId,
+        phoneNumberId: info.phoneNumberId || info.phone_number_id,
+        whatsappPhoneNumberId: info.phoneNumberId || info.phone_number_id,
+        bspPhoneNumberId: info.phoneNumberId || info.phone_number_id,
+        verifiedName: info.verifiedName || app.verifiedName,
+        bspVerifiedName: info.verifiedName || app.verifiedName,
+        qualityRating: info.phoneQuality || 'UNKNOWN',
+        bspQualityRating: info.phoneQuality || 'UNKNOWN',
+        messagingLimitTier: info.messagingLimit || 'UNKNOWN',
+        bspMessagingTier: info.messagingLimit || 'UNKNOWN',
+        whatsappConnected: live || Boolean(phone),
+        bspPhoneStatus: live || phone ? 'CONNECTED' : 'PENDING',
+        gupshupAppLive: live,
+        gupshupAppHealth: health?.healthy ?? health?.status === 'ALIVE',
+        gupshupWalletBalance: balance?.balance || balance?.data?.balance,
+        gupshupRatings: ratings?.ratings || ratings?.data || ratings,
+        bspLastSyncedAt: new Date(),
+        providerData: {
+          ...app.providerData,
+          wabaInfo,
+          health,
+          balance,
+          ratings,
+          subscriptionCount,
+        },
+      };
+    }
+
+    const updatedApp = await this.appModel.findOneAndUpdate(
+      { workspaceId, appId: targetAppId },
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!updatedApp) {
+      throw new Error('No BSP app found to sync');
+    }
+
+    // Sync connection states back to main 'workspaces' collection in 'wapi' database
+    try {
+      const mainDb = this.appModel.db.useDb('wapi');
+      const isMockApp = String(targetAppId).startsWith('mock_');
+      const workspaceUpdates: Record<string, any> = {
+        whatsappConnected: updates.whatsappConnected ?? false,
+        gupshupAppLive: updates.gupshupAppLive ?? false,
+        gupshupAppHealth: updates.gupshupAppHealth ?? false,
+        gupshupWalletBalance: updates.gupshupWalletBalance,
+        gupshupRatings: updates.gupshupRatings,
+        onboardingStatus: updates.whatsappConnected ? 'completed' : 'pending_activation',
+        bspPhoneStatus: updates.bspPhoneStatus || 'PENDING',
+        connectedAt: updates.connectedAt,
+        bspDisplayPhoneNumber: updates.displayPhoneNumber,
+        whatsappPhoneNumber: updates.displayPhoneNumber,
+        wabaId: updates.wabaId,
+        bspWabaId: updates.wabaId,
+        phoneNumberId: updates.phoneNumberId,
+        whatsappPhoneNumberId: updates.phoneNumberId,
+        bspPhoneNumberId: updates.phoneNumberId,
+        verifiedName: updates.verifiedName,
+        bspVerifiedName: updates.verifiedName,
+        qualityRating: updates.qualityRating || 'UNKNOWN',
+        bspQualityRating: updates.qualityRating || 'UNKNOWN',
+        messagingLimitTier: updates.messagingLimitTier || 'UNKNOWN',
+        bspMessagingTier: updates.messagingLimitTier || 'UNKNOWN',
+        'onboarding.wabaConnectionCompleted': updates.whatsappConnected ?? false,
+        'onboarding.wabaConnectionCompletedAt': updates.whatsappConnected ? new Date() : undefined,
+        'esbFlow.status': updates.whatsappConnected ? 'completed' : (isMockApp ? 'completed' : 'phone_pending'),
+        'esbFlow.completedAt': updates.whatsappConnected ? new Date() : undefined,
+        gupshupAppId: targetAppId,
+        gupshupAppName: updatedApp.appName,
+      };
+
+      await mainDb.collection('workspaces').updateOne(
+        { _id: new Types.ObjectId(workspaceId) },
+        { $set: workspaceUpdates }
+      );
+      
+      console.log(`[BSP Sync] Successfully synced workspace connection states to wapi db for workspace ${workspaceId}`);
+    } catch (err: any) {
+      console.error('[BSP Sync] Failed to sync connection state back to main workspace collection:', err.message);
     }
 
     return {
       success: true,
       app: {
-        appId: app.appId,
-        provider: app.provider,
-        status: app.status,
-        connectedAt: app.connectedAt,
+        appId: updatedApp.appId,
+        provider: updatedApp.provider,
+        status: updatedApp.status,
+        connectedAt: updatedApp.connectedAt,
       },
     };
   }
@@ -267,12 +573,24 @@ export class OnboardingService {
   async bspRegisterPhone(input: any) {
     const { workspaceId, appId, region, phoneNumber } = input;
 
+    // Call active Gupshup API registration
+    const targetAppId = appId;
+    if (targetAppId && !String(targetAppId).startsWith('mock_')) {
+      await this.gupshup.registerPhoneForApp({
+        appId: targetAppId,
+        region,
+        phoneNumber,
+      });
+    }
+
     const app = await this.appModel.findOneAndUpdate(
       { workspaceId, appId },
       {
         $set: {
-          'metadata.phoneNumber': phoneNumber,
-          'metadata.region': region,
+          displayPhoneNumber: phoneNumber,
+          whatsappPhoneNumber: phoneNumber,
+          bspDisplayPhoneNumber: phoneNumber,
+          'gupshupIdentity.source': region,
           updatedAt: new Date(),
         },
       },
@@ -296,6 +614,56 @@ export class OnboardingService {
   async bspComplete(input: any) {
     const { workspaceId, userId, appId } = input;
 
+    // Retrieve onboarding session to check if new_number connection needs registration
+    const session = await this.sessionModel.findOne({ workspaceId, appId, status: 'started' });
+    const bspSession = (session?.metadata || {}) as any;
+    const connectionType = bspSession.connectionType || bspSession.fallbackPayload?.connectionType;
+
+    if (connectionType === 'new_number' && appId && !String(appId).startsWith('mock_')) {
+      const phone = String(bspSession.phoneNumber || bspSession.userEmail || '').replace(/\D/g, '');
+      if (phone) {
+        await this.gupshup.registerPhoneForApp({
+          appId,
+          region: bspSession.region || 'IN',
+          phoneNumber: phone,
+        }).catch(e => console.warn('[BSP Complete] Phone reg fail:', e.message));
+      }
+    }
+
+    // Profile Contact details sync with base64 fingerprint checking
+    if (appId && !String(appId).startsWith('mock_')) {
+      const businessName = bspSession.businessName || 'Business Owner';
+      const email = bspSession.userEmail || `${userId}@placeholder.com`;
+      const phone = String(bspSession.phoneNumber || '').replace(/\D/g, '') || undefined;
+
+      const contactFingerprint = Buffer.from(`${businessName}:${email}:${phone || ''}`).toString('base64');
+      
+      const appRecord = await this.appModel.findOne({ workspaceId, appId });
+      const oldFingerprint = (appRecord?.providerData as any)?.contactSyncFingerprint;
+
+      if (oldFingerprint !== contactFingerprint) {
+        console.log(`[OnboardingService:bspComplete] Syncing profile contact details for ${appId}...`);
+        await this.gupshup.updateOnboardingContact({
+          appId,
+          contactName: businessName,
+          contactEmail: email,
+          contactNumber: phone,
+        }).then(async () => {
+          await this.appModel.findOneAndUpdate(
+            { workspaceId, appId },
+            {
+              $set: {
+                'providerData.contactSyncFingerprint': contactFingerprint,
+                'providerData.contactSyncedAt': new Date(),
+              },
+            }
+          );
+        }).catch(e => console.warn('[BSP Complete] Profile contact sync failed:', e.message));
+      } else {
+        console.log(`[OnboardingService:bspComplete] Contact info unchanged, skipping sync for ${appId}`);
+      }
+    }
+
     const app = await this.appModel.findOneAndUpdate(
       { workspaceId, appId },
       {
@@ -310,6 +678,11 @@ export class OnboardingService {
     if (!app) {
       throw new Error('BSP app not found');
     }
+
+    // Trigger auto-sync of metrics and configuration
+    await this.bspSync({ workspaceId, appId }).catch(e =>
+      console.warn('[BSP Complete] Auto sync metrics failed:', e.message)
+    );
 
     return {
       success: true,
@@ -327,6 +700,27 @@ export class OnboardingService {
     const { workspaceId, appId } = input;
 
     await this.appModel.deleteOne({ workspaceId, appId });
+
+    try {
+      const mainDb = this.appModel.db.useDb('wapi');
+      await mainDb.collection('workspaces').updateOne(
+        { _id: new Types.ObjectId(workspaceId) },
+        {
+          $set: {
+            whatsappConnected: false,
+            gupshupAppId: undefined,
+            gupshupAppName: undefined,
+            'onboarding.wabaConnectionCompleted': false,
+            'onboarding.wabaConnectionInitiated': false,
+            bspPhoneStatus: 'DISCONNECTED',
+            'esbFlow.status': 'onboarding',
+          }
+        }
+      );
+      console.log(`[BSP Disconnect] Successfully cleared workspace connection states in wapi db for workspace ${workspaceId}`);
+    } catch (err: any) {
+      console.error('[BSP Disconnect] Failed to clear connection state in main workspace collection:', err.message);
+    }
 
     return {
       success: true,

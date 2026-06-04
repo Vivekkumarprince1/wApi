@@ -52,8 +52,8 @@ export class CommercePaymentService {
           workspace_id: workspaceId.toString(),
           type: 'commerce_order'
         },
-        // Callback should point to the monolith which will proxy or redirect
-        callback_url: `${process.env.MONOLITH_URL || 'http://localhost:3000'}/api/payments/callback`,
+        // Callback is served through the API gateway for frontend/provider compatibility.
+        callback_url: `${process.env.API_GATEWAY_URL || process.env.PUBLIC_API_URL || 'http://localhost:3000'}/api/payments/callback`,
         callback_method: 'get'
       });
 

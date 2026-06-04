@@ -13,3 +13,11 @@ export * from './InstagramQuickflowLog';
 export * from './FAQ';
 export * from './WhatsAppForm';
 export * from './WhatsAppFormResponse';
+export * from './WhatsAppFlow';
+export * from './WidgetConfig';
+export * from './Workspace';
+export * from './Integration';
+
+
+
+

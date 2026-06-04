@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 
-const MONGODB_URI = process.env.MONGODB_URI_AUTOMATION || 'mongodb://localhost:27017/wapi_automation';
+const MONGODB_URI =
+  process.env.MONGO_URI ||
+  process.env.MONGODB_URI_AUTOMATION ||
+  process.env.MONGODB_URI ||
+  'mongodb://localhost:27017/wapi_automation';
 
 export const dbConnect = async () => {
   if (mongoose.connection.readyState >= 1) return;

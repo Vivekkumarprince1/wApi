@@ -22,12 +22,14 @@ const isString = (value: string | undefined): value is string =>
 
 const allowedDevOriginsSource = process.env.ALLOWED_DEV_ORIGINS || process.env.ALLOWED_ORIGINS;
 
-const allowedDevOrigins = allowedDevOriginsSource
-  ? allowedDevOriginsSource
+let allowedDevOrigins: string[] = ['10.166.85.53', 'localhost:3000', '127.0.0.1:3000'];
+if (allowedDevOriginsSource) {
+  const parsed = allowedDevOriginsSource
     .split(",")
     .map(normalizeAllowedDevOrigin)
-    .filter(isString)
-  : undefined;
+    .filter(isString);
+  allowedDevOrigins = [...allowedDevOrigins, ...parsed];
+}
 
 const nextConfig: NextConfig = {
   reactCompiler: false,
@@ -41,7 +43,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:3005';
+    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:5001';
     return [
       {
         source: '/api/automation/:path*',

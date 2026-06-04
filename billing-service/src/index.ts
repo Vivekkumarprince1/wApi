@@ -7,10 +7,12 @@ import { logger, correlationIdMiddleware, getCorrelationId } from './lib/logger'
 import { mountSwaggerUI } from '@wapi/contracts';
 import { openapiDocument } from './openapi';
 
-import './events/EventBus'; // Initialize worker
+import { startBillingEventConsumer } from './events/EventBus';
 import walletRoutes from './routes/walletRoutes';
 import webhookRoutes from './routes/webhookRoutes';
 import commerceRoutes from './routes/commerceRoutes';
+import { errorHandler } from './middleware/errorHandler';
+import workspaceBillingRoutes from './routes/workspaceBillingRoutes';
 
 // --- Startup Guards ---
 // ... (omitted)
@@ -49,6 +51,14 @@ mountSwaggerUI(app, openapiDocument);
 app.use('/api/billing/wallets', walletRoutes);
 app.use('/api/billing/webhooks', webhookRoutes);
 app.use('/api/billing/commerce', commerceRoutes);
+app.use('/api/v1/commerce', commerceRoutes);
+
+// Workspace-scoped billing routes — the API gateway strips /api/v1/workspace/billing
+// before forwarding, so this service receives the sub-path (/, /plan, /info, etc.)
+app.use('/', workspaceBillingRoutes);
+
+// Global Error Handler
+app.use(errorHandler);
 
 app.get('/health', async (req, res) => {
   const dbState = mongoose.connection.readyState;
@@ -65,6 +75,8 @@ async function bootstrap() {
   try {
     await mongoose.connect(config.mongodbUri);
     console.log('[Database] Connected to Billing Database');
+
+    await startBillingEventConsumer();
 
     app.listen(config.port, () => {
       console.log(`[Billing Service] Listening on port ${config.port}`);

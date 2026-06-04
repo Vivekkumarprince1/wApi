@@ -1,9 +1,9 @@
 import { sendInternalAction } from '../../lib/internal-client';
 
 /**
- * Action types are sent to the monolith's `/api/internal/actions` endpoint
+ * Action types are sent to the chat-service's `/api/internal/actions` endpoint
  * and dispatched by `internalController.executeAction`. Names are canonical
- * lowercase snake_case to match the monolith switch.
+ * lowercase snake_case to match the chat-service switch.
  */
 
 export const WabaService = {
@@ -40,3 +40,6 @@ export const ContactService = {
   addTag: (workspaceId: string, contactId: string, tag: string) =>
     sendInternalAction('add_contact_tag', { workspaceId, contactId, tag })
 };
+
+export * from './bsp-client';
+

@@ -58,6 +58,12 @@ export class InvoiceService {
       invoiceNumber,
       providerInvoiceId: transactionId.toString(),
       providerAmountCents: amountPaise,
+      customerDetails: {
+        workspaceName: workspaceDetails.workspaceName || workspaceDetails.name || 'Workspace',
+        ownerName:     workspaceDetails.ownerName || 'Admin',
+        ownerEmail:    workspaceDetails.ownerEmail || 'support@example.com',
+        country:       workspaceDetails.country || ''
+      }
     });
 
     return invoice;

@@ -3,7 +3,7 @@ import { CampaignBatch } from '../models/CampaignBatch';
 import { SegmentService } from './SegmentService';
 import { Types } from 'mongoose';
 import { getSharedRedis } from '../lib/redis';
-import { monolithWorkerBridge } from '../lib/monolith-worker-client';
+import { microserviceWorkerClient } from '../lib/microservice-worker-client';
 
 const redis = getSharedRedis();
 
@@ -27,10 +27,10 @@ export class CampaignService {
   }
 
   /**
-   * Run pre-flight safety checks (Bridged to monolith)
+   * Run pre-flight safety checks through owning microservices.
    */
   static async runPreflight(workspaceId: string, campaign: ICampaignDocument): Promise<{ valid: boolean; reason?: string }> {
-    return await monolithWorkerBridge.preflightValidate(workspaceId, campaign.template.toString(), campaign.contacts?.length || 0);
+    return await microserviceWorkerClient.preflightValidate(workspaceId, campaign.template.toString(), campaign.contacts?.length || 0);
   }
 
   /**

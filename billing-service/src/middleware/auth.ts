@@ -24,6 +24,17 @@ export interface AuthRequest extends Request {
   workspace?: any;
   role?: string;
   permissions?: string[];
+  isImpersonating?: boolean;
+}
+
+function parseGatewayPermissions(value: string | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(decodeURIComponent(value));
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : [];
+  } catch {
+    return value.split(',').map((item) => item.trim()).filter(Boolean);
+  }
 }
 
 /**
@@ -31,18 +42,23 @@ export interface AuthRequest extends Request {
  * Supports both Gateway Headers and Direct JWT.
  */
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
-  // 1. Check for Gateway Headers
+  // 1. Check for Gateway Headers (Standard for Microservices - secured with internal secret signature verification)
   const gatewayUserId = req.header('x-user-id');
   const gatewayWorkspaceId = req.header('x-workspace-id');
   const gatewayRole = req.header('x-user-role');
+  const gatewaySystemRole = req.header('x-user-system-role');
+  const gatewayPermissions = parseGatewayPermissions(req.header('x-permissions') || undefined);
+  const internalSecret = req.header('x-internal-service-secret');
 
-  if (gatewayUserId) {
+  if (gatewayUserId && safeEqualSecret(internalSecret)) {
     req.user = { 
       id: gatewayUserId, 
       _id: gatewayUserId,
-      role: gatewayRole || 'agent' 
+      role: gatewaySystemRole || gatewayRole || 'user' 
     };
     req.role = gatewayRole || 'agent';
+    req.permissions = gatewayPermissions;
+    req.isImpersonating = req.header('x-impersonating') === 'true';
     
     if (gatewayWorkspaceId) {
       req.workspace = { 
@@ -53,9 +69,17 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     return next();
   }
 
-  // 2. Fallback: Direct JWT
+
+  // 2. Try Authorization Bearer header
   const authHeader = req.header('Authorization');
-  const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+  let token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined;
+
+  // 3. Fallback: read auth_token from Cookie header (browser sends cookies via withCredentials)
+  if (!token) {
+    const cookieHeader = req.header('cookie') || '';
+    const match = cookieHeader.split(';').map(c => c.trim()).find(c => c.startsWith('auth_token='));
+    if (match) token = match.slice('auth_token='.length);
+  }
 
   if (!token) {
     return res.status(401).json({ message: 'Authorization denied: No token or headers provided' });
@@ -69,6 +93,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
       role: decoded.role || 'agent' 
     };
     req.role = decoded.role || 'agent';
+    req.permissions = [];
     
     if (decoded.workspaceId) {
       req.workspace = { 
@@ -118,11 +143,27 @@ export const authenticateOrInternal = (req: AuthRequest, res: Response, next: Ne
  */
 export const authorize = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (req.user?.role === 'super_admin' || (req.role && roles.includes(req.role))) {
+      return next();
+    }
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ 
         message: 'Permission denied: You do not have the required role' 
       });
     }
     next();
+  };
+};
+
+export const requirePermission = (permission: string) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (req.user?.role === 'super_admin' || req.role === 'owner' || req.permissions?.includes(permission)) {
+      return next();
+    }
+    return res.status(403).json({
+      success: false,
+      message: `Forbidden: Missing required permission: ${permission}`,
+      errorCode: 'INSUFFICIENT_PERMISSIONS'
+    });
   };
 };

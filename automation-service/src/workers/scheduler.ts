@@ -2,6 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import mongoose from 'mongoose';
 import { AutomationRule } from '../models';
+import { FlowExecutorService } from '../services/flow-executor';
 
 /**
  * Automation Scheduler
@@ -115,13 +116,20 @@ export async function startScheduler() {
     { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) }
   );
 
-  // Placeholder run worker. Wire this to your real automation engine.
+  // Real run worker. Executes the visual workflow graph when triggered by schedule.
   new Worker(
     RUN_QUEUE,
     async (job: Job) => {
       const { ruleId, workspaceId } = job.data || {};
       console.log(`[automation-scheduler] run-rule fired ruleId=${ruleId} workspaceId=${workspaceId}`);
-      // TODO: import and call WorkflowService.execute(rule) once it accepts a ruleId entrypoint.
+      try {
+        await FlowExecutorService.execute(ruleId, {
+          eventType: 'schedule',
+          workspaceId,
+        });
+      } catch (err: any) {
+        console.error(`[automation-scheduler] Failed to execute scheduled rule ${ruleId}:`, err.message);
+      }
     },
     { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) }
   );

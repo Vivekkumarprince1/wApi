@@ -47,7 +47,7 @@ export default function BusinessInfoPage() {
     try {
       const result = await saveBusinessInfo(formData);
       await fetchSession(true);
-      router.push(result?.nextStep || '/onboarding/business-verification');
+      router.push(result?.nextStep || '/dashboard');
     } catch (err: any) {
       setError(err.message || 'Failed to save business information');
     } finally {

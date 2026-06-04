@@ -50,6 +50,7 @@ export class OnboardingController {
       ...body,
       workspaceId: workspace._id,
       userId: user._id,
+      userEmail: user?.email || user?.username || body.userEmail || body.email,
     }));
   }
 

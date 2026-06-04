@@ -1,7 +1,7 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import { config } from '../config';
 
-type ServiceName = 'billing' | 'monolith';
+type ServiceName = 'billing' | 'chat' | 'contact' | 'bsp' | 'gateway';
 
 type CircuitState = {
   failures: number;
@@ -15,11 +15,18 @@ const DEFAULT_TIMEOUT = 10000;
 
 const circuitState: Record<ServiceName, CircuitState> = {
   billing: { failures: 0, lastFailure: 0, isOpen: false },
-  monolith: { failures: 0, lastFailure: 0, isOpen: false },
+  chat: { failures: 0, lastFailure: 0, isOpen: false },
+  contact: { failures: 0, lastFailure: 0, isOpen: false },
+  bsp: { failures: 0, lastFailure: 0, isOpen: false },
+  gateway: { failures: 0, lastFailure: 0, isOpen: false },
 };
 
 function baseUrlFor(service: ServiceName) {
-  return service === 'billing' ? config.billingServiceUrl : config.monolithUrl;
+  if (service === 'billing') return config.billingServiceUrl;
+  if (service === 'chat') return config.chatServiceUrl;
+  if (service === 'contact') return config.contactServiceUrl;
+  if (service === 'bsp') return config.bspServiceUrl;
+  return config.apiGatewayUrl;
 }
 
 function generateCorrelationId() {
@@ -65,6 +72,7 @@ export async function serviceRequest<T = any>(
   const headers = {
     'Content-Type': 'application/json',
     'x-internal-service-secret': config.internalServiceSecret,
+    'x-internal-service': 'campaign-service',
     'x-correlation-id': generateCorrelationId(),
     ...(request.headers || {}),
   };

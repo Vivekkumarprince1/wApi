@@ -12,11 +12,12 @@ export default function GoogleLogin({ formType = 'signup', onError, onSuccess }:
 
     try {
       const data: any = await getGoogleAuthUrl();
-      if (!data?.url) {
+      const redirectUrl = data?.url || data?.authUrl;
+      if (!redirectUrl) {
         throw new Error('Google sign-in is not available right now');
       }
 
-      window.location.href = data.url;
+      window.location.href = redirectUrl;
     } catch (error: any) {
       onError?.(error.message || 'Google sign-in failed');
       setIsLoading(false);

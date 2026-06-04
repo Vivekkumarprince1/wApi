@@ -3,7 +3,7 @@ import { getSharedRedis } from './redis';
 
 const connection = getSharedRedis();
 
-// Main Campaign Queue (Must match name in monolith)
+// Main Campaign Queue consumed by the campaign-service worker.
 export const campaignQueue = new Queue('campaign-engine', {
   connection,
   defaultJobOptions: {

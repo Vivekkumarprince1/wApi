@@ -31,7 +31,7 @@ export class SafetyGuards {
         return { pass: false, reason: 'GLOBAL_KILL_SWITCH' };
       }
 
-      // 2. Business Hours Check (Rely on context passed from monolith)
+      // 2. Business Hours Check (rely on context passed by chat-service)
       if (rule.trigger?.filters?.businessHoursOnly && context.isOutsideBusinessHours) {
         return { pass: false, reason: 'OUTSIDE_BUSINESS_HOURS' };
       }

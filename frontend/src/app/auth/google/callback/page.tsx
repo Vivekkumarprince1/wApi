@@ -30,15 +30,14 @@ function GoogleCallbackContent() {
       try {
         setStatus('Syncing with Google...');
         const response: any = await api.post('/auth/google/callback', { code });
-        
+
         if (response.success) {
           setStatus('Authentication successful! Redirecting...');
           toast.success('Successfully logged in with Google');
-          
-          // Re-fetch session to sync store
-          // Wait for a brief moment to show success state
+
+          const destination = response.accessRestriction?.targetPath || response.nextStep || '/dashboard';
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push(destination);
           }, 1500);
         } else {
           throw new Error(response.message || 'Login failed');

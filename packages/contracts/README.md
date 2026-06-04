@@ -20,7 +20,7 @@ hold private duplicates. Migrate one at a time:
 
 1. Replace local types in `automation-service/src/services/external/index.ts`
    with `AutomationActionType` + `AutomationActionEnvelope`.
-2. Replace local types in `campaign-service/src/lib/monolith-worker-client.ts`
+2. Replace local types in `campaign-service/src/lib/microservice-worker-client.ts`
    with `WorkerBridgeRequest` discriminated union.
 3. Replace ad-hoc payload types in `frontend/src/components/layout/socket-hub.tsx`
    with the named payload interfaces.

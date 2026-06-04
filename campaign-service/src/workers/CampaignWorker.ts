@@ -4,15 +4,15 @@ import { JOB_TYPES, CampaignQueueService } from "../lib/campaign-queue";
 import { CampaignService } from "../services/CampaignService";
 import { SegmentService } from "../services/SegmentService";
 import { getSharedRedis } from "../lib/redis";
-import { monolithWorkerBridge } from "../lib/monolith-worker-client";
+import { microserviceWorkerClient } from "../lib/microservice-worker-client";
 import { Types } from "mongoose";
 
 /**
  * CAMPAIGN WORKER (Microservice)
  * 
  * Consumes and processes campaign jobs.
- * This worker has been moved from the monolith to the microservice.
- * It uses a bridge to call monolith-only services (Messaging, Billing, Socket).
+ * This worker uses explicit service clients for chat, contact, billing, BSP,
+ * and realtime fan-out.
  */
 export class CampaignWorker {
   private worker: Worker;
@@ -56,8 +56,8 @@ export class CampaignWorker {
     const campaign = await Campaign.findById(campaignId);
     if (!campaign) throw new Error('Campaign not found');
 
-    // 1. Pre-flight Validation (Bridged)
-    const preflight = await monolithWorkerBridge.preflightValidate(workspaceId, campaign.template.toString(), campaign.contacts?.length || 0);
+    // 1. Pre-flight Validation
+    const preflight = await microserviceWorkerClient.preflightValidate(workspaceId, campaign.template.toString(), campaign.contacts?.length || 0);
     if (!preflight.valid) {
         campaign.status = 'PAUSED';
         await (Campaign as ICampaignModel).addAuditEntry(campaignId, 'SYSTEM_PAUSED', { 
@@ -66,7 +66,7 @@ export class CampaignWorker {
         });
         await campaign.save();
 
-        await monolithWorkerBridge.socketBroadcast(workspaceId, 'campaign:status_update', {
+        await microserviceWorkerClient.socketBroadcast(workspaceId, 'campaign:status_update', {
           campaignId,
           status: 'PAUSED',
           reason: preflight.reason,
@@ -84,7 +84,7 @@ export class CampaignWorker {
     }
 
     // 2. Budget Parking (Bridged/Direct)
-    const { template } = await monolithWorkerBridge.getTemplate(workspaceId, campaign.template.toString());
+    const { template } = await microserviceWorkerClient.getTemplate(workspaceId, campaign.template.toString());
     
     // Fetch pricing from Billing Service
     const { serviceRequest } = await import('../lib/service-client');
@@ -150,7 +150,7 @@ export class CampaignWorker {
         const chunk = activeRecipients.slice(i, i + CONCURRENCY);
         await Promise.all(chunk.map(async (recipient: any) => {
             try {
-                const { contact } = await monolithWorkerBridge.getContact(workspaceId, recipient.contactId);
+                const { contact } = await microserviceWorkerClient.getContact(workspaceId, recipient.contactId);
                 if (!contact) return;
 
                 const components: any[] = [];
@@ -166,7 +166,7 @@ export class CampaignWorker {
                 }
 
                 // Dispatch via Bridge
-                const result = await monolithWorkerBridge.sendTemplate({
+                const result = await microserviceWorkerClient.sendTemplate({
                   workspaceId,
                   to: contact.phone,
                   templateName: batch.templateName || 'template',
@@ -221,7 +221,7 @@ export class CampaignWorker {
     const batchStats = await (CampaignBatch as any).getCampaignBatchStats(campaignId);
     const isLastBatch = batchStats.completedBatches + batchStats.failedBatches >= batchStats.totalBatches;
     
-    await monolithWorkerBridge.socketBroadcast(workspaceId, "campaign:batch_completed", { 
+    await microserviceWorkerClient.socketBroadcast(workspaceId, "campaign:batch_completed", { 
         campaignId, batchIndex: batch.batchIndex, successCount, failCount, isLastBatch,
         totals: afterAudit?.totals || campaign.totals
     });
@@ -229,8 +229,8 @@ export class CampaignWorker {
     if (isLastBatch) {
         const finalized = await Campaign.findOneAndUpdate({ _id: campaignId, status: { $ne: 'COMPLETED' } }, { $set: { status: 'COMPLETED', completedAt: new Date() } }, { new: true });
         if (finalized) {
-            const { template } = await monolithWorkerBridge.getTemplate(workspaceId, finalized.template.toString());
-            const { cost } = await monolithWorkerBridge.getPricing(workspaceId, template?.category || 'MARKETING');
+            const { template } = await microserviceWorkerClient.getTemplate(workspaceId, finalized.template.toString());
+            const { cost } = await microserviceWorkerClient.getPricing(workspaceId, template?.category || 'MARKETING');
             
             const successAmount = (finalized.totals?.sent || 0) * cost;
             const failAmount = (finalized.totals?.failed || 0) * cost;
@@ -243,7 +243,7 @@ export class CampaignWorker {
               actualSpend: successAmount // We only deduct actual successes
             });
             
-            await monolithWorkerBridge.socketBroadcast(workspaceId, "campaign:status_update", { 
+            await microserviceWorkerClient.socketBroadcast(workspaceId, "campaign:status_update", { 
                 campaignId, status: 'COMPLETED', updatedAt: finalized.updatedAt, totals: finalized.totals
             });
         }

@@ -10,6 +10,17 @@ export interface AuthRequest extends Request {
   workspace?: any;
   role?: string;
   permissions?: string[];
+  isImpersonating?: boolean;
+}
+
+function parseGatewayPermissions(value: string | undefined): string[] {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(decodeURIComponent(value));
+    return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string') : [];
+  } catch {
+    return value.split(',').map((item) => item.trim()).filter(Boolean);
+  }
 }
 
 /**
@@ -17,18 +28,23 @@ export interface AuthRequest extends Request {
  * Supports both direct JWT verification and Header-based Auth (from Gateway).
  */
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
-  // 1. Check for Gateway Headers (Standard for Microservices)
+  // 1. Check for Gateway Headers (Standard for Microservices - secured with internal secret signature verification)
   const gatewayUserId = req.header('x-user-id');
   const gatewayWorkspaceId = req.header('x-workspace-id');
   const gatewayRole = req.header('x-user-role');
+  const gatewaySystemRole = req.header('x-user-system-role');
+  const gatewayPermissions = parseGatewayPermissions(req.header('x-permissions') || undefined);
+  const internalSecret = req.header('x-internal-service-secret');
 
-  if (gatewayUserId) {
+  if (gatewayUserId && internalSecret === INTERNAL_SECRET) {
     req.user = { 
       id: gatewayUserId, 
       _id: gatewayUserId,
-      role: gatewayRole || 'agent' 
+      role: gatewaySystemRole || gatewayRole || 'user' 
     };
     req.role = gatewayRole || 'agent';
+    req.permissions = gatewayPermissions;
+    req.isImpersonating = req.header('x-impersonating') === 'true';
     
     if (gatewayWorkspaceId) {
       req.workspace = { 
@@ -38,6 +54,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     }
     return next();
   }
+
 
   // 2. Fallback: Direct JWT Verification
   const authHeader = req.header('Authorization');
@@ -55,6 +72,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
       role: decoded.role || 'agent' 
     };
     req.role = decoded.role || 'agent';
+    req.permissions = [];
     
     if (decoded.workspaceId) {
       req.workspace = { 
@@ -73,12 +91,28 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
  */
 export const authorize = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (req.user?.role === 'super_admin' || (req.role && roles.includes(req.role))) {
+      return next();
+    }
     if (!req.user || !roles.includes(req.user.role)) {
       return res.status(403).json({ 
         message: 'Permission denied: You do not have the required role' 
       });
     }
     next();
+  };
+};
+
+export const requirePermission = (permission: string) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (req.user?.role === 'super_admin' || req.role === 'owner' || req.permissions?.includes(permission)) {
+      return next();
+    }
+    return res.status(403).json({
+      success: false,
+      message: `Forbidden: Missing required permission: ${permission}`,
+      errorCode: 'INSUFFICIENT_PERMISSIONS'
+    });
   };
 };
 

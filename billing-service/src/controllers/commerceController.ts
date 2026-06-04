@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { CommercePaymentService } from '../services/CommercePaymentService';
 import { OrderModel } from '../models/Order';
 import { AuthRequest } from '../middleware/auth';
+import { ProductModel } from '../models/Product';
 
 export const commerceController = {
   /**
@@ -171,6 +172,365 @@ export const commerceController = {
       if (req.body.paymentStatus) order.paymentStatus = req.body.paymentStatus;
 
       await order.save();
+      res.json({ success: true, data: order });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  },
+
+  /**
+   * List Catalogs (Stub for FB/Gupshup commerce)
+   */
+  async listCatalogs(req: AuthRequest, res: Response) {
+    try {
+      res.json({ 
+        success: true, 
+        data: [
+          { _id: 'default', name: 'Default Catalog', isDefault: true }
+        ]
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * List Products
+   */
+  async listProducts(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.headers['x-workspace-id'] || req.workspace?._id;
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'Workspace context is required' });
+      }
+
+      const page = parseInt(req.query.page as string || '1', 10);
+      const limit = parseInt(req.query.limit as string || '50', 10);
+      const category = req.query.category as string;
+      const search = req.query.search as string;
+      const getStats = req.query.stats === 'true';
+
+      if (getStats) {
+        const stats = await ProductModel.aggregate([
+          { $match: { workspace: new mongoose.Types.ObjectId(String(workspaceId)), isDeleted: false } },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              active: { $sum: { $cond: ['$isActive', 1, 0] } },
+              lowStock: { $sum: { $cond: [{ $and: [{ $gt: ['$stock', 0] }, { $lte: ['$stock', 10] }] }, 1, 0] } },
+              outOfStock: { $sum: { $cond: [{ $eq: ['$stock', 0] }, 1, 0] } }
+            }
+          }
+        ]);
+        return res.json({ success: true, data: stats[0] || { total: 0, active: 0, lowStock: 0, outOfStock: 0 } });
+      }
+
+      const query: any = { 
+        workspace: new mongoose.Types.ObjectId(String(workspaceId)), 
+        isDeleted: false 
+      };
+
+      if (category) query.category = category;
+      if (search) {
+        query.$or = [
+          { name: { $regex: search, $options: 'i' } },
+          { description: { $regex: search, $options: 'i' } }
+        ];
+      }
+
+      const [products, total] = await Promise.all([
+        ProductModel.find(query)
+          .sort({ createdAt: -1 })
+          .skip((page - 1) * limit)
+          .limit(limit),
+        ProductModel.countDocuments(query)
+      ]);
+      
+      res.json({ 
+        success: true, 
+        data: products,
+        pagination: {
+          total,
+          page,
+          limit,
+          pages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * Create Product
+   */
+  async createProduct(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.headers['x-workspace-id'] || req.workspace?._id;
+      const userId = req.headers['x-user-id'] || req.user?._id;
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'Workspace context is required' });
+      }
+
+      const product = await ProductModel.create({
+        ...req.body,
+        workspace: new mongoose.Types.ObjectId(String(workspaceId)),
+        createdBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined
+      });
+      res.status(201).json({ success: true, data: product });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * Update Product
+   */
+  async updateProduct(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.headers['x-workspace-id'] || req.workspace?._id;
+      const userId = req.headers['x-user-id'] || req.user?._id;
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'Workspace context is required' });
+      }
+
+      const product = await ProductModel.findOneAndUpdate(
+        { _id: req.params.id, workspace: new mongoose.Types.ObjectId(String(workspaceId)), isDeleted: false },
+        { 
+          $set: { 
+            ...req.body, 
+            updatedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined 
+          } 
+        },
+        { new: true, runValidators: true }
+      );
+
+      if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+      res.json({ success: true, data: product });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * Delete Product
+   */
+  async deleteProduct(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.headers['x-workspace-id'] || req.workspace?._id;
+      const userId = req.headers['x-user-id'] || req.user?._id;
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'Workspace context is required' });
+      }
+
+      const product = await ProductModel.findOneAndUpdate(
+        { _id: req.params.id, workspace: new mongoose.Types.ObjectId(String(workspaceId)), isDeleted: false },
+        { 
+          $set: { 
+            isDeleted: true, 
+            isActive: false, 
+            deletedAt: new Date(), 
+            updatedBy: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined 
+          } 
+        },
+        { new: true }
+      );
+
+      if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+      res.json({ success: true, message: "Product deleted", data: product });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * Get Commerce Stats
+   */
+  async getStats(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.headers['x-workspace-id'] || req.workspace?._id;
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'Workspace context is required' });
+      }
+
+      const [productStats, orderStats] = await Promise.all([
+        ProductModel.aggregate([
+          { $match: { workspace: new mongoose.Types.ObjectId(String(workspaceId)), isDeleted: false } },
+          {
+            $group: {
+              _id: null,
+              totalProducts: { $sum: 1 },
+              activeProducts: { $sum: { $cond: ['$isActive', 1, 0] } },
+              lowStock: { $sum: { $cond: [{ $and: [{ $gt: ['$stock', 0] }, { $lte: ['$stock', 10] }] }, 1, 0] } },
+              outOfStock: { $sum: { $cond: [{ $eq: ['$stock', 0] }, 1, 0] } }
+            }
+          }
+        ]),
+        OrderModel.aggregate([
+          { $match: { workspaceId: new mongoose.Types.ObjectId(String(workspaceId)) } },
+          {
+            $group: {
+              _id: null,
+              totalOrders: { $sum: 1 },
+              revenue: { $sum: { $cond: [{ $eq: ['$paymentStatus', 'PAID'] }, '$totalAmount', 0] } },
+              pendingOrders: { $sum: { $cond: [{ $eq: ['$status', 'PENDING'] }, 1, 0] } }
+            }
+          }
+        ])
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          totalProducts: productStats[0]?.totalProducts || 0,
+          activeProducts: productStats[0]?.activeProducts || 0,
+          lowStock: productStats[0]?.lowStock || 0,
+          outOfStock: productStats[0]?.outOfStock || 0,
+          totalOrders: orderStats[0]?.totalOrders || 0,
+          revenue: orderStats[0]?.revenue || 0,
+          pendingOrders: orderStats[0]?.pendingOrders || 0
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * Get Settings
+   */
+  async getSettings(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.headers['x-workspace-id'] || req.workspace?._id;
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'Workspace context is required' });
+      }
+
+      const db = mongoose.connection.db;
+      if (!db) {
+        return res.status(500).json({ error: 'Database connection not initialized' });
+      }
+
+      const business = await db.collection('businesses').findOne({
+        workspace: new mongoose.Types.ObjectId(String(workspaceId))
+      });
+
+      const cs = (business?.commerceSettings || {}) as Record<string, any>;
+
+      res.json({
+        success: true,
+        data: {
+          currency: cs.currency || 'INR',
+          checkoutBotEnabled: !!cs.checkoutBotEnabled,
+          razorpayEnabled: !!business?.razorpayKeyId,
+          catalogEnabled: !!cs.catalogEnabled,
+          ...cs
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  /**
+   * Update Settings
+   */
+  async updateSettings(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.headers['x-workspace-id'] || req.workspace?._id;
+      const userId = req.headers['x-user-id'] || req.user?._id;
+      if (!workspaceId) {
+        return res.status(400).json({ error: 'Workspace context is required' });
+      }
+
+      const db = mongoose.connection.db;
+      if (!db) {
+        return res.status(500).json({ error: 'Database connection not initialized' });
+      }
+
+      const query = { workspace: new mongoose.Types.ObjectId(String(workspaceId)) };
+      const business = await db.collection('businesses').findOne(query);
+
+      const prev = (business?.commerceSettings || {}) as Record<string, any>;
+      const incoming = req.body || {};
+      const newSettings = { ...prev, ...incoming };
+
+      const updateData: any = {
+        $set: {
+          commerceSettings: newSettings
+        }
+      };
+
+      if (incoming.razorpayKeyId !== undefined) {
+        updateData.$set.razorpayKeyId = incoming.razorpayKeyId;
+      }
+
+      if (business) {
+        await db.collection('businesses').updateOne(query, updateData);
+      } else {
+        await db.collection('businesses').insertOne({
+          workspace: new mongoose.Types.ObjectId(String(workspaceId)),
+          owner: userId ? new mongoose.Types.ObjectId(String(userId)) : undefined,
+          name: 'Business',
+          address: {},
+          commerceSettings: newSettings,
+          razorpayKeyId: incoming.razorpayKeyId
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          currency: newSettings.currency || 'INR',
+          checkoutBotEnabled: !!newSettings.checkoutBotEnabled,
+          razorpayEnabled: !!incoming.razorpayKeyId || !!business?.razorpayKeyId,
+          catalogEnabled: !!newSettings.catalogEnabled,
+          ...newSettings
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  async getCheckoutBotStats(req: AuthRequest, res: Response) {
+    try {
+      const stats = {
+        ordersClosed: 0,
+        totalRevenue: '₹0',
+        abandonmentRate: '0%',
+        activeSessions: 0,
+        subtext: { 
+          orders: 'No data', 
+          revenue: 'Real-time', 
+          abandonment: 'Stable', 
+          sessions: 'Monitoring' 
+        }
+      };
+      res.json({ success: true, data: stats });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
+  async updateOrderStatus(req: AuthRequest, res: Response) {
+    try {
+      const orderId = req.params.orderId || req.body.orderId || req.body.id;
+      const { status } = req.body;
+      const workspaceId = req.headers['x-workspace-id'] || req.workspace?._id;
+
+      if (!orderId || !workspaceId) {
+        return res.status(400).json({ error: 'Order ID and Workspace ID are required' });
+      }
+
+      const order = await OrderModel.findOneAndUpdate(
+        { _id: orderId, workspaceId: new mongoose.Types.ObjectId(String(workspaceId)) },
+        { $set: { status } },
+        { new: true }
+      );
+
+      if (!order) return res.status(404).json({ error: 'Order not found' });
       res.json({ success: true, data: order });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

@@ -37,4 +37,16 @@ export class PricingService {
       default: return 40;
     }
   }
+
+  /**
+   * Per-conversation-category price map (in paise) for a workspace's plan.
+   * Used by the direct-template send modal to estimate cost before sending.
+   */
+  static async getPricingMap(workspaceId: string): Promise<Record<ConversationCategory, number>> {
+    const categories: ConversationCategory[] = ['MARKETING', 'UTILITY', 'AUTHENTICATION', 'SERVICE'];
+    const entries = await Promise.all(
+      categories.map(async (c) => [c, await this.getCost(workspaceId, c)] as const)
+    );
+    return Object.fromEntries(entries) as Record<ConversationCategory, number>;
+  }
 }

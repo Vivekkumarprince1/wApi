@@ -75,6 +75,12 @@ export interface IInvoiceDoc extends Document {
   invoiceNumber?: string;
   providerInvoiceId?: string;
   providerAmountCents?: number;
+  customerDetails?: {
+    workspaceName?: string;
+    ownerName?: string;
+    ownerEmail?: string;
+    country?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -100,7 +106,13 @@ const InvoiceSchema = new Schema<IInvoiceDoc>({
   paidAt: { type: Date },
   invoiceNumber: { type: String, unique: true, sparse: true },
   providerInvoiceId: { type: String },
-  providerAmountCents: { type: Number }
+  providerAmountCents: { type: Number },
+  customerDetails: {
+    workspaceName: { type: String, default: '' },
+    ownerName: { type: String, default: '' },
+    ownerEmail: { type: String, default: '' },
+    country: { type: String, default: '' }
+  }
 }, { timestamps: true });
 
 export const InvoiceModel = mongoose.model<IInvoiceDoc>('Invoice', InvoiceSchema);
@@ -173,18 +185,47 @@ const PlanSchema = new Schema<IPlanDoc>({
 
 export const PlanModel = mongoose.model<IPlanDoc>('Plan', PlanSchema);
 
+// --- Razorpay Order Cache ---
+// Stores order metadata locally so verifyRecharge/verifyPlanUpgrade can look up
+// the amount without calling the Razorpay API (which can be unreliable in test mode).
+
+export interface IRazorpayOrderDoc extends Document {
+  orderId: string;         // Razorpay order ID (e.g. "order_XXXXX")
+  workspaceId: string;
+  amountPaise: number;
+  currency: string;
+  type: 'RECHARGE' | 'PLAN_UPGRADE' | 'VERIFICATION';
+  planSlug?: string;
+  createdAt: Date;
+}
+
+const RazorpayOrderSchema = new Schema<IRazorpayOrderDoc>({
+  orderId:     { type: String, required: true, unique: true, index: true },
+  workspaceId: { type: String, required: true, index: true },
+  amountPaise: { type: Number, required: true },
+  currency:    { type: String, default: 'INR' },
+  type:        { type: String, enum: ['RECHARGE', 'PLAN_UPGRADE', 'VERIFICATION'], required: true },
+  planSlug:    { type: String },
+}, { timestamps: { createdAt: true, updatedAt: false } });
+
+export const RazorpayOrderModel = mongoose.model<IRazorpayOrderDoc>('RazorpayOrder', RazorpayOrderSchema);
+
 // --- Workspace Minimal (for Plan mapping) ---
 
 export interface IMinimalWorkspaceDoc extends Document {
   planId: mongoose.Types.ObjectId;
   billingStatus: 'trialing' | 'active' | 'past_due' | 'suspended' | 'canceled';
+  autoPay: boolean;
+  taxId: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
 const MinimalWorkspaceSchema = new Schema<IMinimalWorkspaceDoc>({
   planId: { type: Schema.Types.ObjectId, ref: 'Plan' },
-  billingStatus: { type: String, enum: ['trialing', 'active', 'past_due', 'suspended', 'canceled'], default: 'trialing' }
+  billingStatus: { type: String, enum: ['trialing', 'active', 'past_due', 'suspended', 'canceled'], default: 'trialing' },
+  autoPay: { type: Boolean, default: false },
+  taxId: { type: String, default: '' },
 }, { timestamps: true });
 
 
@@ -192,6 +233,7 @@ export const WorkspaceModel = mongoose.model<IMinimalWorkspaceDoc>('Workspace', 
 
 export * from './Order';
 export * from './CommerceSettings';
+export * from './Product';
 
 
 

@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { randomUUID } from 'crypto';
+import { config } from '../config';
 
-const MONOLITH_URL = process.env.MONOLITH_INTERNAL_URL || 'http://localhost:5001';
-const INTERNAL_SECRET = process.env.INTERNAL_SERVICE_SECRET;
+const CHAT_SERVICE_URL = config.chatServiceUrl;
+const INTERNAL_SECRET = config.internalServiceSecret;
 
 if (!INTERNAL_SECRET) {
   // Hard-fail at module load. A fallback string would silently let the
@@ -14,15 +15,15 @@ if (!INTERNAL_SECRET) {
   }
 }
 
-export const monolithClient = axios.create({
-  baseURL: MONOLITH_URL,
+export const chatInternalClient = axios.create({
+  baseURL: CHAT_SERVICE_URL,
   timeout: 15_000,
   headers: {
     'x-internal-service-secret': INTERNAL_SECRET || ''
   }
 });
 
-monolithClient.interceptors.request.use((reqConfig) => {
+chatInternalClient.interceptors.request.use((reqConfig) => {
   if (!reqConfig.headers['x-correlation-id']) {
     reqConfig.headers['x-correlation-id'] = randomUUID();
   }
@@ -31,7 +32,7 @@ monolithClient.interceptors.request.use((reqConfig) => {
 
 export const sendInternalAction = async (type: string, payload: any) => {
   try {
-    const response = await monolithClient.post('/api/internal/actions', { type, payload });
+    const response = await chatInternalClient.post('/api/internal/actions', { type, payload });
     return response.data;
   } catch (error: any) {
     console.error(`[InternalClient] Action ${type} failed:`, error.response?.data || error.message);

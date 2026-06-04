@@ -16,49 +16,36 @@ export class LedgerService {
     description: string, 
     externalReferenceId?: string
   ) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      if (externalReferenceId) {
-        const existingTx = await WalletTransactionModel.findOne({ externalReferenceId }).session(session);
-        if (existingTx) {
-          const wallet = await WalletModel.findOne({ workspaceId }).session(session);
-          await session.commitTransaction();
-          session.endSession();
-          return wallet!;
-        }
+    // Idempotency check — if a transaction with this reference already exists, return current wallet
+    if (externalReferenceId) {
+      const existingTx = await WalletTransactionModel.findOne({ externalReferenceId });
+      if (existingTx) {
+        const wallet = await WalletModel.findOne({ workspaceId });
+        return wallet!;
       }
-
-      let wallet = await WalletModel.findOne({ workspaceId }).session(session);
-      if (!wallet) {
-        wallet = new WalletModel({ workspaceId, availableBalance: 0, parkedBalance: 0 });
-      }
-
-      const previousBalance = wallet.availableBalance + wallet.parkedBalance;
-      
-      wallet.availableBalance += amount;
-      await wallet.save({ session });
-
-      const tx = new WalletTransactionModel({
-        workspaceId,
-        amount,
-        type: 'RECHARGE',
-        previousBalance,
-        newBalance: wallet.availableBalance + wallet.parkedBalance,
-        description,
-        externalReferenceId,
-        status: 'COMPLETED'
-      });
-      await tx.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
-      return wallet;
-    } catch (err) {
-      await session.abortTransaction();
-      session.endSession();
-      throw err;
     }
+
+    let wallet = await WalletModel.findOne({ workspaceId });
+    if (!wallet) {
+      wallet = await WalletModel.create({ workspaceId, availableBalance: 0, parkedBalance: 0 });
+    }
+
+    const previousBalance = wallet.availableBalance + wallet.parkedBalance;
+    wallet.availableBalance += amount;
+    await wallet.save();
+
+    await WalletTransactionModel.create({
+      workspaceId,
+      amount,
+      type: 'RECHARGE',
+      previousBalance,
+      newBalance: wallet.availableBalance + wallet.parkedBalance,
+      description,
+      externalReferenceId,
+      status: 'COMPLETED'
+    });
+
+    return wallet;
   }
 
   /**
@@ -74,105 +61,68 @@ export class LedgerService {
     referenceId?: string,
     idempotencyKey?: string
   ) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      // Idempotency check — if a transaction with the same key already
-      // exists, return the current wallet without reapplying the spend.
-      if (idempotencyKey) {
-        const existingTx = await WalletTransactionModel.findOne({
-          externalReferenceId: idempotencyKey,
-        }).session(session);
-        if (existingTx) {
-          const wallet = await WalletModel.findOne({ workspaceId }).session(session);
-          await session.commitTransaction();
-          session.endSession();
-          return wallet!;
-        }
+    // Idempotency check
+    if (idempotencyKey) {
+      const existingTx = await WalletTransactionModel.findOne({ externalReferenceId: idempotencyKey });
+      if (existingTx) {
+        const wallet = await WalletModel.findOne({ workspaceId });
+        return wallet!;
       }
-
-      const wallet = await WalletModel.findOne({ workspaceId }).session(session);
-      if (!wallet) throw new Error('WORKSPACE_NOT_FOUND');
-      if (wallet.availableBalance < amount) throw new Error('INSUFFICIENT_FUNDS');
-
-      const previousBalance = wallet.availableBalance + wallet.parkedBalance;
-
-      wallet.availableBalance -= amount;
-      await wallet.save({ session });
-
-      const tx = new WalletTransactionModel({
-        workspaceId: new mongoose.Types.ObjectId(workspaceId),
-        amount,
-        type: 'SPEND',
-        previousBalance,
-        newBalance: wallet.availableBalance + wallet.parkedBalance,
-        description,
-        referenceType,
-        referenceId,
-        externalReferenceId: idempotencyKey,
-        status: 'COMPLETED'
-      });
-      await tx.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
-      return wallet;
-    } catch (err) {
-      await session.abortTransaction();
-      session.endSession();
-      throw err;
     }
+
+    const wallet = await WalletModel.findOne({ workspaceId });
+    if (!wallet) throw new Error('WORKSPACE_NOT_FOUND');
+    if (wallet.availableBalance < amount) throw new Error('INSUFFICIENT_FUNDS');
+
+    const previousBalance = wallet.availableBalance + wallet.parkedBalance;
+    wallet.availableBalance -= amount;
+    await wallet.save();
+
+    await WalletTransactionModel.create({
+      workspaceId: new mongoose.Types.ObjectId(workspaceId),
+      amount,
+      type: 'SPEND',
+      previousBalance,
+      newBalance: wallet.availableBalance + wallet.parkedBalance,
+      description,
+      referenceType,
+      referenceId,
+      externalReferenceId: idempotencyKey,
+      status: 'COMPLETED'
+    });
+
+    return wallet;
   }
 
   /**
-   * Reserve (park) campaign budget. Idempotent per campaignId — re-calling
-   * for the same campaign is a no-op once a PARK transaction exists.
+   * Reserve (park) campaign budget. Idempotent per campaignId.
    */
   async reserveCampaignBudget(workspaceId: string, amount: number, campaignId: string) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      const idempotencyKey = `park:${campaignId}`;
-      const existingTx = await WalletTransactionModel.findOne({
-        externalReferenceId: idempotencyKey,
-      }).session(session);
-      if (existingTx) {
-        await session.commitTransaction();
-        session.endSession();
-        return;
-      }
+    const idempotencyKey = `park:${campaignId}`;
+    const existingTx = await WalletTransactionModel.findOne({ externalReferenceId: idempotencyKey });
+    if (existingTx) return;
 
-      const wallet = await WalletModel.findOne({ workspaceId }).session(session);
-      if (!wallet) throw new Error('WORKSPACE_NOT_FOUND');
-      if (wallet.availableBalance < amount) throw new Error('INSUFFICIENT_FUNDS');
+    const wallet = await WalletModel.findOne({ workspaceId });
+    if (!wallet) throw new Error('WORKSPACE_NOT_FOUND');
+    if (wallet.availableBalance < amount) throw new Error('INSUFFICIENT_FUNDS');
 
-      const previousBalance = wallet.availableBalance + wallet.parkedBalance;
+    const previousBalance = wallet.availableBalance + wallet.parkedBalance;
+    wallet.availableBalance -= amount;
+    wallet.parkedBalance += amount;
+    await wallet.save();
 
-      wallet.availableBalance -= amount;
-      wallet.parkedBalance += amount;
-      await wallet.save({ session });
-
-      const tx = new WalletTransactionModel({
-        workspaceId: new mongoose.Types.ObjectId(workspaceId),
-        amount,
-        type: 'PARK',
-        previousBalance,
-        newBalance: wallet.availableBalance + wallet.parkedBalance,
-        description: `Budget reserved for campaign ${campaignId}`,
-        referenceType: 'CAMPAIGN',
-        referenceId: campaignId,
-        externalReferenceId: idempotencyKey,
-        status: 'COMPLETED'
-      });
-      await tx.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
-    } catch (err) {
-      await session.abortTransaction();
-      session.endSession();
-      throw err;
-    }
+    await WalletTransactionModel.create({
+      workspaceId: new mongoose.Types.ObjectId(workspaceId),
+      amount,
+      type: 'PARK',
+      previousBalance,
+      newBalance: wallet.availableBalance + wallet.parkedBalance,
+      description: `Budget reserved for campaign ${campaignId}`,
+      referenceType: 'CAMPAIGN',
+      referenceId: campaignId,
+      externalReferenceId: idempotencyKey,
+      status: 'COMPLETED'
+    });
   }
 
   /**
@@ -184,53 +134,33 @@ export class LedgerService {
     reservedAmount: number,
     actualSpend: number
   ) {
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      const idempotencyKey = `settle:${campaignId}`;
-      const existingTx = await WalletTransactionModel.findOne({
-        externalReferenceId: idempotencyKey,
-      }).session(session);
-      if (existingTx) {
-        await session.commitTransaction();
-        session.endSession();
-        return;
-      }
+    const idempotencyKey = `settle:${campaignId}`;
+    const existingTx = await WalletTransactionModel.findOne({ externalReferenceId: idempotencyKey });
+    if (existingTx) return;
 
-      const wallet = await WalletModel.findOne({ workspaceId }).session(session);
-      if (!wallet) throw new Error('WORKSPACE_NOT_FOUND');
-      if (wallet.parkedBalance < reservedAmount) throw new Error('INVALID_RESERVED_AMOUNT');
+    const wallet = await WalletModel.findOne({ workspaceId });
+    if (!wallet) throw new Error('WORKSPACE_NOT_FOUND');
+    if (wallet.parkedBalance < reservedAmount) throw new Error('INVALID_RESERVED_AMOUNT');
 
-      const previousBalance = wallet.availableBalance + wallet.parkedBalance;
-      const refundAmount = reservedAmount - actualSpend;
+    const previousBalance = wallet.availableBalance + wallet.parkedBalance;
+    const refundAmount = reservedAmount - actualSpend;
+    wallet.parkedBalance -= reservedAmount;
+    wallet.availableBalance += refundAmount;
+    await wallet.save();
 
-      wallet.parkedBalance -= reservedAmount;
-      wallet.availableBalance += refundAmount;
-
-      await wallet.save({ session });
-
-      const isRefund = refundAmount > 0;
-      const tx = new WalletTransactionModel({
-        workspaceId: new mongoose.Types.ObjectId(workspaceId),
-        amount: actualSpend,
-        type: isRefund ? 'UNPARK' : 'SPEND',
-        previousBalance,
-        newBalance: wallet.availableBalance + wallet.parkedBalance,
-        description: `Campaign ${campaignId} settled. Spent: ${actualSpend}. Refunded: ${Math.max(0, refundAmount)}`,
-        referenceType: 'CAMPAIGN',
-        referenceId: campaignId,
-        externalReferenceId: idempotencyKey,
-        status: 'COMPLETED'
-      });
-      await tx.save({ session });
-
-      await session.commitTransaction();
-      session.endSession();
-    } catch (err) {
-      await session.abortTransaction();
-      session.endSession();
-      throw err;
-    }
+    const isRefund = refundAmount > 0;
+    await WalletTransactionModel.create({
+      workspaceId: new mongoose.Types.ObjectId(workspaceId),
+      amount: actualSpend,
+      type: isRefund ? 'UNPARK' : 'SPEND',
+      previousBalance,
+      newBalance: wallet.availableBalance + wallet.parkedBalance,
+      description: `Campaign ${campaignId} settled. Spent: ${actualSpend}. Refunded: ${Math.max(0, refundAmount)}`,
+      referenceType: 'CAMPAIGN',
+      referenceId: campaignId,
+      externalReferenceId: idempotencyKey,
+      status: 'COMPLETED'
+    });
   }
 
   /**

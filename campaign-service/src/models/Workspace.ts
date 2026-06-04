@@ -5,8 +5,8 @@ import mongoose, { Document, Schema, Model, Types } from 'mongoose';
  *
  * Fields here are the ones the campaign worker / event bus actually read
  * during a send (`inboxSettings.agentMessagesPerMinute` for throttling,
- * etc.). The full Workspace lives on the monolith; this projection is
- * synced opportunistically.
+ * etc.). The canonical Workspace lives in auth-service; this projection is
+ * synced opportunistically for campaign runtime reads.
  */
 export interface IWorkspaceInboxSettings {
   /** Per-agent throttle used to compute campaign send pacing. */

@@ -12,11 +12,14 @@ import { TokensController } from './tokens/tokens.controller';
 import { TokensService } from './tokens/tokens.service';
 import { PhonesController } from './phones/phones.controller';
 import { SubscriptionsController } from './subscriptions/subscriptions.controller';
+import { WebhookSyncService } from './subscriptions/webhook-sync.service';
 import { MessagesController } from './messages/messages.controller';
 import { MessagesService } from './messages/messages.service';
-import { TemplatesController } from './templates/templates.controller';
+import { TemplatesController, TemplatesPublicController } from './templates/templates.controller';
 import { MediaController } from './media/media.controller';
+import { UploadController } from './media/upload.controller';
 import { ProfilesController } from './profiles/profiles.controller';
+
 import { WebhooksController } from './webhooks/webhooks.controller';
 import { WebhooksService } from './webhooks/webhooks.service';
 import { HealthController } from './health/health.controller';
@@ -27,6 +30,8 @@ import { WorkspaceController, WorkspaceInternalController } from './workspace/wo
 import { WorkspaceService } from './workspace/workspace.service';
 import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
+import { ChannelController } from './channels/channel.controller';
+import { ChannelService } from './channels/channel.service';
 import { BspApp, BspAppSchema } from './models/bsp-app.schema';
 import { BspCredential, BspCredentialSchema } from './models/bsp-credential.schema';
 import { BspHealthSnapshot, BspHealthSnapshotSchema } from './models/bsp-health-snapshot.schema';
@@ -37,10 +42,15 @@ import { BspProfile, BspProfileSchema } from './models/bsp-profile.schema';
 import { BspProvider, BspProviderSchema } from './models/bsp-provider.schema';
 import { BspSubscription, BspSubscriptionSchema } from './models/bsp-subscription.schema';
 import { BspTemplateMirror, BspTemplateMirrorSchema } from './models/bsp-template-mirror.schema';
+import { BspTemplateRule, BspTemplateRuleSchema } from './models/bsp-template-rule.schema';
 import { BspToken, BspTokenSchema } from './models/bsp-token.schema';
 import { BspWebhookEvent, BspWebhookEventSchema } from './models/bsp-webhook-event.schema';
 import { BspOnboardingState, BspOnboardingStateSchema } from './models/bsp-onboarding-state.schema';
 import { BspEsbFlow, BspEsbFlowSchema } from './models/bsp-esb-flow.schema';
+
+import { BspKafkaConsumerService } from './common/kafka-consumer.service';
+import { BspKafkaProducerService } from './common/kafka-producer.service';
+import { RedisService } from './common/redis.service';
 
 @Module({
   imports: [
@@ -59,6 +69,7 @@ import { BspEsbFlow, BspEsbFlowSchema } from './models/bsp-esb-flow.schema';
       { name: BspProvider.name, schema: BspProviderSchema },
       { name: BspSubscription.name, schema: BspSubscriptionSchema },
       { name: BspTemplateMirror.name, schema: BspTemplateMirrorSchema },
+      { name: BspTemplateRule.name, schema: BspTemplateRuleSchema },
       { name: BspToken.name, schema: BspTokenSchema },
       { name: BspWebhookEvent.name, schema: BspWebhookEventSchema },
     ]),
@@ -71,7 +82,9 @@ import { BspEsbFlow, BspEsbFlowSchema } from './models/bsp-esb-flow.schema';
     SubscriptionsController,
     MessagesController,
     TemplatesController,
+    TemplatesPublicController,
     MediaController,
+    UploadController,
     ProfilesController,
     WebhooksController,
     ProviderActionsController,
@@ -80,9 +93,12 @@ import { BspEsbFlow, BspEsbFlowSchema } from './models/bsp-esb-flow.schema';
     WorkspaceController,
     WorkspaceInternalController,
     AdminController,
+    ChannelController,
   ],
+
   providers: [
     InternalAuthGuard,
+    RedisService,
     GupshupClientService,
     AppsService,
     OnboardingService,
@@ -92,6 +108,13 @@ import { BspEsbFlow, BspEsbFlowSchema } from './models/bsp-esb-flow.schema';
     EsbFlowService,
     WorkspaceService,
     AdminService,
+    ChannelService,
+    BspKafkaConsumerService,
+    BspKafkaProducerService,
+    WebhookSyncService,
+  ],
+  exports: [
+    BspKafkaProducerService,
   ],
 })
 export class AppModule {}

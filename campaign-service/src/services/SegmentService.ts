@@ -1,5 +1,5 @@
 import { Segment } from '../models';
-import { monolithWorkerBridge } from '../lib/monolith-worker-client';
+import { microserviceWorkerClient } from '../lib/microservice-worker-client';
 import { Types } from 'mongoose';
 import IORedis from 'ioredis';
 import crypto from 'crypto';
@@ -42,7 +42,7 @@ export class SegmentService {
       Object.assign(query, filters.customQuery);
     }
 
-    const { contacts } = await monolithWorkerBridge.queryContacts(String(workspaceId), query);
+    const { contacts } = await microserviceWorkerClient.queryContacts(String(workspaceId), query);
     return contacts as Types.ObjectId[];
   }
 
@@ -71,7 +71,7 @@ export class SegmentService {
     const cached = await redis.get(cacheKey);
     if (cached) return parseInt(cached);
 
-    const { count } = await monolithWorkerBridge.countContacts(String(workspaceId), query);
+    const { count } = await microserviceWorkerClient.countContacts(String(workspaceId), query);
 
     await redis.setex(cacheKey, 300, count);
 

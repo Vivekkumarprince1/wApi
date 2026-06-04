@@ -13,7 +13,8 @@ const service = createServiceLogger({
   service: process.env.SERVICE_NAME || 'campaign-service',
 });
 
-export const logger = service.logger;
+export const logger: any = service.logger;
+
 export const withCorrelationId = service.withCorrelationId;
 export const getCorrelationId = service.getCorrelationId;
 export const newCorrelationId = service.newCorrelationId;

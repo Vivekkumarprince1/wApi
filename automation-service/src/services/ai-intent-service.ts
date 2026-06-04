@@ -1,5 +1,5 @@
 import { AutomationRule, AiIntentMatchLog } from "../models";
-import { monolithClient } from "../lib/internal-client";
+import { chatInternalClient } from "../lib/internal-client";
 
 type IntentContext = {
   workspaceId: string;
@@ -74,7 +74,7 @@ export class AIIntentService {
 
     for (const action of actions) {
       try {
-        await monolithClient.post('/api/internal/actions', {
+        await chatInternalClient.post('/api/internal/actions', {
           type: action.type,
           payload: {
             workspaceId: ctx.workspaceId,

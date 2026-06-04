@@ -6,7 +6,8 @@ import { LedgerService } from '../services/LedgerService';
 import { RazorpayService } from '../services/RazorpayService';
 import { InvoiceService } from '../services/InvoiceService';
 import { PricingService } from '../services/PricingService';
-import { PlanModel, WorkspaceModel, WalletTransactionModel, OrderModel } from '../models';
+import { PlanModel, WorkspaceModel, WalletTransactionModel, OrderModel, RazorpayOrderModel } from '../models';
+import { AuthRequest } from '../middleware/auth';
 
 const ledgerService = new LedgerService();
 const invoiceService = new InvoiceService();
@@ -61,6 +62,17 @@ export class WalletController {
       }
 
       const order = await RazorpayService.createRechargeOrder(finalPaise, workspaceId);
+
+      // Persist order metadata locally so verifyRecharge can look up the amount
+      // without calling the Razorpay API (avoids FAILED_TO_FETCH_RAZORPAY_PAYMENT).
+      await RazorpayOrderModel.create({
+        orderId:     order.id,
+        workspaceId,
+        amountPaise: Number(order.amount),
+        currency:    order.currency || 'INR',
+        type:        'RECHARGE',
+      });
+
       res.json({ 
         success: true, 
         orderId: order.id, 
@@ -69,7 +81,7 @@ export class WalletController {
         keyId: config.razorpayKeyId 
       });
     } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
+      res.status(500).json({ success: false, message: err.message });
     }
   }
 
@@ -102,6 +114,17 @@ export class WalletController {
       }
 
       const order = await RazorpayService.createPlanOrder(Number(amountPaise), workspaceId, planSlug);
+
+      // Persist order locally for lookup at verify time
+      await RazorpayOrderModel.create({
+        orderId:     order.id,
+        workspaceId,
+        amountPaise: Number(order.amount),
+        currency:    currency || 'INR',
+        type:        'PLAN_UPGRADE',
+        planSlug,
+      });
+
       res.json({ 
         success: true, 
         requiresPayment: true,
@@ -113,7 +136,7 @@ export class WalletController {
       });
     } catch (err: any) {
       console.error(`[WalletController.createPlanOrder] Error:`, err);
-      res.status(500).json({ success: false, error: err.message });
+      res.status(500).json({ success: false, message: err.message });
     }
   }
 
@@ -190,74 +213,130 @@ export class WalletController {
     }
   }
 
-  static async verifyRecharge(req: Request, res: Response) {
+  static async verifyRecharge(req: AuthRequest, res: Response) {
     try {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, workspaceId, workspaceDetails } = req.body;
-      const isValid = RazorpayService.verifySignature(razorpay_order_id as string, razorpay_payment_id as string, razorpay_signature as string);
-      if (!isValid) throw new Error("INVALID_SIGNATURE");
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, workspaceDetails } = req.body;
+      // Support both explicit workspaceId in body AND workspace-scoped routes (from JWT auth context)
+      const workspaceId: string = req.body.workspaceId
+        || req.workspace?._id?.toString()
+        || req.workspace?.id;
 
-      const payment = await RazorpayService.getPaymentDetails(razorpay_payment_id as string);
-      const amountPaise = payment.amount;
-
-      const wallet = await ledgerService.credit(workspaceId as string, Number(amountPaise), `Razorpay Recharge: ${razorpay_payment_id}`, razorpay_payment_id as string);
-
-      const tx = await WalletTransactionModel.findOne({ externalReferenceId: razorpay_payment_id as string }).lean();
-      if (tx) {
-        await invoiceService.generateForTransaction(tx._id.toString(), {
-          workspaceName: workspaceDetails?.workspaceName || workspaceDetails?.name || "Workspace",
-          ownerName: workspaceDetails?.ownerName || "Admin",
-          ownerEmail: workspaceDetails?.ownerEmail || "support@example.com",
-          country: workspaceDetails?.country,
-          walletCurrency: workspaceDetails?.walletCurrency || 'INR'
-        });
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, message: 'workspaceId is required — ensure you are authenticated' });
       }
 
-      res.json({ success: true, message: "Wallet credited successfully", wallet });
+      // 1. Verify Razorpay signature (HMAC — no external API call needed)
+      const isValid = RazorpayService.verifySignature(
+        razorpay_order_id as string,
+        razorpay_payment_id as string,
+        razorpay_signature as string
+      );
+      if (!isValid) {
+        return res.status(400).json({ success: false, message: 'Payment signature verification failed' });
+      }
+
+      // 2. Look up the order amount from our local cache (avoids calling Razorpay API)
+      const localOrder = await RazorpayOrderModel.findOne({ orderId: razorpay_order_id });
+      if (!localOrder) {
+        return res.status(400).json({ success: false, message: 'Order not found. Please contact support.' });
+      }
+      const amountPaise = localOrder.amountPaise;
+
+      // 3. Credit the wallet (idempotent via externalReferenceId)
+      const wallet = await ledgerService.credit(
+        workspaceId,
+        Number(amountPaise),
+        `Razorpay Recharge: ${razorpay_payment_id}`,
+        razorpay_payment_id as string
+      );
+
+      // 4. Generate invoice (best-effort — don't fail the recharge if invoice fails)
+      try {
+        const tx = await WalletTransactionModel.findOne({ externalReferenceId: razorpay_payment_id as string }).lean();
+        if (tx) {
+          await invoiceService.generateForTransaction(tx._id.toString(), {
+            workspaceName: workspaceDetails?.workspaceName || workspaceDetails?.name || 'Workspace',
+            ownerName:     workspaceDetails?.ownerName || 'Admin',
+            ownerEmail:    workspaceDetails?.ownerEmail || 'support@example.com',
+            country:       workspaceDetails?.country,
+            walletCurrency: workspaceDetails?.walletCurrency || localOrder.currency || 'INR'
+          });
+        }
+      } catch (invoiceErr: any) {
+        console.warn('[verifyRecharge] Invoice generation failed (non-fatal):', invoiceErr.message);
+      }
+
+      res.json({ success: true, message: 'Wallet recharged successfully', wallet });
     } catch (err: any) {
-      res.status(400).json({ success: false, error: err.message });
+      console.error('[verifyRecharge] Error:', err.message);
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 
-  static async verifyPlanUpgrade(req: Request, res: Response) {
+  static async verifyPlanUpgrade(req: AuthRequest, res: Response) {
     try {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, workspaceId, workspaceDetails } = req.body;
-      const isValid = RazorpayService.verifySignature(razorpay_order_id as string, razorpay_payment_id as string, razorpay_signature as string);
-      if (!isValid) throw new Error("INVALID_SIGNATURE");
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, workspaceDetails } = req.body;
+      // Support both explicit workspaceId in body AND workspace-scoped routes (from JWT auth context)
+      const workspaceId: string = req.body.workspaceId
+        || req.workspace?._id?.toString()
+        || req.workspace?.id;
 
-      const payment = await RazorpayService.getPaymentDetails(razorpay_payment_id as string);
-      const amountPaise = payment.amount;
-      const planSlug = payment.notes.planSlug;
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, message: 'workspaceId is required' });
+      }
 
-      // 🛑 FIX: Stop crediting the wallet for plan purchases. 
-      // Plan purchase is a direct payment for service, not a wallet recharge.
-      const wallet = await ledgerService.getWallet(workspaceId as string);
-      
+      // 1. Verify Razorpay signature (HMAC — no external API call needed)
+      const isValid = RazorpayService.verifySignature(
+        razorpay_order_id as string,
+        razorpay_payment_id as string,
+        razorpay_signature as string
+      );
+      if (!isValid) {
+        return res.status(400).json({ success: false, message: 'Payment signature verification failed' });
+      }
+
+      // 2. Look up order from local cache to get amount + planSlug
+      const localOrder = await RazorpayOrderModel.findOne({ orderId: razorpay_order_id });
+      if (!localOrder) {
+        return res.status(400).json({ success: false, message: 'Order not found. Please contact support.' });
+      }
+      const amountPaise = localOrder.amountPaise;
+      const planSlug = localOrder.planSlug;
+
+      // 3. Record the plan purchase as a transaction (no wallet balance change)
+      const wallet = await ledgerService.getWallet(workspaceId);
       const tx = new WalletTransactionModel({
-        workspaceId: new mongoose.Types.ObjectId(workspaceId as string),
+        workspaceId: new mongoose.Types.ObjectId(workspaceId),
         amount: Number(amountPaise),
         type: 'PLAN_PURCHASE',
         previousBalance: wallet.availableBalance,
-        newBalance: wallet.availableBalance, // No change to wallet balance
+        newBalance: wallet.availableBalance,
         description: `Plan Upgrade to ${planSlug}`,
         externalReferenceId: razorpay_payment_id as string,
         status: 'COMPLETED'
       });
       await tx.save();
 
-      // Update workspace plan in microservice local cache/model
+      // 4. Activate the plan on the workspace
       const plan = await PlanModel.findOne({ slug: planSlug });
       if (plan) {
-        await WorkspaceModel.findByIdAndUpdate(workspaceId, { 
+        await WorkspaceModel.findByIdAndUpdate(workspaceId, {
           planId: plan._id,
           billingStatus: 'active'
         });
       }
 
-      await invoiceService.generateForTransaction(tx._id.toString(), workspaceDetails);
+      // 5. Generate invoice (best-effort)
+      try {
+        await invoiceService.generateForTransaction(tx._id.toString(), workspaceDetails);
+      } catch (invoiceErr: any) {
+        console.warn('[verifyPlanUpgrade] Invoice generation failed (non-fatal):', invoiceErr.message);
+      }
 
       res.json({ success: true, wallet, planSlug });
     } catch (err: any) {
-      res.status(400).json({ success: false, error: err.message });
+      console.error('[verifyPlanUpgrade] Error:', err.message);
+      res.status(400).json({ success: false, message: err.message });
     }
   }
 
@@ -273,12 +352,36 @@ export class WalletController {
     }
   }
 
-  static async downloadInvoice(req: Request, res: Response) {
+  // Full per-category price map (paise) for the authenticated workspace.
+  static async getPricingMap(req: Request, res: Response) {
+    try {
+      const workspaceId = req.params.workspaceId as string;
+      const map = await PricingService.getPricingMap(workspaceId);
+      res.json({ success: true, data: map });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  static async downloadInvoice(req: AuthRequest, res: Response) {
     try {
       const invoiceNumber = req.params.invoiceNumber as string;
-      const { workspaceId, workspaceName, ownerName, ownerEmail, country } = req.query;
-      const invoice = await invoiceService.getInvoiceByNumber(invoiceNumber, workspaceId as string);
-      if (!invoice) return res.status(404).send("Invoice not found");
+      // Resolve workspaceId from JWT auth context (workspace-scoped route)
+      // or fall back to legacy query param for admin routes
+      const workspaceId: string =
+        req.workspace?._id?.toString() || req.workspace?.id || (req.query.workspaceId as string);
+
+      if (!workspaceId) {
+        return res.status(400).send('workspaceId is required');
+      }
+
+      const invoice = await invoiceService.getInvoiceByNumber(invoiceNumber, workspaceId);
+      if (!invoice) return res.status(404).send('Invoice not found');
+
+      const workspaceName = (invoice as any).customerDetails?.workspaceName || 'Workspace';
+      const ownerName = (invoice as any).customerDetails?.ownerName || 'Admin';
+      const ownerEmail = (invoice as any).customerDetails?.ownerEmail || 'support@example.com';
+      const country = (invoice as any).customerDetails?.country || '';
 
       const formatCurrency = (cents: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -397,13 +500,22 @@ export class WalletController {
     }
   }
 
-  static async verifyPaymentMethod(req: Request, res: Response) {
+  static async verifyPaymentMethod(req: AuthRequest, res: Response) {
     try {
-      const { razorpay_order_id, razorpay_payment_id, razorpay_signature, workspaceId } = req.body;
+      const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+      // Resolve workspaceId from body or JWT auth context
+      const workspaceId: string = req.body.workspaceId
+        || req.workspace?._id?.toString()
+        || req.workspace?.id;
+
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, message: 'workspaceId is required' });
+      }
+
       const isValid = RazorpayService.verifySignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
       if (!isValid) throw new Error("INVALID_SIGNATURE");
 
-      // Mark workspace as active or save payment token logic here
+      // Mark workspace as active
       await WorkspaceModel.findByIdAndUpdate(workspaceId, {
           $set: { billingStatus: 'active' }
       });
@@ -534,7 +646,7 @@ export class WalletController {
 
           const type = payment.notes?.type || 'RECHARGE';
           
-          const { publishEvent } = await import("../lib/redis");
+          const { publishBillingEvent } = await import("../lib/event-bus");
 
           if (type === 'PLAN_UPGRADE' || type === 'PLAN_PURCHASE') {
               const planSlug = payment.notes?.planSlug;
@@ -568,7 +680,7 @@ export class WalletController {
                   ownerEmail: payment.notes?.ownerEmail || "support@example.com"
               });
 
-              await publishEvent('billing:events', 'plan_purchased', workspaceId, {
+              await publishBillingEvent('plan_purchased', workspaceId, {
                   planSlug,
                   amount: amount / 100,
                   paymentId
@@ -582,7 +694,7 @@ export class WalletController {
                       await order.save();
                       console.log(`[Billing Webhook][${correlationId}] Commerce Order ${order.orderNumber} marked as PAID via webhook.`);
                       
-                      await publishEvent('billing:events', 'order_paid', workspaceId, {
+                      await publishBillingEvent('order_paid', workspaceId, {
                           orderId,
                           orderNumber: order.orderNumber,
                           amount: amount / 100
@@ -601,7 +713,7 @@ export class WalletController {
                   });
               }
 
-              await publishEvent('billing:events', 'wallet_recharged', workspaceId, {
+              await publishBillingEvent('wallet_recharged', workspaceId, {
                   amount: amount / 100,
                   paymentId
               });
@@ -714,5 +826,167 @@ export class WalletController {
       res.status(500).json({ success: false, message: "Failed to seed plans", error: err.message });
     }
   }
-}
 
+  // ══════════════════════════════════════════════
+  // WORKSPACE-SCOPED BILLING ENDPOINTS
+  // (workspaceId is resolved from the JWT token — no :workspaceId path param)
+  // ══════════════════════════════════════════════
+
+  /**
+   * GET /workspace/billing/info
+   * Returns an aggregated billing snapshot: wallet, current plan, billing settings,
+   * and the 20 most recent transactions. Used by the frontend billing dashboard.
+   */
+  static async getBillingInfo(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.workspace?._id?.toString() || req.workspace?.id;
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, message: 'No workspace context in token' });
+      }
+
+      // Fetch wallet, workspace (with plan populated), and recent transactions in parallel
+      const [wallet, workspace, rawTxs] = await Promise.all([
+        ledgerService.getWallet(workspaceId),
+        WorkspaceModel.findById(workspaceId).populate('planId'),
+        WalletTransactionModel.find({ workspaceId })
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .lean(),
+      ]);
+
+      const plan = (workspace?.planId as any) || null;
+
+      // Attach invoice numbers to transactions
+      const txIds = rawTxs.map((tx) => tx._id.toString());
+      const invoices = await invoiceService.getInvoicesForTransactions(txIds);
+      const invoiceMap = new Map(invoices.map((inv) => [inv.providerInvoiceId, inv.invoiceNumber]));
+
+      // Convert paise → rupees for display. All amounts stored internally as paise (integer).
+      const transactions = rawTxs.map((tx) => ({
+        ...tx,
+        _id: tx._id.toString(),
+        amount: tx.amount / 100,          // paise → rupees
+        previousBalance: tx.previousBalance / 100,
+        newBalance: tx.newBalance / 100,
+        invoiceNumber: invoiceMap.get(tx._id.toString()) || null,
+      }));
+
+      return res.json({
+        success: true,
+        wallet: {
+          balance: wallet.availableBalance / 100,   // paise → rupees
+          currency: wallet.currency || 'INR',
+          status: workspace?.billingStatus || 'active',
+          thresholdAmount: 0,
+        },
+        plan: {
+          name: plan?.name || 'Free Tier',
+          slug: plan?.slug || 'free',
+          limits: (plan as any)?.limits || {},
+          features: (plan as any)?.features || [],
+          usage: {},
+        },
+        subscription: {
+          autoPay: workspace?.autoPay ?? false,
+          taxId: workspace?.taxId ?? '',
+        },
+        transactions,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+
+  /**
+   * POST /workspace/billing/plan
+   * Switches the workspace to a new plan by slug.
+   * Free plans activate instantly; paid plans return a Razorpay order.
+   */
+  static async switchPlan(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.workspace?._id?.toString() || req.workspace?.id;
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, message: 'No workspace context in token' });
+      }
+
+      const { planSlug } = req.body;
+      if (!planSlug) {
+        return res.status(400).json({ success: false, message: 'planSlug is required' });
+      }
+
+      const plan = await PlanModel.findOne({ slug: planSlug });
+      if (!plan) {
+        return res.status(404).json({ success: false, message: `Plan "${planSlug}" not found` });
+      }
+
+      const amountPaise = plan.monthlyBaseFeeCents || 0;
+
+      if (amountPaise === 0) {
+        // Free plan — activate immediately without payment
+        await WorkspaceModel.findByIdAndUpdate(workspaceId, {
+          planId: plan._id,
+          billingStatus: 'active',
+        });
+        return res.json({
+          success: true,
+          requiresPayment: false,
+          message: 'Plan activated successfully',
+          planSlug,
+        });
+      }
+
+      // Paid plan — create a Razorpay order for the frontend to open checkout
+      const order = await RazorpayService.createPlanOrder(amountPaise, workspaceId, planSlug);
+
+      // Persist order locally for lookup at verify time
+      await RazorpayOrderModel.create({
+        orderId:     order.id,
+        workspaceId,
+        amountPaise: Number(order.amount),
+        currency:    plan.currency || 'INR',
+        type:        'PLAN_UPGRADE',
+        planSlug,
+      });
+
+      return res.json({
+        success: true,
+        requiresPayment: true,
+        orderId: order.id,
+        amount: order.amount,
+        currency: plan.currency || 'INR',
+        keyId: config.razorpayKeyId,
+        planName: plan.name,
+        planSlug,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
+
+  /**
+   * PATCH /workspace/billing/settings
+   * Persists autoPay and/or taxId for the workspace.
+   */
+  static async updateBillingSettings(req: AuthRequest, res: Response) {
+    try {
+      const workspaceId = req.workspace?._id?.toString() || req.workspace?.id;
+      if (!workspaceId) {
+        return res.status(400).json({ success: false, message: 'No workspace context in token' });
+      }
+
+      const { autoPay, taxId } = req.body;
+      const update: Record<string, any> = {};
+      if (autoPay !== undefined) update.autoPay = autoPay;
+      if (taxId !== undefined) update.taxId = taxId;
+
+      if (Object.keys(update).length === 0) {
+        return res.status(400).json({ success: false, message: 'Nothing to update' });
+      }
+
+      await WorkspaceModel.findByIdAndUpdate(workspaceId, { $set: update });
+      return res.json({ success: true, message: 'Billing settings updated' });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import { AutoReply, IAutoReplyDocument } from "../models";
 import { AutoReplyLog } from "../models";
-import { monolithClient } from "../lib/internal-client";
+import { chatInternalClient } from "../lib/internal-client";
 import { Types } from "mongoose";
 
 /**
@@ -28,7 +28,7 @@ export class AutoReplyService {
       if (rule.triggerType === 'keyword') {
         matches = this.matchKeywords(lowerBody, rule.keywords, rule.matchMode);
       } else if (rule.triggerType === 'outside_business_hours') {
-        // Rely on monolith provided business hours status
+        // Rely on service-provided business hours status
         matches = context.isOutsideBusinessHours === true;
       } else if (rule.triggerType === 'always') {
         matches = true;
@@ -75,7 +75,7 @@ export class AutoReplyService {
         }
       };
 
-      await monolithClient.post('/api/internal/actions', {
+      await chatInternalClient.post('/api/internal/actions', {
         type: actionType,
         payload
       });

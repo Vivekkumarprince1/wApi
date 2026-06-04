@@ -5,7 +5,7 @@ import { FlowExecutorService } from "./flow-executor";
 import { AutoReplyService } from "./auto-reply-service";
 import { AnswerBotService } from "./answer-bot-service";
 import { AIIntentService } from "./ai-intent-service";
-import { monolithClient } from "../lib/internal-client";
+import { chatInternalClient } from "../lib/internal-client";
 
 export interface IAutomationEvent {
   workspaceId: string;
@@ -50,7 +50,7 @@ export class AutomationService {
       // 1. Checkout Bot (Outsourced to Monolith)
       if (event.conversationId) {
         try {
-          const checkoutResponse = await monolithClient.post('/api/internal/checkout/process', {
+          const checkoutResponse = await chatInternalClient.post('/api/internal/checkout/process', {
             workspaceId: event.workspaceId,
             contactId: event.contactId,
             conversationId: event.conversationId,
@@ -181,8 +181,8 @@ export class AutomationService {
       if (!action) continue;
 
       try {
-        // Delegate action to monolith
-        await monolithClient.post('/api/internal/actions', {
+        // Delegate action to chat-service
+        await chatInternalClient.post('/api/internal/actions', {
           type: action.type,
           payload: {
             workspaceId: event.workspaceId,

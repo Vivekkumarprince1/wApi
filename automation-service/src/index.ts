@@ -13,6 +13,11 @@ import engineRoutes from './routes/engineRoutes';
 import interaktiveListRoutes from './routes/interaktiveListRoutes';
 import instagramQuickflowRoutes from './routes/instagramQuickflowRoutes';
 import whatsappFormRoutes from './routes/whatsappFormRoutes';
+import flowRoutes from './routes/flowRoutes';
+import widgetRoutes from './routes/widgetRoutes';
+import developerRoutes from './routes/developerRoutes';
+import integrationRoutes from './routes/integrationRoutes';
+import { startIntegrationSyncScheduler, stopIntegrationSyncScheduler } from './services/integration-sync-scheduler';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,7 +44,11 @@ app.use((req, res, next) => {
 });
 
 // Database Connection
-const MONGODB_URI = process.env.MONGODB_URI_AUTOMATION || 'mongodb://localhost:27017/wapi_automation';
+const MONGODB_URI =
+  process.env.MONGO_URI ||
+  process.env.MONGODB_URI_AUTOMATION ||
+  process.env.MONGODB_URI ||
+  'mongodb://localhost:27017/wapi_automation';
 
 // API Docs — Swagger UI at /docs, raw spec at /docs/openapi.json
 mountSwaggerUI(app, openapiDocument);
@@ -51,6 +60,13 @@ app.use('/api/automation/engine', engineRoutes);
 app.use('/api/automation/engine', interaktiveListRoutes);
 app.use('/api/automation/engine', instagramQuickflowRoutes);
 app.use('/api/automation/engine', whatsappFormRoutes);
+
+// Decoupled Monolith Restored Routes (mounting at root as paths handle aliases natively)
+app.use('/', flowRoutes);
+app.use('/', widgetRoutes);
+app.use('/', developerRoutes);
+app.use('/', integrationRoutes);
+
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -84,6 +100,9 @@ let server: ReturnType<typeof app.listen> | null = null;
     } catch (err: any) {
       console.error('Scheduler failed to start:', err?.message);
     }
+
+    // Start integration sync background jobs (Google Sheets, Petpooja)
+    startIntegrationSyncScheduler();
   } catch (err) {
     console.error('FATAL: Database connection error during startup:', err);
     process.exit(1);
@@ -101,6 +120,7 @@ function gracefulShutdown(signal: string) {
 
   closeServer().then(async () => {
     console.log('HTTP server closed.');
+    stopIntegrationSyncScheduler();
     try {
       await mongoose.connection.close(false);
       console.log('Database connection closed.');

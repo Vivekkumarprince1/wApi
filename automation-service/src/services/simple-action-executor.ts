@@ -1,4 +1,4 @@
-import { monolithClient } from "../lib/internal-client";
+import { chatInternalClient } from "../lib/internal-client";
 
 /**
  * SIMPLE ACTION EXECUTOR
@@ -14,7 +14,7 @@ export class SimpleActionExecutor {
       try {
         console.info(`[SimpleAction] Relaying ${action.type} for rule ${rule._id}`);
         
-        await monolithClient.post('/api/internal/actions', {
+        await chatInternalClient.post('/api/internal/actions', {
           type: action.type,
           payload: {
             workspaceId,

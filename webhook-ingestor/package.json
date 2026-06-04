@@ -1,0 +1,22 @@
+{
+  "name": "@wapi/webhook-ingestor",
+  "version": "1.0.0",
+  "description": "High-performance, stateless webhook ingestion service for wApi",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "NODE_OPTIONS=--max-old-space-size=2048 tsx watch src/index.ts",
+    "build": "NODE_OPTIONS=--max-old-space-size=2048 tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "fastify": "^4.24.3",
+    "kafkajs": "^2.2.4",
+    "mongodb": "^6.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.22.3",
+    "typescript": "^5.3.2"
+  }
+}

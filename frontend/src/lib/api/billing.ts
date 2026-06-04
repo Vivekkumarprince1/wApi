@@ -28,9 +28,9 @@ export const fetchBillingInfo = async (): Promise<BillingData> => {
 };
 
 export const rechargeWallet = async (amount: number) => {
-  return await api.post('/billing/recharge', { amount });
+  return await api.post('/workspace/billing/recharge', { amount });
 };
 
 export const verifyPayment = async (data: any) => {
-  return await api.post('/billing/verify-payment', data);
+  return await api.post('/workspace/billing/recharge/verify', data);
 };

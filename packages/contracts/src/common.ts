@@ -8,14 +8,17 @@ export interface ApiSuccess<T = unknown> {
   message?: string;
 }
 
-export interface ApiError {
+export interface ApiErrorResponse {
   success: false;
-  error: string;
-  errorCode?: string;
-  details?: unknown;
+  error: {
+    message: string;
+    errorCode: string;
+    statusCode: number;
+    details?: any;
+  };
 }
 
-export type ApiResponse<T = unknown> = ApiSuccess<T> | ApiError;
+export type ApiResponse<T = unknown> = ApiSuccess<T> | ApiErrorResponse;
 
 export interface PaginationInfo {
   total: number;

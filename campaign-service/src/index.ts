@@ -10,7 +10,11 @@ import { openapiDocument } from './openapi';
 // Route Imports
 import campaignRoutes from './routes/campaignRoutes';
 import segmentRoutes from './routes/segmentRoutes';
+import adsRoutes from './routes/adsRoutes';
+import { errorHandler } from './middleware/errorHandler';
 import { CampaignWorker } from './workers/CampaignWorker';
+import { startCampaignEventConsumer } from './lib/events/EventBus';
+
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -37,7 +41,11 @@ app.use((req, res, next) => {
 });
 
 // Database Connection
-const MONGODB_URI = process.env.MONGODB_URI_CAMPAIGN || 'mongodb://localhost:27017/wa_campaigns';
+const MONGODB_URI =
+  process.env.MONGO_URI ||
+  process.env.MONGODB_URI_CAMPAIGN ||
+  process.env.MONGODB_URI ||
+  'mongodb://localhost:27017/wa_campaigns';
 
 let server: any;
 
@@ -50,10 +58,11 @@ mongoose.connect(MONGODB_URI, {
 })
   .then(() => {
     console.log('✅ Connected to Campaign Database');
-    // Initialize Background Worker ONLY after DB connection
-    import('./lib/events/EventBus')
-      .then(() => console.log('✅ Campaign event workers initialized'))
-      .catch((err) => console.error('❌ Failed to initialize campaign event workers:', err.message));
+    // Initialize Background Worker + Kafka event consumer ONLY after DB connection
+    startCampaignEventConsumer()
+      .then(() => console.log('✅ Campaign event consumer started'))
+      .catch((err) => console.error('❌ Failed to start Kafka consumer:', err.message));
+    
     new CampaignWorker();
     
     // Start Server ONLY after DB connection
@@ -74,6 +83,11 @@ mountSwaggerUI(app, openapiDocument);
 // Register Routes
 app.use('/api/campaign', campaignRoutes);
 app.use('/api/campaign', segmentRoutes);
+app.use('/', adsRoutes);
+
+// Global Error Handler
+app.use(errorHandler);
+
 
 // Health Check
 app.get('/health', (req, res) => {

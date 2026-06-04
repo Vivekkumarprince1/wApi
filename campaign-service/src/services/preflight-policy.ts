@@ -2,8 +2,8 @@
  * PREFLIGHT POLICY SERVICE
  * 
  * Validates campaign readiness before execution.
- * In the microservice, this provides basic validation.
- * Full BSP/wallet checks are delegated to the monolith via internal API.
+ * In the microservice, this provides basic validation. Full BSP/wallet checks
+ * are delegated to owning services by the campaign worker.
  */
 
 import { Campaign } from '../models';

@@ -1,0 +1,52 @@
+{
+  // --- Why this file exists ---
+  // This is an 8 GB machine with 13 separate node_modules trees (~1.7 GB).
+  // Without these excludes VSCode's file watcher (FSEvents) watches every
+  // node_modules/dist/.next folder and the TS language server loads all 13
+  // service projects into RAM at once. When you then run `npm install` or
+  // `npm run build`, the churned files trigger a re-index storm that pushes
+  // the Mac into heavy swap and freezes it. These settings stop that.
+
+  // Stop the OS-level file watcher from watching build output & deps.
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.next/**": true,
+    "**/build/**": true,
+    "**/.turbo/**": true,
+    "**/coverage/**": true,
+    "**/logs/**": true,
+    "**/.local-data/**": true,
+    "**/*.tsbuildinfo": true
+  },
+
+  // Keep search (and its indexer) out of the same heavy folders.
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.next": true,
+    "**/build": true,
+    "**/coverage": true,
+    "**/package-lock.json": true
+  },
+
+  // Hide build noise from the explorer so it isn't accidentally re-indexed.
+  "files.exclude": {
+    "**/.DS_Store": true,
+    "**/*.tsbuildinfo": true
+  },
+
+  // Cap the TS language server heap so it can't balloon and swap the machine.
+  // 3072 MB is plenty for these small services (each tsc build peaks ~0.5 GB).
+  "typescript.tsserver.maxTsServerMemory": 3072,
+
+  // Don't auto-download @types for every dependency in the background.
+  "typescript.disableAutomaticTypeAcquisition": true,
+
+  // Use the lighter syntax-only server where possible.
+  "typescript.tsserver.useSyntaxServer": "auto",
+
+  // Reduce background CPU/IO churn.
+  "git.autorefresh": false,
+  "git.autofetch": false
+}

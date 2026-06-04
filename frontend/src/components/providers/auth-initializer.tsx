@@ -50,6 +50,7 @@ export function AuthInitializer() {
 
         if (currentPath.startsWith('/') && targetPath.startsWith('/') && currentPath === targetPath) return;
         if (currentPath.startsWith('/onboarding') && targetPath.startsWith('/onboarding') && currentPath === targetPath) return;
+        if (currentPath.startsWith('/dashboard') && targetPath === '/dashboard') return;
         if (currentPath === targetPath) return;
 
         router.replace(targetPath);

@@ -1,6 +1,6 @@
 import { AutomationRule, IAutomationRule } from "../models";
 import { WorkflowExecution } from "../models";
-import { monolithClient } from "../lib/internal-client";
+import { chatInternalClient } from "../lib/internal-client";
 import { Types } from "mongoose";
 import crypto from 'crypto';
 
@@ -101,7 +101,7 @@ export class WorkflowService {
 
     // Relay all side-effects to Monolith Bridge
     try {
-      await monolithClient.post('/api/internal/actions', {
+      await chatInternalClient.post('/api/internal/actions', {
         type: node.type,
         payload: {
           workspaceId,

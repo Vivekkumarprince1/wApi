@@ -73,11 +73,12 @@ export const createCampaign = async (req: AuthRequest, res: Response) => {
     if (!name) return res.status(400).json({ success: false, message: 'Campaign name is required' });
     if (!templateId) return res.status(400).json({ success: false, message: 'Template is required' });
 
-    // Store contact IDs — the monolith handles template validation and contact resolution
+    // Store contact IDs; the campaign worker performs service-level template,
+    // billing, and contact validation before sending.
     let contactIds = Array.isArray(_contacts) ? _contacts : [];
     const totalContacts = body.totalContacts || contactIds.length;
 
-    // 3. Populate Template Snapshot for execution parity with monolith
+    // 3. Populate Template Snapshot for execution parity.
     let templateSnapshot = body.templateSnapshot || {};
     try {
       const { Template } = await import('../models');
@@ -152,7 +153,7 @@ export const deleteCampaign = async (req: AuthRequest, res: Response) => {
 };
 
 /**
- * POST /campaigns/:id/lifecycle — start/pause/resume (updates state, triggers monolith worker)
+ * POST /campaigns/:id/lifecycle — start/pause/resume.
  */
 export const lifecycleAction = async (req: AuthRequest, res: Response) => {
   try {

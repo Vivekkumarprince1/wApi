@@ -1,6 +1,6 @@
 import { FAQ, IFAQDocument } from "../models";
 import { AnswerBotSettings } from "../models";
-import { monolithClient } from "../lib/internal-client";
+import { chatInternalClient } from "../lib/internal-client";
 import { Types } from "mongoose";
 
 /**
@@ -29,8 +29,8 @@ export class AnswerBotService {
       // 1. Success path: Send response via Monolith Bridge
       await this.sendFaqResponse(workspaceId, conversation, matchedFaq);
       
-      // Notify monolith to update conversation metadata
-      await monolithClient.post('/api/internal/conversations/metadata', {
+      // Notify chat-service to update conversation metadata
+      await chatInternalClient.post('/api/internal/conversations/metadata', {
         workspaceId,
         conversationId: conversation._id,
         metadata: { failedIntents: 0, lastBotInteractionAt: new Date() }
@@ -48,7 +48,7 @@ export class AnswerBotService {
     const failedIntents = (conversation.botMetadata?.failedIntents || 0) + 1;
     
     if (failedIntents >= 3) {
-      await monolithClient.post('/api/internal/actions', {
+      await chatInternalClient.post('/api/internal/actions', {
         type: 'bot_escalation',
         payload: {
           workspaceId,
@@ -58,7 +58,7 @@ export class AnswerBotService {
         }
       }).catch(() => {});
     } else {
-      await monolithClient.post('/api/internal/conversations/metadata', {
+      await chatInternalClient.post('/api/internal/conversations/metadata', {
         workspaceId,
         conversationId: conversation._id,
         metadata: { failedIntents, lastBotInteractionAt: new Date() }
@@ -118,7 +118,7 @@ export class AnswerBotService {
     const phone = conversation.contact?.phone;
     if (!phone) return;
 
-    await monolithClient.post('/api/internal/actions', {
+    await chatInternalClient.post('/api/internal/actions', {
       type: 'send_message',
       payload: {
         workspaceId,

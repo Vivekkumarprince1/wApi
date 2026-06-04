@@ -32,9 +32,9 @@ export const getTags = () => api.get<any>('/workspace/tags').then(unwrapData);
 export const createTag = (data: any) => api.post<any>('/workspace/tags', data);
 export const deleteTag = (id: string) => api.delete<any>(`/workspace/tags/${id}`);
 
-// Developer Settings
-export const getDeveloperSettings = () => api.get<any>('/workspace/developer').then(unwrapData);
-export const updateDeveloperSettings = (data: any) => api.patch<any>('/workspace/developer', data);
+// Developer Settings — owned by automation-service (gateway /api/v1/developer)
+export const getDeveloperSettings = () => api.get<any>('/developer/settings').then(unwrapData);
+export const updateDeveloperSettings = (data: any) => api.patch<any>('/developer/settings', data);
 
 // Roles & Permissions
 export const getRoles = () => api.get<any>('/workspace/roles').then(unwrapData);
