@@ -8,13 +8,13 @@ import {
   type BillingModels,
   type CampaignModels,
   type AutomationModels,
-} from "@wapi/database-models";
+} from "./db-models";
 import { getConnection } from "./db";
 
 /**
- * Shared models bound to the admin portal's cached connections. Schemas come
- * from @wapi/database-models (single source of truth); the portal never
- * redefines them.
+ * Models bound to the admin portal's cached connections. Schemas live locally
+ * under ./db-models (single source of truth for the portal); they are not
+ * shared with backend services.
  */
 export async function coreModels(): Promise<CoreModels> {
   const conn = await getConnection("core");

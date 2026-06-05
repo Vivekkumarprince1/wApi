@@ -9,7 +9,7 @@ import {
   type AdminRole,
   type AdminCapability,
 } from "@wapi/contracts";
-import type { IUser } from "@wapi/database-models";
+import type { IUser } from "./db-models";
 import { coreModels } from "./models";
 
 /**

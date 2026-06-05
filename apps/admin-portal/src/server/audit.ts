@@ -6,7 +6,7 @@ import { coreModels } from "./models";
  * Admin audit trail.
  *
  * Records every mutating action taken from the admin portal into the core DB
- * `auditlogs` collection via the shared @wapi/database-models AuditLog model.
+ * `auditlogs` collection via the local ./db-models AuditLog model.
  * Writes here are operational metadata about admin activity — not domain
  * mutations — so a direct insert is appropriate (Rule #5 governs DOMAIN writes).
  */
