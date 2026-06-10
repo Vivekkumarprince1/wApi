@@ -186,6 +186,24 @@ export const getExecutionLogs = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const executeRuleNow = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const workspaceId = req.workspace?.id;
+    const rule = await AutomationRule.findOne({ _id: id, workspace: workspaceId });
+    if (!rule) return res.status(404).json({ success: false, error: 'Rule not found' });
+
+    const result = await FlowExecutorService.execute(rule._id.toString(), {
+      ...(req.body || {}),
+      workspaceId,
+      manual: true
+    });
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export const handleInboundTrigger = async (req: Request, res: Response) => {
   try {
     const handled = await AutomationService.handleInboundMessage(req.body);

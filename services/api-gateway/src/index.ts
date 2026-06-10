@@ -60,6 +60,16 @@ app.use(async (req, res, next) => {
   req.headers['x-correlation-id'] = correlationId;
   res.setHeader('x-correlation-id', correlationId);
 
+  // Trusted internal caller (e.g. admin-portal server) — proves itself with the
+  // shared INTERNAL_SERVICE_SECRET. Identity headers it sends are kept as-is and
+  // session verification is skipped. Constant-time compare to avoid timing leaks.
+  const callerSecret = req.headers['x-internal-service-secret'];
+  const expectedSecret = process.env.INTERNAL_SERVICE_SECRET || '';
+  if (typeof callerSecret === 'string' && callerSecret.length === expectedSecret.length &&
+      crypto.timingSafeEqual(Buffer.from(callerSecret), Buffer.from(expectedSecret))) {
+    return next();
+  }
+
   // P0 SECURITY: Forcefully strip client-supplied gateway headers to prevent spoofing
   delete req.headers['x-user-id'];
   delete req.headers['x-user-role'];
@@ -151,7 +161,7 @@ const SERVICES = {
   auth: process.env.AUTH_SERVICE_URL || 'http://localhost:3006',
   contact: process.env.CONTACT_SERVICE_URL || 'http://localhost:3007',
   chat: process.env.CHAT_SERVICE_URL || 'http://localhost:3008',
-  serviceProvider: process.env.SERVICE_PROVIDER_URL || 'http://localhost:3004',
+  serviceProvider: process.env.SERVICE_PROVIDER_URL || process.env.BSP_SERVICE_URL || 'http://localhost:3004',
   automation: process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001',
   billing: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
   campaign: process.env.CAMPAIGN_SERVICE_URL || 'http://localhost:3002',
@@ -198,12 +208,13 @@ const proxyTo = (target: string, serviceName: string, stripPrefix?: string) => {
   });
 };
 
-// Custom proxy to bridge /api/v1/workspace/waba -> /provider/v1/workspace/waba
+// Custom proxy to bridge /api/v1/workspace/waba -> /bsp/v1/workspace/waba
+// (service-provider mounts its customer-facing controllers under /bsp/v1/*)
 const proxyToProviderWorkspace = (target: string) => {
   return createProxyMiddleware({
     target,
     changeOrigin: true,
-    pathRewrite: (path) => path.replace('/api/v1/workspace', '/provider/v1/workspace'),
+    pathRewrite: (path) => path.replace('/api/v1/workspace', '/bsp/v1/workspace'),
     on: {
       error: handleProxyError('service-provider')
     }
@@ -214,8 +225,8 @@ const proxyToProviderOnboarding = (target: string) => {
   return createProxyMiddleware({
     target,
     changeOrigin: true,
-    // /api/v1/onboarding/provider/start -> /provider/v1/onboarding/start
-    pathRewrite: (path) => path.replace('/api/v1/onboarding/provider', '/provider/v1/onboarding'),
+    // /api/v1/onboarding/provider/start -> /bsp/v1/onboarding/start
+    pathRewrite: (path) => path.replace('/api/v1/onboarding/provider', '/bsp/v1/onboarding'),
     on: {
       error: handleProxyError('service-provider')
     }
@@ -253,6 +264,28 @@ app.use('/api', apiRateLimit);
 // 1. Auth Service
 // Apply stricter authRateLimit specifically to auth/login/signup endpoints
 app.use('/api/v1/auth', authRateLimit, proxyTo(SERVICES.auth, 'auth', '/api/v1/auth'));
+// Super-admin operations are owned by different services:
+//  - gupshup/* → service-provider admin controller (/internal/v1/bsp/admin/*)
+//    NOTE: admin-portal calls "sync-all-webhooks"; the controller route is "sync-webhooks".
+app.use('/api/v1/super-admin/gupshup', proxyRewrite(
+  SERVICES.serviceProvider,
+  'service-provider',
+  (path) => path
+    .replace('/api/v1/super-admin/gupshup', '/internal/v1/bsp/admin')
+    .replace('/admin/sync-all-webhooks', '/admin/sync-webhooks')
+));
+//  - plans/* and billing admin ops → billing-service wallet admin routes
+app.use('/api/v1/super-admin/plans', proxyRewrite(
+  SERVICES.billing,
+  'billing',
+  (path) => path.replace('/api/v1/super-admin/plans', '/api/billing/wallets/admin/plans')
+));
+app.use('/api/v1/super-admin/billing', proxyRewrite(
+  SERVICES.billing,
+  'billing',
+  (path) => path.replace('/api/v1/super-admin/billing', '/api/billing/wallets/admin')
+));
+//  - everything else → auth-service
 app.use('/api/v1/super-admin', proxyRewrite(SERVICES.auth, 'auth', (path) => path.replace('/api/v1/super-admin', '/super-admin')));
 
 // 2. Billing Service
@@ -390,11 +423,19 @@ app.use('/api/v1/integrations', proxyTo(SERVICES.automation, 'automation'));
 
 // 11. BSP Onboarding and Templates
 app.use('/api/v1/onboarding/provider', proxyToProviderOnboarding(SERVICES.serviceProvider));
-// service-provider exposes onboarding under /provider/v1/onboarding/* (e.g. /status, /complete)
+// Frontend calls /api/v1/onboarding/bsp/* (start, status, sync, register-phone,
+// complete, disconnect, runtime-profile) — service-provider serves these at
+// /bsp/v1/onboarding/*. Must be registered before the generic /api/v1/onboarding.
+app.use('/api/v1/onboarding/bsp', proxyRewrite(
+  SERVICES.serviceProvider,
+  'service-provider',
+  (path) => path.replace('/api/v1/onboarding/bsp', '/bsp/v1/onboarding')
+));
+// service-provider exposes onboarding under /bsp/v1/onboarding/* (e.g. /status, /complete)
 app.use('/api/v1/onboarding', proxyRewrite(
   SERVICES.serviceProvider,
   'service-provider',
-  (path) => path.replace('/api/v1/onboarding', '/provider/v1/onboarding')
+  (path) => path.replace('/api/v1/onboarding', '/bsp/v1/onboarding')
 ));
 app.use('/api/v1/templates', proxyTo(SERVICES.serviceProvider, 'service-provider'));
 app.use('/api/v1/upload', proxyTo(SERVICES.serviceProvider, 'service-provider'));
@@ -415,7 +456,7 @@ app.use('/api/internal/contacts', proxyRewrite(
 app.use('/api/internal/provider', proxyRewrite(
   SERVICES.serviceProvider,
   'service-provider',
-  (path) => path.replace('/api/internal/provider', '/internal/v1/provider')
+  (path) => path.replace('/api/internal/provider', '/internal/v1/bsp')
 ));
 
 app.use('/api/internal/chat', proxyRewrite(

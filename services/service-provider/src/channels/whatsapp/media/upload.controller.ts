@@ -16,6 +16,13 @@ export class UploadController {
     return this.handleUpload(file, folder);
   }
 
+  // customer-portal posts media uploads to /api/v1/upload/media
+  @Post('api/v1/upload/media')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadMedia(@UploadedFile() file: any, @Body('folder') folder?: string) {
+    return this.handleUpload(file, folder);
+  }
+
   private async handleUpload(file: any, folderName?: string) {
     if (!file) {
       throw new BadRequestException('No file uploaded');

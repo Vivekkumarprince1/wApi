@@ -20,6 +20,9 @@ for (const p of paths) {
   router.post(`${p}/google/config`, authenticate, integrationController.saveGoogleConfig);
   router.get(`${p}/google/sheets`, authenticate, integrationController.listGoogleSheets);
   router.get(`${p}/google/columns/:id`, authenticate, integrationController.listGoogleColumns);
+  // Aliases used by customer-portal (spreadsheet id in the path)
+  router.get(`${p}/google/spreadsheets/:id/sheets`, authenticate, integrationController.listGoogleSheets);
+  router.get(`${p}/google/spreadsheets/:id/columns`, authenticate, integrationController.listGoogleColumns);
   router.get(`${p}/google/auth-url`, authenticate, integrationController.getGoogleAuthUrl);
   router.get(`${p}/google/callback`, authenticate, integrationController.googleCallback);
 

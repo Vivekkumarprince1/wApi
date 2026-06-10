@@ -33,7 +33,7 @@ export const createSegment = (data: any) => api.post<any>('/campaign/segments', 
 export const deleteSegment = (id: string) => api.delete<any>(`/campaign/segments/${id}`);
 export const fetchTags = () => api.get<any>('/workspace/tags').then(unwrap);
 
-export const importContacts = (data: any) => api.post('/contacts/import', data);
+export const importContacts = (data: any) => api.post('/bulk/contacts/import', data);
 
 export const getCsvImportProgress = (jobId: string) =>
   api.get<any>(`/bulk/contacts/csv-import/${jobId}/progress`);

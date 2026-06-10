@@ -136,5 +136,5 @@ export const executeRule = (ruleId: string, payload?: any) =>
   api.post<any>(`/automation/engine/rules/${ruleId}/execute`, payload).then((r: any) => r.data);
 
 export const getWhatsAppFormResponsesExportUrl = (formId: string, status: string) =>
-  `/api/v1/automation/whatsapp-forms/${formId}/responses?status=${status}&format=csv`;
+  `/api/v1/automation/engine/whatsapp-forms/${formId}/responses?status=${status}&format=csv`;
 

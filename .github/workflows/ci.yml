@@ -50,7 +50,7 @@ jobs:
           - { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', needs_contracts: false }
           - { name: 'websocket-gateway', dir: 'services/websocket-gateway', needs_contracts: false }
           - { name: 'admin-portal', dir: 'apps/admin-portal', needs_contracts: true }
-          - { name: 'frontend', dir: 'apps/frontend', needs_contracts: false }
+          - { name: 'frontend', dir: 'apps/customer-portal', needs_contracts: false }
 
     steps:
       - name: Checkout Code

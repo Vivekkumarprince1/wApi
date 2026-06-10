@@ -104,16 +104,14 @@ export default function ContactImportModal({ isOpen, onClose }: ContactImportMod
 
     setIsUploading(true);
     try {
-      const formData = new FormData();
-      formData.append('file', selectedFile);
+      const csvContent = await selectedFile.text();
 
-      const response = await api.post('/contacts/import', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      const response: any = await api.post('/bulk/contacts/csv-import/upload', {
+        csvContent,
+        fileName: selectedFile.name,
       });
 
-      toast.success(response.data.message || `Successfully imported ${previewContacts.length} contacts`);
+      toast.success(response?.message || `Importing ${previewContacts.length} contacts in background`);
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       
       handleReset();
