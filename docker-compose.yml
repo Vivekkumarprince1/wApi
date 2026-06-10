@@ -1,0 +1,301 @@
+version: '3.8'
+
+services:
+  # --- Infrastructure Services ---
+  mongodb:
+    image: mongo:6.0
+    container_name: wapi-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - wapi-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: wapi-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - wapi-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: wapi-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - wapi-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: wapi-kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - wapi-network
+
+  # --- Microservices ---
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    container_name: wapi-api-gateway
+    ports:
+      - "5001:5001"
+    depends_on:
+      - mongodb
+      - redis
+    environment:
+      - PORT=5001
+      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
+      - AUTH_SERVICE_URL=http://auth-service:3006
+      - CONTACT_SERVICE_URL=http://contact-service:3007
+      - CHAT_SERVICE_URL=http://chat-service:3008
+      - SERVICE_PROVIDER_URL=http://service-provider:3004
+      - AUTOMATION_SERVICE_URL=http://automation-service:3001
+      - BILLING_SERVICE_URL=http://billing-service:3003
+      - CAMPAIGN_SERVICE_URL=http://campaign-service:3002
+      - WEBSOCKET_URL=http://websocket-gateway:3009
+      - WEBHOOK_INGESTOR_URL=http://webhook-ingestor:3013
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - wapi-network
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: services/auth-service/Dockerfile
+    container_name: wapi-auth-service
+    ports:
+      - "3006:3006"
+    depends_on:
+      - mongodb
+      - redis
+      - kafka
+    environment:
+      - PORT=3006
+      - JWT_SECRET=your-secret-key-change-in-production
+      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKER=kafka:29092
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
+    networks:
+      - wapi-network
+
+  campaign-service:
+    build:
+      context: .
+      dockerfile: services/campaign-service/Dockerfile
+    container_name: wapi-campaign-service
+    ports:
+      - "3002:3002"
+    depends_on:
+      - mongodb
+      - kafka
+    environment:
+      - PORT=3002
+      - JWT_SECRET=your-secret-key-change-in-production
+      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - MONGO_URI=mongodb://mongodb:27017/wapi_campaign
+      - KAFKA_BROKER=kafka:29092
+    networks:
+      - wapi-network
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: services/billing-service/Dockerfile
+    container_name: wapi-billing-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mongodb
+      - kafka
+    environment:
+      - PORT=3003
+      - JWT_SECRET=your-secret-key-change-in-production
+      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - MONGO_URI=mongodb://mongodb:27017/wapi_billing
+      - KAFKA_BROKER=kafka:29092
+    networks:
+      - wapi-network
+
+  service-provider:
+    build:
+      context: .
+      dockerfile: services/service-provider/Dockerfile
+    container_name: wapi-service-provider
+    ports:
+      - "3004:3004"
+    depends_on:
+      - mongodb
+      - redis
+      - kafka
+    environment:
+      - PORT=3004
+      - JWT_SECRET=your-secret-key-change-in-production
+      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - INTEGRATION_ENCRYPTION_KEY=change-me-in-production
+      - MONGO_URI=mongodb://mongodb:27017/wapi_bsp
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKER=kafka:29092
+      - MAIN_SERVICE_URL=http://api-gateway:5001
+    networks:
+      - wapi-network
+
+  automation-service:
+    build:
+      context: .
+      dockerfile: services/automation-service/Dockerfile
+    container_name: wapi-automation-service
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongodb
+      - redis
+      - kafka
+    environment:
+      - PORT=3001
+      - JWT_SECRET=your-secret-key-change-in-production
+      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - INTEGRATION_ENCRYPTION_KEY=change-me-in-production
+      - MONGO_URI=mongodb://mongodb:27017/wapi_automation
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKER=kafka:29092
+    networks:
+      - wapi-network
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: services/chat-service/Dockerfile
+    container_name: wapi-chat-service
+    ports:
+      - "3008:3008"
+    depends_on:
+      - mongodb
+      - kafka
+    environment:
+      - PORT=3008
+      - JWT_SECRET=your-secret-key-change-in-production
+      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - KAFKA_BROKER=kafka:29092
+    networks:
+      - wapi-network
+
+  contact-service:
+    build:
+      context: .
+      dockerfile: services/contact-service/Dockerfile
+    container_name: wapi-contact-service
+    ports:
+      - "3007:3007"
+    depends_on:
+      - mongodb
+      - kafka
+    environment:
+      - PORT=3007
+      - JWT_SECRET=your-secret-key-change-in-production
+      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - KAFKA_BROKER=kafka:29092
+    networks:
+      - wapi-network
+
+  webhook-ingestor:
+    build:
+      context: .
+      dockerfile: services/webhook-ingestor/Dockerfile
+    container_name: wapi-webhook-ingestor
+    ports:
+      - "3013:3013"
+    depends_on:
+      - mongodb
+      - kafka
+    environment:
+      - PORT=3013
+      - WEBHOOK_SECRET=dev-webhook-secret-change-me
+      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - KAFKA_BROKER=kafka:29092
+      - VERIFY_TOKEN=wapi-verify-token
+    networks:
+      - wapi-network
+
+  websocket-gateway:
+    build:
+      context: .
+      dockerfile: services/websocket-gateway/Dockerfile
+    container_name: wapi-websocket-gateway
+    ports:
+      - "3009:3009"
+    depends_on:
+      - mongodb
+      - redis
+      - kafka
+    environment:
+      - PORT=3009
+      - JWT_SECRET=your-secret-key-change-in-production
+      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - KAFKA_BROKER=kafka:29092
+      - REDIS_URL=redis://redis:6379
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
+    networks:
+      - wapi-network
+
+  # --- Frontend / Portals ---
+  admin-portal:
+    build:
+      context: .
+      dockerfile: apps/admin-portal/Dockerfile
+    container_name: wapi-admin-portal
+    ports:
+      - "3100:3100"
+    depends_on:
+      - api-gateway
+    environment:
+      - PORT=3100
+      - BACKEND_API_URL=http://api-gateway:5001
+    networks:
+      - wapi-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    container_name: wapi-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+    environment:
+      - PORT=3000
+      - BACKEND_API_URL=http://api-gateway:5001
+    networks:
+      - wapi-network
+
+networks:
+  wapi-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  redis_data:

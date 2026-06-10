@@ -25,3 +25,7 @@ export * from './kafka-events';
 export * from './errors';
 export * from './models';
 
+
+export * from './queues';
+export * from './roles';
+export * from './redis-config';

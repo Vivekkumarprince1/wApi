@@ -4,17 +4,18 @@ const readline = require('readline');
 
 // Microservices Configuration
 const SERVICES = [
-  { name: 'server', dir: 'server', cmd: 'npm run dev', color: '\x1b[36m' }, // API Gateway (Cyan)
-  { name: 'auth-service', dir: 'auth-service', cmd: 'npm run dev', color: '\x1b[32m' }, // Auth (Green)
-  { name: 'campaign-service', dir: 'campaign-service', cmd: 'npm run dev', color: '\x1b[35m' }, // Campaigns (Magenta)
-  { name: 'billing-service', dir: 'billing-service', cmd: 'npm run dev', color: '\x1b[33m' }, // Billing (Yellow)
-  { name: 'bsp-service', dir: 'bsp-service', cmd: 'npm run dev', color: '\x1b[34m' }, // BSP (Blue)
-  { name: 'automation-service', dir: 'automation-service', cmd: 'npm run dev', color: '\x1b[31m' }, // Automation (Red)
-  { name: 'chat-service', dir: 'chat-service', cmd: 'npm run dev', color: '\x1b[94m' }, // Chat (Bright Blue)
-  { name: 'contact-service', dir: 'contact-service', cmd: 'npm run dev', color: '\x1b[92m' }, // Contact (Bright Green)
-  { name: 'webhook-ingestor', dir: 'webhook-ingestor', cmd: 'npm run dev', color: '\x1b[95m' }, // Webhook Ingestor (Bright Magenta)
-  { name: 'websocket-gateway', dir: 'websocket-gateway', cmd: 'npm run dev', color: '\x1b[96m' }, // Websocket Gateway (Bright Cyan)
-  { name: 'frontend', dir: 'frontend', cmd: 'npm run dev', color: '\x1b[90m' } // Frontend NextJS (Gray)
+  { name: 'api-gateway', dir: 'services/api-gateway', cmd: 'npm run dev', color: '\x1b[36m' }, // API Gateway (Cyan)
+  { name: 'auth-service', dir: 'services/auth-service', cmd: 'npm run dev', color: '\x1b[32m' }, // Auth (Green)
+  { name: 'campaign-service', dir: 'services/campaign-service', cmd: 'npm run dev', color: '\x1b[35m' }, // Campaigns (Magenta)
+  { name: 'billing-service', dir: 'services/billing-service', cmd: 'npm run dev', color: '\x1b[33m' }, // Billing (Yellow)
+  { name: 'service-provider', dir: 'services/service-provider', cmd: 'npm run dev', color: '\x1b[34m' }, // Service Provider (Blue)
+  { name: 'automation-service', dir: 'services/automation-service', cmd: 'npm run dev', color: '\x1b[31m' }, // Automation (Red)
+  { name: 'chat-service', dir: 'services/chat-service', cmd: 'npm run dev', color: '\x1b[94m' }, // Chat (Bright Blue)
+  { name: 'contact-service', dir: 'services/contact-service', cmd: 'npm run dev', color: '\x1b[92m' }, // Contact (Bright Green)
+  { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', cmd: 'npm run dev', color: '\x1b[95m' }, // Webhook Ingestor (Bright Magenta)
+  { name: 'websocket-gateway', dir: 'services/websocket-gateway', cmd: 'npm run dev', color: '\x1b[96m' }, // Websocket Gateway (Bright Cyan)
+  { name: 'admin-portal', dir: 'apps/admin-portal', cmd: 'npm run dev', color: '\x1b[37m' }, // Admin Portal (White)
+  { name: 'frontend', dir: 'apps/frontend', cmd: 'npm run dev', color: '\x1b[90m' } // Frontend NextJS (Gray)
 ];
 
 const runningProcesses = {};
@@ -166,9 +167,16 @@ process.on('SIGTERM', shutdownAll);
 console.log(`${colors.cyan}${colors.bright}════════════════════════════════════════════════════════════`);
 console.log('  wApi MICROSERVICES DEVELOPMENT ORCHESTRATOR RUNNER');
 console.log(`════════════════════════════════════════════════════════════${colors.reset}`);
-console.log('Starting all 11 microservices in parallel...\n');
+console.log('Starting all microservices with staggered spacing (1.5s delay)...\n');
 
-SERVICES.forEach(s => startService(s));
+async function startAll() {
+  for (let i = 0; i < SERVICES.length; i++) {
+    startService(SERVICES[i]);
+    // Stagger startup so the CPU does not spike
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  }
+}
+startAll();
 
 // Set up Interactive Command Console
 const rl = readline.createInterface({

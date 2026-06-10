@@ -1,0 +1,474 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Typography scale (modular, 1.125 ratio anchored at 14px body) */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+
+  --text-2xs: 0.6875rem;  /* 11px - micro labels, badges */
+  --text-xs:  0.75rem;    /* 12px - meta, captions */
+  --text-sm:  0.8125rem;  /* 13px - secondary text */
+  --text-base:0.875rem;   /* 14px - body */
+  --text-md:  0.9375rem;  /* 15px - emphasis body */
+  --text-lg:  1.0625rem;  /* 17px - small headings */
+  --text-xl:  1.25rem;    /* 20px - section headings */
+  --text-2xl: 1.5rem;     /* 24px - page headings */
+  --text-3xl: 1.875rem;   /* 30px - hero */
+  --text-4xl: 2.25rem;    /* 36px - display */
+
+  --leading-tight:   1.2;
+  --leading-snug:    1.35;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight:  -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.02em;
+
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+
+  /* Spacing scale (4px base) — supplements Tailwind defaults with named semantic steps */
+  --space-0: 0;
+  --space-px: 1px;
+  --space-0_5: 0.125rem; /* 2  */
+  --space-1:   0.25rem;  /* 4  */
+  --space-1_5: 0.375rem; /* 6  */
+  --space-2:   0.5rem;   /* 8  */
+  --space-2_5: 0.625rem; /* 10 */
+  --space-3:   0.75rem;  /* 12 */
+  --space-4:   1rem;     /* 16 */
+  --space-5:   1.25rem;  /* 20 */
+  --space-6:   1.5rem;   /* 24 */
+  --space-8:   2rem;     /* 32 */
+  --space-10:  2.5rem;   /* 40 */
+  --space-12:  3rem;     /* 48 */
+  --space-16:  4rem;     /* 64 */
+  --space-20:  5rem;     /* 80 */
+  --space-24:  6rem;     /* 96 */
+
+  /* Elevation — neutral shadows that work over any color palette */
+  --shadow-xs: 0 1px 1px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.06), 0 1px 1px -1px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 8px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg: 0 12px 24px -8px rgb(0 0 0 / 0.12), 0 4px 8px -4px rgb(0 0 0 / 0.06);
+  --shadow-xl: 0 24px 48px -12px rgb(0 0 0 / 0.18);
+  --shadow-focus: 0 0 0 3px var(--color-ring, currentColor) / 0.35;
+
+  /* Motion */
+  --ease-out-quart:  cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out:     cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring:     cubic-bezier(0.16, 1.36, 0.42, 1);
+
+  --duration-instant: 80ms;
+  --duration-fast:    140ms;
+  --duration-normal:  220ms;
+  --duration-slow:    320ms;
+
+  /* Layout — minimum tap-target per WCAG 2.5.5 (AAA) and Material guidance */
+  --tap-target-min: 44px;
+  --container-max:  1280px;
+  --container-prose: 65ch;
+
+  /* Z-index scale */
+  --z-base:     0;
+  --z-raised:   10;
+  --z-dropdown: 100;
+  --z-sticky:   200;
+  --z-overlay:  300;
+  --z-modal:    400;
+  --z-popover:  500;
+  --z-toast:    600;
+  --z-tooltip:  700;
+
+  /* Breakpoints (informational; Tailwind handles the queries) */
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+  --bp-2xl: 1536px;
+}
+
+@theme inline {
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+
+    to {
+      height: var(--radix-accordion-content-height,
+          var(--accordion-panel-height, auto));
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height,
+          var(--accordion-panel-height, auto));
+    }
+
+    to {
+      height: 0;
+    }
+  }
+}
+
+@custom-variant data-open {
+
+  &:where([data-state="open"]),
+  &:where([data-open]:not([data-open="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-closed {
+
+  &:where([data-state="closed"]),
+  &:where([data-closed]:not([data-closed="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-checked {
+
+  &:where([data-state="checked"]),
+  &:where([data-checked]:not([data-checked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-unchecked {
+
+  &:where([data-state="unchecked"]),
+  &:where([data-unchecked]:not([data-unchecked="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-selected {
+  &:where([data-selected="true"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-disabled {
+
+  &:where([data-disabled="true"]),
+  &:where([data-disabled]:not([data-disabled="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-active {
+
+  &:where([data-state="active"]),
+  &:where([data-active]:not([data-active="false"])) {
+    @slot;
+  }
+}
+
+@custom-variant data-horizontal {
+  &:where([data-orientation="horizontal"]) {
+    @slot;
+  }
+}
+
+@custom-variant data-vertical {
+  &:where([data-orientation="vertical"]) {
+    @slot;
+  }
+}
+
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Visually hidden but reachable by screen readers (WCAG 1.3.1) */
+@utility sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@utility not-sr-only {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Skip link target — visible only when focused. Add <a href="#main" class="skip-link"> at top of layout. */
+@utility skip-link {
+  position: absolute;
+  top: -100px;
+  left: var(--space-2);
+  z-index: var(--z-tooltip);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-lg);
+  transition: top var(--duration-fast) var(--ease-out-quart);
+
+  &:focus,
+  &:focus-visible {
+    top: var(--space-2);
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Minimum-size hit area for icon-only controls (WCAG 2.5.5) */
+@utility tap-target {
+  min-height: var(--tap-target-min);
+  min-width: var(--tap-target-min);
+}
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.395 0.125 158.4);
+  /* Stitch Emerald #006c49 */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.45 0.08 165);
+  /* Stitch Secondary #2b6954 */
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.395 0.125 158.4 / 10%);
+  --accent-foreground: oklch(0.395 0.125 158.4);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.395 0.125 158.4);
+  --chart-1: oklch(0.395 0.125 158.4);
+  --chart-2: oklch(0.488 0.243 264.376);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.395 0.125 158.4);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.395 0.125 158.4 / 5%);
+  --sidebar-accent-foreground: oklch(0.395 0.125 158.4);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.395 0.125 158.4);
+
+  /* Stitch Specific Tokens */
+  --stitch-primary: #5bce68;
+  --stitch-primary-container: #10b981;
+  --stitch-surface: #f9f9ff;
+  --stitch-on-surface: #151c27;
+  --stitch-outline: #6c7a71;
+}
+
+@layer utilities {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+
+  .glass-card-elite {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+
+  .aurora-bg {
+    position: relative;
+    overflow: hidden;
+    background: #0d0d0d;
+  }
+
+  .aurora-bg::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.15), transparent 40%),
+                radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.15), transparent 40%),
+                radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.15), transparent 40%);
+    animation: aurora-rotate 20s linear infinite;
+    z-index: 0;
+  }
+
+  @keyframes aurora-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+}
+
+.dark {
+  --background: oklch(0.12 0 0);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.15 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.15 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: #5bce67;
+  --primary-foreground: oklch(0.12 0 0);
+  --secondary: oklch(0.2 0 0);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.2 0 0);
+  --muted-foreground: oklch(0.7 0 0);
+  --accent: oklch(0.762 0.177 145.5 / 15%);
+  --accent-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.762 0.177 145.5);
+  --chart-1: oklch(0.762 0.177 145.5);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.12 0 0);
+  --sidebar-foreground: oklch(0.98 0 0);
+  --sidebar-primary: oklch(0.762 0.177 145.5);
+  --sidebar-primary-foreground: oklch(0.12 0 0);
+  --sidebar-accent: oklch(0.762 0.177 145.5 / 10%);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.762 0.177 145.5);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    /* Honor user-zoom on iOS without preventing pinch */
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-size: var(--text-base);
+    line-height: var(--leading-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /* Heading defaults — pages can still override via Tailwind utilities */
+  h1 { font-size: var(--text-3xl); line-height: var(--leading-tight);   letter-spacing: var(--tracking-tight); font-weight: var(--font-weight-semibold); }
+  h2 { font-size: var(--text-2xl); line-height: var(--leading-tight);   letter-spacing: var(--tracking-tight); font-weight: var(--font-weight-semibold); }
+  h3 { font-size: var(--text-xl);  line-height: var(--leading-snug);    font-weight: var(--font-weight-semibold); }
+  h4 { font-size: var(--text-lg);  line-height: var(--leading-snug);    font-weight: var(--font-weight-semibold); }
+  h5 { font-size: var(--text-md);  line-height: var(--leading-snug);    font-weight: var(--font-weight-semibold); }
+  h6 { font-size: var(--text-base); line-height: var(--leading-snug);   font-weight: var(--font-weight-semibold); }
+
+  /* Form controls inherit family/weight — avoids macOS rendering inputs as system font */
+  input, button, textarea, select { font: inherit; color: inherit; }
+
+  /* Consistent placeholder treatment */
+  ::placeholder { opacity: 1; color: var(--color-muted-foreground); }
+
+  /* Visible focus on keyboard navigation only */
+  :where(a, button, [role="button"], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Remove the focus ring when the element handles focus itself (e.g. radix popper) */
+  :where([data-radix-focus-guard], [data-floating-ui-focusable]):focus-visible {
+    outline: none;
+  }
+
+  /* WCAG 2.3.3 — respect users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* WCAG 1.4.10 — readable target on narrow viewports */
+  @media (max-width: 640px) {
+    html { font-size: 100%; }
+  }
+
+  /* Forced-colors / Windows High Contrast — ensure borders remain visible */
+  @media (forced-colors: active) {
+    :where(button, input, select, textarea, [role="button"]) {
+      border: 1px solid CanvasText;
+    }
+  }
+}

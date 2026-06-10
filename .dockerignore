@@ -1,0 +1,14 @@
+node_modules
+dist
+.next
+.git
+.gitignore
+.dockerignore
+.vscode
+.claude
+.gemini
+**/node_modules
+**/dist
+**/.next
+**/.env
+**/*.tsbuildinfo

@@ -1,0 +1,93 @@
+name: CI Build Pipeline
+
+on:
+  push:
+    branches: [ main, master, dev ]
+  pull_request:
+    branches: [ main, master, dev ]
+
+jobs:
+  build-shared:
+    name: Build Shared Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Build Contracts
+        run: |
+          cd packages/contracts
+          npm install
+          npm run build
+
+      - name: Cache Shared Contracts Build
+        uses: actions/cache/save@v3
+        with:
+          path: packages/contracts/dist
+          key: ${{ github.sha }}-contracts-dist
+
+  build-services:
+    name: Build ${{ matrix.service.name }}
+    needs: build-shared
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - { name: 'api-gateway', dir: 'services/api-gateway', needs_contracts: false }
+          - { name: 'auth-service', dir: 'services/auth-service', needs_contracts: true }
+          - { name: 'campaign-service', dir: 'services/campaign-service', needs_contracts: true }
+          - { name: 'billing-service', dir: 'services/billing-service', needs_contracts: true }
+          - { name: 'service-provider', dir: 'services/service-provider', needs_contracts: true }
+          - { name: 'automation-service', dir: 'services/automation-service', needs_contracts: true }
+          - { name: 'chat-service', dir: 'services/chat-service', needs_contracts: true }
+          - { name: 'contact-service', dir: 'services/contact-service', needs_contracts: true }
+          - { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', needs_contracts: false }
+          - { name: 'websocket-gateway', dir: 'services/websocket-gateway', needs_contracts: false }
+          - { name: 'admin-portal', dir: 'apps/admin-portal', needs_contracts: true }
+          - { name: 'frontend', dir: 'apps/frontend', needs_contracts: false }
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Restore Shared Contracts Build
+        if: ${{ matrix.service.needs_contracts }}
+        uses: actions/cache/restore@v3
+        with:
+          path: packages/contracts/dist
+          key: ${{ github.sha }}-contracts-dist
+          fail-on-cache-miss: true
+
+      - name: Install Contracts dependency locally
+        if: ${{ matrix.service.needs_contracts }}
+        run: |
+          cd packages/contracts
+          npm install
+
+      - name: Install Service Dependencies
+        run: |
+          cd ${{ matrix.service.dir }}
+          npm install
+
+      - name: Compile and Build
+        run: |
+          cd ${{ matrix.service.dir }}
+          npm run build
+
+      - name: Lint (if configured)
+        run: |
+          cd ${{ matrix.service.dir }}
+          if npm run | grep -q 'lint'; then
+            npm run lint
+          fi

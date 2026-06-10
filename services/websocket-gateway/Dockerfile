@@ -1,0 +1,14 @@
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY services/websocket-gateway/package*.json ./services/websocket-gateway/
+RUN cd services/websocket-gateway && npm install
+COPY services/websocket-gateway ./services/websocket-gateway
+RUN cd services/websocket-gateway && npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/services/websocket-gateway ./services/websocket-gateway
+WORKDIR /app/services/websocket-gateway
+EXPOSE 3009
+CMD ["npm", "run", "start"]
