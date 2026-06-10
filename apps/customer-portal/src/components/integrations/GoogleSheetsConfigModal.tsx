@@ -14,7 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Loader2, Table, ExternalLink, FileSpreadsheet, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import axios from 'axios';
+import { 
+  getGoogleSheetsStatus, 
+  getGoogleSheetsSpreadsheets, 
+  getGoogleSheetsSheets, 
+  getGoogleSheetsAuthUrl, 
+  saveGoogleSheetsConfig 
+} from '@/lib/api/integrations';
 
 interface GoogleSheetsConfigModalProps {
   isOpen: boolean;
@@ -39,14 +45,14 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
 
   const checkAuthStatus = async () => {
     try {
-      const resp = await axios.get('/api/integrations/google/status');
-      if (resp.data.connected) {
+      const resp = await getGoogleSheetsStatus();
+      if (resp.connected) {
         setStep('config');
         fetchSpreadsheets();
         
         // If we have existing metadata, pre-populate
-        if (resp.data.integration?.configMetadata) {
-          const { spreadsheetId, sheetName } = resp.data.integration.configMetadata;
+        if (resp.integration?.configMetadata) {
+          const { spreadsheetId, sheetName } = resp.integration.configMetadata;
           if (spreadsheetId) {
             setSelectedSpreadsheet(spreadsheetId);
             fetchSheets(spreadsheetId);
@@ -66,8 +72,8 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
   const fetchSpreadsheets = async () => {
     setLoading(true);
     try {
-      const resp = await axios.get('/api/integrations/google/spreadsheets');
-      setSpreadsheets(resp.data.files || []);
+      const resp = await getGoogleSheetsSpreadsheets();
+      setSpreadsheets(resp.files || []);
     } catch (err) {
       toast.error("Failed to fetch spreadsheets");
     } finally {
@@ -78,8 +84,8 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
   const fetchSheets = async (spreadsheetId: string) => {
     setLoading(true);
     try {
-      const resp = await axios.get(`/api/integrations/google/spreadsheets/${spreadsheetId}/sheets`);
-      setSheets(resp.data.sheets || []);
+      const resp = await getGoogleSheetsSheets(spreadsheetId);
+      setSheets(resp.sheets || []);
     } catch (err) {
       toast.error("Failed to fetch sheets");
     } finally {
@@ -90,9 +96,9 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
   const handleAuthorize = async () => {
     setLoading(true);
     try {
-      const resp = await axios.get('/api/integrations/google/auth-url');
+      const resp = await getGoogleSheetsAuthUrl();
       // Redirect to Google OAuth URL
-      window.location.href = resp.data.url;
+      window.location.href = resp.url;
     } catch (err) {
       toast.error("Failed to bridge with Google");
       setLoading(false);
@@ -107,7 +113,7 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
 
     setLoading(true);
     try {
-      await axios.post('/api/integrations/google/config', {
+      await saveGoogleSheetsConfig({
         spreadsheetId: selectedSpreadsheet,
         sheetName: selectedSheet
       });

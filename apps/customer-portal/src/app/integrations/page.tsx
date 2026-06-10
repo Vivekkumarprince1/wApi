@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { PetpoojaConnectModal } from "@/components/integrations/PetpoojaConnectModal";
 import { GoogleSheetsConfigModal } from "@/components/integrations/GoogleSheetsConfigModal";
 import { UtensilsCrossed } from "lucide-react";
-import axios from 'axios';
+import { getIntegrations, syncIntegration } from '@/lib/api/integrations';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -101,8 +101,8 @@ export default function IntegrationsPage() {
 
   const fetchIntegrations = async () => {
     try {
-      const resp = await axios.get('/api/integrations');
-      setIntegrations(resp.data.integrations || []);
+      const resp = await getIntegrations();
+      setIntegrations(resp.integrations || []);
     } catch (err) {
       console.error("Failed to fetch integrations", err);
     } finally {
@@ -122,11 +122,11 @@ export default function IntegrationsPage() {
     setSyncingId(type);
     const toastId = toast.loading(`Initiating ${type} sync...`);
     try {
-      const resp = await axios.post(`/api/integrations/${type}/sync`);
-      toast.success(resp.data.message || "Sync completed!", { id: toastId });
+      const resp = await syncIntegration(type);
+      toast.success(resp.message || "Sync completed!", { id: toastId });
       fetchIntegrations();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Sync failed", { id: toastId });
+      toast.error(err.message || "Sync failed", { id: toastId });
     } finally {
       setSyncingId(null);
     }

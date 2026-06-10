@@ -160,11 +160,15 @@ When requests hit the API Gateway, they go through several operations before pro
 | `verifyEmailOTP(otp, e)` | POST | `/auth/otp/verify` *(email)*| Strips `/api/v1/auth` | `/otp/verify` | `auth-service` (3006) |
 | `sendMobileVerificationOTP(p)`| POST | `/auth/otp/send` *(phone)* | Strips `/api/v1/auth` | `/otp/send` | `auth-service` (3006) |
 | `verifyMobileVerificationOTP`| POST | `/auth/otp/verify` *(phone)*| Strips `/api/v1/auth` | `/otp/verify` | `auth-service` (3006) |
-| `requestPasswordReset(data)`| POST | `/auth/request-pwd-reset` | Strips `/api/v1/auth` | `/request-password-reset` | `auth-service` (3006) |
+| `requestPasswordReset(data)`| POST | `/auth/request-password-reset` | Strips `/api/v1/auth` | `/request-password-reset` | `auth-service` (3006) |
 | `resetPassword(data)` | POST | `/auth/reset-password` | Strips `/api/v1/auth` | `/reset-password` | `auth-service` (3006) |
 | `updateCurrentUserProfile(d)`| PATCH | `/auth/me` | Strips `/api/v1/auth` | `/me` | `auth-service` (3006) |
 | `sendOtp(data)` | POST | `/auth/otp/send` *(custom)*| Strips `/api/v1/auth` | `/otp/send` | `auth-service` (3006) |
 | `verifyOtpToken(data)` | POST | `/auth/otp/verify` *(custom)*| Strips `/api/v1/auth` | `/otp/verify` | `auth-service` (3006) |
+| `requestAccountDeletion(d)` | POST | `/auth/account/delete-request` | Strips `/api/v1/auth` | `/account/delete-request` | `auth-service` (3006) |
+| `confirmAccountDeletion(d)` | POST | `/auth/account/delete-confirm` | Strips `/api/v1/auth` | `/account/delete-confirm` | `auth-service` (3006) |
+| `deleteAccountDirect(d)` | DELETE | `/auth/account` | Strips `/api/v1/auth` | `/account` | `auth-service` (3006) |
+| `getSessionData()` | GET | `/auth/session` | Strips `/api/v1/auth` | `/session` | `auth-service` (3006) |
 
 ---
 
@@ -175,6 +179,7 @@ When requests hit the API Gateway, they go through several operations before pro
 | `fetchBillingInfo()` | GET | `/workspace/billing/info`| Strips `/api/v1/workspace/billing` | `/info` | `billing-service` (3003) |
 | `rechargeWallet(amount)` | POST | `/workspace/billing/recharge`| Strips `/api/v1/workspace/billing` | `/recharge` | `billing-service` (3003) |
 | `verifyPayment(data)` | POST | `/workspace/billing/recharge/verify`| Strips `/api/v1/workspace/billing` | `/recharge/verify`| `billing-service` (3003) |
+| `getInvoiceDownloadUrl(n)` *(URL helper)* | GET | `/workspace/billing/invoices/:n/download` | Strips `/api/v1/workspace/billing` | `/invoices/:n/download` | `billing-service` (3003) |
 
 ---
 
@@ -286,6 +291,9 @@ When requests hit the API Gateway, they go through several operations before pro
 | `deleteSegment(id)` | DELETE | `/campaign/segments/:id` | Rewrites `/api/v1/campaign` → `/api/campaign` | `/api/campaign/segments/:id` | `campaign-service` (3002) |
 | `fetchTags()` | GET | `/workspace/tags` | Passes through without edits | `/api/v1/workspace/tags` | `contact-service` (3007) |
 | `importContacts(data)` | POST | `/contacts/import` | Passes through without edits | `/api/v1/contacts/import` | `contact-service` (3007) |
+| `getCsvImportProgress(jobId)` | GET | `/bulk/contacts/csv-import/:jobId/progress` | `/api/v1/bulk` (no rewrite) | `/api/v1/bulk/contacts/csv-import/:jobId/progress` | `contact-service` (3007) |
+| `uploadCsvImport(data)` | POST | `/bulk/contacts/csv-import/upload` | `/api/v1/bulk` (no rewrite) | `/api/v1/bulk/contacts/csv-import/upload` | `contact-service` (3007) |
+| `cancelCsvImport(jobId)` | DELETE | `/bulk/contacts/csv-import/:jobId/cancel` | `/api/v1/bulk` (no rewrite) | `/api/v1/bulk/contacts/csv-import/:jobId/cancel` | `contact-service` (3007) |
 
 ---
 
@@ -476,6 +484,25 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
+### 4.17. [integrations.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/integrations.ts)
+
+> [!NOTE]
+> `/api/v1/integrations` passes through to `automation-service` (port 3001) without path stripping.
+
+| Function Name | HTTP Method | Frontend URL Path | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
+|:---|:---|:---|:---|:---|:---|
+| `getGoogleSheetsStatus()` | GET | `/integrations/google/status` | Passes through without edits | `/api/v1/integrations/google/status` | `automation-service` (3001) |
+| `getGoogleSheetsSpreadsheets()` | GET | `/integrations/google/spreadsheets` | Passes through without edits | `/api/v1/integrations/google/spreadsheets` | `automation-service` (3001) |
+| `getGoogleSheetsSheets(id)` | GET | `/integrations/google/spreadsheets/:id/sheets` | Passes through without edits | `/api/v1/integrations/google/spreadsheets/:id/sheets` | `automation-service` (3001) |
+| `getGoogleSheetsAuthUrl()` | GET | `/integrations/google/auth-url` | Passes through without edits | `/api/v1/integrations/google/auth-url` | `automation-service` (3001) |
+| `saveGoogleSheetsConfig(d)` | POST | `/integrations/google/config` | Passes through without edits | `/api/v1/integrations/google/config` | `automation-service` (3001) |
+| `getGoogleSheetsColumns(id,s)` | GET | `/integrations/google/spreadsheets/:id/columns` | Passes through without edits | `/api/v1/integrations/google/spreadsheets/:id/columns` | `automation-service` (3001) |
+| `getIntegrations()` | GET | `/integrations` | Passes through without edits | `/api/v1/integrations` | `automation-service` (3001) |
+| `syncIntegration(type)` | POST | `/integrations/:type/sync` | Passes through without edits | `/api/v1/integrations/:type/sync` | `automation-service` (3001) |
+| `connectPetpooja(data)` | POST | `/integrations/petpooja/connect` | Passes through without edits | `/api/v1/integrations/petpooja/connect` | `automation-service` (3001) |
+
+---
+
 ## 5. Inline API Calls (Bypassing `src/lib/api/`)
 
 In addition to the centralized API directory, several UI pages, components, and hooks initiate direct `fetch` or `axios` calls to the backend. These route through the same Next.js rewrite rules and API Gateway path matches:
@@ -483,26 +510,32 @@ In addition to the centralized API directory, several UI pages, components, and 
 | Calling File Path | HTTP Method | Frontend Request URL | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
 |:---|:---|:---|:---|:---|:---|
 | [use-socket.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/hooks/use-socket.ts) | GET | `/api/auth/session` | Strips `/api/v1/auth` | `/session` | `auth-service` (3006) |
-| [GoogleSheetsConfigModal.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/integrations/GoogleSheetsConfigModal.tsx) | GET | `/api/integrations/google/status` | Passes through without edits | `/api/v1/integrations/google/status` | `automation-service` (3001) |
-| *(GoogleSheetsConfigModal)* | GET | `/api/integrations/google/spreadsheets` | Passes through without edits | `/api/v1/integrations/google/spreadsheets` | `automation-service` (3001) |
-| *(GoogleSheetsConfigModal)* | GET | `/api/integrations/google/spreadsheets/:spreadsheetId/sheets` | Passes through without edits | `/api/v1/integrations/google/spreadsheets/:spreadsheetId/sheets` | `automation-service` (3001) |
-| *(GoogleSheetsConfigModal)* | GET | `/api/integrations/google/auth-url` | Passes through without edits | `/api/v1/integrations/google/auth-url` | `automation-service` (3001) |
-| *(GoogleSheetsConfigModal)* | POST | `/api/integrations/google/config` | Passes through without edits | `/api/v1/integrations/google/config` | `automation-service` (3001) |
-| [message-step.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/steps/message-step.tsx) | GET | `/api/integrations/google/spreadsheets/:spreadsheetId/columns` | Passes through without edits | `/api/v1/integrations/google/spreadsheets/:spreadsheetId/columns` | `automation-service` (3001) |
-| [audience-step.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/steps/audience-step.tsx) | GET | `/api/integrations/google/spreadsheets` | Passes through without edits | `/api/v1/integrations/google/spreadsheets` | `automation-service` (3001) |
-| *(audience-step)* | GET | `/api/integrations/google/spreadsheets/:spreadsheetId/sheets` | Passes through without edits | `/api/v1/integrations/google/spreadsheets/:spreadsheetId/sheets` | `automation-service` (3001) |
-| [contact-import-dialog.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/contacts/contact-import-dialog.tsx) | GET | `/api/contacts/csv-import/:jobId/progress` | Passes through without edits | `/api/v1/contacts/csv-import/:jobId/progress` | `contact-service` (3007) |
-| *(contact-import-dialog)* | POST | `/api/contacts/csv-import/upload` | Passes through without edits | `/api/v1/contacts/csv-import/upload` | `contact-service` (3007) |
-| *(contact-import-dialog)* | POST | `/api/contacts/csv-import/:jobId/cancel` | Passes through without edits | `/api/v1/contacts/csv-import/:jobId/cancel` | `contact-service` (3007) |
+| [workspace-switcher.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/workspace-switcher.tsx) | GET | `/api/auth/workspaces` | Strips `/api/v1/auth` | `/workspaces` | `auth-service` (3006) |
+| *(workspace-switcher)* | POST | `/api/auth/switch-workspace` | Strips `/api/v1/auth` | `/switch-workspace` | `auth-service` (3006) |
+| [notification-panel.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/notification-panel.tsx) | GET | `/api/auth/invitations/pending` | Strips `/api/v1/auth` | `/invitations/pending` | `auth-service` (3006) |
+| [accept-invite/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/accept-invite/page.tsx) | GET | `/api/auth/invitation/:token?email=` | Strips `/api/v1/auth` | `/invitation/:token?email=` | `auth-service` (3006) |
+| *(accept-invite)* | POST | `/api/auth/accept-invite` | Strips `/api/v1/auth` | `/accept-invite` | `auth-service` (3006) |
+| [google/callback/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/google/callback/page.tsx) | POST | `/api/auth/google/callback` | Strips `/api/v1/auth` | `/google/callback` | `auth-service` (3006) |
 | [sms-composer.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/sms-composer.tsx) | GET | `/api/templates?channel=sms&limit=10` | Passes through without edits | `/api/v1/templates?channel=sms&limit=10` | `service-provider` (3004) |
 | [email-composer.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/email-composer.tsx) | GET | `/api/templates?channel=email&limit=10` | Passes through without edits | `/api/v1/templates?channel=email&limit=10` | `service-provider` (3004) |
-| [delete-account-section.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/delete-account-section.tsx) | POST | `/api/auth/account/delete-request` | Strips `/api/v1/auth` | `/account/delete-request` | `auth-service` (3006) |
-| *(delete-account-section)* | POST | `/api/auth/account/delete-confirm` | Strips `/api/v1/auth` | `/account/delete-confirm` | `auth-service` (3006) |
-| [delete-account-modal.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/delete-account-modal.tsx) | DELETE | `/api/auth/account` | Strips `/api/v1/auth` | `/account` | `auth-service` (3006) |
+| [DirectTemplateModal.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/contacts/DirectTemplateModal.tsx) | GET | `/api/workspace/pricing` | `/api/v1/workspace/pricing` → `/pricing` | `/pricing` | `billing-service` (3003) |
 | [member-panel.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/member-panel.tsx) | GET | `/api/workspace/team/search` | `/api/v1/workspace` → `/workspace` | `/workspace/team/search` | `auth-service` (3006) |
-| [PetpoojaConnectModal.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/integrations/PetpoojaConnectModal.tsx) | POST | `/api/integrations/petpooja/connect` | Passes through without edits | `/api/v1/integrations/petpooja/connect` | `automation-service` (3001) |
+| [snippet-generator.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/developer/snippet-generator.tsx) | GET | `/api/developer/keys` | Passes through without edits | `/api/v1/developer/keys` | `automation-service` (3001) |
+| [contacts/[id]/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/contacts/%5Bid%5D/page.tsx) | GET | `/api/contacts/:id/form-submissions` | Passes through without edits | `/api/v1/contacts/:id/form-submissions` | `contact-service` (3007) |
+| [CampaignRecipientTable.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/analytics/CampaignRecipientTable.tsx) | GET | `/api/campaigns/:campaignId/messages` | `/api/v1/campaign` → `/api/campaign` | `/api/campaign/:campaignId/messages` | `campaign-service` (3002) |
+| [catalog/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/catalog/page.tsx) | GET | `/api/commerce/products` | Passes through without edits | `/api/v1/commerce/products` | `billing-service` (3003) |
+| *(catalog/page)* | DELETE | `/api/commerce/products/:id` | Passes through without edits | `/api/v1/commerce/products/:id` | `billing-service` (3003) |
+| [ProductDialog.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/commerce/ProductDialog.tsx) | POST | `/api/commerce/products` | Passes through without edits | `/api/v1/commerce/products` | `billing-service` (3003) |
+| *(ProductDialog)* | PUT | `/api/commerce/products/:id` | Passes through without edits | `/api/v1/commerce/products/:id` | `billing-service` (3003) |
+| [ManualOrderDialog.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/commerce/ManualOrderDialog.tsx) | GET | `/api/commerce/products?search=&limit=10` | Passes through without edits | `/api/v1/commerce/products` | `billing-service` (3003) |
+| *(ManualOrderDialog)* | POST | `/api/commerce/orders` | Passes through without edits | `/api/v1/commerce/orders` | `billing-service` (3003) |
+| [checkout-bot/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/checkout-bot/page.tsx) | GET | `/api/commerce/checkout-bot/stats` | Passes through without edits | `/api/v1/commerce/checkout-bot/stats` | `billing-service` (3003) |
+| *(checkout-bot)* | POST | `/api/commerce/settings` | Passes through without edits | `/api/v1/commerce/settings` | `billing-service` (3003) |
+| [crm/reports/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/reports/page.tsx) | GET | `/api/crm/analytics` | Passes through without edits | `/api/v1/crm/analytics` | `contact-service` (3007) |
+| [PipelineDialog.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/PipelineDialog.tsx) | POST | `/api/crm/pipelines` | Passes through without edits | `/api/v1/crm/pipelines` | `contact-service` (3007) |
+| [PipelineAutomation.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/PipelineAutomation.tsx) | GET | `/api/crm/automation?pipelineId=` | Passes through without edits | `/api/v1/crm/automation` | `contact-service` (3007) |
+| *(PipelineAutomation)* | POST | `/api/crm/automation` | Passes through without edits | `/api/v1/crm/automation` | `contact-service` (3007) |
+| *(PipelineAutomation)* | DELETE | `/api/crm/automation?id=` | Passes through without edits | `/api/v1/crm/automation` | `contact-service` (3007) |
 | [responses/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/whatsapp-forms/%5Bid%5D/responses/page.tsx) | GET | `/api/automation/whatsapp-forms/:id/responses` | Rewrites `/api/v1/automation` → `/api/automation` | `/api/automation/whatsapp-forms/:id/responses` | `automation-service` (3001) |
 | [workflows/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/page.tsx) | POST | `/api/automation/engine/rules/:ruleId/execute` | Rewrites `/api/v1/automation` → `/api/automation` | `/api/automation/engine/rules/:ruleId/execute` | `automation-service` (3001) |
 | [builder/[id]/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/builder/%5Bid%5D/page.tsx) | GET | `/api/automation/engine/rules/:ruleId` | Rewrites `/api/v1/automation` → `/api/automation` | `/api/automation/engine/rules/:ruleId` | `automation-service` (3001) |
-| [integrations/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/integrations/page.tsx) | GET | `/api/integrations` | Passes through without edits | `/api/v1/integrations` | `automation-service` (3001) |
-| *(integrations/page)* | POST | `/api/integrations/:type/sync` | Passes through without edits | `/api/v1/integrations/:type/sync` | `automation-service` (3001) |

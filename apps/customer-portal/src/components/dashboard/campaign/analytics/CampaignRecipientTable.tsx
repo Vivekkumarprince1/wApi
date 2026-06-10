@@ -21,6 +21,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 
+import { getCampaignExportUrl } from "@/lib/api/campaigns";
+
 interface CampaignRecipientTableProps {
   campaignId: string;
   externalStatus?: string;
@@ -80,12 +82,13 @@ export function CampaignRecipientTable({ campaignId, externalStatus, onStatusCha
         {sVal}
       </Badge>
     );
+
   };
 
   const handleExport = async () => {
     try {
         toast.info("Preparing report download...");
-        window.open(`/api/campaigns/${campaignId}/export`, '_blank');
+        window.open(getCampaignExportUrl(campaignId), '_blank');
     } catch (error) {
         toast.error("Failed to start export");
     }

@@ -25,6 +25,8 @@ import LogicNode from '@/components/workflows/nodes/LogicNode';
 import MessageNode from '@/components/workflows/nodes/MessageNode';
 import TemplateNode from '@/components/workflows/nodes/TemplateNode';
 
+import { getRuleById, createRule, updateRule } from '@/lib/api/automation';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -185,14 +187,7 @@ export default function WorkflowBuilderPage() {
 
       try {
         setIsLoading(true);
-        const res = await fetch(`/api/automation/engine/rules/${ruleId}`);
-        const json = await res.json();
-
-        if (!res.ok || !json?.success) {
-          throw new Error(json?.error || 'Failed to load workflow');
-        }
-
-        const rule = json.data;
+        const rule = await getRuleById(ruleId);
         setWorkflowName(rule?.name || 'Untitled Workflow');
         setIsEnabled(rule?.enabled ?? true);
 
@@ -371,35 +366,10 @@ export default function WorkflowBuilderPage() {
         },
       };
 
-      const endpoint = isCreateMode
-        ? '/api/automation/engine/rules'
-        : `/api/automation/engine/rules/${ruleId}`;
-
-      const method = isCreateMode ? 'POST' : 'PUT';
-
-      const response = await fetch(endpoint, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const raw = await response.text();
-      let data: any = null;
-      if (raw) {
-        try {
-          data = JSON.parse(raw);
-        } catch {
-          data = { error: `Unexpected response from server (${response.status})` };
-        }
-      }
-
-      if (!response.ok) {
-        const serverMessage = data?.error || data?.message || `Failed to save workflow (${response.status})`;
-        throw new Error(serverMessage);
-      }
-
-      if (!data) {
-        throw new Error('Empty response from server while saving workflow');
+      if (isCreateMode) {
+        await createRule(payload);
+      } else {
+        await updateRule(ruleId, payload);
       }
 
       queryClient.invalidateQueries({ queryKey: ['automation-rules'] });

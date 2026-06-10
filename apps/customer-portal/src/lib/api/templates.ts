@@ -82,3 +82,7 @@ export const getTopPerformingTemplates = (limit?: number) => api.get('/templates
 export const getLowPerformingTemplates = (limit?: number) => api.get('/templates/analytics/low', { params: { limit } });
 export const getTemplateBehavioralInsights = (params?: any) => api.get('/templates/analytics/behavioral', { params });
 export const exportAnalyticsReport = (format: string) => api.post('/templates/analytics/export', { format });
+
+export const fetchTemplatesByChannel = (channel: string, limit: number) =>
+  api.get<any>('/templates', { params: { channel, limit } });
+

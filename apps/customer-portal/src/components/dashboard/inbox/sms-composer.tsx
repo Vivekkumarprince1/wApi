@@ -25,6 +25,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { fetchTemplatesByChannel } from '@/lib/api/templates';
+
 interface SMSComposerProps {
   onSendMessage: (text: string, extraData?: any) => void;
   onSendMedia: (file: File) => void;
@@ -75,11 +77,8 @@ export default function SMSComposer({
   const loadTemplates = async () => {
     try {
       setLoadingTemplates(true);
-      const response = await fetch('/api/templates?channel=sms&limit=10');
-      if (response.ok) {
-        const data = await response.json();
-        setTemplates(data.templates || []);
-      }
+      const data = await fetchTemplatesByChannel('sms', 10);
+      setTemplates(data.templates || []);
     } catch (error) {
       console.error('Failed to load SMS templates:', error);
     } finally {

@@ -25,6 +25,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+import { fetchTemplatesByChannel } from '@/lib/api/templates';
+
 interface EmailComposerProps {
   onSendMessage: (data: EmailMessage) => void;
   onSendMedia: (file: File) => void;
@@ -88,11 +90,8 @@ export default function EmailComposer({
   const loadTemplates = async () => {
     try {
       setLoadingTemplates(true);
-      const response = await fetch('/api/templates?channel=email&limit=10');
-      if (response.ok) {
-        const data = await response.json();
-        setTemplates(data.templates || []);
-      }
+      const data = await fetchTemplatesByChannel('email', 10);
+      setTemplates(data.templates || []);
     } catch (error) {
       console.error('Failed to load email templates:', error);
     } finally {

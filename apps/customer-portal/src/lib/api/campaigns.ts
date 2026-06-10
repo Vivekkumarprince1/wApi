@@ -33,3 +33,7 @@ export const fetchSegmentById = (id: string) => api.get(`/campaign/segments/${id
 export const createSegment = (data: any) => api.post('/campaign/segments', data);
 export const updateSegment = (id: string, data: any) => api.put(`/campaign/segments/${id}`, data);
 export const deleteSegment = (id: string) => api.delete(`/campaign/segments/${id}`);
+
+export const getCampaignExportUrl = (campaignId: string) =>
+  `/api/v1/campaigns/${campaignId}/export`;
+

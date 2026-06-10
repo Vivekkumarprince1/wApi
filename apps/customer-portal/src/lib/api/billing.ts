@@ -34,3 +34,7 @@ export const rechargeWallet = async (amount: number) => {
 export const verifyPayment = async (data: any) => {
   return await api.post('/workspace/billing/recharge/verify', data);
 };
+
+export const getInvoiceDownloadUrl = (invoiceNumber: string) =>
+  `/api/v1/workspace/billing/invoices/${invoiceNumber}/download`;
+

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { fetchBillingInfo } from '@/lib/api/billing';
+import { fetchBillingInfo, getInvoiceDownloadUrl } from '@/lib/api/billing';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'sonner';
 import FlashLoader from '@/components/ui/flash-loader';
@@ -277,7 +277,7 @@ export default function BillingPage() {
                                     <div className="flex items-center gap-2">
                                         <span className="text-[9px] font-black text-primary uppercase tracking-tight">Invoice: {tx.invoiceNumber}</span>
                                         <a 
-                                            href={`/api/workspace/billing/invoices/${tx.invoiceNumber}/download`} 
+                                            href={getInvoiceDownloadUrl(tx.invoiceNumber)} 
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-[9px] bg-primary/10 hover:bg-primary/20 text-primary px-2 py-0.5 rounded flex items-center font-bold transition-colors"

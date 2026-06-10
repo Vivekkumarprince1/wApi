@@ -89,8 +89,20 @@ export const resetPassword = (data: any) => api.post<any>('/auth/reset-password'
 
 export const updateCurrentUserProfile = (data: any) => api.patch<any>('/auth/me', data);
 
-export const sendOtp = (data: { purpose: string; identifier: string; [key: string]: any }) =>
+export const sendOtp = (data: { purpose: string; identifier: string;[key: string]: any }) =>
   api.post<any>('/auth/otp/send', data);
 
 export const verifyOtpToken = (data: { purpose: string; identifier: string; otp: string }) =>
   api.post<any>('/auth/otp/verify', data);
+
+export const requestAccountDeletion = (data: { email: string; reason?: string }) =>
+  api.post<any>('/auth/account/delete-request', data);
+
+export const confirmAccountDeletion = (data: { userId: string; verificationCode: string }) =>
+  api.post<any>('/auth/account/delete-confirm', data);
+
+export const deleteAccountDirect = (data: { confirmText: string }) =>
+  api.delete<any>('/auth/account', { data });
+
+export const getSessionData = () =>
+  api.get<any>('/auth/session');

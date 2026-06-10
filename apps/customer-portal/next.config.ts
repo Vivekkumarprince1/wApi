@@ -56,52 +56,53 @@ const nextConfig: NextConfig = {
   async rewrites() {
     const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:5001';
     return [
+      // API v1 routes
       {
-        source: '/api/automation/:path*',
+        source: '/api/v1/automation/:path*',
         destination: `${backendUrl}/api/v1/automation/:path*`,
       },
       {
-        source: '/api/campaign/:path*',
+        source: '/api/v1/campaign/:path*',
         destination: `${backendUrl}/api/v1/campaign/:path*`,
       },
       {
-        source: '/api/whatsapp-forms/:path*',
+        source: '/api/v1/whatsapp-forms/:path*',
         destination: `${backendUrl}/api/v1/automation/engine/whatsapp-forms/:path*`,
       },
       {
-        source: '/api/whatsapp-forms',
+        source: '/api/v1/whatsapp-forms',
         destination: `${backendUrl}/api/v1/automation/engine/whatsapp-forms`,
       },
       {
-        source: '/api/campaigns/:path*',
+        source: '/api/v1/campaigns/:path*',
         destination: `${backendUrl}/api/v1/campaign/campaigns/:path*`,
       },
       {
-        source: '/api/campaigns',
+        source: '/api/v1/campaigns',
         destination: `${backendUrl}/api/v1/campaign/campaigns`,
       },
       {
-        source: '/api/segments/:path*',
+        source: '/api/v1/segments/:path*',
         destination: `${backendUrl}/api/v1/campaign/segments/:path*`,
       },
       {
-        source: '/api/segments',
+        source: '/api/v1/segments',
         destination: `${backendUrl}/api/v1/campaign/segments`,
       },
       {
-        source: '/api/workspace/:path*',
+        source: '/api/v1/workspace/:path*',
         destination: `${backendUrl}/api/v1/workspace/:path*`,
       },
       {
-        source: '/api/billing/:path*',
+        source: '/api/v1/billing/:path*',
         destination: `${backendUrl}/api/v1/billing/:path*`,
       },
       {
-        source: '/api/admin/:path*',
+        source: '/api/v1/admin/:path*',
         destination: `${backendUrl}/api/v1/super-admin/:path*`,
       },
       {
-        source: '/api/:path*',
+        source: '/api/v1/:path*',
         destination: `${backendUrl}/api/v1/:path*`,
       },
     ];

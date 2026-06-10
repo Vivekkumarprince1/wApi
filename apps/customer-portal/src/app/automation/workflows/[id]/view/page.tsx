@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Pencil, Play, Workflow } from 'lucide-react';
 import { toast } from 'sonner';
 
-import { getRuleById } from '@/lib/api/automation';
+import { getRuleById, executeRule } from '@/lib/api/automation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import FlashLoader from '@/components/ui/flash-loader';
@@ -33,21 +33,14 @@ export default function WorkflowViewPage() {
     }
 
     try {
-      const response = await fetch(`/api/automation/engine/rules/${id}/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversationId || undefined,
-          contactId: contactId || undefined,
-          messageBody: 'Manual workflow test'
-        })
+      const json = await executeRule(id, {
+        conversationId: conversationId || undefined,
+        contactId: contactId || undefined,
+        messageBody: 'Manual workflow test'
       });
 
-      const raw = await response.text();
-      const json = raw ? JSON.parse(raw) : null;
-
-      if (!response.ok || !json?.success) {
-        throw new Error(json?.error || `Failed to test workflow (${response.status})`);
+      if (!json?.success) {
+        throw new Error(json?.error || 'Failed to test workflow');
       }
 
       toast.success('Workflow test executed successfully');

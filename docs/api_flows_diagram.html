@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Customer Portal — API Flow Diagrams</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }
+
+  .header { background: linear-gradient(135deg, #1e293b, #0f172a); padding: 32px 40px; border-bottom: 1px solid #334155; }
+  .header h1 { font-size: 28px; font-weight: 700; color: #f8fafc; }
+  .header p { color: #94a3b8; margin-top: 6px; font-size: 14px; }
+
+  .nav { display: flex; gap: 8px; padding: 16px 40px; background: #1e293b; border-bottom: 1px solid #334155; flex-wrap: wrap; }
+  .nav button { padding: 6px 14px; border-radius: 6px; border: 1px solid #475569; background: #1e293b; color: #94a3b8; cursor: pointer; font-size: 12px; transition: all .2s; }
+  .nav button:hover, .nav button.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+  .content { padding: 32px 40px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ---- DIAGRAM PRIMITIVES ---- */
+  .diagram { position: relative; width: 100%; overflow-x: auto; }
+  svg text { font-family: 'Segoe UI', sans-serif; }
+
+  /* ---- FLOW CARDS ---- */
+  .flow-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; margin-top: 20px; }
+  .flow-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
+  .flow-card h3 { font-size: 13px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 16px; }
+
+  /* ---- SEQUENCE STEP ---- */
+  .seq { display: flex; flex-direction: column; gap: 0; }
+  .seq-step { display: flex; align-items: flex-start; gap: 12px; }
+  .seq-step .line-wrap { display: flex; flex-direction: column; align-items: center; }
+  .seq-step .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .seq-step .vline { width: 2px; flex: 1; min-height: 20px; }
+  .seq-step .body { padding-bottom: 16px; flex: 1; }
+  .seq-step .method { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-right: 6px; }
+  .seq-step .path { font-size: 12px; font-family: monospace; color: #e2e8f0; }
+  .seq-step .arrow { font-size: 11px; color: #64748b; margin: 2px 0; }
+  .seq-step .dest { font-size: 11px; color: #94a3b8; font-family: monospace; }
+  .seq-step .svc-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-top: 4px; }
+
+  /* method colors */
+  .GET { background: #166534; color: #86efac; }
+  .POST { background: #1e3a5f; color: #93c5fd; }
+  .PATCH { background: #713f12; color: #fde68a; }
+  .PUT { background: #3b1f6e; color: #c4b5fd; }
+  .DELETE { background: #7f1d1d; color: #fca5a5; }
+
+  /* service colors */
+  .svc-auth { background: #064e3b; color: #6ee7b7; }
+  .svc-auto { background: #2e1065; color: #c4b5fd; }
+  .svc-bill { background: #7f1d1d; color: #fca5a5; }
+  .svc-camp { background: #431407; color: #fdba74; }
+  .svc-chat { background: #0c4a6e; color: #7dd3fc; }
+  .svc-cont { background: #14532d; color: #86efac; }
+  .svc-sp   { background: #500724; color: #fbcfe8; }
+
+  /* dot/line colors per service */
+  .dot-auth { background: #10b981; }
+  .dot-auto { background: #8b5cf6; }
+  .dot-bill { background: #ef4444; }
+  .dot-camp { background: #f97316; }
+  .dot-chat { background: #06b6d4; }
+  .dot-cont { background: #22c55e; }
+  .dot-sp   { background: #ec4899; }
+  .dot-gw   { background: #f59e0b; }
+
+  .vline-auth { background: #10b981; opacity: .3; }
+  .vline-auto { background: #8b5cf6; opacity: .3; }
+  .vline-bill { background: #ef4444; opacity: .3; }
+  .vline-camp { background: #f97316; opacity: .3; }
+  .vline-chat { background: #06b6d4; opacity: .3; }
+  .vline-cont { background: #22c55e; opacity: .3; }
+  .vline-sp   { background: #ec4899; opacity: .3; }
+
+  /* ---- GATEWAY PIPELINE ---- */
+  .pipeline { display: flex; flex-direction: column; gap: 0; max-width: 520px; margin: 20px auto; }
+  .pipe-step { display: flex; align-items: center; gap: 16px; }
+  .pipe-box { flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px 16px; }
+  .pipe-box .title { font-size: 13px; font-weight: 600; color: #f1f5f9; }
+  .pipe-box .sub { font-size: 11px; color: #64748b; margin-top: 2px; font-family: monospace; }
+  .pipe-arrow { display: flex; flex-direction: column; align-items: center; color: #475569; font-size: 20px; padding: 4px 0; }
+  .pipe-arrow span { font-size: 10px; color: #475569; }
+  .pipe-badge { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+
+  /* ---- ARCH DIAGRAM (SVG) ---- */
+  .arch-wrap { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; margin-top: 20px; overflow-x: auto; }
+
+  /* section title */
+  .sec-title { font-size: 20px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; }
+  .sec-sub { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+
+  .note-box { background: #1e3a5f; border-left: 3px solid #3b82f6; border-radius: 4px; padding: 10px 14px; font-size: 12px; color: #93c5fd; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Customer Portal — API Flow Diagrams</h1>
+  <p>Complete request journey: Browser → Next.js Rewriter → API Gateway → Auth → Microservice</p>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="show('arch')">Architecture</button>
+  <button onclick="show('gw')">Gateway Pipeline</button>
+  <button onclick="show('auth')">Auth</button>
+  <button onclick="show('onboarding')">Onboarding</button>
+  <button onclick="show('workspace')">Workspace / Settings</button>
+  <button onclick="show('billing')">Billing</button>
+  <button onclick="show('contacts')">Contacts</button>
+  <button onclick="show('crm')">CRM</button>
+  <button onclick="show('inbox')">Inbox / Chat</button>
+  <button onclick="show('templates')">Templates</button>
+  <button onclick="show('campaigns')">Campaigns</button>
+  <button onclick="show('automation')">Automation</button>
+  <button onclick="show('commerce')">Commerce</button>
+  <button onclick="show('support')">Support</button>
+  <button onclick="show('integrations')">Integrations</button>
+  <button onclick="show('websocket')">WebSocket</button>
+  <button onclick="show('auth-extra')">Auth (Workspace/Invite)</button>
+  <button onclick="show('crm-extra')">CRM (Pipelines/Reports)</button>
+  <button onclick="show('commerce-extra')">Commerce (Products)</button>
+</div>
+
+<div class="content">
+
+<!-- ===================== ARCHITECTURE ===================== -->
+<div id="arch" class="section active">
+  <div class="sec-title">Master Architecture</div>
+  <div class="sec-sub">All services connected through API Gateway with session verification on every authenticated request</div>
+  <div class="arch-wrap">
+    <svg width="900" height="520" viewBox="0 0 900 520">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#475569"/>
+        </marker>
+        <marker id="arr-y" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#f59e0b"/>
+        </marker>
+        <marker id="arr-b" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#3b82f6"/>
+        </marker>
+      </defs>
+
+      <!-- Browser -->
+      <rect x="20" y="220" width="120" height="60" rx="10" fill="#4f46e5"/>
+      <text x="80" y="245" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Browser</text>
+      <text x="80" y="262" text-anchor="middle" fill="#a5b4fc" font-size="11">Customer Portal</text>
+
+      <!-- Arrow Browser -> Next -->
+      <line x1="140" y1="250" x2="195" y2="250" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="167" y="242" text-anchor="middle" fill="#64748b" font-size="10">/api/...</text>
+
+      <!-- Next.js -->
+      <rect x="200" y="220" width="120" height="60" rx="10" fill="#0ea5e9"/>
+      <text x="260" y="245" text-anchor="middle" fill="#fff" font-size="13" font-weight="600">Next.js</text>
+      <text x="260" y="262" text-anchor="middle" fill="#bae6fd" font-size="11">:3000 Rewriter</text>
+
+      <!-- Arrow Next -> GW -->
+      <line x1="320" y1="250" x2="375" y2="250" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+      <text x="347" y="242" text-anchor="middle" fill="#64748b" font-size="10">/api/v1/...</text>
+
+      <!-- API Gateway -->
+      <rect x="380" y="210" width="130" height="80" rx="10" fill="#f59e0b"/>
+      <text x="445" y="240" text-anchor="middle" fill="#000" font-size="13" font-weight="700">API Gateway</text>
+      <text x="445" y="257" text-anchor="middle" fill="#78350f" font-size="11">:5001</text>
+      <text x="445" y="274" text-anchor="middle" fill="#78350f" font-size="10">Auth + Route</text>
+
+      <!-- Services column 1 -->
+      <!-- auth-service -->
+      <rect x="580" y="30" width="140" height="50" rx="8" fill="#10b981"/>
+      <text x="650" y="51" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">auth-service</text>
+      <text x="650" y="67" text-anchor="middle" fill="#d1fae5" font-size="11">:3006</text>
+
+      <!-- automation -->
+      <rect x="580" y="100" width="140" height="50" rx="8" fill="#8b5cf6"/>
+      <text x="650" y="121" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">automation-service</text>
+      <text x="650" y="137" text-anchor="middle" fill="#ede9fe" font-size="11">:3001</text>
+
+      <!-- billing -->
+      <rect x="580" y="170" width="140" height="50" rx="8" fill="#ef4444"/>
+      <text x="650" y="191" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">billing-service</text>
+      <text x="650" y="207" text-anchor="middle" fill="#fecaca" font-size="11">:3003</text>
+
+      <!-- campaign -->
+      <rect x="580" y="240" width="140" height="50" rx="8" fill="#f97316"/>
+      <text x="650" y="261" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">campaign-service</text>
+      <text x="650" y="277" text-anchor="middle" fill="#fed7aa" font-size="11">:3002</text>
+
+      <!-- chat -->
+      <rect x="580" y="310" width="140" height="50" rx="8" fill="#06b6d4"/>
+      <text x="650" y="331" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">chat-service</text>
+      <text x="650" y="347" text-anchor="middle" fill="#cffafe" font-size="11">:3008</text>
+
+      <!-- contact -->
+      <rect x="580" y="380" width="140" height="50" rx="8" fill="#22c55e"/>
+      <text x="650" y="401" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">contact-service</text>
+      <text x="650" y="417" text-anchor="middle" fill="#dcfce7" font-size="11">:3007</text>
+
+      <!-- service-provider -->
+      <rect x="580" y="450" width="140" height="50" rx="8" fill="#ec4899"/>
+      <text x="650" y="471" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">service-provider</text>
+      <text x="650" y="487" text-anchor="middle" fill="#fce7f3" font-size="11">:3004</text>
+
+      <!-- websocket -->
+      <rect x="750" y="200" width="130" height="50" rx="8" fill="#0284c7"/>
+      <text x="815" y="221" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">websocket-gateway</text>
+      <text x="815" y="237" text-anchor="middle" fill="#bae6fd" font-size="11">:3009</text>
+
+      <!-- webhook-ingestor -->
+      <rect x="750" y="270" width="130" height="50" rx="8" fill="#64748b"/>
+      <text x="815" y="291" text-anchor="middle" fill="#fff" font-size="12" font-weight="600">webhook-ingestor</text>
+      <text x="815" y="307" text-anchor="middle" fill="#e2e8f0" font-size="11">:3013</text>
+
+      <!-- GW -> services arrows -->
+      <line x1="510" y1="235" x2="575" y2="55" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-y)" stroke-dasharray="4,2"/>
+      <line x1="510" y1="240" x2="575" y2="125" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-y)" stroke-dasharray="4,2"/>
+      <line x1="510" y1="248" x2="575" y2="195" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-y)" stroke-dasharray="4,2"/>
+      <line x1="510" y1="252" x2="575" y2="265" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-y)" stroke-dasharray="4,2"/>
+      <line x1="510" y1="258" x2="575" y2="335" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-y)" stroke-dasharray="4,2"/>
+      <line x1="510" y1="265" x2="575" y2="405" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-y)" stroke-dasharray="4,2"/>
+      <line x1="510" y1="270" x2="575" y2="475" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-y)" stroke-dasharray="4,2"/>
+
+      <!-- GW -> webhook-ingestor -->
+      <line x1="510" y1="255" x2="745" y2="290" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-y)" stroke-dasharray="4,2"/>
+
+      <!-- Browser -> WS -->
+      <line x1="80" y1="280" x2="80" y2="460" stroke="#0284c7" stroke-width="1.5" stroke-dasharray="4,2"/>
+      <line x1="80" y1="460" x2="745" y2="225" stroke="#0284c7" stroke-width="1.5" marker-end="url(#arr-b)" stroke-dasharray="4,2"/>
+      <text x="300" y="475" fill="#0284c7" font-size="10">WebSocket</text>
+
+      <!-- Legend -->
+      <rect x="20" y="420" width="200" height="80" rx="8" fill="#1e293b" stroke="#334155"/>
+      <text x="30" y="440" fill="#94a3b8" font-size="11" font-weight="600">Legend</text>
+      <line x1="30" y1="455" x2="60" y2="455" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4,2"/>
+      <text x="66" y="459" fill="#94a3b8" font-size="10">Gateway → Service</text>
+      <line x1="30" y1="470" x2="60" y2="470" stroke="#0284c7" stroke-width="2" stroke-dasharray="4,2"/>
+      <text x="66" y="474" fill="#94a3b8" font-size="10">WebSocket</text>
+      <line x1="30" y1="485" x2="60" y2="485" stroke="#475569" stroke-width="2"/>
+      <text x="66" y="489" fill="#94a3b8" font-size="10">HTTP Request</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ===================== GATEWAY PIPELINE ===================== -->
+<div id="gw" class="section">
+  <div class="sec-title">API Gateway Middleware Pipeline</div>
+  <div class="sec-sub">Every request passes through these steps before reaching a microservice</div>
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="pipe-badge" style="background:#4f46e5">1</div>
+      <div class="pipe-box">
+        <div class="title">Incoming Request</div>
+        <div class="sub">From Next.js → /api/v1/...</div>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-badge" style="background:#0ea5e9">2</div>
+      <div class="pipe-box">
+        <div class="title">Inject Correlation ID</div>
+        <div class="sub">x-correlation-id (new or propagated)</div>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-badge" style="background:#ef4444">3</div>
+      <div class="pipe-box">
+        <div class="title">Strip Spoofed Headers</div>
+        <div class="sub">x-user-id, x-workspace-id, x-permissions, x-internal-service-secret</div>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-badge" style="background:#f59e0b;color:#000">4</div>
+      <div class="pipe-box">
+        <div class="title">Is this a public route?</div>
+        <div class="sub">/auth/login, /auth/signup, /auth/google/url, /auth/facebook, /auth/request-pwd-reset, /auth/reset-password</div>
+      </div>
+    </div>
+    <div class="pipe-arrow">
+      <span style="color:#22c55e">YES → skip to step 7</span>
+      <span>↓ NO</span>
+    </div>
+    <div class="pipe-step">
+      <div class="pipe-badge" style="background:#10b981">5</div>
+      <div class="pipe-box">
+        <div class="title">Verify Session</div>
+        <div class="sub">POST auth-service:3006/internal/v1/auth/verify-session  { token }</div>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓  401 → reject  |  200 → continue</div>
+    <div class="pipe-step">
+      <div class="pipe-badge" style="background:#8b5cf6">6</div>
+      <div class="pipe-box">
+        <div class="title">Inject Enriched Headers</div>
+        <div class="sub">x-user-id · x-user-role · x-user-system-role · x-workspace-id · x-permissions · x-internal-service-secret</div>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-badge" style="background:#06b6d4">7</div>
+      <div class="pipe-box">
+        <div class="title">Apply Path Rewrite Rule</div>
+        <div class="sub">e.g. /api/v1/automation → /api/automation  |  /api/v1/workspace → /provider/v1/workspace</div>
+      </div>
+    </div>
+    <div class="pipe-arrow">↓</div>
+    <div class="pipe-step">
+      <div class="pipe-badge" style="background:#22c55e">8</div>
+      <div class="pipe-box">
+        <div class="title">Proxy to Downstream Service</div>
+        <div class="sub">Forward enriched request → microservice port</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AUTH ===================== -->
+<div id="auth" class="section">
+  <div class="sec-title">Auth Flows</div>
+  <div class="sec-sub">All routes hit auth-service :3006 — public routes skip session verification</div>
+  <div class="flow-grid">
+
+    <div class="flow-card">
+      <h3>Login</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/login</span><div class="arrow">↓ Next.js rewrites → /api/v1/auth/login</div><div class="arrow">↓ Gateway strips → /login (public, no verify)</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><div class="arrow">← 200 { token, user, workspace }</div></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Register + OTP Verify</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/signup</span><div class="arrow">↓ → /signup</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/verify-signup-otp</span><div class="arrow">↓ → /verify-signup-otp</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><div class="arrow">← 200 { verified }</div></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Email / Phone OTP</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/otp/send</span><div class="arrow">↓ → /otp/send</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/otp/verify</span><div class="arrow">↓ → /otp/verify</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Get Current User</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/auth/me</span><div class="arrow">↓ Gateway: verify-session → inject headers</div><div class="arrow">↓ → /me</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><div class="arrow">← 200 { user, permissions }</div></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Password Reset</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/request-pwd-reset</span><div class="arrow">↓ → /request-password-reset (public)</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/reset-password</span><div class="arrow">↓ → /reset-password</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Account Deletion</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/account/delete-request</span><div class="arrow">↓ → /account/delete-request</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/account/delete-confirm</span><div class="arrow">↓ → /account/delete-confirm</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-gw"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/auth/account</span><div class="arrow">↓ → /account</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== ONBOARDING ===================== -->
+<div id="onboarding" class="section">
+  <div class="sec-title">Onboarding Flows</div>
+  <div class="sec-sub">/api/v1/onboarding → rewrites to /provider/v1/onboarding → service-provider :3004</div>
+  <div class="note-box">All onboarding routes rewrite: <code>/api/v1/onboarding</code> → <code>/provider/v1/onboarding</code></div>
+  <div class="arch-wrap">
+    <svg width="820" height="380" viewBox="0 0 820 380">
+      <defs>
+        <marker id="a2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#94a3b8"/></marker>
+      </defs>
+      <!-- Steps boxes -->
+      <!-- 1 -->
+      <rect x="20" y="40" width="160" height="60" rx="8" fill="#1e293b" stroke="#ec4899" stroke-width="1.5"/>
+      <text x="100" y="65" text-anchor="middle" fill="#ec4899" font-size="11" font-weight="600">GET /onboarding/status</text>
+      <text x="100" y="82" text-anchor="middle" fill="#94a3b8" font-size="10">Check current step</text>
+
+      <!-- 2 -->
+      <rect x="220" y="40" width="160" height="60" rx="8" fill="#1e293b" stroke="#ec4899" stroke-width="1.5"/>
+      <text x="300" y="65" text-anchor="middle" fill="#ec4899" font-size="11" font-weight="600">POST /bsp/start</text>
+      <text x="300" y="82" text-anchor="middle" fill="#94a3b8" font-size="10">{ bspConfig }</text>
+
+      <!-- 3 -->
+      <rect x="420" y="40" width="160" height="60" rx="8" fill="#1e293b" stroke="#ec4899" stroke-width="1.5"/>
+      <text x="500" y="65" text-anchor="middle" fill="#ec4899" font-size="11" font-weight="600">POST /bsp/register-phone</text>
+      <text x="500" y="82" text-anchor="middle" fill="#94a3b8" font-size="10">{ phone, countryCode }</text>
+
+      <!-- 4 -->
+      <rect x="620" y="40" width="160" height="60" rx="8" fill="#1e293b" stroke="#ec4899" stroke-width="1.5"/>
+      <text x="700" y="65" text-anchor="middle" fill="#ec4899" font-size="11" font-weight="600">POST /bsp/complete</text>
+      <text x="700" y="82" text-anchor="middle" fill="#94a3b8" font-size="10">{ wabaId, phoneId }</text>
+
+      <!-- arrows step 1-4 -->
+      <line x1="180" y1="70" x2="218" y2="70" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a2)"/>
+      <line x1="380" y1="70" x2="418" y2="70" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a2)"/>
+      <line x1="580" y1="70" x2="618" y2="70" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a2)"/>
+
+      <!-- Step 5 complete -->
+      <rect x="320" y="160" width="160" height="60" rx="8" fill="#1e293b" stroke="#ec4899" stroke-width="1.5"/>
+      <text x="400" y="185" text-anchor="middle" fill="#ec4899" font-size="11" font-weight="600">POST /onboarding/complete</text>
+      <text x="400" y="202" text-anchor="middle" fill="#94a3b8" font-size="10">Finalize onboarding</text>
+
+      <!-- arrow from bsp/complete down to complete -->
+      <line x1="700" y1="100" x2="700" y2="130" stroke="#94a3b8" stroke-width="1.5"/>
+      <line x1="700" y1="130" x2="480" y2="130" stroke="#94a3b8" stroke-width="1.5"/>
+      <line x1="480" y1="130" x2="480" y2="158" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a2)"/>
+
+      <!-- Service Provider box -->
+      <rect x="280" y="270" width="240" height="60" rx="10" fill="#ec4899"/>
+      <text x="400" y="296" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">service-provider</text>
+      <text x="400" y="314" text-anchor="middle" fill="#fce7f3" font-size="11">:3004  →  /provider/v1/onboarding/...</text>
+
+      <!-- arrow from complete to SP -->
+      <line x1="400" y1="220" x2="400" y2="268" stroke="#ec4899" stroke-width="1.5" marker-end="url(#a2)" stroke-dasharray="4,2"/>
+
+      <!-- management flows row -->
+      <rect x="20" y="160" width="140" height="50" rx="8" fill="#1e293b" stroke="#475569"/>
+      <text x="90" y="181" text-anchor="middle" fill="#94a3b8" font-size="11">GET /bsp/status</text>
+      <text x="90" y="197" text-anchor="middle" fill="#64748b" font-size="10">Poll status</text>
+
+      <rect x="20" y="225" width="140" height="50" rx="8" fill="#1e293b" stroke="#475569"/>
+      <text x="90" y="246" text-anchor="middle" fill="#94a3b8" font-size="11">GET /bsp/runtime-profile</text>
+      <text x="90" y="262" text-anchor="middle" fill="#64748b" font-size="10">Fetch BSP profile</text>
+
+      <rect x="660" y="160" width="140" height="50" rx="8" fill="#1e293b" stroke="#475569"/>
+      <text x="730" y="181" text-anchor="middle" fill="#94a3b8" font-size="11">POST /bsp/sync</text>
+      <text x="730" y="197" text-anchor="middle" fill="#64748b" font-size="10">Sync BSP data</text>
+
+      <rect x="660" y="225" width="140" height="50" rx="8" fill="#1e293b" stroke="#475569"/>
+      <text x="730" y="246" text-anchor="middle" fill="#94a3b8" font-size="11">POST /bsp/disconnect</text>
+      <text x="730" y="262" text-anchor="middle" fill="#64748b" font-size="10">Disconnect BSP</text>
+
+      <!-- all management -> SP -->
+      <line x1="90" y1="275" x2="278" y2="295" stroke="#475569" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#a2)"/>
+      <line x1="730" y1="275" x2="522" y2="295" stroke="#475569" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#a2)"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ===================== WORKSPACE ===================== -->
+<div id="workspace" class="section">
+  <div class="sec-title">Workspace & Settings Flows</div>
+  <div class="sec-sub">Routes split across service-provider, auth-service, and contact-service based on sub-path</div>
+  <div class="flow-grid">
+
+    <div class="flow-card">
+      <h3>WhatsApp Profile (service-provider :3004)</h3>
+      <div class="note-box" style="margin-bottom:12px">/api/v1/workspace/profile → /provider/v1/workspace/profile</div>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/profile</span><div class="dest">→ /provider/v1/workspace/profile</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/workspace/profile</span><div class="dest">→ update profile</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/workspace/profile/sync</span><div class="dest">→ sync from Meta</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/waba</span><div class="dest">→ /provider/v1/workspace/waba</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Webhooks (service-provider :3004)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/webhooks</span><div class="dest">→ /provider/v1/workspace/webhooks</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/workspace/webhooks</span><div class="dest">→ create subscription</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/workspace/webhooks/:id</span><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/workspace/webhooks/:id</span><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Team & Members (auth-service :3006)</h3>
+      <div class="note-box" style="margin-bottom:12px">/api/v1/workspace → /workspace (fallback)</div>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/members</span><div class="dest">→ /workspace/members</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/workspace/members/invite</span><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/workspace/members/:id/role</span><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/workspace/members/:id</span><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Roles & Permissions (auth-service :3006)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/roles</span><div class="dest">→ /workspace/roles</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/workspace/roles</span><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/workspace/roles/:id</span><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/roles/matrix</span><div class="dest">→ permissions matrix</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Teams (auth-service :3006)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/teams</span><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/workspace/teams</span><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/workspace/teams/:id</span><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Tags & Quick Replies (contact-service :3007)</h3>
+      <div class="note-box" style="margin-bottom:12px">/api/v1/workspace/tags passes through unchanged</div>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/tags</span><div class="dest">→ /api/v1/workspace/tags</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/workspace/tags</span><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/quick-replies</span><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/workspace/quick-replies</span><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== BILLING ===================== -->
+<div id="billing" class="section">
+  <div class="sec-title">Billing Flows</div>
+  <div class="sec-sub">/api/v1/workspace/billing → strips prefix → billing-service :3003</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>Wallet Recharge Flow</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/billing/info</span><div class="dest">→ /info</div><div class="arrow">← { balance, plan, usage }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/workspace/billing/recharge</span><div class="dest">→ /recharge  { amount }</div><div class="arrow">← { orderId, razorpayKey }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="path" style="color:#64748b;font-size:11px">User completes Razorpay payment modal</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/workspace/billing/recharge/verify</span><div class="dest">→ /recharge/verify</div><div class="arrow">← { success, newBalance }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Razorpay Webhook (no auth)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="path" style="color:#64748b;font-size:11px">Razorpay calls directly:</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/api/webhooks/razorpay</span><div class="dest">Gateway: /api/webhooks → /api/billing/webhooks</div><div class="arrow">→ /api/billing/webhooks/razorpay</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div></div><div class="body"><div class="arrow">← 200 OK (billing-service updates wallet)</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CONTACTS ===================== -->
+<div id="contacts" class="section">
+  <div class="sec-title">Contacts Flows</div>
+  <div class="sec-sub">/api/v1/contacts passes through unchanged → contact-service :3007</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>CRUD</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/contacts?page=1&limit=50</span><div class="arrow">← { contacts[], total }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/contacts/:id</span><div class="arrow">← { contact }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/contacts { name, phone }</span><div class="arrow">← { contact }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/contacts/:id</span><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/contacts/:id</span><div class="arrow">← 204</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>CSV Import (async job)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/contacts/csv-import/upload</span><div class="arrow">← { jobId }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="path" style="color:#64748b;font-size:11px">Poll until done:</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/contacts/csv-import/:jobId/progress</span><div class="arrow">← { processed, total, status }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/contacts/csv-import/:jobId/cancel</span><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CRM ===================== -->
+<div id="crm" class="section">
+  <div class="sec-title">CRM Flows</div>
+  <div class="sec-sub">/api/v1/crm passes through unchanged → contact-service :3007</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>Deals Pipeline</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/crm/pipelines</span><div class="arrow">← { pipelines[] }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/crm/deals</span><div class="arrow">← { deals[] }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/crm/deals { title, contactId, value }</span><div class="arrow">← { deal }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/crm/deals/:id/stage { stageId }</span><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/crm/deals/:id/notes { text }</span><div class="arrow">← { note }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/crm/deals/:id</span><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Tasks</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/crm/tasks</span><div class="arrow">← { tasks[] }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/crm/tasks { title, dueDate, contactId }</span><div class="arrow">← { task }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/crm/tasks/:id/status { status }</span><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/crm/tasks/:id</span><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== INBOX ===================== -->
+<div id="inbox" class="section">
+  <div class="sec-title">Inbox / Chat Flows</div>
+  <div class="sec-sub">/api/v1/inbox passes through → chat-service :3008 | media upload → service-provider :3004</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>Conversations</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div><div class="vline vline-chat"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/inbox?status=open</span><div class="arrow">← { conversations[], total }</div><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div><div class="vline vline-chat"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/inbox/conversations/:id/messages</span><div class="arrow">← { messages[] }</div><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div><div class="vline vline-chat"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/inbox/conversations/:id/read</span><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/inbox/conversations/:id/action</span><div class="dest">{ action: assign | resolve | reopen }</div><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Send Message + Media Upload</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/upload/media { file }</span><div class="arrow">↓ /api/v1/upload/media</div><div class="arrow">← { mediaUrl, mediaId }</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div><div class="vline vline-chat"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/inbox/conversations/:id/messages</span><div class="dest">{ text } or { mediaUrl }</div><div class="arrow">← { message }</div><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div></div><div class="body"><div class="arrow">chat-service → websocket-gateway → push new_message event to all agents</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TEMPLATES ===================== -->
+<div id="templates" class="section">
+  <div class="sec-title">Templates Flows</div>
+  <div class="sec-sub">/api/v1/templates passes through unchanged → service-provider :3004</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>CRUD & Submission</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/templates?channel=whatsapp</span><div class="arrow">← { templates[] }</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/templates { name, category, components }</span><div class="arrow">← { template }</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/templates/:id/submit</span><div class="arrow">← { status: "pending" }  (Meta review)</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/templates/sync</span><div class="arrow">← { synced, count }</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Auto-Send Rules</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/templates/rules</span><div class="arrow">← { rules[] }</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/templates/rules/:id/toggle { active }</span><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/templates/rules/:id/test { phoneNumber }</span><div class="arrow">← { sent: true }</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Analytics</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/templates/analytics/workspace</span><div class="arrow">← { sent, delivered, read, failed }</div><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div><div class="vline vline-sp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/templates/analytics/top</span><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-sp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/templates/analytics/export { format }</span><span class="svc-badge svc-sp">service-provider :3004</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== CAMPAIGNS ===================== -->
+<div id="campaigns" class="section">
+  <div class="sec-title">Campaigns Flows</div>
+  <div class="sec-sub">/api/v1/campaign → rewrites to /api/campaign → campaign-service :3002</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>Campaign Lifecycle</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div><div class="vline vline-camp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/campaign/campaigns</span><div class="arrow">← { campaigns[], total }</div><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div><div class="vline vline-camp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/campaign/campaigns/create</span><div class="dest">{ name, templateId, segments }</div><div class="arrow">← { campaign }</div><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div><div class="vline vline-camp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/campaign/campaigns/:id/lifecycle</span><div class="dest">{ action: schedule | pause | cancel }</div><div class="arrow">← { status }</div><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/campaign/campaigns/:id/retarget</span><div class="dest">{ type: failed | unread }</div><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Segments</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div><div class="vline vline-camp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/campaign/segments</span><div class="arrow">← { segments[] }</div><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div><div class="vline vline-camp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/campaign/segments { name, filters }</span><div class="arrow">← { segment, contactCount }</div><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/campaign/segments/:id</span><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Ads (no rewrite)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div><div class="vline vline-camp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/ads</span><div class="arrow">→ /api/v1/ads (no rewrite)</div><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div><div class="vline vline-camp"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/ads { name, budget }</span><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/ads/:id</span><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== AUTOMATION ===================== -->
+<div id="automation" class="section">
+  <div class="sec-title">Automation Flows</div>
+  <div class="sec-sub">/api/v1/automation → /api/automation | /api/v1/flows → passes through → automation-service :3001</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>Workflow Rules</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/automation/engine/rules</span><div class="arrow">← { rules[] }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/automation/engine/rules { trigger, actions }</span><div class="arrow">← { rule }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/automation/engine/rules/:id/toggle</span><div class="dest">{ enabled: true }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/automation/engine/rules/:id/execute</span><div class="arrow">← { jobId }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Answer Bot</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/automation/engine/answerbot/settings</span><div class="arrow">← { enabled, model }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/automation/engine/answerbot/faqs/generate</span><div class="dest">{ sourceUrl }</div><div class="arrow">← { faqs[] }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/automation/engine/answerbot/faqs/approve</span><div class="dest">{ ids[] }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>WhatsApp Forms</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/automation/engine/whatsapp-forms</span><div class="arrow">← { forms[] }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/automation/engine/whatsapp-forms</span><div class="arrow">← { form }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/automation/engine/whatsapp-forms/:id/publish</span><div class="arrow">← { status: "published" }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/automation/engine/whatsapp-forms/:id/sync</span><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Flows (WhatsApp Flow Builder)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/flows</span><div class="arrow">← { flows[] }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/flows/:id/action { action: updateJson }</span><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/flows/:id/action { action: publish }</span><div class="arrow">← { status: "published" }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== COMMERCE ===================== -->
+<div id="commerce" class="section">
+  <div class="sec-title">Commerce Flows</div>
+  <div class="sec-sub">/api/v1/commerce passes through unchanged → billing-service :3003</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>Catalogs & Products</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/commerce/catalogs</span><div class="arrow">← { catalogs[] }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/commerce/catalogs/:catId/products</span><div class="arrow">← { products[], total }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Orders</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/commerce/orders</span><div class="arrow">← { orders[], total }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/commerce/orders/:id</span><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/commerce/orders/:id/status { status: "confirmed" }</span><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Settings</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/commerce/settings</span><div class="arrow">← { currency, catalogId, paymentModes }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div></div><div class="body"><span class="method PATCH">PATCH</span><span class="path">/commerce/settings { catalogId }</span><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SUPPORT ===================== -->
+<div id="support" class="section">
+  <div class="sec-title">Support Flows</div>
+  <div class="sec-sub">/api/v1/support passes through unchanged → chat-service :3008</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>Tickets</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div><div class="vline vline-chat"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/support/tickets</span><div class="arrow">← { tickets[] }</div><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div><div class="vline vline-chat"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/support/tickets { subject, contactId, priority }</span><div class="arrow">← { ticket }</div><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div></div><div class="body"><span class="method PUT">PUT</span><span class="path">/support/tickets/:id { status: "resolved" }</span><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Macros</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div><div class="vline vline-chat"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/support/macros</span><div class="arrow">← { macros[] }</div><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div><div class="vline vline-chat"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/support/macros { name, actions }</span><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-chat"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/support/macros/:id</span><span class="svc-badge svc-chat">chat-service :3008</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== INTEGRATIONS ===================== -->
+<div id="integrations" class="section">
+  <div class="sec-title">Integrations & Widget Flows</div>
+  <div class="sec-sub">/api/v1/integrations passes through → automation-service :3001</div>
+  <div class="flow-grid">
+    <div class="flow-card">
+      <h3>Google Sheets OAuth Flow</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/integrations/google/status</span><div class="arrow">← { connected: false }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/integrations/google/auth-url</span><div class="arrow">← { authUrl }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="path" style="color:#64748b;font-size:11px">User authorises in popup → Google redirects back</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/integrations/google/config { code }</span><div class="arrow">← { connected: true }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/integrations/google/spreadsheets</span><div class="arrow">← { spreadsheets[] }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/integrations/google/spreadsheets/:id/sheets</span><div class="arrow">← { sheets[] }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>Petpooja POS</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/integrations/petpooja/connect { apiKey }</span><div class="arrow">← { connected: true }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/integrations/:type/sync</span><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+      </div>
+    </div>
+    <div class="flow-card">
+      <h3>API Keys & Widget Config</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/settings/api-keys</span><div class="dest">Gateway: /api/v1/settings/api-keys → /keys</div><div class="arrow">← { keys[] }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div><div class="vline vline-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/widget/config</span><div class="arrow">← { color, position, welcomeMsg }</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/widget/config { color, position }</span><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== WEBSOCKET ===================== -->
+<div id="websocket" class="section">
+  <div class="sec-title">WebSocket Real-Time Flow</div>
+  <div class="sec-sub">Browser connects directly to websocket-gateway :3009 — bypasses API Gateway</div>
+  <div class="arch-wrap">
+    <svg width="820" height="460" viewBox="0 0 820 460">
+      <defs>
+        <marker id="a3" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#94a3b8"/></marker>
+        <marker id="a3b" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#0284c7"/></marker>
+        <marker id="a3g" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#22c55e"/></marker>
+      </defs>
+
+      <!-- Participants -->
+      <rect x="20" y="20" width="100" height="44" rx="8" fill="#4f46e5"/>
+      <text x="70" y="37" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">Browser</text>
+      <text x="70" y="53" text-anchor="middle" fill="#a5b4fc" font-size="10">Customer Portal</text>
+      <line x1="70" y1="64" x2="70" y2="440" stroke="#4f46e5" stroke-width="1.5" stroke-dasharray="4,3" opacity=".4"/>
+
+      <rect x="160" y="20" width="110" height="44" rx="8" fill="#10b981"/>
+      <text x="215" y="37" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">auth-service</text>
+      <text x="215" y="53" text-anchor="middle" fill="#d1fae5" font-size="10">:3006</text>
+      <line x1="215" y1="64" x2="215" y2="440" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,3" opacity=".4"/>
+
+      <rect x="310" y="20" width="120" height="44" rx="8" fill="#0284c7"/>
+      <text x="370" y="37" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">websocket-gw</text>
+      <text x="370" y="53" text-anchor="middle" fill="#bae6fd" font-size="10">:3009</text>
+      <line x1="370" y1="64" x2="370" y2="440" stroke="#0284c7" stroke-width="1.5" stroke-dasharray="4,3" opacity=".4"/>
+
+      <rect x="470" y="20" width="110" height="44" rx="8" fill="#f59e0b"/>
+      <text x="525" y="37" text-anchor="middle" fill="#000" font-size="11" font-weight="600">API Gateway</text>
+      <text x="525" y="53" text-anchor="middle" fill="#78350f" font-size="10">:5001</text>
+      <line x1="525" y1="64" x2="525" y2="440" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3" opacity=".4"/>
+
+      <rect x="620" y="20" width="110" height="44" rx="8" fill="#06b6d4"/>
+      <text x="675" y="37" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">chat-service</text>
+      <text x="675" y="53" text-anchor="middle" fill="#cffafe" font-size="10">:3008</text>
+      <line x1="675" y1="64" x2="675" y2="440" stroke="#06b6d4" stroke-width="1.5" stroke-dasharray="4,3" opacity=".4"/>
+
+      <!-- Step 1: GET /auth/session -->
+      <text x="10" y="88" fill="#64748b" font-size="10">1</text>
+      <line x1="70" y1="92" x2="519" y2="92" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="290" y="88" text-anchor="middle" fill="#94a3b8" font-size="10">GET /api/v1/auth/session (use-socket.ts hook)</text>
+
+      <!-- GW -> auth -->
+      <line x1="525" y1="110" x2="221" y2="110" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="373" y="107" text-anchor="middle" fill="#f59e0b" font-size="10">→ auth-service GET /session</text>
+
+      <!-- auth -> Browser response -->
+      <line x1="215" y1="128" x2="76" y2="128" stroke="#10b981" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="143" y="124" text-anchor="middle" fill="#10b981" font-size="10">← { token }</text>
+
+      <!-- Step 2: WebSocket connect -->
+      <text x="10" y="152" fill="#64748b" font-size="10">2</text>
+      <line x1="70" y1="156" x2="364" y2="156" stroke="#0284c7" stroke-width="2" marker-end="url(#a3b)"/>
+      <text x="215" y="150" text-anchor="middle" fill="#0284c7" font-size="10">io.connect('/socket.io', { auth: { token } })</text>
+
+      <!-- WS verify with auth -->
+      <line x1="370" y1="172" x2="221" y2="172" stroke="#0284c7" stroke-width="1.5" marker-end="url(#a3b)"/>
+      <text x="295" y="168" text-anchor="middle" fill="#0284c7" font-size="10">verify token</text>
+      <line x1="215" y1="188" x2="364" y2="188" stroke="#10b981" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="295" y="184" text-anchor="middle" fill="#10b981" font-size="10">{ userId, workspaceId }</text>
+
+      <!-- Connected -->
+      <line x1="370" y1="204" x2="76" y2="204" stroke="#0284c7" stroke-width="2" marker-end="url(#a3b)"/>
+      <text x="215" y="200" text-anchor="middle" fill="#0284c7" font-size="10">Connected — joins workspace room</text>
+
+      <!-- Step 3: incoming WA message -->
+      <text x="10" y="232" fill="#64748b" font-size="10">3</text>
+      <text x="290" y="232" text-anchor="middle" fill="#64748b" font-size="10">--- new WhatsApp message arrives ---</text>
+      <line x1="675" y1="244" x2="376" y2="244" stroke="#06b6d4" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="525" y="240" text-anchor="middle" fill="#06b6d4" font-size="10">emit to workspace room: new_message</text>
+      <line x1="370" y1="260" x2="76" y2="260" stroke="#0284c7" stroke-width="2" marker-end="url(#a3b)"/>
+      <text x="215" y="256" text-anchor="middle" fill="#0284c7" font-size="10">push new_message { conversationId, message }</text>
+
+      <!-- Step 4: conversation update -->
+      <text x="10" y="288" fill="#64748b" font-size="10">4</text>
+      <line x1="675" y1="292" x2="376" y2="292" stroke="#06b6d4" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="525" y="288" text-anchor="middle" fill="#06b6d4" font-size="10">emit: conversation_updated</text>
+      <line x1="370" y1="308" x2="76" y2="308" stroke="#0284c7" stroke-width="2" marker-end="url(#a3b)"/>
+      <text x="215" y="304" text-anchor="middle" fill="#0284c7" font-size="10">push conversation_updated { id, status, assignedTo }</text>
+
+      <!-- Step 5: agent typing -->
+      <text x="10" y="336" fill="#64748b" font-size="10">5</text>
+      <line x1="70" y1="340" x2="364" y2="340" stroke="#4f46e5" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="215" y="336" text-anchor="middle" fill="#4f46e5" font-size="10">emit agent_typing { conversationId }</text>
+      <line x1="370" y1="356" x2="76" y2="356" stroke="#0284c7" stroke-width="1.5" marker-end="url(#a3b)"/>
+      <text x="215" y="352" text-anchor="middle" fill="#0284c7" font-size="10">broadcast typing to workspace room</text>
+
+      <!-- Legend -->
+      <rect x="480" y="320" width="310" height="110" rx="8" fill="#1e293b" stroke="#334155"/>
+      <text x="490" y="340" fill="#94a3b8" font-size="11" font-weight="600">Legend</text>
+      <line x1="490" y1="355" x2="520" y2="355" stroke="#4f46e5" stroke-width="2"/>
+      <text x="526" y="359" fill="#94a3b8" font-size="10">Browser → Gateway (HTTP)</text>
+      <line x1="490" y1="372" x2="520" y2="372" stroke="#0284c7" stroke-width="2"/>
+      <text x="526" y="376" fill="#94a3b8" font-size="10">WebSocket messages</text>
+      <line x1="490" y1="389" x2="520" y2="389" stroke="#06b6d4" stroke-width="2"/>
+      <text x="526" y="393" fill="#94a3b8" font-size="10">chat-service → WS Gateway</text>
+      <line x1="490" y1="406" x2="520" y2="406" stroke="#10b981" stroke-width="2"/>
+      <text x="526" y="410" fill="#94a3b8" font-size="10">auth-service response</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ===================== AUTH EXTRA ===================== -->
+<div id="auth-extra" class="section">
+  <div class="sec-title">Auth — Workspace Switching, Invitations & Google OAuth</div>
+  <div class="sec-sub">Routes discovered in layout components and page-level inline calls — all hit auth-service :3006</div>
+  <div class="flow-grid">
+
+    <div class="flow-card">
+      <h3>Workspace Switcher (workspace-switcher.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/auth/workspaces</span><div class="dest">→ /workspaces (list all workspaces for user)</div><div class="arrow">← { workspaces[] }</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/switch-workspace { workspaceId }</span><div class="dest">→ /switch-workspace (re-issues JWT for new workspace)</div><div class="arrow">← { token, workspace }</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Notification Bell — Pending Invitations (notification-panel.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/auth/invitations/pending</span><div class="dest">→ /invitations/pending</div><div class="arrow">← { invitations[] }</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Accept Workspace Invite (accept-invite/page.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/auth/me</span><div class="dest">→ /me (check if already logged in)</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/auth/invitation/:token?email=</span><div class="dest">→ /invitation/:token (validate invite token)</div><div class="arrow">← { invite, workspace }</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/accept-invite { token, password }</span><div class="dest">→ /accept-invite (create account + join workspace)</div><div class="arrow">← { token, user }</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Google OAuth Callback (google/callback/page.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="path" style="color:#64748b;font-size:11px">1. User clicks "Sign in with Google" → redirects to Google</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div><div class="vline vline-auth"></div></div><div class="body"><span class="path" style="color:#64748b;font-size:11px">2. Google redirects to /auth/google/callback?code=...</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auth"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/auth/google/callback { code }</span><div class="dest">→ /google/callback (exchange code for token)</div><div class="arrow">← { token, user, isNewUser }</div><span class="svc-badge svc-auth">auth-service :3006</span></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== CRM EXTRA ===================== -->
+<div id="crm-extra" class="section">
+  <div class="sec-title">CRM — Pipeline Management & Reports</div>
+  <div class="sec-sub">Inline calls in CRM components — all hit contact-service :3007</div>
+  <div class="flow-grid">
+
+    <div class="flow-card">
+      <h3>Pipeline Creation (PipelineDialog.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/crm/pipelines { name, stages[] }</span><div class="dest">→ /api/v1/crm/pipelines (no rewrite)</div><div class="arrow">← { pipeline }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Pipeline Automation Rules (PipelineAutomation.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/crm/automation?pipelineId=:id</span><div class="dest">→ /api/v1/crm/automation</div><div class="arrow">← { rules[] }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div><div class="vline vline-cont"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/crm/automation { ...rule, pipelineId }</span><div class="dest">→ /api/v1/crm/automation</div><div class="arrow">← { rule }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/crm/automation?id=:id</span><div class="dest">→ /api/v1/crm/automation</div><div class="arrow">← 204</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>CRM Analytics Reports (crm/reports/page.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/crm/analytics?from=&to=&pipelineId=</span><div class="dest">→ /api/v1/crm/analytics (no rewrite)</div><div class="arrow">← { totalDeals, wonDeals, lostDeals, avgDealValue, conversionRate }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Contact Form Submissions (contacts/[id]/page.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-cont"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/contacts/:id/form-submissions</span><div class="dest">→ /api/v1/contacts/:id/form-submissions (no rewrite)</div><div class="arrow">← { submissions[] }</div><span class="svc-badge svc-cont">contact-service :3007</span></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================== COMMERCE EXTRA ===================== -->
+<div id="commerce-extra" class="section">
+  <div class="sec-title">Commerce — Products, Checkout Bot & Campaign Messages</div>
+  <div class="sec-sub">Inline calls in commerce components — products hit billing-service :3003, campaign messages hit campaign-service :3002</div>
+  <div class="flow-grid">
+
+    <div class="flow-card">
+      <h3>Product Catalog Management (catalog/page.tsx + ProductDialog.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/commerce/products?stats=true</span><div class="dest">→ /api/v1/commerce/products</div><div class="arrow">← { products[], stats }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/commerce/products { name, price, sku, images }</span><div class="arrow">← { product }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method PUT">PUT</span><span class="path">/commerce/products/:id { ...updates }</span><div class="arrow">← { updated }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div></div><div class="body"><span class="method DELETE">DELETE</span><span class="path">/commerce/products/:id</span><div class="arrow">← 204</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Manual Order Creation (ManualOrderDialog.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/commerce/products?search=:q&limit=10</span><div class="dest">→ product search for order line items</div><div class="arrow">← { products[] }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/commerce/orders { contactId, items[], total }</span><div class="dest">→ create manual order</div><div class="arrow">← { order }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Checkout Bot Configuration (checkout-bot/page.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/commerce/checkout-bot/stats</span><div class="dest">→ /api/v1/commerce/checkout-bot/stats</div><div class="arrow">← { totalOrders, revenue, conversionRate }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div><div class="vline vline-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/commerce/settings</span><div class="arrow">← { checkoutBotEnabled, ... }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div></div><div class="body"><span class="method POST">POST</span><span class="path">/commerce/settings { checkoutBotEnabled, ... }</span><div class="dest">→ save checkout bot config (note: POST not PATCH)</div><div class="arrow">← { updated }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Campaign Recipient Messages (CampaignRecipientTable.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-camp"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/campaigns/:campaignId/messages?page=&limit=</span><div class="dest">Gateway: /api/v1/campaign → /api/campaign</div><div class="arrow">→ /api/campaign/:campaignId/messages</div><div class="arrow">← { messages[], total, stats }</div><span class="svc-badge svc-camp">campaign-service :3002</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Workspace Pricing (DirectTemplateModal.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-bill"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/workspace/pricing</span><div class="dest">Gateway: /api/v1/workspace/pricing → /pricing</div><div class="arrow">← { plans[], currentPlan, limits }</div><span class="svc-badge svc-bill">billing-service :3003</span></div></div>
+      </div>
+    </div>
+
+    <div class="flow-card">
+      <h3>Developer API Keys (snippet-generator.tsx)</h3>
+      <div class="seq">
+        <div class="seq-step"><div class="line-wrap"><div class="dot dot-auto"></div></div><div class="body"><span class="method GET">GET</span><span class="path">/developer/keys</span><div class="dest">→ /api/v1/developer/keys (no rewrite)</div><div class="arrow">← { keys[] } — used to show snippet with real key</div><span class="svc-badge svc-auto">automation-service :3001</span></div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<script>
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

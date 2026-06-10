@@ -54,6 +54,8 @@ const normalizeRoomId = (value: unknown): string | null => {
   return null;
 };
 
+import { getSessionData } from '@/lib/api/auth';
+
 const getSocket = async (): Promise<Socket> => {
   // If already connected, return it
   if (globalSocket?.connected) return globalSocket;
@@ -87,18 +89,12 @@ const getSocket = async (): Promise<Socket> => {
     if (!token) {
       try {
         console.log('[Socket:Singleton] Token not found locally, fetching from session endpoint...');
-        const response = await fetch('/api/auth/session', {
-          method: 'GET',
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const session = await response.json();
-          token = session.token;
-          if (token) {
-            console.log('[Socket:Singleton] Got token from session endpoint');
-            if (typeof sessionStorage !== 'undefined') {
-              sessionStorage.setItem('socket_auth_token', token);
-            }
+        const session = await getSessionData();
+        token = session?.token;
+        if (token) {
+          console.log('[Socket:Singleton] Got token from session endpoint');
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem('socket_auth_token', token);
           }
         }
       } catch (err) {

@@ -532,15 +532,15 @@ export default function AudienceStep({ campaignData, setCampaignData }: Audience
 
 // Sub-components for Google Sheets picking
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import axios from 'axios';
+import { getGoogleSheetsSpreadsheets, getGoogleSheetsSheets } from '@/lib/api/integrations';
 import { Zap } from 'lucide-react';
 
 function SpreadsheetPicker({ value, onChange }: { value: string, onChange: (id: string) => void }) {
   const { data, isLoading } = useQuery({
     queryKey: ['google-spreadsheets'],
     queryFn: async () => {
-      const resp = await axios.get('/api/integrations/google/spreadsheets');
-      return resp.data.files || [];
+      const resp = await getGoogleSheetsSpreadsheets();
+      return resp.files || [];
     }
   });
 
@@ -563,8 +563,8 @@ function SheetPicker({ spreadsheetId, value, onChange }: { spreadsheetId: string
     queryKey: ['google-sheets', spreadsheetId],
     queryFn: async () => {
       if (!spreadsheetId) return [];
-      const resp = await axios.get(`/api/integrations/google/spreadsheets/${spreadsheetId}/sheets`);
-      return resp.data.sheets || [];
+      const resp = await getGoogleSheetsSheets(spreadsheetId);
+      return resp.sheets || [];
     },
     enabled: !!spreadsheetId
   });

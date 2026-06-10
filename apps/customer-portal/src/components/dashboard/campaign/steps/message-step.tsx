@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTemplates, Template } from "@/lib/api/templates";
+import { uploadMedia } from "@/lib/api/inbox";
+import { getGoogleSheetsColumns } from "@/lib/api/integrations";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import axios from "axios";
 import { WhatsAppBubble } from "../WhatsAppBubble";
 
 interface MessageStepProps {
@@ -62,16 +63,8 @@ export default function MessageStep({
     if (!file) return;
 
     setUploadingMedia(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("folder", "campaign_media");
-
     try {
-      const res = await fetch("/api/upload/media", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
+      const data: any = await uploadMedia(file);
       if (data.success) {
         setCampaignData({
           ...campaignData,
@@ -84,8 +77,8 @@ export default function MessageStep({
       } else {
         toast.error(data.message || "Media upload failed");
       }
-    } catch (err) {
-      toast.error("Network error uploading media");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Network error uploading media");
     } finally {
       setUploadingMedia(false);
     }
@@ -124,8 +117,8 @@ export default function MessageStep({
     queryKey: ["google-sheet-columns", campaignData.googleSheetsConfig?.spreadsheetId, campaignData.googleSheetsConfig?.sheetName],
     queryFn: async () => {
       if (!campaignData.googleSheetsConfig?.spreadsheetId || !campaignData.googleSheetsConfig?.sheetName) return [];
-      const resp = await axios.get(`/api/integrations/google/spreadsheets/${campaignData.googleSheetsConfig.spreadsheetId}/columns?sheetName=${encodeURIComponent(campaignData.googleSheetsConfig.sheetName)}`);
-      return resp.data.columns || [];
+      const resp = await getGoogleSheetsColumns(campaignData.googleSheetsConfig.spreadsheetId, campaignData.googleSheetsConfig.sheetName);
+      return resp.columns || [];
     },
     enabled: campaignData.audienceMode === 'google_sheets' && !!campaignData.googleSheetsConfig?.spreadsheetId && !!campaignData.googleSheetsConfig?.sheetName
   });

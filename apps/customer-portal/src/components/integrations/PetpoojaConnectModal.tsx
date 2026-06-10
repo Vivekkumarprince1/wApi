@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ShieldCheck, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
-import axios from 'axios';
+import { connectPetpooja } from '@/lib/api/integrations';
 
 interface PetpoojaConnectModalProps {
   isOpen: boolean;
@@ -37,13 +37,12 @@ export function PetpoojaConnectModal({ isOpen, onClose, onSuccess }: PetpoojaCon
 
     setLoading(true);
     try {
-      // We'll call a new API endpoint we'll create: /api/integrations/petpooja/connect
-      await axios.post('/api/integrations/petpooja/connect', formData);
+      await connectPetpooja(formData);
       toast.success("Petpooja connected successfully!");
       onSuccess();
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to connect Petpooja");
+      toast.error(error.message || "Failed to connect Petpooja");
     } finally {
       setLoading(false);
     }

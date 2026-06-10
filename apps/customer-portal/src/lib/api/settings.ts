@@ -88,3 +88,7 @@ export const deleteQuickReply = (id: string) => api.delete<any>(`/workspace/quic
 export const getInboxSettings = () => api.get<any>('/workspace/inbox-settings').then(unwrapData);
 export const updateInboxSettings = (data: any) =>
   api.patch<any>('/workspace/inbox-settings', data).then(unwrapData);
+
+export const searchTeamMembers = (email: string) =>
+  api.get<any>(`/workspace/team/search`, { params: { email } });
+

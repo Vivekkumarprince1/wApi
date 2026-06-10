@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import { inviteTeamMember, updateMember, getTeams } from '@/lib/api/settings';
+import { inviteTeamMember, updateMember, getTeams, searchTeamMembers } from '@/lib/api/settings';
 import { Input } from '@/components/ui/input';
 import { getWorkspaceRoleOptions, roleMatches } from './role-options';
 import { ShieldCheck, UserCheck, Search, Loader2, AlertCircle } from 'lucide-react';
@@ -57,8 +57,7 @@ export default function MemberPanel({ mode, isOpen, onClose, onSuccess, roles, m
     const timer = setTimeout(async () => {
       setSearchStatus(prev => ({ ...prev, isLoading: true, error: undefined }));
       try {
-        const response = await fetch(`/api/workspace/team/search?email=${encodeURIComponent(form.email)}`);
-        const result = await response.json();
+        const result = await searchTeamMembers(form.email);
         
         if (result.success && result.data) {
           const { exists, user, isMember } = result.data;

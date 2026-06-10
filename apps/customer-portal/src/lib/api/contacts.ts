@@ -34,3 +34,13 @@ export const deleteSegment = (id: string) => api.delete<any>(`/campaign/segments
 export const fetchTags = () => api.get<any>('/workspace/tags').then(unwrap);
 
 export const importContacts = (data: any) => api.post('/contacts/import', data);
+
+export const getCsvImportProgress = (jobId: string) =>
+  api.get<any>(`/bulk/contacts/csv-import/${jobId}/progress`);
+
+export const uploadCsvImport = (data: { csvContent: string; fileName: string }) =>
+  api.post<any>('/bulk/contacts/csv-import/upload', data);
+
+export const cancelCsvImport = (jobId: string) =>
+  api.delete<any>(`/bulk/contacts/csv-import/${jobId}/cancel`);
+

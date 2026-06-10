@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { getCsvImportProgress, uploadCsvImport, cancelCsvImport } from '@/lib/api/contacts';
 
 interface ImportProgress {
   jobId: string;
@@ -63,9 +64,8 @@ export default function ContactImportDialog({
     queryKey: ['import-progress', jobId],
     queryFn: async () => {
       if (!jobId) return null;
-      const response = await fetch(`/api/contacts/csv-import/${jobId}/progress`);
-      if (!response.ok) throw new Error('Failed to fetch progress');
-      return (await response.json()).data as ImportProgress;
+      const resp = await getCsvImportProgress(jobId);
+      return resp.data as ImportProgress;
     },
     enabled: !!jobId && step === 'progress',
     refetchInterval: 1000, // Poll every second
@@ -75,30 +75,18 @@ export default function ContactImportDialog({
   const uploadMutation = useMutation({
     mutationFn: async () => {
       if (!csvContent) throw new Error('No CSV content');
-
-      const response = await fetch('/api/contacts/csv-import/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          csvContent,
-          fileName: csvFile?.name || 'contacts.csv',
-        }),
+      return await uploadCsvImport({
+        csvContent,
+        fileName: csvFile?.name || 'contacts.csv',
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Upload failed');
-      }
-
-      return await response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setJobId(data.jobId);
       setStep('progress');
       toast.success('Import started!');
     },
-    onError: (error) => {
-      toast.error((error as Error).message || 'Failed to start import');
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to start import');
     },
   });
 
@@ -106,16 +94,15 @@ export default function ContactImportDialog({
   const cancelMutation = useMutation({
     mutationFn: async () => {
       if (!jobId) throw new Error('No job ID');
-      const response = await fetch(`/api/contacts/csv-import/${jobId}/cancel`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) throw new Error('Failed to cancel');
-      return await response.json();
+      return await cancelCsvImport(jobId);
     },
     onSuccess: () => {
       setStep('upload');
       setJobId(null);
       toast.success('Import cancelled');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.message || error.message || 'Failed to cancel import');
     },
   });
 

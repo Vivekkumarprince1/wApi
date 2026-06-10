@@ -20,6 +20,8 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
+import { deleteAccountDirect } from '@/lib/api/auth';
+
 interface DeleteAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -38,18 +40,10 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
 
     setIsDeleting(true);
     try {
-      const response = await fetch('/api/auth/account', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ confirmText }),
-      });
-
-      const result = await response.json();
+      const result = await deleteAccountDirect({ confirmText });
 
       if (result.success) {
-        toast.success(result.message);
+        toast.success(result.message || 'Account successfully deleted');
         // Short delay for the toast to be seen before redirect
         setTimeout(() => {
           router.push('/auth/login');
@@ -58,9 +52,9 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
         toast.error(result.message || 'Deletion failed');
         setIsDeleting(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Delete account error:', error);
-      toast.error('A network error occurred. Please try again.');
+      toast.error(error.message || 'A network error occurred. Please try again.');
       setIsDeleting(false);
     }
   };

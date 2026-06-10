@@ -13,6 +13,8 @@ import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
+import { requestAccountDeletion, confirmAccountDeletion } from '@/lib/api/auth';
+
 interface DeleteAccountSectionProps {
   userId: string;
   email: string;
@@ -35,22 +37,8 @@ export default function DeleteAccountSection({
   // session cookie, not the email body — but we still send `email` so the
   // server can reject the request if it ever drifts from the session user.
   const requestDeletionMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch('/api/auth/account/delete-request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Failed to request deletion');
-      }
-
-      return await response.json();
-    },
-    onSuccess: (data) => {
+    mutationFn: () => requestAccountDeletion({ email }),
+    onSuccess: () => {
       setStep('verify');
       toast.success('Verification code sent to your email');
     },
@@ -67,20 +55,7 @@ export default function DeleteAccountSection({
       if (verificationCode !== codeFromEmail) {
         throw new Error('Verification code is incorrect');
       }
-
-      const response = await fetch('/api/auth/account/delete-confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ userId, verificationCode }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.message || 'Failed to delete account');
-      }
-
-      return await response.json();
+      return confirmAccountDeletion({ userId, verificationCode });
     },
     onSuccess: () => {
       setStep('processing');

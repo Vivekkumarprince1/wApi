@@ -26,7 +26,7 @@ export interface ApiClient extends Omit<AxiosInstance,
 }
 
 const baseClient = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/v1',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

@@ -25,7 +25,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-import { fetchRules, toggleRule, deleteRule, AutomationRule } from '@/lib/api/automation';
+import { fetchRules, toggleRule, deleteRule, AutomationRule, executeRule } from '@/lib/api/automation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -55,21 +55,14 @@ export default function WorkflowsPage() {
     const messageBody = window.prompt('Test message body (optional):', 'Manual workflow test')?.trim() || 'Manual workflow test';
 
     try {
-      const response = await fetch(`/api/automation/engine/rules/${ruleId}/execute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          conversationId: conversationId || undefined,
-          contactId: contactId || undefined,
-          messageBody
-        })
+      const json = await executeRule(ruleId, {
+        conversationId: conversationId || undefined,
+        contactId: contactId || undefined,
+        messageBody
       });
 
-      const raw = await response.text();
-      const json = raw ? JSON.parse(raw) : null;
-
-      if (!response.ok || !json?.success) {
-        throw new Error(json?.error || `Failed to test workflow (${response.status})`);
+      if (!json?.success) {
+        throw new Error(json?.error || 'Failed to test workflow');
       }
 
       toast.success('Workflow test executed successfully');
