@@ -63,6 +63,31 @@ import {
   AvatarFallback 
 } from '@/components/ui/avatar';
 
+const KPICard = ({ label, value, icon: Icon, trend, color, bg }: any) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.95 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="relative group border-none ring-1 ring-border/40 bg-card rounded-[32px] overflow-hidden shadow-premium-sm hover:ring-primary/20 transition-all p-6"
+  >
+    <div className="flex items-center justify-between mb-4">
+      <div className={cn("p-3 rounded-2xl", bg, color)}>
+         <Icon className="h-5 w-5" />
+      </div>
+      <div className="flex flex-col items-end">
+         <Badge variant="secondary" className="bg-muted/50 text-[9px] font-black tracking-widest uppercase rounded-lg border-none py-1">
+            {trend}
+         </Badge>
+      </div>
+    </div>
+    <div className="space-y-1">
+       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60">{label}</p>
+       <h3 className="text-3xl font-black tracking-tight text-foreground">{value}</h3>
+    </div>
+    {/* Decorative gradient */}
+    <div className={cn("absolute -bottom-10 -right-10 w-24 h-24 blur-[40px] opacity-10 rounded-full", bg)} />
+  </motion.div>
+);
+
 export default function CRMReportsPage() {
   const [selectedPipelineId, setSelectedPipelineId] = React.useState<string | null>(null);
 
@@ -105,30 +130,7 @@ export default function CRMReportsPage() {
   const totalLeads = metrics.totalDeals || 0;
   const conversionRate = metrics.winRate || 0;
 
-  const KPICard = ({ label, value, icon: Icon, trend, color, bg }: any) => (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="relative group border-none ring-1 ring-border/40 bg-card rounded-[32px] overflow-hidden shadow-premium-sm hover:ring-primary/20 transition-all p-6"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <div className={cn("p-3 rounded-2xl", bg, color)}>
-           <Icon className="h-5 w-5" />
-        </div>
-        <div className="flex flex-col items-end">
-           <Badge variant="secondary" className="bg-muted/50 text-[9px] font-black tracking-widest uppercase rounded-lg border-none py-1">
-              {trend}
-           </Badge>
-        </div>
-      </div>
-      <div className="space-y-1">
-         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60">{label}</p>
-         <h3 className="text-3xl font-black tracking-tight text-foreground">{value}</h3>
-      </div>
-      {/* Decorative gradient */}
-      <div className={cn("absolute -bottom-10 -right-10 w-24 h-24 blur-[40px] opacity-10 rounded-full", bg)} />
-    </motion.div>
-  );
+
 
   return (
     <div className="h-[calc(100vh-theme(spacing.20))] overflow-y-auto custom-scrollbar no-scrollbar bg-muted/[0.02]">

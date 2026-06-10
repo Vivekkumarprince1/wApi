@@ -29,6 +29,27 @@ import { cn } from '@/lib/utils';
 import api from '@/lib/axios';
 import FlashLoader from '@/components/ui/flash-loader';
 
+const StatCard = ({ label, value, icon: Icon, color, bg }: any) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="relative group p-6 bg-card border border-border/40 rounded-[32px] shadow-premium-sm hover:shadow-premium hover:border-primary/20 transition-all overflow-hidden"
+  >
+    <div className="flex items-center justify-between mb-4">
+       <div className={cn("p-2.5 rounded-xl", bg, color)}>
+          <Icon className="size-5" />
+       </div>
+       <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase tracking-widest border-border/40 opacity-40">Live</Badge>
+    </div>
+    <div className="space-y-1">
+       <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 leading-none">{label}</p>
+       <h3 className="text-3xl font-black tracking-tight">{value}</h3>
+    </div>
+    {/* Decorative gradient */}
+    <div className={cn("absolute -bottom-10 -right-10 w-24 h-24 blur-[40px] opacity-10 rounded-full", bg)} />
+  </motion.div>
+);
+
 export default function CommerceOverviewPage() {
   const router = useRouter();
 
@@ -92,26 +113,7 @@ export default function CommerceOverviewPage() {
     }
   ];
 
-  const StatCard = ({ label, value, icon: Icon, color, bg }: any) => (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative group p-6 bg-card border border-border/40 rounded-[32px] shadow-premium-sm hover:shadow-premium hover:border-primary/20 transition-all overflow-hidden"
-    >
-      <div className="flex items-center justify-between mb-4">
-         <div className={cn("p-2.5 rounded-xl", bg, color)}>
-            <Icon className="size-5" />
-         </div>
-         <Badge variant="outline" className="rounded-lg text-[9px] font-black uppercase tracking-widest border-border/40 opacity-40">Live</Badge>
-      </div>
-      <div className="space-y-1">
-         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 leading-none">{label}</p>
-         <h3 className="text-3xl font-black tracking-tight">{value}</h3>
-      </div>
-      {/* Decorative gradient */}
-      <div className={cn("absolute -bottom-10 -right-10 w-24 h-24 blur-[40px] opacity-10 rounded-full", bg)} />
-    </motion.div>
-  );
+
 
   return (
     <div className="h-[calc(100vh-theme(spacing.20))] overflow-y-auto custom-scrollbar no-scrollbar bg-muted/[0.02]">

@@ -22,6 +22,22 @@ interface CampaignFunnelProps {
   onFilter?: (status: string) => void;
 }
 
+const CustomTooltip = ({ active, payload, totalSent }: any) => {
+  if (active && payload && payload.length) {
+    const item = payload[0].payload;
+    const percentage = totalSent > 0 ? ((item.value / totalSent) * 100).toFixed(1) : 0;
+    
+    return (
+      <div className="bg-background border border-border p-3 rounded-2xl shadow-xl">
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{item.name}</p>
+        <p className="text-xl font-black">{item.value.toLocaleString()}</p>
+        <p className="text-[10px] font-bold text-primary mt-1">{percentage}% of total sent</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export function CampaignFunnel({ data, onFilter }: CampaignFunnelProps) {
   const chartData = [
     { name: 'Sent', value: data.sent, color: '#3b82f6' },
@@ -29,22 +45,6 @@ export function CampaignFunnel({ data, onFilter }: CampaignFunnelProps) {
     { name: 'Read', value: data.read, color: '#6366f1' },
     { name: 'Replied', value: data.replied, color: '#8b5cf6' },
   ].filter(item => item.value > 0 || item.name === 'Sent');
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const item = payload[0].payload;
-      const percentage = data.sent > 0 ? ((item.value / data.sent) * 100).toFixed(1) : 0;
-      
-      return (
-        <div className="bg-background border border-border p-3 rounded-2xl shadow-xl">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{item.name}</p>
-          <p className="text-xl font-black">{item.value.toLocaleString()}</p>
-          <p className="text-[10px] font-bold text-primary mt-1">{percentage}% of total sent</p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className="h-[300px] w-full mt-6">
@@ -61,7 +61,7 @@ export function CampaignFunnel({ data, onFilter }: CampaignFunnelProps) {
             tick={{ fontSize: 10, fontWeight: 900, fill: 'currentColor', opacity: 0.5 }}
             dy={10}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
+          <Tooltip content={<CustomTooltip totalSent={data.sent} />} cursor={{ fill: 'transparent' }} />
           <Bar dataKey="value" radius={[12, 12, 12, 12]} onClick={(data: any) => {
             if (onFilter) onFilter(data.name.toLowerCase());
           }}>

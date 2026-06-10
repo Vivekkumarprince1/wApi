@@ -20,12 +20,12 @@ export function WhatsAppBubble({ template, variableMapping = {}, mediaUrl }: Wha
     });
   };
 
-  const bodyContent = useMemo(() => {
+  const bodyContent = (() => {
     const text = template.bodyText || template.body?.text || '';
     return replaceVariables(text);
-  }, [template, variableMapping]);
+  })();
 
-  const headerContent = useMemo(() => {
+  const headerContent = (() => {
     if (!template.header?.enabled || template.header?.format === 'NONE') return null;
     
     if (template.header.format === 'TEXT') {
@@ -73,7 +73,7 @@ export function WhatsAppBubble({ template, variableMapping = {}, mediaUrl }: Wha
     }
 
     return null;
-  }, [template, variableMapping, mediaUrl]);
+  })();
 
   return (
     <div className="flex flex-col max-w-full sm:max-w-[92%] mx-auto md:mx-0">

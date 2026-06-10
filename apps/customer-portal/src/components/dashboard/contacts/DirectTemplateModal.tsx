@@ -39,6 +39,8 @@ interface DirectTemplateModalProps {
   initialTemplateId?: string | null;
 }
 
+const EMPTY_ARRAY: any[] = [];
+
 export default function DirectTemplateModal({ 
   isOpen, 
   onClose, 
@@ -93,8 +95,8 @@ export default function DirectTemplateModal({
   const currentBalance = wallet?.balance || 0;
   const currency = wallet?.currency || 'INR';
 
-  const templates: Template[] = templatesData?.data || [];
-  const contacts: Contact[] = contactsData?.data || [];
+  const templates: Template[] = templatesData?.data || EMPTY_ARRAY;
+  const contacts: Contact[] = contactsData?.data || EMPTY_ARRAY;
 
   const filteredTemplates = templates.filter((t) => 
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

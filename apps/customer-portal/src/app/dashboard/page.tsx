@@ -168,7 +168,7 @@ const DashboardPageClient = () => {
 
   const userName = user?.name?.split(' ')[0] || 'there';
   const trialDaysLeft = user?.trialEndsAt
-    ? Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / 86400000))
+    ? Math.max(0, Math.ceil((new Date(user.trialEndsAt).getTime() - currentTime.getTime()) / 86400000))
     : null;
   const showTrial = user?.role === 'owner' && trialDaysLeft !== null && trialDaysLeft > 0;
 

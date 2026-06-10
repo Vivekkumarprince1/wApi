@@ -67,6 +67,10 @@ app.use(async (req, res, next) => {
   const expectedSecret = process.env.INTERNAL_SERVICE_SECRET || '';
   if (typeof callerSecret === 'string' && callerSecret.length === expectedSecret.length &&
       crypto.timingSafeEqual(Buffer.from(callerSecret), Buffer.from(expectedSecret))) {
+    // service-provider's guards additionally require an x-internal-service name.
+    if (!req.headers['x-internal-service']) {
+      req.headers['x-internal-service'] = 'api-gateway';
+    }
     return next();
   }
 
@@ -78,6 +82,7 @@ app.use(async (req, res, next) => {
   delete req.headers['x-permissions'];
   delete req.headers['x-impersonating'];
   delete req.headers['x-internal-service-secret'];
+  delete req.headers['x-internal-service'];
 
   // Skip verification for internal API calls or public health check endpoints
   if (req.path.startsWith('/api/internal') || req.path === '/health' || req.path === '/') {
@@ -131,7 +136,16 @@ app.use(async (req, res, next) => {
 
           // Inject shared internal key to prove that these headers were set by API Gateway
           req.headers['x-internal-service-secret'] = process.env.INTERNAL_SERVICE_SECRET;
+          req.headers['x-internal-service'] = 'api-gateway';
         }
+      } else if (verifyRes.status === 401 || verifyRes.status === 403 || verifyRes.status === 400) {
+        // The token is invalid/expired — an auth failure, not a gateway failure.
+        res.status(401).json({
+          success: false,
+          error: 'Unauthorized',
+          message: 'Your session is invalid or has expired. Please log in again.'
+        });
+        return;
       } else {
         console.error(`[API Gateway Session Verification Error]: Auth Service returned status ${verifyRes.status}`);
         res.status(502).json({

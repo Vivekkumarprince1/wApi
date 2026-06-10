@@ -18,6 +18,22 @@ interface ReviewStepProps {
   campaignData: any;
 }
 
+const SummaryCard = ({ icon: Icon, label, value, subValue, color = 'primary' }: any) => (
+  <div className="bg-muted/10 border border-border/50 rounded-3xl p-6 flex flex-col gap-4 group hover:bg-muted/20 transition-all">
+    <div className="flex items-center justify-between">
+      <div className={`h-10 w-10 rounded-xl bg-${color}/10 flex items-center justify-center text-${color}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <Badge variant="outline" className="h-5 text-[9px] font-black uppercase tracking-tighter opacity-50">Verified</Badge>
+    </div>
+    <div className="space-y-1">
+      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+      <p className="text-lg font-black text-foreground">{value}</p>
+      {subValue && <p className="text-xs text-muted-foreground font-medium">{subValue}</p>}
+    </div>
+  </div>
+);
+
 export default function ReviewStep({ campaignData }: ReviewStepProps) {
   const audienceCount = useMemo(() => {
     // This is simplified for current context, in real app would match audience logic
@@ -25,21 +41,7 @@ export default function ReviewStep({ campaignData }: ReviewStepProps) {
     return 0; // fallback
   }, [campaignData]);
 
-  const SummaryCard = ({ icon: Icon, label, value, subValue, color = 'primary' }: any) => (
-    <div className="bg-muted/10 border border-border/50 rounded-3xl p-6 flex flex-col gap-4 group hover:bg-muted/20 transition-all">
-      <div className="flex items-center justify-between">
-        <div className={`h-10 w-10 rounded-xl bg-${color}/10 flex items-center justify-center text-${color}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-        <Badge variant="outline" className="h-5 text-[9px] font-black uppercase tracking-tighter opacity-50">Verified</Badge>
-      </div>
-      <div className="space-y-1">
-        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
-        <p className="text-lg font-black text-foreground">{value}</p>
-        {subValue && <p className="text-xs text-muted-foreground font-medium">{subValue}</p>}
-      </div>
-    </div>
-  );
+
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">

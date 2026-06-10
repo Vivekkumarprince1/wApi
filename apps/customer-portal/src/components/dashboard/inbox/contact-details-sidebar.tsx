@@ -62,6 +62,35 @@ interface ContactDetailsSidebarProps {
   pipelines?: Pipeline[];
 }
 
+const SectionHeader = ({ label, icon: Icon, section, count, isLoading, isExpanded, isUpdating, onToggle }: any) => {
+  return (
+    <button 
+      onClick={() => onToggle(section)}
+      className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all duration-300 group
+        ${isExpanded ? 'bg-primary/5 text-primary shadow-premium-sm ring-1 ring-primary/20' : 'hover:bg-muted/50 text-muted-foreground'}
+      `}
+    >
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-xl transition-all duration-300 ${isExpanded ? 'bg-primary text-white scale-110' : 'bg-muted group-hover:bg-background group-hover:text-primary group-hover:scale-105 shadow-sm'} ${isUpdating || isLoading ? 'animate-pulse' : ''}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+        <div className="flex flex-col items-start">
+          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isExpanded ? 'text-primary' : ''}`}>{label}</span>
+          {(isUpdating || isLoading) && <span className="text-[8px] font-bold text-primary animate-pulse uppercase tracking-tighter">Syncing...</span>}
+        </div>
+        {count !== undefined && !(isUpdating || isLoading) && (
+          <Badge variant="secondary" className="h-4 text-[9px] font-black px-1.5 opacity-60">
+            {count}
+          </Badge>
+        )}
+      </div>
+      <div className={`transition-transform duration-500 ${isExpanded ? 'rotate-180 opacity-100' : 'opacity-30 group-hover:opacity-60'}`}>
+        <ChevronDown className="h-3.5 w-3.5" />
+      </div>
+    </button>
+  );
+};
+
 export default function ContactDetailsSidebar({ 
   contact, 
   conversation, 
@@ -106,35 +135,7 @@ export default function ContactDetailsSidebar({
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const SectionHeader = ({ label, icon: Icon, section, count, isLoading }: any) => {
-    const isExpanded = expandedSections[section as keyof typeof expandedSections];
-    return (
-      <button 
-        onClick={() => toggleSection(section)}
-        className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all duration-300 group
-          ${isExpanded ? 'bg-primary/5 text-primary shadow-premium-sm ring-1 ring-primary/20' : 'hover:bg-muted/50 text-muted-foreground'}
-        `}
-      >
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-xl transition-all duration-300 ${isExpanded ? 'bg-primary text-white scale-110' : 'bg-muted group-hover:bg-background group-hover:text-primary group-hover:scale-105 shadow-sm'} ${isUpdating || isLoading ? 'animate-pulse' : ''}`}>
-            <Icon className="h-3.5 w-3.5" />
-          </div>
-          <div className="flex flex-col items-start">
-            <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isExpanded ? 'text-primary' : ''}`}>{label}</span>
-            {(isUpdating || isLoading) && <span className="text-[8px] font-bold text-primary animate-pulse uppercase tracking-tighter">Syncing...</span>}
-          </div>
-          {count !== undefined && !(isUpdating || isLoading) && (
-            <Badge variant="secondary" className="h-4 text-[9px] font-black px-1.5 opacity-60">
-              {count}
-            </Badge>
-          )}
-        </div>
-        <div className={`transition-transform duration-500 ${isExpanded ? 'rotate-180 opacity-100' : 'opacity-30 group-hover:opacity-60'}`}>
-          <ChevronDown className="h-3.5 w-3.5" />
-        </div>
-      </button>
-    );
-  };
+
 
   const getTagColor = (tag: string) => {
     const colors = [
@@ -219,7 +220,7 @@ export default function ContactDetailsSidebar({
           
           {/* Labels/Segment Section */}
           <div className="flex flex-col">
-            <SectionHeader label="Segment & Labels" icon={ShieldCheck} section="labels" isUpdating={isUpdating} />
+            <SectionHeader label="Segment & Labels" icon={ShieldCheck} section="labels" isUpdating={isUpdating} isExpanded={expandedSections.labels} onToggle={toggleSection} />
             <AnimatePresence>
               {expandedSections.labels && (
                 <motion.div 
@@ -263,7 +264,7 @@ export default function ContactDetailsSidebar({
 
           {/* Lifecycle & CRM Section */}
           <div className="flex flex-col">
-            <SectionHeader label="Sales Lifecycle" icon={TrendingUp} section="lifecycle" count={deals.length} isLoading={isDealsLoading} />
+            <SectionHeader label="Sales Lifecycle" icon={TrendingUp} section="lifecycle" count={deals.length} isLoading={isDealsLoading} isExpanded={expandedSections.lifecycle} onToggle={toggleSection} />
             <AnimatePresence>
               {expandedSections.lifecycle && (
                 <motion.div 
@@ -320,7 +321,7 @@ export default function ContactDetailsSidebar({
           
           {/* Assignment Section */}
           <div className="flex flex-col">
-            <SectionHeader label="Assignment" icon={User} section="assignment" isUpdating={isUpdating} />
+            <SectionHeader label="Assignment" icon={User} section="assignment" isUpdating={isUpdating} isExpanded={expandedSections.assignment} onToggle={toggleSection} />
             <AnimatePresence>
               {expandedSections.assignment && (
                 <motion.div 
@@ -404,7 +405,7 @@ export default function ContactDetailsSidebar({
 
           {/* Tags Section */}
           <div className="flex flex-col">
-            <SectionHeader label="Tags" icon={Tag} section="tags" count={contact.tags?.length} />
+            <SectionHeader label="Tags" icon={Tag} section="tags" count={contact.tags?.length} isExpanded={expandedSections.tags} onToggle={toggleSection} />
             <AnimatePresence>
               {expandedSections.tags && (
                 <motion.div 
@@ -458,7 +459,7 @@ export default function ContactDetailsSidebar({
 
           {/* Notes Section */}
           <div className="flex flex-col">
-            <SectionHeader label="System Notes" icon={StickyNote} section="notes" count={notes.length} />
+            <SectionHeader label="System Notes" icon={StickyNote} section="notes" count={notes.length} isExpanded={expandedSections.notes} onToggle={toggleSection} />
             <AnimatePresence>
               {expandedSections.notes && (
                 <motion.div 
@@ -499,7 +500,7 @@ export default function ContactDetailsSidebar({
 
           {/* Orders Section */}
           <div className="flex flex-col">
-            <SectionHeader label="Orders" icon={ShoppingBag} section="orders" count={orders.length} />
+            <SectionHeader label="Orders" icon={ShoppingBag} section="orders" count={orders.length} isExpanded={expandedSections.orders} onToggle={toggleSection} />
             <AnimatePresence>
               {expandedSections.orders && (
                 <motion.div 
@@ -546,7 +547,7 @@ export default function ContactDetailsSidebar({
 
           {/* Timeline Section */}
           <div className="flex flex-col">
-            <SectionHeader label="Timeline" icon={History} section="timeline" />
+            <SectionHeader label="Timeline" icon={History} section="timeline" isExpanded={expandedSections.timeline} onToggle={toggleSection} />
             <AnimatePresence>
               {expandedSections.timeline && (
                 <motion.div 

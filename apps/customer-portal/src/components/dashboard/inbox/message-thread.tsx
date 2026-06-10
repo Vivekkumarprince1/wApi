@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   Check, 
   CheckCheck, 
@@ -460,6 +460,14 @@ export default function MessageThread({
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastScrollHeight = useRef<number>(0);
   const isFetchingMore = useRef<boolean>(false);
+  const [dates, setDates] = useState({ today: '', yesterday: '' });
+
+  useEffect(() => {
+    setDates({
+      today: new Date().toDateString(),
+      yesterday: new Date(Date.now() - 86400000).toDateString()
+    });
+  }, []);
 
   const renderedMessages = React.useMemo(() => {
     const clonedMessages = messages.map((message) => ({
@@ -574,9 +582,9 @@ export default function MessageThread({
     const isSystem = msg.type === 'system' || (msg as any).isSystem;
 
     if (msgDate !== lastDate) {
-      const dateObj = parsedCreatedAt || new Date();
-      const today = new Date().toDateString();
-      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      const dateObj = parsedCreatedAt || new Date('2000-01-01');
+      const today = dates.today;
+      const yesterday = dates.yesterday;
       
       let dateLabel = dateObj.toLocaleDateString(undefined, { 
         weekday: 'long', 

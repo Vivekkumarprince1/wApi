@@ -40,6 +40,28 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 
+const EmptyState = () => {
+  const router = useRouter();
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
+      <div className="w-20 h-20 rounded-3xl bg-primary/5 flex items-center justify-center mb-6 shadow-premium-sm border border-primary/10">
+        <MessageSquare className="h-10 w-10 text-primary opacity-40" />
+      </div>
+      <h3 className="text-xl font-bold text-foreground mb-2">No campaigns found</h3>
+      <p className="text-sm text-muted-foreground mb-8 max-w-sm mx-auto font-medium">
+        Broadcast your message to thousands of customers in just a few clicks.
+      </p>
+      <Button 
+        onClick={() => router.push('/campaign/new')}
+        className="rounded-xl px-8 h-12 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-bold group"
+      >
+        <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" /> 
+        Create First Campaign
+      </Button>
+    </div>
+  );
+};
+
 const CampaignsPage = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -114,24 +136,7 @@ const CampaignsPage = () => {
     }
   };
 
-  const EmptyState = () => (
-    <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
-      <div className="w-20 h-20 rounded-3xl bg-primary/5 flex items-center justify-center mb-6 shadow-premium-sm border border-primary/10">
-        <MessageSquare className="h-10 w-10 text-primary opacity-40" />
-      </div>
-      <h3 className="text-xl font-bold text-foreground mb-2">No campaigns found</h3>
-      <p className="text-sm text-muted-foreground mb-8 max-w-sm mx-auto font-medium">
-        Broadcast your message to thousands of customers in just a few clicks.
-      </p>
-      <Button 
-        onClick={() => router.push('/campaign/new')}
-        className="rounded-xl px-8 h-12 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-bold group"
-      >
-        <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" /> 
-        Create First Campaign
-      </Button>
-    </div>
-  );
+
 
   if (isLoading) return <FlashLoader />;
 

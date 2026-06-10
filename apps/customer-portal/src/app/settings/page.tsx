@@ -248,7 +248,7 @@ export default function SettingsPage() {
                       <p className="text-sm font-black text-foreground">{settings?.hasToken ? 'Bridge Connected' : 'Disconnected'}</p>
                       <p className="text-[10px] font-medium text-muted-foreground leading-relaxed">
                         {settings?.hasToken 
-                          ? `Ready to transmit messages. Session established on ${new Date(settings.connectedAt || Date.now()).toLocaleDateString()}.` 
+                          ? `Ready to transmit messages. Session established on ${settings.connectedAt ? String(settings.connectedAt) : 'recently'}.` 
                           : 'Configure a valid Permanent Access Token from Meta to start messaging.'}
                       </p>
                    </div>

@@ -1,0 +1,830 @@
+
+> frontend@0.1.0 lint
+> eslint
+
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/ads/page.tsx
+   3:17  warning  'useState' is defined but never used     @typescript-eslint/no-unused-vars
+  10:16  warning  'CardContent' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/analytics/advanced/analytics-advanced-client.tsx
+  34:4  warning  'BarChart' is defined but never used  @typescript-eslint/no-unused-vars
+  35:4  warning  'Bar' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/analytics/advanced/page.tsx
+  34:4  warning  'BarChart' is defined but never used  @typescript-eslint/no-unused-vars
+  35:4  warning  'Bar' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/accept-invite/page.tsx
+  52:6   warning  React Hook useEffect has a missing dependency: 'verifyInvite'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  58:14  warning  'err' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/login/page.tsx
+  3:8  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/register/page.tsx
+  3:8  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/reset/page.tsx
+  3:20  warning  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/ai-intent-matching/page.tsx
+  4:49  warning  'Zap' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/answerbot/page.tsx
+    3:27  warning  'useEffect' is defined but never used                                  @typescript-eslint/no-unused-vars
+    7:3   warning  'Settings' is defined but never used                                   @typescript-eslint/no-unused-vars
+   13:3   warning  'Save' is defined but never used                                       @typescript-eslint/no-unused-vars
+   15:3   warning  'X' is defined but never used                                          @typescript-eslint/no-unused-vars
+   17:3   warning  'Search' is defined but never used                                     @typescript-eslint/no-unused-vars
+   20:3   warning  'ExternalLink' is defined but never used                               @typescript-eslint/no-unused-vars
+   21:3   warning  'MessageSquare' is defined but never used                              @typescript-eslint/no-unused-vars
+   58:10  warning  'activeTab' is assigned a value but never used                         @typescript-eslint/no-unused-vars
+   58:21  warning  'setActiveTab' is assigned a value but never used                      @typescript-eslint/no-unused-vars
+   59:10  warning  'showAddSource' is assigned a value but never used                     @typescript-eslint/no-unused-vars
+   76:38  warning  'isFaqsLoading' is assigned a value but never used                     @typescript-eslint/no-unused-vars
+  104:9   warning  'addSourceMutation' is assigned a value but never used                 @typescript-eslint/no-unused-vars
+  115:5   warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+  176:40  warning  'i' is defined but never used                                          @typescript-eslint/no-unused-vars
+  246:93  warning  Expected an assignment or function call and instead saw an expression  @typescript-eslint/no-unused-expressions
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/auto-replies/page.tsx
+  16:3   warning  'ArrowRight' is defined but never used  @typescript-eslint/no-unused-vars
+  32:26  warning  'Template' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/instagram-quickflows/page.tsx
+  10:3  warning  'Eye' is defined but never used                       @typescript-eslint/no-unused-vars
+  14:3  warning  'Target' is defined but never used                    @typescript-eslint/no-unused-vars
+  16:3  warning  'Filter' is defined but never used                    @typescript-eslint/no-unused-vars
+  19:3  warning  'CheckCircle2' is defined but never used              @typescript-eslint/no-unused-vars
+  23:3  warning  'ChevronDown' is defined but never used               @typescript-eslint/no-unused-vars
+  29:8  warning  'Link' is defined but never used                      @typescript-eslint/no-unused-vars
+  37:3  warning  'createInstagramQuickflow' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/interaktive-list/page.tsx
+  101:9  warning  The 'lists' conditional could make the dependencies of useMemo Hook (at line 116) change on every render. To fix this, wrap the initialization of 'lists' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/page.tsx
+  25:3  warning  'fetchAiIntents' is defined but never used            @typescript-eslint/no-unused-vars
+  26:3  warning  'fetchInstagramQuickflows' is defined but never used  @typescript-eslint/no-unused-vars
+  27:3  warning  'fetchInteraktiveLists' is defined but never used     @typescript-eslint/no-unused-vars
+  28:3  warning  'fetchRules' is defined but never used                @typescript-eslint/no-unused-vars
+  30:3  warning  'getAnswerBotFAQs' is defined but never used          @typescript-eslint/no-unused-vars
+  31:3  warning  'getAnswerBotSettings' is defined but never used      @typescript-eslint/no-unused-vars
+  32:3  warning  'getAnswerBotSources' is defined but never used       @typescript-eslint/no-unused-vars
+  33:3  warning  'getAutomationStats' is defined but never used        @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/whatsapp-forms/page.tsx
+  35:9  warning  The 'forms' conditional could make the dependencies of useMemo Hook (at line 80) change on every render. To fix this, wrap the initialization of 'forms' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/page.tsx
+   20:3   warning  'Clock' is defined but never used  @typescript-eslint/no-unused-vars
+  185:24  warning  'i' is defined but never used      @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/billing/page.tsx
+   74:20  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+   97:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  338:50  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  369:46  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/campaign/[id]/page.tsx
+   3:10  warning  'useEffect' is defined but never used        @typescript-eslint/no-unused-vars
+  21:3   warning  'ExternalLink' is defined but never used     @typescript-eslint/no-unused-vars
+  25:3   warning  'Eye' is defined but never used              @typescript-eslint/no-unused-vars
+  43:18  warning  'AnimatePresence' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/campaign/new/page.tsx
+   3:27  warning  'useMemo' is defined but never used          @typescript-eslint/no-unused-vars
+  11:3   warning  'CheckCircle2' is defined but never used     @typescript-eslint/no-unused-vars
+  15:3   warning  'Sparkles' is defined but never used         @typescript-eslint/no-unused-vars
+  16:3   warning  'Zap' is defined but never used              @typescript-eslint/no-unused-vars
+  17:3   warning  'BrainCircuit' is defined but never used     @typescript-eslint/no-unused-vars
+  19:18  warning  'AnimatePresence' is defined but never used  @typescript-eslint/no-unused-vars
+  24:10  warning  'Progress' is defined but never used         @typescript-eslint/no-unused-vars
+  25:10  warning  'ScrollArea' is defined but never used       @typescript-eslint/no-unused-vars
+  26:10  warning  'Badge' is defined but never used            @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/campaign/page.tsx
+    3:17  warning  'useEffect' is defined but never used                                                                                                                                                               @typescript-eslint/no-unused-vars
+   12:3   warning  'BarChart3' is defined but never used                                                                                                                                                               @typescript-eslint/no-unused-vars
+   16:3   warning  'AlertTriangle' is defined but never used                                                                                                                                                           @typescript-eslint/no-unused-vars
+   30:10  warning  'useAuthStore' is defined but never used                                                                                                                                                            @typescript-eslint/no-unused-vars
+   77:9   warning  The 'campaigns' logical expression could make the dependencies of useMemo Hook (at line 100) change on every render. To fix this, wrap the initialization of 'campaigns' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  234:27  warning  'deliveredPercentage' is assigned a value but never used                                                                                                                                            @typescript-eslint/no-unused-vars
+  235:27  warning  'readPercentage' is assigned a value but never used                                                                                                                                                 @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/catalog/page.tsx
+    8:3   warning  'CardHeader' is defined but never used                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+    9:3   warning  'CardTitle' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   10:3   warning  'CardDescription' is defined but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   18:3   warning  'Filter' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   24:3   warning  'Tag' is defined but never used                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   28:3   warning  'Trash2' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   63:16  warning  'err' is defined but never used                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+  244:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/checkout-bot/page.tsx
+   3:17  warning  'useState' is defined but never used         @typescript-eslint/no-unused-vars
+   5:3   warning  'ShoppingCart' is defined but never used     @typescript-eslint/no-unused-vars
+   7:3   warning  'Search' is defined but never used           @typescript-eslint/no-unused-vars
+  15:3   warning  'Clock' is defined but never used            @typescript-eslint/no-unused-vars
+  18:3   warning  'Power' is defined but never used            @typescript-eslint/no-unused-vars
+  31:18  warning  'AnimatePresence' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/orders/page.tsx
+    7:3   warning  'CardContent' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+    8:3   warning  'CardHeader' is defined but never used                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+    9:3   warning  'CardTitle' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   10:3   warning  'CardDescription' is defined but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   17:3   warning  'Filter' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   31:3   warning  'ChevronDown' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   40:3   warning  'AlertCircle' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   59:3   warning  'TabsContent' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   68:18  warning  'AnimatePresence' is defined but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  412:55  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  412:55  warning  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                jsx-a11y/alt-text
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/page.tsx
+   5:3  warning  'ShoppingBag' is defined but never used   @typescript-eslint/no-unused-vars
+  10:3  warning  'ArrowUpRight' is defined but never used  @typescript-eslint/no-unused-vars
+  14:3  warning  'Zap' is defined but never used           @typescript-eslint/no-unused-vars
+  20:3  warning  'BarChart3' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/settings/page.tsx
+   5:3  warning  'Settings' is defined but never used      @typescript-eslint/no-unused-vars
+  16:3  warning  'Info' is defined but never used          @typescript-eslint/no-unused-vars
+  17:3  warning  'ChevronRight' is defined but never used  @typescript-eslint/no-unused-vars
+  18:3  warning  'Shield' is defined but never used        @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/contacts/[id]/page.tsx
+   8:3   warning  'Tag' is defined but never used            @typescript-eslint/no-unused-vars
+  12:3   warning  'ExternalLink' is defined but never used   @typescript-eslint/no-unused-vars
+  13:3   warning  'ShieldCheck' is defined but never used    @typescript-eslint/no-unused-vars
+  15:3   warning  'User' is defined but never used           @typescript-eslint/no-unused-vars
+  19:10  warning  'motion' is defined but never used         @typescript-eslint/no-unused-vars
+  21:10  warning  'Contact' is defined but never used        @typescript-eslint/no-unused-vars
+  21:19  warning  'fetchContacts' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/contacts/page.tsx
+   8:3   warning  'Upload' is defined but never used                                                                                                                                                                @typescript-eslint/no-unused-vars
+  10:3   warning  'Filter' is defined but never used                                                                                                                                                                @typescript-eslint/no-unused-vars
+  13:11  warning  'UserIcon' is defined but never used                                                                                                                                                              @typescript-eslint/no-unused-vars
+  14:3   warning  'Phone' is defined but never used                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  15:3   warning  'Mail' is defined but never used                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  17:3   warning  'Plus' is defined but never used                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  20:3   warning  'CloudDownload' is defined but never used                                                                                                                                                         @typescript-eslint/no-unused-vars
+  29:3   warning  'isWithinInterval' is defined but never used                                                                                                                                                      @typescript-eslint/no-unused-vars
+  30:3   warning  'startOfDay' is defined but never used                                                                                                                                                            @typescript-eslint/no-unused-vars
+  31:3   warning  'endOfDay' is defined but never used                                                                                                                                                              @typescript-eslint/no-unused-vars
+  32:3   warning  'subDays' is defined but never used                                                                                                                                                               @typescript-eslint/no-unused-vars
+  33:3   warning  'startOfMonth' is defined but never used                                                                                                                                                          @typescript-eslint/no-unused-vars
+  37:10  warning  'motion' is defined but never used                                                                                                                                                                @typescript-eslint/no-unused-vars
+  70:10  warning  'isImportOpen' is assigned a value but never used                                                                                                                                                 @typescript-eslint/no-unused-vars
+  70:24  warning  'setIsImportOpen' is assigned a value but never used                                                                                                                                              @typescript-eslint/no-unused-vars
+  82:9   warning  The 'contacts' logical expression could make the dependencies of useMemo Hook (at line 87) change on every render. To fix this, wrap the initialization of 'contacts' in its own useMemo() Hook   react-hooks/exhaustive-deps
+  82:9   warning  The 'contacts' logical expression could make the dependencies of useMemo Hook (at line 103) change on every render. To fix this, wrap the initialization of 'contacts' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/contacts/segments/page.tsx
+  10:3  warning  'Tag' is defined but never used          @typescript-eslint/no-unused-vars
+  11:3  warning  'AlertCircle' is defined but never used  @typescript-eslint/no-unused-vars
+  16:3  warning  'Search' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/layout.tsx
+   7:3  warning  'BarChart3' is defined but never used    @typescript-eslint/no-unused-vars
+   8:3  warning  'LayoutGrid' is defined but never used   @typescript-eslint/no-unused-vars
+   9:3  warning  'CheckSquare' is defined but never used  @typescript-eslint/no-unused-vars
+  10:3  warning  'TrendingUp' is defined but never used   @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/pipeline/page.tsx
+   10:3   warning  'ChevronRight' is defined but never used                                                                                                                                                             @typescript-eslint/no-unused-vars
+   14:3   warning  'BarChart3' is defined but never used                                                                                                                                                                @typescript-eslint/no-unused-vars
+   15:3   warning  'Calendar' is defined but never used                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   17:3   warning  'MoreVertical' is defined but never used                                                                                                                                                             @typescript-eslint/no-unused-vars
+   18:3   warning  'CheckCircle2' is defined but never used                                                                                                                                                             @typescript-eslint/no-unused-vars
+   35:10  warning  'Badge' is defined but never used                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   71:9   warning  The 'pipelines' logical expression could make the dependencies of useEffect Hook (at line 77) change on every render. To fix this, wrap the initialization of 'pipelines' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  281:39  warning  'stageId' is defined but never used                                                                                                                                                                  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/reports/page.tsx
+    3:17  warning  'useMemo' is defined but never used              @typescript-eslint/no-unused-vars
+    5:3   warning  'BarChart3' is defined but never used            @typescript-eslint/no-unused-vars
+    8:3   warning  'Calendar' is defined but never used             @typescript-eslint/no-unused-vars
+    9:3   warning  'ArrowRight' is defined but never used           @typescript-eslint/no-unused-vars
+   10:3   warning  'PieChart' is defined but never used             @typescript-eslint/no-unused-vars
+   16:3   warning  'Filter' is defined but never used               @typescript-eslint/no-unused-vars
+   18:3   warning  'MousePointer2' is defined but never used        @typescript-eslint/no-unused-vars
+   19:3   warning  'Percent' is defined but never used              @typescript-eslint/no-unused-vars
+   20:3   warning  'ChevronRight' is defined but never used         @typescript-eslint/no-unused-vars
+   37:3   warning  'BarChart' is defined but never used             @typescript-eslint/no-unused-vars
+   38:3   warning  'Bar' is defined but never used                  @typescript-eslint/no-unused-vars
+   39:3   warning  'XAxis' is defined but never used                @typescript-eslint/no-unused-vars
+   40:3   warning  'YAxis' is defined but never used                @typescript-eslint/no-unused-vars
+   41:3   warning  'CartesianGrid' is defined but never used        @typescript-eslint/no-unused-vars
+   47:3   warning  'LineChart' is defined but never used            @typescript-eslint/no-unused-vars
+   48:3   warning  'Line' is defined but never used                 @typescript-eslint/no-unused-vars
+   49:3   warning  'AreaChart' is defined but never used            @typescript-eslint/no-unused-vars
+   50:3   warning  'Area' is defined but never used                 @typescript-eslint/no-unused-vars
+   51:3   warning  'ComposedChart' is defined but never used        @typescript-eslint/no-unused-vars
+   53:18  warning  'AnimatePresence' is defined but never used      @typescript-eslint/no-unused-vars
+  130:9   warning  'totalLeads' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/tasks/page.tsx
+   10:11  warning  'UserIcon' is defined but never used                                                                                                                                                        @typescript-eslint/no-unused-vars
+   12:3   warning  'ArrowRight' is defined but never used                                                                                                                                                      @typescript-eslint/no-unused-vars
+   13:3   warning  'AlertCircle' is defined but never used                                                                                                                                                     @typescript-eslint/no-unused-vars
+   15:3   warning  'ChevronDown' is defined but never used                                                                                                                                                     @typescript-eslint/no-unused-vars
+   24:3   warning  'Circle' is defined but never used                                                                                                                                                          @typescript-eslint/no-unused-vars
+   26:3   warning  'TrendingUp' is defined but never used                                                                                                                                                      @typescript-eslint/no-unused-vars
+   27:3   warning  'ExternalLink' is defined but never used                                                                                                                                                    @typescript-eslint/no-unused-vars
+   32:47  warning  'isFuture' is defined but never used                                                                                                                                                        @typescript-eslint/no-unused-vars
+   43:3   warning  'DropdownMenuLabel' is defined but never used                                                                                                                                               @typescript-eslint/no-unused-vars
+   53:40  warning  'updateTaskStatus' is defined but never used                                                                                                                                                @typescript-eslint/no-unused-vars
+  100:9   warning  The 'tasks' logical expression could make the dependencies of useMemo Hook (at line 152) change on every render. To fix this, wrap the initialization of 'tasks' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  142:13  warning  'today' is assigned a value but never used                                                                                                                                                  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/dashboard/page.tsx
+   7:3  warning  'Loader2' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+  88:6  warning  React Hook useEffect has a missing dependency: 'onboardingStatus'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/inbox/page.tsx
+    3:38  warning  'useCallback' is defined but never used               @typescript-eslint/no-unused-vars
+    8:3   warning  'Search' is defined but never used                    @typescript-eslint/no-unused-vars
+    9:3   warning  'Filter' is defined but never used                    @typescript-eslint/no-unused-vars
+   10:3   warning  'CheckCircle2' is defined but never used              @typescript-eslint/no-unused-vars
+   13:3   warning  'Send' is defined but never used                      @typescript-eslint/no-unused-vars
+   14:3   warning  'Loader2' is defined but never used                   @typescript-eslint/no-unused-vars
+  111:14  warning  'refetchMessages' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  633:27  warning  'note' is defined but never used                      @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/onboarding/business-verification/page.tsx
+  5:34  warning  'CreditCard' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/onboarding/verify-email/page.tsx
+  44:6  warning  React Hook useEffect has a missing dependency: 'sendOTP'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/onboarding/verify-mobile/page.tsx
+  36:6  warning  React Hook useEffect has a missing dependency: 'sendOTP'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/developer/keys/page.tsx
+   4:8   warning  'DashboardLayout' is defined but never used   @typescript-eslint/no-unused-vars
+  21:3   warning  'CheckCircle2' is defined but never used      @typescript-eslint/no-unused-vars
+  22:3   warning  'AlertCircle' is defined but never used       @typescript-eslint/no-unused-vars
+  27:3   warning  'MoreVertical' is defined but never used      @typescript-eslint/no-unused-vars
+  35:10  warning  'loading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/developer/page.tsx
+   4:66  warning  'Copy' is defined but never used             @typescript-eslint/no-unused-vars
+   4:86  warning  'Activity' is defined but never used         @typescript-eslint/no-unused-vars
+   4:96  warning  'Lock' is defined but never used             @typescript-eslint/no-unused-vars
+   6:16  warning  'CardContent' is defined but never used      @typescript-eslint/no-unused-vars
+   6:29  warning  'CardHeader' is defined but never used       @typescript-eslint/no-unused-vars
+   6:41  warning  'CardTitle' is defined but never used        @typescript-eslint/no-unused-vars
+   6:52  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+   7:10  warning  'Badge' is defined but never used            @typescript-eslint/no-unused-vars
+  15:17  warning  'config' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/developer/webhooks/page.tsx
+   3:38  warning  'useRef' is defined but never used            @typescript-eslint/no-unused-vars
+   4:8   warning  'DashboardLayout' is defined but never used   @typescript-eslint/no-unused-vars
+  28:4   warning  'Settings2' is defined but never used         @typescript-eslint/no-unused-vars
+  38:4   warning  'Zap' is defined but never used               @typescript-eslint/no-unused-vars
+  40:4   warning  'Smartphone' is defined but never used        @typescript-eslint/no-unused-vars
+  79:11  warning  'mounted' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/events/page.tsx
+   3:8   warning  'React' is defined but never used           @typescript-eslint/no-unused-vars
+   5:10  warning  'Activity' is defined but never used        @typescript-eslint/no-unused-vars
+   5:20  warning  'ArrowRight' is defined but never used      @typescript-eslint/no-unused-vars
+   5:32  warning  'ExternalLink' is defined but never used    @typescript-eslint/no-unused-vars
+   5:46  warning  'Plus' is defined but never used            @typescript-eslint/no-unused-vars
+   5:52  warning  'Shield' is defined but never used          @typescript-eslint/no-unused-vars
+   5:60  warning  'ToggleLeft' is defined but never used      @typescript-eslint/no-unused-vars
+   5:72  warning  'ToggleRight' is defined but never used     @typescript-eslint/no-unused-vars
+   5:85  warning  'Webhook' is defined but never used         @typescript-eslint/no-unused-vars
+   7:10  warning  'Card' is defined but never used            @typescript-eslint/no-unused-vars
+   7:16  warning  'CardContent' is defined but never used     @typescript-eslint/no-unused-vars
+   8:10  warning  'Button' is defined but never used          @typescript-eslint/no-unused-vars
+   9:10  warning  'Badge' is defined but never used           @typescript-eslint/no-unused-vars
+  20:10  warning  'items' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/member-profile/page.tsx
+  56:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/page.tsx
+   4:10  warning  'motion' is defined but never used           @typescript-eslint/no-unused-vars
+   4:18  warning  'AnimatePresence' is defined but never used  @typescript-eslint/no-unused-vars
+  16:3   warning  'Key' is defined but never used              @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/quick-replies/page.tsx
+   12:3   warning  'Check' is defined but never used          @typescript-eslint/no-unused-vars
+   14:3   warning  'MessageSquare' is defined but never used  @typescript-eslint/no-unused-vars
+   18:3   warning  'Layout' is defined but never used         @typescript-eslint/no-unused-vars
+   19:3   warning  'Globe' is defined but never used          @typescript-eslint/no-unused-vars
+  133:40  warning  'i' is defined but never used              @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/whatsapp-profile/page.tsx
+  13:10  warning  'Badge' is defined but never used          @typescript-eslint/no-unused-vars
+  15:10  warning  'Checkbox' is defined but never used       @typescript-eslint/no-unused-vars
+  16:10  warning  'Label' is defined but never used          @typescript-eslint/no-unused-vars
+  18:3   warning  'Dialog' is defined but never used         @typescript-eslint/no-unused-vars
+  19:3   warning  'DialogContent' is defined but never used  @typescript-eslint/no-unused-vars
+  20:3   warning  'DialogHeader' is defined but never used   @typescript-eslint/no-unused-vars
+  21:3   warning  'DialogTitle' is defined but never used    @typescript-eslint/no-unused-vars
+  22:3   warning  'DialogTrigger' is defined but never used  @typescript-eslint/no-unused-vars
+  23:3   warning  'DialogFooter' is defined but never used   @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/support/chat-assignment/page.tsx
+    6:3   warning  'Users' is defined but never used                  @typescript-eslint/no-unused-vars
+    8:3   warning  'Settings' is defined but never used               @typescript-eslint/no-unused-vars
+   10:3   warning  'Pencil' is defined but never used                 @typescript-eslint/no-unused-vars
+   14:3   warning  'CheckCircle2' is defined but never used           @typescript-eslint/no-unused-vars
+   16:3   warning  'Shield' is defined but never used                 @typescript-eslint/no-unused-vars
+   20:3   warning  'UserX' is defined but never used                  @typescript-eslint/no-unused-vars
+   22:3   warning  'ChevronRight' is defined but never used           @typescript-eslint/no-unused-vars
+   25:3   warning  'Tag' is defined but never used                    @typescript-eslint/no-unused-vars
+   53:10  warning  'motion' is defined but never used                 @typescript-eslint/no-unused-vars
+   53:18  warning  'AnimatePresence' is defined but never used        @typescript-eslint/no-unused-vars
+   75:10  warning  'activeTab' is assigned a value but never used     @typescript-eslint/no-unused-vars
+   75:21  warning  'setActiveTab' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  119:14  warning  'error' is defined but never used                  @typescript-eslint/no-unused-vars
+  519:48  warning  'err' is defined but never used                    @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/support/macros/page.tsx
+  10:3  warning  'updateTicket' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/templates/analytics/page.tsx
+  31:6   warning  React Hook useEffect has a missing dependency: 'loadAnalytics'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  63:14  warning  'error' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/templates/page.tsx
+    3:27  warning  'useEffect' is defined but never used                                                                                                                                                               @typescript-eslint/no-unused-vars
+   11:3   warning  'BarChart4' is defined but never used                                                                                                                                                               @typescript-eslint/no-unused-vars
+   18:3   warning  'AlertCircle' is defined but never used                                                                                                                                                             @typescript-eslint/no-unused-vars
+   24:3   warning  'ExternalLink' is defined but never used                                                                                                                                                            @typescript-eslint/no-unused-vars
+   41:10  warning  'useAuthStore' is defined but never used                                                                                                                                                            @typescript-eslint/no-unused-vars
+   90:9   warning  The 'templates' logical expression could make the dependencies of useMemo Hook (at line 150) change on every render. To fix this, wrap the initialization of 'templates' in its own useMemo() Hook  react-hooks/exhaustive-deps
+  564:28  warning  'id' is defined but never used                                                                                                                                                                      @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/templates/rules/page.tsx
+  24:10  warning  'searching' is assigned a value but never used                                                                @typescript-eslint/no-unused-vars
+  24:21  warning  'setSearching' is assigned a value but never used                                                             @typescript-eslint/no-unused-vars
+  30:10  warning  'testingRuleId' is assigned a value but never used                                                            @typescript-eslint/no-unused-vars
+  35:6   warning  React Hook useEffect has a missing dependency: 'loadRules'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/widget/page.tsx
+  6:31  warning  'Settings' is defined but never used         @typescript-eslint/no-unused-vars
+  8:16  warning  'CardContent' is defined but never used      @typescript-eslint/no-unused-vars
+  8:29  warning  'CardHeader' is defined but never used       @typescript-eslint/no-unused-vars
+  8:41  warning  'CardTitle' is defined but never used        @typescript-eslint/no-unused-vars
+  8:52  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/auth/facebook-login.tsx
+  8:82  warning  'formType' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/auth/google-login.tsx
+  6:69  warning  'onSuccess' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/billing/PlanSelectionModal.tsx
+  16:3  warning  'DialogFooter' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/billing/RechargeModal.tsx
+  20:10  warning  'Badge' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/CampaignPreviewSidebar.tsx
+   7:4   warning  'Zap' is defined but never used                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  12:4   warning  'BrainCircuit' is defined but never used                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  13:4   warning  'Layout' is defined but never used                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  14:4   warning  'Smartphone' is defined but never used                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  18:10  warning  'Badge' is defined but never used                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  19:10  warning  'ScrollArea' is defined but never used                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  32:10  warning  The 'templates' logical expression could make the dependencies of useMemo Hook (at line 35) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'templates' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/DeviceSimulator.tsx
+    3:25  warning  'useState' is defined but never used                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+    5:24  warning  'Battery' is defined but never used                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+    5:98  warning  'CheckCheck' is defined but never used                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  110:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/WhatsAppBubble.tsx
+   4:68  warning  'MoreHorizontal' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   4:84  warning  'Check' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+  23:31  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `replaceVariables`, but the source dependencies were [template, variableMapping]. Inferred different dependency than source.
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/WhatsAppBubble.tsx:23:31
+  21 |   };
+  22 |
+> 23 |   const bodyContent = useMemo(() => {
+     |                               ^^^^^^^
+> 24 |     const text = template.bodyText || template.body?.text || '';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 25 |     return replaceVariables(text);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 26 |   }, [template, variableMapping]);
+     | ^^^^ Could not preserve existing manual memoization
+  27 |
+  28 |   const headerContent = useMemo(() => {
+  29 |     if (!template.header?.enabled || template.header?.format === 'NONE') return null;                                                                                                                                                                                react-hooks/preserve-manual-memoization
+  26:6   warning  React Hook useMemo has a missing dependency: 'replaceVariables'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+  28:33  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `replaceVariables`, but the source dependencies were [template, variableMapping, mediaUrl]. Inferred different dependency than source.
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/WhatsAppBubble.tsx:28:33
+  26 |   }, [template, variableMapping]);
+  27 |
+> 28 |   const headerContent = useMemo(() => {
+     |                                 ^^^^^^^
+> 29 |     if (!template.header?.enabled || template.header?.format === 'NONE') return null;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 30 |     
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 75 |     return null;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 76 |   }, [template, variableMapping, mediaUrl]);
+     | ^^^^ Could not preserve existing manual memoization
+  77 |
+  78 |   return (
+  79 |     <div className="flex flex-col max-w-full sm:max-w-[92%] mx-auto md:mx-0">  react-hooks/preserve-manual-memoization
+  45:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @next/next/no-img-element
+  76:6   warning  React Hook useMemo has a missing dependency: 'replaceVariables'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/analytics/CampaignButtonTracking.tsx
+  19:12  warning  'b' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/analytics/CampaignFailureAnalysis.tsx
+   4:10  warning  'Progress' is defined but never used  @typescript-eslint/no-unused-vars
+  27:12  warning  'f' is defined but never used         @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/analytics/CampaignFunnel.tsx
+  7:3  warning  'YAxis' is defined but never used          @typescript-eslint/no-unused-vars
+  8:3  warning  'CartesianGrid' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/analytics/CampaignRecipientTable.tsx
+  12:3   warning  'ExternalLink' is defined but never used      @typescript-eslint/no-unused-vars
+  13:3   warning  'MessageCircle' is defined but never used     @typescript-eslint/no-unused-vars
+  14:3   warning  'AlertTriangle' is defined but never used     @typescript-eslint/no-unused-vars
+  51:28  warning  'isError' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  92:14  warning  'error' is defined but never used             @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/analytics/CampaignTemplatePreview.tsx
+  3:10  warning  'MessageSquare' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/steps/audience-step.tsx
+    3:27  warning  'useEffect' is defined but never used          @typescript-eslint/no-unused-vars
+    5:3   warning  'Users' is defined but never used              @typescript-eslint/no-unused-vars
+    8:3   warning  'Upload' is defined but never used             @typescript-eslint/no-unused-vars
+   11:3   warning  'X' is defined but never used                  @typescript-eslint/no-unused-vars
+  122:14  warning  'err' is defined but never used                @typescript-eslint/no-unused-vars
+  141:9   warning  'allModes' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/steps/details-step.tsx
+  8:10  warning  'Calendar' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/steps/message-step.tsx
+    7:3   warning  'FileText' is defined but never used                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+    9:3   warning  'MessageSquare' is defined but never used                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   11:3   warning  'Info' is defined but never used                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   12:3   warning  'ArrowRight' is defined but never used                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   13:3   warning  'Loader2' is defined but never used                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   15:3   warning  'FileImageIcon' is defined but never used                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   31:3   warning  'SelectValue' is defined but never used                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   33:10  warning  'WhatsAppBubble' is defined but never used                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   51:9   warning  The 'templates' logical expression could make the dependencies of useMemo Hook (at line 89) change on every render. To fix this, wrap the initialization of 'templates' in its own useMemo() Hook                                                react-hooks/exhaustive-deps
+  126:9   warning  The 'sheetColumns' logical expression could make the dependencies of useMemo Hook (at line 149) change on every render. Move it inside the useMemo callback. Alternatively, wrap the initialization of 'sheetColumns' in its own useMemo() Hook  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/steps/review-step.tsx
+  5:3  warning  'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+  9:3  warning  'Zap' is defined but never used           @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/steps/schedule-step.tsx
+  5:3  warning  'Send' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/command-center.tsx
+    9:3   warning  'Users' is defined but never used     @typescript-eslint/no-unused-vars
+   20:3   warning  'X' is defined but never used         @typescript-eslint/no-unused-vars
+  217:39  warning  'catIndex' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/commerce/ImageUpload.tsx
+   7:3   warning  'X' is defined but never used             @typescript-eslint/no-unused-vars
+   8:12  warning  'ImageIcon' is defined but never used     @typescript-eslint/no-unused-vars
+  10:3   warning  'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/commerce/ManualOrderDialog.tsx
+    3:27  warning  'useEffect' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   24:3   warning  'CheckCircle' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   33:10  warning  'Badge' is defined but never used                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+  244:71  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  244:71  warning  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                jsx-a11y/alt-text
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/commerce/ProductDialog.tsx
+   19:3   warning  'Plus' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   21:3   warning  'Tag' is defined but never used                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   24:3   warning  'AlertCircle' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   92:9   warning  'handleAddImage' is assigned a value but never used                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+  237:28  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  237:28  warning  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                jsx-a11y/alt-text
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/contacts/ContactImportModal.tsx
+  94:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/contacts/DirectTemplateModal.tsx
+   10:3   warning  'Send' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+   15:3   warning  'Phone' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   18:18  warning  'AnimatePresence' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   19:33  warning  'useQueryClient' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+   32:34  warning  'AvatarImage' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      @typescript-eslint/no-unused-vars
+   96:9   warning  The 'templates' logical expression could make the dependencies of useMemo Hook (at line 108) change on every render. To fix this, wrap the initialization of 'templates' in its own useMemo() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  108:6   error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. This dependency may be mutated later, which could cause the value to change unexpectedly.
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/contacts/DirectTemplateModal.tsx:108:6
+  106 |   const selectedTemplate = useMemo(() => 
+  107 |     templates.find(t => t._id === selectedTemplateId),
+> 108 |     [templates, selectedTemplateId]
+      |      ^^^^^^^^^ This dependency may be modified later
+  109 |   );
+  110 |
+  111 |   const templateVariables = useMemo(() => {  react-hooks/preserve-manual-memoization
+  138:17  warning  'data' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/contacts/contact-import-dialog.tsx
+   3:35  warning  'useEffect' is defined but never used                   @typescript-eslint/no-unused-vars
+   9:3   warning  'Clock' is defined but never used                       @typescript-eslint/no-unused-vars
+  13:3   warning  'Play' is defined but never used                        @typescript-eslint/no-unused-vars
+  14:3   warning  'Pause' is defined but never used                       @typescript-eslint/no-unused-vars
+  18:18  warning  'AnimatePresence' is defined but never used             @typescript-eslint/no-unused-vars
+  63:38  warning  'isLoadingProgress' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/DealCard.tsx
+   7:3   warning  'DollarSign' is defined but never used           @typescript-eslint/no-unused-vars
+   9:3   warning  'User' is defined but never used                 @typescript-eslint/no-unused-vars
+  16:18  warning  'AnimatePresence' is defined but never used      @typescript-eslint/no-unused-vars
+  28:10  warning  'formatDistanceToNow' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/DealDetailSidebar.tsx
+   6:3   warning  'DollarSign' is defined but never used               @typescript-eslint/no-unused-vars
+  11:3   warning  'Calendar' is defined but never used                 @typescript-eslint/no-unused-vars
+  19:3   warning  'Target' is defined but never used                   @typescript-eslint/no-unused-vars
+  21:3   warning  'Circle' is defined but never used                   @typescript-eslint/no-unused-vars
+  31:16  warning  'DealNote' is defined but never used                 @typescript-eslint/no-unused-vars
+  31:26  warning  'DealActivity' is defined but never used             @typescript-eslint/no-unused-vars
+  35:10  warning  'Input' is defined but never used                    @typescript-eslint/no-unused-vars
+  39:10  warning  'Progress' is defined but never used                 @typescript-eslint/no-unused-vars
+  75:40  warning  'isTasksLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/DealDialog.tsx
+   23:3   warning  'Search' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+   27:3   warning  'Zap' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+   28:3   warning  'CheckCircle2' is defined but never used                                                                           @typescript-eslint/no-unused-vars
+   29:3   warning  'Phone' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+   30:3   warning  'MessageSquare' is defined but never used                                                                          @typescript-eslint/no-unused-vars
+   35:10  warning  'cn' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+   70:10  warning  'isSearchingContacts' is assigned a value but never used                                                           @typescript-eslint/no-unused-vars
+  118:6   warning  React Hook useEffect has a missing dependency: 'searchContacts'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/PipelineAutomation.tsx
+   1:17  warning  'useState' is defined but never used                  @typescript-eslint/no-unused-vars
+   1:27  warning  'useEffect' is defined but never used                 @typescript-eslint/no-unused-vars
+  10:3   warning  'ArrowRightLeft' is defined but never used            @typescript-eslint/no-unused-vars
+  14:3   warning  'CheckCircle2' is defined but never used              @typescript-eslint/no-unused-vars
+  19:10  warning  'Badge' is defined but never used                     @typescript-eslint/no-unused-vars
+  44:7   warning  'TRIGGER_OPTIONS' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/PipelineColumn.tsx
+   5:44  warning  'DollarSign' is defined but never used            @typescript-eslint/no-unused-vars
+   7:16  warning  'Pipeline' is defined but never used              @typescript-eslint/no-unused-vars
+  37:9   warning  'activeDeals' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/PipelineDialog.tsx
+  22:3   warning  'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+  26:10  warning  'motion' is defined but never used        @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/PipelineListView.tsx
+   8:3   warning  'Calendar' is defined but never used     @typescript-eslint/no-unused-vars
+  28:34  warning  'AvatarImage' is defined but never used  @typescript-eslint/no-unused-vars
+  31:10  warning  'format' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/TaskDialog.tsx
+   23:3  warning  'CheckCircle2' is defined but never used           @typescript-eslint/no-unused-vars
+   24:3  warning  'Clock' is defined but never used                  @typescript-eslint/no-unused-vars
+   25:3  warning  'Type' is defined but never used                   @typescript-eslint/no-unused-vars
+  153:9  warning  'selectedType' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/chat-input.tsx
+    3:35  warning  'useEffect' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+    7:3   warning  'Paperclip' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  222:29  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  222:29  warning  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                jsx-a11y/alt-text
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/contact-details-sidebar.tsx
+   3:27  warning  'useEffect' is defined but never used   @typescript-eslint/no-unused-vars
+  14:3   warning  'ChevronUp' is defined but never used   @typescript-eslint/no-unused-vars
+  24:3   warning  'DollarSign' is defined but never used  @typescript-eslint/no-unused-vars
+  44:10  warning  'toast' is defined but never used       @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/conversations-list.tsx
+   7:3  warning  'User' is defined but never used          @typescript-eslint/no-unused-vars
+  10:3  warning  'Clock' is defined but never used         @typescript-eslint/no-unused-vars
+  11:3  warning  'MoreVertical' is defined but never used  @typescript-eslint/no-unused-vars
+  12:3  warning  'ChevronDown' is defined but never used   @typescript-eslint/no-unused-vars
+  16:3  warning  'Share2' is defined but never used        @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/email-composer.tsx
+  11:3   warning  'AlertCircle' is defined but never used              @typescript-eslint/no-unused-vars
+  12:3   warning  'CheckCircle2' is defined but never used             @typescript-eslint/no-unused-vars
+  16:18  warning  'AnimatePresence' is defined but never used          @typescript-eslint/no-unused-vars
+  61:3   warning  'onSendMedia' is defined but never used              @typescript-eslint/no-unused-vars
+  71:10  warning  'showHtmlEditor' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/message-thread.tsx
+   10:3   warning  'Mic' is defined but never used                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   14:3   warning  'Download' is defined but never used                                                                                                                                                                                                                                                     @typescript-eslint/no-unused-vars
+   20:3   warning  'RotateCcw' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   24:10  warning  'motion' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   24:18  warning  'AnimatePresence' is defined but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   33:10  warning  'ScrollArea' is defined but never used                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  118:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  331:71  warning  'onRetryMedia' is defined but never used                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  331:85  warning  'user' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  337:9   warning  'isAudio' is assigned a value but never used                                                                                                                                                                                                                                             @typescript-eslint/no-unused-vars
+  345:9   warning  'canRetryFailedMedia' is assigned a value but never used                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  376:42  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/sms-composer.tsx
+   11:3   warning  'CheckCircle2' is defined but never used                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+   12:3   warning  'Clock' is defined but never used                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   16:18  warning  'AnimatePresence' is defined but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  180:15  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/delete-account-modal.tsx
+  8:3  warning  'X' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/delete-account-section.tsx
+  8:3  warning  'ArrowRight' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/developer/snippet-generator.tsx
+  17:16  warning  'CardContent' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/edit-member-panel.tsx
+  4:16  warning  'Users' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/member-panel.tsx
+  75:16  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/member-permissions-panel.tsx
+   7:3   warning  'Lock' is defined but never used          @typescript-eslint/no-unused-vars
+   9:3   warning  'Search' is defined but never used        @typescript-eslint/no-unused-vars
+  10:3   warning  'Check' is defined but never used         @typescript-eslint/no-unused-vars
+  11:3   warning  'ChevronRight' is defined but never used  @typescript-eslint/no-unused-vars
+  20:10  warning  'Badge' is defined but never used         @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/members-tab.tsx
+  11:3  warning  'Users' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/role-builder-tab.tsx
+   7:3  warning  'ShieldAlert' is defined but never used   @typescript-eslint/no-unused-vars
+  14:3  warning  'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/role-permissions-panel.tsx
+  7:3  warning  'Settings2' is defined but never used     @typescript-eslint/no-unused-vars
+  8:3  warning  'Check' is defined but never used         @typescript-eslint/no-unused-vars
+  9:3  warning  'ChevronRight' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/settings-nav.tsx
+  10:3  warning  'Users' is defined but never used        @typescript-eslint/no-unused-vars
+  11:3  warning  'UserCheck' is defined but never used    @typescript-eslint/no-unused-vars
+  12:3  warning  'ShieldCheck' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/teams-tab.tsx
+   3:17  warning  'useState' is defined but never used    @typescript-eslint/no-unused-vars
+  10:3   warning  'UserPlus' is defined but never used    @typescript-eslint/no-unused-vars
+  21:3   warning  'TeamMember' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/stats-grid.tsx
+  6:10  warning  'motion' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/templates/carousel-card-editor.tsx
+    8:3   warning  'Video' is defined but never used                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+    9:3   warning  'ExternalLink' is defined but never used                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  200:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/templates/carousel-preview.tsx
+  45:19  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/integrations/GoogleSheetsConfigModal.tsx
+   44:6   warning  React Hook useEffect has a missing dependency: 'checkAuthStatus'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   67:14  warning  'err' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+   77:14  warning  'err' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+   89:14  warning  'err' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  102:14  warning  'err' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+  123:14  warning  'err' is defined but never used                                                                                     @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/landing/automated-sequence.tsx
+  61:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/landing/click-to-whatsapp-ads.tsx
+  113:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/landing/industry-solutions.tsx
+  139:23  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/landing/integration-logos.tsx
+  26:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/landing/testimonial-section.tsx
+  25:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/app-sidebar.tsx
+  181:6  warning  React Hook React.useEffect has a missing dependency: 'isActive'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/dashboard-header.tsx
+   8:3   warning  'Bell' is defined but never used    @typescript-eslint/no-unused-vars
+  16:3   warning  'Phone' is defined but never used   @typescript-eslint/no-unused-vars
+  23:3   warning  'Shield' is defined but never used  @typescript-eslint/no-unused-vars
+  36:10  warning  'Button' is defined but never used  @typescript-eslint/no-unused-vars
+  37:10  warning  'Input' is defined but never used   @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/dashboard-layout.tsx
+  81:14  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/notification-panel.tsx
+   7:3   warning  'CheckCircle2' is defined but never used  @typescript-eslint/no-unused-vars
+   8:3   warning  'XCircle' is defined but never used       @typescript-eslint/no-unused-vars
+  23:10  warning  'toast' is defined but never used         @typescript-eslint/no-unused-vars
+  24:10  warning  'cn' is defined but never used            @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/system-banners.tsx
+  12:3  warning  'ShieldAlert' is defined but never used  @typescript-eslint/no-unused-vars
+  13:3  warning  'Zap' is defined but never used          @typescript-eslint/no-unused-vars
+  14:3  warning  'Info' is defined but never used         @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/workspace-switcher.tsx
+   8:3   warning  'Plus' is defined but never used                   @typescript-eslint/no-unused-vars
+   9:3   warning  'Settings' is defined but never used               @typescript-eslint/no-unused-vars
+  11:3   warning  'ArrowRightLeft' is defined but never used         @typescript-eslint/no-unused-vars
+  14:10  warning  'motion' is defined but never used                 @typescript-eslint/no-unused-vars
+  14:18  warning  'AnimatePresence' is defined but never used        @typescript-eslint/no-unused-vars
+  20:3   warning  'DropdownMenuSeparator' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/modals/connect-number-modal.tsx
+   99:41  warning  '_' is defined but never used    @typescript-eslint/no-unused-vars
+  115:16  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/modals/create-contact-panel.tsx
+    4:59   warning  'MessageSquare' is defined but never used  @typescript-eslint/no-unused-vars
+    4:117  warning  'AlertCircle' is defined but never used    @typescript-eslint/no-unused-vars
+   17:10   warning  'Badge' is defined but never used          @typescript-eslint/no-unused-vars
+  149:14   warning  'err' is defined but never used            @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/modals/create-template-modal.tsx
+   16:3   warning  'AlertCircle' is defined but never used                                                                                                                                                                                                                                                  @typescript-eslint/no-unused-vars
+   21:18  warning  'AnimatePresence' is defined but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  934:29  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/modals/use-template-modal.tsx
+   3:17  warning  'useState' is defined but never used       @typescript-eslint/no-unused-vars
+   5:3   warning  'X' is defined but never used              @typescript-eslint/no-unused-vars
+   9:3   warning  'MessageSquare' is defined but never used  @typescript-eslint/no-unused-vars
+  11:3   warning  'ChevronRight' is defined but never used   @typescript-eslint/no-unused-vars
+  12:3   warning  'Info' is defined but never used           @typescript-eslint/no-unused-vars
+  19:10  warning  'Badge' is defined but never used          @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/providers/auth-initializer.tsx
+  53:8  warning  React Hook useEffect has a missing dependency: 'isPublicRoute'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/shared/hero-section.tsx
+  43:6  warning  React Hook useEffect has a missing dependency: 'words'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/ui/button.tsx
+  52:13  warning  'style' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/ui/dialog.tsx
+  18:13  warning  'style' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/ui/dropdown-menu.tsx
+  21:13  warning  'style' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/config/feature-config.ts
+   7:3  warning  'MessageSquare' is defined but never used  @typescript-eslint/no-unused-vars
+   8:3  warning  'Layout' is defined but never used         @typescript-eslint/no-unused-vars
+  10:3  warning  'CreditCard' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/business.ts
+  1:10  warning  'get' is defined but never used  @typescript-eslint/no-unused-vars
+  1:21  warning  'put' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/onboarding.ts
+  1:21  warning  'put' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/store/auth-store.ts
+  123:26  warning  'force' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/store/socket-store.ts
+  4:10  warning  'useAuthStore' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 519 problems (3 errors, 516 warnings)
+
