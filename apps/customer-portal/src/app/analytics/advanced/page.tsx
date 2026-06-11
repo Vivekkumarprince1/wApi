@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
    Card,
    CardContent,
@@ -108,6 +109,7 @@ function getChangeTone(change: number) {
 }
 
 export default function AdvancedAnalyticsPage() {
+   const router = useRouter();
    const [loading, setLoading] = useState(true);
    const [dateRange, setDateRange] = useState(30);
    const [kpis, setKpis] = useState<Kpis>(EMPTY_KPIS);
@@ -177,10 +179,10 @@ export default function AdvancedAnalyticsPage() {
                </p>
             </div>
             <div className="flex items-center gap-3">
-               <Button variant="outline" className="bg-background/50 border-border/50 text-xs font-bold uppercase tracking-widest h-10">
+               <div className="flex items-center bg-background/50 border border-border/50 rounded-xl px-4 text-xs font-bold uppercase tracking-widest h-10">
                   <Calendar className="h-4 w-4 mr-2" />
                   Last {dateRange} Days
-               </Button>
+               </div>
                <div className="flex items-center rounded-xl border border-border/50 overflow-hidden">
                   {[7, 30, 90].map((days) => (
                      <button
@@ -389,7 +391,7 @@ export default function AdvancedAnalyticsPage() {
                   <CardTitle className="text-lg font-bold">Agent Performance</CardTitle>
                   <CardDescription>Response times and resolution metrics</CardDescription>
                </div>
-               <Button variant="ghost" className="text-primary font-bold text-xs uppercase tracking-widest">
+               <Button variant="ghost" onClick={() => { router.push('/settings'); }} className="text-primary font-bold text-xs uppercase tracking-widest">
                   View All Agents <ArrowRight className="h-3 w-3 ml-2" />
                </Button>
             </CardHeader>

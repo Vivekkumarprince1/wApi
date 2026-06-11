@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   X, 
   DollarSign, 
@@ -28,7 +29,7 @@ import {
   Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Deal, DealNote, DealActivity, addDealNote } from '@/lib/api/crm';
+import { Deal, DealNote, DealActivity, addDealNote, fetchPipelines, updateDealStage, deleteDeal } from '@/lib/api/crm';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -63,6 +64,7 @@ export const DealDetailSidebar: React.FC<DealDetailSidebarProps> = ({
   onUpdate 
 }) => {
   const [noteText, setNoteText] = useState('');
+  const router = useRouter();
   const [isSubmittingNote, setIsSubmittingNote] = useState(false);
   const [activeTab, setActiveTab] = useState('activity');
   const queryClient = useQueryClient();
@@ -70,6 +72,39 @@ export const DealDetailSidebar: React.FC<DealDetailSidebarProps> = ({
   // Dialog States
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | undefined>(undefined);
+
+  const { data: pipelines = [] } = useQuery<any[]>({
+    queryKey: ['pipelines'],
+    queryFn: fetchPipelines,
+  });
+  const dealPipeline = pipelines.find((p: any) =>
+    p._id === (typeof deal.pipeline === 'string' ? deal.pipeline : deal.pipeline?._id)
+  );
+  const stages: any[] = dealPipeline?.stages || [];
+
+  const moveToStage = async (stageId: string) => {
+    try {
+      await updateDealStage(deal._id, stageId);
+      toast.success('Deal stage updated');
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      onUpdate?.();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to move stage');
+    }
+  };
+
+  const handleArchive = async () => {
+    if (!window.confirm('Archive this deal?')) return;
+    try {
+      await deleteDeal(deal._id);
+      toast.success('Deal archived');
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+      onUpdate?.();
+      onClose();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to archive deal');
+    }
+  };
 
   // Data Fetching
   const { data: tasks = [], isLoading: isTasksLoading } = useQuery<Task[]>({
@@ -151,9 +186,28 @@ export const DealDetailSidebar: React.FC<DealDetailSidebarProps> = ({
             <X className="h-5 w-5" />
          </Button>
          <div className="flex items-center gap-2">
-            <Button variant="outline" className="rounded-xl h-10 px-4 font-black uppercase tracking-widest text-[9px] border-border/40 hover:bg-background">
-               Move Stage
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="rounded-xl h-10 px-4 font-black uppercase tracking-widest text-[9px] border-border/40 hover:bg-background">
+                   Move Stage
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="rounded-2xl border-border/40 shadow-premium-lg">
+                {stages.length === 0 && (
+                  <DropdownMenuItem disabled className="font-bold py-2.5 px-4 opacity-50">No stages available</DropdownMenuItem>
+                )}
+                {stages.map((s: any) => (
+                  <DropdownMenuItem
+                    key={s.id}
+                    disabled={s.id === deal.stage}
+                    onClick={() => moveToStage(s.id)}
+                    className="font-bold py-2.5 px-4 cursor-pointer"
+                  >
+                    {s.title}{s.id === deal.stage ? ' (current)' : ''}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl">
@@ -161,9 +215,19 @@ export const DealDetailSidebar: React.FC<DealDetailSidebarProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="rounded-2xl border-border/40 shadow-premium-lg">
-                <DropdownMenuItem className="font-bold py-2.5 px-4 focus:bg-emerald-500/5 focus:text-emerald-600">Mark as Won</DropdownMenuItem>
-                <DropdownMenuItem className="font-bold py-2.5 px-4 focus:bg-red-500/5 focus:text-red-600">Mark as Lost</DropdownMenuItem>
-                <DropdownMenuItem className="font-bold py-2.5 px-4">Archive Deal</DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const won = stages.find((s: any) => s.id === 'won') || [...stages].reverse().find((s: any) => s.isFinal);
+                    if (won) moveToStage(won.id); else toast.error('No "Won" stage in this pipeline');
+                  }}
+                  className="font-bold py-2.5 px-4 cursor-pointer focus:bg-emerald-500/5 focus:text-emerald-600">Mark as Won</DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const lost = stages.find((s: any) => s.id === 'lost');
+                    if (lost) moveToStage(lost.id); else toast.error('No "Lost" stage in this pipeline');
+                  }}
+                  className="font-bold py-2.5 px-4 cursor-pointer focus:bg-red-500/5 focus:text-red-600">Mark as Lost</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleArchive} className="font-bold py-2.5 px-4 cursor-pointer">Archive Deal</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
          </div>
@@ -304,7 +368,7 @@ export const DealDetailSidebar: React.FC<DealDetailSidebarProps> = ({
                    )}
 
                    {recentMessages.length > 0 && !isMessagesLoading && (
-                     <Button variant="link" className="text-[9px] font-black uppercase tracking-widest text-primary p-0 h-auto gap-1">
+                    <Button variant="link" onClick={() => { router.push('/inbox'); }} className="text-[9px] font-black uppercase tracking-widest text-primary p-0 h-auto gap-1">
                         Open Full Conversation <ChevronRight className="size-3" />
                      </Button>
                    )}
@@ -566,10 +630,10 @@ export const DealDetailSidebar: React.FC<DealDetailSidebarProps> = ({
                     </div>
 
                     <div className="pt-4 flex gap-3">
-                       <Button className="flex-1 rounded-[20px] h-14 font-black uppercase tracking-widest text-[10px] shadow-premium-lg gap-2">
+                       <Button onClick={() => { router.push('/inbox'); }} className="flex-1 rounded-[20px] h-14 font-black uppercase tracking-widest text-[10px] shadow-premium-lg gap-2">
                           <Send className="h-4 w-4" /> Open Chat
                        </Button>
-                       <Button variant="outline" className="size-14 rounded-2xl font-black text-[10px] border-border/50 hover:bg-background shadow-premium-sm">
+                       <Button variant="outline" onClick={() => { if (deal.contact?._id) router.push(`/contacts/${deal.contact._id}`); }} title="View contact profile" className="size-14 rounded-2xl font-black text-[10px] border-border/50 hover:bg-background shadow-premium-sm">
                           <ExternalLink className="h-5 w-5" />
                        </Button>
                     </div>

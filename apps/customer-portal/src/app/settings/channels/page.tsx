@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, Globe, Camera, MessageSquare, Plus, Smartphone, AlertCircle } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,14 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 const CHANNELS = [
-  { name: "WhatsApp", description: "Primary support and broadcast channel.", icon: Smartphone, status: "connected", color: "text-emerald-600" },
-  { name: "Instagram DM", description: "Route social leads into the same inbox.", icon: Camera, status: "not_connected", color: "text-pink-600" },
-  { name: "Website Chat", description: "Embed a lightweight website entry point.", icon: Globe, status: "coming_soon", color: "text-sky-600" },
-  { name: "Manual Inbox", description: "Create contacts and follow up by hand.", icon: MessageSquare, status: "connected", color: "text-violet-600" },
+  { name: "WhatsApp", description: "Primary support and broadcast channel.", icon: Smartphone, status: "connected", color: "text-emerald-600", managePath: "/settings/whatsapp-profile", connectPath: "/onboarding" },
+  { name: "Instagram DM", description: "Route social leads into the same inbox.", icon: Camera, status: "not_connected", color: "text-pink-600", managePath: "/automation/instagram-quickflows", connectPath: "/integrations" },
+  { name: "Website Chat", description: "Embed a lightweight website entry point.", icon: Globe, status: "coming_soon", color: "text-sky-600", managePath: "/widget", connectPath: "/widget" },
+  { name: "Manual Inbox", description: "Create contacts and follow up by hand.", icon: MessageSquare, status: "connected", color: "text-violet-600", managePath: "/inbox", connectPath: "/inbox" },
 ];
 
 export default function ChannelsSettingsPage() {
   const [channels] = useState(CHANNELS);
+  const router = useRouter();
 
   return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
@@ -63,7 +65,10 @@ export default function ChannelsSettingsPage() {
                   </div>
                   <p className="text-sm font-medium text-muted-foreground leading-relaxed">{channel.description}</p>
                 </div>
-                <Button className="h-11 rounded-2xl bg-primary text-primary-foreground font-black shadow-lg shadow-primary/20">
+                <Button
+                  disabled={channel.status === "coming_soon"}
+                  onClick={() => router.push(channel.status === "connected" ? channel.managePath : channel.connectPath)}
+                  className="h-11 rounded-2xl bg-primary text-primary-foreground font-black shadow-lg shadow-primary/20">
                   {channel.status === "connected" ? "Manage Channel" : channel.status === "coming_soon" ? "Coming Soon" : "Connect Channel"}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
@@ -78,7 +83,7 @@ export default function ChannelsSettingsPage() {
               <h3 className="text-xl font-black">Channel expansion</h3>
               <p className="text-sm text-white/60 font-medium leading-relaxed">Use this screen as the anchor for future connectors without changing the dashboard shell.</p>
             </div>
-            <Button variant="secondary" className="h-11 rounded-2xl font-black text-[10px] uppercase tracking-widest">
+            <Button variant="secondary" onClick={() => router.push('/integrations')} className="h-11 rounded-2xl font-black text-[10px] uppercase tracking-widest">
               <Plus className="h-4 w-4 mr-2" /> Add Connector
             </Button>
           </CardContent>

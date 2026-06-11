@@ -39,6 +39,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { fetchContacts, Contact, deleteContact } from '@/lib/api/contacts';
+import api from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -72,6 +73,8 @@ export default function ContactsPage() {
   const [isSendTemplateOpen, setIsSendTemplateOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 25;
   const router = useRouter();
   
   const { data: contactsData, isLoading } = useQuery({
@@ -101,6 +104,13 @@ export default function ContactsPage() {
       return createdAtDate === selectedDate;
     });
   }, [contacts, search, selectedDate]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredContacts.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedContacts = useMemo(
+    () => filteredContacts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredContacts, currentPage]
+  );
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => 
@@ -140,6 +150,49 @@ export default function ContactsPage() {
   const handleRemoveContact = (id: string) => {
     if (window.confirm('Are you sure you want to delete this contact? All message history will be removed.')) {
       deleteMutation.mutate(id);
+    }
+  };
+
+  const handleExport = () => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    window.open(`/api/v1/bulk/contacts/export${params.size ? `?${params}` : ''}`, '_blank');
+  };
+
+  const handleBulkTag = async () => {
+    if (selectedIds.length === 0) {
+      toast.error('Select contacts first to apply tags');
+      return;
+    }
+    const tag = window.prompt(`Tag to apply to ${selectedIds.length} contact(s):`);
+    if (!tag?.trim()) return;
+    try {
+      const res: any = await api.post('/bulk/contacts/tag', { contactIds: selectedIds, tags: [tag.trim()] });
+      toast.success(`Tagged ${res?.updated ?? selectedIds.length} contact(s)`);
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to tag contacts');
+    }
+  };
+
+  const handleSyncCrm = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    toast.success('Contacts refreshed from server');
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) {
+      toast.error('Select contacts first to delete');
+      return;
+    }
+    if (!window.confirm(`Delete ${selectedIds.length} contact(s)? This cannot be undone.`)) return;
+    try {
+      const res: any = await api.post('/bulk/contacts/delete', { contactIds: selectedIds });
+      toast.success(`Deleted ${res?.deleted ?? selectedIds.length} contact(s)`);
+      setSelectedIds([]);
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to delete contacts');
     }
   };
 
@@ -251,7 +304,7 @@ export default function ContactsPage() {
         </div>
         
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <Button variant="outline" className="rounded-xl h-13 px-4 border-border/50 font-bold bg-card shadow-sm">
+          <Button variant="outline" onClick={handleExport} className="rounded-xl h-13 px-4 border-border/50 font-bold bg-card shadow-sm">
             <Download className="h-4 w-4 mr-2" /> Export
           </Button>
           <DropdownMenu>
@@ -261,9 +314,9 @@ export default function ContactsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50">
-               <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11"><Tag className="h-4 w-4 text-primary" /> Bulk Tagging</DropdownMenuItem>
-               <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11"><RefreshCcw className="h-4 w-4 text-emerald-500" /> Sync with CRM</DropdownMenuItem>
-               <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11 text-destructive focus:bg-destructive/10"><Trash2 className="h-4 w-4" /> Delete Selected</DropdownMenuItem>
+               <DropdownMenuItem onClick={handleBulkTag} className="rounded-xl font-bold gap-3 h-11 cursor-pointer"><Tag className="h-4 w-4 text-primary" /> Bulk Tagging</DropdownMenuItem>
+               <DropdownMenuItem onClick={handleSyncCrm} className="rounded-xl font-bold gap-3 h-11 cursor-pointer"><RefreshCcw className="h-4 w-4 text-emerald-500" /> Sync with CRM</DropdownMenuItem>
+               <DropdownMenuItem onClick={handleBulkDelete} className="rounded-xl font-bold gap-3 h-11 text-destructive focus:bg-destructive/10 cursor-pointer"><Trash2 className="h-4 w-4" /> Delete Selected</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -291,7 +344,7 @@ export default function ContactsPage() {
             </TableHeader>
             <TableBody>
               <AnimatePresence mode="popLayout">
-                {filteredContacts.map((contact) => (
+                {pagedContacts.map((contact) => (
                   <TableRow 
                     key={contact._id} 
                     className="group border-border/30 hover:bg-muted/30 transition-colors"
@@ -400,10 +453,10 @@ export default function ContactsPage() {
         )}
 
         <div className="px-6 py-4 border-t border-border/40 bg-muted/20 flex items-center justify-between">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Showing {filteredContacts.length} of {contacts.length} Contacts</p>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Showing {pagedContacts.length} of {filteredContacts.length} Contacts — Page {currentPage}/{totalPages}</p>
             <div className="flex items-center gap-2">
-               <Button variant="ghost" disabled size="sm" className="rounded-xl h-9 px-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Prev</Button>
-               <Button variant="outline" size="sm" className="rounded-xl h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-primary text-white border-none shadow-premium-sm">Next</Button>
+               <Button variant="ghost" disabled={currentPage <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} size="sm" className="rounded-xl h-9 px-4 font-black uppercase text-[10px] tracking-widest text-muted-foreground">Prev</Button>
+               <Button variant="outline" disabled={currentPage >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} size="sm" className="rounded-xl h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-primary text-white border-none shadow-premium-sm">Next</Button>
             </div>
         </div>
             <CreateContactPanel 

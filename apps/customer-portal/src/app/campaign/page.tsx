@@ -154,7 +154,23 @@ const CampaignsPage = () => {
           <p className="text-muted-foreground text-sm font-medium">Manage and track your message broadcasts.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-2xl px-6 h-12 font-bold border-border/50 group">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!filteredCampaigns.length) { toast.error('No campaigns to export'); return; }
+              const headers = ['Name', 'Type', 'Status', 'Template', 'Recipients', 'Sent', 'Delivered', 'Read', 'Created'];
+              const cell = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+              const rows = filteredCampaigns.map((c: any) => [
+                c.name, c.campaignType || 'one-time', c.status, c.templateName || c.template?.name,
+                c.stats?.total ?? c.recipientCount, c.stats?.sent, c.stats?.delivered, c.stats?.read, c.createdAt
+              ].map(cell).join(','));
+              const csv = [headers.map(cell).join(','), ...rows].join('\n');
+              const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+              const a = Object.assign(document.createElement('a'), { href: url, download: 'campaigns.csv' });
+              a.click();
+              URL.revokeObjectURL(url);
+            }}
+            className="rounded-2xl px-6 h-12 font-bold border-border/50 group">
             <FileDown className="h-4 w-4 mr-2 text-muted-foreground group-hover:text-primary transition-colors" />
             Export
           </Button>
@@ -201,11 +217,8 @@ const CampaignsPage = () => {
         </div>
 
         <div className="hidden sm:flex items-center gap-1 border-l border-border/50 px-2 ml-1">
-          <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-black uppercase tracking-widest h-9 text-muted-foreground hover:text-foreground">
-            <Calendar className="mr-2 h-3.5 w-3.5" /> Date Range
-          </Button>
-          <Button variant="ghost" size="sm" className="rounded-xl text-[10px] font-black uppercase tracking-widest h-9 text-muted-foreground hover:text-foreground">
-            <Filter className="mr-2 h-3.5 w-3.5" /> Filter
+          <Button variant="ghost" size="sm" onClick={() => { setSearch(''); setActiveTab('one-time'); }} className="rounded-xl text-[10px] font-black uppercase tracking-widest h-9 text-muted-foreground hover:text-foreground">
+            <Filter className="mr-2 h-3.5 w-3.5" /> Reset Filters
           </Button>
         </div>
       </div>

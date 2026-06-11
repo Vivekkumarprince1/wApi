@@ -1,19 +1,44 @@
 "use client";
 
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getWidgetConfig } from '@/lib/api/widget';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getWidgetConfig, updateWidgetConfig } from '@/lib/api/widget';
 import { Grid, MousePointer2, Settings, Code, Sparkles, MessageCircle, Copy, Check, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 
 export default function CloudWidgetHubPage() {
+  const queryClient = useQueryClient();
   const { data: config, isLoading } = useQuery({
     queryKey: ['widget-config'],
     queryFn: getWidgetConfig
   });
   const [copied, setCopied] = React.useState(false);
+  const [isEditorOpen, setIsEditorOpen] = React.useState(false);
+  const [form, setForm] = React.useState({ phoneNumber: '', themeColor: '#25D366', welcomeMessage: '' });
+
+  const openEditor = () => {
+    setForm({
+      phoneNumber: (config as any)?.phoneNumber || '',
+      themeColor: (config as any)?.themeColor || '#25D366',
+      welcomeMessage: (config as any)?.welcomeMessage || 'Hi! How can we help you?',
+    });
+    setIsEditorOpen(true);
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: () => updateWidgetConfig(form),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['widget-config'] });
+      setIsEditorOpen(false);
+      toast.success('Widget configuration saved');
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to save widget config'),
+  });
 
   // Widget runtime URL is sourced from env so each deployment can point at
   // its own CDN/origin instead of the previous hard-coded `cdn.wapi.com`,
@@ -45,7 +70,7 @@ export default function CloudWidgetHubPage() {
                 </p>
             </div>
         </div>
-        <Button className="rounded-full px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold h-12 uppercase tracking-tight">
+        <Button onClick={openEditor} className="rounded-full px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold h-12 uppercase tracking-tight">
           <Sparkles className="mr-2 h-4 w-4" /> Design New Widget
         </Button>
       </div>
@@ -65,8 +90,8 @@ export default function CloudWidgetHubPage() {
                     </p>
                 </div>
                 <div className="flex gap-4">
-                    <Button variant="outline" className="rounded-full px-6 font-bold h-11 border-border/50">Edit Visuals</Button>
-                    <Button variant="outline" className="rounded-full px-6 font-bold h-11 border-border/50">Behavior Settings</Button>
+                    <Button variant="outline" onClick={openEditor} className="rounded-full px-6 font-bold h-11 border-border/50">Edit Visuals</Button>
+                    <Button variant="outline" onClick={openEditor} className="rounded-full px-6 font-bold h-11 border-border/50">Behavior Settings</Button>
                 </div>
             </div>
         </Card>
@@ -123,8 +148,8 @@ export default function CloudWidgetHubPage() {
             <p className="text-muted-foreground max-w-sm mx-auto font-medium">
                 Deploy your first floating chat button or embedded contact form to start receiving chats from your site.
             </p>
-            <Button variant="ghost" className="text-xs font-black uppercase tracking-widest text-primary mt-4 group">
-                Integration Guide <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
+            <Button variant="ghost" onClick={openEditor} className="text-xs font-black uppercase tracking-widest text-primary mt-4 group">
+                Configure Widget <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
             </Button>
           </>
         ) : (
@@ -153,6 +178,63 @@ export default function CloudWidgetHubPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+        <DialogContent className="rounded-3xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase tracking-tight">Widget Configuration</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">WhatsApp Phone Number</p>
+              <Input
+                value={form.phoneNumber}
+                onChange={(e) => setForm(f => ({ ...f, phoneNumber: e.target.value }))}
+                placeholder="919876543210"
+                className="h-11 rounded-xl"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Theme Color</p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={form.themeColor}
+                  onChange={(e) => setForm(f => ({ ...f, themeColor: e.target.value }))}
+                  className="h-11 w-14 rounded-xl border border-border/50 bg-transparent cursor-pointer"
+                />
+                <Input
+                  value={form.themeColor}
+                  onChange={(e) => setForm(f => ({ ...f, themeColor: e.target.value }))}
+                  className="h-11 rounded-xl font-mono"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Welcome Message</p>
+              <Input
+                value={form.welcomeMessage}
+                onChange={(e) => setForm(f => ({ ...f, welcomeMessage: e.target.value }))}
+                placeholder="Hi! How can we help you?"
+                className="h-11 rounded-xl"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditorOpen(false)} className="rounded-xl font-bold">Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!form.phoneNumber.trim()) { toast.error('Phone number is required'); return; }
+                saveMutation.mutate();
+              }}
+              disabled={saveMutation.isPending}
+              className="rounded-xl font-bold"
+            >
+              {saveMutation.isPending ? 'Saving…' : 'Save Widget'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   ShoppingCart, 
   Plus, 
@@ -34,6 +35,7 @@ import Link from 'next/link';
 
 export default function CheckoutBotPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   
   // Stats Query
   const { data: statsData, isLoading: statsLoading } = useQuery({
@@ -107,7 +109,7 @@ export default function CheckoutBotPage() {
                 <SettingsIcon className="size-4 opacity-40" /> Logistics Hub
              </Button>
           </Link>
-          <Button className="rounded-2xl h-12 px-8 font-black shadow-xl shadow-primary/20 bg-primary text-primary-foreground text-[10px] uppercase tracking-[0.2em] gap-2">
+          <Button onClick={() => { router.push('/commerce/settings'); }} className="rounded-2xl h-12 px-8 font-black shadow-xl shadow-primary/20 bg-primary text-primary-foreground text-[10px] uppercase tracking-[0.2em] gap-2">
             <Plus className="size-4" /> New Checkout Flow
           </Button>
         </div>
@@ -249,8 +251,8 @@ export default function CheckoutBotPage() {
               ))}
            </div>
            
-           <Button className="mt-4 rounded-2xl h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[12px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 group">
-              Launch Bot Debugger <ArrowRight className="size-4 ml-2 group-hover:translate-x-1 transition-transform" />
+           <Button onClick={() => { router.push('/inbox'); }} className="mt-4 rounded-2xl h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[12px] uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 group">
+              Open Live Inbox <ArrowRight className="size-4 ml-2 group-hover:translate-x-1 transition-transform" />
            </Button>
         </div>
       </div>

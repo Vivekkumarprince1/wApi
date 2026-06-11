@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Users, Send, CheckCircle, Eye, TrendingUp, TrendingDown, LucideIcon, Lock, Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useFeatureGate } from '@/store/auth-store';
 import { motion } from 'framer-motion';
 
@@ -16,7 +17,9 @@ interface StatCardProps {
   isLocked?: boolean;
 }
 
-const StatCard = ({ title, value, change, changeType, icon: Icon, color, subtitle, isLocked }: StatCardProps) => (
+const StatCard = ({ title, value, change, changeType, icon: Icon, color, subtitle, isLocked }: StatCardProps) => {
+  const router = useRouter();
+  return (
   <div className={`group relative bg-card rounded-2xl p-5 border border-border/50 hover:shadow-premium transition-all duration-300 hover:-translate-y-0.5 overflow-hidden ${isLocked ? 'cursor-not-allowed' : ''}`}>
     <div className={`absolute top-0 right-0 w-28 h-28 bg-gradient-to-br ${color} opacity-[0.07] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500`} />
     
@@ -45,14 +48,15 @@ const StatCard = ({ title, value, change, changeType, icon: Icon, color, subtitl
         </div>
         <div className="text-center">
             <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">Premium Metric</p>
-            <button className="text-[9px] font-bold bg-primary text-white px-3 py-1 rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-1 mx-auto">
+            <button onClick={() => { router.push('/billing'); }} className="text-[9px] font-bold bg-primary text-white px-3 py-1 rounded-full shadow-lg shadow-primary/20 hover:scale-105 transition-transform flex items-center gap-1 mx-auto">
                 <Sparkles className="h-2 w-2" /> Upgrade
             </button>
         </div>
       </div>
     )}
   </div>
-);
+  );
+};
 
 interface StatsGridProps {
   stats: {

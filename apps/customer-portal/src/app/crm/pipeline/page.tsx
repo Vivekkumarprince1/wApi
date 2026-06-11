@@ -243,10 +243,10 @@ export default function PipelinePage() {
            </div>
            
            <div className="flex items-center gap-3">
-              <Button variant="outline" className="rounded-2xl h-13 px-6 border-border/40 font-black text-[10px] uppercase tracking-widest bg-card hover:bg-muted shadow-premium-sm gap-2">
-                 <Filter className="size-4 opacity-40" /> Filters
+              <Button variant="outline" onClick={() => setSearchQuery('')} className="rounded-2xl h-13 px-6 border-border/40 font-black text-[10px] uppercase tracking-widest bg-card hover:bg-muted shadow-premium-sm gap-2">
+                 <Filter className="size-4 opacity-40" /> Reset Filters
               </Button>
-              <Button variant="outline" className="rounded-2xl h-13 px-5 border-border/40 bg-card hover:bg-muted shadow-premium-sm">
+              <Button variant="outline" onClick={() => setIsPipelineDialogOpen(true)} title="New pipeline" className="rounded-2xl h-13 px-5 border-border/40 bg-card hover:bg-muted shadow-premium-sm">
                  <Settings2 className="size-4 opacity-40" />
               </Button>
            </div>
@@ -295,7 +295,7 @@ export default function PipelinePage() {
                       ))}
                       
                       {/* Add Stage Visual */}
-                      <button className="w-[340px] h-[300px] border-4 border-dashed border-border/10 rounded-[40px] shrink-0 flex flex-col items-center justify-center opacity-10 hover:opacity-50 transition-all hover:border-primary/40 hover:bg-primary/5 group">
+                      <button onClick={() => setIsPipelineDialogOpen(true)} className="w-[340px] h-[300px] border-4 border-dashed border-border/10 rounded-[40px] shrink-0 flex flex-col items-center justify-center opacity-10 hover:opacity-50 transition-all hover:border-primary/40 hover:bg-primary/5 group">
                          <div className="size-16 rounded-[24px] bg-foreground text-background flex items-center justify-center group-hover:scale-110 shadow-premium-lg transition-all duration-500">
                             <Plus className="size-8" />
                          </div>
@@ -347,7 +347,7 @@ export default function PipelinePage() {
                  <h3 className="text-3xl font-black tracking-tight">Setup Your Funnel</h3>
                  <p className="text-muted-foreground font-semibold leading-relaxed">No pipelines were found for this workspace. Create your first conversion roadmap to start closing deals.</p>
                </div>
-               <Button size="lg" className="rounded-[24px] h-16 px-12 font-black shadow-2xl shadow-primary/30 text-primary-foreground text-[11px] uppercase tracking-widest">
+               <Button size="lg" onClick={() => setIsPipelineDialogOpen(true)} className="rounded-[24px] h-16 px-12 font-black shadow-2xl shadow-primary/30 text-primary-foreground text-[11px] uppercase tracking-widest">
                   Bootstrap Workspace CRM
                </Button>
             </div>
@@ -362,7 +362,7 @@ export default function PipelinePage() {
                  <h3 className="text-3xl font-black tracking-tight">Setup Your Funnel</h3>
                  <p className="text-muted-foreground font-semibold leading-relaxed">No pipelines were found for this workspace. Create your first conversion roadmap to start closing deals.</p>
                </div>
-               <Button size="lg" className="rounded-[24px] h-16 px-12 font-black shadow-2xl shadow-primary/30 text-primary-foreground text-[11px] uppercase tracking-widest">
+               <Button size="lg" onClick={() => setIsPipelineDialogOpen(true)} className="rounded-[24px] h-16 px-12 font-black shadow-2xl shadow-primary/30 text-primary-foreground text-[11px] uppercase tracking-widest">
                   Bootstrap Workspace CRM
                </Button>
             </div>

@@ -308,9 +308,6 @@ export default function InteraktiveListPage() {
           <Button size="sm" variant={statusFilter === 'all' ? 'default' : 'outline'} onClick={() => setStatusFilter('all')}>All</Button>
           <Button size="sm" variant={statusFilter === 'enabled' ? 'default' : 'outline'} onClick={() => setStatusFilter('enabled')}>Enabled</Button>
           <Button size="sm" variant={statusFilter === 'disabled' ? 'default' : 'outline'} onClick={() => setStatusFilter('disabled')}>Disabled</Button>
-          <Button variant="ghost" size="sm" className="rounded-xl">
-            <ListFilter className="mr-2 h-4 w-4" /> Filter
-          </Button>
         </div>
       </div>
 

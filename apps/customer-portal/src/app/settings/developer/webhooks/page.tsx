@@ -47,11 +47,12 @@ import {
    DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { 
-   getWhatsappSubscriptions, 
-   createWhatsappSubscription, 
+import {
+   getWhatsappSubscriptions,
+   createWhatsappSubscription,
    updateWhatsappSubscription,
-   deleteWhatsappSubscription 
+   deleteWhatsappSubscription,
+   testWABAConnection
 } from '@/lib/api/settings';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
@@ -394,7 +395,14 @@ export default function WebhooksPage() {
                      <p className="text-sm font-bold opacity-90 leading-relaxed mb-6">
                         Verify the authenticity of incoming webhooks using our payload signing. All requests include an <code>x-wapi-signature</code> HMAC SHA256 header.
                      </p>
-                     <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none font-bold text-[10px] uppercase tracking-widest h-10 px-6 rounded-xl">
+                     <Button
+                        variant="secondary"
+                        onClick={() => {
+                           const first = subscriptions[0];
+                           if (first) handleOpenEdit(first);
+                           else toast.info('Add a webhook endpoint first — each endpoint has its own signing secret');
+                        }}
+                        className="bg-white/20 hover:bg-white/30 text-white border-none font-bold text-[10px] uppercase tracking-widest h-10 px-6 rounded-xl">
                         View Signing Secret
                      </Button>
                   </div>
@@ -474,7 +482,18 @@ export default function WebhooksPage() {
                                              >
                                                 Edit Settings
                                              </DropdownMenuItem>
-                                             <DropdownMenuItem className="font-black text-[10px] py-3 rounded-lg uppercase tracking-widest cursor-pointer">Debug Payload</DropdownMenuItem>
+                                             <DropdownMenuItem
+                                                onClick={() => {
+                                                   navigator.clipboard.writeText(JSON.stringify({
+                                                      type: 'message',
+                                                      appId: hook.appId || '...',
+                                                      timestamp: Date.now(),
+                                                      version: 'v3',
+                                                      payload: { id: 'msg_12345', text: 'Hello World!' }
+                                                   }, null, 2));
+                                                   toast.success('Sample payload copied to clipboard');
+                                                }}
+                                                className="font-black text-[10px] py-3 rounded-lg uppercase tracking-widest cursor-pointer">Debug Payload</DropdownMenuItem>
                                           </DropdownMenuContent>
                                        </DropdownMenu>
                                           )}
@@ -547,7 +566,17 @@ export default function WebhooksPage() {
                         </div>
                      </div>
 
-                     <Button className="w-full bg-slate-900 border-none text-white font-black h-12 rounded-xl shadow-lg hover:shadow-indigo-500/10 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
+                     <Button
+                        onClick={async () => {
+                           setTestTimestamp(Date.now());
+                           try {
+                              await testWABAConnection();
+                              toast.success('Test trigger dispatched via your WABA connection');
+                           } catch (err: any) {
+                              toast.error(err?.response?.data?.message || 'Test dispatch failed — check your WABA connection');
+                           }
+                        }}
+                        className="w-full bg-slate-900 border-none text-white font-black h-12 rounded-xl shadow-lg hover:shadow-indigo-500/10 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
                         <Send className="h-4 w-4" />
                         Send Test Trigger
                      </Button>

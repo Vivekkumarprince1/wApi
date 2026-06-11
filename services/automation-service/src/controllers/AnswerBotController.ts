@@ -43,6 +43,17 @@ export const getSources = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const deleteSource = async (req: AuthRequest, res: Response) => {
+  try {
+    const workspaceId = req.workspace?.id;
+    const source = await AnswerBotSource.findOneAndDelete({ _id: req.params.id, workspace: workspaceId });
+    if (!source) return res.status(404).json({ success: false, error: 'Source not found' });
+    res.json({ success: true, message: 'Source removed' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export const createSource = async (req: AuthRequest, res: Response) => {
   try {
     const workspaceId = req.workspace?.id;

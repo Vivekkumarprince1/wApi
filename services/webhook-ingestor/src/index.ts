@@ -161,7 +161,16 @@ function isSignatureValid(rawBody: string, headers: Record<string, string | stri
   };
 
   const signature = getHeader('x-gupshup-signature') || getHeader('x-hub-signature-256');
-  if (!signature) return false;
+  if (!signature) {
+    // Providers only sign webhooks when HMAC is configured on their side. In
+    // dev, unsigned deliveries (e.g. Gupshup via ngrok) must still ingest —
+    // validate-when-present, allow-when-absent. Production stays strict.
+    if (!IS_PRODUCTION) {
+      console.warn('[Webhook Ingestor] Unsigned webhook accepted (non-production).');
+      return true;
+    }
+    return false;
+  }
 
   const cleanSignature = signature.startsWith('sha256=') ? signature.slice(7) : signature;
 

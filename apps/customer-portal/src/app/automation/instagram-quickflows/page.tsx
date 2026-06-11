@@ -295,10 +295,10 @@ export default function InstagramQuickflowsPage() {
                               </Button>
                            </DropdownMenuTrigger>
                            <DropdownMenuContent align="end" className="rounded-[24px] p-2 border-border/50 shadow-2xl min-w-[200px]">
-                              <DropdownMenuItem className="rounded-xl h-12 px-4 font-bold text-sm gap-3">
+                              <DropdownMenuItem onClick={() => router.push(`/automation/instagram-quickflows/create?id=${qf._id}`)} className="rounded-xl h-12 px-4 font-bold text-sm gap-3 cursor-pointer">
                                  <Pencil className="h-4 w-4" /> Edit QuickFlow
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="rounded-xl h-12 px-4 font-bold text-sm gap-3">
+                              <DropdownMenuItem onClick={() => router.push('/analytics/advanced')} className="rounded-xl h-12 px-4 font-bold text-sm gap-3 cursor-pointer">
                                  <Activity className="h-4 w-4" /> View Analytics
                               </DropdownMenuItem>
                               <DropdownMenuItem 
@@ -358,7 +358,7 @@ export default function InstagramQuickflowsPage() {
                                         </div>
                                      </div>
                                   </div>
-                                  <Button className="w-full mt-10 rounded-2xl bg-foreground text-background font-black hover:opacity-90 transition-opacity">
+                                  <Button onClick={() => router.push('/automation')} className="w-full mt-10 rounded-2xl bg-foreground text-background font-black hover:opacity-90 transition-opacity">
                                     Browse Execution Logs <ArrowRight className="h-4 w-4 ml-2" />
                                   </Button>
                                </div>
@@ -433,7 +433,7 @@ export default function InstagramQuickflowsPage() {
 
                 <div className="p-10 bg-muted/20 border-t border-border/50 flex justify-end gap-4">
                    <Button variant="ghost" className="rounded-2xl h-12 px-8 font-black" onClick={() => setShowPresetModal(false)}>Close</Button>
-                   <Button className="rounded-2xl h-12 px-8 font-black bg-pink-500 text-white hover:bg-pink-600 transition-all">Start Designing</Button>
+                   <Button onClick={() => { setShowPresetModal(false); router.push('/automation/instagram-quickflows/create'); }} className="rounded-2xl h-12 px-8 font-black bg-pink-500 text-white hover:bg-pink-600 transition-all">Start Designing</Button>
                 </div>
              </motion.div>
           </div>

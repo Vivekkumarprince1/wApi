@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Check, 
   CheckCheck, 
@@ -143,8 +144,12 @@ const TemplateRenderer = React.memo(({ message }: { message: Message }) => {
       {template.buttons && template.buttons.length > 0 && (
         <div className="border-t border-black/5 flex flex-col divide-y divide-black/5 bg-black/5 dark:bg-white/5 rounded-b-2xl">
           {template.buttons.map((btn: any, idx: number) => (
-            <button 
-              key={`${btn.type || 'btn'}-${btn.text || 'action'}-${idx}`} 
+            <button
+              key={`${btn.type || 'btn'}-${btn.text || 'action'}-${idx}`}
+              onClick={() => {
+                if (btn.type === 'URL' && btn.url) window.open(btn.url, '_blank');
+                else if (btn.type === 'PHONE_NUMBER' && (btn.phone_number || btn.phoneNumber)) window.open(`tel:${btn.phone_number || btn.phoneNumber}`);
+              }}
               className="w-full py-3 px-4 text-[13px] font-black uppercase tracking-widest text-sky-500 hover:bg-black/5 transition-colors flex items-center justify-center gap-2 active:scale-[0.98]"
             >
               {btn.type === 'URL' && <ExternalLink className="h-3.5 w-3.5" />}
@@ -256,10 +261,14 @@ const ContactsRenderer = React.memo(({ message }: { message: Message }) => {
         </div>
       </div>
       <div className="border-t border-black/5 flex divide-x divide-black/5">
-         <button className="flex-1 py-3.5 text-[11px] font-black uppercase tracking-widest text-sky-500 hover:bg-black/5 transition-colors">
+         <button
+            onClick={() => { const p = String(phone).replace(/\D/g, ''); if (p) window.open(`https://wa.me/${p}`, '_blank'); }}
+            className="flex-1 py-3.5 text-[11px] font-black uppercase tracking-widest text-sky-500 hover:bg-black/5 transition-colors">
             Message
          </button>
-         <button className="flex-1 py-3.5 text-[11px] font-black uppercase tracking-widest text-sky-500 hover:bg-black/5 transition-colors">
+         <button
+            onClick={() => { if (phone && phone !== 'No phone number') window.open(`tel:${phone}`); }}
+            className="flex-1 py-3.5 text-[11px] font-black uppercase tracking-widest text-sky-500 hover:bg-black/5 transition-colors">
             View
          </button>
       </div>
@@ -298,6 +307,7 @@ const LocationRenderer = React.memo(({ message }: { message: Message }) => {
 });
 
 const PaymentRenderer = React.memo(({ message }: { message: Message }) => {
+  const router = useRouter();
   const payment = (message as any).meta?.payment || {};
   const amount = payment.amount || (message as any).amount;
   const currency = payment.currency || (message as any).currency || 'BRL';
@@ -321,7 +331,7 @@ const PaymentRenderer = React.memo(({ message }: { message: Message }) => {
            </h4>
         </div>
       </div>
-      <button className="w-full py-3.5 text-[11px] font-black uppercase tracking-[0.2em] bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-lg active:scale-[0.98]">
+      <button onClick={() => { router.push('/commerce/orders'); }} className="w-full py-3.5 text-[11px] font-black uppercase tracking-[0.2em] bg-emerald-500 text-white hover:bg-emerald-600 transition-colors shadow-lg active:scale-[0.98]">
          View Transaction Details
       </button>
     </div>

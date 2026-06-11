@@ -81,6 +81,14 @@ export default function QuickRepliesPage() {
     setIsModalOpen(true);
   };
 
+  const handleDuplicate = (reply: QuickReply) => {
+    saveMutation.mutate({
+      shortcut: `${reply.shortcut}-copy`,
+      message: reply.message,
+      category: reply.category || 'General',
+    });
+  };
+
   if (isLoading) return <FlashLoader />;
 
   return (
@@ -112,7 +120,7 @@ export default function QuickRepliesPage() {
              className="pl-11 h-13 rounded-2xl bg-card border-border/50 shadow-sm"
            />
         </div>
-        <Button variant="outline" className="rounded-2xl h-13 px-6 border-border/50 font-bold bg-card shadow-sm"><Filter className="h-4 w-4 mr-2" /> Categories</Button>
+        <Button variant="outline" onClick={() => setSearch('')} className="rounded-2xl h-13 px-6 border-border/50 font-bold bg-card shadow-sm"><Filter className="h-4 w-4 mr-2" /> Clear Search</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -153,7 +161,7 @@ export default function QuickRepliesPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50">
                          <DropdownMenuItem onClick={() => handleOpenModal(r)} className="rounded-xl font-bold"><Edit3 className="h-4 w-4 mr-2" /> Edit</DropdownMenuItem>
-                         <DropdownMenuItem className="rounded-xl font-bold"><Copy className="h-4 w-4 mr-2" /> Duplicate</DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => handleDuplicate(r)} className="rounded-xl font-bold"><Copy className="h-4 w-4 mr-2" /> Duplicate</DropdownMenuItem>
                          <DropdownMenuItem 
                           className="rounded-xl font-bold text-destructive focus:bg-destructive/10"
                           onClick={() => deleteMutation.mutate(r._id)}

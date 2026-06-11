@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Card,
@@ -46,6 +47,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CommerceCatalogPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<string | null>(null);
@@ -308,7 +310,7 @@ export default function CommerceCatalogPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56 p-2 rounded-[24px] shadow-2xl border-none ring-1 ring-border/20">
                         <DropdownMenuItem className="rounded-xl h-11 px-4 font-bold text-xs" onClick={() => handleEdit(product)}>Duplicate Listing</DropdownMenuItem>
-                        <DropdownMenuItem className="rounded-xl h-11 px-4 font-bold text-xs">Analytics Digest</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => { router.push('/analytics/advanced'); }} className="rounded-xl h-11 px-4 font-bold text-xs">Analytics Digest</DropdownMenuItem>
                         <div className="h-px bg-border/40 my-2" />
                         <DropdownMenuItem 
                            className="rounded-xl h-11 px-4 font-bold text-xs text-red-500 focus:bg-red-50"

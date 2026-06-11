@@ -10,6 +10,7 @@ router.get('/answerbot/settings', authenticate, AnswerBotController.getSettings)
 router.patch('/answerbot/settings', authenticate, authorize(['owner', 'admin']), AnswerBotController.updateSettings);
 router.get('/answerbot/sources', authenticate, AnswerBotController.getSources);
 router.post('/answerbot/sources', authenticate, authorize(['owner', 'admin']), AnswerBotController.createSource);
+router.delete('/answerbot/sources/:id', authenticate, authorize(['owner', 'admin']), AnswerBotController.deleteSource);
 
 // FAQs
 router.get('/answerbot/faqs', authenticate, FaqController.getFaqs);

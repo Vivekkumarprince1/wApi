@@ -29,6 +29,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Deal, Pipeline } from '@/lib/api/crm';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import api from '@/lib/api/client';
 
 interface PipelineListViewProps {
   deals: Deal[];
@@ -58,6 +61,26 @@ export const PipelineListView: React.FC<PipelineListViewProps> = ({
 
   const getStageTitle = (stageId: string) => {
     return pipeline.stages.find(s => s.id === stageId)?.title || stageId;
+  };
+
+  const queryClient = useQueryClient();
+
+  const handleMessage = (deal: Deal) => {
+    const phone = String(deal.contact?.phone || '').replace(/\D/g, '');
+    if (phone) window.open(`https://wa.me/${phone}`, '_blank');
+    else toast.error('No phone number on this deal contact');
+  };
+
+  const handleMarkWon = async (deal: Deal) => {
+    const wonStage = [...pipeline.stages].reverse().find((s: any) => (s as any).isFinal) || pipeline.stages[pipeline.stages.length - 1];
+    if (!wonStage) return;
+    try {
+      await api.patch(`/crm/deals/${deal._id}/stage`, { stageId: wonStage.id });
+      toast.success(`Deal moved to ${wonStage.title}`);
+      queryClient.invalidateQueries({ queryKey: ['deals'] });
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to update deal');
+    }
   };
 
   return (
@@ -125,7 +148,7 @@ export const PipelineListView: React.FC<PipelineListViewProps> = ({
               </TableCell>
               <TableCell className="px-8 py-5 text-right" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-end gap-2">
-                  <Button variant="ghost" size="icon" className="size-10 rounded-xl hover:bg-primary/5 hover:text-primary">
+                  <Button variant="ghost" size="icon" onClick={() => handleMessage(deal)} className="size-10 rounded-xl hover:bg-primary/5 hover:text-primary">
                     <MessageSquare className="size-4" />
                   </Button>
                   <DropdownMenu>
@@ -141,7 +164,7 @@ export const PipelineListView: React.FC<PipelineListViewProps> = ({
                       >
                         Edit Deal
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="rounded-xl font-bold py-2.5 px-4 cursor-pointer focus:bg-primary/5">Mark as Won</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleMarkWon(deal)} className="rounded-xl font-bold py-2.5 px-4 cursor-pointer focus:bg-primary/5">Mark as Won</DropdownMenuItem>
                       <DropdownMenuItem 
                         className="rounded-xl font-bold py-2.5 px-4 cursor-pointer focus:bg-red-500/5 focus:text-red-500"
                         onClick={() => onDeleteDeal?.(deal)}

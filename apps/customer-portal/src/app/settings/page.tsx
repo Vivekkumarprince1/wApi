@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -37,6 +38,7 @@ import FlashLoader from '@/components/ui/flash-loader';
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [showToken, setShowToken] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   
@@ -273,7 +275,7 @@ export default function SettingsPage() {
                >
                  <Bug className="h-4 w-4 mr-2" /> View Detailed Diagnostics
                </Button>
-               <Button variant="outline" className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/5">
+               <Button variant="outline" onClick={() => window.open('https://developers.facebook.com/docs/whatsapp/cloud-api/guides/set-up-webhooks', '_blank')} className="w-full h-12 rounded-xl text-[10px] font-black uppercase tracking-widest text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/5">
                  Meta Webhook Docs <ChevronRight className="h-3 w-3 ml-2" />
                </Button>
              </div>
@@ -286,7 +288,7 @@ export default function SettingsPage() {
                    <h4 className="text-lg font-black tracking-tight leading-tight">Need to reset your connection?</h4>
                 </div>
                 <p className="text-xs font-medium opacity-50 leading-relaxed">Rotating your access token will immediately disconnect all active message sessions until the new token is saved.</p>
-                <Button className="w-full h-12 rounded-2xl bg-white/10 text-white font-black hover:bg-white/20 transition-all">
+                <Button onClick={() => { router.push('/settings/whatsapp-profile'); }} className="w-full h-12 rounded-2xl bg-white/10 text-white font-black hover:bg-white/20 transition-all">
                   Request Rotation
                 </Button>
              </div>

@@ -258,8 +258,11 @@ export default function CRMTasksPage() {
 
               <div className="h-10 w-[1px] bg-border/20 mx-2 hidden xl:block" />
 
-              <Button variant="outline" className="rounded-2xl h-13 px-6 border-border/30 font-black text-[10px] uppercase tracking-widest bg-card hover:bg-muted shadow-premium-sm gap-2">
-                 <Filter className="size-4 opacity-40" /> Filters
+              <Button
+                 variant="outline"
+                 onClick={() => { setFilterStatus('all'); setFilterPriority('all'); setFilterAssignee('all'); setSearchQuery(''); }}
+                 className="rounded-2xl h-13 px-6 border-border/30 font-black text-[10px] uppercase tracking-widest bg-card hover:bg-muted shadow-premium-sm gap-2">
+                 <Filter className="size-4 opacity-40" /> Reset Filters
               </Button>
            </div>
         </div>
@@ -284,7 +287,7 @@ export default function CRMTasksPage() {
                  <h3 className="text-3xl font-black tracking-tight">Clean Slate</h3>
                  <p className="text-muted-foreground font-semibold leading-relaxed opacity-60">No pending tasks found for these criteria. Perfect time to generate some leads or plan your next move.</p>
                </div>
-               <Button size="lg" className="rounded-[24px] h-16 px-12 font-black shadow-2xl shadow-primary/30 text-primary-foreground text-[11px] uppercase tracking-widest">
+               <Button size="lg" onClick={() => { setTaskToEdit(undefined); setIsTaskDialogOpen(true); }} className="rounded-[24px] h-16 px-12 font-black shadow-2xl shadow-primary/30 text-primary-foreground text-[11px] uppercase tracking-widest">
                   Create Master Task
                </Button>
             </motion.div>
@@ -453,22 +456,32 @@ export default function CRMTasksPage() {
                                       
                                       <div className="flex items-center gap-2 pl-4">
                                          {task.type === 'WhatsApp' && task.contact && (
-                                            <Button 
-                                              size="icon" 
+                                            <Button
+                                              size="icon"
+                                              onClick={() => {
+                                                const phone = String(task.contact?.phone || '').replace(/\D/g, '');
+                                                if (phone) window.open(`https://wa.me/${phone}`, '_blank');
+                                                else toast.error('No phone number on this contact');
+                                              }}
                                               className="size-9 rounded-xl shadow-lg shadow-emerald-500/20 bg-emerald-500 text-white hover:bg-emerald-600 border-none"
                                             >
                                                <MessageSquare className="size-4" />
                                             </Button>
                                          )}
                                          {task.type === 'Call' && (
-                                            <Button 
-                                              size="icon" 
+                                            <Button
+                                              size="icon"
+                                              onClick={() => {
+                                                const phone = task.contact?.phone;
+                                                if (phone) window.open(`tel:${phone}`);
+                                                else toast.error('No phone number on this contact');
+                                              }}
                                               className="size-9 rounded-xl shadow-lg shadow-blue-500/20 bg-blue-500 text-white hover:bg-blue-600 border-none"
                                             >
                                                <Phone className="size-4" />
                                             </Button>
                                          )}
-                                         <Button variant="outline" size="icon" className="size-9 rounded-xl border-border/40 hover:bg-muted group/ext">
+                                         <Button variant="outline" size="icon" onClick={() => { setTaskToEdit(task); setIsTaskDialogOpen(true); }} className="size-9 rounded-xl border-border/40 hover:bg-muted group/ext">
                                             <ChevronRight className="size-4 transition-transform group-hover/ext:translate-x-0.5" />
                                          </Button>
                                       </div>

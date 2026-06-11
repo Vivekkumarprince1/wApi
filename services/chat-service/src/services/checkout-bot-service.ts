@@ -217,7 +217,8 @@ export class CheckoutBotService {
       // Generate Payment Link by calling billing service via HTTP POST
       let paymentLink = null;
       try {
-        const payRes = await fetch(`http://localhost:3003/api/billing/commerce/${orderResult.id}/pay`, {
+        const billingUrl = process.env.BILLING_SERVICE_URL || 'http://localhost:3003';
+        const payRes = await fetch(`${billingUrl}/api/billing/commerce/${orderResult.id}/pay`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -286,7 +287,8 @@ export class CheckoutBotService {
     };
 
     // Forward to billing service via native fetch HTTP request
-    const response = await fetch(`http://localhost:3003/api/billing/commerce/wallets/${wsId}/orders`, {
+    const billingUrl = process.env.BILLING_SERVICE_URL || 'http://localhost:3003';
+    const response = await fetch(`${billingUrl}/api/billing/commerce/wallets/${wsId}/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

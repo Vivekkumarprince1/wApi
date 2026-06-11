@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { getAds } from '@/lib/api/ads';
 import { Megaphone, Plus, Search, Target, Zap, BarChart3, ArrowRight, MousePointer2, Loader2 } from 'lucide-react';
@@ -10,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function AdsPage() {
+  const router = useRouter();
   const { data: ads, isLoading } = useQuery({
     queryKey: ['ads'],
     queryFn: getAds
@@ -27,7 +29,7 @@ export default function AdsPage() {
                 <p className="text-muted-foreground mt-1 font-medium font-mono text-xs uppercase tracking-widest">Click-to-WhatsApp Ads Management (CTWA)</p>
             </div>
         </div>
-        <Button className="rounded-full px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold uppercase tracking-tighter h-12">
+        <Button onClick={() => { router.push('/integrations'); }} className="rounded-full px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold uppercase tracking-tighter h-12">
           <Plus className="mr-2 h-4 w-4" /> Launch Ad Campaign
         </Button>
       </div>
@@ -66,7 +68,7 @@ export default function AdsPage() {
                 </div>
                 <h3 className="text-lg font-black leading-tight">Sync Meta Pixel with WhatsApp Flows</h3>
                 <p className="text-xs text-indigo-100/70 font-medium">Automatically retarget users who abandoned their WhatsApp forms.</p>
-                <Button variant="ghost" className="w-full bg-white/10 text-white hover:bg-white/20 rounded-2xl font-bold text-xs uppercase tracking-widest">Connect Pixel</Button>
+                <Button variant="ghost" onClick={() => { router.push('/integrations'); }} className="w-full bg-white/10 text-white hover:bg-white/20 rounded-2xl font-bold text-xs uppercase tracking-widest">Connect Pixel</Button>
             </Card>
 
             <Card className="border-none bg-card ring-1 ring-border/50 rounded-[40px] p-8 flex items-center gap-4">
@@ -90,7 +92,7 @@ export default function AdsPage() {
             className="pl-10 bg-transparent border-none focus-visible:ring-0 font-bold"
           />
         </div>
-        <Button variant="ghost" size="sm" className="rounded-xl">
+        <Button variant="ghost" size="sm" onClick={() => { router.push('/analytics/advanced'); }} className="rounded-xl">
           <BarChart3 className="mr-2 h-4 w-4" /> Analytics Console
         </Button>
       </div>
@@ -111,7 +113,7 @@ export default function AdsPage() {
             <p className="text-muted-foreground max-w-sm mx-auto font-medium">
                 You haven't linked your Facebook Ad Account yet. Connect to start driving high-intent traffic to WhatsApp.
             </p>
-            <Button variant="outline" className="rounded-full px-8 mt-4 border-pink-500/20 hover:bg-pink-500/5 text-pink-600 font-black uppercase tracking-widest text-xs h-12 group">
+            <Button variant="outline" onClick={() => { router.push('/integrations'); }} className="rounded-full px-8 mt-4 border-pink-500/20 hover:bg-pink-500/5 text-pink-600 font-black uppercase tracking-widest text-xs h-12 group">
               Connect Ad Account <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </>

@@ -257,7 +257,7 @@ const DashboardPageClient = () => {
           <div className="bg-card rounded-[32px] p-8 border border-border/50 shadow-sm flex flex-col">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-black tracking-tight text-foreground">Recent System Activity</h3>
-              <button className="text-xs font-black uppercase tracking-widest text-primary hover:opacity-80 transition-opacity">View Logs</button>
+              <button onClick={() => router.push('/analytics/advanced')} className="text-xs font-black uppercase tracking-widest text-primary hover:opacity-80 transition-opacity">View Logs</button>
             </div>
             <div className="space-y-4 flex-1">
               {recentActivity.slice(0, 5).map((activity: any, idx: number) => {

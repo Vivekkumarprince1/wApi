@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -89,6 +90,7 @@ const KPICard = ({ label, value, icon: Icon, trend, color, bg }: any) => (
 );
 
 export default function CRMReportsPage() {
+  const router = useRouter();
   const [selectedPipelineId, setSelectedPipelineId] = React.useState<string | null>(null);
 
   const { data: response } = useQuery({
@@ -166,7 +168,16 @@ export default function CRMReportsPage() {
                     </SelectContent>
                  </Select>
               </div>
-              <Button variant="outline" className="rounded-2xl h-12 px-6 border-border/30 font-black text-[10px] uppercase tracking-widest bg-card hover:bg-muted shadow-premium-sm">
+              <Button
+                  variant="outline"
+                  onClick={() => {
+                    const blob = new Blob([JSON.stringify(analytics ?? {}, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = Object.assign(document.createElement('a'), { href: url, download: 'crm-analytics.json' });
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="rounded-2xl h-12 px-6 border-border/30 font-black text-[10px] uppercase tracking-widest bg-card hover:bg-muted shadow-premium-sm">
                   <Download className="mr-2 h-4 w-4 opacity-40" /> Export Intelligence
               </Button>
           </div>
@@ -343,7 +354,7 @@ export default function CRMReportsPage() {
                     </CardTitle>
                     <CardDescription className="text-xs font-semibold opacity-50 uppercase tracking-widest text-muted-foreground">Tracking revenue throughput and deal closure speed.</CardDescription>
                   </div>
-                  <Button variant="ghost" className="rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest hover:bg-muted gap-2">
+                  <Button variant="ghost" onClick={() => { router.push('/analytics/advanced'); }} className="rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest hover:bg-muted gap-2">
                      Historical Data <ArrowUpRight className="size-4" />
                   </Button>
                </div>
@@ -401,7 +412,7 @@ export default function CRMReportsPage() {
                           </div>
                        </div>
 
-                       <Button className="w-full mt-2 rounded-2xl h-11 bg-background border border-border/20 text-muted-foreground hover:text-primary hover:bg-muted text-[9px] font-black uppercase tracking-widest shadow-premium-sm">
+                       <Button onClick={() => { router.push('/settings'); }} className="w-full mt-2 rounded-2xl h-11 bg-background border border-border/20 text-muted-foreground hover:text-primary hover:bg-muted text-[9px] font-black uppercase tracking-widest shadow-premium-sm">
                            View Profile
                        </Button>
                     </motion.div>

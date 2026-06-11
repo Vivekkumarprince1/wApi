@@ -15,7 +15,7 @@ const SERVICES = [
   { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', cmd: 'npm run dev', color: '\x1b[95m' }, // Webhook Ingestor (Bright Magenta)
   { name: 'websocket-gateway', dir: 'services/websocket-gateway', cmd: 'npm run dev', color: '\x1b[96m' }, // Websocket Gateway (Bright Cyan)
   { name: 'admin-portal', dir: 'apps/admin-portal', cmd: 'npm run dev', color: '\x1b[37m' }, // Admin Portal (White)
-  { name: 'frontend', dir: 'apps/frontend', cmd: 'npm run dev', color: '\x1b[90m' } // Frontend NextJS (Gray)
+  { name: 'customer-portal', dir: 'apps/customer-portal', cmd: 'npm run dev', color: '\x1b[90m' } // Customer Portal NextJS (Gray)
 ];
 
 const runningProcesses = {};

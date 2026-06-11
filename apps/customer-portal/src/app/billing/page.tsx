@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { CreditCard, Plus, Clock, ShieldCheck, Zap, ArrowUpRight, DollarSign, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +17,7 @@ import RechargeModal from '@/components/billing/RechargeModal';
 import PlanSelectionModal from '@/components/billing/PlanSelectionModal';
 
 export default function BillingPage() {
+  const router = useRouter();
   const { fetchSession } = useAuthStore();
   const { data: billing, isLoading, refetch } = useQuery({
     queryKey: ['billing'],
@@ -199,7 +201,7 @@ export default function BillingPage() {
                 <h2 className="text-xl font-black text-foreground">Usage Summary</h2>
                 <p className="text-xs text-muted-foreground font-medium">Real-time platform resource utilization</p>
             </div>
-            <Button variant="outline" size="sm" className="rounded-xl font-bold bg-background">View Detailed Logs</Button>
+            <Button variant="outline" size="sm" onClick={() => document.getElementById('billing-transactions')?.scrollIntoView({ behavior: 'smooth' })} className="rounded-xl font-bold bg-background">View Detailed Logs</Button>
         </div>
         <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
@@ -238,7 +240,7 @@ export default function BillingPage() {
       </div>
 
       {/* Transactions Section */}
-      <div className="space-y-4">
+      <div id="billing-transactions" className="space-y-4">
         <div className="flex items-center justify-between px-4">
             <h3 className="text-lg font-black tracking-tight uppercase">Recent Transactions</h3>
             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Last 20 events</p>
@@ -380,7 +382,7 @@ export default function BillingPage() {
                       <ShieldCheck className="size-4" />
                       <span className="text-[10px] font-bold uppercase tracking-widest">End-to-end encrypted financial metadata</span>
                    </div>
-                   <Button variant="ghost" className="text-[10px] font-black uppercase text-rose-500 hover:bg-rose-50 hover:text-rose-600 rounded-xl px-4">
+                   <Button variant="ghost" onClick={() => { router.push('/settings/member-profile'); }} className="text-[10px] font-black uppercase text-rose-500 hover:bg-rose-50 hover:text-rose-600 rounded-xl px-4">
                       Deactivate Workspace
                    </Button>
                 </div>

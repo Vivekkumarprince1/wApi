@@ -379,7 +379,7 @@ export default function WorkflowsPage() {
             <h3 className="text-2xl font-black tracking-tight">Need a custom bot journey?</h3>
             <p className="text-sm text-white/50 font-medium">Use our <span className="text-white font-black underline decoration-primary underline-offset-4 pointer-events-none">AI Prompt to Flow</span> engine to generate complex logic in seconds.</p>
          </div>
-         <Button className="h-14 px-10 rounded-2xl bg-white text-slate-900 font-black hover:bg-white/90 transition-all shadow-xl shadow-white/5 group relative z-10">
+         <Button onClick={() => router.push('/automation/workflows/builder/create')} className="h-14 px-10 rounded-2xl bg-white text-slate-900 font-black hover:bg-white/90 transition-all shadow-xl shadow-white/5 group relative z-10">
             Open AI Builder <ArrowRight className="h-5 w-5 ml-2 group-hover:translate-x-1 transition-transform" />
          </Button>
 

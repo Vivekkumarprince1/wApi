@@ -13,6 +13,7 @@ import {
   Phone,
   BarChart2
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Deal } from '@/lib/api/crm';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -46,6 +47,7 @@ const getPriorityStyles = (priority: string) => {
 };
 
 export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit, onDelete }) => {
+  const router = useRouter();
   const { daysInStage, isCold } = useMemo(() => {
     const lastHistory = deal.activityLog?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
     const start = lastHistory ? new Date(lastHistory.timestamp) : new Date(deal.createdAt);
@@ -211,13 +213,24 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit
                  </div>
                  
                   <div className="flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-all translate-y-2 group-hover/card:translate-y-0">
-                    <Button variant="ghost" size="icon" className="size-7 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors" title="Send WhatsApp">
+                    <Button variant="ghost" size="icon" onClick={(e) => {
+                       e.stopPropagation();
+                       const phone = String(deal.contact?.phone || '').replace(/\D/g, '');
+                       if (phone) window.open(`https://wa.me/${phone}`, '_blank');
+                    }} className="size-7 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors" title="Send WhatsApp">
                        <MessageSquare className="size-3" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="size-7 rounded-lg hover:bg-blue-500/10 hover:text-blue-600 transition-colors" title="Schedule Follow-up">
+                    <Button variant="ghost" size="icon" onClick={(e) => {
+                       e.stopPropagation();
+                       const phone = deal.contact?.phone;
+                       if (phone) window.open(`tel:${phone}`);
+                    }} className="size-7 rounded-lg hover:bg-blue-500/10 hover:text-blue-600 transition-colors" title="Call contact">
                        <Phone className="size-3" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="size-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors" title="View Analytics">
+                    <Button variant="ghost" size="icon" onClick={(e) => {
+                       e.stopPropagation();
+                       router.push('/crm/reports');
+                    }} className="size-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors" title="View Analytics">
                        <BarChart2 className="size-3" />
                     </Button>
                  </div>

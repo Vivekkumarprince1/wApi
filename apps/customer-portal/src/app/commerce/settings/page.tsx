@@ -428,7 +428,7 @@ export default function CommerceSettingsPage() {
                            Intelligent logistics matching and region-specific tax overrides are coming in the next release.
                          </p>
                       </div>
-                      <Button variant="outline" className="rounded-2xl border-primary/20 text-[10px] font-black uppercase tracking-widest px-8">Upgrade Logic</Button>
+                      <Button variant="outline" disabled className="rounded-2xl border-primary/20 text-[10px] font-black uppercase tracking-widest px-8">Coming Soon</Button>
                    </div>
                 </div>
              </TabsContent>

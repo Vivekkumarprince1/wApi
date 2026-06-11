@@ -29,26 +29,69 @@ import {
   ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
+import api from '@/lib/api/client';
 
 export default function DeveloperKeysPage() {
   const [keys, setKeys] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showKeyId, setShowKeyId] = useState<string | null>(null);
+  // Full keys are only returned once at creation — remember them for reveal/copy.
+  const [revealedKeys, setRevealedKeys] = useState<Record<string, string>>({});
 
-  // Mock initial fetch for UI design
-  useEffect(() => {
-    // We would fetch from /api/developer/keys here
-    setKeys([
-      { id: '1', name: 'Production Key', key: 'wk_723f8b...a9c2', createdAt: '2025-04-12', isActive: true },
-      { id: '2', name: 'Staging Environment', key: 'wk_112e4d...00ea', createdAt: '2025-04-10', isActive: true },
-    ]);
-    setLoading(false);
-  }, []);
+  const loadKeys = async () => {
+    try {
+      const res: any = await api.get('/developer/keys');
+      setKeys(res?.data || []);
+    } catch {
+      toast.error('Failed to load API keys');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadKeys(); }, []);
+
+  const handleGenerateKey = async () => {
+    const name = window.prompt('Name for the new API key:', 'New API Key');
+    if (name === null) return;
+    try {
+      const res: any = await api.post('/developer/keys', { name: name || 'New API Key' });
+      const created = res?.data;
+      if (created?.key) {
+        setRevealedKeys(prev => ({ ...prev, [created.id || created.key]: created.key }));
+        navigator.clipboard.writeText(created.key).catch(() => {});
+        toast.success('API key created and copied — store it safely, it is shown only once');
+      }
+      await loadKeys();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to create API key');
+    }
+  };
+
+  const handleRevokeKey = async (id: string) => {
+    if (!window.confirm('Revoke this API key? Integrations using it will stop working immediately.')) return;
+    try {
+      await api.delete(`/developer/keys/${id}`);
+      toast.success('API key revoked');
+      await loadKeys();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Failed to revoke API key');
+    }
+  };
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("API Key copied to clipboard");
+    toast.success("Copied to clipboard");
   };
+
+  const CURL_EXAMPLE = `curl -X POST https://api.wapi.app/v1/messages \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "to": "919876543210",
+    "type": "text",
+    "text": "Hello platform!"
+  }'`;
 
   return (
 
@@ -62,7 +105,7 @@ export default function DeveloperKeysPage() {
               Securely manage keys to authenticate your external integrations.
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 h-11 px-6 rounded-xl">
+          <Button onClick={handleGenerateKey} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 h-11 px-6 rounded-xl">
             <Plus className="h-4 w-4 mr-2" />
             Generate New Key
           </Button>
@@ -105,16 +148,16 @@ export default function DeveloperKeysPage() {
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                <Terminal className="h-4 w-4 text-muted-foreground" />
                             </div>
-                            <Input 
-                              readOnly 
-                              value={showKeyId === key.id ? "wk_723f8b0e1d4a9c2b8f3e..." : key.key} 
-                              className="pl-10 pr-24 bg-accent/20 border-border/50 h-11 font-mono text-sm tracking-tight" 
+                            <Input
+                              readOnly
+                              value={showKeyId === key.id ? (revealedKeys[key.id] || key.key) : key.key}
+                              className="pl-10 pr-24 bg-accent/20 border-border/50 h-11 font-mono text-sm tracking-tight"
                             />
                             <div className="absolute inset-y-0 right-0 p-1 flex items-center gap-1">
                                <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => setShowKeyId(showKeyId === key.id ? null : key.id)}>
                                   {showKeyId === key.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                </Button>
-                               <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => copyToClipboard(key.key)}>
+                               <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => copyToClipboard(revealedKeys[key.id] || key.key)}>
                                   <Copy className="h-4 w-4" />
                                </Button>
                             </div>
@@ -122,7 +165,7 @@ export default function DeveloperKeysPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                         <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl border-border/50 text-red-500 hover:bg-red-50 transition-colors">
+                         <Button variant="outline" size="icon" onClick={() => handleRevokeKey(key.id)} className="h-11 w-11 rounded-xl border-border/50 text-red-500 hover:bg-red-50 transition-colors">
                             <Trash2 className="h-4 w-4" />
                          </Button>
                       </div>
@@ -154,7 +197,7 @@ export default function DeveloperKeysPage() {
     "text": "Hello platform!"
   }'`}
                     </pre>
-                    <button className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => copyToClipboard(CURL_EXAMPLE)} className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
                        <Copy className="h-4 w-4" />
                     </button>
                  </div>

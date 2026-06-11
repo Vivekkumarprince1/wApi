@@ -16,6 +16,7 @@ import {
   Search
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -28,6 +29,7 @@ import FlashLoader from '@/components/ui/flash-loader';
 
 export default function SegmentsPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [isCreating, setIsCreating] = useState(false);
   
   // Builder State
@@ -288,7 +290,7 @@ export default function SegmentsPage() {
                           </Badge>
                         ))}
                      </div>
-                     <Button variant="ghost" className="h-8 pr-0 pl-2 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-transparent group/btn">
+                     <Button variant="ghost" onClick={() => { router.push('/contacts'); }} className="h-8 pr-0 pl-2 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-transparent group/btn">
                         View List <ChevronRight className="h-3 w-3 ml-1 group-hover/btn:translate-x-1 transition-transform" />
                      </Button>
                   </div>

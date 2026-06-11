@@ -89,7 +89,7 @@ export default function MembersTab({ members, invitations, roles, onEditMember }
                className="pl-11 h-13 rounded-2xl bg-card border-border/50 shadow-sm"
              />
           </div>
-          <Button variant="outline" className="rounded-2xl h-13 px-6 border-border/50 font-bold bg-card shadow-sm"><Filter className="h-4 w-4 mr-2" /> Filter</Button>
+          <Button variant="outline" onClick={() => setSearch('')} className="rounded-2xl h-13 px-6 border-border/50 font-bold bg-card shadow-sm"><Filter className="h-4 w-4 mr-2" /> Clear</Button>
        </div>
 
        <div className="bg-card border border-border/50 rounded-[40px] overflow-hidden shadow-sm">

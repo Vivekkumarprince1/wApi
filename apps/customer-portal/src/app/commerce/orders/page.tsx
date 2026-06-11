@@ -144,7 +144,22 @@ export default function CommerceOrdersPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-             <Button variant="outline" className="rounded-2xl border-border/40 h-11 px-6 font-black text-[10px] uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity">
+             <Button
+                variant="outline"
+                onClick={() => {
+                   if (!orders.length) { toast.error('No orders to export'); return; }
+                   const cell = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+                   const headers = ['Order ID', 'Customer', 'Phone', 'Status', 'Total', 'Items', 'Created'];
+                   const rows = orders.map((o: any) => [
+                      o.orderNumber || o._id, o.customer?.name || o.customerName, o.customer?.phone || o.customerPhone,
+                      o.status, o.total ?? o.totalAmount, (o.items || []).length, o.createdAt
+                   ].map(cell).join(','));
+                   const url = URL.createObjectURL(new Blob([[headers.map(cell).join(','), ...rows].join('\n')], { type: 'text/csv' }));
+                   const a = Object.assign(document.createElement('a'), { href: url, download: 'orders.csv' });
+                   a.click();
+                   URL.revokeObjectURL(url);
+                }}
+                className="rounded-2xl border-border/40 h-11 px-6 font-black text-[10px] uppercase tracking-widest opacity-40 hover:opacity-100 transition-opacity">
                 Export Manifest
              </Button>
               <Button 
@@ -305,8 +320,12 @@ export default function CommerceOrdersPage() {
                                                Mark Delivered
                                             </DropdownMenuItem>
                                             <div className="h-px bg-border/40 my-2" />
-                                            <DropdownMenuItem className="rounded-xl h-11 px-4 font-bold text-xs gap-3 text-red-500 focus:bg-red-50">
-                                               <Trash2 className="size-4" /> Destruct Order
+                                            <DropdownMenuItem
+                                               onClick={() => {
+                                                  if (window.confirm('Cancel this order?')) updateStatus.mutate({ orderId: order._id, status: 'cancelled' });
+                                               }}
+                                               className="rounded-xl h-11 px-4 font-bold text-xs gap-3 text-red-500 focus:bg-red-50">
+                                               <Trash2 className="size-4" /> Cancel Order
                                             </DropdownMenuItem>
                                          </DropdownMenuContent>
                                       </DropdownMenu>

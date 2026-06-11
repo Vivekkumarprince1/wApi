@@ -37,3 +37,31 @@ All fixes verified by rebuild (tsc/nest clean) and live smoke tests through the 
 
 ## Dependency hygiene
 19. api-gateway: `zod` was declared but not installed (build failed with TS2307); installed.
+
+---
+
+# Wave 2 — Dead UI wiring (2026-06-11)
+
+A sweep found ~120 buttons/menu items with no click handler. ~35 were false positives
+(Radix `*Trigger asChild` wrappers, `<Link>`-wrapped buttons, rows whose parent div owns the onClick).
+The rest were wired. Verified by `tsc --noEmit` (clean) and live smoke tests of new backend routes.
+
+## Real data hookups (were mock/dead, now hit the backend)
+- **Developer API keys page** ([keys/page.tsx](apps/customer-portal/src/app/settings/developer/keys/page.tsx)) ran on hardcoded mock keys — now loads `GET /developer/keys`, Generate → `POST` (full key copied once), Revoke → `DELETE /developer/keys/:id`, curl-snippet Copy works.
+- **Widget hub**: built a real config editor dialog (phone, theme color, welcome message) wired to `GET/POST /widget/config`; Design/Edit/Configure buttons all open it.
+- **Instagram QuickFlows `create` page did not exist** (preset cards 404'd) — implemented `create/page.tsx` with preset/edit support against `POST/PATCH /automation/engine/instagram-quickflows`.
+- **Contacts page**: Export → `GET /bulk/contacts/export` (CSV download); Bulk Tagging → `POST /bulk/contacts/tag`; Delete Selected → `POST /bulk/contacts/delete`; Sync → query refetch; Prev/Next pagination implemented (25/page).
+- **Commerce orders**: Export Manifest → client CSV; "Destruct Order" → cancel via `PATCH /commerce/orders` status.
+- **CRM**: DealDetailSidebar "Move Stage" is now a stage dropdown (`PATCH /crm/deals/:id/stage`), Mark Won/Lost move to final stages, Archive deletes; list-view Mark-as-Won wired; WhatsApp/Call/analytics icons on deal cards + task rows wired (wa.me / tel: / reports); Create Master Task opens TaskDialog; pipeline empty-state + Create Stage open PipelineDialog.
+- **AnswerBot**: Remove Source → new backend `DELETE /answerbot/sources/:id` (added controller+route); Resync re-posts the source; FAQ "Add Button" appends an interactive button via `PATCH /answerbot/faqs/:id`.
+- **Inbox**: chat-input Quick Replies inserts the `/` shortcut, sticker picker inserts emoji; contact sidebar Send Email (mailto), Block Contact (`PATCH /contacts/:id` optOut), Manage in Pipeline; received-message template URL/phone buttons, contact-card Message/Call, payment CTA all act.
+- **Webhooks page**: Send Test Trigger → `POST /workspace/waba/test`; View Signing Secret opens the endpoint editor; Debug Payload copies a sample payload.
+- **Quick replies**: Duplicate creates a copy via existing save mutation.
+
+## Navigation/UX wiring (no backend existed; routed to the owning page or made honest)
+- channels Connect/Manage → onboarding/profile/widget/inbox per channel (Coming-Soon disabled); campaign list Export (client CSV) + Reset Filters (Date-Range stub removed); various "Filters" stubs → working reset actions (tasks, pipeline, members, quick-replies); ads page buttons → integrations/analytics; support chat-assignment Create-Rule → rules tab / workflow builder, Manage → settings (dead kebab removed); dashboard View Logs, billing View-Detailed-Logs (scrolls to transactions) & Deactivate (account settings), stats-grid Upgrade → /billing; analytics View All Agents; docs buttons open Meta developer docs; commerce settings "Upgrade Logic" marked disabled Coming Soon (feature text says next release); checkout-bot New Flow → settings, Debugger → inbox; crm reports Export (JSON download), Historical Data, View Profile; segments View List; instagram quickflow Edit/Analytics/Logs/Start-Designing; workflows Open AI Builder → builder.
+- Deleted unused duplicate `app/analytics/advanced/analytics-advanced-client.tsx`; removed dead kebab button in PipelineColumn.
+
+## Verification
+- `tsc --noEmit` clean on customer-portal; automation-service `tsc` clean.
+- Runtime smoke (automation-service): `GET …/logs` 200, `POST …/rules/:id/execute`, `PATCH …/instagram-quickflows/:id/toggle`, `DELETE …/answerbot/sources/:id` route-match (404 only for nonexistent test ids), Google Sheets alias 200.

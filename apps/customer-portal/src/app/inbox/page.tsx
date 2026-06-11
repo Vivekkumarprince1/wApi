@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   MessageSquare, 
   MoreVertical, 
@@ -52,6 +53,7 @@ import FlashLoader from '@/components/ui/flash-loader';
 
 export default function InboxPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { user } = useAuthStore();
   
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -602,7 +604,7 @@ export default function InboxPage() {
                 <h2 className="text-2xl font-black tracking-tight text-foreground">Select a conversation</h2>
                 <p className="text-sm text-muted-foreground max-w-sm mx-auto font-medium">Choose a chat from the sidebar to start messaging or managing your contacts.</p>
               </div>
-              <Button className="rounded-2xl h-12 px-8 font-black shadow-lg shadow-primary/20">
+              <Button onClick={() => { router.push('/contacts'); }} className="rounded-2xl h-12 px-8 font-black shadow-lg shadow-primary/20">
                 <Plus className="h-5 w-5 mr-2" /> Start New Chat
               </Button>
             </motion.div>

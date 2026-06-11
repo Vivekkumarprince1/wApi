@@ -18,6 +18,7 @@ import {
   Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -43,6 +44,7 @@ import FlashLoader from '@/components/ui/flash-loader';
 
 export default function AutoRepliesPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -465,8 +467,8 @@ export default function AutoRepliesPage() {
                <p className="text-sm font-medium text-muted-foreground">Your logic rules are handling <span className="text-emerald-600 font-bold">4.2k messages</span> monthly without human intervention.</p>
             </div>
          </div>
-         <Button variant="outline" className="rounded-xl font-black uppercase text-[10px] tracking-widest h-10 px-6 border-emerald-500/20 hover:bg-emerald-500/10 transition-all">
-            Optimize Speed
+         <Button variant="outline" onClick={() => { router.push('/analytics/advanced'); }} className="rounded-xl font-black uppercase text-[10px] tracking-widest h-10 px-6 border-emerald-500/20 hover:bg-emerald-500/10 transition-all">
+            View Analytics
          </Button>
       </div>
 

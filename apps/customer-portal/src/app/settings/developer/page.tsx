@@ -146,7 +146,7 @@ export default function DeveloperHubPage() {
                   <p className="text-sm font-medium opacity-60 leading-relaxed">
                       API keys provide full access to your workspace. <strong>Never</strong> expose keys in client-side code. Always proxy requests through your backend server to ensure credential safety.
                   </p>
-                  <Button variant="ghost" className="h-10 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 rounded-xl px-0">
+                  <Button variant="ghost" onClick={() => window.open('https://developers.facebook.com/docs/whatsapp/cloud-api/overview', '_blank')} className="h-10 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white hover:bg-white/10 rounded-xl px-0">
                       View Security Documentation <ArrowRight className="h-3 w-3 ml-2" />
                   </Button>
               </div>

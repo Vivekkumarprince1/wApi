@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   User, 
   Phone, 
@@ -40,6 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { fetchContactDeals, Deal, Pipeline } from '@/lib/api/crm';
+import apiClient from '@/lib/api/client';
 import { DealDialog } from '@/components/dashboard/crm/DealDialog';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -109,6 +111,7 @@ export default function ContactDetailsSidebar({
   isUpdating = false
 }: ContactDetailsSidebarProps) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [expandedSections, setExpandedSections] = useState({
     labels: false,
     assignment: false,
@@ -170,7 +173,13 @@ export default function ContactDetailsSidebar({
                  </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50 w-48">
-                 <DropdownMenuItem className="rounded-xl font-black text-[10px] uppercase tracking-widest gap-3 cursor-pointer">
+                 <DropdownMenuItem
+                   onClick={() => {
+                      const email = contact.email || contact.metadata?.email;
+                      if (email) window.open(`mailto:${email}`);
+                      else toast.error('No email address on this contact');
+                   }}
+                   className="rounded-xl font-black text-[10px] uppercase tracking-widest gap-3 cursor-pointer">
                     <Mail className="h-4 w-4" /> Send Email
                  </DropdownMenuItem>
                  <DropdownMenuItem 
@@ -179,7 +188,18 @@ export default function ContactDetailsSidebar({
                  >
                     <TrendingUp className="h-4 w-4 text-emerald-500" /> Create Deal
                  </DropdownMenuItem>
-                 <DropdownMenuItem className="rounded-xl font-black text-[10px] uppercase tracking-widest gap-3 cursor-pointer text-destructive">
+                 <DropdownMenuItem
+                   onClick={async () => {
+                      if (!window.confirm('Block this contact? They will be opted out of all messaging.')) return;
+                      try {
+                        await apiClient.patch(`/contacts/${contact._id}`, { optOut: { status: true, optedOutVia: 'manual_block' } });
+                        toast.success('Contact blocked (opted out)');
+                        queryClient.invalidateQueries({ queryKey: ['contacts'] });
+                      } catch (err: any) {
+                        toast.error(err?.response?.data?.message || 'Failed to block contact');
+                      }
+                   }}
+                   className="rounded-xl font-black text-[10px] uppercase tracking-widest gap-3 cursor-pointer text-destructive">
                     <ShieldCheck className="h-4 w-4" /> Block Contact
                  </DropdownMenuItem>
               </DropdownMenuContent>
@@ -309,7 +329,7 @@ export default function ContactDetailsSidebar({
                       )}
                       
                       {deals.length > 0 && (
-                        <Button variant="ghost" className="w-full h-9 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 italic transition-all">
+                        <Button variant="ghost" onClick={() => { router.push('/crm/pipeline'); }} className="w-full h-9 rounded-xl text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100 italic transition-all">
                            Manage in Pipeline <ChevronRight className="h-3 w-3 ml-1.5" />
                         </Button>
                       )}

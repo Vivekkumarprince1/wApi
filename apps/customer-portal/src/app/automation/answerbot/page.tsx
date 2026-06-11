@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import apiClient from '@/lib/api/client';
 
 import { 
   getAnswerBotSettings, 
@@ -135,7 +136,7 @@ export default function AnswerBotPage() {
           <p className="text-muted-foreground text-sm font-medium">Define a persona and feed your AI knowledge to automate 80% of support queries.</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" className="rounded-2xl h-12 px-6 border-border/50 font-bold flex items-center gap-2">
+          <Button variant="outline" onClick={() => window.open('https://developers.facebook.com/docs/whatsapp/cloud-api/overview', '_blank')} className="rounded-2xl h-12 px-6 border-border/50 font-bold flex items-center gap-2">
              <HelpCircle className="h-4 w-4" /> Resource Center
           </Button>
           <Button 
@@ -195,8 +196,21 @@ export default function AnswerBotPage() {
                                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg opacity-0 group-hover:opacity-100 transition-all"><MoreVertical className="h-4 w-4" /></Button>
                              </DropdownMenuTrigger>
                              <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50">
-                                <DropdownMenuItem className="rounded-xl font-bold">Resync Data</DropdownMenuItem>
-                                <DropdownMenuItem className="rounded-xl font-bold text-destructive">Remove Source</DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => addSourceMutation.mutate({ sourceType: src.sourceType, title: src.title, websiteUrl: src.websiteUrl, textContent: src.textContent })}
+                                  className="rounded-xl font-bold cursor-pointer">Resync Data</DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    if (!window.confirm('Remove this knowledge source?')) return;
+                                    try {
+                                      await apiClient.delete(`/automation/engine/answerbot/sources/${src._id}`, { params: { workspaceId } });
+                                      toast.success('Source removed');
+                                      queryClient.invalidateQueries({ queryKey: ['answerbot-sources'] });
+                                    } catch (err: any) {
+                                      toast.error(err?.response?.data?.error || 'Failed to remove source');
+                                    }
+                                  }}
+                                  className="rounded-xl font-bold text-destructive cursor-pointer">Remove Source</DropdownMenuItem>
                              </DropdownMenuContent>
                           </DropdownMenu>
                        </div>
@@ -267,7 +281,25 @@ export default function AnswerBotPage() {
                                       {btn.title}
                                     </Badge>
                                   ))}
-                                  <Button variant="ghost" size="sm" className="rounded-xl border border-dashed border-primary/40 text-primary text-[10px] font-black h-8 px-3">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      const title = window.prompt('Button label (max 20 chars):');
+                                      if (!title?.trim()) return;
+                                      const buttons = [
+                                        ...(faq.interactive?.buttons || []),
+                                        { id: `btn_${Date.now()}`, title: title.trim().slice(0, 20) },
+                                      ];
+                                      try {
+                                        await apiClient.patch(`/automation/engine/answerbot/faqs/${faq._id}`, { interactive: { buttons } }, { params: { workspaceId } });
+                                        toast.success('Button added');
+                                        queryClient.invalidateQueries({ queryKey: ['answerbot-faqs'] });
+                                      } catch (err: any) {
+                                        toast.error(err?.response?.data?.error || 'Failed to add button');
+                                      }
+                                    }}
+                                    className="rounded-xl border border-dashed border-primary/40 text-primary text-[10px] font-black h-8 px-3">
                                     <Plus className="h-3 w-3 mr-1" /> Add Button
                                   </Button>
                                </div>

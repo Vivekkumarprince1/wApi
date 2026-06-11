@@ -26,6 +26,7 @@ import {
   Lock,
   Target
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { 
   Card, 
   CardContent, 
@@ -56,6 +57,7 @@ import { getInboxSettings, updateInboxSettings, getTeamMembers } from "@/lib/api
 import { fetchRules, toggleRule } from "@/lib/api/automation";
 
 export default function ChatAssignmentPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [inboxSettings, setInboxSettings] = useState({
@@ -149,7 +151,7 @@ export default function ChatAssignmentPage() {
           <Button variant="outline" size="icon" onClick={fetchData} className="rounded-xl border-border/50 shadow-sm">
             <RefreshCw className={cn("size-4", updating && "animate-spin")} />
           </Button>
-          <Button className="rounded-xl bg-primary shadow-lg shadow-primary/20 gap-2 font-black uppercase tracking-widest text-[10px]">
+          <Button onClick={() => setActiveTab('rules')} className="rounded-xl bg-primary shadow-lg shadow-primary/20 gap-2 font-black uppercase tracking-widest text-[10px]">
             <Plus className="size-4" /> Create Routing Rule
           </Button>
         </div>
@@ -436,10 +438,7 @@ export default function ChatAssignmentPage() {
                              </td>
                              <td className="px-8 py-6">
                                 <div className="flex items-center gap-2">
-                                   <Button variant="outline" size="sm" className="rounded-lg h-8 px-3 border-border/50 text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all">Manage</Button>
-                                   <Button variant="ghost" size="icon" className="rounded-lg size-8 text-muted-foreground hover:text-foreground">
-                                      <MoreVertical className="size-4" />
-                                   </Button>
+                                   <Button variant="outline" size="sm" onClick={() => { router.push('/settings'); }} className="rounded-lg h-8 px-3 border-border/50 text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 hover:text-primary hover:border-primary/30 transition-all">Manage</Button>
                                 </div>
                              </td>
                           </tr>
@@ -458,7 +457,7 @@ export default function ChatAssignmentPage() {
                     <Target className="absolute -bottom-4 -right-4 size-32 text-primary/5 group-hover:scale-110 transition-transform duration-700" />
                     <h3 className="text-lg font-black tracking-tight mb-2">Smart Routing Rules</h3>
                     <p className="text-xs font-medium text-muted-foreground mb-6">Create complex logic to ensure Every conversation reaches the right person instantly. Use customer tags, keywords, or time-based triggers.</p>
-                    <Button className="w-full rounded-2xl h-12 font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-primary/20">
+                    <Button onClick={() => { router.push('/automation/workflows'); }} className="w-full rounded-2xl h-12 font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-primary/20">
                        <Plus className="size-4" /> Add New Rule
                     </Button>
                  </Card>

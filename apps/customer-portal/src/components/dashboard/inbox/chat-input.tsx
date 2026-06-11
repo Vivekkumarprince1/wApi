@@ -265,7 +265,7 @@ export default function ChatInput({
                    <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11 cursor-pointer" onClick={handleSendBoletoMock}>
                      <FileText className="h-4 w-4 text-blue-600" /> Boleto Message
                    </DropdownMenuItem>
-                   <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11 cursor-pointer">
+                   <DropdownMenuItem onClick={() => setText(prev => prev || '/')} className="rounded-xl font-bold gap-3 h-11 cursor-pointer">
                      <Box className="h-4 w-4 text-amber-500" /> Quick Replies
                    </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -350,8 +350,9 @@ export default function ChatInput({
                                 {activeMediaTab === 'stickers' ? (
                                     <div className="grid grid-cols-3 gap-2">
                                         {stickers.map(sticker => (
-                                            <button 
+                                            <button
                                                 key={sticker.name}
+                                                onClick={() => setText(prev => prev + sticker.emoji)}
                                                 className="aspect-square rounded-xl bg-muted/30 border border-border/50 flex flex-col items-center justify-center hover:bg-primary/5 transition-all group"
                                             >
                                                 <span className="text-3xl mb-1 group-hover:scale-110 transition-transform">{sticker.emoji}</span>

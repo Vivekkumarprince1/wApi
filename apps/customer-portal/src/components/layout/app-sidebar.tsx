@@ -38,6 +38,8 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { useAuthStore, useFeatureGate } from "@/store/auth-store";
+import { useQuery } from "@tanstack/react-query";
+import { getWABASettings } from "@/lib/api/settings";
 
 type SidebarChildItem = {
   title: string;
@@ -65,6 +67,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
   const router = useRouter();
   const { user, workspace } = useAuthStore();
   const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({});
+
+  const { data: wabaSettings } = useQuery({
+    queryKey: ['waba-settings'],
+    queryFn: async () => {
+      const response: any = await getWABASettings();
+      return response?.waba || response || {};
+    }
+  });
+
+  const isWabaConnected = !!wabaSettings?.hasToken;
 
   const isActive = (url: string) => {
     if (url === "/") return pathname === "/";
@@ -196,9 +208,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
                     <MessageSquare className="size-5" />
                 </div>
                 <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                    <span className="font-bold text-lg tracking-tight truncate max-w-[150px]">
-                      {workspace?.name || 'wApi'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg tracking-tight truncate max-w-[150px]">
+                          {workspace?.name || 'wApi'}
+                        </span>
+                        <div title={isWabaConnected ? "WABA Connected" : "WABA Disconnected"} className={`h-2 w-2 rounded-full ${isWabaConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`} />
+                    </div>
                     <span className="text-[10px] uppercase tracking-widest font-black text-primary">
                         {user?.role === 'owner' ? 'Enterprise' : 'Workspace'}
                     </span>

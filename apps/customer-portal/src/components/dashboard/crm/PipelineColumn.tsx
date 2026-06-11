@@ -60,9 +60,6 @@ export const PipelineColumn: React.FC<PipelineColumnProps> = ({
             >
               <Plus className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl bg-background/50 border border-border/20 shadow-sm">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 
