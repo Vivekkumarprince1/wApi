@@ -129,6 +129,12 @@ io.use(async (socket: any, next) => {
 io.on('connection', (socket: any) => {
   console.log(`[WebSocket Gateway] Agent socket connected: ${socket.id}`);
 
+  // Personal room — lets services target a single user (e.g. assignment
+  // notifications) without broadcasting to the whole workspace.
+  if (socket.userId) {
+    socket.join(`user:${socket.userId}`);
+  }
+
   // Heartbeat ping
   socket.emit('server:ping', { status: 'OK', serverTime: new Date().toISOString() });
 
@@ -203,6 +209,23 @@ let kafkaProducer: any = null;
 async function processRealtimeSyncEvent(envelope: any) {
   const workspaceRoom = `workspace:${envelope.workspaceId}`;
   const conversationRoom = `conversation:${envelope.conversationId}`;
+
+  // Personal notifications target only the recipient's room — never the
+  // whole workspace. Payload shape matches the frontend socket-hub handler
+  // ({ title, message, type }).
+  if (envelope.type === 'notification') {
+    if (envelope.recipientId) {
+      // The frontend handler calls toast[type], which only knows these four —
+      // map domain types like 'assignment' to 'info'.
+      const toastTypes = ['success', 'info', 'error', 'warning'];
+      const payload = {
+        ...envelope.payload,
+        type: toastTypes.includes(envelope.payload?.type) ? envelope.payload.type : 'info',
+      };
+      io.to(`user:${envelope.recipientId}`).emit('workspace:notification', payload);
+    }
+    return;
+  }
 
   // 1. Always emit generic inbox sync (fallback support)
   io.to(workspaceRoom).emit('inbox:sync', envelope);

@@ -35,7 +35,8 @@ export class OnboardingController {
   }
 
   // Public routes (guarded by JWT from client auth)
-  @Get('/bsp/v1/onboarding/status')
+  // verification-status and stage1-status were monolith aliases of the same status handler.
+  @Get(['/bsp/v1/onboarding/status', '/bsp/v1/onboarding/verification-status', '/bsp/v1/onboarding/stage1-status'])
   @UseGuards(WorkspaceAuthGuard)
   async getStatus(@Req() req: any) {
     const { workspace } = req;

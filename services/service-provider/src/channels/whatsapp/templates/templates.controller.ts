@@ -199,6 +199,20 @@ export class TemplatesPublicController {
 
   /* ---------------------------- Template Rules ---------------------------- */
 
+  // Monolith parity: library stats were a hardcoded mock there too.
+  @Get('library/stats')
+  async getLibraryStats() {
+    return {
+      success: true,
+      data: {
+        total: 120,
+        approved: 95,
+        rejected: 5,
+        pending: 20,
+      },
+    };
+  }
+
   @Get('rules')
   async listRules(@Req() req: any, @Query() query: any) {
     const workspaceId = String(req.workspace?._id);

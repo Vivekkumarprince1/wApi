@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { 
-  getInvitationByToken, 
-  acceptWorkspaceInvitation, 
-  listWorkspaceMembers, 
-  inviteTeamMember, 
-  getMemberPermissions, 
+import {
+  getInvitationByToken,
+  acceptWorkspaceInvitation,
+  listWorkspaceMembers,
+  searchTeamMemberByEmail,
+  inviteTeamMember,
+  getMemberPermissions,
   updateMemberPermissions, 
   updateMemberRoleQuick, 
   updateMemberRecord, 
@@ -23,6 +24,10 @@ router.get('/workspace/members', businessAuthMiddleware, listWorkspaceMembers);
 router.get('/workspace/team/members', businessAuthMiddleware, listWorkspaceMembers);
 router.get('/members', businessAuthMiddleware, listWorkspaceMembers);
 router.get('/team/members', businessAuthMiddleware, listWorkspaceMembers);
+
+// Member lookup by email (used by the settings member panel before inviting)
+router.get('/workspace/team/search', businessAuthMiddleware, searchTeamMemberByEmail);
+router.get('/team/search', businessAuthMiddleware, searchTeamMemberByEmail);
 
 router.post('/workspace/members/invite', businessAuthMiddleware, inviteTeamMember);
 router.post('/members/invite', businessAuthMiddleware, inviteTeamMember);

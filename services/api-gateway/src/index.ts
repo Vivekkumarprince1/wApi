@@ -320,7 +320,15 @@ app.use('/api/v1/workspace/quick-replies', proxyTo(SERVICES.contact, 'contact'))
 app.use('/api/v1/workspace/waba', proxyToProviderWorkspace(SERVICES.serviceProvider));
 app.use('/api/v1/workspace/profile', proxyToProviderWorkspace(SERVICES.serviceProvider));
 app.use('/api/v1/workspace/webhooks', proxyToProviderWorkspace(SERVICES.serviceProvider));
-app.use('/api/v1/workspace/whatsapp/health', proxyToProviderWorkspace(SERVICES.serviceProvider));
+// Covers /whatsapp/health, /whatsapp/profile* and /whatsapp/subscriptions/status
+// (monolith served all /workspace/whatsapp/* itself).
+app.use('/api/v1/workspace/whatsapp', proxyToProviderWorkspace(SERVICES.serviceProvider));
+// Monolith alias: /workspace/settings/waba[/test] — same handlers as /workspace/waba.
+app.use('/api/v1/workspace/settings/waba', proxyRewrite(
+  SERVICES.serviceProvider,
+  'service-provider',
+  (path) => path.replace('/api/v1/workspace/settings/waba', '/bsp/v1/workspace/waba')
+));
 app.use('/api/v1/workspace/phone-numbers', proxyToProviderWorkspace(SERVICES.serviceProvider));
 app.use('/api/v1/workspace/connection-status', proxyToProviderWorkspace(SERVICES.serviceProvider));
 

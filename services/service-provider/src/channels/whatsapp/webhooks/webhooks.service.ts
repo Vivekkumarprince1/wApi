@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { config } from '../../../config';
 import { ProviderWebhookEvent } from '../../../models/provider-webhook-event.schema';
 import { ProviderApp } from '../../../models/provider-app.schema';
+import { ProviderTemplateMirror } from '../../../models/provider-template-mirror.schema';
 import { ProviderKafkaProducerService } from '../../../common/provider-kafka-producer.service';
 
 @Injectable()
@@ -12,6 +13,7 @@ export class WebhooksService {
   constructor(
     @InjectModel(ProviderWebhookEvent.name) private readonly eventModel: Model<ProviderWebhookEvent>,
     @InjectModel(ProviderApp.name) private readonly appModel: Model<ProviderApp>,
+    @InjectModel(ProviderTemplateMirror.name) private readonly templateModel: Model<ProviderTemplateMirror>,
     private readonly kafkaProducer: ProviderKafkaProducerService,
   ) {}
 
@@ -53,8 +55,11 @@ export class WebhooksService {
       }
     }
 
-    // Save raw webhook event into local database
-    const event = await this.eventModel.findOneAndUpdate(
+    // Save raw webhook event into local database. `new: false` returns the
+    // pre-existing doc (or null on first insert), which doubles as an atomic
+    // dedup check: providers retry deliveries, and re-streaming a seen event
+    // to Kafka would duplicate chat messages downstream.
+    const priorEvent = await this.eventModel.findOneAndUpdate(
       { eventId },
       {
         $setOnInsert: {
@@ -74,8 +79,18 @@ export class WebhooksService {
           },
         },
       },
-      { upsert: true, new: true },
+      { upsert: true, new: false },
     );
+
+    if (priorEvent) {
+      console.log(`[WebhooksService] Duplicate webhook delivery ${eventId} ignored.`);
+      return { eventId, eventType, status: 'duplicate' };
+    }
+
+    // Template status updates (Meta-style message_template_status_update and
+    // Gupshup template-event payloads) — keep the template mirror in sync so
+    // approval states update without a manual /templates/sync.
+    await this.applyTemplateStatusUpdates(payload, workspaceId);
 
     // --- STREAM PARSED EVENTS TO KAFKA ---
 
@@ -99,6 +114,7 @@ export class WebhooksService {
         workspaceId: workspaceId?.toString(),
         messageId: providerId,
         status: mapped,
+        timestamp: this.normalizeTimestampSeconds(status.timestamp || status.ts || status.gs_timestamp),
       };
 
       console.log(`[WebhooksService] Streaming status update to parsed-message-events:`, JSON.stringify(parsedEvent));
@@ -126,11 +142,17 @@ export class WebhooksService {
         workspaceId: workspaceId?.toString(),
         contactId,
         senderPhone: from,
+        senderName:
+          incoming.contacts?.[0]?.profile?.name ||
+          payload?.payload?.sender?.name ||
+          incoming.sender?.name ||
+          null,
         direction: 'inbound',
         type: type === 'text' ? 'text' : type,
         text: body,
         mediaUrl: incoming.image?.link || incoming.video?.link || incoming.audio?.link || incoming.document?.link || '',
         messageId,
+        timestamp: this.normalizeTimestampSeconds(incoming.timestamp || incoming.ts) ?? Math.floor(Date.now() / 1000),
       };
 
       console.log(`[WebhooksService] Streaming inbound message to parsed-message-events:`, JSON.stringify(parsedEvent));
@@ -139,7 +161,61 @@ export class WebhooksService {
       ]);
     }
 
-    return { eventId: event.eventId, eventType: event.eventType, status: event.status };
+    return { eventId, eventType, status: 'received' };
+  }
+
+  /** Normalize provider timestamps (seconds or milliseconds) to epoch seconds. */
+  private normalizeTimestampSeconds(raw: any): number | undefined {
+    const numeric = Number(raw);
+    if (!numeric || Number.isNaN(numeric)) return undefined;
+    return numeric > 1e12 ? Math.floor(numeric / 1000) : Math.floor(numeric);
+  }
+
+  /**
+   * Webhook-driven template approval updates (monolith parity): Meta sends
+   * `message_template_status_update` changes; Gupshup sends `template-event`
+   * payloads. Mirror the new status so the UI reflects approvals without a
+   * manual sync.
+   */
+  private async applyTemplateStatusUpdates(payload: any, workspaceId: any) {
+    try {
+      const updates: Array<{ name: string; status: string; language?: string }> = [];
+
+      const changes = payload?.entry?.[0]?.changes;
+      if (Array.isArray(changes)) {
+        for (const change of changes) {
+          if (change.field === 'message_template_status_update' && change.value?.message_template_name) {
+            updates.push({
+              name: change.value.message_template_name,
+              status: String(change.value.event || '').toUpperCase(),
+              language: change.value.message_template_language,
+            });
+          }
+        }
+      }
+
+      if (payload?.type === 'template-event' && payload?.payload) {
+        const tpl = payload.payload;
+        const name = tpl.elementName || tpl.name || tpl.templateName;
+        const status = tpl.status || tpl.event;
+        if (name && status) {
+          updates.push({ name, status: String(status).toUpperCase(), language: tpl.languageCode });
+        }
+      }
+
+      if (updates.length === 0 || !workspaceId) return;
+
+      for (const update of updates) {
+        const filter: any = { workspaceId: workspaceId.toString(), name: update.name };
+        if (update.language) filter.language = update.language;
+        const result = await this.templateModel.updateMany(filter, { $set: { status: update.status } });
+        console.log(
+          `[WebhooksService] Template status webhook: ${update.name} -> ${update.status} (${result.modifiedCount} mirrored)`,
+        );
+      }
+    } catch (err: any) {
+      console.error('[WebhooksService] Template status update failed:', err.message);
+    }
   }
 
   private isSignatureValid(rawBody: string, headers: Record<string, string | string[] | undefined>) {

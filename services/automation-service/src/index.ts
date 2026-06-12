@@ -53,6 +53,20 @@ const MONGODB_URI =
 // API Docs — Swagger UI at /docs, raw spec at /docs/openapi.json
 mountSwaggerUI(app, openapiDocument);
 
+// Health Check — MUST be registered before the root-mounted routers below:
+// flowRoutes/widgetRoutes register parameterized paths like `/:flowId` at `/`,
+// which would otherwise capture GET /health and 401 it behind authenticate.
+app.get('/health', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
+  res.json({
+    status: dbState === 1 ? 'ok' : 'degraded',
+    service: 'automation-service',
+    db: dbStatus,
+    timestamp: new Date()
+  });
+});
+
 // Register Routes
 app.use('/api/automation/engine', aiIntentRoutes);
 app.use('/api/automation/engine', answerBotRoutes);
@@ -67,18 +81,6 @@ app.use('/', widgetRoutes);
 app.use('/', developerRoutes);
 app.use('/', integrationRoutes);
 
-
-// Health Check
-app.get('/health', (req, res) => {
-  const dbState = mongoose.connection.readyState;
-  const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
-  res.json({
-    status: dbState === 1 ? 'ok' : 'degraded',
-    service: 'automation-service',
-    db: dbStatus,
-    timestamp: new Date()
-  });
-});
 
 // Start Server (await Mongo first so HTTP traffic can't hit a disconnected DB).
 let server: ReturnType<typeof app.listen> | null = null;

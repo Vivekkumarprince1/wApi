@@ -15,6 +15,8 @@ const router = Router();
 
 router.get('/workspaces', getWorkspaces);
 router.post('/switch-workspace', switchWorkspace);
+// Monolith alias: POST /workspace/switch
+router.post('/switch', switchWorkspace);
 router.get('/invitations/pending', getPendingInvitations);
 
 router.get('/settings', businessAuthMiddleware, getWorkspaceSettings);

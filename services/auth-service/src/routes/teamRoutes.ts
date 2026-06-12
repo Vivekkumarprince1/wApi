@@ -12,6 +12,8 @@ const router = Router();
 
 router.get('/workspace/teams', businessAuthMiddleware, listTeams);
 router.get('/teams', businessAuthMiddleware, listTeams);
+// Monolith alias: GET /workspace/team listed teams
+router.get('/team', businessAuthMiddleware, listTeams);
 
 router.post('/workspace/teams', businessAuthMiddleware, createTeam);
 router.post('/teams', businessAuthMiddleware, createTeam);

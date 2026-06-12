@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { apiGet } from "@/lib/api/client";
 
 interface MonitoringData {
-  services: { id: string; name: string; status: "up" | "down"; latencyMs: number | null }[];
+  services: { id: string; name: string; tier?: string; status: "up" | "down"; latencyMs: number | null }[];
   databases: { name: string; status: string }[];
   process: { uptimeSec: number; memoryRssMb: number; nodeVersion: string; mongooseVersion: string };
   generatedAt: string;
@@ -64,7 +64,7 @@ export default function MonitoringPage() {
                           <div>
                             <p className="font-medium text-sm">{s.name}</p>
                             <p className="text-xs text-muted-foreground">
-                              {s.latencyMs != null ? `${s.latencyMs} ms` : "—"}
+                              {s.tier ? `${s.tier} · ` : ""}{s.latencyMs != null ? `${s.latencyMs} ms` : "—"}
                             </p>
                           </div>
                           <Badge variant={s.status === "up" ? "success" : "destructive"}>

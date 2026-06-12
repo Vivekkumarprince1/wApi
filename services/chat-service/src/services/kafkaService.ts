@@ -83,6 +83,26 @@ export async function initKafka() {
   }
 }
 
+/**
+ * Workspace business-hours check, ported from the monolith's
+ * isWithinBusinessHoursLegacy. Used to flag inbound messages for
+ * "outside business hours" auto-replies.
+ */
+function isWithinBusinessHours(settings: any): boolean {
+  if (!settings?.businessHours?.enabled) return true;
+
+  const now = new Date();
+  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+  const schedule = settings.businessHours.schedule?.find(
+    (s: any) => String(s.day).toLowerCase() === dayName
+  );
+  if (!schedule || !schedule.enabled) return false;
+
+  return currentTime >= schedule.startTime && currentTime <= schedule.endTime;
+}
+
 export async function processParsedMessage(parsed: any) {
   // 1. Process Status Updates
   if (parsed.type === 'status_update') {
@@ -147,6 +167,27 @@ export async function processParsedMessage(parsed: any) {
   // 2. Process Inbound Messages
   console.log(`[Chat Service Kafka] Ingested message event. Id: ${parsed.messageId}, type: ${parsed.type}`);
 
+  // Dedup: providers (and Kafka redelivery) can replay the same message.
+  // The monolith skipped already-persisted provider message ids — do the same.
+  if (parsed.messageId && parsed.workspaceId) {
+    const existing = await Message.findOne({
+      workspace: new mongoose.Types.ObjectId(parsed.workspaceId),
+      messageId: parsed.messageId,
+    }).select('_id').lean();
+    if (existing) {
+      console.log(`[Chat Service Kafka] Duplicate message ${parsed.messageId} ignored.`);
+      return;
+    }
+  }
+
+  // Provider webhook timestamp (seconds or ms) — used for ordering and the
+  // 24h customer-service window. Falls back to now.
+  const eventTimestamp = (() => {
+    const numeric = Number(parsed.timestamp);
+    if (!numeric || Number.isNaN(numeric)) return new Date();
+    return new Date(numeric > 1e12 ? numeric : numeric * 1000);
+  })();
+
   let contactObjectId: mongoose.Types.ObjectId | null = null;
   
   if (parsed.contactId && mongoose.Types.ObjectId.isValid(parsed.contactId)) {
@@ -166,6 +207,9 @@ export async function processParsedMessage(parsed: any) {
           workspaceId: parsed.workspaceId,
           phone: phone,
           name: parsed.senderName || phone,
+          ...(parsed.direction !== 'outbound'
+            ? { lastInboundAt: eventTimestamp.toISOString() }
+            : {}),
         }),
       });
 
@@ -193,24 +237,79 @@ export async function processParsedMessage(parsed: any) {
       contact: contactObjectId,
       status: 'open',
       isOpen: true,
-      lastActivityAt: new Date(),
+      lastActivityAt: eventTimestamp,
+      conversationType: (parsed.direction || 'inbound') === 'inbound' ? 'customer_initiated' : 'business_initiated',
+      conversationStartedAt: eventTimestamp,
     });
   }
 
   if (conversation) {
+    const messageType = parsed.type === 'status_update' ? 'text' : parsed.type;
     const chatMessage = await Message.create({
       workspace: conversation.workspace,
       conversation: conversation._id,
       contact: contactObjectId,
       direction: parsed.direction || 'inbound',
-      type: parsed.type === 'status_update' ? 'text' : parsed.type,
+      type: messageType,
       text: parsed.text || '',
       mediaUrl: parsed.mediaUrl || '',
       messageId: parsed.messageId,
       status: parsed.direction === 'inbound' ? 'delivered' : 'sent',
+      sentAt: eventTimestamp,
     });
 
-    await Conversation.findByIdAndUpdate(conversation._id, { lastActivityAt: new Date() });
+    // Restore the monolith's full inbound conversation lifecycle: inbox-list
+    // preview fields, unread counters, reopen-on-inbound and the 24h
+    // customer-service window stamp.
+    const isInbound = (parsed.direction || 'inbound') === 'inbound';
+    let workspaceDoc: any = null;
+    if (isInbound) {
+      try {
+        workspaceDoc = await Conversation.db
+          .useDb('wapi')
+          .collection('workspaces')
+          .findOne(
+            { _id: conversation.workspace },
+            { projection: { inboxSettings: 1, settings: 1 } }
+          );
+      } catch (wsErr: any) {
+        console.error('[Chat Service Kafka] Workspace lookup failed:', wsErr?.message || wsErr);
+      }
+
+      const preview =
+        messageType === 'text'
+          ? String(parsed.text || '').substring(0, 100)
+          : `[${messageType}]`;
+
+      conversation.set({
+        lastInboundAt: eventTimestamp,
+        lastCustomerMessageAt: eventTimestamp,
+        lastActivityAt: eventTimestamp,
+        lastMessageAt: eventTimestamp,
+        lastMessagePreview: preview,
+        lastMessageDirection: 'inbound',
+        lastMessageType: messageType,
+        isOpen: true,
+        status: 'open',
+        windowExpiresAt: new Date(eventTimestamp.getTime() + 24 * 60 * 60 * 1000),
+      });
+      conversation.messageCount = (conversation.messageCount || 0) + 1;
+      (conversation as any).incrementUnreadForAllAgents();
+      await conversation.save();
+
+      // Auto-assignment (monolith parity): assign unassigned conversations
+      // when the workspace has auto-assignment enabled.
+      if (!conversation.assignedTo && workspaceDoc?.inboxSettings?.autoAssignmentEnabled) {
+        try {
+          const { AutoAssignService } = await import('./auto-assign-service.js');
+          await AutoAssignService.assign(conversation.workspace, conversation._id).catch(() => {});
+        } catch (assignErr: any) {
+          console.error('[Chat Service Kafka] Auto-assign failed:', assignErr?.message || assignErr);
+        }
+      }
+    } else {
+      await Conversation.findByIdAndUpdate(conversation._id, { lastActivityAt: eventTimestamp });
+    }
 
     const contactDoc = contactObjectId ? await Contact.findById(contactObjectId).lean() : null;
     const syncPayload = {
@@ -254,6 +353,7 @@ export async function processParsedMessage(parsed: any) {
           body: parsed.text || '',
           phone: parsed.senderPhone || '',
           metadata: { type: parsed.type },
+          isOutsideBusinessHours: !isWithinBusinessHours(workspaceDoc?.settings),
         }),
       })
         .then(async (r) => {

@@ -15,6 +15,13 @@ const router = Router();
 router.get('/workspace/roles/matrix', businessAuthMiddleware, getPermissionsMatrix);
 router.get('/roles/matrix', businessAuthMiddleware, getPermissionsMatrix);
 
+// Monolith aliases: GET /workspace/team/permissions served the same matrix;
+// PATCH was an explicit 501 (dynamic role permission editing never shipped).
+router.get('/team/permissions', businessAuthMiddleware, getPermissionsMatrix);
+router.patch('/team/permissions', businessAuthMiddleware, (_req, res) => {
+  res.status(501).json({ success: false, error: 'Dynamic role permission editing is not yet implemented' });
+});
+
 router.get('/workspace/roles', businessAuthMiddleware, listRoles);
 router.get('/roles', businessAuthMiddleware, listRoles);
 

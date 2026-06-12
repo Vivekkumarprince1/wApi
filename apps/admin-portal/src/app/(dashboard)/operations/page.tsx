@@ -50,6 +50,9 @@ export default function OperationsPage() {
               <Button size="sm" variant="outline" disabled={op.isPending} onClick={() => op.mutate("sync-all-webhooks")}>
                 <Webhook className="h-4 w-4" /> Sync Webhooks
               </Button>
+              <Button size="sm" variant="outline" disabled={op.isPending} onClick={() => op.mutate("replay-dead-webhooks")}>
+                <RefreshCw className={`h-4 w-4 ${op.isPending ? "animate-spin" : ""}`} /> Replay Dead Webhooks
+              </Button>
             </div>
           ) : null
         }

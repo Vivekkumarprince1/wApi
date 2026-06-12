@@ -283,10 +283,13 @@ export const Role = mongoose.models.Role || mongoose.model('Role', RoleSchema);
 const NotificationSchema = new Schema({
   workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
   recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  type: { 
-    type: String, 
-    enum: ['invitation_accepted', 'invitation_declined', 'system_alert', 'billing_alert'],
-    required: true 
+  type: {
+    type: String,
+    // Invitation types this service emits + the monolith notification types
+    // (chat-service writes 'assignment' docs into the same shared collection)
+    enum: ['invitation_accepted', 'invitation_declined', 'system_alert', 'billing_alert',
+           'info', 'success', 'warning', 'error', 'assignment', 'campaign', 'billing', 'system'],
+    required: true
   },
   title: { type: String, required: true },
   message: { type: String, required: true },
@@ -521,4 +524,44 @@ const BusinessVerificationPolicySchema = new Schema({
 }, { timestamps: true });
 
 export const BusinessVerificationPolicy = mongoose.models.BusinessVerificationPolicy || mongoose.model('BusinessVerificationPolicy', BusinessVerificationPolicySchema);
+
+// ActivityLog — workspace-scoped audit trail in the shared wapi DB (monolith
+// parity). Same schema as chat/contact services'; the analytics dashboard reads it.
+const ActivityLogSchema = new Schema({
+  workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  action: {
+    type: String,
+    required: true,
+    enum: ['create', 'read', 'update', 'delete', 'send', 'execute', 'login', 'export', 'import'],
+    index: true
+  },
+  entityType: {
+    type: String,
+    required: true,
+    enum: [
+      'contact', 'message', 'conversation', 'campaign',
+      'automation', 'deal', 'task', 'template', 'integration',
+      'workspace', 'user', 'permission', 'settings'
+    ],
+    index: true
+  },
+  entityId: { type: Schema.Types.ObjectId, sparse: true, index: true },
+  entityName: String,
+  changes: {
+    before: Schema.Types.Mixed,
+    after: Schema.Types.Mixed
+  },
+  status: { type: String, enum: ['success', 'failed'], default: 'success', index: true },
+  errorDetails: String,
+  ipAddress: String,
+  userAgent: String,
+  timestamp: { type: Date, default: Date.now },
+  metadata: Schema.Types.Mixed
+}, { timestamps: false });
+
+ActivityLogSchema.index({ workspace: 1, timestamp: -1 });
+ActivityLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 7776000 }); // 90 days
+
+export const ActivityLog = mongoose.models.ActivityLog || mongoose.model('ActivityLog', ActivityLogSchema);
 

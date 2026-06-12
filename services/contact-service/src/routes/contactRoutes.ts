@@ -51,6 +51,12 @@ router.post('/internal/v1/contact-events/replay', internalAuth, async (req, res)
 // Authenticated Gateway Proxy endpoints
 router.get('/api/v1/contacts', authenticate, getContactsPublic);
 router.post('/api/v1/contacts', authenticate, createContactPublic);
+// Monolith aliases (must precede /:id so 'export'/'import' aren't captured as ids)
+router.get('/api/v1/contacts/export', authenticate, bulkController.exportContacts);
+router.post('/api/v1/contacts/import', authenticate, bulkController.bulkCreateContacts);
+router.post('/api/v1/contacts/csv-import/upload', authenticate, bulkController.uploadCSV);
+router.get('/api/v1/contacts/csv-import/:jobId/progress', authenticate, bulkController.getCSVProgress);
+router.delete('/api/v1/contacts/csv-import/:jobId/cancel', authenticate, bulkController.cancelCSVImport);
 router.get('/api/v1/contacts/:id', authenticate, getContactByIdPublic);
 router.patch('/api/v1/contacts/:id', authenticate, updateContactPublic);
 router.delete('/api/v1/contacts/:id', authenticate, deleteContactPublic);

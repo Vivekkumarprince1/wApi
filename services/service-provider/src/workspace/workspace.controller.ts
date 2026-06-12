@@ -26,7 +26,8 @@ export class WorkspaceController {
     return ok(await this.workspaceService.updateWabaSettings(req.workspace._id, body));
   }
 
-  @Get('waba/subscription-status')
+  // Monolith aliases: /waba/subscriptions/status + /whatsapp/subscriptions/status
+  @Get(['waba/subscription-status', 'waba/subscriptions/status', 'whatsapp/subscriptions/status'])
   async getSubscriptionStatus(@Req() req: any) {
     return ok(await this.workspaceService.getSubscriptionStatus(req.workspace._id));
   }
@@ -36,24 +37,24 @@ export class WorkspaceController {
     return ok(await this.workspaceService.testConnection(req.workspace._id));
   }
 
-  // ── WhatsApp Profile ───────────────────────────────────────────────────
+  // ── WhatsApp Profile (monolith served the same handlers at /whatsapp/profile) ──
 
-  @Get('profile')
+  @Get(['profile', 'whatsapp/profile'])
   async getProfile(@Req() req: any) {
     return ok(await this.workspaceService.getProfile(req.workspace._id));
   }
 
-  @Patch('profile')
+  @Patch(['profile', 'whatsapp/profile'])
   async updateProfile(@Req() req: any, @Body() body: any) {
     return ok(await this.workspaceService.updateProfile(req.workspace._id, body));
   }
 
-  @Post('profile/sync')
+  @Post(['profile/sync', 'whatsapp/profile'])
   async syncProfile(@Req() req: any) {
     return ok(await this.workspaceService.syncProfile(req.workspace._id));
   }
 
-  @Patch('profile/display-name')
+  @Patch(['profile/display-name', 'whatsapp/profile/display-name'])
   async updateDisplayName(@Req() req: any, @Body() body: any) {
     return ok(await this.workspaceService.updateDisplayName(req.workspace._id, body.name || body.displayName));
   }

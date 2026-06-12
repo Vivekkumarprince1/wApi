@@ -1,21 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
 import { gatewayCall } from "@/server/gateway-client";
+import { internalPost } from "@/server/internal-client";
 import { recordAudit, clientIp } from "@/server/audit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Operations actions — WRITE path (Rule #5) → gateway → core-server.
+ * Operations actions — WRITE path (Rule #5).
  *
- *   gupshup-reconcile     POST super-admin/gupshup/reconcile
- *   sync-all-webhooks     POST super-admin/gupshup/sync-all-webhooks
+ * Gateway-routed (owning service behind the gateway):
+ *   gupshup-reconcile       POST super-admin/gupshup/reconcile
+ *   sync-all-webhooks       POST super-admin/gupshup/sync-all-webhooks
+ *
+ * Direct internal (service-internal endpoints, internal-secret guarded):
+ *   replay-dead-webhooks    POST webhook-ingestor /internal/v1/webhooks/replay
  */
 
-const ACTIONS: Record<string, { gatewayPath: string }> = {
-  "gupshup-reconcile": { gatewayPath: "super-admin/gupshup/reconcile" },
-  "sync-all-webhooks": { gatewayPath: "super-admin/gupshup/sync-all-webhooks" },
+type ActionConfig =
+  | { mode: "gateway"; gatewayPath: string }
+  | { mode: "internal"; service: "ingestor"; path: string; body?: unknown };
+
+const ACTIONS: Record<string, ActionConfig> = {
+  "gupshup-reconcile": { mode: "gateway", gatewayPath: "super-admin/gupshup/reconcile" },
+  "sync-all-webhooks": { mode: "gateway", gatewayPath: "super-admin/gupshup/sync-all-webhooks" },
+  "replay-dead-webhooks": { mode: "internal", service: "ingestor", path: "/internal/v1/webhooks/replay", body: { limit: 100 } },
 };
 
 export async function POST(
@@ -30,7 +40,10 @@ export async function POST(
 
   try {
     const actor = await requireAdmin("operations");
-    const result = await gatewayCall(config.gatewayPath, { method: "POST", actor });
+    const result =
+      config.mode === "internal"
+        ? { ...(await internalPost(config.service, config.path, config.body ?? {})), error: undefined as string | undefined }
+        : await gatewayCall(config.gatewayPath, { method: "POST", actor });
 
     await recordAudit({
       actor,

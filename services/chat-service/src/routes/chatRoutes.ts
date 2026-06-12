@@ -72,5 +72,9 @@ router.post('/conversations/:id/messages', authenticate, sendMessagePublic);
 router.post('/api/v1/inbox/contacts/:contactId/send-template', authenticate, sendTemplateToContactPublic);
 router.post('/inbox/contacts/:contactId/send-template', authenticate, sendTemplateToContactPublic);
 
+// Monolith root-param aliases — registered last so the specific routes above win.
+router.post('/api/v1/inbox/:id/read', authenticate, markAsReadPublic);
+router.get('/api/v1/inbox/:contactId/messages', authenticate, getMessagesByContactPublic);
+
 export default router;
 

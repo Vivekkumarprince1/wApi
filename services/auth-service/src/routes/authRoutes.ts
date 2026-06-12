@@ -37,10 +37,15 @@ const router = Router();
 /* --------------------------------- Signup --------------------------------- */
 router.post('/signup', signup);
 router.post('/verify-signup-otp', verifySignupOtp);
+// Monolith aliases (legacy clients / external API consumers)
+router.post('/signup/send-otp', signup);
+router.post('/signup/verify-otp', verifySignupOtp);
+router.post('/resend-signup-otp', signup);
 
 /* ---------------------------------- Login --------------------------------- */
 router.post('/login', login);
 router.post('/logout', logout);
+router.get('/logout', logout);
 router.post('/login/send-otp', sendOtp);
 router.post('/login/verify-otp', verifyOtpEndpoint);
 
@@ -50,13 +55,20 @@ router.post('/verify-otp', verifyOtpEndpoint);
 // Frontend (lib/api/auth.ts) calls /auth/otp/send and /auth/otp/verify
 router.post('/otp/send', sendOtp);
 router.post('/otp/verify', verifyOtpEndpoint);
+// Monolith aliases
+router.post('/mobile/send-otp', sendOtp);
+router.post('/mobile/verify-otp', verifyOtpEndpoint);
 
 /* ------------------------------ Password reset ---------------------------- */
 router.post('/request-password-reset', requestPasswordReset);
 router.post('/reset-password', resetPassword);
+// Monolith aliases
+router.post('/password/reset-request', requestPasswordReset);
+router.post('/password/reset', resetPassword);
 
 /* --------------------------------- Google --------------------------------- */
 router.get('/google/url', googleUrl);
+router.get('/google/auth-url', googleUrl);
 router.post('/google/login', googleCallback);
 // Frontend google callback page posts /auth/google/callback
 router.post('/google/callback', googleCallback);

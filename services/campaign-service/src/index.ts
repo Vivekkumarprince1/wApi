@@ -80,6 +80,19 @@ mongoose.connect(MONGODB_URI, {
 // API Docs — Swagger UI at /docs, raw spec at /docs/openapi.json
 mountSwaggerUI(app, openapiDocument);
 
+// Health Check — MUST be registered before adsRoutes: it mounts parameterized
+// paths like `/:id` at `/`, which would capture GET /health and 401 it.
+app.get('/health', (req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
+  res.json({
+    status: dbState === 1 ? 'ok' : 'degraded',
+    service: 'campaign-service',
+    db: dbStatus,
+    timestamp: new Date()
+  });
+});
+
 // Register Routes
 app.use('/api/campaign', campaignRoutes);
 app.use('/api/campaign', segmentRoutes);
@@ -87,19 +100,6 @@ app.use('/', adsRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
-
-
-// Health Check
-app.get('/health', (req, res) => {
-  const dbState = mongoose.connection.readyState;
-  const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
-  res.json({ 
-    status: dbState === 1 ? 'ok' : 'degraded', 
-    service: 'campaign-service', 
-    db: dbStatus,
-    timestamp: new Date() 
-  });
-});
 
 // Graceful Shutdown
 function gracefulShutdown(signal: string) {

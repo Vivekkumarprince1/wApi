@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 interface ServiceHealth {
   id: string;
   name: string;
+  tier: string;
   status: "up" | "down";
   latencyMs: number | null;
   detail?: unknown;
@@ -53,6 +54,7 @@ export async function GET() {
         return {
           id: svc.id,
           name: svc.name,
+          tier: svc.tier,
           status: r.ok ? "up" : "down",
           latencyMs: r.latencyMs,
           detail: r.detail,

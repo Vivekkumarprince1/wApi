@@ -1,6 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import { SupportTicket, Macro, Message, Conversation, User } from '../models/index.js';
+import { SupportTicket, Macro, Message, Conversation, User, ActivityLog } from '../models/index.js';
 
 // ─── Analytics helpers ────────────────────────────────────────────────────────
 
@@ -189,16 +189,65 @@ export const getDashboardOverview = async (req: any, res: express.Response) => {
     const deliveryRate = outbound.total > 0 ? (outbound.delivered / outbound.total) * 100 : 0;
     const readRate = outbound.delivered > 0 ? (outbound.read / outbound.delivered) * 100 : 0;
 
-    // Recent activity from activitylogs collection (written by audit consumer)
-    const recentLogs = await db.collection('auditlogs').find({}).sort({ createdAt: -1 }).limit(10).toArray().catch(() => []);
-    const recentActivity = recentLogs.map((log: any) => ({
-      id: log._id,
-      title: `${log.action} on ${log.resource?.type || 'system'}`,
-      type: log.resource?.type?.toLowerCase() || 'system',
-      action: log.action,
-      time: log.createdAt,
-      status: 'success',
-    }));
+    // Recent activity — workspace-scoped ActivityLog feed (monolith parity;
+    // the previous auditlogs read was unscoped and leaked super-admin entries).
+    const recentLogs: any[] = await ActivityLog.find({ workspace: workspaceId })
+      .sort({ timestamp: -1 })
+      .limit(10)
+      .populate('user', 'name')
+      .lean()
+      .catch(() => []);
+
+    const recentActivity = recentLogs.map((log: any) => {
+      const entityType = String(log.entityType || 'system').toLowerCase();
+      const action = String(log.action || 'activity').toLowerCase();
+      const entityName = log.entityName || (entityType !== 'system' ? entityType : '');
+      const userName = log.user?.name ? log.user.name.split(' ')[0] : 'System';
+
+      let title = '';
+      switch (action) {
+        case 'create':
+          title = `${userName} created ${entityType}${entityName ? `: ${entityName}` : ''}`;
+          break;
+        case 'update':
+          title = `${userName} updated ${entityType}${entityName ? `: ${entityName}` : ''}`;
+          break;
+        case 'delete':
+          title = `${userName} deleted ${entityType}${entityName ? `: ${entityName}` : ''}`;
+          break;
+        case 'send':
+          title = `${userName} sent a ${entityType}`;
+          break;
+        case 'login':
+          title = `${userName} logged in`;
+          break;
+        case 'import':
+          title = `${userName} imported ${entityType}s`;
+          break;
+        case 'export':
+          title = `${userName} exported ${entityType}s`;
+          break;
+        case 'execute':
+          title = `${userName} executed ${entityType}${entityName ? `: ${entityName}` : ''}`;
+          break;
+        default:
+          title = `${userName} ${action}d ${entityType}`;
+      }
+
+      if (!title || title.length < 3) {
+        title = `${userName} performed ${action} on ${entityType}`;
+      }
+
+      return {
+        id: log._id,
+        title,
+        type: entityType,
+        action,
+        time: log.timestamp || new Date(),
+        timestamp: log.timestamp || new Date(),
+        status: log.status || 'success',
+      };
+    });
 
     return res.status(200).json({
       success: true,

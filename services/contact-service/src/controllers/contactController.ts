@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { Contact, FormSubmission, normalizePhoneNumber } from '../models/index.js';
 import { publishContactEvent } from '../services/eventBus.js';
+import { logActivity } from '../services/activity-log.js';
 
 export const getContactsInternal = async (req: express.Request, res: express.Response) => {
   try {
@@ -328,6 +329,10 @@ export const createContactPublic = async (req: any, res: express.Response) => {
     });
 
     await publishContactEvent('contact_created', String(workspaceId), { contact });
+    await logActivity(req, 'create', 'contact', {
+      entityId: contact._id.toString(),
+      entityName: name,
+    });
     return res.status(201).json({ success: true, data: contact });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
@@ -375,6 +380,12 @@ export const updateContactPublic = async (req: any, res: express.Response) => {
       return res.status(404).json({ success: false, message: 'Contact not found' });
     }
 
+    await logActivity(req, 'update', 'contact', {
+      entityId: id,
+      entityName: (contact as any).name,
+      changes: { after: updateFields },
+    });
+
     return res.status(200).json({ success: true, data: contact });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
@@ -396,6 +407,10 @@ export const deleteContactPublic = async (req: any, res: express.Response) => {
     }
 
     await publishContactEvent('contact_deleted', String(workspaceId), { contactId: id });
+    await logActivity(req, 'delete', 'contact', {
+      entityId: id,
+      entityName: (contact as any).name,
+    });
     return res.status(200).json({ success: true, message: 'Contact deleted successfully' });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
@@ -451,7 +466,7 @@ export const countContactsInternal = async (req: express.Request, res: express.R
 export const resolveContactInternal = async (req: express.Request, res: express.Response) => {
   try {
     const workspaceId = req.headers['x-workspace-id'] || req.body.workspaceId;
-    const { phone, name } = req.body;
+    const { phone, name, lastInboundAt } = req.body;
     if (!workspaceId || !phone) {
       return res.status(400).json({ success: false, error: 'workspaceId and phone are required' });
     }
@@ -460,6 +475,14 @@ export const resolveContactInternal = async (req: express.Request, res: express.
       workspace: new mongoose.Types.ObjectId(String(workspaceId)),
       phone: normalizedPhone,
     });
+    if (contact && lastInboundAt) {
+      // Inbound-message resolves stamp activity on the contact (monolith parity).
+      const ts = new Date(lastInboundAt);
+      if (!Number.isNaN(ts.getTime())) {
+        (contact as any).lastInboundAt = ts;
+        await contact.save();
+      }
+    }
     if (!contact) {
       contact = await Contact.create({
         workspace: new mongoose.Types.ObjectId(String(workspaceId)),

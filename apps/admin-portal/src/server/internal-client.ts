@@ -17,7 +17,12 @@ const URLS = {
   automation: process.env.AUTOMATION_SERVICE_URL || "http://localhost:3001",
   campaign: process.env.CAMPAIGN_SERVICE_URL || "http://localhost:3002",
   billing: process.env.BILLING_SERVICE_URL || "http://localhost:3003",
-  core: process.env.CORE_SERVER_URL || "http://localhost:5005",
+  bsp: process.env.BSP_SERVICE_URL || "http://localhost:3004",
+  auth: process.env.AUTH_SERVICE_URL || "http://localhost:3006",
+  contact: process.env.CONTACT_SERVICE_URL || "http://localhost:3007",
+  chat: process.env.CHAT_SERVICE_URL || "http://localhost:3008",
+  websocket: process.env.WEBSOCKET_SERVICE_URL || "http://localhost:3009",
+  ingestor: process.env.WEBHOOK_INGESTOR_URL || "http://localhost:3013",
 } as const;
 
 type ServiceId = keyof typeof URLS;
@@ -46,6 +51,25 @@ export async function internalDelete(service: ServiceId, path: string): Promise<
     // doesn't block the rest of a destructive operation.
     console.error(`[admin-portal/internal] ${service} ${path} unreachable:`, (err as Error).message);
     return false;
+  }
+}
+
+/** POST a service-internal path. Returns { ok, status, data }. */
+export async function internalPost(
+  service: ServiceId,
+  path: string,
+  body: unknown = {}
+): Promise<{ ok: boolean; status: number; data: unknown }> {
+  try {
+    const res = await axios.post(`${URLS[service]}${path}`, body, {
+      headers: { ...internalHeaders(), "x-internal-service": "admin-portal", "Content-Type": "application/json" },
+      timeout: 15000,
+      validateStatus: () => true,
+    });
+    return { ok: res.status < 400, status: res.status, data: res.data };
+  } catch (err) {
+    console.error(`[admin-portal/internal] ${service} ${path} unreachable:`, (err as Error).message);
+    return { ok: false, status: 502, data: null };
   }
 }
 

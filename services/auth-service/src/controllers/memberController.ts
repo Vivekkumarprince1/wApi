@@ -173,6 +173,43 @@ export const acceptWorkspaceInvitation = async (req: express.Request, res: expre
   }
 };
 
+export const searchTeamMemberByEmail = async (req: AuthRequest, res: express.Response) => {
+  try {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!email || email.length < 3) {
+      return res.json({ success: true, data: null });
+    }
+    const user: any = await User.findOne({ email }).select('name email phone role status').lean();
+    if (!user) {
+      return res.json({ success: true, data: { exists: false } });
+    }
+    const membership: any = await Permission.findOne({
+      workspace: req.workspace._id,
+      user: user._id,
+    })
+      .select('role isActive')
+      .lean();
+
+    return res.json({
+      success: true,
+      data: {
+        exists: true,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+        },
+        isMember: !!membership && membership.isActive !== false,
+        membershipStatus: membership ? (membership.isActive !== false ? 'active' : 'removed') : 'none',
+        membershipRole: membership?.role,
+      },
+    });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 export const listWorkspaceMembers = async (req: AuthRequest, res: express.Response) => {
   try {
     const workspaceId = req.workspace._id;

@@ -1,7 +1,28 @@
 import express from 'express';
-import { Workspace, Permission } from '../models/index.js';
+import { Workspace, Permission, ActivityLog } from '../models/index.js';
 import { AuthRequest } from '../middleware/businessAuth.js';
 import { extractToken, resolveUserFromToken } from '../utils/authHelper.js';
+
+// Fire-and-forget workspace audit trail (monolith logActivity parity).
+async function logWorkspaceActivity(req: AuthRequest, action: string, entityType: string, metadata?: any) {
+  try {
+    if (!req.user?._id || !req.workspace?._id) return;
+    await ActivityLog.create({
+      workspace: req.workspace._id,
+      user: req.user._id,
+      action,
+      entityType,
+      entityId: req.workspace._id,
+      status: 'success',
+      ipAddress: req.ip || 'unknown',
+      userAgent: req.get('user-agent') || 'unknown',
+      timestamp: new Date(),
+      metadata,
+    });
+  } catch (err: any) {
+    console.error('[ActivityLog] Error logging activity:', err.message);
+  }
+}
 
 export const getWorkspaces = async (req: express.Request, res: express.Response) => {
   try {
@@ -70,6 +91,7 @@ export const updateWorkspaceSettings = async (req: AuthRequest, res: express.Res
       { $set: req.body },
       { new: true }
     );
+    await logWorkspaceActivity(req, 'update', 'settings', { fields: Object.keys(req.body || {}) });
     return res.status(200).json({ success: true, workspace: updated });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });
@@ -83,6 +105,7 @@ export const updateWorkspaceBusinessInfo = async (req: AuthRequest, res: express
       { $set: req.body },
       { new: true }
     );
+    await logWorkspaceActivity(req, 'update', 'workspace', { fields: Object.keys(req.body || {}) });
     return res.status(200).json({ success: true, message: 'Business information updated successfully', workspace: updated });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message });

@@ -3,6 +3,9 @@ import mongoose from 'mongoose';
 import axios from 'axios';
 import { Conversation, Message, Contact, User, Team, Permission, Pipeline } from '../models/index.js';
 import { kafkaProducer, simulatedMode } from '../services/kafkaService.js';
+import { isSessionWindowOpen, applyOutboundConversationUpdate } from '../services/conversation-lifecycle.js';
+import { NotificationService } from '../services/notification-service.js';
+import { logActivity } from '../services/activity-log.js';
 
 // --- Internal routes ---
 
@@ -376,9 +379,23 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         status: 'read',
       });
     } else {
+      // 24h session-window enforcement (monolith WabaService parity): free-form
+      // messages are only deliverable while the customer-initiated window is
+      // open; templates are exempt.
+      if (type !== 'template') {
+        const windowOpen = await isSessionWindowOpen(conversation);
+        if (!windowOpen) {
+          return res.status(400).json({
+            success: false,
+            message: 'SESSION_EXPIRED',
+            code: 'SESSION_EXPIRED',
+          });
+        }
+      }
+
       // Outbound integration via bsp-service
       let formattedPayload: any = {};
-      
+
       if (type === 'text') {
         formattedPayload = {
           type: 'text',
@@ -478,10 +495,18 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
       });
     }
 
-    // Update conversation last activity
-    await Conversation.findByIdAndUpdate(conversation._id, {
-      lastActivityAt: new Date(),
-    });
+    // Update conversation inbox metadata (preview, counters, reply tracking)
+    if (isInternalNote) {
+      await Conversation.findByIdAndUpdate(conversation._id, {
+        lastActivityAt: new Date(),
+      });
+    } else {
+      await applyOutboundConversationUpdate(
+        conversation,
+        chatMessage,
+        (req.headers['x-user-id'] as string) || undefined
+      );
+    }
 
     // Emit Socket Sync payload to Kafka (websocket-gateway topic)
     if (kafkaProducer && !simulatedMode) {
@@ -558,9 +583,23 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         status: 'read',
       });
     } else {
+      // 24h session-window enforcement (monolith WabaService parity): free-form
+      // messages are only deliverable while the customer-initiated window is
+      // open; templates are exempt.
+      if (type !== 'template') {
+        const windowOpen = await isSessionWindowOpen(conversation);
+        if (!windowOpen) {
+          return res.status(400).json({
+            success: false,
+            message: 'SESSION_EXPIRED',
+            code: 'SESSION_EXPIRED',
+          });
+        }
+      }
+
       // Outbound integration via bsp-service
       let formattedPayload: any = {};
-      
+
       if (type === 'text') {
         formattedPayload = {
           type: 'text',
@@ -659,10 +698,18 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
       });
     }
 
-    // Update conversation last activity
-    await Conversation.findByIdAndUpdate(conversation._id, {
-      lastActivityAt: new Date(),
-    });
+    // Update conversation inbox metadata (preview, counters, reply tracking)
+    if (isInternalNote) {
+      await Conversation.findByIdAndUpdate(conversation._id, {
+        lastActivityAt: new Date(),
+      });
+    } else {
+      await applyOutboundConversationUpdate(
+        conversation,
+        chatMessage,
+        (req.headers['x-user-id'] as string) || undefined
+      );
+    }
 
     // Emit Socket Sync payload to Kafka (websocket-gateway topic)
     if (kafkaProducer && !simulatedMode) {
@@ -685,6 +732,11 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         messages: [{ key: conversation._id.toString(), value: JSON.stringify(syncPayload) }],
       });
     }
+
+    await logActivity(req, 'send', 'message', {
+      entityId: chatMessage._id.toString(),
+      metadata: { conversationId: conversation._id.toString(), type, isInternalNote: !!isInternalNote },
+    });
 
     return res.status(200).json({ success: true, data: chatMessage });
   } catch (err: any) {
@@ -993,6 +1045,19 @@ export const performConversationActionPublic = async (req: any, res: express.Res
         }
 
         (conversation as any).assignTo(targetAgentId, user._id);
+
+        // Notify the assigned agent (monolith parity) — persisted notification
+        // + realtime toast via websocket-gateway.
+        if (targetAgentId.toString() !== user._id.toString()) {
+          await NotificationService.notify({
+            workspaceId: workspaceId,
+            recipientId: targetAgentId,
+            type: 'assignment',
+            title: 'New Conversation Assigned',
+            message: 'You have been assigned to a conversation.',
+            link: `/dashboard/inbox/${conversation._id}`,
+          }).catch((e: any) => console.warn('[Action:Assign] Notification failed:', e.message));
+        }
         break;
 
       case 'unassign':
@@ -1042,6 +1107,11 @@ export const performConversationActionPublic = async (req: any, res: express.Res
 
     conversation.lastActivityAt = new Date();
     await conversation.save();
+
+    await logActivity(req, 'update', 'conversation', {
+      entityId: conversation._id.toString(),
+      metadata: { action, data },
+    });
 
     // Emit Socket sync event via Kafka
     if (kafkaProducer && !simulatedMode) {

@@ -776,6 +776,73 @@ PermissionSchema.index({ workspace: 1, user: 1 }, { unique: true });
 
 export const Permission = mongoose.models.Permission || mongoose.model('Permission', PermissionSchema);
 
+// Notification — shared `notifications` collection in the wapi DB; auth-service
+// owns the read API (GET /auth/notifications). Keep field names in sync with
+// auth-service's schema (`message`, not `body`).
+const NotificationSchema = new Schema({
+  workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
+  recipient: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  type: {
+    type: String,
+    enum: ['invitation_accepted', 'invitation_declined', 'system_alert', 'billing_alert',
+           'info', 'success', 'warning', 'error', 'assignment', 'campaign', 'billing', 'system'],
+    required: true
+  },
+  title: { type: String, required: true },
+  message: { type: String, required: true },
+  link: { type: String },
+  read: { type: Boolean, default: false },
+  metadata: { type: Schema.Types.Mixed },
+}, { timestamps: true });
+
+NotificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2592000 });
+
+export const Notification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
+
+// ActivityLog — workspace-scoped audit trail (monolith parity). Written here
+// for message/conversation actions, by contact-service for contacts and by
+// auth-service for workspace settings; read by the analytics dashboard.
+const ActivityLogSchema = new Schema({
+  workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
+  user: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  action: {
+    type: String,
+    required: true,
+    enum: ['create', 'read', 'update', 'delete', 'send', 'execute', 'login', 'export', 'import'],
+    index: true
+  },
+  entityType: {
+    type: String,
+    required: true,
+    enum: [
+      'contact', 'message', 'conversation', 'campaign',
+      'automation', 'deal', 'task', 'template', 'integration',
+      'workspace', 'user', 'permission', 'settings'
+    ],
+    index: true
+  },
+  entityId: { type: Schema.Types.ObjectId, sparse: true, index: true },
+  entityName: String,
+  changes: {
+    before: Schema.Types.Mixed,
+    after: Schema.Types.Mixed
+  },
+  status: { type: String, enum: ['success', 'failed'], default: 'success', index: true },
+  errorDetails: String,
+  ipAddress: String,
+  userAgent: String,
+  timestamp: { type: Date, default: Date.now },
+  metadata: Schema.Types.Mixed
+}, { timestamps: false });
+
+ActivityLogSchema.index({ workspace: 1, timestamp: -1 });
+ActivityLogSchema.index({ workspace: 1, user: 1, timestamp: -1 });
+ActivityLogSchema.index({ workspace: 1, entityType: 1, timestamp: -1 });
+ActivityLogSchema.index({ workspace: 1, action: 1, timestamp: -1 });
+ActivityLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 7776000 }); // 90 days
+
+export const ActivityLog = mongoose.models.ActivityLog || mongoose.model('ActivityLog', ActivityLogSchema);
+
 const PipelineSchema = new Schema({
   workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
   name: { type: String, required: true },

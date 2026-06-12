@@ -21,6 +21,23 @@ Live tests against the running stack (internal secret + service-name headers):
 2. **chat-service checkout-bot hardcoded `http://localhost:3003`** for billing calls (pay-link + manual orders) — now uses `BILLING_SERVICE_URL` (added to chat `.env`).
 3. **`wapi-runner.js` spawned nonexistent `apps/frontend`** → infinite restart loop every 3s. Renamed to `apps/customer-portal`.
 
+## 2026-06-11 Super-admin control plane — VERIFIED LIVE
+
+The admin portal now gives super_admin visibility and control over every deployable:
+
+**Fixes applied:**
+1. **Admin Monitoring registry was stale** (`server/services-config.ts`): probed nonexistent "Core Server :5005", gateway `/ready` (no such path), websocket :4000 — and was missing auth, chat, contact, BSP, ingestor, and the customer portal entirely. Rewrote registry to all **11 deployables** (gateway + 9 services + customer-portal frontend) with correct ports/paths and a tier label surfaced in the UI.
+2. **`/health` was shadowed in automation & campaign services**: routers mounted at `/` register `/:id`-style authenticated routes that captured `GET /health` → 401. Health route now registered before the catch-all routers in both `index.ts` files.
+3. **Admin-portal `JWT_SECRET` was a placeholder** → impersonation tokens it minted were rejected by auth-service, so super admin could not enter the customer portal. Aligned with the shared dev secret.
+4. **Admin `.env.local` service URLs fixed/added**: WEBSOCKET 4000→3009, dead `CORE_SERVER_URL`→`BSP_SERVICE_URL`, added AUTH/CONTACT/CHAT/INGESTOR/CUSTOMER_PORTAL URLs.
+5. **internal-client extended** to all 9 services + new `internalPost`; **new ops action** `replay-dead-webhooks` (→ ingestor `/internal/v1/webhooks/replay`) with a button on the Operations page, audit-logged like the gupshup actions.
+
+**Live verification (all PASS):**
+- All 11 monitoring probes return 200 (gateway, auth, chat, contact, billing, campaign, automation, BSP, ingestor, websocket, customer-portal).
+- Impersonation: admin-minted token → gateway `/api/v1/auth/session` → `authenticated:true` as target user with workspace context → workspace data access 200 (full customer-portal control).
+- Admin write path: secret-authenticated `super-admin/gupshup/health` via gateway 200; ingestor replay returns `{"success":true,"replayed":0}`.
+- Maintenance mode already exempts `super_admin` in verify-session — admin keeps control while customers are locked out.
+
 ### Notes
 - Gateway `/api/internal/{chat,billing,contacts,provider}` bridge mounts have **zero callers** (all services call each other directly) — legacy, candidates for removal.
 - Mongo split is intentional: billing/campaign/automation/BSP own DBs; auth+chat+contact+ws-gateway+ingestor share `wapi` (ws membership checks therefore consistent with auth).
