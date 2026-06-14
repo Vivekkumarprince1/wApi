@@ -1,20 +1,12 @@
 /**
- * Campaign event bus — Kafka-backed.
+ * Campaign event bus — Redis-backed.
  *
  * Outbound: publishes to `billing-events` topic via `billingEventsQueue.add(name, payload)`.
- *   - `.add(eventName, payload)` is a thin shim over `producer.send` so existing call sites
- *     in `workers/CampaignWorker.ts` keep working unchanged.
- *
- * Inbound: consumes `campaign-events` topic and dispatches by `message.key` to the same
- *   handlers we used under BullMQ (BudgetReservedEvent, BudgetReservationFailedEvent,
- *   MessageStatusUpdateEvent).
- *
- * Topics are created upfront by ops; if a topic is missing the producer/consumer will
- * surface a kafkajs error on first publish/subscribe.
+ * Inbound: consumes `campaign-events` topic and dispatches by `message.key`.
  */
 
 import mongoose from 'mongoose';
-import { Kafka, Producer, Consumer, Partitioners } from 'kafkajs';
+import Redis from 'ioredis';
 import { Campaign, ICampaignModel, CampaignMessage } from '../../models';
 import { CampaignBatch, ICampaignBatchModel } from '../../models/CampaignBatch';
 import { CampaignQueueService } from '../campaign-queue';
@@ -25,39 +17,44 @@ import { SegmentService } from '../../services/SegmentService';
 const BILLING_EVENTS_TOPIC = 'billing-events';
 const CAMPAIGN_EVENTS_TOPIC = 'campaign-events';
 
-const kafka = new Kafka({
-  clientId: 'campaign-service-eventbus',
-  brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
-});
-
-const producer: Producer = kafka.producer({
-  createPartitioner: Partitioners.DefaultPartitioner,
-});
-const consumer: Consumer = kafka.consumer({ groupId: 'campaign-service-eventbus-group' });
+let producerClient: Redis | null = null;
+let consumerClient: Redis | null = null;
 
 let producerReady: Promise<void> | null = null;
+
 function ensureProducer(): Promise<void> {
-  if (!producerReady) producerReady = producer.connect();
+  if (!producerReady) {
+    const url = process.env.REDIS_URL;
+    if (!url) return Promise.reject(new Error('REDIS_URL is not defined'));
+
+    producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });
+    producerReady = producerClient.connect().then(() => {
+      console.log('[CampaignEventBus] Redis Producer connected.');
+    }).catch(err => {
+      producerReady = null;
+      throw err;
+    });
+  }
   return producerReady;
 }
 
 /**
  * Compat shim mirroring BullMQ `Queue.add(name, data)`.
- * The event name becomes the Kafka message `key` so consumers can dispatch by `key`.
+ * The event name becomes the message `key` so consumers can dispatch by `key`.
  */
 function topicAdapter(topic: string) {
   return {
     async add(eventName: string, data: any): Promise<void> {
       await ensureProducer();
-      await producer.send({
-        topic,
-        messages: [
-          {
+      if (producerClient) {
+        await producerClient.publish(
+          topic,
+          JSON.stringify({
             key: eventName,
             value: JSON.stringify({ name: eventName, data, ts: Date.now() }),
-          },
-        ],
-      });
+          })
+        );
+      }
     },
   };
 }
@@ -65,7 +62,7 @@ function topicAdapter(topic: string) {
 export const billingEventsQueue = topicAdapter(BILLING_EVENTS_TOPIC);
 export const campaignEventsQueue = topicAdapter(CAMPAIGN_EVENTS_TOPIC);
 
-// --- Inbound handlers (Kafka consumer on campaign-events) ---
+// --- Inbound handlers (Redis consumer on campaign-events) ---
 
 const handleBudgetReserved = async (data: any) => {
   const { campaignId, workspaceId } = data;
@@ -235,39 +232,56 @@ const dispatchByName: Record<string, (data: any) => Promise<void>> = {
  * Start consuming `campaign-events`. Call once at boot (after Mongo is up).
  */
 export async function startCampaignEventConsumer(): Promise<void> {
+  const url = process.env.REDIS_URL;
+  if (!url) return;
+
   await ensureProducer();
-  await consumer.connect();
-  await consumer.subscribe({ topic: CAMPAIGN_EVENTS_TOPIC, fromBeginning: false });
 
-  await consumer.run({
-    eachMessage: async ({ message }) => {
-      const key = message.key?.toString();
-      if (!key) return;
+  consumerClient = new Redis(url);
 
-      const handler = dispatchByName[key];
-      if (!handler) {
-        console.warn(`[CampaignEventBus] Unknown event type: ${key}`);
-        return;
-      }
-
-      let payload: any;
-      try {
-        const raw = message.value?.toString() ?? '{}';
-        const parsed = JSON.parse(raw);
-        payload = parsed?.data ?? parsed;
-      } catch (err: any) {
-        console.error(`[CampaignEventBus] Bad JSON for ${key}: ${err.message}`);
-        return;
-      }
-
-      try {
-        await handler(payload);
-        console.log(`[CampaignEventBus] Handled ${key}`);
-      } catch (err: any) {
-        console.error(`[CampaignEventBus] Handler ${key} failed: ${err.message}`);
-      }
-    },
+  consumerClient.subscribe(CAMPAIGN_EVENTS_TOPIC, (err, count) => {
+    if (err) {
+      console.error('[CampaignEventBus] Failed to subscribe:', err.message);
+    } else {
+      console.log(`[CampaignEventBus] Redis consumer subscribed to ${count} channels.`);
+    }
   });
 
-  console.log(`[CampaignEventBus] Kafka consumer subscribed to "${CAMPAIGN_EVENTS_TOPIC}"`);
+  consumerClient.on('message', async (channel, messageStr) => {
+    if (channel !== CAMPAIGN_EVENTS_TOPIC) return;
+
+    let message;
+    try {
+      message = JSON.parse(messageStr);
+    } catch (err: any) {
+      console.error(`[CampaignEventBus] Bad JSON payload: ${err.message}`);
+      return;
+    }
+
+    const key = message.key?.toString();
+    if (!key) return;
+
+    const handler = dispatchByName[key];
+    if (!handler) {
+      console.warn(`[CampaignEventBus] Unknown event type: ${key}`);
+      return;
+    }
+
+    let payload: any;
+    try {
+      const raw = message.value?.toString() ?? '{}';
+      const parsed = JSON.parse(raw);
+      payload = parsed?.data ?? parsed;
+    } catch (err: any) {
+      console.error(`[CampaignEventBus] Bad JSON for ${key}: ${err.message}`);
+      return;
+    }
+
+    try {
+      await handler(payload);
+      console.log(`[CampaignEventBus] Handled ${key}`);
+    } catch (err: any) {
+      console.error(`[CampaignEventBus] Handler ${key} failed: ${err.message}`);
+    }
+  });
 }

@@ -1,56 +1,63 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { Kafka, Producer } from 'kafkajs';
+import Redis from 'ioredis';
 
 @Injectable()
 export class ProviderKafkaProducerService implements OnModuleInit, OnModuleDestroy {
-  private kafkaProducer: Producer | null = null;
+  private redisProducer: Redis | null = null;
   private simulatedMode = false;
 
   async onModuleInit() {
-    const kafkaBroker = process.env.KAFKA_BROKER || 'localhost:9092';
-    console.log(`[BSP Kafka Producer] Initializing connection to Kafka Broker at ${kafkaBroker}...`);
-
-    try {
-      const kafka = new Kafka({
-        clientId: 'wapi-bsp-producer',
-        brokers: [kafkaBroker],
-        connectionTimeout: 3000,
-      });
-
-      this.kafkaProducer = kafka.producer();
-      await this.kafkaProducer.connect();
-      console.log(`[BSP Kafka Producer] Connected to Kafka Broker at ${kafkaBroker}`);
-    } catch (error: any) {
+    const redisUrl = process.env.REDIS_URL;
+    
+    if (!redisUrl) {
       if (process.env.NODE_ENV === 'production') {
-        throw new Error(`[BSP Kafka Producer] Failed to connect to Kafka Broker at ${kafkaBroker}: ${error.message}`);
+        throw new Error('[BSP EventBus Producer] REDIS_URL is missing in production');
       }
       this.simulatedMode = true;
-      console.warn(`[BSP Kafka Producer] Failed to connect to Kafka Broker: ${error.message}. Running in local fallback mode.`);
+      console.warn('[BSP EventBus Producer] REDIS_URL missing. Running in simulated mode.');
+      return;
+    }
+
+    console.log(`[BSP EventBus Producer] Initializing connection to Redis at ${redisUrl}...`);
+
+    try {
+      this.redisProducer = new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: null });
+      await this.redisProducer.connect();
+      console.log(`[BSP EventBus Producer] Connected to Redis`);
+    } catch (error: any) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(`[BSP EventBus Producer] Failed to connect to Redis at ${redisUrl}: ${error.message}`);
+      }
+      this.simulatedMode = true;
+      console.warn(`[BSP EventBus Producer] Failed to connect to Redis: ${error.message}. Running in local fallback mode.`);
     }
   }
 
   async send(topic: string, messages: Array<{ key?: string; value: string; headers?: Record<string, any> }>) {
-    if (this.simulatedMode || !this.kafkaProducer) {
+    if (this.simulatedMode || !this.redisProducer) {
       console.log(`[SIMULATED BSP PRODUCER] Publish topic: ${topic}, messages:`, JSON.stringify(messages));
       return;
     }
     try {
-      await this.kafkaProducer.send({
-        topic,
-        messages,
-      });
+      for (const msg of messages) {
+        await this.redisProducer.publish(topic, JSON.stringify({
+          key: msg.key,
+          value: msg.value,
+          headers: msg.headers
+        }));
+      }
     } catch (err: any) {
-      console.error(`[BSP Kafka Producer] Failed to send message to topic "${topic}":`, err.message);
+      console.error(`[BSP EventBus Producer] Failed to publish message to topic "${topic}":`, err.message);
     }
   }
 
   async onModuleDestroy() {
-    if (this.kafkaProducer) {
+    if (this.redisProducer) {
       try {
-        await this.kafkaProducer.disconnect();
-        console.log('[BSP Kafka Producer] Disconnected from Kafka Broker.');
+        await this.redisProducer.disconnect();
+        console.log('[BSP EventBus Producer] Disconnected from Redis.');
       } catch (err: any) {
-        console.error('[BSP Kafka Producer] Disconnect error:', err.message);
+        console.error('[BSP EventBus Producer] Disconnect error:', err.message);
       }
     }
   }

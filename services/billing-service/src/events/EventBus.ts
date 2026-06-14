@@ -1,31 +1,34 @@
 /**
- * Billing event bus — Kafka-backed.
+ * Billing event bus — Redis-backed.
  *
  * Outbound: publishes to `campaign-events` topic via `campaignEventsQueue.add(name, payload)`.
  * Inbound:  consumes `billing-events` topic and dispatches to LedgerService.
- *
- * Same exported API as the previous BullMQ version so existing call sites work unchanged.
  */
 
-import { Kafka, Producer, Consumer, Partitioners } from 'kafkajs';
+import Redis from 'ioredis';
 import { LedgerService } from '../services/LedgerService';
 
 const BILLING_EVENTS_TOPIC = 'billing-events';
 const CAMPAIGN_EVENTS_TOPIC = 'campaign-events';
 
-const kafka = new Kafka({
-  clientId: 'billing-service-eventbus',
-  brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(','),
-});
-
-const producer: Producer = kafka.producer({
-  createPartitioner: Partitioners.DefaultPartitioner,
-});
-const consumer: Consumer = kafka.consumer({ groupId: 'billing-service-eventbus-group' });
+let producerClient: Redis | null = null;
+let consumerClient: Redis | null = null;
 
 let producerReady: Promise<void> | null = null;
+
 function ensureProducer(): Promise<void> {
-  if (!producerReady) producerReady = producer.connect();
+  if (!producerReady) {
+    const url = process.env.REDIS_URL;
+    if (!url) return Promise.reject(new Error('REDIS_URL is not defined'));
+
+    producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });
+    producerReady = producerClient.connect().then(() => {
+      console.log('[BillingEventBus] Redis Producer connected.');
+    }).catch(err => {
+      producerReady = null;
+      throw err;
+    });
+  }
   return producerReady;
 }
 
@@ -33,15 +36,15 @@ function topicAdapter(topic: string) {
   return {
     async add(eventName: string, data: any): Promise<void> {
       await ensureProducer();
-      await producer.send({
-        topic,
-        messages: [
-          {
+      if (producerClient) {
+        await producerClient.publish(
+          topic,
+          JSON.stringify({
             key: eventName,
             value: JSON.stringify({ name: eventName, data, ts: Date.now() }),
-          },
-        ],
-      });
+          })
+        );
+      }
     },
   };
 }
@@ -103,34 +106,53 @@ const dispatchByName: Record<string, (data: any) => Promise<void>> = {
  * Start consuming `billing-events`. Call once at boot (after Mongo is up).
  */
 export async function startBillingEventConsumer(): Promise<void> {
-  await ensureProducer();
-  await consumer.connect();
-  await consumer.subscribe({ topic: BILLING_EVENTS_TOPIC, fromBeginning: false });
-  await consumer.subscribe({ topic: 'chat-realtime-sync', fromBeginning: false });
+  const url = process.env.REDIS_URL;
+  if (!url) return;
 
-  await consumer.run({
-    eachMessage: async ({ topic, message }) => {
-      // 1. Process chat-realtime-sync events for UsageTracker
-      if (topic === 'chat-realtime-sync') {
-        try {
-          const value = message.value?.toString();
-          if (!value) return;
-          const parsed = JSON.parse(value);
-          if (parsed.type === 'message_created' && parsed.payload?.isInternalNote !== true) {
-            const workspaceId = parsed.workspaceId;
-            if (workspaceId) {
-              const { UsageTracker } = await import('../services/UsageTracker.js');
-              await UsageTracker.increment(workspaceId, 'messages');
-              console.log(`[BillingEventBus] Incremented message usage count for workspace ${workspaceId}`);
-            }
+  await ensureProducer();
+
+  consumerClient = new Redis(url);
+
+  consumerClient.subscribe(BILLING_EVENTS_TOPIC, 'chat-realtime-sync', (err, count) => {
+    if (err) {
+      console.error('[BillingEventBus] Failed to subscribe:', err.message);
+    } else {
+      console.log(`[BillingEventBus] Redis consumer subscribed to ${count} channels.`);
+    }
+  });
+
+  consumerClient.on('message', async (channel, messageStr) => {
+    // 1. Process chat-realtime-sync events for UsageTracker
+    if (channel === 'chat-realtime-sync') {
+      try {
+        const parsedWrapper = JSON.parse(messageStr);
+        const value = parsedWrapper.value || messageStr;
+        const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+
+        if (parsed.type === 'message_created' && parsed.payload?.isInternalNote !== true) {
+          const workspaceId = parsed.workspaceId;
+          if (workspaceId) {
+            const { UsageTracker } = await import('../services/UsageTracker.js');
+            await UsageTracker.increment(workspaceId, 'messages');
+            console.log(`[BillingEventBus] Incremented message usage count for workspace ${workspaceId}`);
           }
-        } catch (err: any) {
-          console.error(`[BillingEventBus] Failed to process chat-realtime-sync event for billing: ${err.message}`);
         }
+      } catch (err: any) {
+        console.error(`[BillingEventBus] Failed to process chat-realtime-sync event for billing: ${err.message}`);
+      }
+      return;
+    }
+
+    // 2. Existing billing-events logic
+    if (channel === BILLING_EVENTS_TOPIC) {
+      let message;
+      try {
+        message = JSON.parse(messageStr);
+      } catch (err: any) {
+        console.error(`[BillingEventBus] Bad JSON payload: ${err.message}`);
         return;
       }
 
-      // 2. Existing billing-events logic
       const key = message.key?.toString();
       if (!key) return;
 
@@ -156,8 +178,6 @@ export async function startBillingEventConsumer(): Promise<void> {
       } catch (err: any) {
         console.error(`[BillingEventBus] Handler ${key} failed: ${err.message}`);
       }
-    },
+    }
   });
-
-  console.log(`[BillingEventBus] Kafka consumer subscribed to "${BILLING_EVENTS_TOPIC}" and "chat-realtime-sync"`);
 }

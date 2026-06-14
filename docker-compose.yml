@@ -22,32 +22,6 @@ services:
     networks:
       - wapi-network
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.4.0
-    container_name: wapi-zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    networks:
-      - wapi-network
-
-  kafka:
-    image: confluentinc/cp-kafka:7.4.0
-    container_name: wapi-kafka
-    ports:
-      - "9092:9092"
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-    networks:
-      - wapi-network
 
   # --- Microservices ---
   api-gateway:
@@ -87,14 +61,12 @@ services:
     depends_on:
       - mongodb
       - redis
-      - kafka
     environment:
       - PORT=3006
       - JWT_SECRET=your-secret-key-change-in-production
       - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
       - MONGO_URI=mongodb://mongodb:27017/wapi
       - REDIS_URL=redis://redis:6379
-      - KAFKA_BROKER=kafka:29092
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
     networks:
       - wapi-network
@@ -108,13 +80,13 @@ services:
       - "3002:3002"
     depends_on:
       - mongodb
-      - kafka
+      - redis
     environment:
       - PORT=3002
       - JWT_SECRET=your-secret-key-change-in-production
       - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
       - MONGO_URI=mongodb://mongodb:27017/wapi_campaign
-      - KAFKA_BROKER=kafka:29092
+      - REDIS_URL=redis://redis:6379
     networks:
       - wapi-network
 
@@ -127,13 +99,13 @@ services:
       - "3003:3003"
     depends_on:
       - mongodb
-      - kafka
+      - redis
     environment:
       - PORT=3003
       - JWT_SECRET=your-secret-key-change-in-production
       - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
       - MONGO_URI=mongodb://mongodb:27017/wapi_billing
-      - KAFKA_BROKER=kafka:29092
+      - REDIS_URL=redis://redis:6379
     networks:
       - wapi-network
 
@@ -147,7 +119,6 @@ services:
     depends_on:
       - mongodb
       - redis
-      - kafka
     environment:
       - PORT=3004
       - JWT_SECRET=your-secret-key-change-in-production
@@ -155,7 +126,6 @@ services:
       - INTEGRATION_ENCRYPTION_KEY=change-me-in-production
       - MONGO_URI=mongodb://mongodb:27017/wapi_bsp
       - REDIS_URL=redis://redis:6379
-      - KAFKA_BROKER=kafka:29092
       - MAIN_SERVICE_URL=http://api-gateway:5001
     networks:
       - wapi-network
@@ -170,7 +140,6 @@ services:
     depends_on:
       - mongodb
       - redis
-      - kafka
     environment:
       - PORT=3001
       - JWT_SECRET=your-secret-key-change-in-production
@@ -178,7 +147,6 @@ services:
       - INTEGRATION_ENCRYPTION_KEY=change-me-in-production
       - MONGO_URI=mongodb://mongodb:27017/wapi_automation
       - REDIS_URL=redis://redis:6379
-      - KAFKA_BROKER=kafka:29092
     networks:
       - wapi-network
 
@@ -191,13 +159,13 @@ services:
       - "3008:3008"
     depends_on:
       - mongodb
-      - kafka
+      - redis
     environment:
       - PORT=3008
       - JWT_SECRET=your-secret-key-change-in-production
       - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
       - MONGO_URI=mongodb://mongodb:27017/wapi
-      - KAFKA_BROKER=kafka:29092
+      - REDIS_URL=redis://redis:6379
     networks:
       - wapi-network
 
@@ -210,13 +178,13 @@ services:
       - "3007:3007"
     depends_on:
       - mongodb
-      - kafka
+      - redis
     environment:
       - PORT=3007
       - JWT_SECRET=your-secret-key-change-in-production
       - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
       - MONGO_URI=mongodb://mongodb:27017/wapi
-      - KAFKA_BROKER=kafka:29092
+      - REDIS_URL=redis://redis:6379
     networks:
       - wapi-network
 
@@ -229,13 +197,13 @@ services:
       - "3013:3013"
     depends_on:
       - mongodb
-      - kafka
+      - redis
     environment:
       - PORT=3013
       - WEBHOOK_SECRET=dev-webhook-secret-change-me
       - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
       - MONGO_URI=mongodb://mongodb:27017/wapi
-      - KAFKA_BROKER=kafka:29092
+      - REDIS_URL=redis://redis:6379
       - VERIFY_TOKEN=wapi-verify-token
     networks:
       - wapi-network
@@ -250,12 +218,10 @@ services:
     depends_on:
       - mongodb
       - redis
-      - kafka
     environment:
       - PORT=3009
       - JWT_SECRET=your-secret-key-change-in-production
       - MONGO_URI=mongodb://mongodb:27017/wapi
-      - KAFKA_BROKER=kafka:29092
       - REDIS_URL=redis://redis:6379
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
     networks:

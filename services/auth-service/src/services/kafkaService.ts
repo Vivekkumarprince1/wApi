@@ -1,160 +1,142 @@
 /**
- * kafkaService.ts — auth-service
+ * eventService.ts — auth-service (formerly kafkaService)
  *
- * Kafka producer for publishing audit events to the `audit-events` topic,
+ * Redis Pub/Sub producer for publishing audit events to the `audit-events` channel,
  * plus a consumer that persists those events into the MongoDB `auditlogs`
  * collection so the admin UI can display them.
  *
- * Fire-and-forget producer: Kafka outages never block admin HTTP flows.
+ * Fire-and-forget producer: Redis outages never block admin HTTP flows.
  * Consumer: idempotent on eventId — safe to replay.
- * Both are no-ops when KAFKA_BROKER env var is not set (local dev).
  */
 
-import { Kafka, Producer, Consumer, Partitioners } from 'kafkajs';
+import Redis from 'ioredis';
 import mongoose from 'mongoose';
 import type { AuditEventPayload } from '@wapi/contracts';
 import { KafkaTopics } from '@wapi/contracts';
 
 // ─── Producer ────────────────────────────────────────────────────────────────
 
-let producer: Producer | null = null;
-let isConnecting = false;
+let producerClient: Redis | null = null;
 
-async function getProducer(): Promise<Producer | null> {
-  const broker = process.env.KAFKA_BROKER;
-  if (!broker) return null;
+async function getProducer(): Promise<Redis | null> {
+  const url = process.env.REDIS_URL;
+  if (!url) return null;
 
-  if (producer) return producer;
-  if (isConnecting) return null;
-
-  isConnecting = true;
-  try {
-    const kafka = new Kafka({
-      clientId: 'auth-service',
-      brokers: [broker],
-    });
-    const p = kafka.producer({
-      createPartitioner: Partitioners.LegacyPartitioner,
-    });
-    await p.connect();
-    producer = p;
-    console.log('[KafkaService] Producer connected.');
-  } catch (err: any) {
-    console.warn('[KafkaService] Failed to connect producer:', err.message);
-  } finally {
-    isConnecting = false;
+  if (!producerClient) {
+    producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });
+    try {
+      await producerClient.connect();
+      console.log('[EventService] Redis Producer connected.');
+    } catch (err: any) {
+      console.warn('[EventService] Failed to connect producer:', err.message);
+      producerClient = null;
+    }
   }
-  return producer;
+  return producerClient;
 }
 
 /**
  * Publish an AuditEventPayload to the `audit-events` topic.
- * All errors are swallowed — Kafka failures must never break admin HTTP flows.
  */
 export async function publishAuditEvent(payload: AuditEventPayload): Promise<void> {
   try {
     const p = await getProducer();
     if (!p) return;
 
-    await p.send({
-      topic: KafkaTopics.AUDIT_EVENTS,
-      messages: [
-        {
-          key: payload.actorId,
-          value: JSON.stringify(payload),
-          headers: {
-            'event-type': 'audit',
-            'source-service': 'auth-service',
-          },
-        },
-      ],
-    });
+    // Use KafkaTopics.AUDIT_EVENTS as the Redis channel
+    await p.publish(KafkaTopics.AUDIT_EVENTS, JSON.stringify({
+      key: payload.actorId,
+      value: JSON.stringify(payload),
+      headers: {
+        'event-type': 'audit',
+        'source-service': 'auth-service',
+      },
+    }));
   } catch (err: any) {
-    console.error('[KafkaService] Failed to publish audit event:', err.message);
+    console.error('[EventService] Failed to publish audit event:', err.message);
   }
 }
 
 /** Gracefully disconnect the producer (call during SIGTERM). */
 export async function disconnectKafkaProducer(): Promise<void> {
-  if (!producer) return;
+  if (!producerClient) return;
   try {
-    await producer.disconnect();
-    producer = null;
-    console.log('[KafkaService] Producer disconnected.');
+    producerClient.disconnect();
+    producerClient = null;
+    console.log('[EventService] Producer disconnected.');
   } catch {
-    // ignore disconnect errors during shutdown
+    // ignore
   }
 }
 
 // ─── Consumer ─────────────────────────────────────────────────────────────────
 
-let consumer: Consumer | null = null;
+let consumerClient: Redis | null = null;
 
 /**
- * Start consuming the `audit-events` topic and persist each event to the
- * `auditlogs` MongoDB collection. Uses `updateOne` with `upsert:true` on
- * `eventId` so replays are safe.
- *
- * No-op if KAFKA_BROKER is not set.
+ * Start consuming the `audit-events` channel.
  */
 export async function startAuditConsumer(): Promise<void> {
-  const broker = process.env.KAFKA_BROKER;
-  if (!broker) return;
+  const url = process.env.REDIS_URL;
+  if (!url) return;
 
   try {
-    const kafka = new Kafka({
-      clientId: 'auth-service-audit-consumer',
-      brokers: [broker],
+    consumerClient = new Redis(url);
+
+    consumerClient.subscribe(KafkaTopics.AUDIT_EVENTS, (err, count) => {
+      if (err) {
+        console.error('[EventService] Failed to subscribe: %s', err.message);
+      } else {
+        console.log(`[EventService] Subscribed to ${count} channels.`);
+      }
     });
 
-    consumer = kafka.consumer({ groupId: 'auth-service-audit-persister' });
-    await consumer.connect();
-    await consumer.subscribe({ topic: KafkaTopics.AUDIT_EVENTS, fromBeginning: false });
-
-    await consumer.run({
-      eachMessage: async ({ message }) => {
-        const raw = message.value?.toString();
+    consumerClient.on('message', async (channel, messageStr) => {
+      if (channel !== KafkaTopics.AUDIT_EVENTS) return;
+      
+      try {
+        const message = JSON.parse(messageStr);
+        const raw = message.value;
         if (!raw) return;
-        try {
-          const payload: AuditEventPayload = JSON.parse(raw);
-          const db = mongoose.connection.db;
-          if (!db) return;
+        
+        const payload: AuditEventPayload = JSON.parse(raw);
+        const db = mongoose.connection.db;
+        if (!db) return;
 
-          await db.collection('auditlogs').updateOne(
-            { eventId: payload.eventId },
-            {
-              $setOnInsert: {
-                eventId: payload.eventId,
-                userId: payload.actorId,
-                action: payload.action,
-                resource: payload.resource ?? null,
-                details: payload.details ?? {},
-                ip: payload.ip ?? null,
-                userAgent: payload.userAgent ?? null,
-                createdAt: new Date(payload.timestamp),
-              },
+        await db.collection('auditlogs').updateOne(
+          { eventId: payload.eventId },
+          {
+            $setOnInsert: {
+              eventId: payload.eventId,
+              userId: payload.actorId,
+              action: payload.action,
+              resource: payload.resource ?? null,
+              details: payload.details ?? {},
+              ip: payload.ip ?? null,
+              userAgent: payload.userAgent ?? null,
+              createdAt: new Date(payload.timestamp),
             },
-            { upsert: true },
-          );
-        } catch (err: any) {
-          console.error('[KafkaService] Audit consumer error:', err.message);
-        }
-      },
+          },
+          { upsert: true },
+        );
+      } catch (err: any) {
+        console.error('[EventService] Audit consumer error:', err.message);
+      }
     });
 
-    console.log('[KafkaService] Audit consumer running — persisting to auditlogs collection.');
+    console.log('[EventService] Audit consumer running — persisting to auditlogs collection.');
   } catch (err: any) {
-    console.warn('[KafkaService] Failed to start audit consumer:', err.message);
+    console.warn('[EventService] Failed to start audit consumer:', err.message);
   }
 }
 
 /** Gracefully stop the audit consumer (call during SIGTERM). */
 export async function stopAuditConsumer(): Promise<void> {
-  if (!consumer) return;
+  if (!consumerClient) return;
   try {
-    await consumer.disconnect();
-    consumer = null;
-    console.log('[KafkaService] Audit consumer disconnected.');
+    consumerClient.disconnect();
+    consumerClient = null;
+    console.log('[EventService] Audit consumer disconnected.');
   } catch {
     // ignore
   }

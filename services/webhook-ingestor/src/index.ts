@@ -34,7 +34,7 @@ if (process.env.NODE_ENV === 'production') {
 
 import fastify from 'fastify';
 import crypto from 'crypto';
-import { Kafka } from 'kafkajs';
+import Redis from 'ioredis';
 import { MongoClient } from 'mongodb';
 
 const server = fastify({
@@ -46,15 +46,15 @@ const server = fastify({
 const PORT = parseInt(process.env.PORT || '3013', 10);
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET!;
-const KAFKA_BROKER = process.env.KAFKA_BROKER || 'localhost:9092';
-const KAFKA_TOPIC = 'raw-webhook-events';
+const REDIS_URL = process.env.REDIS_URL || '';
+const REDIS_TOPIC = 'raw-webhook-events';
 const INTERNAL_SECRET = process.env.INTERNAL_SERVICE_SECRET!;
 const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/wapi';
 const DEAD_LETTER_COLLECTION = 'webhook_dead_letters';
 
 
-// --- KAFKA SETUP ---
-let kafkaProducer: any = null;
+// --- REDIS SETUP ---
+let redisProducer: Redis | null = null;
 let simulatedMode = false;
 let mongoClient: MongoClient | null = null;
 
@@ -68,40 +68,41 @@ async function deadLetterCollection() {
   return mongoClient.db().collection(DEAD_LETTER_COLLECTION);
 }
 
-async function initKafka() {
-  try {
-    const kafka = new Kafka({
-      clientId: 'wapi-webhook-ingestor',
-      brokers: [KAFKA_BROKER],
-      connectionTimeout: 3000,
-    });
-
-    kafkaProducer = kafka.producer();
-    await kafkaProducer.connect();
-    console.log(`[Webhook Ingestor] Connected to Kafka Broker at ${KAFKA_BROKER}`);
-  } catch (error: any) {
+async function initRedis() {
+  if (!REDIS_URL) {
     if (IS_PRODUCTION) {
-      throw new Error(`[Webhook Ingestor] Failed to connect to Kafka Broker at ${KAFKA_BROKER}: ${error.message}`);
+      throw new Error('[Webhook Ingestor] REDIS_URL is missing in production');
     }
     simulatedMode = true;
-    console.warn(`[Webhook Ingestor] Failed to connect to Kafka (${error.message}). Running in local fallback mode (logging to stdout).`);
+    console.warn('[Webhook Ingestor] REDIS_URL missing. Running in simulated mode.');
+    return;
+  }
+
+  try {
+    redisProducer = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null });
+    await redisProducer.connect();
+    console.log(`[Webhook Ingestor] Connected to Redis`);
+  } catch (error: any) {
+    if (IS_PRODUCTION) {
+      throw new Error(`[Webhook Ingestor] Failed to connect to Redis at ${REDIS_URL}: ${error.message}`);
+    }
+    simulatedMode = true;
+    console.warn(`[Webhook Ingestor] Failed to connect to Redis (${error.message}). Running in local fallback mode (logging to stdout).`);
   }
 }
 
 async function publishRawWebhook(eventId: string, eventMessage: any) {
-  if (!kafkaProducer) {
-    throw new Error('Kafka producer is not connected');
+  if (!redisProducer) {
+    throw new Error('Redis producer is not connected');
   }
 
-  await kafkaProducer.send({
-    topic: KAFKA_TOPIC,
-    messages: [
-      {
-        key: eventId,
-        value: JSON.stringify(eventMessage),
-      },
-    ],
-  });
+  await redisProducer.publish(
+    REDIS_TOPIC,
+    JSON.stringify({
+      key: eventId,
+      value: JSON.stringify(eventMessage),
+    })
+  );
 }
 
 async function persistDeadLetter(eventId: string, eventMessage: any, reason: string) {
@@ -305,7 +306,7 @@ server.post('/internal/v1/webhooks/replay', async (req, reply) => {
 
 // Health check
 server.get('/health', async () => {
-  return { status: 'OK', kafkaConnected: !!kafkaProducer && !simulatedMode };
+  return { status: 'OK', redisConnected: !!redisProducer && !simulatedMode };
 });
 
 // Root path Tunnel check
@@ -315,7 +316,7 @@ server.get('/', async () => {
 
 async function start() {
   try {
-    await initKafka();
+    await initRedis();
     await deadLetterCollection();
     await server.listen({ port: PORT, host: '0.0.0.0' });
     console.log(`[Webhook Ingestor] Server running at http://localhost:${PORT}`);

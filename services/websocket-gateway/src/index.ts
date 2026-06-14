@@ -31,7 +31,7 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import mongoose, { Schema } from 'mongoose';
-import { EachMessagePayload, Kafka } from 'kafkajs';
+// removed kafkajs import
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 
@@ -202,9 +202,9 @@ io.on('connection', (socket: any) => {
   });
 });
 
-// --- KAFKA SYNC CONSUMER ---
-let kafkaConsumer: any = null;
-let kafkaProducer: any = null;
+// --- REDIS PUB/SUB EVENT LISTENER ---
+let redisProducer: Redis | null = null;
+let redisConsumer: Redis | null = null;
 
 async function processRealtimeSyncEvent(envelope: any) {
   const workspaceRoom = `workspace:${envelope.workspaceId}`;
@@ -234,7 +234,7 @@ async function processRealtimeSyncEvent(envelope: any) {
   if (envelope.type === 'message_created') {
     const db = mongoose.connection.db;
     if (!db) {
-      console.error('[WS Gateway Kafka] Database connection db object is missing.');
+      console.error('[WS Gateway EventBus] Database connection db object is missing.');
       return;
     }
 
@@ -259,7 +259,7 @@ async function processRealtimeSyncEvent(envelope: any) {
           }
         }
       } catch (dbErr: any) {
-        console.error('[WS Gateway Kafka] MongoDB lookup error:', dbErr.message);
+        console.error('[WS Gateway EventBus] MongoDB lookup error:', dbErr.message);
       }
     }
 
@@ -279,7 +279,7 @@ async function processRealtimeSyncEvent(envelope: any) {
 
     // Also emit legacy compatibility events
     io.to(conversationRoom).emit('message:created', envelope.payload);
-    console.log(`[WS Gateway Kafka] Broadcasted inbox:message_new for messageId: ${envelope.messageId}`);
+    console.log(`[WS Gateway EventBus] Broadcasted inbox:message_new for messageId: ${envelope.messageId}`);
   } 
   else if (envelope.type === 'message_status_updated' || envelope.type === 'message_status_changed') {
     const statusPayload = {
@@ -291,7 +291,7 @@ async function processRealtimeSyncEvent(envelope: any) {
 
     io.to(workspaceRoom).emit('inbox:message_status', statusPayload);
     io.to(conversationRoom).emit('inbox:message_status', statusPayload);
-    console.log(`[WS Gateway Kafka] Broadcasted inbox:message_status status: ${statusPayload.status}`);
+    console.log(`[WS Gateway EventBus] Broadcasted inbox:message_status status: ${statusPayload.status}`);
   } 
   else if (envelope.type === 'conversation_status_changed') {
     const updatePayload = {
@@ -304,7 +304,7 @@ async function processRealtimeSyncEvent(envelope: any) {
     io.to(workspaceRoom).emit('inbox:conversation_updated', updatePayload);
     io.to(workspaceRoom).emit('conversation:updated', updatePayload);
     io.to(conversationRoom).emit('conversation:status-updated', envelope.payload);
-    console.log(`[WS Gateway Kafka] Broadcasted inbox:conversation_updated status: ${updatePayload.status}`);
+    console.log(`[WS Gateway EventBus] Broadcasted inbox:conversation_updated status: ${updatePayload.status}`);
   }
 }
 
@@ -331,89 +331,90 @@ async function processPlatformEvent(topic: string, envelope: any) {
   }
 }
 
-async function initKafka() {
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+
+async function initEventBus() {
   try {
-    const kafka = new Kafka({
-      clientId: 'wapi-websocket-gateway',
-      brokers: [KAFKA_BROKER],
-      connectionTimeout: 3000,
+    redisProducer = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null });
+    await redisProducer.connect();
+
+    redisConsumer = new Redis(REDIS_URL);
+    const topics = ['chat-realtime-sync', 'contact-events', 'automation-events', 'billing-events', 'campaign-events'];
+    
+    redisConsumer.subscribe(...topics, (err, count) => {
+      if (err) {
+        console.error('[WS Gateway EventBus] Failed to subscribe to topics:', err);
+      } else {
+        console.log(`[WS Gateway EventBus] Successfully subscribed to ${count} topics`);
+      }
     });
 
-    kafkaProducer = kafka.producer();
-    await kafkaProducer.connect();
+    redisConsumer.on('message', async (topic, messageStr) => {
+      let wrapper;
+      try {
+        wrapper = JSON.parse(messageStr);
+      } catch (e) {
+        console.error('[WS Gateway EventBus] Invalid JSON payload');
+        return;
+      }
+      
+      const value = wrapper.value;
+      if (!value) return;
 
-    kafkaConsumer = kafka.consumer({ groupId: 'wapi-websocket-gateway-group' });
-    await kafkaConsumer.connect();
-    for (const topic of ['chat-realtime-sync', 'contact-events', 'automation-events', 'billing-events', 'campaign-events']) {
-      await kafkaConsumer.subscribe({ topic, fromBeginning: false });
-    }
+      const maxRetries = 3;
+      let attempt = 0;
+      let success = false;
+      let lastError: any = null;
 
-    await kafkaConsumer.run({
-      eachMessage: async ({ topic, partition, message }: any) => {
-        const value = message.value?.toString();
-        if (!value) return;
-
-        const maxRetries = 3;
-        let attempt = 0;
-        let success = false;
-        let lastError: any = null;
-
-        while (attempt < maxRetries && !success) {
-          try {
-            attempt++;
-            const envelope = JSON.parse(value);
-            console.log(`[WS Gateway Kafka] Event ingested. Topic: ${topic}, Type: ${envelope.type || envelope.event}, workspaceId: ${envelope.workspaceId}, attempt: ${attempt}`);
-            if (topic === 'chat-realtime-sync') {
-              await processRealtimeSyncEvent(envelope);
-            } else {
-              await processPlatformEvent(topic, envelope);
-            }
-            success = true;
-          } catch (err: any) {
-            lastError = err;
-            console.error(`[WS Gateway Kafka] Attempt ${attempt} failed:`, err.message);
-            if (attempt < maxRetries) {
-              const delay = Math.pow(2, attempt) * 1000;
-              await new Promise((resolve) => setTimeout(resolve, delay));
-            }
+      while (attempt < maxRetries && !success) {
+        try {
+          attempt++;
+          const envelope = JSON.parse(value);
+          console.log(`[WS Gateway EventBus] Event ingested. Topic: ${topic}, Type: ${envelope.type || envelope.event}, workspaceId: ${envelope.workspaceId}, attempt: ${attempt}`);
+          if (topic === 'chat-realtime-sync') {
+            await processRealtimeSyncEvent(envelope);
+          } else {
+            await processPlatformEvent(topic, envelope);
+          }
+          success = true;
+        } catch (err: any) {
+          lastError = err;
+          console.error(`[WS Gateway EventBus] Attempt ${attempt} failed:`, err.message);
+          if (attempt < maxRetries) {
+            const delay = Math.pow(2, attempt) * 1000;
+            await new Promise((resolve) => setTimeout(resolve, delay));
           }
         }
+      }
 
-        if (!success) {
-          console.error(`[WS Gateway Kafka] Sync broadcast failed after ${maxRetries} attempts. Publishing to DLQ...`);
-          try {
-            const dlqTopic = `${topic}-dlq`;
-            await kafkaProducer.send({
-              topic: dlqTopic,
-              messages: [{
-                key: message.key,
-                value: message.value,
-                headers: {
-                  ...message.headers,
-                  'x-dead-letter-reason': Buffer.from(lastError?.message || 'unknown'),
-                  'x-dead-letter-attempts': Buffer.from(String(maxRetries)),
-                }
-              }]
-            });
-            console.log(`[WS Gateway Kafka] Successfully published dead letter to ${dlqTopic}`);
-          } catch (dlqErr: any) {
-            console.error('[WS Gateway Kafka] Failed to publish dead letter to DLQ:', dlqErr.message);
-          }
+      if (!success) {
+        console.error(`[WS Gateway EventBus] Sync broadcast failed after ${maxRetries} attempts. Publishing to DLQ...`);
+        try {
+          const dlqTopic = `${topic}-dlq`;
+          await redisProducer?.publish(dlqTopic, JSON.stringify({
+            key: wrapper.key,
+            value: wrapper.value,
+            headers: {
+              ...wrapper.headers,
+              'x-dead-letter-reason': lastError?.message || 'unknown',
+              'x-dead-letter-attempts': String(maxRetries),
+            }
+          }));
+          console.log(`[WS Gateway EventBus] Successfully published dead letter to ${dlqTopic}`);
+        } catch (dlqErr: any) {
+          console.error('[WS Gateway EventBus] Failed to publish dead letter to DLQ:', dlqErr.message);
         }
-      },
+      }
     });
 
-    console.log(`[WS Gateway Kafka] Successfully subscribed to topic "chat-realtime-sync"`);
   } catch (error: any) {
-    console.warn(`[WS Gateway Kafka] Failed to connect to Kafka Broker: ${error.message}. Running in local isolation.`);
+    console.warn(`[WS Gateway EventBus] Failed to connect to Redis: ${error.message}. Running in local isolation.`);
   }
 }
 
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'wapi-websocket-gateway' });
 });
-
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
 async function initRedisAdapter() {
   try {
@@ -433,7 +434,7 @@ async function initRedisAdapter() {
 async function start() {
   await connectDb();
   await initRedisAdapter();
-  await initKafka();
+  await initEventBus();
   httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`[WebSocket Gateway] Running at http://localhost:${PORT}`);
   });

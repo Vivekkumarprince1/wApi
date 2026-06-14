@@ -1,20 +1,21 @@
-import { Kafka, Producer, Partitioners } from 'kafkajs';
+import Redis from 'ioredis';
 import { KafkaTopics } from '@wapi/contracts';
 
-const kafka = new Kafka({
-  clientId: 'automation-service-events',
-  brokers: (process.env.KAFKA_BROKERS || process.env.KAFKA_BROKER || 'localhost:9092').split(','),
-});
-
-const producer: Producer = kafka.producer({
-  createPartitioner: Partitioners.DefaultPartitioner,
-});
-
+let producerClient: Redis | null = null;
 let producerReady: Promise<void> | null = null;
 
 async function ensureProducer() {
   if (!producerReady) {
-    producerReady = producer.connect().catch((error) => {
+    const url = process.env.REDIS_URL;
+    if (!url) {
+      producerReady = Promise.reject(new Error('REDIS_URL is not defined'));
+      return producerReady;
+    }
+
+    producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });
+    producerReady = producerClient.connect().then(() => {
+      console.log('[Automation EventBus] Redis Producer connected.');
+    }).catch((error) => {
       producerReady = null;
       throw error;
     });
@@ -33,13 +34,15 @@ export async function publishAutomationEvent(event: string, workspaceId: string,
 
   try {
     await ensureProducer();
-    await producer.send({
-      topic: KafkaTopics.AUTOMATION_EVENTS,
-      messages: [{ key: workspaceId, value: JSON.stringify(message) }],
-    });
+    if (producerClient) {
+      await producerClient.publish(
+        KafkaTopics.AUTOMATION_EVENTS,
+        JSON.stringify({ key: workspaceId, value: JSON.stringify(message) })
+      );
+    }
     return;
   } catch (error: any) {
-    console.error(`[Automation Kafka] Failed to publish ${event}:`, error.message);
+    console.error(`[Automation EventBus] Failed to publish ${event}:`, error.message);
     throw error;
   }
 }

@@ -1,19 +1,20 @@
-import { Kafka, Producer, Partitioners } from 'kafkajs';
+import Redis from 'ioredis';
 
-const kafka = new Kafka({
-  clientId: 'contact-service-events',
-  brokers: (process.env.KAFKA_BROKERS || process.env.KAFKA_BROKER || 'localhost:9092').split(','),
-});
-
-const producer: Producer = kafka.producer({
-  createPartitioner: Partitioners.DefaultPartitioner,
-});
-
+let producerClient: Redis | null = null;
 let producerReady: Promise<void> | null = null;
 
 async function ensureProducer() {
   if (!producerReady) {
-    producerReady = producer.connect().catch((error) => {
+    const url = process.env.REDIS_URL;
+    if (!url) {
+      producerReady = Promise.reject(new Error('REDIS_URL is not defined'));
+      return producerReady;
+    }
+
+    producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });
+    producerReady = producerClient.connect().then(() => {
+      console.log('[Contact EventBus] Redis Producer connected.');
+    }).catch((error) => {
       producerReady = null;
       throw error;
     });
@@ -32,11 +33,13 @@ export async function publishContactEvent(event: string, workspaceId: string, pa
 
   try {
     await ensureProducer();
-    await producer.send({
-      topic: 'contact-events',
-      messages: [{ key: workspaceId, value: JSON.stringify(message) }],
-    });
+    if (producerClient) {
+      await producerClient.publish(
+        'contact-events',
+        JSON.stringify({ key: workspaceId, value: JSON.stringify(message) })
+      );
+    }
   } catch (err: any) {
-    console.error(`[Contact Kafka] Failed to publish ${event}:`, err.message);
+    console.error(`[Contact EventBus] Failed to publish ${event}:`, err.message);
   }
 }
