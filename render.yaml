@@ -166,3 +166,5 @@ envVarGroups:
         sync: false
       - key: KAFKA_BROKER
         sync: false
+      - key: INTEGRATION_ENCRYPTION_KEY
+        generateValue: true
