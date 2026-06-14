@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack -p 3100",
-    "build": "NODE_ENV=production next build --webpack",
+    "build": "cd ../../packages/contracts && npm install && npm run build && cd ../../apps/admin-portal && NODE_ENV=production next build --webpack",
     "start": "next start -p 3100",
     "lint": "eslint"
   },
