@@ -2,7 +2,7 @@ services:
   - type: web
     name: api-gateway
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/api-gateway && npm install && npm run build
     startCommand: cd services/api-gateway && npm run start
     envVars:
@@ -33,7 +33,7 @@ services:
   - type: web
     name: webhook-ingestor
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/webhook-ingestor && npm install && npm run build
     startCommand: cd services/webhook-ingestor && npm run start
     envVars:
@@ -50,7 +50,7 @@ services:
   - type: web
     name: websocket-gateway
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/websocket-gateway && npm install && npm run build
     startCommand: cd services/websocket-gateway && npm run start
     envVars:
@@ -62,10 +62,10 @@ services:
       - key: MONGO_URI
         sync: false
 
-  - type: pserv
+  - type: web
     name: auth-service
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/auth-service && npm install && npm run build
     startCommand: cd services/auth-service && npm run start
     envVars:
@@ -75,10 +75,10 @@ services:
       - key: MONGO_URI
         sync: false
 
-  - type: pserv
+  - type: web
     name: campaign-service
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/campaign-service && npm install && npm run build
     startCommand: cd services/campaign-service && npm run start
     envVars:
@@ -88,10 +88,10 @@ services:
       - key: MONGO_URI
         sync: false
 
-  - type: pserv
+  - type: web
     name: billing-service
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/billing-service && npm install && npm run build
     startCommand: cd services/billing-service && npm run start
     envVars:
@@ -101,10 +101,10 @@ services:
       - key: MONGO_URI
         sync: false
 
-  - type: pserv
+  - type: web
     name: service-provider
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/service-provider && npm install && npm run build
     startCommand: cd services/service-provider && npm run start
     envVars:
@@ -116,10 +116,10 @@ services:
       - key: MAIN_SERVICE_URL
         value: http://api-gateway:5001
 
-  - type: pserv
+  - type: web
     name: automation-service
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/automation-service && npm install && npm run build
     startCommand: cd services/automation-service && npm run start
     envVars:
@@ -129,10 +129,10 @@ services:
       - key: MONGO_URI
         sync: false
 
-  - type: pserv
+  - type: web
     name: chat-service
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/chat-service && npm install && npm run build
     startCommand: cd services/chat-service && npm run start
     envVars:
@@ -142,10 +142,10 @@ services:
       - key: MONGO_URI
         sync: false
 
-  - type: pserv
+  - type: web
     name: contact-service
     env: node
-    plan: starter
+    plan: free
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/contact-service && npm install && npm run build
     startCommand: cd services/contact-service && npm run start
     envVars:
