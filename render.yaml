@@ -82,7 +82,7 @@ services:
         fromGroup: wapi-common-env
         groupKey: KAFKA_BROKER
 
-  - type: private
+  - type: pserv
     name: auth-service
     env: node
     plan: starter
@@ -107,7 +107,7 @@ services:
         fromGroup: wapi-common-env
         groupKey: KAFKA_BROKER
 
-  - type: private
+  - type: pserv
     name: campaign-service
     env: node
     plan: starter
@@ -129,7 +129,7 @@ services:
         fromGroup: wapi-common-env
         groupKey: KAFKA_BROKER
 
-  - type: private
+  - type: pserv
     name: billing-service
     env: node
     plan: starter
@@ -151,7 +151,7 @@ services:
         fromGroup: wapi-common-env
         groupKey: KAFKA_BROKER
 
-  - type: private
+  - type: pserv
     name: service-provider
     env: node
     plan: starter
@@ -178,7 +178,7 @@ services:
       - key: MAIN_SERVICE_URL
         value: http://api-gateway:5001
 
-  - type: private
+  - type: pserv
     name: automation-service
     env: node
     plan: starter
@@ -203,7 +203,7 @@ services:
         fromGroup: wapi-common-env
         groupKey: KAFKA_BROKER
 
-  - type: private
+  - type: pserv
     name: chat-service
     env: node
     plan: starter
@@ -225,7 +225,7 @@ services:
         fromGroup: wapi-common-env
         groupKey: KAFKA_BROKER
 
-  - type: private
+  - type: pserv
     name: contact-service
     env: node
     plan: starter
