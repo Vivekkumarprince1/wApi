@@ -6,14 +6,9 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/api-gateway && npm install && npm run build
     startCommand: cd services/api-gateway && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 5001
-      - key: REDIS_URL
-        fromGroup: wapi-common-env
-        groupKey: REDIS_URL
-      - key: INTERNAL_SERVICE_SECRET
-        fromGroup: wapi-common-env
-        groupKey: INTERNAL_SERVICE_SECRET
       - key: ALLOWED_ORIGINS
         value: https://wapi-frontend.vercel.app,https://wapi-admin.vercel.app
       - key: AUTH_SERVICE_URL
@@ -42,17 +37,11 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/webhook-ingestor && npm install && npm run build
     startCommand: cd services/webhook-ingestor && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 3013
-      - key: INTERNAL_SERVICE_SECRET
-        fromGroup: wapi-common-env
-        groupKey: INTERNAL_SERVICE_SECRET
       - key: MONGO_URI
-        fromGroup: wapi-common-env
-        groupKey: MONGO_URI_WEBHOOK_INGESTOR
-      - key: KAFKA_BROKER
-        fromGroup: wapi-common-env
-        groupKey: KAFKA_BROKER
+        sync: false
       - key: VERIFY_TOKEN
         value: wapi-verify-token
       - key: WEBHOOK_SECRET
@@ -65,22 +54,13 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/websocket-gateway && npm install && npm run build
     startCommand: cd services/websocket-gateway && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 3009
       - key: ALLOWED_ORIGINS
         value: https://wapi-frontend.vercel.app,https://wapi-admin.vercel.app
-      - key: JWT_SECRET
-        fromGroup: wapi-common-env
-        groupKey: JWT_SECRET
       - key: MONGO_URI
-        fromGroup: wapi-common-env
-        groupKey: MONGO_URI_WEBSOCKET_GATEWAY
-      - key: REDIS_URL
-        fromGroup: wapi-common-env
-        groupKey: REDIS_URL
-      - key: KAFKA_BROKER
-        fromGroup: wapi-common-env
-        groupKey: KAFKA_BROKER
+        sync: false
 
   - type: pserv
     name: auth-service
@@ -89,23 +69,11 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/auth-service && npm install && npm run build
     startCommand: cd services/auth-service && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 3006
       - key: MONGO_URI
-        fromGroup: wapi-common-env
-        groupKey: MONGO_URI_AUTH
-      - key: REDIS_URL
-        fromGroup: wapi-common-env
-        groupKey: REDIS_URL
-      - key: JWT_SECRET
-        fromGroup: wapi-common-env
-        groupKey: JWT_SECRET
-      - key: INTERNAL_SERVICE_SECRET
-        fromGroup: wapi-common-env
-        groupKey: INTERNAL_SERVICE_SECRET
-      - key: KAFKA_BROKER
-        fromGroup: wapi-common-env
-        groupKey: KAFKA_BROKER
+        sync: false
 
   - type: pserv
     name: campaign-service
@@ -114,20 +82,11 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/campaign-service && npm install && npm run build
     startCommand: cd services/campaign-service && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 3002
       - key: MONGO_URI
-        fromGroup: wapi-common-env
-        groupKey: MONGO_URI_CAMPAIGN
-      - key: JWT_SECRET
-        fromGroup: wapi-common-env
-        groupKey: JWT_SECRET
-      - key: INTERNAL_SERVICE_SECRET
-        fromGroup: wapi-common-env
-        groupKey: INTERNAL_SERVICE_SECRET
-      - key: KAFKA_BROKER
-        fromGroup: wapi-common-env
-        groupKey: KAFKA_BROKER
+        sync: false
 
   - type: pserv
     name: billing-service
@@ -136,20 +95,11 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/billing-service && npm install && npm run build
     startCommand: cd services/billing-service && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 3003
       - key: MONGO_URI
-        fromGroup: wapi-common-env
-        groupKey: MONGO_URI_BILLING
-      - key: JWT_SECRET
-        fromGroup: wapi-common-env
-        groupKey: JWT_SECRET
-      - key: INTERNAL_SERVICE_SECRET
-        fromGroup: wapi-common-env
-        groupKey: INTERNAL_SERVICE_SECRET
-      - key: KAFKA_BROKER
-        fromGroup: wapi-common-env
-        groupKey: KAFKA_BROKER
+        sync: false
 
   - type: pserv
     name: service-provider
@@ -158,23 +108,11 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/service-provider && npm install && npm run build
     startCommand: cd services/service-provider && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 3004
       - key: MONGO_URI
-        fromGroup: wapi-common-env
-        groupKey: MONGO_URI_BSP
-      - key: REDIS_URL
-        fromGroup: wapi-common-env
-        groupKey: REDIS_URL
-      - key: JWT_SECRET
-        fromGroup: wapi-common-env
-        groupKey: JWT_SECRET
-      - key: INTERNAL_SERVICE_SECRET
-        fromGroup: wapi-common-env
-        groupKey: INTERNAL_SERVICE_SECRET
-      - key: KAFKA_BROKER
-        fromGroup: wapi-common-env
-        groupKey: KAFKA_BROKER
+        sync: false
       - key: MAIN_SERVICE_URL
         value: http://api-gateway:5001
 
@@ -185,23 +123,11 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/automation-service && npm install && npm run build
     startCommand: cd services/automation-service && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 3001
       - key: MONGO_URI
-        fromGroup: wapi-common-env
-        groupKey: MONGO_URI_AUTOMATION
-      - key: REDIS_URL
-        fromGroup: wapi-common-env
-        groupKey: REDIS_URL
-      - key: JWT_SECRET
-        fromGroup: wapi-common-env
-        groupKey: JWT_SECRET
-      - key: INTERNAL_SERVICE_SECRET
-        fromGroup: wapi-common-env
-        groupKey: INTERNAL_SERVICE_SECRET
-      - key: KAFKA_BROKER
-        fromGroup: wapi-common-env
-        groupKey: KAFKA_BROKER
+        sync: false
 
   - type: pserv
     name: chat-service
@@ -210,20 +136,11 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/chat-service && npm install && npm run build
     startCommand: cd services/chat-service && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 3008
       - key: MONGO_URI
-        fromGroup: wapi-common-env
-        groupKey: MONGO_URI_CHAT
-      - key: JWT_SECRET
-        fromGroup: wapi-common-env
-        groupKey: JWT_SECRET
-      - key: INTERNAL_SERVICE_SECRET
-        fromGroup: wapi-common-env
-        groupKey: INTERNAL_SERVICE_SECRET
-      - key: KAFKA_BROKER
-        fromGroup: wapi-common-env
-        groupKey: KAFKA_BROKER
+        sync: false
 
   - type: pserv
     name: contact-service
@@ -232,20 +149,11 @@ services:
     buildCommand: cd packages/contracts && npm install && npm run build && cd ../../services/contact-service && npm install && npm run build
     startCommand: cd services/contact-service && npm run start
     envVars:
+      - fromGroup: wapi-common-env
       - key: PORT
         value: 3007
       - key: MONGO_URI
-        fromGroup: wapi-common-env
-        groupKey: MONGO_URI_CONTACT
-      - key: JWT_SECRET
-        fromGroup: wapi-common-env
-        groupKey: JWT_SECRET
-      - key: INTERNAL_SERVICE_SECRET
-        fromGroup: wapi-common-env
-        groupKey: INTERNAL_SERVICE_SECRET
-      - key: KAFKA_BROKER
-        fromGroup: wapi-common-env
-        groupKey: KAFKA_BROKER
+        sync: false
 
 envVarGroups:
   - name: wapi-common-env
@@ -257,22 +165,4 @@ envVarGroups:
       - key: REDIS_URL
         sync: false
       - key: KAFKA_BROKER
-        sync: false
-      - key: MONGO_URI_AUTH
-        sync: false
-      - key: MONGO_URI_CAMPAIGN
-        sync: false
-      - key: MONGO_URI_BILLING
-        sync: false
-      - key: MONGO_URI_BSP
-        sync: false
-      - key: MONGO_URI_AUTOMATION
-        sync: false
-      - key: MONGO_URI_CHAT
-        sync: false
-      - key: MONGO_URI_CONTACT
-        sync: false
-      - key: MONGO_URI_WEBHOOK_INGESTOR
-        sync: false
-      - key: MONGO_URI_WEBSOCKET_GATEWAY
         sync: false
