@@ -1,3 +1,4 @@
 {
+  "framework": "nextjs",
   "buildCommand": "cd ../../packages/contracts && npm install && npm run build && cd ../../apps/customer-portal && npm run build"
 }
