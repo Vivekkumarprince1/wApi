@@ -13,19 +13,10 @@ import jwt from "jsonwebtoken";
  * gateway.
  */
 
-const URLS = {
-  automation: process.env.AUTOMATION_SERVICE_URL || "http://localhost:3001",
-  campaign: process.env.CAMPAIGN_SERVICE_URL || "http://localhost:3002",
-  billing: process.env.BILLING_SERVICE_URL || "http://localhost:3003",
-  bsp: process.env.BSP_SERVICE_URL || "http://localhost:3004",
-  auth: process.env.AUTH_SERVICE_URL || "http://localhost:3006",
-  contact: process.env.CONTACT_SERVICE_URL || "http://localhost:3007",
-  chat: process.env.CHAT_SERVICE_URL || "http://localhost:3008",
-  websocket: process.env.WEBSOCKET_SERVICE_URL || "http://localhost:3009",
-  ingestor: process.env.WEBHOOK_INGESTOR_URL || "http://localhost:3013",
-} as const;
+const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:5001";
 
-type ServiceId = keyof typeof URLS;
+// Using a type representing the original services for backward compatibility
+type ServiceId = "automation" | "campaign" | "billing" | "bsp" | "auth" | "contact" | "chat" | "websocket" | "ingestor";
 
 function internalHeaders(): Record<string, string> {
   const secret = process.env.INTERNAL_SERVICE_SECRET;
@@ -36,7 +27,7 @@ function internalHeaders(): Record<string, string> {
 /** DELETE a service-internal path. Returns true on 2xx, false otherwise. */
 export async function internalDelete(service: ServiceId, path: string): Promise<boolean> {
   try {
-    const res = await axios.delete(`${URLS[service]}${path}`, {
+    const res = await axios.delete(`${GATEWAY_URL}/api/internal/${service}${path}`, {
       headers: internalHeaders(),
       timeout: 10000,
       validateStatus: () => true,
@@ -61,7 +52,7 @@ export async function internalPost(
   body: unknown = {}
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   try {
-    const res = await axios.post(`${URLS[service]}${path}`, body, {
+    const res = await axios.post(`${GATEWAY_URL}/api/internal/${service}${path}`, body, {
       headers: { ...internalHeaders(), "x-internal-service": "admin-portal", "Content-Type": "application/json" },
       timeout: 15000,
       validateStatus: () => true,

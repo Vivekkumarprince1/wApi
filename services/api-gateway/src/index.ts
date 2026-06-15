@@ -481,11 +481,47 @@ app.use('/api/internal/provider', proxyRewrite(
   (path) => path.replace('/api/internal/provider', '/internal/v1/bsp')
 ));
 
+app.use('/api/internal/automation', proxyRewrite(
+  SERVICES.automation,
+  'automation',
+  (path) => path.replace('/api/internal/automation', '/api/automation')
+));
+
+app.use('/api/internal/campaign', proxyRewrite(
+  SERVICES.campaign,
+  'campaign',
+  (path) => path.replace('/api/internal/campaign', '/api/campaign')
+));
+
+app.use('/api/internal/ingestor', proxyRewrite(
+  SERVICES.ingestor,
+  'ingestor',
+  (path) => path.replace('/api/internal/ingestor', '')
+));
+
 app.use('/api/internal/chat', proxyRewrite(
   SERVICES.chat,
   'chat',
   (path) => path.replace('/api/internal/chat', '/api/internal')
 ));
+
+// Universal internal health proxy: /api/internal/health/:service -> target /health
+app.use('/api/internal/health/:service', (req, res, next) => {
+  const serviceKey = req.params.service as keyof typeof SERVICES;
+  const target = SERVICES[serviceKey];
+  if (!target) {
+    res.status(404).json({ error: 'Service not found' });
+    return;
+  }
+  createProxyMiddleware({
+    target,
+    changeOrigin: true,
+    pathRewrite: () => '/health',
+    on: {
+      error: handleProxyError(serviceKey)
+    }
+  })(req, res, next);
+});
 
 app.use('/api/internal', proxyTo(SERVICES.chat, 'chat'));
 
