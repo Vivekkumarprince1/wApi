@@ -7,6 +7,23 @@ export let redisProducer: Redis | null = null;
 export let redisConsumer: Redis | null = null;
 export let simulatedMode = false;
 
+// Shim for kafkajs syntax to redis pubsub
+export const kafkaProducer = {
+  send: async (payload: { topic: string; messages: any[] }) => {
+    if (!redisProducer) return;
+    for (const msg of payload.messages) {
+      await redisProducer.publish(
+        payload.topic,
+        JSON.stringify({
+          key: msg.key,
+          value: msg.value,
+          headers: msg.headers || {},
+        })
+      );
+    }
+  },
+};
+
 export async function initKafka() {
   const url = config.redisUrl;
   if (!url) {

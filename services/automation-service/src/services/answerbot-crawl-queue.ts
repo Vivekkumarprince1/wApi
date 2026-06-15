@@ -7,7 +7,7 @@ export const ANSWERBOT_CRAWL_QUEUE_NAME = 'answerbot-crawl';
 const connection = getSharedConnection;
 
 export const answerBotCrawlQueue = new Queue(ANSWERBOT_CRAWL_QUEUE_NAME, {
-  connection: getSharedConnection(),
+  connection: getSharedConnection() as any,
   defaultJobOptions: {
     attempts: 2,
     backoff: {
