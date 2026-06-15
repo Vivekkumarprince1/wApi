@@ -7,6 +7,11 @@ import { config } from '../config';
 export class HealthController {
   constructor(@InjectConnection() private readonly connection: Connection) {}
 
+  @Get('/')
+  root() {
+    return this.health();
+  }
+
   @Get('/health')
   health() {
     const dbState = this.connection.readyState;
