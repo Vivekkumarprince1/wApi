@@ -321,7 +321,8 @@ async function start() {
     await server.listen({ port: PORT, host: '0.0.0.0' });
     console.log(`[Webhook Ingestor] Server running at http://localhost:${PORT}`);
   } catch (err) {
-    server.log.error(err);
+    console.error('[Webhook Ingestor] Fatal startup error:', err);
+    if (server.log) server.log.error(err);
     process.exit(1);
   }
 }
