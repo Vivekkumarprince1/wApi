@@ -5,7 +5,7 @@ const connection = getSharedRedis();
 
 // Main Campaign Queue consumed by the campaign-service worker.
 export const campaignQueue = new Queue('campaign-engine', {
-  connection,
+  connection: connection as any,
   defaultJobOptions: {
     removeOnComplete: { count: 1000, age: 24 * 3600 },
     removeOnFail: { count: 5000, age: 7 * 24 * 3600 },

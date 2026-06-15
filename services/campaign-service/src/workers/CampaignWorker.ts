@@ -19,7 +19,7 @@ export class CampaignWorker {
 
   constructor() {
     this.worker = new Worker('campaign-engine', this.processJob.bind(this), {
-      connection: getSharedRedis(),
+      connection: getSharedRedis() as any,
       concurrency: 5,
     });
 
