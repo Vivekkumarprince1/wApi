@@ -15,11 +15,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
     "skipDefaultLibCheck": true,
-    "ignoreDeprecations": "5.0",
     "plugins": [
       {
         "name": "next"

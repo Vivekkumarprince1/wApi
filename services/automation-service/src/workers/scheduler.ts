@@ -31,9 +31,9 @@ const RUN_QUEUE = 'automation-engine-runs';
 const heartbeatConnection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
 const runConnection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
 
-const heartbeatQueue = new Queue(HEARTBEAT_QUEUE, { connection: heartbeatConnection });
+const heartbeatQueue = new Queue(HEARTBEAT_QUEUE, { connection: heartbeatConnection as any });
 const runQueue = new Queue(RUN_QUEUE, {
-  connection: runConnection,
+  connection: runConnection as any,
   defaultJobOptions: {
     attempts: 2,
     backoff: { type: 'exponential', delay: 5_000 },
@@ -113,7 +113,7 @@ export async function startScheduler() {
         console.error('[automation-scheduler] dispatchDueRules failed:', err?.message);
       }
     },
-    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) }
+    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) as any }
   );
 
   // Real run worker. Executes the visual workflow graph when triggered by schedule.
@@ -131,7 +131,7 @@ export async function startScheduler() {
         console.error(`[automation-scheduler] Failed to execute scheduled rule ${ruleId}:`, err.message);
       }
     },
-    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) }
+    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) as any }
   );
 
   console.log('[automation-scheduler] started — heartbeat every 60s');

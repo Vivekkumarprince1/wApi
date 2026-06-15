@@ -19,7 +19,6 @@
     "incremental": true,
     "forceConsistentCasingInFileNames": true,
     "skipDefaultLibCheck": true,
-    "ignoreDeprecations": "5.0",
     "plugins": [
       {
         "name": "next"

@@ -12,7 +12,7 @@ export class AnswerBotCrawlWorker {
       ANSWERBOT_CRAWL_QUEUE_NAME,
       this.processJob.bind(this),
       {
-        connection: getConnectionForWorker(),
+        connection: getConnectionForWorker() as any,
         concurrency: 2,
       }
     );
