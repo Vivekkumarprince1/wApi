@@ -144,6 +144,34 @@ export const registerProxyRoutes = (fastify: FastifyInstance) => {
     return reply.from(`${config.coreServerUrl}${request.url}`, getProxyOptions(request));
   });
 
+  // --- ADMIN PORTAL TO MICROSERVICES ROUTING ---
+  fastify.all('/api/admin/:service/*', async (request, reply) => {
+    const service = (request.params as any).service;
+    const providedSecret = request.headers['x-internal-service-secret'];
+    
+    if (providedSecret !== config.internalServiceSecret) {
+      return reply.status(401).send({ error: 'Unauthorized internal service secret' });
+    }
+    
+    const serviceUrlMap: Record<string, string> = {
+      core: config.coreServerUrl,
+      automation: config.automationServiceUrl,
+      campaign: config.campaignServiceUrl,
+      billing: config.billingServiceUrl,
+      websocket: config.websocketServiceUrl,
+    };
+    
+    const targetUrl = serviceUrlMap[service];
+    if (!targetUrl) {
+      return reply.status(404).send({ error: `Unknown service: ${service}` });
+    }
+    
+    // Extract the path after /api/admin/:service
+    const cleanPath = request.url.replace(new RegExp(`^/api/admin/${service}`), '');
+    // Ensure we forward exactly what the microservice expects (e.g. /internal/...)
+    return reply.from(`${targetUrl}${cleanPath}`, getProxyOptions(request));
+  });
+
   // --- PROTECTED MICROSERVICE ROUTING ---
 
   // Automation Service

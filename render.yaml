@@ -1,0 +1,138 @@
+services:
+  - type: web
+    name: wapi-api-gateway
+    env: node
+    rootDir: services/api-gateway
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: REDIS_URL
+        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INTERNAL_SERVICE_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: CORE_SERVER_URL
+        value: https://wapi-core-server.onrender.com
+      - key: WEBSOCKET_SERVICE_URL
+        value: https://wapi-websocket-service.onrender.com
+      - key: AUTOMATION_SERVICE_URL
+        value: https://wapi-automation-service.onrender.com
+      - key: CAMPAIGN_SERVICE_URL
+        value: https://wapi-campaign-service.onrender.com
+      - key: BILLING_SERVICE_URL
+        value: https://wapi-billing-service.onrender.com
+
+  - type: web
+    name: wapi-core-server
+    env: node
+    rootDir: services/core-server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: REDIS_URL
+        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INTERNAL_SERVICE_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+      - key: NEXT_PUBLIC_APP_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: AUTOMATION_SERVICE_URL
+        value: https://wapi-automation-service.onrender.com
+      - key: CAMPAIGN_SERVICE_URL
+        value: https://wapi-campaign-service.onrender.com
+      - key: BILLING_SERVICE_URL
+        value: https://wapi-billing-service.onrender.com
+
+  - type: web
+    name: wapi-automation-service
+    env: node
+    rootDir: services/automation-service
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: REDIS_URL
+        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INTERNAL_SERVICE_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+
+  - type: web
+    name: wapi-campaign-service
+    env: node
+    rootDir: services/campaign-service
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: REDIS_URL
+        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INTERNAL_SERVICE_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+
+  - type: web
+    name: wapi-billing-service
+    env: node
+    rootDir: services/billing-service
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: REDIS_URL
+        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INTERNAL_SERVICE_SECRET
+        generateValue: true
+      - key: MONGODB_URI
+        sync: false
+
+  - type: web
+    name: wapi-websocket-service
+    env: node
+    rootDir: services/websocket-service
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      - key: REDIS_URL
+        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INTERNAL_SERVICE_SECRET
+        generateValue: true

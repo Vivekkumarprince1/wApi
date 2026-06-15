@@ -14,9 +14,9 @@ export interface ServiceDef {
 
 export const SERVICES: ServiceDef[] = [
   { id: "gateway", name: "API Gateway", baseUrl: process.env.GATEWAY_URL || "http://localhost:5001", healthPath: "/ready" },
-  { id: "core", name: "Core Server", baseUrl: process.env.CORE_SERVER_URL || "http://localhost:5005", healthPath: "/health" },
-  { id: "billing", name: "Billing Service", baseUrl: process.env.BILLING_SERVICE_URL || "http://localhost:3003", healthPath: "/health" },
-  { id: "campaign", name: "Campaign Service", baseUrl: process.env.CAMPAIGN_SERVICE_URL || "http://localhost:3002", healthPath: "/health" },
-  { id: "automation", name: "Automation Service", baseUrl: process.env.AUTOMATION_SERVICE_URL || "http://localhost:3001", healthPath: "/health" },
-  { id: "websocket", name: "WebSocket Service", baseUrl: process.env.WEBSOCKET_SERVICE_URL || "http://localhost:4000", healthPath: "/live" },
+  { id: "core", name: "Core Server", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/core`, healthPath: "/health" },
+  { id: "billing", name: "Billing Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/billing`, healthPath: "/health" },
+  { id: "campaign", name: "Campaign Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/campaign`, healthPath: "/health" },
+  { id: "automation", name: "Automation Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/automation`, healthPath: "/health" },
+  { id: "websocket", name: "WebSocket Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/websocket`, healthPath: "/live" },
 ];

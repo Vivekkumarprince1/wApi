@@ -13,14 +13,11 @@ import jwt from "jsonwebtoken";
  * gateway.
  */
 
-const URLS = {
-  automation: process.env.AUTOMATION_SERVICE_URL || "http://localhost:3001",
-  campaign: process.env.CAMPAIGN_SERVICE_URL || "http://localhost:3002",
-  billing: process.env.BILLING_SERVICE_URL || "http://localhost:3003",
-  core: process.env.CORE_SERVER_URL || "http://localhost:5005",
-} as const;
+type ServiceId = "automation" | "campaign" | "billing" | "core" | "websocket";
 
-type ServiceId = keyof typeof URLS;
+function getGatewayUrl(): string {
+  return process.env.GATEWAY_URL || "http://localhost:5001";
+}
 
 function internalHeaders(): Record<string, string> {
   const secret = process.env.INTERNAL_SERVICE_SECRET;
@@ -31,7 +28,7 @@ function internalHeaders(): Record<string, string> {
 /** DELETE a service-internal path. Returns true on 2xx, false otherwise. */
 export async function internalDelete(service: ServiceId, path: string): Promise<boolean> {
   try {
-    const res = await axios.delete(`${URLS[service]}${path}`, {
+    const res = await axios.delete(`${getGatewayUrl()}/api/admin/${service}${path}`, {
       headers: internalHeaders(),
       timeout: 10000,
       validateStatus: () => true,
