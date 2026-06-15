@@ -11,9 +11,9 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
-    "ignoreDeprecations": "6.0",
     "resolveJsonModule": true,
     "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "mongoose": ["../../auth-service/node_modules/mongoose"]
     }
