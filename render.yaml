@@ -2,6 +2,7 @@ services:
   - type: web
     name: wapi-api-gateway
     env: node
+    plan: free
     rootDir: services/api-gateway
     buildCommand: npm install && npm run build
     startCommand: npm start
