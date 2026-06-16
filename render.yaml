@@ -130,7 +130,7 @@ services:
         sync: false
       - key: AI_GEMINI_KEY
         sync: false
-      - key: MONOLITH_URL
+      - key: MONOLITH_INTERNAL_URL
         value: https://wapi-api-gateway.onrender.com
 
   - type: web
