@@ -9,6 +9,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@wapi/contracts": "file:../../packages/contracts",
     "express": "^4.19.2",
     "socket.io": "^4.7.5",
     "@socket.io/redis-adapter": "^8.3.0",

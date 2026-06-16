@@ -23,6 +23,7 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
+    "@wapi/contracts": "file:../../packages/contracts",
     "@dotenvx/dotenvx": "^1.64.0",
     "axios": "^1.15.2",
     "bullmq": "^5.76.4",

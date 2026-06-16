@@ -15,6 +15,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@wapi/contracts": "file:../../packages/contracts",
     "axios": "^1.15.2",
     "bullmq": "^5.76.3",
     "cheerio": "^1.2.0",
