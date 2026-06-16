@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "node --import tsx src/index.ts",
-    "build": "tsc",
+    "build": "tsc && npx -y tsc-alias",
     "start": "node dist/index.js",
     "smoke:routes": "node --import tsx scripts/smoke-routes.ts",
     "migrate:legacy-wallets": "node --import tsx src/scripts/migrate-legacy-wallets.ts",
