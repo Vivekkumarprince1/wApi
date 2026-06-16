@@ -33,6 +33,7 @@ services:
   - type: web
     name: wapi-core-server
     env: node
+    plan: free
     rootDir: services/core-server
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -110,6 +111,7 @@ services:
   - type: web
     name: wapi-automation-service
     env: node
+    plan: free
     rootDir: services/automation-service
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -134,6 +136,7 @@ services:
   - type: web
     name: wapi-campaign-service
     env: node
+    plan: free
     rootDir: services/campaign-service
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -158,6 +161,7 @@ services:
   - type: web
     name: wapi-billing-service
     env: node
+    plan: free
     rootDir: services/billing-service
     buildCommand: npm install && npm run build
     startCommand: npm start
@@ -186,6 +190,7 @@ services:
   - type: web
     name: wapi-websocket-service
     env: node
+    plan: free
     rootDir: services/websocket-service
     buildCommand: npm install && npm run build
     startCommand: npm start
