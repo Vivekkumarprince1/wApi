@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     rootDir: services/api-gateway
-    buildCommand: npm install && npm run build
+    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/api-gateway && npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -35,7 +35,7 @@ services:
     env: node
     plan: free
     rootDir: services/core-server
-    buildCommand: npm install && npm run build
+    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/core-server && npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -113,7 +113,7 @@ services:
     env: node
     plan: free
     rootDir: services/automation-service
-    buildCommand: npm install && npm run build
+    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/automation-service && npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -138,7 +138,7 @@ services:
     env: node
     plan: free
     rootDir: services/campaign-service
-    buildCommand: npm install && npm run build
+    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/campaign-service && npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -163,7 +163,7 @@ services:
     env: node
     plan: free
     rootDir: services/billing-service
-    buildCommand: npm install && npm run build
+    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/billing-service && npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -192,7 +192,7 @@ services:
     env: node
     plan: free
     rootDir: services/websocket-service
-    buildCommand: npm install && npm run build
+    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/websocket-service && npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
