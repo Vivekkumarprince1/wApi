@@ -58,6 +58,53 @@ services:
         value: https://wapi-campaign-service.onrender.com
       - key: BILLING_SERVICE_URL
         value: https://wapi-billing-service.onrender.com
+      # Core Server Specifics
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GUPSHUP_PARTNER_EMAIL
+        sync: false
+      - key: GUPSHUP_PARTNER_CLIENT_SECRET
+        sync: false
+      - key: GUPSHUP_PARTNER_BASE_URL
+        value: https://partner.gupshup.io
+      - key: GUPSHUP_API_BASE_URL
+        value: https://api.gupshup.io
+      - key: GUPSHUP_APP_ID
+        sync: false
+      - key: GUPSHUP_SOURCE_NUMBER
+        sync: false
+      - key: WHATSAPP_WEBHOOK_URL
+        value: https://wapi-api-gateway.onrender.com/api/webhooks/whatsapp
+      - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
+        sync: false
+      - key: AI_GEMINI_KEY
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: APP_NAME
+        value: wApi
+      - key: EMAIL_SERVICE
+        value: gmail
+      - key: EMAIL_USER
+        sync: false
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: ENABLE_AUTOMATION_ENGINE
+        value: "true"
+      - key: START_CAMPAIGN_SCHEDULER
+        value: "true"
+      - key: BUSINESS_VERIFICATION_MANDATORY
+        value: "false"
 
   - type: web
     name: wapi-automation-service
@@ -76,8 +123,12 @@ services:
         generateValue: true
       - key: INTERNAL_SERVICE_SECRET
         generateValue: true
-      - key: MONGODB_URI
+      - key: MONGODB_URI_AUTOMATION
         sync: false
+      - key: AI_GEMINI_KEY
+        sync: false
+      - key: MONOLITH_URL
+        value: https://wapi-api-gateway.onrender.com
 
   - type: web
     name: wapi-campaign-service
@@ -96,8 +147,12 @@ services:
         generateValue: true
       - key: INTERNAL_SERVICE_SECRET
         generateValue: true
-      - key: MONGODB_URI
+      - key: MONGODB_URI_CAMPAIGN
         sync: false
+      - key: MONOLITH_URL
+        value: https://wapi-api-gateway.onrender.com
+      - key: BILLING_SERVICE_URL
+        value: https://wapi-billing-service.onrender.com
 
   - type: web
     name: wapi-billing-service
@@ -118,6 +173,14 @@ services:
         generateValue: true
       - key: MONGODB_URI
         sync: false
+      - key: MONOLITH_URL
+        value: https://wapi-api-gateway.onrender.com
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
 
   - type: web
     name: wapi-websocket-service
@@ -136,3 +199,7 @@ services:
         generateValue: true
       - key: INTERNAL_SERVICE_SECRET
         generateValue: true
+      - key: CORE_SERVER_URL
+        value: https://wapi-core-server.onrender.com
+      - key: ALLOWED_ORIGINS
+        sync: false
