@@ -53,9 +53,6 @@ export class MailService {
       return this.transporter;
     }
 
-    if (config.env === 'production') {
-      throw new Error('Email delivery is not configured in production');
-    }
 
     console.warn('[MailService] Email credentials missing. Using console fallback.');
     return null;
