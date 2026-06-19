@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 
 import {
   Search,
@@ -160,8 +161,8 @@ export function DashboardHeader() {
 
       <div className="flex items-center gap-2 lg:gap-4">
         {/* Wallet Balance */}
-        <div
-          onClick={() => !wallet?.isServiceDown && router.push('/billing')}
+        <Link
+          href={wallet?.isServiceDown ? "#" : "/billing"}
           className={cn(
             "hidden lg:flex items-center gap-3 px-4 py-1.5 border rounded-2xl group cursor-pointer hover:shadow-lg transition-all",
             isZeroBalance
@@ -228,9 +229,9 @@ export function DashboardHeader() {
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Settings</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {settingsItems.map((item) => (
-                    <button
+                    <Link
                       key={item.path}
-                      onClick={() => handleSettingsClick(item.path)}
+                      href={item.path}
                       className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent/80 transition-all duration-200 group text-left"
                     >
                       <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${item.color} transition-colors`}>
@@ -239,7 +240,7 @@ export function DashboardHeader() {
                       <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground transition-colors">
                         {item.label}
                       </span>
-                    </button>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -278,26 +279,23 @@ export function DashboardHeader() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator className="opacity-50" />
             <DropdownMenuGroup className="p-1 space-y-1">
-              <DropdownMenuItem
-                className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group"
-                onClick={() => router.push('/settings/member-profile')}
-              >
-                <UserIcon className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                <span className="font-medium">Profile Settings</span>
+              <DropdownMenuItem asChild className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group">
+                <Link href="/settings/member-profile">
+                  <UserIcon className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className="font-medium">Profile Settings</span>
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group"
-                onClick={() => router.push('/billing')}
-              >
-                <Wallet className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
-                <span className="font-medium">Add Credits</span>
+              <DropdownMenuItem asChild className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group">
+                <Link href="/billing">
+                  <Wallet className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+                  <span className="font-medium">Add Credits</span>
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group"
-                onClick={() => router.push('/settings')}
-              >
-                <Settings className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
-                <span className="font-medium">Workspace Config</span>
+              <DropdownMenuItem asChild className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group">
+                <Link href="/settings">
+                  <Settings className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                  <span className="font-medium">Workspace Config</span>
+                </Link>
               </DropdownMenuItem>
 
             </DropdownMenuGroup>

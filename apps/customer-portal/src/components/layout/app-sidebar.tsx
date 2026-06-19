@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   LayoutDashboard,
   Inbox,
@@ -203,7 +204,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
     <ShadSidebar collapsible="icon" className="border-border/50 bg-background/95 backdrop-blur-sm" {...props}>
       <SidebarHeader className="flex flex-col gap-4 p-4 border-b border-border/50">
         <div className="flex flex-col gap-4 group-data-[collapsible=icon]:items-center">
-            <div className="flex items-center gap-2 group cursor-pointer" onClick={() => router.push("/")}>
+            <Link href="/" className="flex items-center gap-2 group cursor-pointer">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg shadow-lg transition-all duration-500 group-hover:scale-105 bg-primary text-primary-foreground shadow-primary/20">
                     <MessageSquare className="size-5" />
                 </div>
@@ -218,7 +219,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
                         {user?.role === 'owner' ? 'Enterprise' : 'Workspace'}
                     </span>
                 </div>
-            </div>
+            </Link>
 
             <div className="group-data-[collapsible=icon]:hidden">
                 <WorkspaceSwitcher />
@@ -279,18 +280,20 @@ function SidebarNavItem({
   return (
     <SidebarMenuItem key={item.title}>
       <SidebarMenuButton
+        asChild
         tooltip={item.title}
         isActive={isItemActive}
         className={`h-11 hover:bg-muted/50 transition-all duration-300 data-[active=true]:shadow-sm rounded-xl px-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary ${isLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
-        onClick={() => !isLocked && router.push(item.url)}
       >
-        <item.icon className="size-5" />
-        <span className="font-bold flex items-center justify-between gap-2 tracking-tight flex-1">
-          <div className="flex items-center gap-2">
-            {item.title}
-            {isLocked && <Lock className="h-3 w-3 text-primary animate-pulse" />}
-          </div>
-        </span>
+        <Link href={isLocked ? '#' : item.url}>
+          <item.icon className="size-5" />
+          <span className="font-bold flex items-center justify-between gap-2 tracking-tight flex-1">
+            <div className="flex items-center gap-2">
+              {item.title}
+              {isLocked && <Lock className="h-3 w-3 text-primary animate-pulse" />}
+            </div>
+          </span>
+        </Link>
       </SidebarMenuButton>
 
       {hasChildren ? (
@@ -340,14 +343,16 @@ function SidebarNavSubItem({
     return (
         <SidebarMenuSubItem key={subItem.title}>
             <SidebarMenuSubButton
+                asChild
                 isActive={pathname === subItem.url}
                 className={`h-8 hover:text-primary transition-colors text-xs ${isSubLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
-                onClick={() => !isSubLocked && router.push(subItem.url)}
             >
-                <div className="flex items-center gap-2">
-                    <span>{subItem.title}</span>
-                    {isSubLocked && <Lock className="h-2.5 w-2.5 text-primary" />}
-                </div>
+                <Link href={isSubLocked ? '#' : subItem.url}>
+                    <div className="flex items-center gap-2">
+                        <span>{subItem.title}</span>
+                        {isSubLocked && <Lock className="h-2.5 w-2.5 text-primary" />}
+                    </div>
+                </Link>
             </SidebarMenuSubButton>
         </SidebarMenuSubItem>
     );
