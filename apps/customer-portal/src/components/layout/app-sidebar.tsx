@@ -280,20 +280,18 @@ function SidebarNavItem({
   return (
     <SidebarMenuItem key={item.title}>
       <SidebarMenuButton
-        asChild
+        render={<Link href={isLocked ? '#' : item.url} />}
         tooltip={item.title}
         isActive={isItemActive}
         className={`h-11 hover:bg-muted/50 transition-all duration-300 data-[active=true]:shadow-sm rounded-xl px-3 data-[active=true]:bg-primary/10 data-[active=true]:text-primary ${isLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
       >
-        <Link href={isLocked ? '#' : item.url}>
-          <item.icon className="size-5" />
-          <span className="font-bold flex items-center justify-between gap-2 tracking-tight flex-1">
-            <div className="flex items-center gap-2">
-              {item.title}
-              {isLocked && <Lock className="h-3 w-3 text-primary animate-pulse" />}
-            </div>
-          </span>
-        </Link>
+        <item.icon className="size-5" />
+        <span className="font-bold flex items-center justify-between gap-2 tracking-tight flex-1">
+          <div className="flex items-center gap-2">
+            {item.title}
+            {isLocked && <Lock className="h-3 w-3 text-primary animate-pulse" />}
+          </div>
+        </span>
       </SidebarMenuButton>
 
       {hasChildren ? (
@@ -343,16 +341,14 @@ function SidebarNavSubItem({
     return (
         <SidebarMenuSubItem key={subItem.title}>
             <SidebarMenuSubButton
-                asChild
+                render={<Link href={isSubLocked ? '#' : subItem.url} />}
                 isActive={pathname === subItem.url}
                 className={`h-8 hover:text-primary transition-colors text-xs ${isSubLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
             >
-                <Link href={isSubLocked ? '#' : subItem.url}>
-                    <div className="flex items-center gap-2">
-                        <span>{subItem.title}</span>
-                        {isSubLocked && <Lock className="h-2.5 w-2.5 text-primary" />}
-                    </div>
-                </Link>
+                <div className="flex items-center gap-2">
+                    <span>{subItem.title}</span>
+                    {isSubLocked && <Lock className="h-2.5 w-2.5 text-primary" />}
+                </div>
             </SidebarMenuSubButton>
         </SidebarMenuSubItem>
     );
