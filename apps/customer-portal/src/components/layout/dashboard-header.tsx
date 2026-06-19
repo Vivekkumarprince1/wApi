@@ -279,23 +279,17 @@ export function DashboardHeader() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator className="opacity-50" />
             <DropdownMenuGroup className="p-1 space-y-1">
-              <DropdownMenuItem asChild className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group">
-                <Link href="/settings/member-profile">
-                  <UserIcon className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <span className="font-medium">Profile Settings</span>
-                </Link>
+              <DropdownMenuItem render={<Link href="/settings/member-profile" />} className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group">
+                <UserIcon className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="font-medium">Profile Settings</span>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group">
-                <Link href="/billing">
-                  <Wallet className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
-                  <span className="font-medium">Add Credits</span>
-                </Link>
+              <DropdownMenuItem render={<Link href="/billing" />} className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group">
+                <Wallet className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+                <span className="font-medium">Add Credits</span>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group">
-                <Link href="/settings">
-                  <Settings className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
-                  <span className="font-medium">Workspace Config</span>
-                </Link>
+              <DropdownMenuItem render={<Link href="/settings" />} className="rounded-xl h-10 hover:bg-muted/50 transition-colors cursor-pointer group">
+                <Settings className="mr-3 h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                <span className="font-medium">Workspace Config</span>
               </DropdownMenuItem>
 
             </DropdownMenuGroup>
