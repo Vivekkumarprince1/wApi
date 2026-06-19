@@ -7,7 +7,7 @@ import ToastProvider from "@/components/providers/toast-provider";
 import { AuthInitializer } from "@/components/providers/auth-initializer";
 import { CommandCenter } from "@/components/dashboard/command-center";
 import GlobalDashboardLayout from "@/components/layout/dashboard-layout";
-
+import NextTopLoader from 'nextjs-toploader';
 /*
 const inter = Inter({
   subsets: ["latin"],
@@ -44,6 +44,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <NextTopLoader color="#2563eb" showSpinner={false} />
           <QueryProvider>
             <TooltipProvider>
               <AuthInitializer />
