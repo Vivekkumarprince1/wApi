@@ -51,3 +51,6 @@ dist
 
 # Misc local artifacts
 requests.log
+database-seed/
+mongodb-backups/
+*.dump

@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3100",
-    "build": "cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../apps/admin-portal && NODE_ENV=production next build",
-    "start": "next start -p 3100",
+    "build": "cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../apps/admin-portal && NODE_ENV=production next build --webpack",
+    "start": "next start -p ${PORT:-3100}",
     "lint": "eslint"
   },
   "dependencies": {

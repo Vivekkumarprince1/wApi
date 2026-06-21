@@ -2,6 +2,7 @@ import 'dotenv/config.js';
 import { z } from 'zod';
 
 const envSchema = z.object({
+  NODE_ENV: z.string().optional(),
   INTERNAL_SERVICE_SECRET: z.string({
     required_error: 'INTERNAL_SERVICE_SECRET is required'
   }).min(1, 'INTERNAL_SERVICE_SECRET cannot be empty'),
@@ -14,6 +15,24 @@ if (!envParseResult.success) {
   console.error('❌ Environment validation failed for api-gateway:');
   console.error(JSON.stringify(envParseResult.error.format(), null, 2));
   process.exit(1);
+}
+
+const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction) {
+  const internalSecret = process.env.INTERNAL_SERVICE_SECRET || '';
+  const devSecrets = new Set([
+    'dev-internal-service-secret-change-me',
+    'your_internal_service_secret_here',
+    'change-me-in-production',
+  ]);
+
+  if (devSecrets.has(internalSecret) || internalSecret.length < 32) {
+    throw new Error('FATAL: A secure, non-default INTERNAL_SERVICE_SECRET with at least 32 characters is required in production.');
+  }
+
+  if (!process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGINS.includes('localhost') || process.env.ALLOWED_ORIGINS.includes('127.0.0.1')) {
+    throw new Error('FATAL: Production ALLOWED_ORIGINS must be explicit public HTTPS origins, not localhost defaults.');
+  }
 }
 
 import express from 'express';
@@ -51,7 +70,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(morgan('dev'));
+app.use(morgan(isProduction ? 'combined' : 'dev'));
 
 // 1. Correlation ID, Header Stripping & Session Verification Middleware
 // Generate or propagate x-correlation-id across all microservices requests

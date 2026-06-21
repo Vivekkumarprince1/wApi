@@ -7,8 +7,19 @@ on:
     branches: [ main, master, dev ]
 
 jobs:
+  production-readiness:
+    name: Production Readiness Static Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Production Readiness Checks
+        run: ./scripts/production/check-readiness.sh
+
   build-shared:
     name: Build Shared Packages
+    needs: production-readiness
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code

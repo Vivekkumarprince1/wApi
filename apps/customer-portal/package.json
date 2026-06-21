@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "NODE_OPTIONS=--max-old-space-size=3072 next dev",
     "build": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=4096 next build --webpack",
-    "start": "next start",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "eslint"
   },
   "dependencies": {
