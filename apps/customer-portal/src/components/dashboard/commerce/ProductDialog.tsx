@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/axios';
+import { createProduct, updateProduct } from '@/lib/api/commerce';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageUpload } from './ImageUpload';
@@ -78,8 +78,8 @@ export function ProductDialog({ open, onOpenChange, product }: ProductDialogProp
 
   const upsertProduct = useMutation({
     mutationFn: (data: any) => {
-      if (isEditing) return api.put(`/commerce/products/${product._id}`, data);
-      return api.post('/commerce/products', data);
+      if (isEditing) return updateProduct(product._id, data);
+      return createProduct(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });

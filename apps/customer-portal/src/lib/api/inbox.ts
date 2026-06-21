@@ -69,9 +69,10 @@ export const performConversationAction = (conversationId: string, action: string
 export const fetchTeams = () => api.get<any>('/workspace/teams');
 export const fetchMembers = () => api.get<any>('/workspace/team/members');
 
-export const uploadMedia = (file: File) => {
+export const uploadMedia = (file: File, folder?: string) => {
   const formData = new FormData();
   formData.append('file', file);
+  if (folder) formData.append('folder', folder);
   return api.post('/upload/media', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   });

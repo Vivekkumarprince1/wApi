@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import api from '@/lib/api/client';
+import { completeGoogleCallback } from '@/lib/api/auth';
 import { Loader2, Sparkles } from 'lucide-react';
 
 function GoogleCallbackContent() {
@@ -29,7 +29,7 @@ function GoogleCallbackContent() {
     const verifyCallback = async () => {
       try {
         setStatus('Syncing with Google...');
-        const response: any = await api.post('/auth/google/callback', { code });
+        const response: any = await completeGoogleCallback(code);
 
         if (response.success) {
           setStatus('Authentication successful! Redirecting...');

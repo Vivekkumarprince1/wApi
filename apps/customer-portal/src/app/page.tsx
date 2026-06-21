@@ -26,7 +26,7 @@ export default function HomePage() {
   const router = useRouter()
   const { resolvedTheme, setTheme } = useTheme()
   const { authenticated, loading: authContextLoading, fetchSession, accessRestriction, nextStep } = useAuthStore()
-  
+
   const [mounted, setMounted] = useState(false)
   const [showScrollTop, setShowScrollTop] = useState(false)
   const isDark = resolvedTheme === 'dark';

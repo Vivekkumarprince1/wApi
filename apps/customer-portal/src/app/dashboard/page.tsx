@@ -18,7 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import client from '@/lib/api/client';
+import { getDashboardOverview, getMessageMetrics } from '@/lib/api/analytics';
 import { useAuthStore } from '@/store/auth-store';
 import FlashLoader from '@/components/ui/flash-loader';
 
@@ -119,12 +119,12 @@ const DashboardPageClient = () => {
     queryKey: ['dashboardOverview'],
     queryFn: async () => {
       const [response, messageMetrics] = await Promise.all([
-        client.get<any>('/analytics/dashboard/overview').catch(() => ({ data: null })),
-        client.get<any>('/metrics/messages?days=7').catch(() => null)
+        getDashboardOverview().catch(() => null),
+        getMessageMetrics(7).catch(() => null)
       ]);
 
-      const overview = response?.data;
-      const health = messageMetrics?.data?.deliveryHealth || null;
+      const overview = response;
+      const health = messageMetrics?.deliveryHealth || null;
 
       let stats = {
         totalContacts: 0, messagesSent: 0, deliveryRate: 0, openRate: 0,

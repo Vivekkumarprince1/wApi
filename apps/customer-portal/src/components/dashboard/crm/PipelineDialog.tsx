@@ -21,7 +21,7 @@ import {
   Sparkles,
   CheckCircle2
 } from 'lucide-react';
-import api from '@/lib/axios';
+import { createPipeline } from '@/lib/api/crm';
 import { toast } from 'sonner';
 import { motion, Reorder } from 'framer-motion';
 import FlashLoader from '@/components/ui/flash-loader';
@@ -80,7 +80,7 @@ export const PipelineDialog: React.FC<PipelineDialogProps> = ({
 
     setIsLoading(true);
     try {
-      await api.post('/crm/pipelines', {
+      await createPipeline({
         name,
         stages: stages.map((s, idx) => ({ ...s, position: idx }))
       });

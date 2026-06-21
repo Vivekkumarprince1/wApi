@@ -22,7 +22,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 
 import { fetchTemplates, Template } from '@/lib/api/templates';
-import { fetchContacts, Contact } from '@/lib/api/contacts';
+import { fetchContacts, Contact, sendTemplateToContact } from '@/lib/api/contacts';
+import { getWorkspacePricing } from '@/lib/api/billing';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,7 +31,6 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import api from '@/lib/axios';
 
 interface DirectTemplateModalProps {
   isOpen: boolean;
@@ -85,7 +85,7 @@ export default function DirectTemplateModal({
   const { data: pricingData } = useQuery({
     queryKey: ['workspace-pricing'],
     queryFn: async () => {
-      const resp = await api.get('/workspace/pricing');
+      const resp = await getWorkspacePricing();
       return (resp as any).data;
     },
     enabled: isOpen
@@ -134,7 +134,11 @@ export default function DirectTemplateModal({
   // Mutation
   const sendMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const response = await api.post(`/contacts/${activeContact?._id}/send-template`, payload);
+      const contactId = activeContact?._id;
+      if (!contactId) {
+        throw new Error('Contact is required to send a template');
+      }
+      const response = await sendTemplateToContact(contactId, payload);
       return response;
     },
     onSuccess: (data: any) => {

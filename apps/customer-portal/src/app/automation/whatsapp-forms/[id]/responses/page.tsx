@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import FlashLoader from '@/components/ui/flash-loader';
-import { fetchWhatsAppFormResponses, getWhatsAppFormResponsesExportUrl } from '@/lib/api/automation';
+import { exportWhatsAppFormResponses, fetchWhatsAppFormResponses } from '@/lib/api/automation';
 
 export default function WhatsAppFormResponsesPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,12 +26,7 @@ export default function WhatsAppFormResponsesPage() {
 
   const downloadCsv = async () => {
     try {
-      const res = await fetch(getWhatsAppFormResponsesExportUrl(id, status));
-      if (!res.ok) {
-        throw new Error('Failed to export responses');
-      }
-
-      const blob = await res.blob();
+      const blob = await exportWhatsAppFormResponses(id, status);
       const url = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;

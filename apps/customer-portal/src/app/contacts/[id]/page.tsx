@@ -18,13 +18,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
-import { Contact, fetchContacts } from '@/lib/api/contacts';
+import { Contact, fetchContactById, fetchContactFormSubmissions, fetchContacts } from '@/lib/api/contacts';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import FlashLoader from '@/components/ui/flash-loader';
-import api from '@/lib/axios';
 
 export default function ContactProfilePage() {
   const { id } = useParams();
@@ -33,7 +32,7 @@ export default function ContactProfilePage() {
   const { data: contactData, isLoading } = useQuery({
     queryKey: ['contact', id],
     queryFn: async () => {
-      const resp = await api.get(`/contacts/${id}`);
+      const resp = await fetchContactById(String(id));
       return (resp as any).data;
     },
     enabled: !!id
@@ -42,7 +41,7 @@ export default function ContactProfilePage() {
   const { data: formSubmissionData } = useQuery({
     queryKey: ['contact', id, 'form-submissions'],
     queryFn: async () => {
-      const resp = await api.get(`/contacts/${id}/form-submissions`);
+      const resp = await fetchContactFormSubmissions(String(id));
       return (resp as any).data?.data ?? [];
     },
     enabled: !!id,

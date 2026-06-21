@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { 
+  fetchCrmAnalytics,
   fetchPipelines,
   Pipeline
 } from '@/lib/api/crm';
@@ -52,7 +53,6 @@ import {
   ComposedChart
 } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '@/lib/axios';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -103,10 +103,7 @@ export default function CRMReportsPage() {
   const { data: analytics, isLoading } = useQuery({
     queryKey: ['crm-analytics', selectedPipelineId],
     queryFn: async () => {
-      const response: any = await api.get('/crm/analytics', {
-        params: { pipelineId: selectedPipelineId }
-      });
-      return response.data;
+      return fetchCrmAnalytics({ pipelineId: selectedPipelineId });
     }
   });
 

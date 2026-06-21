@@ -56,6 +56,23 @@ export const getCurrentUser = async () => {
   return api.get<any>('/auth/me');
 };
 
+export const getWorkspaces = () => api.get<any>('/auth/workspaces');
+
+export const switchWorkspace = (workspaceId: string) =>
+  api.post<any>('/auth/switch-workspace', { workspaceId });
+
+export const getPendingInvitations = () =>
+  api.get<any>('/auth/invitations/pending');
+
+export const getInvitation = (token: string, email: string) =>
+  api.get<any>(`/auth/invitation/${token}`, { params: { email } });
+
+export const acceptInvitation = (data: any) =>
+  api.post<any>('/auth/accept-invite', data);
+
+export const completeGoogleCallback = (code: string) =>
+  api.post<any>('/auth/google/callback', { code });
+
 export const sendEmailVerificationOTP = (email?: string) =>
   api.post<any>('/auth/otp/send', {
     purpose: 'email_verification',

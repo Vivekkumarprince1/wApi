@@ -98,10 +98,14 @@ export const getAnswerBotSettings = (workspaceId?: string) => api.get('/automati
 export const updateAnswerBotSettings = (workspaceId: string, data: any) => api.patch('/automation/engine/answerbot/settings', data, { params: { workspaceId } }).then((r: any) => r.data);
 export const getAnswerBotSources = (workspaceId?: string) => api.get('/automation/engine/answerbot/sources', { params: { workspaceId } }).then((r: any) => r.data);
 export const addAnswerBotSource = (workspaceId: string, data: any) => api.post('/automation/engine/answerbot/sources', data, { params: { workspaceId } }).then((r: any) => r.data);
+export const deleteAnswerBotSource = (workspaceId: string, sourceId: string) =>
+  api.delete(`/automation/engine/answerbot/sources/${sourceId}`, { params: { workspaceId } });
 export const getAnswerBotFAQs = (workspaceId?: string, params?: any) => api.get('/automation/engine/answerbot/faqs', { params: { ...params, workspaceId } }).then((r: any) => r.data);
 export const approveAnswerBotFAQs = (workspaceId: string, ids: string[]) => api.post('/automation/engine/answerbot/faqs/approve', { ids }, { params: { workspaceId } }).then((r: any) => r.data);
 export const createAnswerBotFAQ = (workspaceId: string, data: { question: string; answer: string; interactive?: any }) => api.post('/automation/engine/answerbot/faqs', data, { params: { workspaceId } }).then((r: any) => r.data);
 export const generateAnswerBotFAQs = (workspaceId: string, data: any) => api.post('/automation/engine/answerbot/faqs/generate', data, { params: { workspaceId } }).then((r: any) => r.data);
+export const updateAnswerBotFAQ = (workspaceId: string, faqId: string, data: any) =>
+  api.patch(`/automation/engine/answerbot/faqs/${faqId}`, data, { params: { workspaceId } }).then((r: any) => r.data);
 
 export const fetchAiIntents = (params?: any) => api.get('/automation/engine/ai-intent', { params }).then((r: any) => r.data);
 export const createAiIntent = (data: any) => api.post('/automation/engine/ai-intent', data).then((r: any) => r.data);
@@ -110,7 +114,9 @@ export const getAutomationStats = (params?: { ruleId?: string; days?: number }) 
 export const getAutomationLogs = (params?: { ruleId?: string; status?: string; page?: number; limit?: number }) => api.get('/automation/engine/logs', { params }).then((r: any) => r.data);
 
 export const fetchInstagramQuickflows = (params?: any) => api.get('/automation/engine/instagram-quickflows', { params }).then((r: any) => r.data);
+export const getInstagramQuickflow = (id: string) => api.get(`/automation/engine/instagram-quickflows/${id}`).then((r: any) => r.data);
 export const createInstagramQuickflow = (data: any) => api.post('/automation/engine/instagram-quickflows', data).then((r: any) => r.data);
+export const updateInstagramQuickflow = (id: string, data: any) => api.patch(`/automation/engine/instagram-quickflows/${id}`, data).then((r: any) => r.data);
 export const toggleInstagramQuickflow = (id: string) => api.patch(`/automation/engine/instagram-quickflows/${id}/toggle`).then((r: any) => r.data);
 export const deleteInstagramQuickflow = (id: string) => api.delete(`/automation/engine/instagram-quickflows/${id}`).then((r: any) => r.data);
 
@@ -138,3 +144,12 @@ export const executeRule = (ruleId: string, payload?: any) =>
 export const getWhatsAppFormResponsesExportUrl = (formId: string, status: string) =>
   `/api/v1/automation/engine/whatsapp-forms/${formId}/responses?status=${status}&format=csv`;
 
+export const exportWhatsAppFormResponses = async (formId: string, status: string) => {
+  const response = await fetch(getWhatsAppFormResponsesExportUrl(formId, status), {
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to export responses');
+  }
+  return response.blob();
+};

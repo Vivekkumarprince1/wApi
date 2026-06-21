@@ -55,7 +55,6 @@ import FlashLoader from '@/components/ui/flash-loader';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import api from '@/lib/axios';
 import { useAuthStore } from '@/store/auth-store';
 import { TaskDialog } from '@/components/dashboard/crm/TaskDialog';
 
@@ -101,7 +100,7 @@ export default function CRMTasksPage() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string, status: string }) => {
-      return await api.patch(`/crm/tasks/${id}/status`, { status });
+      return await updateTaskStatus(id, status);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-tasks'] });

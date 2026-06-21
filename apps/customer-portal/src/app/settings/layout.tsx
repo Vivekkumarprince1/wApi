@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Settings | wApi",
+  title: "Settings | ConnectSphare",
   description: "Configure your workspace and team settings.",
 };
 

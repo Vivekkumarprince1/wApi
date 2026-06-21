@@ -32,7 +32,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import api from '@/lib/axios';
+import { getCommerceSettings, saveCommerceSettings } from '@/lib/api/commerce';
 import FlashLoader from '@/components/ui/flash-loader';
 import { cn } from '@/lib/utils';
 
@@ -43,13 +43,13 @@ export default function CommerceSettingsPage() {
   const { data: settingsData, isLoading } = useQuery({
     queryKey: ['commerce-settings'],
     queryFn: async () => {
-      const resp: any = await api.get('/commerce/settings');
+      const resp: any = await getCommerceSettings();
       return resp.data;
     }
   });
 
   const updateSettings = useMutation({
-    mutationFn: (newSettings: any) => api.post('/commerce/settings', newSettings),
+    mutationFn: (newSettings: any) => saveCommerceSettings(newSettings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commerce-settings'] });
       toast.success("Commerce configuration updated successfully.");

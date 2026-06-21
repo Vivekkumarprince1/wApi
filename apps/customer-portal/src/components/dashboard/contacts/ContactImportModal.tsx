@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Upload, FileCheck, AlertCircle, Loader2, CheckCircle2, FileUp, X } from 'lucide-react';
 import { toast } from 'sonner';
-import api from '@/lib/axios';
+import { uploadCsvImport } from '@/lib/api/contacts';
 import { useQueryClient } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -106,7 +106,7 @@ export default function ContactImportModal({ isOpen, onClose }: ContactImportMod
     try {
       const csvContent = await selectedFile.text();
 
-      const response: any = await api.post('/bulk/contacts/csv-import/upload', {
+      const response: any = await uploadCsvImport({
         csvContent,
         fileName: selectedFile.name,
       });

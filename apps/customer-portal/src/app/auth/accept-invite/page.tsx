@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
-import api from '@/lib/axios';
+import { acceptInvitation, getCurrentUser, getInvitation } from '@/lib/api/auth';
 
 function AcceptInviteContent() {
   const router = useRouter();
@@ -53,7 +53,7 @@ function AcceptInviteContent() {
 
   const checkAuth = async () => {
     try {
-      const response = await api.get('/auth/me') as any;
+      const response = await getCurrentUser() as any;
       setCurrentUser(response?.success && response?.user ? response.user : (response?.user || response?.data || null));
     } catch (err) {
       setCurrentUser(null);
@@ -67,7 +67,7 @@ function AcceptInviteContent() {
   const verifyInvite = async () => {
     console.log(`[Verify] Sending request for token: ${token}, email: ${email}`);
     try {
-      const res = await api.get(`/auth/invitation/${token}?email=${encodeURIComponent(email || '')}`) as any;
+      const res = await getInvitation(token || '', email || '') as any;
       const info = res.success && res.data ? res.data : res; // handle both wrapped and unwrapped
       console.log(`[Verify] Success:`, info);
       setInviteInfo(info);
@@ -128,7 +128,7 @@ function AcceptInviteContent() {
         payload.userId = currentUser._id || currentUser.id;
       }
 
-      await api.post('/auth/accept-invite', payload);
+      await acceptInvitation(payload);
       
       setIsSuccess(true);
       toast.success(inviteInfo?.userExists ? "Joined workspace successfully!" : "Account activated!");

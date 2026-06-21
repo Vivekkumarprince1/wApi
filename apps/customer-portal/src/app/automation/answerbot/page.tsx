@@ -25,15 +25,16 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import apiClient from '@/lib/api/client';
 
 import { 
   getAnswerBotSettings, 
   updateAnswerBotSettings, 
   getAnswerBotSources, 
   addAnswerBotSource, 
+  deleteAnswerBotSource,
   getAnswerBotFAQs, 
   approveAnswerBotFAQs,
+  updateAnswerBotFAQ,
   AnswerBotSource,
   FAQ 
 } from '@/lib/api/automation';
@@ -203,7 +204,7 @@ export default function AnswerBotPage() {
                                   onClick={async () => {
                                     if (!window.confirm('Remove this knowledge source?')) return;
                                     try {
-                                      await apiClient.delete(`/automation/engine/answerbot/sources/${src._id}`, { params: { workspaceId } });
+                                      await deleteAnswerBotSource(workspaceId, src._id);
                                       toast.success('Source removed');
                                       queryClient.invalidateQueries({ queryKey: ['answerbot-sources'] });
                                     } catch (err: any) {
@@ -292,7 +293,7 @@ export default function AnswerBotPage() {
                                         { id: `btn_${Date.now()}`, title: title.trim().slice(0, 20) },
                                       ];
                                       try {
-                                        await apiClient.patch(`/automation/engine/answerbot/faqs/${faq._id}`, { interactive: { buttons } }, { params: { workspaceId } });
+                                        await updateAnswerBotFAQ(workspaceId, faq._id, { interactive: { buttons } });
                                         toast.success('Button added');
                                         queryClient.invalidateQueries({ queryKey: ['answerbot-faqs'] });
                                       } catch (err: any) {

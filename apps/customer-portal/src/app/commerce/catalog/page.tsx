@@ -39,7 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
-import api from '@/lib/axios';
+import { deleteProduct as deleteProductApi, fetchProductsList } from '@/lib/api/commerce';
 import FlashLoader from '@/components/ui/flash-loader';
 import { ProductDialog } from '@/components/dashboard/commerce/ProductDialog';
 import { cn } from '@/lib/utils';
@@ -60,7 +60,7 @@ export default function CommerceCatalogPage() {
     queryKey: ['product-stats'],
     queryFn: async () => {
       try {
-        const resp: any = await api.get('/commerce/products?stats=true');
+        const resp: any = await fetchProductsList({ stats: true });
         return resp.data || {};
       } catch (err) {
         return {};
@@ -73,11 +73,7 @@ export default function CommerceCatalogPage() {
     queryKey: ['products', page, search, category],
     queryFn: async () => {
       try {
-        const params = new URLSearchParams();
-        params.append('page', page.toString());
-        if (search) params.append('search', search);
-        if (category) params.append('category', category);
-        const resp: any = await api.get(`/commerce/products?${params.toString()}`);
+        const resp: any = await fetchProductsList({ page, search: search || undefined, category: category || undefined });
         return resp || { products: [], pagination: { total: 0, page: 1, pages: 1 } };
       } catch (err) {
         console.error("Failed to fetch products:", err);
@@ -87,7 +83,7 @@ export default function CommerceCatalogPage() {
   });
 
   const deleteProduct = useMutation({
-    mutationFn: (id: string) => api.delete(`/commerce/products/${id}`),
+    mutationFn: (id: string) => deleteProductApi(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['product-stats'] });

@@ -26,7 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import api from '@/lib/axios';
+import { getCommerceStats } from '@/lib/api/commerce';
 import FlashLoader from '@/components/ui/flash-loader';
 
 const StatCard = ({ label, value, icon: Icon, color, bg }: any) => (
@@ -57,14 +57,14 @@ export default function CommerceOverviewPage() {
     queryKey: ['commerce-stats'],
     queryFn: async () => {
       // We'll simulate some stats for now or fetch from a real endpoint if available
-      const response = await api.get<any>('/commerce/stats').catch(() => ({ data: {
+      const response = await getCommerceStats().catch(() => ({
         totalSales: 0,
         orderCount: 0,
         activeProducts: 0,
         conversionRate: 0,
         recentOrders: []
-      }}));
-      return response.data;
+      }));
+      return response;
     }
   });
 

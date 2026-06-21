@@ -8,7 +8,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 const industrySlides = [
   [
     {
-      img: 'https://images.unsplash.com/photo-1537903904737-13fc2b9e24a5?w=600&h=400&fit=crop',
+      img: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop',
       bg: 'bg-gradient-to-b from-green-25 to-green-50',
       title: 'Travel & Tourism',
       points: [
@@ -18,7 +18,7 @@ const industrySlides = [
       ],
     },
     {
-      img: 'https://images.unsplash.com/photo-1599239916253-e2cd7ccf7556?w=600&h=400&fit=crop',
+      img: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&h=400&fit=crop',
       bg: 'bg-gradient-to-b from-orange-25 to-orange-50',
       title: 'Education',
       points: [
@@ -28,7 +28,7 @@ const industrySlides = [
       ],
     },
     {
-      img: 'https://images.unsplash.com/photo-1552693520-7b9b4b0d1d92?w=600&h=400&fit=crop',
+      img: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=600&h=400&fit=crop',
       bg: 'bg-gradient-to-b from-blue-25 to-blue-50',
       title: 'Spa & Salons',
       points: [
@@ -40,7 +40,7 @@ const industrySlides = [
   ],
   [
     {
-      img: 'https://images.unsplash.com/photo-1460925895917-adf4e565e6b1?w=600&h=400&fit=crop',
+      img: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop',
       bg: 'bg-gradient-to-b from-green-25 to-green-50',
       title: 'E-commerce',
       points: [
@@ -50,7 +50,7 @@ const industrySlides = [
       ],
     },
     {
-      img: 'https://images.unsplash.com/photo-1579621970563-430f63602022?w=600&h=400&fit=crop',
+      img: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=600&h=400&fit=crop',
       bg: 'bg-gradient-to-b from-orange-25 to-orange-50',
       title: 'Banking & Finance',
       points: [
@@ -60,7 +60,7 @@ const industrySlides = [
       ],
     },
     {
-      img: 'https://images.unsplash.com/photo-1555939594-58d7cb561404?w=600&h=400&fit=crop',
+      img: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=400&fit=crop',
       bg: 'bg-gradient-to-b from-blue-25 to-blue-50',
       title: 'Restaurants & Food Businesses',
       points: [
@@ -96,7 +96,7 @@ export default function IndustrySolutions({ isDark }: { isDark: boolean }) {
           className="text-4xl sm:text-5xl font-bold mb-6 text-center px-4" 
           style={{ color: isDark ? '#fff' : '#23291f', fontFamily: 'var(--font-sans)', letterSpacing: '-0.02em' }}
         >
-          Built for any <span style={{ color: '#3ed17b' }}>Industry</span>
+          Built for any <span style={{ color: '#13C18D' }}>Industry</span>
         </motion.h2>
         <motion.p 
           initial={{ opacity: 0, y: 20 }}
@@ -126,12 +126,12 @@ export default function IndustrySolutions({ isDark }: { isDark: boolean }) {
                     background: isDark ? '#18181b' : 'rgba(255,255,255,0.90)',
                     color: isDark ? '#f3f4f6' : '#23291f',
                     boxShadow: isDark
-                      ? '0 8px 32px 0 rgba(62, 209, 123, 0.10), 0 1.5px 8px 0 rgba(62, 209, 123, 0.05), 0 0 0 1px #232323 inset'
-                      : '0 8px 32px 0 rgba(62, 209, 123, 0.10), 0 1.5px 8px 0 rgba(62, 209, 123, 0.05)',
+                      ? '0 8px 32px 0 rgba(19, 193, 141, 0.10), 0 1.5px 8px 0 rgba(19, 193, 141, 0.05), 0 0 0 1px #232323 inset'
+                      : '0 8px 32px 0 rgba(19, 193, 141, 0.10), 0 1.5px 8px 0 rgba(19, 193, 141, 0.05)',
                     border: isDark ? '1px solid #232323' : '1px solid #e5e7eb'
                   }}
                 >
-                  <div className="absolute top-4 right-4 z-20 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-[#3ed17b] to-[#2bb673] shadow-premium ring-2 ring-white/60 dark:ring-gray-900/60 transition-transform duration-300">
+                  <div className="absolute top-4 right-4 z-20 flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-[#13C18D] to-[#0e8c6c] shadow-premium ring-2 ring-white/60 dark:ring-gray-900/60 transition-transform duration-300">
                     <Sparkles className="w-5 h-5 text-white drop-shadow" />
                   </div>
                   <CardHeader className="relative z-10 p-0">
@@ -144,7 +144,7 @@ export default function IndustrySolutions({ isDark }: { isDark: boolean }) {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                     </div>
-                    <CardTitle className="text-xl md:text-2xl font-extrabold mt-6 group-hover:text-[#3ed17b] transition-colors duration-300 text-center tracking-tight"
+                    <CardTitle className="text-xl md:text-2xl font-extrabold mt-6 group-hover:text-[#13C18D] transition-colors duration-300 text-center tracking-tight"
                       style={{ color: isDark ? '#f3f4f6' : '#23291f', fontFamily: 'var(--font-sans)' }}>
                       {card.title}
                     </CardTitle>
@@ -154,7 +154,7 @@ export default function IndustrySolutions({ isDark }: { isDark: boolean }) {
                       {card.points.map((point, i) => (
                         <li key={i} className="flex items-start gap-3 group-hover:text-[#23291f] transition-colors duration-300"
                           style={{ color: isDark ? '#e5e7eb' : '#23291f' }}>
-                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#3ed17b] mt-2 flex-shrink-0 shadow-md"></span>
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-[#13C18D] mt-2 flex-shrink-0 shadow-md"></span>
                           <span className="text-base leading-relaxed font-medium" style={{ fontFamily: 'var(--font-sans)' }}>{point}</span>
                         </li>
                       ))}
@@ -171,7 +171,7 @@ export default function IndustrySolutions({ isDark }: { isDark: boolean }) {
             <button
               key={idx}
               onClick={() => setSlide(idx)}
-              className={`w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full transition-all duration-300 ${slide === idx ? 'bg-[#3ed17b] scale-125' : 'bg-gray-300 hover:bg-gray-400'}`}
+              className={`w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full transition-all duration-300 ${slide === idx ? 'bg-[#13C18D] scale-125' : 'bg-gray-300 hover:bg-gray-400'}`}
             />
           ))}
         </div>

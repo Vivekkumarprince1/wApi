@@ -409,7 +409,11 @@ app.use('/api/v1/bulk', bulkRateLimit, proxyTo(SERVICES.contact, 'contact'));
 
 // 7. Chat/Inbox Service
 app.use('/api/v1/inbox', proxyTo(SERVICES.chat, 'chat'));
-app.use('/api/v1/conversations', proxyTo(SERVICES.chat, 'chat'));
+app.use('/api/v1/conversations', proxyRewrite(
+  SERVICES.chat,
+  'chat',
+  (path) => path.replace('/api/v1/conversations', '/conversations')
+));
 app.use('/api/v1/analytics', proxyTo(SERVICES.chat, 'chat'));
 app.use('/api/v1/metrics', proxyTo(SERVICES.chat, 'chat'));
 app.use('/api/v1/support', proxyTo(SERVICES.chat, 'chat'));

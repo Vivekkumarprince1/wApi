@@ -180,12 +180,6 @@ export default function HeroSection() {
             >
               Start Free Trial →
             </button>
-            <button
-              onClick={() => router.push('#demo')}
-              className="px-8 py-4 text-lg font-bold bg-card text-foreground rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-border"
-            >
-              Watch Demo
-            </button>
           </motion.div>
 
           {/* Trust Badges */}
@@ -209,28 +203,6 @@ export default function HeroSection() {
             </div>
           </motion.div>
         </div>
-
-        {/* Hero Image/Illustration */}
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.9 }}
-          className="relative mt-12 w-full max-w-6xl"
-        >
-          <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] flex items-center justify-center">
-            <Image
-              src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=900&h=1000&fit=crop"
-              alt="WhatsApp Business Platform"
-              fill
-              className="object-contain rounded-2xl"
-              style={{
-                filter: isDark ? 'brightness(0.9) contrast(1.1)' : 'brightness(1.05)',
-                // mixBlendMode: isDark ? 'lighten' : 'normal' // Lighten can look weird sometimes
-              }}
-              priority
-            />
-          </div>
-        </motion.div>
       </div>
     </div>
   )

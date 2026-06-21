@@ -19,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import api from '@/lib/axios';
+import { getPendingInvitations } from '@/lib/api/auth';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -30,7 +30,7 @@ export function NotificationPanel() {
 
   const fetchInvitations = async () => {
     try {
-      const response = (await api.get('/auth/invitations/pending')) as any;
+      const response = (await getPendingInvitations()) as any;
       const data = response.success && response.invitations 
         ? response.invitations 
         : (response.data || response.invitations || []);

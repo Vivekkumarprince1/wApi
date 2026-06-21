@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CreditCard, DollarSign, Zap, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { apiClient } from '@/lib/api/client';
+import { rechargeWallet, verifyPayment } from '@/lib/api/billing';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface RechargeModalProps {
@@ -58,7 +58,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR' }: Rec
     setIsProcessing(true);
     try {
       // 1. Create Order
-      const orderData: any = await apiClient.post('/workspace/billing/recharge', {
+      const orderData: any = await rechargeWallet({
         amountPaise: amountNum * 100
       });
 
@@ -73,7 +73,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR' }: Rec
         handler: async function (response: any) {
           try {
             // 3. Verify Payment
-            const verifyData: any = await apiClient.post('/workspace/billing/recharge/verify', {
+            const verifyData: any = await verifyPayment({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature

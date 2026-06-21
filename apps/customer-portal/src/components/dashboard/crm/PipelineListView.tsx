@@ -31,7 +31,7 @@ import { Deal, Pipeline } from '@/lib/api/crm';
 import { format } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import api from '@/lib/api/client';
+import { updateDealStage } from '@/lib/api/crm';
 
 interface PipelineListViewProps {
   deals: Deal[];
@@ -75,7 +75,7 @@ export const PipelineListView: React.FC<PipelineListViewProps> = ({
     const wonStage = [...pipeline.stages].reverse().find((s: any) => (s as any).isFinal) || pipeline.stages[pipeline.stages.length - 1];
     if (!wonStage) return;
     try {
-      await api.patch(`/crm/deals/${deal._id}/stage`, { stageId: wonStage.id });
+      await updateDealStage(deal._id, wonStage.id);
       toast.success(`Deal moved to ${wonStage.title}`);
       queryClient.invalidateQueries({ queryKey: ['deals'] });
     } catch (err: any) {

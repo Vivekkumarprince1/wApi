@@ -41,7 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { fetchContactDeals, Deal, Pipeline } from '@/lib/api/crm';
-import apiClient from '@/lib/api/client';
+import { updateContact } from '@/lib/api/contacts';
 import { DealDialog } from '@/components/dashboard/crm/DealDialog';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -192,7 +192,7 @@ export default function ContactDetailsSidebar({
                    onClick={async () => {
                       if (!window.confirm('Block this contact? They will be opted out of all messaging.')) return;
                       try {
-                        await apiClient.patch(`/contacts/${contact._id}`, { optOut: { status: true, optedOutVia: 'manual_block' } });
+                        await updateContact(contact._id, { optOut: { status: true, optedOutVia: 'manual_block' } });
                         toast.success('Contact blocked (opted out)');
                         queryClient.invalidateQueries({ queryKey: ['contacts'] });
                       } catch (err: any) {

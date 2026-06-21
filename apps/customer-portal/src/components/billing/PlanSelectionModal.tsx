@@ -20,7 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Check, Zap, Shield, Rocket, ArrowRight, Loader2, Lock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
+import { fetchBillingPlan, selectBillingPlan, verifyBillingPlanPayment } from '@/lib/api/billing';
 import { toast } from 'sonner';
 import { formatMoneyFromMinorUnits } from '@/lib/utils';
 
@@ -56,7 +56,7 @@ export default function PlanSelectionModal({
   const { data: plans, isLoading } = useQuery({
     queryKey: ['available-plans'],
     queryFn: async () => {
-      return await apiClient.get('/workspace/billing/plan');
+      return await fetchBillingPlan();
     }
   });
 
@@ -67,7 +67,7 @@ export default function PlanSelectionModal({
     
     setIsSubmitting(plan.slug);
     try {
-      const response: any = await apiClient.post('/workspace/billing/plan', { planSlug: plan.slug });
+      const response: any = await selectBillingPlan(plan.slug);
       
       if (response.requiresPayment) {
         // Init Razorpay Checkout
@@ -81,7 +81,7 @@ export default function PlanSelectionModal({
           handler: async (resp: any) => {
             try {
               toast.loading("Verifying activation...", { id: 'plan-verify' });
-              await apiClient.post('/workspace/billing/plan/verify', {
+              await verifyBillingPlanPayment({
                 razorpay_order_id: resp.razorpay_order_id,
                 razorpay_payment_id: resp.razorpay_payment_id,
                 razorpay_signature: resp.razorpay_signature

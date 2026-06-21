@@ -211,7 +211,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
                 <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
                     <div className="flex items-center gap-2">
                         <span className="font-bold text-lg tracking-tight truncate max-w-[150px]">
-                          {workspace?.name || 'wApi'}
+                          {workspace?.name || 'ConnectSphare'}
                         </span>
                         <div title={isWabaConnected ? "WABA Connected" : "WABA Disconnected"} className={`h-2 w-2 rounded-full ${isWabaConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`} />
                     </div>

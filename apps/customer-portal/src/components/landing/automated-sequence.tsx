@@ -59,9 +59,9 @@ export default function AutomatedSequence({ isDark }: { isDark: boolean }) {
           className="flex-1 flex items-center justify-center"
         >
           <img
-            src="https://images.unsplash.com/photo-1512941691920-25bda36e892d?w=600&h=1000&fit=crop"
+            src="https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=600&h=800&fit=crop"
             alt="WhatsApp Mockup"
-            className="w-full max-w-xl rounded-2xl shadow-premium border border-[#e0f7d9]"
+            className="w-full max-w-sm md:max-w-md max-h-[450px] object-cover rounded-2xl shadow-premium border border-[#e0f7d9]"
             style={{ background: '#e0f7d9' }}
           />
         </motion.div>

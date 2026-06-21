@@ -111,9 +111,9 @@ export default function ClickToWhatsAppAds({ isDark }: { isDark: boolean }) {
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/80/20 blur-3xl"></div>
             <img
-              src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&h=900&fit=crop"
+              src="https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&h=800&fit=crop"
               alt="WhatsApp Business Ads"
-              className="relative w-full max-w-lg rounded-3xl shadow-2xl transition-all duration-300 hover:scale-105"
+              className="relative w-full max-w-sm md:max-w-md max-h-[450px] object-cover rounded-3xl shadow-2xl transition-all duration-300 hover:scale-105"
               style={{
                 background: isDark ? '#1a1a1a' : '#ffffff',
                 border: isDark ? '1px solid #333' : '1px solid #e5e7eb'

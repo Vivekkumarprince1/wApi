@@ -61,7 +61,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { toast } from 'sonner';
-import api from '@/lib/axios';
+import { fetchOrders, patchOrders, syncCommerceOrder } from '@/lib/api/commerce';
 import FlashLoader from '@/components/ui/flash-loader';
 import { formatDistanceToNow, format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -95,7 +95,7 @@ export default function CommerceOrdersPage() {
         if (status !== 'all') params.append('status', status);
         if (search) params.append('search', search);
 
-        const resp: any = await api.get(`/commerce/orders?${params.toString()}`);
+        const resp: any = await fetchOrders(Object.fromEntries(params.entries()));
         return resp || { data: [], pagination: { total: 0, page: 1, pages: 1 } };
       } catch (err) {
         console.error("[Orders Query Error]:", err);
@@ -106,7 +106,7 @@ export default function CommerceOrdersPage() {
 
   const updateStatus = useMutation({
     mutationFn: ({ orderId, status }: { orderId: string, status: string }) => 
-      api.patch('/commerce/orders', { orderId, status }),
+      patchOrders({ orderId, status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       toast.success("Order status synchronized.");
@@ -115,7 +115,7 @@ export default function CommerceOrdersPage() {
   });
 
   const syncOrderStatus = useMutation({
-    mutationFn: (orderId: string) => api.put('/commerce/orders', { orderId }),
+    mutationFn: (orderId: string) => syncCommerceOrder(orderId),
     onSuccess: (resp: any) => {
       toast.success(resp.message || "Logistics notification dispatched.");
     },

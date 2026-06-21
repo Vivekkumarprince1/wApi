@@ -7,7 +7,7 @@ const checks = [
   { method: 'GET', path: '/api/v1/inbox/bootstrap', auth: true, ok: [200, 401, 403] },
   { method: 'GET', path: '/api/v1/workspace/billing/info', auth: true, ok: [200, 401, 403, 502] },
   { method: 'GET', path: '/api/v1/campaign/segments', auth: true, ok: [200, 401, 403, 502] },
-  { method: 'GET', path: '/api/v1/automation/hub/summary', auth: true, ok: [200, 401, 403, 502] },
+  { method: 'GET', path: '/api/v1/automation/engine/hub/summary', auth: true, ok: [200, 401, 403, 502] },
   { method: 'POST', path: '/api/v1/upload/media', auth: true, ok: [400, 401, 403] }
 ];
 

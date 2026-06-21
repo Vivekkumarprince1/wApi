@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # --- Infrastructure Services ---
   mongodb:
@@ -243,11 +241,11 @@ services:
     networks:
       - wapi-network
 
-  frontend:
+  customer-portal:
     build:
       context: .
-      dockerfile: apps/frontend/Dockerfile
-    container_name: wapi-frontend
+      dockerfile: apps/customer-portal/Dockerfile
+    container_name: wapi-customer-portal
     ports:
       - "3000:3000"
     depends_on:

@@ -16,7 +16,7 @@ export const config = {
   
   // Feature Flags
   businessVerificationMandatory: process.env.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY === 'true',
-  appName: process.env.NEXT_PUBLIC_APP_NAME || 'wApi',
+  appName: process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphare',
 };
 
 export default config;

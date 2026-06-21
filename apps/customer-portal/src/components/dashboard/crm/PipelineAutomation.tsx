@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/axios';
+import { deletePipelineAutomationRule, fetchPipelineAutomation, savePipelineAutomationRule } from '@/lib/api/crm';
 import { toast } from 'sonner';
 
 interface AutomationRule {
@@ -57,14 +57,13 @@ export const PipelineAutomation: React.FC<{ pipelineId: string; stages: any[] }>
   const { data: rules = [], isLoading } = useQuery<AutomationRule[]>({
     queryKey: ['crm-automation', pipelineId],
     queryFn: async () => {
-      const res = await api.get(`/crm/automation?pipelineId=${pipelineId}`);
-      return res.data;
+      return fetchPipelineAutomation(pipelineId);
     }
   });
 
   const saveMutation = useMutation({
     mutationFn: async (rule: Partial<AutomationRule>) => {
-      return api.post('/crm/automation', { ...rule, config: { ...rule.config, pipelineId } });
+      return savePipelineAutomationRule(pipelineId, rule);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-automation'] });
@@ -74,7 +73,7 @@ export const PipelineAutomation: React.FC<{ pipelineId: string; stages: any[] }>
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      return api.delete(`/crm/automation?id=${id}`);
+      return deletePipelineAutomationRule(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['crm-automation'] });
@@ -227,4 +226,3 @@ export const PipelineAutomation: React.FC<{ pipelineId: string; stages: any[] }>
     </Card>
   );
 };
-

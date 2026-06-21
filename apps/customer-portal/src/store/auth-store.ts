@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { apiClient as api } from '@/lib/api/client';
+import { getSessionData, logoutUser } from '@/lib/api/auth';
 
 const clearAuthCookie = () => {
     if (typeof document !== 'undefined') {
@@ -126,7 +126,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         const doFetch = async () => {
             try {
-                const sessionData: any = await api.get('/auth/session');
+                const sessionData: any = await getSessionData();
 
                 if (!sessionData || !sessionData.authenticated) {
                     clearAuthCookie();
@@ -228,7 +228,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             accessRestriction: null,
             isImpersonating: false
         });
-        api.post('/auth/logout')
+        logoutUser()
             .catch(() => {})
             .finally(() => {
                 if (typeof window !== 'undefined') {
@@ -242,7 +242,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // operator an impersonated auth_token for the customer app. Terminating it
         // here just clears that session and returns the operator to the admin portal.
         try {
-            await api.post('/auth/logout').catch(() => {});
+            await logoutUser().catch(() => {});
         } finally {
             clearAuthCookie();
             set({

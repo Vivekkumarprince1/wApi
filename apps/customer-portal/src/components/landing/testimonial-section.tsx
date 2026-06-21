@@ -22,7 +22,7 @@ export default function TestimonialSection({ isDark }: { isDark: boolean }) {
           </div>
         </div>
         <div className="flex-1 flex justify-center items-center">
-          <img src="https://images.unsplash.com/photo-1565958011057-06d4a8ff0b58?w=600&h=600&fit=crop" alt="Bombay Sweet Shop" className="object-contain w-[420px] h-[420px] md:w-[520px] md:h-[520px] rounded-2xl" />
+          <img src="https://images.unsplash.com/photo-1587314168485-3236d6710814?w=600&h=600&fit=crop" alt="Bombay Sweet Shop" className="object-contain w-[420px] h-[420px] md:w-[520px] md:h-[520px] rounded-2xl" />
         </div>
       </div>
       <div className="w-full max-w-5xl mt-4 sm:mt-6 flex flex-col sm:flex-row gap-4 sm:gap-6 md:gap-8 justify-center items-center px-4">

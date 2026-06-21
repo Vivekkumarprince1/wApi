@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import apiClient from '@/lib/api/client';
+import { createInstagramQuickflow, getInstagramQuickflow, updateInstagramQuickflow } from '@/lib/api/automation';
 
 const PRESETS: Record<string, { name: string; type: string; triggerType: string; keywords: string[]; message: string }> = {
   price_please: {
@@ -81,7 +81,7 @@ function QuickflowEditor() {
     if (!editId) return;
     (async () => {
       try {
-        const res: any = await apiClient.get(`/automation/engine/instagram-quickflows/${editId}`);
+        const res: any = await getInstagramQuickflow(editId);
         const qf = res?.data;
         if (qf) {
           setForm({
@@ -117,10 +117,10 @@ function QuickflowEditor() {
     };
     try {
       if (editId) {
-        await apiClient.patch(`/automation/engine/instagram-quickflows/${editId}`, payload);
+        await updateInstagramQuickflow(editId, payload);
         toast.success('QuickFlow updated');
       } else {
-        await apiClient.post('/automation/engine/instagram-quickflows', payload);
+        await createInstagramQuickflow(payload);
         toast.success('QuickFlow created');
       }
       router.push('/automation/instagram-quickflows');

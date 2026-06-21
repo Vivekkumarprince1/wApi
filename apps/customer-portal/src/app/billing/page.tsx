@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { fetchBillingInfo, getInvoiceDownloadUrl } from '@/lib/api/billing';
-import { apiClient } from '@/lib/api/client';
+import { createPaymentMethodVerification, fetchBillingInfo, getInvoiceDownloadUrl, updateBillingSettings, verifyPaymentMethod } from '@/lib/api/billing';
 import { toast } from 'sonner';
 import FlashLoader from '@/components/ui/flash-loader';
 import { useAuthStore } from '@/store/auth-store';
@@ -52,7 +51,7 @@ export default function BillingPage() {
     setIsAddingPaymentMethod(true);
     try {
       // 1. Create Verification Order (₹1)
-      const orderData: any = await apiClient.post('/workspace/billing/payment-method', {});
+      const orderData: any = await createPaymentMethodVerification();
 
       // 2. Open Razorpay Checkout
       const options = {
@@ -65,7 +64,7 @@ export default function BillingPage() {
         handler: async function (response: any) {
           try {
             // 3. Verify & Save
-            await apiClient.post('/workspace/billing/payment-method/verify', {
+            await verifyPaymentMethod({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature
@@ -334,7 +333,7 @@ export default function BillingPage() {
                                     className="rounded-xl h-8 text-[10px] font-black uppercase tracking-widest"
                                     onClick={async () => {
                                         try {
-                                            await apiClient.patch('/workspace/billing/settings', { autoPay: !subscription.autoPay });
+                                            await updateBillingSettings({ autoPay: !subscription.autoPay });
                                             toast.success(`Autopay ${!subscription.autoPay ? 'enabled' : 'disabled'}`);
                                             refetch();
                                         } catch (err) {
@@ -365,7 +364,7 @@ export default function BillingPage() {
                                 onBlur={async (e) => {
                                     if (e.target.value === (subscription.taxId || '')) return;
                                     try {
-                                        await apiClient.patch('/workspace/billing/settings', { taxId: e.target.value });
+                                        await updateBillingSettings({ taxId: e.target.value });
                                         toast.success("Tax ID updated successfully");
                                         refetch();
                                     } catch (err) {

@@ -22,7 +22,7 @@ import {
   DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { Button } from '@/components/ui/button';
-import api from '@/lib/api/client';
+import { getWorkspaces, switchWorkspace } from '@/lib/api/auth';
 import { toast } from 'sonner';
 
 interface Workspace {
@@ -46,7 +46,7 @@ export function WorkspaceSwitcher() {
 
   const fetchWorkspaces = async () => {
     try {
-      const response = await api.get('/auth/workspaces') as any;
+      const response = await getWorkspaces() as any;
       setWorkspaces(response.workspaces || []);
     } catch (error) {
       console.error("Failed to fetch workspaces", error);
@@ -61,7 +61,7 @@ export function WorkspaceSwitcher() {
     
     setIsSwitching(true);
     try {
-      await api.post('/auth/switch-workspace', { workspaceId });
+      await switchWorkspace(workspaceId);
       toast.success("Switched workspace successfully");
       window.location.reload();
     } catch (error: any) {
@@ -151,4 +151,3 @@ export function WorkspaceSwitcher() {
     </div>
   );
 }
-

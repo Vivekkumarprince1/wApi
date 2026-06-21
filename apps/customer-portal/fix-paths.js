@@ -8,7 +8,7 @@ function walk(dir, callback) {
     isDirectory ? walk(dirPath, callback) : callback(path.join(dir, f));
   });
 }
-walk('../frontend/src', (filepath) => {
+walk('./src', (filepath) => {
   if (filepath.endsWith('.tsx') || filepath.endsWith('.ts')) {
     let content = fs.readFileSync(filepath, 'utf8');
     let updated = content.replace(/(['"`])\/dashboard(['"`])/g, '$1/$2');

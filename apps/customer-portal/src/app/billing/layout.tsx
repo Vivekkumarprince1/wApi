@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Billing | wApi",
+  title: "Billing | ConnectSphare",
   description: "Wallet, invoices, plans, and payment methods.",
 };
 

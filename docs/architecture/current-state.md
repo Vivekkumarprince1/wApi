@@ -7,13 +7,13 @@
 
 ## 1. Monorepo Structure
 
-A monorepo with **no root `package.json`** — each service/app installs its own dependencies, and `@wapi/contracts` is linked by relative `file:` path. (Source: `CLAUDE.md`; absence verified by `ls` of repo root showing only `apps/`, `services/`, `packages/`, `wapi-runner.js`.)
+A monorepo with **no root `package.json`** — each service/app installs its own dependencies, and `@wapi/contracts` is linked by relative `file:` path. (Source: `CLAUDE.md`; absence verified by `ls` of repo root.)
 
 ```
 wApi/
 ├── apps/
 │   ├── admin-portal/      Next 16 + React 19 — Super Admin Platform (port 3100)
-│   └── frontend/          Next 16 + React 19 — customer app (port 3000)
+│   └── customer-portal/   Next 16 + React 19 — customer app (port 3000)
 ├── packages/
 │   └── contracts/         @wapi/contracts — shared types, DTOs, Kafka/Socket event payloads
 ├── services/
@@ -27,7 +27,7 @@ wApi/
 │   ├── service-provider/  NestJS (3004) — BSP/Gupshup lifecycle, templates, webhooks, dispatch
 │   ├── webhook-ingestor/  Fastify (3013) — inbound BSP webhook edge → Kafka
 │   └── websocket-gateway/ Express + socket.io (3009) — realtime fan-out
-└── wapi-runner.js         dev orchestrator (spawns all 12 processes)
+└── docker-compose.yml     local compose stack for services, infra, and portals
 ```
 
 > **\*Port ambiguity (documented defect).** The gateway proxies automation to `http://localhost:3005` (`services/api-gateway/src/index.ts:138`) and chat-service triggers automation at `AUTOMATION_SERVICE_URL || 'http://localhost:3005'` (`services/chat-service/src/services/kafkaService.ts:242`), but `CLAUDE.md` documents automation-service on **3001**. The automation service's own `dev` script (`services/automation-service/package.json`) has no `tsx`/`node` prefix (`"dev": "src/index.ts"`) — it is malformed and would not start as written. These must be reconciled.
@@ -132,9 +132,9 @@ The **API Gateway** (`services/api-gateway/src/index.ts`) is the single ingress 
 
 ## 4. Runtime Architecture
 
-There is **no container/orchestration layer**. The only process manager is `wapi-runner.js`, a development orchestrator that `spawn`s all 12 processes in a detached process group, routes their stdout/stderr with colored prefixes, auto-restarts crashed children after 3s, and exposes an interactive console (`status`, `restart`, `stop`, `start`, `log`, `logs`) (`wapi-runner.js:6-18, 44-117, 182-316`).
+There is a committed Docker Compose dev stack for MongoDB, Redis, the backend services, admin portal, and customer portal (`docker-compose.yml`). Individual services/apps can also be run directly with their local `npm run dev` scripts. No `wapi-runner.js` is currently committed.
 
-Memory is a first-class constraint: every `dev`/`build` script sets `NODE_OPTIONS=--max-old-space-size=2048..4096` because the target dev box is 8 GB and all 12 processes run in parallel (`CLAUDE.md` "Memory constraints"; visible in each `package.json`).
+Memory is a first-class constraint: most `dev`/`build` scripts set `NODE_OPTIONS=--max-old-space-size=2048..4096` because the target dev box is 8 GB and many services may run together (`CLAUDE.md` "Memory constraints"; visible in service/app `package.json` files).
 
 Each service:
 - Loads `.env` via `dotenv` at boot.
@@ -198,17 +198,16 @@ Browser ──(auth_token cookie / Bearer)──▶ api-gateway
 
 ## 8. Deployment Architecture
 
-**There is none committed.** Verified absence (find across repo, excluding `node_modules`/`dist`/`.next`):
-- ❌ No `Dockerfile` anywhere.
-- ❌ No `docker-compose.yml`.
+**Local containerization is committed.** Verified from repo files:
+- ✅ `docker-compose.yml` for local infra, backend services, admin portal, and customer portal.
+- ✅ Dockerfiles for services and portals.
 - ❌ No Kubernetes manifests / Helm charts.
-- ❌ No `.github/workflows` or any CI/CD config.
 - ❌ No Terraform / Azure / cloud IaC.
-- ✅ Only `wapi-runner.js` (a dev process manager) and `.env`/`.env.example` per service.
+- ✅ `.env`/`.env.example` per service.
 
 (Source: `find` sweep; `.gitignore` confirms `.env` is git-ignored, and `dist`/`.next`/`node_modules` excluded.)
 
-**Implication:** the platform is currently a **developer-laptop deployment**. Production hosting, scaling, secret distribution, MongoDB/Redis/Kafka provisioning, TLS, and ingress are all undefined in-repo. This is the single largest gap to "enterprise-grade SaaS."
+**Implication:** the platform has a local Docker development stack, but production hosting, scaling, secret distribution, managed MongoDB/Redis/Kafka provisioning, TLS, and ingress are still undefined in-repo.
 
 ---
 
@@ -254,7 +253,7 @@ Browser ──(auth_token cookie / Bearer)──▶ api-gateway
 
 ## 12. Scalability Limitations
 
-1. **No horizontal-scale story.** No container images, no orchestration, no load balancer, no service discovery — services find each other by hardcoded `localhost:PORT` env defaults (`api-gateway/src/index.ts:133-143`). Scaling beyond one box is undefined.
+1. **No production horizontal-scale story.** Dockerfiles and Compose exist for local use, but there is no Kubernetes/Helm/IaC, load balancer, production service discovery, or ingress definition. Services still default to hardcoded `localhost:PORT` env values outside Compose (`api-gateway/src/index.ts:133-143`).
 2. **Shared-but-divergent database.** Service code defaults to *different* databases (`wapi`, `wapi_billing`, `wa_campaigns`, `wapi_automation`, `wapi_bsp`) yet cross-service entities (Workspace, Contact, Message, Plan) are **redefined locally in each service** (`auth-service/models/index.ts`, `campaign-service/models/Workspace.ts`, `billing-service/models/index.ts` `MinimalWorkspaceSchema`, `chat-service` Contact). Whether they collapse to one DB or shard is purely an env decision — there is no enforced ownership. This blocks independent scaling and risks schema drift. (See `database-analysis.md`.)
 3. **Gateway is a single point of routing** with order-sensitive, hand-maintained rules and a per-instance rate limiter and per-request auth fan-out (B1, B5).
 4. **Stateful in-process workers.** Campaign pacing and the answerbot crawl queue live inside service processes; restart loses in-flight pacing (`CampaignWorker.ts`, `automation-service/src/services/answerbot-crawl-queue.ts`).
@@ -268,7 +267,7 @@ Browser ──(auth_token cookie / Bearer)──▶ api-gateway
 
 | Conclusion | Primary source(s) |
 |---|---|
-| 12 deployables, ports, frameworks | `wapi-runner.js:6-18`, all `services/*/package.json` |
+| 12 deployables, ports, frameworks | `docker-compose.yml`, all `services/*/package.json`, app `package.json` files |
 | Gateway routing & auth fan-out | `services/api-gateway/src/index.ts` |
 | Kafka topic topology | `packages/contracts/src/kafka-events.ts`, grep of `.subscribe`/`send(topic)` |
 | Inbound message pipeline | `webhook-ingestor/src/index.ts`, `service-provider/.../webhooks.service.ts`, `chat-service/.../kafkaService.ts` |

@@ -24,7 +24,7 @@ const inter = { variable: "font-inter" };
 const manrope = { variable: "font-manrope" };
 
 export const metadata: Metadata = {
-  title: "wApi - WhatsApp CRM & Engagement Platform",
+  title: "ConnectSphare - WhatsApp CRM & Engagement Platform",
   description: "High-performance WhatsApp Business API platform for CRM, Marketing, and Automation.",
 };
 

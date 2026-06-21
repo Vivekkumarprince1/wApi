@@ -38,7 +38,7 @@ import {
    Pie,
    Cell,
 } from 'recharts';
-import client from '@/lib/api/client';
+import { getAdvancedChatAnalytics } from '@/lib/api/analytics';
 import { toast } from 'sonner';
 
 type Kpis = {
@@ -121,8 +121,7 @@ export default function AdvancedAnalyticsPage() {
       const loadAdvancedAnalytics = async () => {
          try {
             setLoading(true);
-            const response: any = await client.get(`/analytics/chat/advanced?days=${dateRange}`);
-            const payload = response?.data || {};
+            const payload = await getAdvancedChatAnalytics(dateRange) || {};
 
             setKpis(payload?.kpis || EMPTY_KPIS);
             setMessageVolume(payload?.messageVolume || []);

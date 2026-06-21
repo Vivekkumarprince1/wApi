@@ -105,7 +105,7 @@ When requests hit the API Gateway, they go through several operations before pro
 | `/api/v1/crm` | `contact-service` | `3007` | No rewriting |
 | `/api/v1/bulk` | `contact-service` | `3007` | No rewriting |
 | `/api/v1/inbox` | `chat-service` | `3008` | No rewriting |
-| `/api/v1/conversations` | `chat-service` | `3008` | No rewriting |
+| `/api/v1/conversations` | `chat-service` | `3008` | `/api/v1/conversations` → `/conversations` |
 | `/api/v1/analytics` | `chat-service` | `3008` | No rewriting |
 | `/api/v1/metrics` | `chat-service` | `3008` | No rewriting |
 | `/api/v1/support` | `chat-service` | `3008` | No rewriting |

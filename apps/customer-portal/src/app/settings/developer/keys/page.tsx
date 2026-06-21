@@ -29,7 +29,7 @@ import {
   ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
-import api from '@/lib/api/client';
+import { createDeveloperKey, deleteDeveloperKey, getDeveloperKeys } from '@/lib/api/settings';
 
 export default function DeveloperKeysPage() {
   const [keys, setKeys] = useState<any[]>([]);
@@ -40,7 +40,7 @@ export default function DeveloperKeysPage() {
 
   const loadKeys = async () => {
     try {
-      const res: any = await api.get('/developer/keys');
+      const res: any = await getDeveloperKeys();
       setKeys(res?.data || []);
     } catch {
       toast.error('Failed to load API keys');
@@ -55,7 +55,7 @@ export default function DeveloperKeysPage() {
     const name = window.prompt('Name for the new API key:', 'New API Key');
     if (name === null) return;
     try {
-      const res: any = await api.post('/developer/keys', { name: name || 'New API Key' });
+      const res: any = await createDeveloperKey(name || 'New API Key');
       const created = res?.data;
       if (created?.key) {
         setRevealedKeys(prev => ({ ...prev, [created.id || created.key]: created.key }));
@@ -71,7 +71,7 @@ export default function DeveloperKeysPage() {
   const handleRevokeKey = async (id: string) => {
     if (!window.confirm('Revoke this API key? Integrations using it will stop working immediately.')) return;
     try {
-      await api.delete(`/developer/keys/${id}`);
+      await deleteDeveloperKey(id);
       toast.success('API key revoked');
       await loadKeys();
     } catch (err: any) {

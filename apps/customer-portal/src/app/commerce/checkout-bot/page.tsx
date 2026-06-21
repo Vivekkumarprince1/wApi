@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import api from '@/lib/axios';
+import { getCheckoutBotStats, getCommerceSettings, saveCommerceSettings } from '@/lib/api/commerce';
 import FlashLoader from '@/components/ui/flash-loader';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,7 +41,7 @@ export default function CheckoutBotPage() {
   const { data: statsData, isLoading: statsLoading } = useQuery({
     queryKey: ['checkout-bot-stats'],
     queryFn: async () => {
-      const resp: any = await api.get('/commerce/checkout-bot/stats');
+      const resp: any = await getCheckoutBotStats();
       return resp.data;
     }
   });
@@ -50,13 +50,13 @@ export default function CheckoutBotPage() {
   const { data: settingsData, isLoading: settingsLoading } = useQuery({
     queryKey: ['commerce-settings'],
     queryFn: async () => {
-      const resp: any = await api.get('/commerce/settings');
+      const resp: any = await getCommerceSettings();
       return resp.data;
     }
   });
 
   const updateSettings = useMutation({
-    mutationFn: (newSettings: any) => api.post('/commerce/settings', newSettings),
+    mutationFn: (newSettings: any) => saveCommerceSettings(newSettings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commerce-settings'] });
       toast.success("Bot configuration updated.");

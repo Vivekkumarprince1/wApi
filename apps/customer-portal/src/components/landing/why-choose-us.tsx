@@ -43,7 +43,7 @@ export default function WhyChooseUs({ isDark }: { isDark: boolean }) {
   return (
     <section className="w-full bg-white dark:bg-black py-8 sm:py-12 md:py-16 flex flex-col items-center relative overflow-hidden" style={{ backgroundColor: isDark ? '#000' : '#fff' }}>
       <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-[#CCFF00]/15 to-transparent rounded-full blur-3xl" style={{ animation: 'bounce 4s infinite' }}></div>
+      <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl" style={{ animation: 'bounce 4s infinite' }}></div>
 
       <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-2 sm:mb-3 text-foreground px-4 relative z-10" style={{ letterSpacing: '-0.02em' }}>More reasons to <span className="text-primary">choose</span> {appName}</h2>
       <p className="text-sm sm:text-base md:text-lg text-muted-foreground dark:text-foreground mb-8 sm:mb-10 md:mb-12 font-medium tracking-wide px-4 relative z-10">Why businesses love us</p>
@@ -61,7 +61,7 @@ export default function WhyChooseUs({ isDark }: { isDark: boolean }) {
           >
             <div className="absolute inset-0 bg-gradient-to-br from-white via-gray-50/50 to-white dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
 
-            <div className="absolute top-2 right-2 w-20 h-20 bg-gradient-to-br from-primary/20 to-[#CCFF00]/15 rounded-full -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-700 animate-pulse"></div>
+            <div className="absolute top-2 right-2 w-20 h-20 bg-gradient-to-br from-primary/20 to-primary/5 rounded-full -translate-y-10 translate-x-10 group-hover:scale-150 transition-transform duration-700 animate-pulse"></div>
             
             <div className="relative z-10 mb-3 sm:mb-4 flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/15 to-primary/10 shadow-2xl group-hover:shadow-3xl transition-all duration-500 group-hover:scale-110 border border-primary/20">
               <reason.icon className="w-6 h-6 sm:w-7 sm:h-7 text-primary group-hover:text-primary/80 transition-colors duration-300 drop-shadow-sm" />
@@ -76,7 +76,7 @@ export default function WhyChooseUs({ isDark }: { isDark: boolean }) {
               </p>
             </div>
 
-            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary via-[#CCFF00] to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-b-3xl"></div>
+            <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#13C18D] via-[#3ed17b] to-[#0e8c6c] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-b-3xl"></div>
           </motion.div>
         ))}
       </div>

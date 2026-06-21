@@ -11,7 +11,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import api from '@/lib/axios';
+import { uploadMedia } from '@/lib/api/inbox';
 import { toast } from 'sonner';
 
 interface ImageUploadProps {
@@ -36,20 +36,12 @@ export function ImageUpload({ onUpload, folder = 'commerce/products', className 
     setProgress(10);
     
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('folder', folder);
-
       // We'll simulate progress since standard fetch/axios doesn't give us easy progress without config
       const interval = setInterval(() => {
         setProgress(prev => (prev < 90 ? prev + 10 : prev));
       }, 200);
 
-      const data: any = await api.post('/upload/media', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        }
-      });
+      const data: any = await uploadMedia(file, folder);
 
       clearInterval(interval);
       setProgress(100);

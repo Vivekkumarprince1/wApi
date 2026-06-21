@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/axios";
 import { 
   Search, 
   Filter, 
@@ -21,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 
-import { getCampaignExportUrl } from "@/lib/api/campaigns";
+import { fetchCampaignMessages, getCampaignExportUrl } from "@/lib/api/campaigns";
 
 interface CampaignRecipientTableProps {
   campaignId: string;
@@ -51,9 +50,7 @@ export function CampaignRecipientTable({ campaignId, externalStatus, onStatusCha
   const { data, isLoading, isError } = useQuery({
     queryKey: ['campaign-messages', campaignId, page, status, search],
     queryFn: async () => {
-      const response: any = await api.get(`/campaigns/${campaignId}/messages`, {
-        params: { page, limit: 10, status, search }
-      });
+      const response: any = await fetchCampaignMessages(campaignId, { page, limit: 10, status, search });
       return response; // internal api returns response.data
     },
     refetchInterval: 10000 // Poll every 10s

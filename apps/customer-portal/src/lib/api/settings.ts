@@ -35,6 +35,9 @@ export const deleteTag = (id: string) => api.delete<any>(`/workspace/tags/${id}`
 // Developer Settings — owned by automation-service (gateway /api/v1/developer)
 export const getDeveloperSettings = () => api.get<any>('/developer/settings').then(unwrapData);
 export const updateDeveloperSettings = (data: any) => api.patch<any>('/developer/settings', data);
+export const getDeveloperKeys = () => api.get<any>('/developer/keys').then(unwrapData);
+export const createDeveloperKey = (name: string) => api.post<any>('/developer/keys', { name });
+export const deleteDeveloperKey = (id: string) => api.delete<any>(`/developer/keys/${id}`);
 
 // Roles & Permissions
 export const getRoles = () => api.get<any>('/workspace/roles').then(unwrapData);
@@ -91,4 +94,3 @@ export const updateInboxSettings = (data: any) =>
 
 export const searchTeamMembers = (email: string) =>
   api.get<any>(`/workspace/team/search`, { params: { email } });
-

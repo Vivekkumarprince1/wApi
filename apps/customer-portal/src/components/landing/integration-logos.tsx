@@ -8,12 +8,12 @@ export default function IntegrationLogos({ isDark }: { isDark: boolean }) {
   const [activeButton, setActiveButton] = useState<string | null>(null);
 
   const logos = [
-    { src: 'https://cdn.worldvectorlogo.com/logos/facebook-3.svg', alt: 'Facebook Ads' },
-    { src: 'https://cdn.worldvectorlogo.com/logos/google-sheets-1.svg', alt: 'Google Sheets' },
-    { src: 'https://cdn.worldvectorlogo.com/logos/woocommerce.svg', alt: 'WooCommerce' },
-    { src: 'https://cdn.worldvectorlogo.com/logos/shopify.svg', alt: 'Shopify' },
-    { src: 'https://cdn.worldvectorlogo.com/logos/zoho.svg', alt: 'Zoho CRM' },
-    { src: 'https://cdn.worldvectorlogo.com/logos/pabbly.svg', alt: 'Pabbly' }
+    { src: 'https://cdn.simpleicons.org/facebook/1877F2', alt: 'Facebook Ads' },
+    { src: 'https://cdn.simpleicons.org/googlesheets/34A853', alt: 'Google Sheets' },
+    { src: 'https://cdn.simpleicons.org/woocommerce/963061', alt: 'WooCommerce' },
+    { src: 'https://cdn.simpleicons.org/shopify/7AB55C', alt: 'Shopify' },
+    { src: 'https://cdn.simpleicons.org/zoho/00529A', alt: 'Zoho CRM' },
+    { src: 'https://cdn.simpleicons.org/zapier/FF4F00', alt: 'Zapier' }
   ];
 
   return (
@@ -31,10 +31,7 @@ export default function IntegrationLogos({ isDark }: { isDark: boolean }) {
           setActiveButton('platforms');
           router.push('/auth/register');
         }}
-        className={`font-bold px-6 sm:px-8 py-3 sm:py-4 rounded-xl text-sm sm:text-base md:text-lg shadow-premium transition-all duration-500 transform ${activeButton === 'platforms'
-          ? 'bg-[#CCFF00] text-black scale-105 shadow-2xl'
-          : 'bg-[#CCFF00] text-black hover:bg-[#BFFF00] hover:shadow-2xl hover:scale-110 hover:-translate-y-1'
-          }`}
+        className="font-bold px-8 py-4 rounded-xl text-sm sm:text-base md:text-lg shadow-premium transition-all duration-500 transform bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] text-white hover:shadow-2xl hover:scale-105 hover:-translate-y-1"
       >
         Get Started With Free Trial
       </button>

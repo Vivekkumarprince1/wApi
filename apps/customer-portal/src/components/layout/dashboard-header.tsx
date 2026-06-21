@@ -126,7 +126,7 @@ export function DashboardHeader() {
         <Breadcrumb className="hidden md:flex">
           <BreadcrumbList>
             {/* <BreadcrumbItem>
-              <BreadcrumbLink href="/" className="text-muted-foreground/60 hover:text-primary transition-colors">wApi</BreadcrumbLink>
+            <BreadcrumbLink href="/" className="text-muted-foreground/60 hover:text-primary transition-colors">ConnectSphare</BreadcrumbLink>
             </BreadcrumbItem> */}
             {breadcrumbs.map((crumb, i) => (
               <React.Fragment key={crumb.url}>
@@ -198,7 +198,7 @@ export function DashboardHeader() {
           {(isLowBalance || isCriticalBalance || isZeroBalance) && (
             <div className="ml-1 h-2 w-2 rounded-full bg-current animate-pulse shrink-0" />
           )}
-        </div>
+        </Link>
 
         {/* Notifications */}
         <NotificationPanel />

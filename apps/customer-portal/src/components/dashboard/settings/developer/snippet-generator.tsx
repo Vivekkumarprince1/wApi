@@ -18,7 +18,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { fetchTemplates, Template } from '@/lib/api/templates';
-import api from '@/lib/axios';
+import { getDeveloperKeys } from '@/lib/api/settings';
 
 interface ApiKey {
   id: string;
@@ -42,7 +42,7 @@ export function SnippetGenerator() {
         
         const [tplRes, keysRes] = await Promise.allSettled([
           fetchTemplates({ status: 'APPROVED' }),
-          api.get('/developer/keys')
+          getDeveloperKeys()
         ]);
 
         if (tplRes.status === 'fulfilled') {

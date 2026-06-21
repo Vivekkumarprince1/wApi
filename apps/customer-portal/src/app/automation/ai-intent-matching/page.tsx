@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Brain, Plus, Search, Sparkles, Target, Zap, Trash2, ToggleLeft, ToggleRight, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api/client';
+import { createAiIntent, deleteRule, fetchAiIntents, toggleRule } from '@/lib/api/automation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -26,11 +26,10 @@ interface IntentRule {
 // ---------------------------------------------------------------------------
 // API helpers
 // ---------------------------------------------------------------------------
-const fetchIntents = () => api.get('/automation/engine/ai-intent').then((r: any) => r.data);
-const createIntent = (data: any) => api.post('/automation/engine/ai-intent', data).then((r: any) => r.data);
-const toggleIntent = (id: string, enabled: boolean) =>
-  api.patch(`/automation/engine/rules/${id}/toggle`, { enabled }).then((r: any) => r.data);
-const deleteIntent = (id: string) => api.delete(`/automation/engine/rules/${id}`).then((r: any) => r.data);
+const fetchIntents = fetchAiIntents;
+const createIntent = createAiIntent;
+const toggleIntent = toggleRule;
+const deleteIntent = deleteRule;
 
 // ---------------------------------------------------------------------------
 // Page

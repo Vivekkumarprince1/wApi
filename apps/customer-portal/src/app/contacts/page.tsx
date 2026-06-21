@@ -38,8 +38,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import { fetchContacts, Contact, deleteContact } from '@/lib/api/contacts';
-import api from '@/lib/api/client';
+import { bulkDeleteContacts, bulkTagContacts, deleteContact, fetchContacts, Contact, getContactsExportUrl } from '@/lib/api/contacts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -156,7 +155,7 @@ export default function ContactsPage() {
   const handleExport = () => {
     const params = new URLSearchParams();
     if (search) params.set('search', search);
-    window.open(`/api/v1/bulk/contacts/export${params.size ? `?${params}` : ''}`, '_blank');
+    window.open(getContactsExportUrl(params), '_blank');
   };
 
   const handleBulkTag = async () => {
@@ -167,7 +166,7 @@ export default function ContactsPage() {
     const tag = window.prompt(`Tag to apply to ${selectedIds.length} contact(s):`);
     if (!tag?.trim()) return;
     try {
-      const res: any = await api.post('/bulk/contacts/tag', { contactIds: selectedIds, tags: [tag.trim()] });
+      const res: any = await bulkTagContacts(selectedIds, [tag.trim()]);
       toast.success(`Tagged ${res?.updated ?? selectedIds.length} contact(s)`);
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
     } catch (err: any) {
@@ -187,7 +186,7 @@ export default function ContactsPage() {
     }
     if (!window.confirm(`Delete ${selectedIds.length} contact(s)? This cannot be undone.`)) return;
     try {
-      const res: any = await api.post('/bulk/contacts/delete', { contactIds: selectedIds });
+      const res: any = await bulkDeleteContacts(selectedIds);
       toast.success(`Deleted ${res?.deleted ?? selectedIds.length} contact(s)`);
       setSelectedIds([]);
       queryClient.invalidateQueries({ queryKey: ['contacts'] });

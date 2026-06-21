@@ -31,7 +31,7 @@ admin-portal   (Next 16, :3100) ──┤  writes w/ secret ───┤
 - `JWT_SECRET`/`INTERNAL_SERVICE_SECRET` are dev defaults; ws-gateway and billing enforce non-default secrets in production (`NODE_ENV=production` guards) — keep that pattern.
 - websocket-gateway `.env` lacks `INTERNAL_SERVICE_SECRET` (it doesn't currently need it — JWT-only handshake).
 - `super-admin/billing/reconcile` has no backend implementation (admin UI button will 404 cleanly through the new routing).
-- CLAUDE.md says `apps/frontend`; the directory is `apps/customer-portal`.
+- Customer portal paths should use `apps/customer-portal`; older `apps/frontend` references were stale.
 
 ## Reports in this audit
 ROUTE_MISMATCH_REPORT.md · FRONTEND_BACKEND_CONTRACT_REPORT.md · API_AUDIT_REPORT.md · MICROSERVICE_HEALTH_REPORT.md · WEBSOCKET_REPORT.md · ERROR_REPORT.md · FIXES_APPLIED.md · TEST_REPORT.md

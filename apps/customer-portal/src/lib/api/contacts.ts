@@ -24,6 +24,10 @@ export const fetchContactById = (id: string) => api.get<any>(`/contacts/${id}`);
 export const createContact = (data: any) => api.post<any>('/contacts', data);
 export const updateContact = (id: string, data: any) => api.patch<any>(`/contacts/${id}`, data);
 export const deleteContact = (id: string) => api.delete<any>(`/contacts/${id}`);
+export const fetchContactFormSubmissions = (id: string) =>
+  api.get<any>(`/contacts/${id}/form-submissions`);
+export const sendTemplateToContact = (contactId: string, data: any) =>
+  api.post<any>(`/contacts/${contactId}/send-template`, data);
 
 /** Segments are served by the campaign microservice via main-server proxy */
 export const getSegments = () =>
@@ -34,6 +38,12 @@ export const deleteSegment = (id: string) => api.delete<any>(`/campaign/segments
 export const fetchTags = () => api.get<any>('/workspace/tags').then(unwrap);
 
 export const importContacts = (data: any) => api.post('/bulk/contacts/import', data);
+export const bulkTagContacts = (contactIds: string[], tags: string[]) =>
+  api.post<any>('/bulk/contacts/tag', { contactIds, tags });
+export const bulkDeleteContacts = (contactIds: string[]) =>
+  api.post<any>('/bulk/contacts/delete', { contactIds });
+export const getContactsExportUrl = (params?: URLSearchParams) =>
+  `/api/v1/bulk/contacts/export${params?.size ? `?${params}` : ''}`;
 
 export const getCsvImportProgress = (jobId: string) =>
   api.get<any>(`/bulk/contacts/csv-import/${jobId}/progress`);
@@ -43,4 +53,3 @@ export const uploadCsvImport = (data: { csvContent: string; fileName: string }) 
 
 export const cancelCsvImport = (jobId: string) =>
   api.delete<any>(`/bulk/contacts/csv-import/${jobId}/cancel`);
-

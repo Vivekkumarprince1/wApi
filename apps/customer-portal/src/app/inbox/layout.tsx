@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Shared Inbox | wApi",
+  title: "Shared Inbox | ConnectSphare",
   description: "Real-time WhatsApp shared inbox for your team.",
 };
 

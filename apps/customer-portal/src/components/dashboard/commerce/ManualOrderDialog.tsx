@@ -26,7 +26,7 @@ import {
   Box
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/axios';
+import { createOrder as createCommerceOrder, fetchProductsList, getCommerceSettings } from '@/lib/api/commerce';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -56,7 +56,7 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
   const { data: productsData } = useQuery({
     queryKey: ['products-search', search],
     queryFn: async () => {
-      const resp: any = await api.get(`/commerce/products?search=${search}&limit=10`);
+      const resp: any = await fetchProductsList({ search, limit: 10 });
       return resp.products || [];
     },
     enabled: open && step === 1
@@ -66,14 +66,14 @@ export function ManualOrderDialog({ open, onOpenChange }: ManualOrderDialogProps
   const { data: settings } = useQuery({
     queryKey: ['commerce-settings'],
     queryFn: async () => {
-      const resp: any = await api.get('/commerce/settings');
+      const resp: any = await getCommerceSettings();
       return resp.settings;
     },
     enabled: open
   });
 
   const createOrder = useMutation({
-    mutationFn: (orderData: any) => api.post('/commerce/orders', orderData),
+    mutationFn: (orderData: any) => createCommerceOrder(orderData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       toast.success("Manual order launched successfully.");

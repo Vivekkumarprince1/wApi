@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Dashboard | wApi",
+  title: "Dashboard | ConnectSphare",
   description:
     "WhatsApp Business overview — campaigns, inbox, analytics, and account health.",
 };
