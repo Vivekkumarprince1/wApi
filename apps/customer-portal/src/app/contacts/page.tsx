@@ -38,7 +38,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
-import { bulkDeleteContacts, bulkTagContacts, deleteContact, fetchContacts, Contact, getContactsExportUrl } from '@/lib/api/contacts';
+import { bulkDeleteContacts, bulkTagContacts, deleteContact, fetchContacts, Contact, getContactsExportUrl, getContactsFromResponse, getContactTotalFromResponse } from '@/lib/api/contacts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -81,7 +81,8 @@ export default function ContactsPage() {
     queryFn: () => fetchContacts()
   });
 
-  const contacts: Contact[] = contactsData?.data || [];
+  const contacts: Contact[] = getContactsFromResponse(contactsData);
+  const totalContacts = getContactTotalFromResponse(contactsData);
 
   const uniqueDates = useMemo(() => {
     const dates = contacts.map(c => format(parseISO(c.createdAt), 'yyyy-MM-dd'));
@@ -205,7 +206,7 @@ export default function ContactsPage() {
           <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-4">
             Contacts
             <Badge variant="secondary" className="rounded-full px-3 py-1 font-bold text-[10px] uppercase tracking-widest bg-primary/5 text-primary border-primary/10">
-              {contacts.length} Total
+              {totalContacts} Total
             </Badge>
           </h1>
           <p className="text-muted-foreground text-sm font-medium">Manage your audience, segments, and communication history.</p>
@@ -223,7 +224,7 @@ export default function ContactsPage() {
       {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
-          { label: "Total Contacts", value: contacts.length, icon: Users, tone: "text-sky-600", bg: "bg-sky-500/10" },
+          { label: "Total Contacts", value: totalContacts, icon: Users, tone: "text-sky-600", bg: "bg-sky-500/10" },
           { label: "Tagged Contacts", value: contacts.filter((c) => c.tags?.length).length, icon: Tag, tone: "text-violet-600", bg: "bg-violet-500/10" },
           { label: "New Leads", value: contacts.filter((c) => c.leadStatus === 'new').length, icon: Sparkles, tone: "text-emerald-600", bg: "bg-emerald-500/10" },
         ].map((item) => (

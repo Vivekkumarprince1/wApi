@@ -3,32 +3,45 @@
 import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
+import { isPublicCustomerRoute } from '@/lib/public-routes';
 
 export function AuthInitializer() {
     const pathname = usePathname();
     const router = useRouter();
     const { fetchSession, authenticated, loading, nextStep, user, accessRestriction } = useAuthStore();
-
-    const isPublicRoute =
-        pathname === '/' ||
-        pathname.startsWith('/auth/') ||
-        pathname.startsWith('/auth') ||
-        pathname.startsWith('/privacy/') ||
-        pathname === '/privacy';
+    const isPublicRoute = isPublicCustomerRoute(pathname);
 
     useEffect(() => {
         if (isPublicRoute) return;
 
-        fetchSession();
+        let active = true;
+
+        const redirectToLogin = () => {
+            if (!active || typeof window === 'undefined') return;
+            const callbackUrl = `${window.location.pathname}${window.location.search}`;
+            router.replace(`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl || '/')}`);
+        };
+
+        const loadSession = async (force = false) => {
+            const session = await fetchSession(force);
+            if (!session?.authenticated) {
+                redirectToLogin();
+            }
+        };
+
+        loadSession();
         
-        const handleAuthChange = () => fetchSession(true);
+        const handleAuthChange = () => {
+            loadSession(true);
+        };
         window.addEventListener('storage', handleAuthChange);
         window.addEventListener('authChange', handleAuthChange);
         return () => {
+            active = false;
             window.removeEventListener('storage', handleAuthChange);
             window.removeEventListener('authChange', handleAuthChange);
         };
-    }, [fetchSession, isPublicRoute]);
+    }, [fetchSession, isPublicRoute, router]);
 
     useEffect(() => {
         if (loading || !authenticated || !user || isPublicRoute) return;

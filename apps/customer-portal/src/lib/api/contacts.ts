@@ -19,6 +19,26 @@ export interface Segment {
   contactCount?: number;
 }
 
+export function getContactsFromResponse(response: any): Contact[] {
+  if (Array.isArray(response)) return response;
+  if (Array.isArray(response?.data)) return response.data;
+  if (Array.isArray(response?.contacts)) return response.contacts;
+  if (Array.isArray(response?.data?.contacts)) return response.data.contacts;
+  return [];
+}
+
+export function getContactTotalFromResponse(response: any) {
+  const contacts = getContactsFromResponse(response);
+  return Number(
+    response?.meta?.total ??
+    response?.pagination?.total ??
+    response?.data?.meta?.total ??
+    response?.data?.pagination?.total ??
+    response?.total ??
+    contacts.length
+  );
+}
+
 export const fetchContacts = (page?: number, limit?: number, params?: any) => api.get<any>('/contacts', { params: { ...params, page, limit } });
 export const fetchContactById = (id: string) => api.get<any>(`/contacts/${id}`);
 export const createContact = (data: any) => api.post<any>('/contacts', data);

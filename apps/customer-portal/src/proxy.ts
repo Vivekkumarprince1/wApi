@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { isAuthEntryRoute, isPublicCustomerRoute } from './lib/public-routes';
 
 /**
  * Global Next.js Proxy/Middleware.
@@ -9,19 +10,7 @@ export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get('auth_token')?.value;
 
-  const isAuthRoute = pathname.startsWith('/auth');
-  const isInviteRoute = pathname.startsWith('/auth/accept-invite');
-
-  if (isInviteRoute) {
-    return NextResponse.next();
-  }
-
-  const isPublicRoute =
-    pathname === '/' ||
-    isAuthRoute ||
-    pathname.startsWith('/privacy') ||
-    pathname.startsWith('/terms') ||
-    pathname === '/favicon.ico';
+  const isPublicRoute = isPublicCustomerRoute(pathname);
 
   if (!isPublicRoute && !token) {
     const loginUrl = new URL('/auth/login', request.url);
@@ -34,7 +23,7 @@ export default async function middleware(request: NextRequest) {
     // session once and handles onboarding/billing redirects. Calling /session
     // here for every page transition/prefetch creates a large number of server
     // requests and can exhaust gateway auth rate limits.
-    if (isAuthRoute) {
+    if (isAuthEntryRoute(pathname)) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     return NextResponse.next();

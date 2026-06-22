@@ -11,10 +11,11 @@ import { toast } from "sonner";
 import { SocketHub } from "./socket-hub";
 import { SystemBanners } from "./system-banners";
 import { FeatureGate } from "@/components/shared/feature-gate";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getFeatureMetadata } from "@/config/feature-config";
 import FlashLoader from "@/components/ui/flash-loader";
 import { AccessRestrictedState } from "@/components/shared/access-restricted-state";
+import { isPublicCustomerRoute } from "@/lib/public-routes";
 
 
 export default function DashboardLayout({
@@ -25,6 +26,7 @@ export default function DashboardLayout({
   const { isImpersonating, stopImpersonating, user, workspace, loading, accessRestriction } = useAuthStore();
   const [isExiting, setIsExiting] = React.useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   // Route to Feature Mapping
   const getRouteFeature = (path: string) => {
@@ -44,18 +46,20 @@ export default function DashboardLayout({
   const featureMeta = featureRequired ? getFeatureMetadata(featureRequired) : null;
   const isBillingPage = pathname.startsWith('/billing');
 
-  const isPublicRoute =
-    pathname === '/' ||
-    pathname.startsWith('/landing-v2') ||
-    pathname.startsWith('/auth') ||
-    pathname.startsWith('/privacy') ||
-    pathname.startsWith('/terms');
+  const isPublicRoute = isPublicCustomerRoute(pathname);
+
+  React.useEffect(() => {
+    if (isPublicRoute || loading || user || typeof window === "undefined") return;
+
+    const callbackUrl = `${window.location.pathname}${window.location.search}`;
+    router.replace(`/auth/login?callbackUrl=${encodeURIComponent(callbackUrl || "/")}`);
+  }, [isPublicRoute, loading, user, router]);
 
   if (isPublicRoute) {
     return <>{children}</>;
   }
 
-  if (loading && !user) {
+  if (!user) {
     return <FlashLoader />;
   }
 

@@ -22,8 +22,9 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth-store';
 
 import { fetchTemplates, Template } from '@/lib/api/templates';
-import { fetchContacts, Contact, sendTemplateToContact } from '@/lib/api/contacts';
+import { fetchContacts, Contact, sendTemplateToContact, getContactsFromResponse } from '@/lib/api/contacts';
 import { getWorkspacePricing } from '@/lib/api/billing';
+import { formatWalletMoney, normalizeWalletBalanceForDisplay } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -93,10 +94,11 @@ export default function DirectTemplateModal({
 
   const wallet = useAuthStore((s) => s.wallet);
   const currentBalance = wallet?.balance || 0;
+  const displayBalance = normalizeWalletBalanceForDisplay(currentBalance);
   const currency = wallet?.currency || 'INR';
 
   const templates: Template[] = templatesData?.data || EMPTY_ARRAY;
-  const contacts: Contact[] = contactsData?.data || EMPTY_ARRAY;
+  const contacts: Contact[] = getContactsFromResponse(contactsData) || EMPTY_ARRAY;
 
   const filteredTemplates = templates.filter((t) => 
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,7 +131,7 @@ export default function DirectTemplateModal({
     return (pricingData[normalizedCat] || pricingData['UTILITY'] || 40) / 100; // paise to absolute
   }, [selectedTemplate, pricingData]);
 
-  const isInsufficientBalance = currentBalance < (estimatedCost * 100);
+  const isInsufficientBalance = displayBalance < estimatedCost;
 
   // Mutation
   const sendMutation = useMutation({
@@ -439,7 +441,7 @@ export default function DirectTemplateModal({
                           <div className="flex flex-col">
                              <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Wallet Balance</span>
                              <span className={`text-sm font-black ${isInsufficientBalance ? 'text-red-500' : 'text-emerald-500'}`}>
-                               {currency} {(currentBalance / 100).toFixed(2)}
+                               {formatWalletMoney(currentBalance, currency)}
                              </span>
                           </div>
                           <div className={`h-8 w-8 rounded-lg bg-background flex items-center justify-center shadow-sm border border-border/50 ${isInsufficientBalance ? 'text-red-500' : 'text-emerald-500'}`}>

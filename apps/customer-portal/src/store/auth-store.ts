@@ -5,6 +5,9 @@ const clearAuthCookie = () => {
     if (typeof document !== 'undefined') {
         document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
     }
+    if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('socket_auth_token');
+    }
 }
 
 const STARTER_PLAN_FALLBACK = {
@@ -199,7 +202,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 if (status !== 401 && status !== 402) {
                     console.error('[AuthStore] Session fetch failed:', err);
                 }
-                set({ user: null, authenticated: false, isImpersonating: false, accessRestriction: null });
+                clearAuthCookie();
+                set({
+                    user: null,
+                    workspace: null,
+                    stage1Complete: false,
+                    authenticated: false,
+                    isImpersonating: false,
+                    accessRestriction: null,
+                    permissions: null,
+                    phone: { number: null, verified: false }
+                });
                 return null;
             } finally {
                 set({ loading: false, inFlightPromise: null });

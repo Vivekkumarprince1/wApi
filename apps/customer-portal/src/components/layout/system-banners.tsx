@@ -18,7 +18,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useRouter, usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, formatWalletMoney, normalizeWalletBalanceForDisplay } from "@/lib/utils";
 
 interface BannerProps {
   id: string;
@@ -156,7 +156,9 @@ export function SystemBanners() {
   const CRITICAL_THRESHOLD = 500;
   const LOW_THRESHOLD = 1000;
   if (wallet) {
-    if (wallet.balance <= 0) {
+    const displayBalance = normalizeWalletBalanceForDisplay(wallet.balance);
+
+    if (displayBalance <= 0) {
       addBanner({
         id: "zero-balance",
         type: "error",
@@ -167,24 +169,24 @@ export function SystemBanners() {
         onAction: () => router.push("/billing"),
       });
       return renderBanners();
-    } else if (wallet.balance < CRITICAL_THRESHOLD) {
+    } else if (displayBalance < CRITICAL_THRESHOLD) {
       addBanner({
         id: "critical-balance",
         type: "error",
         icon: AlertCircle,
         title: "Critical Balance Warning",
-        description: `Your balance is critically low (${wallet.currency} ${wallet.balance.toFixed(2)}). Service may be interrupted soon.`,
+        description: `Your balance is critically low (${formatWalletMoney(wallet.balance, wallet.currency)}). Service may be interrupted soon.`,
         actionText: "Recharge Now",
         onAction: () => router.push("/billing"),
       });
       return renderBanners();
-    } else if (wallet.balance < LOW_THRESHOLD) {
+    } else if (displayBalance < LOW_THRESHOLD) {
       addBanner({
         id: "low-balance",
         type: "warning",
         icon: Wallet,
         title: "Low Balance Warning",
-        description: `Your balance (${wallet.currency} ${wallet.balance.toFixed(2)}) is approaching the threshold. Consider recharging soon.`,
+        description: `Your balance (${formatWalletMoney(wallet.balance, wallet.currency)}) is approaching the threshold. Consider recharging soon.`,
         actionText: "Recharge Wallet",
         onAction: () => router.push("/billing"),
       });

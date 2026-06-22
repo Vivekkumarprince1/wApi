@@ -132,8 +132,23 @@ export async function buildSessionPayload(user: any) {
 
   const systemSettings = await (SystemSettings as any).getSettings();
 
+  const normalizeWorkspaceWallet = (wallet: any) => {
+    const rawBalance = Number(wallet?.availableBalance ?? wallet?.balance ?? 0);
+    const balance = wallet?.availableBalance !== undefined || Number.isInteger(rawBalance) && Math.abs(rawBalance) >= 10000
+      ? rawBalance / 100
+      : rawBalance;
+
+    return {
+      ...(wallet || {}),
+      balance,
+      thresholdAmount: wallet?.thresholdAmount || 500,
+      currency: wallet?.currency || 'INR',
+      isServiceDown: false,
+    };
+  };
+
   // Fetch live wallet balance from billing-service (non-blocking, falls back on error)
-  let liveWallet = workspace?.wallet || { balance: 0, thresholdAmount: 500, currency: 'INR', isServiceDown: false };
+  let liveWallet = normalizeWorkspaceWallet(workspace?.wallet);
   try {
     const billingServiceUrl = (config as any).billingServiceUrl || 'http://localhost:3003';
     const walletData: any = await new Promise((resolve, reject) => {

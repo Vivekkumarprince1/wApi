@@ -50,7 +50,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/auth-store";
 import { usePathname, useRouter } from "next/navigation";
 import { useCommandStore } from "@/store/command-center-store";
-import { cn } from "@/lib/utils";
+import { cn, formatWalletMoney, normalizeWalletBalanceForDisplay } from "@/lib/utils";
 import { NotificationPanel } from "./notification-panel";
 
 
@@ -65,9 +65,11 @@ export function DashboardHeader() {
 
   const CRITICAL_THRESHOLD = 500;
   const LOW_THRESHOLD = 1000;
-  const isZeroBalance = (wallet?.balance ?? 0) <= 0;
-  const isCriticalBalance = (wallet?.balance ?? 0) < CRITICAL_THRESHOLD && !isZeroBalance;
-  const isLowBalance = (wallet?.balance ?? 0) < LOW_THRESHOLD && !isCriticalBalance && !isZeroBalance;
+  const displayBalance = normalizeWalletBalanceForDisplay(wallet?.balance);
+  const walletCurrency = wallet?.currency || 'INR';
+  const isZeroBalance = displayBalance <= 0;
+  const isCriticalBalance = displayBalance < CRITICAL_THRESHOLD && !isZeroBalance;
+  const isLowBalance = displayBalance < LOW_THRESHOLD && !isCriticalBalance && !isZeroBalance;
 
 
   const getBreadcrumbs = () => {
@@ -191,7 +193,7 @@ export function DashboardHeader() {
               {wallet?.isServiceDown ? (
                 <span className="text-muted-foreground animate-pulse">Unavailable</span>
               ) : (
-                `${wallet?.currency || '₹'} ${(wallet?.balance ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                formatWalletMoney(wallet?.balance, walletCurrency)
               )}
             </span>
           </div>

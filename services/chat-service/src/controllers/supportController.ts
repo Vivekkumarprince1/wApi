@@ -41,6 +41,28 @@ function formatMinutesCompact(minutes: number) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+async function getContactServiceCount(workspaceId: string) {
+  const contactServiceUrl = process.env.CONTACT_SERVICE_URL || 'http://localhost:3007';
+  const internalSecret = process.env.INTERNAL_SERVICE_SECRET || '';
+
+  const response = await fetch(`${contactServiceUrl}/internal/v1/contacts/count`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-workspace-id': workspaceId,
+      'x-internal-service-secret': internalSecret,
+    },
+    body: JSON.stringify({ workspaceId }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`contact-service count failed with status ${response.status}`);
+  }
+
+  const payload = await response.json() as any;
+  return Number(payload?.count ?? 0);
+}
+
 // ─── Support Tickets ──────────────────────────────────────────────────────────
 
 export const getTickets = async (req: any, res: express.Response) => {
@@ -159,7 +181,7 @@ export const getDashboardOverview = async (req: any, res: express.Response) => {
 
     const [
       totalTemplates,
-      totalContacts,
+      localContactsCount,
       openTickets,
       totalMacros,
       resolvedConversationsCount,
@@ -182,6 +204,9 @@ export const getDashboardOverview = async (req: any, res: express.Response) => {
         },
       ]).catch(() => []),
     ]);
+
+    const totalContacts = await getContactServiceCount(String(workspaceId))
+      .catch(() => localContactsCount);
 
     const outbound = (messageStats as any[]).find((s) => s._id === 'outbound') || { total: 0, delivered: 0, read: 0 };
     const inbound = (messageStats as any[]).find((s) => s._id === 'inbound') || { total: 0 };
