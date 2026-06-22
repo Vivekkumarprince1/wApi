@@ -34,7 +34,7 @@ services:
       - redis
     environment:
       - PORT=5001
-      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
       - AUTH_SERVICE_URL=http://auth-service:3006
       - CONTACT_SERVICE_URL=http://contact-service:3007
@@ -61,8 +61,8 @@ services:
       - redis
     environment:
       - PORT=3006
-      - JWT_SECRET=your-secret-key-change-in-production
-      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - JWT_SECRET=replace-with-generated-jwt-secret
+      - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - MONGO_URI=mongodb://mongodb:27017/wapi
       - REDIS_URL=redis://redis:6379
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
@@ -81,8 +81,8 @@ services:
       - redis
     environment:
       - PORT=3002
-      - JWT_SECRET=your-secret-key-change-in-production
-      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - JWT_SECRET=replace-with-generated-jwt-secret
+      - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - MONGO_URI=mongodb://mongodb:27017/wapi_campaign
       - REDIS_URL=redis://redis:6379
     networks:
@@ -100,8 +100,8 @@ services:
       - redis
     environment:
       - PORT=3003
-      - JWT_SECRET=your-secret-key-change-in-production
-      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - JWT_SECRET=replace-with-generated-jwt-secret
+      - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - MONGO_URI=mongodb://mongodb:27017/wapi_billing
       - REDIS_URL=redis://redis:6379
     networks:
@@ -119,9 +119,9 @@ services:
       - redis
     environment:
       - PORT=3004
-      - JWT_SECRET=your-secret-key-change-in-production
-      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
-      - INTEGRATION_ENCRYPTION_KEY=change-me-in-production
+      - JWT_SECRET=replace-with-generated-jwt-secret
+      - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
+      - INTEGRATION_ENCRYPTION_KEY=replace-with-generated-integration-encryption-key
       - MONGO_URI=mongodb://mongodb:27017/wapi_bsp
       - REDIS_URL=redis://redis:6379
       - MAIN_SERVICE_URL=http://api-gateway:5001
@@ -140,9 +140,9 @@ services:
       - redis
     environment:
       - PORT=3001
-      - JWT_SECRET=your-secret-key-change-in-production
-      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
-      - INTEGRATION_ENCRYPTION_KEY=change-me-in-production
+      - JWT_SECRET=replace-with-generated-jwt-secret
+      - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
+      - INTEGRATION_ENCRYPTION_KEY=replace-with-generated-integration-encryption-key
       - MONGO_URI=mongodb://mongodb:27017/wapi_automation
       - REDIS_URL=redis://redis:6379
     networks:
@@ -160,8 +160,8 @@ services:
       - redis
     environment:
       - PORT=3008
-      - JWT_SECRET=your-secret-key-change-in-production
-      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - JWT_SECRET=replace-with-generated-jwt-secret
+      - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - MONGO_URI=mongodb://mongodb:27017/wapi
       - REDIS_URL=redis://redis:6379
     networks:
@@ -179,8 +179,8 @@ services:
       - redis
     environment:
       - PORT=3007
-      - JWT_SECRET=your-secret-key-change-in-production
-      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - JWT_SECRET=replace-with-generated-jwt-secret
+      - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - MONGO_URI=mongodb://mongodb:27017/wapi
       - REDIS_URL=redis://redis:6379
     networks:
@@ -199,7 +199,7 @@ services:
     environment:
       - PORT=3013
       - WEBHOOK_SECRET=dev-webhook-secret-change-me
-      - INTERNAL_SERVICE_SECRET=dev-internal-service-secret-change-me
+      - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - MONGO_URI=mongodb://mongodb:27017/wapi
       - REDIS_URL=redis://redis:6379
       - VERIFY_TOKEN=wapi-verify-token
@@ -218,7 +218,7 @@ services:
       - redis
     environment:
       - PORT=3009
-      - JWT_SECRET=your-secret-key-change-in-production
+      - JWT_SECRET=replace-with-generated-jwt-secret
       - MONGO_URI=mongodb://mongodb:27017/wapi
       - REDIS_URL=redis://redis:6379
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
