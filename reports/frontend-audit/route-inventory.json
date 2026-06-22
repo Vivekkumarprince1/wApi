@@ -1,0 +1,343 @@
+{
+  "generatedAt": "2026-06-22T03:57:07.845Z",
+  "customer": [
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/ads/page.tsx",
+      "route": "/ads"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/analytics/advanced/page.tsx",
+      "route": "/analytics/advanced"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/accept-invite/page.tsx",
+      "route": "/auth/accept-invite"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/google/callback/page.tsx",
+      "route": "/auth/google/callback"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/login/page.tsx",
+      "route": "/auth/login"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/register/page.tsx",
+      "route": "/auth/register"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/register/verify/page.tsx",
+      "route": "/auth/register/verify"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/reset/page.tsx",
+      "route": "/auth/reset"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/page.tsx",
+      "route": "/automation"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/ai-intent-matching/page.tsx",
+      "route": "/automation/ai-intent-matching"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/answerbot/page.tsx",
+      "route": "/automation/answerbot"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/auto-replies/page.tsx",
+      "route": "/automation/auto-replies"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/instagram-quickflows/page.tsx",
+      "route": "/automation/instagram-quickflows"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/instagram-quickflows/create/page.tsx",
+      "route": "/automation/instagram-quickflows/create"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/interaktive-list/page.tsx",
+      "route": "/automation/interaktive-list"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/whatsapp-forms/page.tsx",
+      "route": "/automation/whatsapp-forms"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/whatsapp-forms/[id]/edit/page.tsx",
+      "route": "/automation/whatsapp-forms/[id]/edit"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/whatsapp-forms/[id]/responses/page.tsx",
+      "route": "/automation/whatsapp-forms/[id]/responses"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/whatsapp-forms/create/page.tsx",
+      "route": "/automation/whatsapp-forms/create"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/page.tsx",
+      "route": "/automation/workflows"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/[id]/page.tsx",
+      "route": "/automation/workflows/[id]"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/[id]/edit/page.tsx",
+      "route": "/automation/workflows/[id]/edit"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/[id]/view/page.tsx",
+      "route": "/automation/workflows/[id]/view"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/builder/[id]/page.tsx",
+      "route": "/automation/workflows/builder/[id]"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/create/page.tsx",
+      "route": "/automation/workflows/create"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/billing/page.tsx",
+      "route": "/billing"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/campaign/page.tsx",
+      "route": "/campaign"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/campaign/[id]/page.tsx",
+      "route": "/campaign/[id]"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/campaign/new/page.tsx",
+      "route": "/campaign/new"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/page.tsx",
+      "route": "/commerce"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/catalog/page.tsx",
+      "route": "/commerce/catalog"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/checkout-bot/page.tsx",
+      "route": "/commerce/checkout-bot"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/orders/page.tsx",
+      "route": "/commerce/orders"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/settings/page.tsx",
+      "route": "/commerce/settings"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/contacts/page.tsx",
+      "route": "/contacts"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/contacts/[id]/page.tsx",
+      "route": "/contacts/[id]"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/contacts/segments/page.tsx",
+      "route": "/contacts/segments"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/page.tsx",
+      "route": "/crm"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/pipeline/page.tsx",
+      "route": "/crm/pipeline"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/reports/page.tsx",
+      "route": "/crm/reports"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/tasks/page.tsx",
+      "route": "/crm/tasks"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/dashboard/page.tsx",
+      "route": "/dashboard"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/inbox/page.tsx",
+      "route": "/inbox"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/integrations/page.tsx",
+      "route": "/integrations"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/onboarding/business-info/page.tsx",
+      "route": "/onboarding/business-info"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/onboarding/business-verification/page.tsx",
+      "route": "/onboarding/business-verification"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/onboarding/verify-email/page.tsx",
+      "route": "/onboarding/verify-email"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/onboarding/verify-mobile/page.tsx",
+      "route": "/onboarding/verify-mobile"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/page.tsx",
+      "route": "/page.tsx"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/privacy/page.tsx",
+      "route": "/privacy"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/page.tsx",
+      "route": "/settings"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/channels/page.tsx",
+      "route": "/settings/channels"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/developer/page.tsx",
+      "route": "/settings/developer"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/developer/keys/page.tsx",
+      "route": "/settings/developer/keys"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/developer/webhooks/page.tsx",
+      "route": "/settings/developer/webhooks"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/events/page.tsx",
+      "route": "/settings/events"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/member-profile/page.tsx",
+      "route": "/settings/member-profile"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/quick-replies/page.tsx",
+      "route": "/settings/quick-replies"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/tags/page.tsx",
+      "route": "/settings/tags"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/teams/page.tsx",
+      "route": "/settings/teams"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/settings/whatsapp-profile/page.tsx",
+      "route": "/settings/whatsapp-profile"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/support/chat-assignment/page.tsx",
+      "route": "/support/chat-assignment"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/support/macros/page.tsx",
+      "route": "/support/macros"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/templates/page.tsx",
+      "route": "/templates"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/templates/analytics/page.tsx",
+      "route": "/templates/analytics"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/templates/rules/page.tsx",
+      "route": "/templates/rules"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/terms/page.tsx",
+      "route": "/terms"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/widget/page.tsx",
+      "route": "/widget"
+    }
+  ],
+  "admin": [
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/page.tsx",
+      "route": "/"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/analytics/page.tsx",
+      "route": "/analytics"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/audit-logs/page.tsx",
+      "route": "/audit-logs"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/billing/page.tsx",
+      "route": "/billing"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/compliance/page.tsx",
+      "route": "/compliance"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/data-explorer/page.tsx",
+      "route": "/data-explorer"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/entitlement-drift/page.tsx",
+      "route": "/entitlement-drift"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/gupshup/page.tsx",
+      "route": "/gupshup"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/login/page.tsx",
+      "route": "/login"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/monitoring/page.tsx",
+      "route": "/monitoring"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/operations/page.tsx",
+      "route": "/operations"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/settings/page.tsx",
+      "route": "/settings"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/users/page.tsx",
+      "route": "/users"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/whatsapp-requests/page.tsx",
+      "route": "/whatsapp-requests"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/workspaces/page.tsx",
+      "route": "/workspaces"
+    },
+    {
+      "file": "/Users/vivekkumar/devlopment/wApi/apps/admin-portal/src/app/(dashboard)/workspaces/[id]/page.tsx",
+      "route": "/workspaces/[id]"
+    }
+  ]
+}

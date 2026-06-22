@@ -74,9 +74,17 @@ export function DashboardHeader() {
 
   const getBreadcrumbs = () => {
     const segments = pathname.split('/').filter(Boolean);
+    const isOpaqueId = (segment: string) =>
+      /^[a-f0-9]{24}$/i.test(segment) || /^[a-z0-9_-]{16,}$/i.test(segment);
+    const nonRoutableBreadcrumbs = new Set([
+      '/analytics',
+      '/automation/workflows/builder',
+    ]);
+
     const crumbs = segments.map((segment, index) => {
       const url = `/${segments.slice(0, index + 1).join('/')}`;
       let title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+      const clickable = !isOpaqueId(segment) && !nonRoutableBreadcrumbs.has(url);
 
       // Specialized titles for better UX
       if (segment === 'crm') title = 'CRM';
@@ -84,8 +92,9 @@ export function DashboardHeader() {
       if (segment === 'ads') title = 'Campaign Analytics';
       if (segment === 'automation') title = 'Automation Hub';
       if (segment === 'billing') title = 'Plans & Billing';
+      if (isOpaqueId(segment)) title = 'Details';
 
-      return { title, url };
+      return { title, url, clickable };
     });
     return crumbs;
   };
@@ -136,6 +145,8 @@ export function DashboardHeader() {
                 <BreadcrumbItem>
                   {i === breadcrumbs.length - 1 ? (
                     <BreadcrumbPage className="font-bold text-foreground">{crumb.title}</BreadcrumbPage>
+                  ) : !crumb.clickable ? (
+                    <BreadcrumbPage className="font-bold text-muted-foreground/80">{crumb.title}</BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink href={crumb.url} className="text-muted-foreground/80 hover:text-foreground transition-colors">{crumb.title}</BreadcrumbLink>
                   )}
@@ -221,6 +232,8 @@ export function DashboardHeader() {
           <button
             onClick={() => setShowSettings(!showSettings)}
             className="p-2.5 hover:bg-accent rounded-xl transition-colors group"
+            aria-label="Open quick settings"
+            aria-expanded={showSettings}
           >
             <Settings className="h-[18px] w-[18px] text-muted-foreground group-hover:text-foreground transition-colors" />
           </button>
@@ -254,7 +267,10 @@ export function DashboardHeader() {
 
         {/* User Menu */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="relative h-10 w-10 rounded-full cursor-pointer ring-offset-background transition-all hover:ring-2 hover:ring-primary/40 focus:outline-none">
+          <DropdownMenuTrigger
+            aria-label="Open account menu"
+            className="relative h-10 w-10 rounded-full cursor-pointer ring-offset-background transition-all hover:ring-2 hover:ring-primary/40 focus:outline-none"
+          >
             <Avatar className="h-10 w-10 border-2 border-primary/10 transition-all group-hover:border-primary/40">
               <AvatarImage src={user?.avatar || ""} alt={user?.name} />
               <AvatarFallback className="bg-primary/10 text-primary font-bold text-base uppercase">

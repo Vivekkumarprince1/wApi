@@ -394,7 +394,12 @@ export default function WorkflowBuilderPage() {
     <div className="flex flex-col h-screen w-full bg-slate-50">
       <div className="h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/automation/workflows')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push('/automation/workflows')}
+            aria-label="Back to workflows"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="h-6 w-[2px] bg-slate-200" />
@@ -530,7 +535,13 @@ export default function WorkflowBuilderPage() {
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <h3 className="font-bold text-sm text-slate-800">Node Settings</h3>
               {selectedNode.type !== 'triggerNode' && (
-                <Button variant="ghost" size="icon" onClick={() => deleteNode(selectedNode.id)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => deleteNode(selectedNode.id)}
+                  className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                  aria-label="Delete selected workflow node"
+                >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               )}

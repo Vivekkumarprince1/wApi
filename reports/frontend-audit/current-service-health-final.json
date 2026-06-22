@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-06-22T06:20:51.407Z",
+  "checks": [
+    {
+      "name": "api-gateway",
+      "url": "http://localhost:5001/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"ok\",\"service\":\"wapi-api-gateway\",\"timestamp\":\"2026-06-22T06:20:51.462Z\"}"
+    },
+    {
+      "name": "auth-service",
+      "url": "http://localhost:3006/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"OK\",\"service\":\"wapi-auth-service\"}"
+    },
+    {
+      "name": "contact-service",
+      "url": "http://localhost:3007/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"OK\",\"service\":\"wapi-contact-service\"}"
+    },
+    {
+      "name": "chat-service",
+      "url": "http://localhost:3008/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"OK\",\"service\":\"wapi-chat-service\",\"simulatedMode\":false}"
+    },
+    {
+      "name": "campaign-service",
+      "url": "http://localhost:3002/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"ok\",\"service\":\"campaign-service\",\"db\":\"connected\",\"timestamp\":\"2026-06-22T06:20:51.496Z\"}"
+    },
+    {
+      "name": "billing-service",
+      "url": "http://localhost:3003/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"ok\",\"service\":\"billing-service\",\"db\":\"connected\",\"timestamp\":\"2026-06-22T06:20:51.501Z\"}"
+    },
+    {
+      "name": "service-provider",
+      "url": "http://localhost:3004/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"ok\",\"service\":\"bsp-service\",\"env\":\"development\",\"db\":\"connected\",\"timestamp\":\"2026-06-22T06:20:51.506Z\"}"
+    },
+    {
+      "name": "automation-service",
+      "url": "http://localhost:3001/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"ok\",\"service\":\"automation-service\",\"db\":\"connected\",\"timestamp\":\"2026-06-22T06:20:51.509Z\"}"
+    },
+    {
+      "name": "websocket-gateway",
+      "url": "http://localhost:3009/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"OK\",\"service\":\"wapi-websocket-gateway\"}"
+    },
+    {
+      "name": "webhook-ingestor",
+      "url": "http://localhost:3013/health",
+      "status": 200,
+      "ok": true,
+      "body": "{\"status\":\"OK\",\"redisConnected\":true}"
+    },
+    {
+      "name": "customer-portal",
+      "url": "http://localhost:3000/",
+      "status": 200,
+      "ok": true,
+      "body": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/css/335ff621479ff7d9.css\" data-precedence=\"next\"/><link rel=\"preload"
+    },
+    {
+      "name": "admin-portal",
+      "url": "http://localhost:3100/",
+      "status": 307,
+      "ok": true,
+      "body": "/login"
+    }
+  ]
+}

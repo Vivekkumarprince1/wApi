@@ -300,7 +300,7 @@ export default function AdvancedAnalyticsPage() {
                </CardHeader>
                <CardContent className="h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
-                     <AreaChart data={messageVolume} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+	                     <AreaChart data={messageVolume} margin={{ top: 0, right: 0, left: -20, bottom: 0 }} aria-label="Message volume trend chart">
                         <defs>
                            <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -344,7 +344,7 @@ export default function AdvancedAnalyticsPage() {
                <CardContent>
                   <div className="h-[250px] relative">
                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
+	                        <PieChart aria-label="Conversation mix chart">
                            <Pie
                                              data={conversationMix}
                               cx="50%"

@@ -16,6 +16,11 @@ export class WebhookSyncService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
+    if (process.env.AUTO_SYNC_WEBHOOKS_ON_BOOT !== 'true') {
+      this.logger.log('Automatic webhook subscription sync is disabled. Set AUTO_SYNC_WEBHOOKS_ON_BOOT=true to enable it.');
+      return;
+    }
+
     this.logger.log('Starting automatic webhook subscription registration & sync...');
     const publicBase = process.env.APP_URL || process.env.WHATSAPP_WEBHOOK_URL;
     if (!publicBase) {

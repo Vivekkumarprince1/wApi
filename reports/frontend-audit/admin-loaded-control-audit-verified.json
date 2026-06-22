@@ -1,0 +1,1165 @@
+{
+  "generatedAt": "2026-06-22T06:03:06.196Z",
+  "routes": [
+    {
+      "route": "/",
+      "resolved": "/",
+      "bodyChars": 797,
+      "controlsCount": 20,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/workspaces",
+          "text": "View all"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Diagnostics"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin Dashboard Platform overview Total Workspaces 2 Active Workspaces 1 Total Users 2 Messages (30d) 0 Active Subscriptions 1 Active BSP Connections 0 Gross Revenue ₹3,500 Workspace Directory Most recent workspaces. View all No workspaces. Service Pulse Nominal API Gateway Operational Auth Service Operational Chat Service Operational Contact Service Operational Billing Service Operational Campai",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/",
+      "errorLogs": []
+    },
+    {
+      "route": "/analytics",
+      "resolved": "/analytics",
+      "bodyChars": 645,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Analytics Analytics Revenue, growth, retention MRR ₹0 ARR ₹0 ARPA ₹0 LTV (est.) — Churn rate 0.0% Activation rate 100.0% Workspaces 2 New (30d) 1 CAC: Not computed — requires marketing/sales spend data not stored in the platform. LTV: Approximate LTV = ARPA / churnRate (shown client-side when churn > 0).",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/analytics",
+      "errorLogs": []
+    },
+    {
+      "route": "/audit-logs",
+      "resolved": "/audit-logs",
+      "bodyChars": 2755,
+      "controlsCount": 19,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Audit Logs Audit Logs Admin activity and impersonation trail Entries (page) 38 Security Events 9 Failures 0 Source Admin Admin actions Impersonation Action Actor Target Outcome IP When USER_IMPERSONATION — — success 127.0.0.1 09/05/2026, 16:43:09 WORKSPACE_PURGE_DELETE — — success 127.0.0.1 09/05/2026, 15:57:22 USER_IMPERSONATION — — success 127.0.0.1 09/05/2026, 15:33:39 USER_IMPERSONATI",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/audit-logs",
+      "errorLogs": []
+    },
+    {
+      "route": "/billing",
+      "resolved": "/billing",
+      "bodyChars": 728,
+      "controlsCount": 18,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Billing & Plans Billing & Plans Subscription plans, pricing tiers and platform revenue Create plan Gross Revenue ₹3,500 Active Subscriptions 1 Plan Catalog 0 Active tiers Pending Payouts ₹0 Subscription Catalog Manage tiered access plans. No plans found. Invoice Archive Platform settlement history. #INV-202604-002 paid fmpg 202604 ₹200.00 #INV-202604-001 paid fmpg 202604 ₹500.00",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/billing",
+      "errorLogs": []
+    },
+    {
+      "route": "/compliance",
+      "resolved": "/compliance",
+      "bodyChars": 517,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Compliance Compliance Verification, audit, and safety controls Compliance profile Business verification mandatory No Verification provider hybrid Webhook audit Enabled Emergency freeze Available",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/compliance",
+      "errorLogs": []
+    },
+    {
+      "route": "/data-explorer",
+      "resolved": "/data-explorer",
+      "bodyChars": 1131,
+      "controlsCount": 74,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Data Explorer Data Explorer Inspect and edit raw MongoDB collections 57 collections activitylogsauditlogsbsphealthsbsponboardingstatesbusinessappmapsbusinessesbusinessverificationpoliciescampaignbatchescampaignmessagescampaignscheckoutcartscommercesettingscontacteventscontactscontactsettingsconversationledgersconversationsdealsformsubmissionsimpersonation_logsimportjobsintegrationsinvoice",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/data-explorer",
+      "errorLogs": []
+    },
+    {
+      "route": "/entitlement-drift",
+      "resolved": "/entitlement-drift",
+      "bodyChars": 594,
+      "controlsCount": 17,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Entitlement Drift Entitlement Drift Workspaces whose effective features diverge from their plan catalogue Repair all Workspaces scanned 2 Drifted 0 Workspace Plan Missing features Extra features Actions No entitlement drift detected. All workspaces match their plan.",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/entitlement-drift",
+      "errorLogs": []
+    },
+    {
+      "route": "/gupshup",
+      "resolved": "/gupshup",
+      "bodyChars": 1010,
+      "controlsCount": 19,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / BSP Providers BSP Providers Monitor partner health, app mappings, and provisioning across workspaces Reconcile Mapping Mapped Apps 0 Connected Workspaces 2 Orphaned Links 0 Total Workspaces 2 BSP Request Queue Latest onboarding / provisioning requests. Workspace fmpg Business ID 2204695223399659 Phone 917589684588 completed Workspace Vivek prasad's workspace Business ID 2204695223399660 P",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/gupshup",
+      "errorLogs": []
+    },
+    {
+      "route": "/login",
+      "resolved": "/login",
+      "bodyChars": 894,
+      "controlsCount": 22,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/workspaces",
+          "text": "View all"
+        },
+        {
+          "href": "/workspaces/6a1743e113124f8f8aca5f8e",
+          "text": "Vivek prasad's workspace"
+        },
+        {
+          "href": "/workspaces/699c21048e96ba1b49ab6945",
+          "text": "fmpg"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Diagnostics"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin Dashboard Platform overview Total Workspaces 2 Active Workspaces 1 Total Users 2 Messages (30d) 0 Active Subscriptions 1 Active BSP Connections 0 Gross Revenue ₹3,500 Workspace Directory Most recent workspaces. View all Vivek prasad's workspace vivekkumarprince9@gmail.com Free Tier fmpg vivekkumarprince1@gmail.com Free Tier Service Pulse Nominal API Gateway Operational Auth Service Operatio",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/",
+      "errorLogs": []
+    },
+    {
+      "route": "/monitoring",
+      "resolved": "/monitoring",
+      "bodyChars": 1018,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Infrastructure Monitoring Live service health, databases, and process metrics Services API Gateway edge · 2 ms up Auth Service backend · 15 ms up Chat Service backend · 18 ms up Contact Service backend · 19 ms up Billing Service backend · 20 ms up Campaign Service backend · 17 ms up Automation Service backend · 20 ms up BSP / Service Provider backend · 20 ms up Webhook Ingestor backend · ",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/monitoring",
+      "errorLogs": []
+    },
+    {
+      "route": "/operations",
+      "resolved": "/operations",
+      "bodyChars": 537,
+      "controlsCount": 19,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Operations Operations Campaigns, automation, and BSP (Gupshup) operations Reconcile Gupshup Sync Webhooks Replay Dead Webhooks Automation rules 0 / 0 enabled Gupshup / BSP Idle Campaigns by status Completed: 6",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/operations",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings",
+      "resolved": "/settings",
+      "bodyChars": 815,
+      "controlsCount": 28,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Settings Settings Global platform configuration Save Maintenance mode Blocks non-super-admin users when enabled. Enable maintenance mode Maintenance message Signups Control whether new accounts can be created. Allow new signups Global broadcast Publishes a platform-wide system notice shown to all users. Info Warning Critical Publish broadcast Clear Emergency lockdown Platform-wide lockdow",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/settings",
+      "errorLogs": []
+    },
+    {
+      "route": "/users",
+      "resolved": "/users",
+      "bodyChars": 653,
+      "controlsCount": 22,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / User Directory User Directory Manage platform users, roles, and access across all workspaces Invite User All roles All status Showing 2 of 2 User Role Status Last active Actions V Vivek prasad vivekkumarprince9@gmail.com owner active Never V vivek kumar vivekkumarprince1@gmail.com super_admin active 22/06/2026 ",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/users",
+      "errorLogs": []
+    },
+    {
+      "route": "/whatsapp-requests",
+      "resolved": "/whatsapp-requests",
+      "bodyChars": 671,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / WhatsApp Requests WhatsApp Requests Embedded-signup (ESB) onboarding flows across all workspaces Workspace Owner WABA / Business ID Phone ESB Status Started fmpg vivekkumarprince1@gmail.com 2204695223399659 917589684588 completed 23/02/2026 Vivek prasad's workspace vivekkumarprince9@gmail.com 2204695223399660 917589684589 completed 28/05/2026",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/whatsapp-requests",
+      "errorLogs": []
+    },
+    {
+      "route": "/workspaces",
+      "resolved": "/workspaces",
+      "bodyChars": 1559,
+      "controlsCount": 47,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/workspaces/6a1743e113124f8f8aca5f8e",
+          "text": "Vivek prasad's workspace"
+        },
+        {
+          "href": "/workspaces/699c21048e96ba1b49ab6945",
+          "text": "fmpg"
+        },
+        {
+          "href": "/gupshup",
+          "text": "Open BSP Provider"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Workspaces Workspaces Monitor and manage 2 workspaces, configurations, and connection health Global Webhook Sync Refresh Total Workspaces 2 Connected 2 Configured 2 Needs Attention 0 All Connected Needs Attention Workspace Plan Integration Created Actions VI Vivek prasad's workspace vivekkumarprince9@gmail.com Free Tier Active 28/05/2026 Open Access FM fmpg vivekkumarprince1@gmail.com Fre",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/workspaces",
+      "errorLogs": []
+    },
+    {
+      "route": "/workspaces/[id]",
+      "resolved": "/workspaces/699c21048e96ba1b49ab6945",
+      "bodyChars": 816,
+      "controlsCount": 21,
+      "hasCrashText": false,
+      "links": [
+        {
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/workspaces",
+          "text": "Back"
+        }
+      ],
+      "sample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Workspaces fmpg Workspace detail Back Impersonate Suspend Emergency Freeze Status active Plan Unassigned Owner vivekkumarprince1@gmail.com WhatsApp Connected Billing Wallet available ₹1,452.70 Wallet parked ₹0.00 Subscription active Plan features No features listed. Members (1) Name Email Role Status vivek kumar vivekkumarprince1@gmail.com super_admin active Recent invoices Invoice # Stat",
+      "title": "wApi — Super Admin",
+      "unlabeled": [],
+      "url": "http://localhost:3100/workspaces/699c21048e96ba1b49ab6945",
+      "errorLogs": []
+    }
+  ]
+}

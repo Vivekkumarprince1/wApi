@@ -2,13 +2,17 @@ import Redis from 'ioredis';
 
 let producerClient: Redis | null = null;
 let producerReady: Promise<void> | null = null;
+let warnedMissingRedisUrl = false;
 
 async function ensureProducer() {
   if (!producerReady) {
     const url = process.env.REDIS_URL;
     if (!url) {
-      producerReady = Promise.reject(new Error('REDIS_URL is not defined'));
-      return producerReady;
+      if (!warnedMissingRedisUrl) {
+        console.warn('[Contact EventBus] REDIS_URL is not set. Contact events will be skipped.');
+        warnedMissingRedisUrl = true;
+      }
+      return;
     }
 
     producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });

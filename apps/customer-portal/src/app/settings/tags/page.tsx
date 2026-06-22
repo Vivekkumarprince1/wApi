@@ -139,9 +139,16 @@ export default function TagsSettingsPage() {
                       <Badge className={`rounded-full px-3 py-1 font-black text-[10px] uppercase tracking-widest border-none ${getTone(tag)}`}>{tag.name}</Badge>
                       <p className="text-xs font-medium text-muted-foreground">Used by {tag.usageCount?.contacts || 0} contacts</p>
                     </div>
-                    <Button disabled={deleteMutation.isPending} variant="ghost" size="icon" onClick={() => deleteMutation.mutate(tag._id)} className="h-10 w-10 rounded-xl text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+	                    <Button
+	                      disabled={deleteMutation.isPending}
+	                      variant="ghost"
+	                      size="icon"
+	                      onClick={() => deleteMutation.mutate(tag._id)}
+	                      aria-label={`Delete tag ${tag.name}`}
+	                      className="h-10 w-10 rounded-xl text-destructive hover:bg-destructive/10"
+	                    >
+	                      <Trash2 className="h-4 w-4" />
+	                    </Button>
                   </CardContent>
                 </Card>
               ))}

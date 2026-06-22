@@ -175,12 +175,13 @@ export default function CampaignDetailsPage() {
       {/* Header with Navigation */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="rounded-full h-10 w-10 bg-background border border-border/50 shadow-sm"
-            onClick={() => router.push('/campaign')}
-          >
+	          <Button 
+	            variant="ghost" 
+	            size="icon" 
+	            className="rounded-full h-10 w-10 bg-background border border-border/50 shadow-sm"
+	            onClick={() => router.push('/campaign')}
+	            aria-label="Back to campaigns"
+	          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -245,12 +246,12 @@ export default function CampaignDetailsPage() {
             </Button>
           )}
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="rounded-2xl h-12 w-12 p-0 border-border/50 bg-background hover:bg-muted transition-colors">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+	          <DropdownMenu>
+	            <DropdownMenuTrigger asChild>
+	              <Button variant="outline" aria-label={`Open actions for campaign ${campaign.name}`} className="rounded-2xl h-12 w-12 p-0 border-border/50 bg-background hover:bg-muted transition-colors">
+	                <MoreVertical className="h-4 w-4" />
+	              </Button>
+	            </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 rounded-[24px] p-2 shadow-premium border-border/50">
               <DropdownMenuItem 
                 onClick={() => refetch()}

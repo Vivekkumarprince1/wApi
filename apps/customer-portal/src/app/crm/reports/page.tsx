@@ -299,7 +299,7 @@ export default function CRMReportsPage() {
                <div className="h-[280px] w-full relative">
                   {isMounted && (
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                      <RPieChart>
+	                      <RPieChart aria-label="CRM portfolio mix chart">
                         <Pie
                           data={statusData}
                           cx="50%"

@@ -65,6 +65,8 @@ interface AuthState {
     };
     isImpersonating: boolean;
     inFlightPromise: Promise<any> | null;
+    cachedSession: any | null;
+    lastSessionFetchedAt: number;
     fetchSession: (force?: boolean) => Promise<any>;
     logout: () => void;
     stopImpersonating: () => Promise<void>;
@@ -105,6 +107,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     },
     isImpersonating: false,
     inFlightPromise: null,
+    cachedSession: null,
+    lastSessionFetchedAt: 0,
 
     getRole: () => get().user?.role || 'viewer',
 
@@ -124,8 +128,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     isSuperAdmin: () => get().user?.role === 'super_admin',
 
     fetchSession: async (force = false) => {
-        const { inFlightPromise } = get();
+        const { inFlightPromise, cachedSession, lastSessionFetchedAt, authenticated } = get();
         if (inFlightPromise) return inFlightPromise;
+        if (!force && authenticated && cachedSession && Date.now() - lastSessionFetchedAt < 60 * 1000) {
+            return cachedSession;
+        }
 
         const doFetch = async () => {
             try {
@@ -140,6 +147,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                         inFlightPromise: null,
                         authenticated: false,
                         accessRestriction: null,
+                        cachedSession: null,
+                        lastSessionFetchedAt: 0,
                         phone: { number: null, verified: false }
                     });
                     return null;
@@ -194,7 +203,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     canViewBilling: (userPerms?.manageBilling || userPerms?.billing?.view) ?? ['owner', 'admin'].includes(role),
                     canAccessAdmin: role === 'super_admin',
                     systemStatus: sessionData.systemStatus || { maintenanceMode: false, systemNotice: null },
-                    isImpersonating: !!sessionData.isImpersonating
+                    isImpersonating: !!sessionData.isImpersonating,
+                    cachedSession: sessionData,
+                    lastSessionFetchedAt: Date.now()
                 });
                 return sessionData;
             } catch (err: any) {
@@ -211,6 +222,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     isImpersonating: false,
                     accessRestriction: null,
                     permissions: null,
+                    cachedSession: null,
+                    lastSessionFetchedAt: 0,
                     phone: { number: null, verified: false }
                 });
                 return null;
@@ -239,7 +252,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             stage1Complete: false,
             authenticated: false,
             accessRestriction: null,
-            isImpersonating: false
+            isImpersonating: false,
+            cachedSession: null,
+            lastSessionFetchedAt: 0
         });
         logoutUser()
             .catch(() => {})
@@ -264,6 +279,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 authenticated: false,
                 isImpersonating: false,
                 accessRestriction: null,
+                cachedSession: null,
+                lastSessionFetchedAt: 0,
             });
             if (typeof window !== 'undefined') {
                 const adminUrl = process.env.NEXT_PUBLIC_ADMIN_PORTAL_URL || 'http://localhost:3100';

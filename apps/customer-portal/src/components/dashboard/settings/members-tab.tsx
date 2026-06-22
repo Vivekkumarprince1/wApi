@@ -131,11 +131,11 @@ export default function MembersTab({ members, invitations, roles, onEditMember }
                          </td>
                          <td className="px-8 py-5">
                             <DropdownMenu>
-                               <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-8 px-2 rounded-lg text-xs font-black uppercase tracking-tighter hover:bg-primary/5 hover:text-primary transition-all flex items-center gap-2">
-                                     <Shield className="h-3 w-3" /> {m.role}
-                                  </Button>
-                               </DropdownMenuTrigger>
+	                               <DropdownMenuTrigger asChild>
+	                                  <Button variant="ghost" aria-label={`Change role for ${m.name || m.email}`} className="h-8 px-2 rounded-lg text-xs font-black uppercase tracking-tighter hover:bg-primary/5 hover:text-primary transition-all flex items-center gap-2">
+	                                     <Shield className="h-3 w-3" /> {m.role}
+	                                  </Button>
+	                               </DropdownMenuTrigger>
                                <DropdownMenuContent className="rounded-2xl p-2 shadow-premium border-border/50 max-h-[300px] overflow-y-auto">
                                                    {safeRoles.map(r => (
                                     <DropdownMenuItem key={r.value} onClick={() => roleMutation.mutate({ id: m._id || m.id, role: r.value })} className="rounded-xl font-bold capitalize">
@@ -167,11 +167,11 @@ export default function MembersTab({ members, invitations, roles, onEditMember }
                          </td>
                          <td className="px-8 py-5 text-right">
                             <DropdownMenu>
-                               <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
-                                     <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                               </DropdownMenuTrigger>
+	                               <DropdownMenuTrigger asChild>
+	                                  <Button variant="ghost" size="icon" aria-label={`Open actions for ${m.name || m.email}`} className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground">
+	                                     <MoreVertical className="h-4 w-4" />
+	                                  </Button>
+	                               </DropdownMenuTrigger>
                                <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50">
                                                    <DropdownMenuItem
                                                       className="rounded-xl font-bold"

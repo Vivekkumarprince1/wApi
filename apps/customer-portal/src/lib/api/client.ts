@@ -57,4 +57,9 @@ export const patch = <T = any>(url: string, data?: unknown, config?: AxiosReques
 export const del = <T = any>(url: string, config?: AxiosRequestConfig) =>
   apiClient.delete<T>(url, config);
 
+export const unwrapData = <T = any>(payload: any): T =>
+  payload && typeof payload === 'object' && 'data' in payload
+    ? payload.data
+    : payload;
+
 export default apiClient;

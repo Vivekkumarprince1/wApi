@@ -1,0 +1,37 @@
+{
+  "generatedAt": "2026-06-22T05:22:05.572Z",
+  "route": "/automation/whatsapp-forms/create",
+  "result": {
+    "buttonCount": 26,
+    "labels": [
+      "Expand Market",
+      "Collapse Automation",
+      "Expand Sales CRM",
+      "Expand Commerce",
+      "Toggle Sidebar",
+      "Toggle Sidebar",
+      "Search modules, actions or press ⌘K ⌘ K",
+      "Open notifications",
+      "Toggle theme",
+      "Open quick settings",
+      "Open account menu",
+      "Back to WhatsApp Forms",
+      "Visual Builder",
+      "JSON Editor",
+      "Add Screen",
+      "Preview Screen 1",
+      "Delete screen 1",
+      "Delete field 1",
+      "Add Field",
+      "Screen 1",
+      "Continue",
+      "Prev",
+      "Next",
+      "Auto-generate Mapping",
+      "Cancel",
+      "Create Draft"
+    ],
+    "unlabeledCount": 0,
+    "url": "http://localhost:3000/automation/whatsapp-forms/create"
+  }
+}

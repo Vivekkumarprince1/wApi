@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-06-22T06:15:46.340Z",
+  "dashboard": [
+    {
+      "action": "open notifications",
+      "ok": true,
+      "state": {
+        "dialogs": 0,
+        "menus": 1,
+        "text": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost you",
+        "title": "Dashboard | ConnectSphare",
+        "url": "http://localhost:3000/dashboard"
+      }
+    },
+    {
+      "action": "open quick settings",
+      "ok": true,
+      "state": {
+        "dialogs": 0,
+        "menus": 0,
+        "text": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K QUICK SETTINGS WhatsApp Profile Developer Settings Manage Teams Manage Tags Quick Replies Member Profile Manage Events Configure Channels V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check ",
+        "title": "Dashboard | ConnectSphare",
+        "url": "http://localhost:3000/dashboard"
+      }
+    },
+    {
+      "action": "open account menu",
+      "ok": true,
+      "state": {
+        "dialogs": 0,
+        "menus": 1,
+        "text": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost you",
+        "title": "Dashboard | ConnectSphare",
+        "url": "http://localhost:3000/dashboard"
+      }
+    }
+  ],
+  "template": {
+    "name": "audit_browser_790127",
+    "actions": [
+      {
+        "action": "template name selected",
+        "templateName": "audit_browser_790127"
+      },
+      {
+        "action": "filled template name",
+        "ok": true
+      },
+      {
+        "action": "continue to content",
+        "ok": true
+      },
+      {
+        "action": "filled template body",
+        "ok": true
+      },
+      {
+        "action": "continue to review",
+        "ok": true
+      },
+      {
+        "action": "filled variable example",
+        "ok": true
+      },
+      {
+        "action": "continue after variable example",
+        "ok": true
+      },
+      {
+        "action": "save and submit template",
+        "ok": true
+      }
+    ]
+  },
+  "campaign": {
+    "name": "audit campaign 887376",
+    "actions": [
+      {
+        "action": "open create campaign from template",
+        "ok": true
+      },
+      {
+        "action": "choose bulk campaign delivery",
+        "ok": true
+      },
+      {
+        "action": "filled campaign name",
+        "ok": true,
+        "campaignName": "audit campaign 887376"
+      },
+      {
+        "action": "filled campaign description",
+        "ok": true
+      },
+      {
+        "action": "continue campaign details",
+        "ok": true
+      },
+      {
+        "action": "selected all campaign contacts",
+        "ok": true
+      },
+      {
+        "action": "continue audience",
+        "ok": true
+      },
+      {
+        "action": "continue template selection",
+        "ok": true
+      },
+      {
+        "action": "continue schedule to review",
+        "ok": true
+      }
+    ]
+  }
+}

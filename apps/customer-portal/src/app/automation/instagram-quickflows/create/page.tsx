@@ -142,7 +142,13 @@ function QuickflowEditor() {
   return (
     <div className="max-w-3xl mx-auto space-y-8 p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/automation/instagram-quickflows')} className="rounded-2xl">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push('/automation/instagram-quickflows')}
+          className="rounded-2xl"
+          aria-label="Back to Instagram QuickFlows"
+        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>

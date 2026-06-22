@@ -47,11 +47,11 @@ export default function WhatsAppFormResponsesPage() {
     <div className="max-w-6xl mx-auto p-8 space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/automation/whatsapp-forms">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+	          <Link href="/automation/whatsapp-forms" aria-label="Back to WhatsApp Forms">
+	            <Button variant="ghost" size="icon" aria-label="Back to WhatsApp Forms">
+	              <ArrowLeft className="h-4 w-4" />
+	            </Button>
+	          </Link>
           <div>
             <h1 className="text-3xl font-black tracking-tight">Form Responses</h1>
             <p className="text-muted-foreground">{form?.name || 'Unknown form'}</p>

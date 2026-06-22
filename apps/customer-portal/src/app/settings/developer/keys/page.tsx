@@ -154,10 +154,22 @@ export default function DeveloperKeysPage() {
                               className="pl-10 pr-24 bg-accent/20 border-border/50 h-11 font-mono text-sm tracking-tight"
                             />
                             <div className="absolute inset-y-0 right-0 p-1 flex items-center gap-1">
-                               <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => setShowKeyId(showKeyId === key.id ? null : key.id)}>
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 className="h-9 w-9 text-muted-foreground"
+                                 onClick={() => setShowKeyId(showKeyId === key.id ? null : key.id)}
+                                 aria-label={showKeyId === key.id ? 'Hide API key' : 'Reveal API key'}
+                               >
                                   {showKeyId === key.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                </Button>
-                               <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground" onClick={() => copyToClipboard(revealedKeys[key.id] || key.key)}>
+                               <Button
+                                 variant="ghost"
+                                 size="icon"
+                                 className="h-9 w-9 text-muted-foreground"
+                                 onClick={() => copyToClipboard(revealedKeys[key.id] || key.key)}
+                                 aria-label="Copy API key"
+                               >
                                   <Copy className="h-4 w-4" />
                                </Button>
                             </div>
@@ -165,7 +177,13 @@ export default function DeveloperKeysPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                         <Button variant="outline" size="icon" onClick={() => handleRevokeKey(key.id)} className="h-11 w-11 rounded-xl border-border/50 text-red-500 hover:bg-red-50 transition-colors">
+                         <Button
+                           variant="outline"
+                           size="icon"
+                           onClick={() => handleRevokeKey(key.id)}
+                           className="h-11 w-11 rounded-xl border-border/50 text-red-500 hover:bg-red-50 transition-colors"
+                           aria-label="Revoke API key"
+                         >
                             <Trash2 className="h-4 w-4" />
                          </Button>
                       </div>
@@ -197,7 +215,11 @@ export default function DeveloperKeysPage() {
     "text": "Hello platform!"
   }'`}
                     </pre>
-                    <button onClick={() => copyToClipboard(CURL_EXAMPLE)} className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => copyToClipboard(CURL_EXAMPLE)}
+                      className="absolute top-3 right-3 p-1.5 rounded-lg bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="Copy curl example"
+                    >
                        <Copy className="h-4 w-4" />
                     </button>
                  </div>

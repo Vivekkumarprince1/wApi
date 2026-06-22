@@ -2,6 +2,8 @@ const PUBLIC_ENTRY_ROUTES = new Set([
   '/',
   '/auth/login',
   '/auth/register',
+  '/privacy',
+  '/terms',
 ]);
 
 const AUTH_FLOW_ROUTES = new Set([

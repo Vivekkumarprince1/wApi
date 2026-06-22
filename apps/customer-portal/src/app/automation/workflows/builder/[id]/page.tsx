@@ -394,7 +394,12 @@ export default function WorkflowBuilderPage() {
     <div className="flex flex-col h-screen w-full bg-slate-50">
       <div className="h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shrink-0 z-10 shadow-sm">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/automation/workflows')}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => router.push('/automation/workflows')}
+            aria-label="Back to workflows"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="h-6 w-[2px] bg-slate-200" />

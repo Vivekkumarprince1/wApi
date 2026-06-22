@@ -63,7 +63,12 @@ export function NotificationPanel() {
   return (
     <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative group rounded-full h-10 w-10">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative group rounded-full h-10 w-10"
+          aria-label="Open notifications"
+        >
           <Bell className="h-5 w-5 text-muted-foreground group-hover:text-foreground group-hover:rotate-12 transition-all" />
           {invitations.length > 0 && (
             <span className="absolute top-2.5 right-2.5 flex h-2.5 w-2.5">

@@ -26,7 +26,7 @@ interface IntentRule {
 // ---------------------------------------------------------------------------
 // API helpers
 // ---------------------------------------------------------------------------
-const fetchIntents = fetchAiIntents;
+const fetchIntents = () => fetchAiIntents();
 const createIntent = createAiIntent;
 const toggleIntent = toggleRule;
 const deleteIntent = deleteRule;

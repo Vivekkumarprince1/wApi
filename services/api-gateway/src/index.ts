@@ -552,22 +552,44 @@ app.use('/api/internal/chat', proxyRewrite(
   (path) => path.replace('/api/internal/chat', '/api/internal')
 ));
 
+const healthServiceAliases: Record<string, keyof typeof SERVICES> = {
+  auth: 'auth',
+  contact: 'contact',
+  chat: 'chat',
+  billing: 'billing',
+  campaign: 'campaign',
+  automation: 'automation',
+  websocket: 'websocket',
+  ingestor: 'ingestor',
+  'service-provider': 'serviceProvider',
+  serviceProvider: 'serviceProvider',
+};
+
+const healthProxyCache = new Map<string, ReturnType<typeof createProxyMiddleware>>();
+
 // Universal internal health proxy: /api/internal/health/:service -> target /health
 app.use('/api/internal/health/:service', (req, res, next) => {
-  const serviceKey = req.params.service as keyof typeof SERVICES;
+  const serviceKey = healthServiceAliases[req.params.service];
   const target = SERVICES[serviceKey];
   if (!target) {
     res.status(404).json({ error: 'Service not found' });
     return;
   }
-  createProxyMiddleware({
-    target,
-    changeOrigin: true,
-    pathRewrite: () => '/health',
-    on: {
-      error: handleProxyError(serviceKey)
-    }
-  })(req, res, next);
+
+  let proxy = healthProxyCache.get(serviceKey);
+  if (!proxy) {
+    proxy = createProxyMiddleware({
+      target,
+      changeOrigin: true,
+      pathRewrite: () => '/health',
+      on: {
+        error: handleProxyError(serviceKey)
+      }
+    });
+    healthProxyCache.set(serviceKey, proxy);
+  }
+
+  proxy(req, res, next);
 });
 
 app.use('/api/internal', proxyTo(SERVICES.chat, 'chat'));

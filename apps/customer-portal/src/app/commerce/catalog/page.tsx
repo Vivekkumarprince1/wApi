@@ -135,20 +135,22 @@ export default function CommerceCatalogPage() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex bg-muted/30 p-1.5 rounded-2xl border border-border/40 scale-90 md:scale-100">
-            <Button
-              variant={view === 'grid' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setView('grid')}
-              className="rounded-xl h-9 px-4 h-10 w-10 flex items-center justify-center p-0"
-            >
+	            <Button
+	              variant={view === 'grid' ? 'secondary' : 'ghost'}
+	              size="sm"
+	              onClick={() => setView('grid')}
+	              aria-label="Show products as grid"
+	              className="rounded-xl h-9 px-4 h-10 w-10 flex items-center justify-center p-0"
+	            >
               <LayoutGrid className="size-4" />
             </Button>
             <Button
-              variant={view === 'list' ? 'secondary' : 'ghost'}
-              size="sm"
-              onClick={() => setView('list')}
-              className="rounded-xl h-9 px-4 h-10 w-10 flex items-center justify-center p-0"
-            >
+	              variant={view === 'list' ? 'secondary' : 'ghost'}
+	              size="sm"
+	              onClick={() => setView('list')}
+	              aria-label="Show products as list"
+	              className="rounded-xl h-9 px-4 h-10 w-10 flex items-center justify-center p-0"
+	            >
               <List className="size-4" />
             </Button>
           </div>
@@ -213,11 +215,12 @@ export default function CommerceCatalogPage() {
           </div>
           {category && (
             <Button 
-               variant="ghost" 
-               size="icon" 
-               onClick={() => setCategory(null)}
-               className="size-11 rounded-2xl shrink-0"
-            >
+	               variant="ghost" 
+	               size="icon" 
+	               onClick={() => setCategory(null)}
+	               aria-label="Clear product category filter"
+	               className="size-11 rounded-2xl shrink-0"
+	            >
                <X className="size-4" />
             </Button>
           )}
@@ -298,12 +301,12 @@ export default function CommerceCatalogPage() {
                     >
                       Configure
                     </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="icon" className="h-11 w-11 rounded-[1.25rem] border-border/40">
-                          <MoreVertical className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
+	                    <DropdownMenu>
+	                      <DropdownMenuTrigger asChild>
+	                        <Button variant="outline" size="icon" aria-label={`Open actions for ${product.name}`} className="h-11 w-11 rounded-[1.25rem] border-border/40">
+	                          <MoreVertical className="size-4" />
+	                        </Button>
+	                      </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56 p-2 rounded-[24px] shadow-2xl border-none ring-1 ring-border/20">
                         <DropdownMenuItem className="rounded-xl h-11 px-4 font-bold text-xs" onClick={() => handleEdit(product)}>Duplicate Listing</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => { router.push('/analytics/advanced'); }} className="rounded-xl h-11 px-4 font-bold text-xs">Analytics Digest</DropdownMenuItem>
@@ -342,25 +345,27 @@ export default function CommerceCatalogPage() {
              Indexing {products.length} of {pagination.total} catalog units
            </p>
            <div className="flex items-center bg-muted/30 p-1.5 rounded-2xl border border-border/40">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
-                className="rounded-xl size-10 flex items-center justify-center p-0"
-              >
+	              <Button 
+	                variant="ghost" 
+	                size="sm" 
+	                disabled={page === 1}
+	                onClick={() => setPage(p => p - 1)}
+	                aria-label="Previous product page"
+	                className="rounded-xl size-10 flex items-center justify-center p-0"
+	              >
                 <ChevronLeft className="size-4" />
               </Button>
               <div className="px-6 text-[10px] font-black uppercase tracking-widest">
                 Node {page} / {pagination.pages}
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                disabled={page === pagination.pages}
-                onClick={() => setPage(p => p + 1)}
-                className="rounded-xl size-10 flex items-center justify-center p-0"
-              >
+	              <Button 
+	                variant="ghost" 
+	                size="sm" 
+	                disabled={page === pagination.pages}
+	                onClick={() => setPage(p => p + 1)}
+	                aria-label="Next product page"
+	                className="rounded-xl size-10 flex items-center justify-center p-0"
+	              >
                 <ChevronRight className="size-4" />
               </Button>
            </div>

@@ -287,22 +287,24 @@ export default function TemplatesPage() {
           </Select>
 
           <div className="bg-muted/30 p-1 rounded-2xl flex border border-border/40">
+	             <Button 
+	               variant="ghost" 
+	               size="icon" 
+	               className={`h-11 w-11 rounded-xl ${viewMode === 'grid' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'}`}
+	               onClick={() => setViewMode('grid')}
+	               aria-label="Show templates as grid"
+	             >
+	               <LayoutGrid className="h-5 w-5" />
+	             </Button>
              <Button 
                variant="ghost" 
-               size="icon" 
-               className={`h-11 w-11 rounded-xl ${viewMode === 'grid' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'}`}
-               onClick={() => setViewMode('grid')}
-             >
-               <LayoutGrid className="h-5 w-5" />
-             </Button>
-             <Button 
-               variant="ghost" 
-               size="icon" 
-               className={`h-11 w-11 rounded-xl ${viewMode === 'list' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'}`}
-               onClick={() => setViewMode('list')}
-             >
-               <List className="h-5 w-5" />
-             </Button>
+	               size="icon" 
+	               className={`h-11 w-11 rounded-xl ${viewMode === 'list' ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground'}`}
+	               onClick={() => setViewMode('list')}
+	               aria-label="Show templates as list"
+	             >
+	               <List className="h-5 w-5" />
+	             </Button>
           </div>
         </div>
       </div>
@@ -347,10 +349,11 @@ export default function TemplatesPage() {
                             <Button 
                              variant="outline" 
                              size="icon" 
-                             className="h-8 w-8 rounded-full bg-emerald-500/5 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10 shadow-premium-sm"
-                             onClick={() => { setSelectedTemplate(template); setIsUseModalOpen(true); }}
-                             title="Create Campaign"
-                            >
+	                             className="h-8 w-8 rounded-full bg-emerald-500/5 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10 shadow-premium-sm"
+	                             onClick={() => { setSelectedTemplate(template); setIsUseModalOpen(true); }}
+	                             title="Create Campaign"
+	                             aria-label={`Create campaign from ${template.name}`}
+	                            >
                               <Plus className="h-4 w-4" />
                             </Button>
                           )}
@@ -359,18 +362,19 @@ export default function TemplatesPage() {
                              variant="outline" 
                              size="icon" 
                              className="h-8 w-8 rounded-full bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 shadow-premium-sm"
-                             onClick={() => submitMutation.mutate(template._id)}
-                             disabled={submitMutation.isPending}
-                             title="Submit for Approval"
-                            >
+	                             onClick={() => submitMutation.mutate(template._id)}
+	                             disabled={submitMutation.isPending}
+	                             title="Submit for Approval"
+	                             aria-label={`Submit ${template.name} for approval`}
+	                            >
                               <Zap className="h-4 w-4" />
                             </Button>
                           )}
                           {/* Dropdown Menu for all other actions */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full shadow-none"><MoreVertical className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
+	                          <DropdownMenu>
+	                            <DropdownMenuTrigger asChild>
+	                              <Button variant="ghost" size="icon" aria-label={`Open actions for ${template.name}`} className="h-8 w-8 rounded-full shadow-none"><MoreVertical className="h-4 w-4" /></Button>
+	                            </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52 rounded-2xl p-2 shadow-premium border-border/50">
                               {/* Submit: Only for Drafts/Rejected/Failed */}
                               {(template.status === 'DRAFT' || template.status === 'REJECTED' || template.status === 'FAILED') && (
@@ -481,27 +485,28 @@ export default function TemplatesPage() {
                        <td className="px-6 py-5 text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
                             {template.status === 'APPROVED' && (
-                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600" onClick={() => { setSelectedTemplate(template); setIsUseModalOpen(true); }}>
-                                <TrendingUp className="h-4 w-4" />
-                              </Button>
+	                              <Button variant="ghost" size="icon" aria-label={`Create campaign from ${template.name}`} className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600" onClick={() => { setSelectedTemplate(template); setIsUseModalOpen(true); }}>
+	                                <TrendingUp className="h-4 w-4" />
+	                              </Button>
                             )}
                             {template.status === 'DRAFT' && (
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary" 
-                                onClick={() => submitMutation.mutate(template._id)}
-                                title="Submit for Approval"
-                              >
+	                                className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary" 
+	                                onClick={() => submitMutation.mutate(template._id)}
+	                                title="Submit for Approval"
+	                                aria-label={`Submit ${template.name} for approval`}
+	                              >
                                 <Zap className="h-4 w-4" />
                               </Button>
                             )}
 
                             {/* Dropdown Menu for Table Mode */}
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg"><MoreVertical className="h-4 w-4" /></Button>
-                              </DropdownMenuTrigger>
+	                            <DropdownMenu>
+	                              <DropdownMenuTrigger asChild>
+	                                <Button variant="ghost" size="icon" aria-label={`Open actions for ${template.name}`} className="h-8 w-8 rounded-lg"><MoreVertical className="h-4 w-4" /></Button>
+	                              </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-premium border-border/50">
                                 {!['PENDING', 'DELETED', 'APPROVED'].includes(template.status) && (
                                   <DropdownMenuItem className="rounded-xl h-10 font-bold cursor-pointer" onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}>Edit</DropdownMenuItem>

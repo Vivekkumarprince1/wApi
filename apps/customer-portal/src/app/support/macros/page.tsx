@@ -192,10 +192,18 @@ export default function MacrosPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleEdit(macro)} className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground">
+                    <button
+                      onClick={() => handleEdit(macro)}
+                      className="p-2 hover:bg-muted rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                      aria-label={`Edit macro ${macro.name}`}
+                    >
                       <FaEdit size={12} />
                     </button>
-                    <button onClick={() => deleteMutation.mutate(macro._id)} className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-muted-foreground hover:text-destructive">
+                    <button
+                      onClick={() => deleteMutation.mutate(macro._id)}
+                      className="p-2 hover:bg-destructive/10 rounded-lg transition-colors text-muted-foreground hover:text-destructive"
+                      aria-label={`Delete macro ${macro.name}`}
+                    >
                       <FaTrash size={12} />
                     </button>
                   </div>
@@ -237,7 +245,11 @@ export default function MacrosPage() {
               <div className="p-8">
                 <div className="flex items-center justify-between mb-8">
                   <h3 className="text-xl font-black">{editingMacro ? 'Edit Macro' : 'Create New Macro'}</h3>
-                  <button onClick={() => setIsEditorOpen(false)} className="h-10 w-10 flex items-center justify-center hover:bg-muted rounded-xl transition-colors">
+                  <button
+                    onClick={() => setIsEditorOpen(false)}
+                    className="h-10 w-10 flex items-center justify-center hover:bg-muted rounded-xl transition-colors"
+                    aria-label="Close macro editor"
+                  >
                     <FaPlus className="rotate-45" />
                   </button>
                 </div>

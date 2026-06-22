@@ -1,0 +1,823 @@
+{
+  "generatedAt": "2026-06-22T05:50:50.618Z",
+  "routes": [
+    {
+      "route": "/automation",
+      "resolved": "/automation",
+      "bodyChars": 1182,
+      "controlsCount": 17,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Workflow New Workflow",
+        "New Workflow New Workflow",
+        "Quick Auto-Reply Quick Auto-Reply",
+        "Quick Auto-Reply Quick Auto-Reply",
+        "CORE Visual Workflows Complex branching automations, event triggers, and journey orchestration. WORKFLOWS 0 CoreVisual WorkflowsComplex branching automations, event triggers, and journey orchestration.Workflows0",
+        "FAST RESPONSE Auto Replies Keyword and condition-based instant replies for high-volume inbound chats. RULES 0 Fast ResponseAuto RepliesKeyword and condition-based instant replies for high-volume inbound chats.Rules0",
+        "AI AnswerBots Knowledge-trained assistant with draft FAQ approval and fallback logic. DISABLED 0 draft FAQs AIAnswerBotsKnowledge-trained assistant with draft FAQ approval and fallback logic.Disabled0 draft FAQs",
+        "NLP AI Intent Match Intent-level NLP matching for fuzzy inbound phrasing and smart action routing. INTENT RULES 0 NLPAI Intent MatchIntent-level NLP matching for fuzzy inbound phrasing and smart action routing.Intent Rules0",
+        "LEAD CAPTURE WhatsApp Forms Interactive forms and flow-based data capture with response tracking. PUBLISHED 0/2 Lead CaptureWhatsApp FormsInteractive forms and flow-based data capture with response tracking.Published0/2",
+        "WHATSAPP LIST Interaktive List Tap-first list menus for triage, navigation, and guided support entry points. ENABLED 0/0 WhatsApp ListInteraktive ListTap-first list menus for triage, navigation, and guided support entry points.Enabled0/0",
+        "OMNICHANNEL Instagram QuickFlows Instagram-native automation flows for quick responses and trigger actions. ENABLED 0/0 OmnichannelInstagram QuickFlowsInstagram-native automation flows for quick responses and trigger actions.Enabled0/0"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/automation/workflows/builder/create",
+          "text": "New Workflow"
+        },
+        {
+          "href": "/automation/auto-replies",
+          "text": "Quick Auto-Reply"
+        },
+        {
+          "href": "/automation/workflows",
+          "text": "CORE Visual Workflows Complex branching automations, event triggers, and journey orchestration. WORKFLOWS 0"
+        },
+        {
+          "href": "/automation/auto-replies",
+          "text": "FAST RESPONSE Auto Replies Keyword and condition-based instant replies for high-volume inbound chats. RULES 0"
+        },
+        {
+          "href": "/automation/answerbot",
+          "text": "AI AnswerBots Knowledge-trained assistant with draft FAQ approval and fallback logic. DISABLED 0 draft FAQs"
+        },
+        {
+          "href": "/automation/ai-intent-matching",
+          "text": "NLP AI Intent Match Intent-level NLP matching for fuzzy inbound phrasing and smart action routing. INTENT RULES 0"
+        },
+        {
+          "href": "/automation/whatsapp-forms",
+          "text": "LEAD CAPTURE WhatsApp Forms Interactive forms and flow-based data capture with response tracking. PUBLISHED 0/2"
+        },
+        {
+          "href": "/automation/interaktive-list",
+          "text": "WHATSAPP LIST Interaktive List Tap-first list menus for triage, navigation, and guided support entry points. ENABLED 0/0"
+        },
+        {
+          "href": "/automation/instagram-quickflows",
+          "text": "OMNICHANNEL Instagram QuickFlows Instagram-native automation flows for quick responses and trigger actions. ENABLED 0/0"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Flow Hub 0 ACTIVE RULES Unified command center for all automation-related systems across WhatsApp and Instagram. New Workflow Quick Auto-Reply AUTOMATION ASSETS 2 Across all modules 7-DAY EXECUTIONS 0 0 successful SUCCESS RATE 0% From engine telemetry ENGINE PACE 0/day Avg over last 7 days CORE Visual Workflows Complex branching automations, event triggers, and journey orchestration. WORKFLOWS 0 FAST RESPONSE Auto Replies Keyword and condition-based instant replies for high-volume inbound chats. RULES 0 AI AnswerBots Knowledge-trained assistant with draft FAQ approval and fallback logic. DISABLED 0 draft FAQs NLP AI Intent Match Intent",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/ai-intent-matching",
+      "resolved": "/automation/ai-intent-matching",
+      "bodyChars": 296,
+      "controlsCount": 9,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Create New Intent Create New Intent",
+        "Search intents by name or label...",
+        "Train First Intent Train First Intent"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V AI Intent Match 0 intents trained · recognizes customer intent in any phrasing Create New Intent No Intents Trained Start by defining what your customers might ask — type variations you've seen in real conversations. Train First Intent",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/ai-intent-matching",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/answerbot",
+      "resolved": "/automation/answerbot",
+      "bodyChars": 407,
+      "controlsCount": 14,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Resource Center Resource Center",
+        "Activate AnswerBot Activate AnswerBot",
+        "Knowledge Base Knowledge Base",
+        "Persona & Tone Persona & Tone",
+        "System Settings System Settings",
+        "Knowledge Base Trained Sources Add Data Source NO TRAINING DATA YET Extracted Q&A Drafts AI-extracted questions awaiting your approval before going live. Approve Selected (0) Trained Sources Add Data SourceNo training data yet Extracted Q&A DraftsAI-extracted questions awaiting your approval before going live.Approve Selected (0)",
+        "Add Data Source Add Data Source",
+        "Approve Selected (0) Approve Selected (0)"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Smart AnswerBot OFFLINE Define a persona and feed your AI knowledge to automate 80% of support queries. Resource Center Activate AnswerBot Knowledge Base Persona & Tone System Settings Trained Sources Add Data Source NO TRAINING DATA YET Extracted Q&A Drafts AI-extracted questions awaiting your approval before going live. Approve Selected (0)",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/answerbot",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/auto-replies",
+      "resolved": "/automation/auto-replies",
+      "bodyChars": 474,
+      "controlsCount": 12,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Create New Reply Create New Reply",
+        "Search by name or keyword...",
+        "Filters Filters",
+        "Global Options Global Options",
+        "+ Create First Reply + Create First Reply",
+        "VIEW ANALYTICS View Analytics"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Instant Auto-Replies 0 ACTIVE RULES Setup instant keyword responses to handle frequent customer queries automatically. Create New Reply Filters Global Options No auto-replies configured Automate your responses to common questions like pricing, availability, or location. + Create First Reply Auto-Response Efficiency Your logic rules are handling 4.2k messages monthly without human intervention. VIEW ANALYTICS",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/auto-replies",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/instagram-quickflows",
+      "resolved": "/automation/instagram-quickflows",
+      "bodyChars": 349,
+      "controlsCount": 9,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Create QuickFlow Create QuickFlow",
+        "Search by name or keyword...",
+        "+ Choose from Presets + Choose from Presets"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Instagram QuickFlows 0 LIVE FLOWS Auto-reply to Instagram comments, DMs, and story mentions. Create QuickFlow 0 INSTAGRAM FLOWS 0 ACTIVE STATUS 0 SYSTEM TRIGGERS No Instagram flows active Start by using a preset template to automate your Instagram engagement. + Choose from Presets",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/instagram-quickflows",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/instagram-quickflows/create",
+      "resolved": "/automation/instagram-quickflows/create",
+      "bodyChars": 243,
+      "controlsCount": 13,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Back to Instagram QuickFlows",
+        "e.g. Price Inquiry Reply",
+        "Post Comment Post Comment",
+        "price, cost, how much",
+        "The automatic reply sent when the trigger matches…",
+        "Cancel Cancel",
+        "Create QuickFlow Create QuickFlow"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V New Instagram QuickFlow Auto-respond to Instagram comments, DMs, and story replies. FLOW NAME TRIGGER Post Comment KEYWORDS (COMMA SEPARATED) REPLY MESSAGE Cancel Create QuickFlow",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/instagram-quickflows/create",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/interaktive-list",
+      "resolved": "/automation/interaktive-list",
+      "bodyChars": 744,
+      "controlsCount": 12,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Create List Create List",
+        "Search interactive lists...",
+        "All All",
+        "Enabled Enabled",
+        "Disabled Disabled",
+        "Create First List Create First List"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Interaktive List Build WhatsApp list menus with trigger keywords and reusable payloads for support and triage flows. TOTAL LISTS 0 ACTIVE 0 Create List Smart Triage Tap-First Customer Routing Use interactive list menus for quick category selection before AnswerBot, workflows, or human handoff. Works best with 3-8 clear options and distinct keyword triggers. Flow Readiness Enable a list only when message body, button text, and rows are fully configured. Header Optional Body Required At Least 1 Row Keywords Optional All Enabled Disabled No Interactive Lists Create your first interactive list to guide customers through menu-driven choices",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/interaktive-list",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/whatsapp-forms",
+      "resolved": "/automation/whatsapp-forms",
+      "bodyChars": 429,
+      "controlsCount": 27,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Create New Form Create New Form",
+        "Create New Form Create New Form",
+        "Search forms...",
+        "Filter Filter",
+        "All All",
+        "Draft Draft",
+        "Published Published",
+        "Sync form",
+        "View responses",
+        "Edit form",
+        "Publish Publish",
+        "Delete form",
+        "Sync form",
+        "View responses",
+        "Edit form",
+        "Publish Publish",
+        "Delete form"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/automation/whatsapp-forms/create",
+          "text": "Create New Form"
+        },
+        {
+          "href": "/automation/whatsapp-forms/69f24d2a60ce55f44c51bcfc/responses",
+          "text": ""
+        },
+        {
+          "href": "/automation/whatsapp-forms/69f24d2a60ce55f44c51bcfc/edit",
+          "text": ""
+        },
+        {
+          "href": "/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/responses",
+          "text": ""
+        },
+        {
+          "href": "/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/edit",
+          "text": ""
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V WhatsApp Forms Build and manage interactive forms for your WhatsApp audience. Create New Form TOTAL RESPONSES 0 COMPLETION RATE 0% ACTIVE FORMS 0 Filter All Draft Published FORM STATUS RESPONSES ACTIONS rtywrt wrtwertwe Flow: - • lead_capture draft 0 Last: Never Publish dfsgdrf sdfgsd Flow: sdgdf • lead_capture draft 0 Last: Never Publish",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": "/automation/whatsapp-forms/69f24d2a60ce55f44c51bcfc/responses",
+          "html": "<a href=\"/automation/whatsapp-forms/69f24d2a60ce55f44c51bcfc/responses\"><button type=\"button\" tabindex=\"0\" data-slot=\"button\" title=\"View responses\" class=\"group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm f",
+          "index": 14,
+          "name": "",
+          "role": null,
+          "tag": "A",
+          "title": null,
+          "type": null
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": "/automation/whatsapp-forms/69f24d2a60ce55f44c51bcfc/edit",
+          "html": "<a href=\"/automation/whatsapp-forms/69f24d2a60ce55f44c51bcfc/edit\"><button type=\"button\" tabindex=\"0\" data-slot=\"button\" title=\"Edit form\" class=\"group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium",
+          "index": 16,
+          "name": "",
+          "role": null,
+          "tag": "A",
+          "title": null,
+          "type": null
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": "/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/responses",
+          "html": "<a href=\"/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/responses\"><button type=\"button\" tabindex=\"0\" data-slot=\"button\" title=\"View responses\" class=\"group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm f",
+          "index": 21,
+          "name": "",
+          "role": null,
+          "tag": "A",
+          "title": null,
+          "type": null
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": "/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/edit",
+          "html": "<a href=\"/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/edit\"><button type=\"button\" tabindex=\"0\" data-slot=\"button\" title=\"Edit form\" class=\"group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium",
+          "index": 23,
+          "name": "",
+          "role": null,
+          "tag": "A",
+          "title": null,
+          "type": null
+        }
+      ],
+      "url": "http://localhost:3000/automation/whatsapp-forms",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/whatsapp-forms/[id]/edit",
+      "resolved": "/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/edit",
+      "bodyChars": 72,
+      "controlsCount": 6,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/automation/whatsapp-forms",
+          "text": "Whatsapp forms"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Form not found.",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/edit",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/whatsapp-forms/[id]/responses",
+      "resolved": "/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/responses",
+      "bodyChars": 249,
+      "controlsCount": 10,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "All Completed In Progress Abandoned AllCompletedIn ProgressAbandoned",
+        "Export CSV Export CSV"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/automation/whatsapp-forms",
+          "text": "Whatsapp forms"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/automation/whatsapp-forms",
+          "text": ""
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Form Responses Unknown form All Completed In Progress Abandoned Export CSV TOTAL 0 COMPLETED 0 COMPLETION 0% AVG TIME (SEC) 0 PHONE STATUS STARTED COMPLETED FIELDS No responses yet.",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": "/automation/whatsapp-forms",
+          "html": "<a href=\"/automation/whatsapp-forms\"><button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none s",
+          "index": 6,
+          "name": "",
+          "role": null,
+          "tag": "A",
+          "title": null,
+          "type": null
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring ",
+          "index": 7,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        }
+      ],
+      "url": "http://localhost:3000/automation/whatsapp-forms/69f24c0160ce55f44c51bcad/responses",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/whatsapp-forms/create",
+      "resolved": "/automation/whatsapp-forms/create",
+      "bodyChars": 1301,
+      "controlsCount": 42,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Back to WhatsApp Forms",
+        "Lead Qualification Flow",
+        "meta-flow-id",
+        "Collect qualification fields before handoff",
+        "Visual Builder Visual Builder",
+        "JSON Editor JSON Editor",
+        "Add Screen Add Screen",
+        "Preview Screen 1 Preview Screen 1",
+        "Screen 1 title",
+        "Terminal",
+        "Delete screen 1",
+        "Continue Continue",
+        "Auto (next screen) Auto (next screen)",
+        "Full Name",
+        "Text Email Phone Number Textarea Select TextEmailPhoneNumberTextareaSelect",
+        "Enter value",
+        "Required",
+        "Delete field 1",
+        "Add Field Add Field",
+        "Enter value",
+        "Continue Continue",
+        "Static Dynamic StaticDynamic",
+        "lead_capture lead_capture",
+        "website, sales, high-intent",
+        "Please update your WhatsApp to use interactive forms.",
+        "Send confirmation after submission",
+        "Thanks, we have received your response.",
+        "Forward submissions to webhook",
+        "https://example.com/webhook",
+        "POST PUT POSTPUT",
+        "Auto-generate Mapping Auto-generate Mapping",
+        "[] [{\"flowFieldId\":\"email\",\"crmField\":\"email\",\"saveAsTrait\":true}]",
+        "Cancel Cancel",
+        "Cancel Cancel",
+        "Create Draft Create Draft"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/automation/whatsapp-forms",
+          "text": "Whatsapp forms"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/automation/whatsapp-forms",
+          "text": ""
+        },
+        {
+          "href": "/automation/whatsapp-forms",
+          "text": "Cancel"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Create WhatsApp Form Design the user journey visually, configure delivery behavior, and save as draft. SCREENS 1 FIELDS 1 MODE Visual Form Basics Set up identity and purpose before building flow screens. Form Name Flow ID (optional) Description Flow Builder Switch between no-code visual editor and raw JSON. Visual Builder JSON Editor Visual Screen Builder Add screens and fields without writing flow JSON. Add Screen Preview Screen 1 Terminal Footer CTA Text Next Screen (Branching) Auto (next screen) Label Type Text Email Phone Number Textarea Select Placeholder Required Add Field LIVE PREVIEW Screen 1/1 Screen 1 Untitled Field Continue ",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": "/automation/whatsapp-forms",
+          "html": "<a href=\"/automation/whatsapp-forms\"><button type=\"button\" tabindex=\"0\" data-slot=\"button\" aria-label=\"Back to WhatsApp Forms\" class=\"group/button inline-flex shrink-0 items-center justify-center bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none se",
+          "index": 6,
+          "name": "",
+          "role": null,
+          "tag": "A",
+          "title": null,
+          "type": null
+        }
+      ],
+      "url": "http://localhost:3000/automation/whatsapp-forms/create",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/workflows",
+      "resolved": "/automation/workflows",
+      "bodyChars": 587,
+      "controlsCount": 11,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Design New Workflow Design New Workflow",
+        "Search workflows by name...",
+        "All Triggers Incoming Message Message Received (Legacy) Form Submitted Keyword Match Tag Added All TriggersIncoming MessageMessage Received (Legacy)Form SubmittedKeyword MatchTag Added",
+        "+ Design Your First Flow + Design Your First Flow",
+        "Open AI Builder Open AI Builder"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Visual Workflows 0 ACTIVE FLOWS Build complex automated customer journeys and branching logic. Design New Workflow 0 TOTAL FLOWS 0 ACTIVE NOW 0 TOTAL RUNS 98.2% SUCCESS RATE All Triggers Incoming Message Message Received (Legacy) Form Submitted Keyword Match Tag Added No workflows found Start by designing your first automated journey to save time and delight your customers. + Design Your First Flow Need a custom bot journey? Use our AI Prompt to Flow engine to generate complex logic in seconds. Open AI Builder",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/workflows",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/workflows/[id]",
+      "resolved": "/automation/workflows/69f24c0160ce55f44c51bcad",
+      "bodyChars": 56,
+      "controlsCount": 6,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/automation/workflows",
+          "text": "Workflows"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/workflows/69f24c0160ce55f44c51bcad/view",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/workflows/[id]/edit",
+      "resolved": "/automation/workflows/69f24c0160ce55f44c51bcad/edit",
+      "bodyChars": 623,
+      "controlsCount": 13,
+      "hasCrashText": false,
+      "labels": [
+        "Request failed with status code 404 Request failed with status code 404",
+        "Close toast",
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Design New Workflow Design New Workflow",
+        "Search workflows by name...",
+        "All Triggers Incoming Message Message Received (Legacy) Form Submitted Keyword Match Tag Added All TriggersIncoming MessageMessage Received (Legacy)Form SubmittedKeyword MatchTag Added",
+        "+ Design Your First Flow + Design Your First Flow",
+        "Open AI Builder Open AI Builder"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Request failed with status code 404 Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Visual Workflows 0 ACTIVE FLOWS Build complex automated customer journeys and branching logic. Design New Workflow 0 TOTAL FLOWS 0 ACTIVE NOW 0 TOTAL RUNS 98.2% SUCCESS RATE All Triggers Incoming Message Message Received (Legacy) Form Submitted Keyword Match Tag Added No workflows found Start by designing your first automated journey to save time and delight your customers. + Design Your First Flow Need a custom bot journey? Use our AI Prompt to Flow engine to generate complex logic in seconds. Open AI Builder",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/workflows",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/workflows/[id]/view",
+      "resolved": "/automation/workflows/69f24c0160ce55f44c51bcad/view",
+      "bodyChars": 56,
+      "controlsCount": 6,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/automation/workflows",
+          "text": "Workflows"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/workflows/69f24c0160ce55f44c51bcad/view",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/workflows/builder/[id]",
+      "resolved": "/automation/workflows/builder/69f24c0160ce55f44c51bcad",
+      "bodyChars": 623,
+      "controlsCount": 13,
+      "hasCrashText": false,
+      "labels": [
+        "Request failed with status code 404 Request failed with status code 404",
+        "Close toast",
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Design New Workflow Design New Workflow",
+        "Search workflows by name...",
+        "All Triggers Incoming Message Message Received (Legacy) Form Submitted Keyword Match Tag Added All TriggersIncoming MessageMessage Received (Legacy)Form SubmittedKeyword MatchTag Added",
+        "+ Design Your First Flow + Design Your First Flow",
+        "Open AI Builder Open AI Builder"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Request failed with status code 404 Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Visual Workflows 0 ACTIVE FLOWS Build complex automated customer journeys and branching logic. Design New Workflow 0 TOTAL FLOWS 0 ACTIVE NOW 0 TOTAL RUNS 98.2% SUCCESS RATE All Triggers Incoming Message Message Received (Legacy) Form Submitted Keyword Match Tag Added No workflows found Start by designing your first automated journey to save time and delight your customers. + Design Your First Flow Need a custom bot journey? Use our AI Prompt to Flow engine to generate complex logic in seconds. Open AI Builder",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/workflows",
+      "errorLogs": []
+    },
+    {
+      "route": "/automation/workflows/create",
+      "resolved": "/automation/workflows/create",
+      "bodyChars": 315,
+      "controlsCount": 18,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Back to workflows",
+        "Untitled Workflow",
+        "Active Active",
+        "Settings Settings",
+        "Test Test",
+        "Save & Publish Save & Publish",
+        "Incoming Message WHEN Any Message Incoming MessageWhenAny Message",
+        "Zoom In Zoom In",
+        "Zoom Out Zoom Out",
+        "Fit View Fit View",
+        "Toggle Interactivity Toggle Interactivity",
+        "React Flow attribution React Flow React Flow"
+      ],
+      "links": [
+        {
+          "href": "/automation",
+          "text": "Automation Hub"
+        },
+        {
+          "href": "/automation/workflows",
+          "text": "Workflows"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "https://reactflow.dev",
+          "text": "React Flow"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Active Settings Test Save & Publish AVAILABLE ACTIONS Send Message Send Template Condition Add Tag Assign Conversation Create Deal Drag and drop actions onto the canvas. Use Condition for true/false branching. Incoming Message WHEN Any Message React Flow",
+      "title": "Automation | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/automation/workflows/builder/create",
+      "errorLogs": []
+    }
+  ]
+}

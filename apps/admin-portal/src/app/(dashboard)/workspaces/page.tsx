@@ -349,10 +349,10 @@ export default function WorkspacesPage() {
                             <UserCog className="h-4 w-4" /> Open Access
                           </Button>
                         )}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button size="sm" variant="ghost"><MoreVertical className="h-4 w-4" /></Button>
-                          </DropdownMenuTrigger>
+	                        <DropdownMenu>
+	                          <DropdownMenuTrigger asChild>
+	                            <Button size="sm" variant="ghost" aria-label={`Open actions for ${ws.name || ws._id}`}><MoreVertical className="h-4 w-4" /></Button>
+	                          </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem onClick={() => setSelectedId(ws._id)}>
                               <Settings className="h-4 w-4" /> Configure
@@ -537,9 +537,9 @@ export default function WorkspacesPage() {
                                   ))}
                                 </div>
                               </div>
-                              <Button size="sm" variant="ghost" onClick={() => deleteSub.mutate(sub.id)} disabled={deleteSub.isPending}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+	                              <Button size="sm" variant="ghost" onClick={() => deleteSub.mutate(sub.id)} disabled={deleteSub.isPending} aria-label={`Delete webhook subscription ${sub.url || sub.id}`}>
+	                                <Trash2 className="h-3.5 w-3.5" />
+	                              </Button>
                             </div>
                           ))}
                         </div>

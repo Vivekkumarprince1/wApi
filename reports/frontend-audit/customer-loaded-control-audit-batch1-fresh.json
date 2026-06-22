@@ -1,0 +1,821 @@
+{
+  "generatedAt": "2026-06-22T05:47:21.891Z",
+  "routes": [
+    {
+      "route": "/",
+      "resolved": "/",
+      "bodyChars": 1192,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Campaign New Campaign",
+        "Send Campaign Reach thousands Send CampaignReach thousands",
+        "Add Contacts Import or create Add ContactsImport or create",
+        "New Create Template Design messages NewCreate TemplateDesign messages",
+        "View Inbox Check responses View InboxCheck responses",
+        "Connected Connected",
+        "Connect Now Connect Now",
+        "VIEW LOGS View Logs",
+        "Launch Campaign Launch Campaign",
+        "Get Help Get Help"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost your WhatsApp marketing Bulk Campaigns Send to thousands instantly Automation Auto-reply & workflows Co",
+      "title": "Dashboard | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/dashboard",
+      "errorLogs": []
+    },
+    {
+      "route": "/dashboard",
+      "resolved": "/dashboard",
+      "bodyChars": 1192,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Campaign New Campaign",
+        "Send Campaign Reach thousands Send CampaignReach thousands",
+        "Add Contacts Import or create Add ContactsImport or create",
+        "New Create Template Design messages NewCreate TemplateDesign messages",
+        "View Inbox Check responses View InboxCheck responses",
+        "Connected Connected",
+        "Connect Now Connect Now",
+        "VIEW LOGS View Logs",
+        "Launch Campaign Launch Campaign",
+        "Get Help Get Help"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost your WhatsApp marketing Bulk Campaigns Send to thousands instantly Automation Auto-reply & workflows Co",
+      "title": "Dashboard | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/dashboard",
+      "errorLogs": []
+    },
+    {
+      "route": "/contacts",
+      "resolved": "/contacts",
+      "bodyChars": 1235,
+      "controlsCount": 31,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Add Contact Add Contact",
+        "CLEAR FILTER Clear Filter",
+        "ALL CONTACTS All Contacts",
+        "MAY 05, 2026 May 05, 2026",
+        "APR 22, 2026 Apr 22, 2026",
+        "APR 18, 2026 Apr 18, 2026",
+        "APR 07, 2026 Apr 07, 2026",
+        "APR 01, 2026 Apr 01, 2026",
+        "MAR 18, 2026 Mar 18, 2026",
+        "Search by name, phone or email...",
+        "Export Export",
+        "Open bulk contact actions",
+        "Select all contacts on",
+        "Select contact ujjwal on",
+        "Select contact nilu on",
+        "Select contact Neha Gupta on",
+        "Select contact Rahul Verma on",
+        "Select contact Priya Singh on",
+        "Select contact vivek kumar on",
+        "Select contact vk on",
+        "Select contact amit bhaiya on",
+        "Select contact madhuri kumar on",
+        "Select contact Vivek Kumar on",
+        "PREV Prev",
+        "NEXT Next"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Contacts 10 TOTAL Manage your audience, segments, and communication history. Add Contact TOTAL CONTACTS 10 TAGGED CONTACTS 4 NEW LEADS 10 FILTER BY SAVE DATE CLEAR FILTER ALL CONTACTS MAY 05, 2026 APR 22, 2026 APR 18, 2026 APR 07, 2026 APR 01, 2026 MAR 18, 2026 Export CONTACT INFO SOURCE / LABEL TAGS SAVED ON U ujjwal 620786581 WABA Manual Import - May 05, 2026 05:26 PM N nilu 919199392721 WABA Manual Import - May 05, 2026 05:17 PM N Neha Gupta 919090909090 WABA Manual Import imported Apr 22, 2026 02:19 PM R Rahul Verma 919012345678 WABA Manual Import imported Apr 22, 2026 02:19 PM P Priya Singh 919988776655 WABA Manual Import imported",
+      "title": "Contacts | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/contacts",
+      "errorLogs": []
+    },
+    {
+      "route": "/contacts/[id]",
+      "resolved": "/contacts/69bada048a07e6f05049352f",
+      "bodyChars": 385,
+      "controlsCount": 7,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v"
+      ],
+      "links": [
+        {
+          "href": "/contacts",
+          "text": "Contacts"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V CONTACT PROFILE Vivek Kumar V Vivek Kumar NEW PHONE 917321835093 EMAIL vivekkumarprince1@gmail.com TAGS & SEGMENTS VIP MESSAGES -- DEALS VALUE ₹0 LAST SEEN Recently ACTIVITY TIMELINE FORM SUBMISSIONS No WhatsApp Flow submissions are linked to this contact yet. Submissions appear here after automation records them.",
+      "title": "Contacts | ConnectSphare",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visib",
+          "index": 6,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        }
+      ],
+      "url": "http://localhost:3000/contacts/69bada048a07e6f05049352f",
+      "errorLogs": []
+    },
+    {
+      "route": "/templates",
+      "resolved": "/templates",
+      "bodyChars": 599,
+      "controlsCount": 24,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Sync from Meta Sync from Meta",
+        "Create Template Create Template",
+        "ALL All",
+        "ACTIVE Active",
+        "PENDING Pending",
+        "REJECTED Rejected",
+        "DRAFTS Drafts",
+        "DELETED Deleted",
+        "Search templates...",
+        "All Categories All Categories",
+        "Show templates as grid",
+        "Show templates as list",
+        "Create campaign from audit_template_0622 Create Campaign",
+        "Open actions for audit_template_0622",
+        "Create campaign from welcome_message Create Campaign",
+        "Open actions for welcome_message",
+        "MANAGE RULES Manage Rules",
+        "VIEW INSIGHTS View Insights"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Templates 2 TOTAL Create and manage your WhatsApp message templates. Sync from Meta Create Template ACTIVE 2 PENDING 0 HIGH QUALITY 0 REJECTED 0 ALL ACTIVE PENDING REJECTED DRAFTS DELETED All Categories APPROVED audit_template_0622 MARKETING EN CREATED 22/06/2026 APPROVED welcome_message MARKETING EN CREATED 31/05/2026 Template Rules Create automated triggers based on template activity and quality scores. MANAGE RULES Advanced Analytics Deep dive into template performance, delivery metrics, and ROI tracking. VIEW INSIGHTS",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/templates",
+      "errorLogs": []
+    },
+    {
+      "route": "/campaign",
+      "resolved": "/campaign",
+      "bodyChars": 748,
+      "controlsCount": 25,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Export Export",
+        "New Campaign New Campaign",
+        "One-Time One-Time",
+        "Ongoing Ongoing",
+        "API API",
+        "Search by name or template...",
+        "RESET FILTERS Reset Filters",
+        "View campaign hgjfcf",
+        "Open actions for campaign hgjfcf",
+        "View campaign xbcvnb",
+        "Open actions for campaign xbcvnb",
+        "View campaign kjhj",
+        "Open actions for campaign kjhj",
+        "View campaign hjgjhgj",
+        "Open actions for campaign hjgjhgj",
+        "View campaign hello",
+        "Open actions for campaign hello",
+        "View campaign test",
+        "Open actions for campaign test"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Campaigns 6 TOTAL Manage and track your message broadcasts. Export New Campaign One-Time Ongoing API RESET FILTERS DETAILS ENGAGEMENT PROGRESS STATUS ACTIONS hgjfcf WHATSAPP • Manual Message 0 DELIVERED 0 READ 100% 1/1 COMPLETED xbcvnb WHATSAPP • Manual Message 0 DELIVERED 0 READ 100% 1/1 COMPLETED kjhj WHATSAPP • Manual Message 0 DELIVERED 0 READ 100% 1/1 COMPLETED hjgjhgj WHATSAPP • Manual Message 0 DELIVERED 0 READ 100% 1/1 COMPLETED hello WHATSAPP • Manual Message 0 DELIVERED 0 READ 0% 0/1 COMPLETED test WHATSAPP • Manual Message 0 DELIVERED 0 READ 100% 2/2 COMPLETED AVG. DELIVERY 0% AVG. OPEN RATE 0% TOTAL SENT 6",
+      "title": "Campaigns | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/campaign",
+      "errorLogs": []
+    },
+    {
+      "route": "/campaign/new",
+      "resolved": "/campaign/new",
+      "bodyChars": 318,
+      "controlsCount": 14,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Back to campaigns",
+        "1 Campaign Name e.g., Summer Sale 2024",
+        "2 Description What is this campaign about? (Optional)",
+        "One-time Send now or at scheduled time Recurring Auto-trigger based on behavior One-timeSend now or at scheduled timeRecurringAuto-trigger based on behavior",
+        "One-time one-time",
+        "Recurring scheduled",
+        "← PREV ← Prev",
+        "CONTINUE Continue"
+      ],
+      "links": [
+        {
+          "href": "/campaign",
+          "text": "Campaign"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Campaign Details Set up your campaign identity 1 Campaign Name For internal tracking only – won't be seen by customers 2 Description 3 Campaign Type One-time Send now or at scheduled time Recurring Auto-trigger based on behavior ← PREV Step 1/5 CONTINUE",
+      "title": "Campaigns | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/campaign/new",
+      "errorLogs": []
+    },
+    {
+      "route": "/campaign/[id]",
+      "resolved": "/campaign/69d4d0cf09e9833d2e22fb78",
+      "bodyChars": 1475,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Back to campaigns",
+        "Open actions for campaign test",
+        "RECIPIENTS 2 Recipients2",
+        "DELIVERED 0 0% Delivered00%",
+        "READ 0 0% Read00%",
+        "FAILED 0 Failed0",
+        "Sent2",
+        "Search phone or name...",
+        "All Statuses All Statuses",
+        "Export CSV Export CSV"
+      ],
+      "links": [
+        {
+          "href": "/campaign",
+          "text": "Campaign"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V test COMPLETED Created 07/04/2026 Bulk Upload welcome PERFORMANCE FUNNEL LIVE DATA RECIPIENTS 2 DELIVERED 0 0% READ 0 0% FAILED 0 Sent 2 Zero Failures Detected Your campaign reached 100% of the targetable audience without any technical rejects. BUTTON PERFORMANCE NO INTERACTIVE BUTTONS FOUND IN TEMPLATE Recipient Activity Log Detailed delivery and read status per contact All Statuses Export CSV RECIPIENT STATUS ENGAGEMENT ACTIVITY DETAILS Unknown QUEUED 2c7a217d-5548-4e... Unknown QUEUED b1a8ddb2-d930-49... TEMPLATE SNAPSHOT TEMPLATE NAME welcome LANGUAGE EN MARKETING TEXT HEADER 🎉 Welcome to FMPG! We’re glad to have you here. FMPG he",
+      "title": "Campaigns | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/campaign/69d4d0cf09e9833d2e22fb78",
+      "errorLogs": []
+    },
+    {
+      "route": "/billing",
+      "resolved": "/billing",
+      "bodyChars": 1438,
+      "controlsCount": 14,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Change Plan Change Plan",
+        "Add Payment Method Add Payment Method",
+        "ADD CREDITS Add Credits",
+        "MANAGE BILLING Manage Billing",
+        "View Detailed Logs View Detailed Logs",
+        "TURN OFF Turn Off",
+        "Enter GSTIN or VAT Number",
+        "DEACTIVATE WORKSPACE Deactivate Workspace"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V BILLING & PLANS Manage your workspace subscription, wallet, and invoices. Change Plan Add Payment Method WALLET BALANCE INR 1,452.70 Credits refresh automatically on recharge. ADD CREDITS CURRENT PLAN Free Tier Auto-renewing Usage reset in 30 days PAYMENT STATUS Verified MANAGE BILLING Usage Summary Real-time platform resource utilization View Detailed Logs ACTIVE CONTACTS 0 / 1,000 CLOUD MESSAGES 0 / 10,000 AUTOMATIONS 0 / 5 ACTIVE DEALS 0 / 10 RECENT TRANSACTIONS LAST 20 EVENTS TYPE DESCRIPTION / INVOICE AMOUNT DATE MIGRATION Legacy Balance Sync (Automated Merge) +INR 1,452.70 30/05/2026 SPEND Template: UTILITY -INR 0.40 09/04/2026 R",
+      "title": "Billing | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/billing",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings",
+      "resolved": "/settings",
+      "bodyChars": 1216,
+      "controlsCount": 18,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Test Connection Test Connection",
+        "Save Changes Save Changes",
+        "META DEVELOPER PORTAL Meta Developer Portal",
+        "Show permanent access token",
+        "EAA...",
+        "123456789012345",
+        "123456789012345",
+        "MyVerifyToken_123",
+        "VIEW DETAILED DIAGNOSTICS View Detailed Diagnostics",
+        "META WEBHOOK DOCS Meta Webhook Docs",
+        "Request Rotation Request Rotation",
+        "Delete My Account Delete My Account"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "https://developers.facebook.com/dashboards",
+          "text": "META DEVELOPER PORTAL"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Workspace Settings ENVIRONMENT: PRODUCTION Configure your bridge to the Meta WhatsApp Business Network. Test Connection Save Changes API Configuration META DEVELOPER PORTAL PERMANENT ACCESS TOKEN Enter a new token only if you wish to overwrite the existing one. PHONE NUMBER ID WABA ID WEBHOOK VERIFY TOKEN Must match the Verify Token used in your Meta App Webhook configuration. Enterprise Security All active session tokens are encrypted at rest using AES-256 standards in our secure vault. Usage Quotas API Hits / Min 24 / 100 CONNECTIVITY Real-time Status Disconnected Configure a valid Permanent Access Token from Meta to start messaging.",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/channels",
+      "resolved": "/settings/channels",
+      "bodyChars": 637,
+      "controlsCount": 11,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Manage Channel Manage Channel",
+        "Connect Channel Connect Channel",
+        "Coming Soon Coming Soon",
+        "Manage Channel Manage Channel",
+        "ADD CONNECTOR Add Connector"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Channels Connect the entry points that feed conversations into your workspace. INSPIRED BY WAPI CONNECTED 2 PENDING 1 AVAILABLE 4 WhatsApp CONNECTED Primary support and broadcast channel. Manage Channel Instagram DM NOT CONNECTED Route social leads into the same inbox. Connect Channel Website Chat COMING SOON Embed a lightweight website entry point. Coming Soon Manual Inbox CONNECTED Create contacts and follow up by hand. Manage Channel Channel expansion Use this screen as the anchor for future connectors without changing the dashboard shell. ADD CONNECTOR",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/channels",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/developer",
+      "resolved": "/settings/developer",
+      "bodyChars": 1462,
+      "controlsCount": 17,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "API DOCS API Docs",
+        "CREDENTIALS Credentials",
+        "API Access Keys Generate and manage secure keys to authenticate your custom applications with the wApi Cloud Messaging engine. REFINE KEYS API Access KeysGenerate and manage secure keys to authenticate your custom applications with the wApi Cloud Messaging engine.Refine Keys",
+        "Webhooks & Events Configure real-time event notifications for message delivery, read receipts, and incoming customer chats. ORCHESTRATE EVENTS Webhooks & EventsConfigure real-time event notifications for message delivery, read receipts, and incoming customer chats.Orchestrate Events",
+        "audit_template_0622 welcome_message audit_template_0622welcome_message",
+        "Legacy Key signup Legacy Keysignup",
+        "CURL cURL",
+        "FETCH API Fetch API",
+        "COPY SNIPPET Copy Snippet",
+        "FULL API REFERENCE Full API Reference",
+        "VIEW SECURITY DOCUMENTATION View Security Documentation"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "https://docs.wapi.com",
+          "text": "API DOCS"
+        },
+        {
+          "href": "/settings/developer/keys",
+          "text": "CREDENTIALS"
+        },
+        {
+          "href": "/settings/developer/keys",
+          "text": "API Access Keys Generate and manage secure keys to authenticate your custom applications with the wApi Cloud Messaging e"
+        },
+        {
+          "href": "/settings/developer/webhooks",
+          "text": "Webhooks & Events Configure real-time event notifications for message delivery, read receipts, and incoming customer cha"
+        },
+        {
+          "href": "https://docs.wapi.com",
+          "text": "FULL API REFERENCE"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V DEVELOPER HUB Build custom integrations and manage API infrastructure. API DOCS CREDENTIALS API Access Keys Generate and manage secure keys to authenticate your custom applications with the wApi Cloud Messaging engine. REFINE KEYS Webhooks & Events Configure real-time event notifications for message delivery, read receipts, and incoming customer chats. ORCHESTRATE EVENTS API SNIPPET GENERATOR Select a template to generate production-ready code snippets. SNIPPET GENERATOR CONFIGURE AND EXPORT API EXAMPLES. SELECT TEMPLATE audit_template_0622 welcome_message AUTHENTICATION KEY Legacy Key signup VARIABLES: 0 API keys should never be share",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/developer",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/developer/keys",
+      "resolved": "/settings/developer/keys",
+      "bodyChars": 815,
+      "controlsCount": 9,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Generate New Key Generate New Key",
+        "API REFERENCE API Reference",
+        "WEBHOOKS Webhooks"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/settings/developer",
+          "text": "Developer"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "https://docs.wapi.com",
+          "text": "API REFERENCE"
+        },
+        {
+          "href": "/settings/developer/webhooks",
+          "text": "WEBHOOKS"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V API Keys Securely manage keys to authenticate your external integrations. Generate New Key Keep your keys private API keys provide full access to your WhatsApp workspace. Never commit these keys to version control or share them in client-side code. If a key is compromised, revoke it immediately. Curl Example Send a message using your API key curl -X POST https://api.wapi.app/v1/messages \\ -H \"Authorization: Bearer YOUR_API_KEY\" \\ -H \"Content-Type: application/json\" \\ -d '{ \"to\": \"919876543210\", \"type\": \"text\", \"text\": \"Hello platform!\" }' Documentation Explore our robust API reference Our API allow you to programmatically manage conver",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/developer/keys",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/developer/webhooks",
+      "resolved": "/settings/developer/webhooks",
+      "bodyChars": 907,
+      "controlsCount": 12,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "ADD ENDPOINT Add Endpoint",
+        "VIEW SIGNING SECRET View Signing Secret",
+        "CONFIGURE NOW Configure Now",
+        "No active endpoint",
+        "Message Received Message Sent Message Delivered Message Read Message Failed Template Update Billing Event Payment Update Flow Submission All Events Message ReceivedMessage SentMessage DeliveredMessage ReadMessage FailedTemplate UpdateBilling EventPayment UpdateFlow SubmissionAll Events",
+        "SEND TEST TRIGGER Send Test Trigger"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/settings/developer",
+          "text": "Developer"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V OUTBOUND WEBHOOKS Configure endpoints to receive real-time notifications from our platform. ADD ENDPOINT SECURITY & SIGNING Verify the authenticity of incoming webhooks using our payload signing. All requests include an x-wapi-signature HMAC SHA256 header. VIEW SIGNING SECRET LIVE ENDPOINTS NO ACTIVE ENDPOINTS FOUND Add a new endpoint to begin receiving real-time platform events. CONFIGURE NOW PAYLOAD TESTER Verify your endpoint receives the correct structure. TARGET ENDPOINT EVENT TYPE Message Received Message Sent Message Delivered Message Read Message Failed Template Update Billing Event Payment Update Flow Submission All Events JSO",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/developer/webhooks",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/events",
+      "resolved": "/settings/events",
+      "bodyChars": 907,
+      "controlsCount": 12,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "ADD ENDPOINT Add Endpoint",
+        "VIEW SIGNING SECRET View Signing Secret",
+        "CONFIGURE NOW Configure Now",
+        "No active endpoint",
+        "Message Received Message Sent Message Delivered Message Read Message Failed Template Update Billing Event Payment Update Flow Submission All Events Message ReceivedMessage SentMessage DeliveredMessage ReadMessage FailedTemplate UpdateBilling EventPayment UpdateFlow SubmissionAll Events",
+        "SEND TEST TRIGGER Send Test Trigger"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/settings/developer",
+          "text": "Developer"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V OUTBOUND WEBHOOKS Configure endpoints to receive real-time notifications from our platform. ADD ENDPOINT SECURITY & SIGNING Verify the authenticity of incoming webhooks using our payload signing. All requests include an x-wapi-signature HMAC SHA256 header. VIEW SIGNING SECRET LIVE ENDPOINTS NO ACTIVE ENDPOINTS FOUND Add a new endpoint to begin receiving real-time platform events. CONFIGURE NOW PAYLOAD TESTER Verify your endpoint receives the correct structure. TARGET ENDPOINT EVENT TYPE Message Received Message Sent Message Delivered Message Read Message Failed Template Update Billing Event Payment Update Flow Submission All Events JSO",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/developer/webhooks",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/member-profile",
+      "resolved": "/settings/member-profile",
+      "bodyChars": 520,
+      "controlsCount": 11,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "vivek kumar",
+        "vivekkumarprince1@gmail.com",
+        "+91 98xxxxxx 7321835093",
+        "Asia/Kolkata",
+        "Save changes Save changes"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Member Profile Review your personal workspace profile and session details. EDITABLE PROFILE V vivek kumar vivekkumarprince1@gmail.com FULL NAME EMAIL PHONE TIMEZONE Save changes Session details This page reads from the authenticated session and workspace metadata, then saves personal updates through the auth profile endpoint. Security note Identity updates now persist through the auth profile endpoint so this page stays aligned with the session record.",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/member-profile",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/quick-replies",
+      "resolved": "/settings/quick-replies",
+      "bodyChars": 278,
+      "controlsCount": 10,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Create Snippet Create Snippet",
+        "Search by shortcut or message content...",
+        "Clear Search Clear Search",
+        "+ Add New + Add New"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Shared Snippets 0 LOADED Standardize responses across your team using shortcut keys in the Inbox. Create Snippet Clear Search No snippets yet Create your first quick reply to speed up customer conversations. + Add New",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/quick-replies",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/tags",
+      "resolved": "/settings/tags",
+      "bodyChars": 460,
+      "controlsCount": 12,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "high-value",
+        "Add Tag Add Tag",
+        "Search tags...",
+        "Delete tag head",
+        "Delete tag VIP",
+        "Delete tag high prioraty"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Tag Library Organize contacts and conversations with reusable labels. API CONNECTED TOTAL TAGS 3 CONTACTS COVERED 0 SYSTEM TAGS 0 CREATE TAG Label Builder TAG NAME Add Tag Rule hints Use short, lower-case labels. Tags are most effective when they map to lifecycle stages, SLA tiers, or automation triggers. HEAD Used by 0 contacts VIP Used by 0 contacts HIGH PRIORATY Used by 0 contacts",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/tags",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/teams",
+      "resolved": "/settings/teams",
+      "bodyChars": 310,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Create Team Create Team",
+        "Invite Member Invite Member",
+        "MEMBERS 1 Members1",
+        "TEAMS 1 Teams1",
+        "MATRIX Matrix",
+        "ROLES 6 Roles6",
+        "Search members by name or email...",
+        "Clear Clear",
+        "Change role for vivek kumar ADMIN admin",
+        "Open actions for vivek kumar"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Team Management Coordinate your workforce and group members into specialized teams. Create Team Invite Member MEMBERS 1 TEAMS 1 MATRIX ROLES 6 Clear MEMBER ROLE STATUS OPEN CHATS ACTIONS V vivek kumar vivekkumarprince1@gmail.com ADMIN OFFLINE 0 ",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/teams",
+      "errorLogs": []
+    },
+    {
+      "route": "/settings/whatsapp-profile",
+      "resolved": "/settings/whatsapp-profile",
+      "bodyChars": 1123,
+      "controlsCount": 17,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "SYNC FROM META Sync from Meta",
+        "Save Changes Save Changes",
+        "Enter display name",
+        "Save Name Save Name",
+        "Describe your business...",
+        "Enter physical address",
+        "https://yourwebsite.com",
+        "hello@yourbusiness.com",
+        "PROFESSIONAL_SERVICES PROFESSIONAL_SERVICES",
+        "MANAGE IN DEVELOPER HUB Manage in Developer Hub",
+        "Message Business Message Business"
+      ],
+      "links": [
+        {
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V WHATSAPP PROFILE Manage how your business appears to customers on WhatsApp. SYNC FROM META Save Changes CONNECTION DISCONNECTED QUALITY RATING UNKNOWN MESSAGING LIMIT UNKNOWN BUSINESS PROFILE INFO Standard information synchronized with your WhatsApp Business Account. WS Profile Picture Use a clear logo or brand image. WhatsApp recommends a 640x640px image. DISPLAY NAME Save Name BUSINESS DESCRIPTION Visible to customers in the business profile. BUSINESS ADDRESS WEBSITES BUSINESS EMAIL BUSINESS CATEGORY SAVED TO BUSINESS INFO AND SYNCED TO META VIA GUPSHUP Display Name Review Changing your Display Name requires an official review by Met",
+      "title": "Settings | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/settings/whatsapp-profile",
+      "errorLogs": []
+    }
+  ]
+}

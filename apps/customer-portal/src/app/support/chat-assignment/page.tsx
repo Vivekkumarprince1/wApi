@@ -148,9 +148,9 @@ export default function ChatAssignmentPage() {
           <p className="text-muted-foreground font-medium mt-1">Configure real-time chat routing and agent availability</p>
         </div>
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="icon" onClick={fetchData} className="rounded-xl border-border/50 shadow-sm">
-            <RefreshCw className={cn("size-4", updating && "animate-spin")} />
-          </Button>
+	          <Button variant="outline" size="icon" onClick={fetchData} aria-label="Refresh chat assignment data" className="rounded-xl border-border/50 shadow-sm">
+	            <RefreshCw className={cn("size-4", updating && "animate-spin")} />
+	          </Button>
           <Button onClick={() => setActiveTab('rules')} className="rounded-xl bg-primary shadow-lg shadow-primary/20 gap-2 font-black uppercase tracking-widest text-[10px]">
             <Plus className="size-4" /> Create Routing Rule
           </Button>
@@ -520,9 +520,9 @@ export default function ChatAssignmentPage() {
                                       }
                                     }}
                                   />
-                                  <Button variant="ghost" size="icon" className="size-8 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10">
-                                     <Trash2 className="size-4" />
-                                  </Button>
+	                                  <Button variant="ghost" size="icon" aria-label={`Delete routing rule ${rule.name}`} className="size-8 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10">
+	                                     <Trash2 className="size-4" />
+	                                  </Button>
                                </div>
                             </div>
                          </CardContent>

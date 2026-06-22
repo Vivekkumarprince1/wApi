@@ -18,7 +18,7 @@ export class ProviderEventProducerService implements OnModuleInit, OnModuleDestr
       return;
     }
 
-    console.log(`[BSP EventBus Producer] Initializing connection to Redis at ${redisUrl}...`);
+    console.log('[BSP EventBus Producer] Initializing connection to Redis...');
 
     try {
       this.redisProducer = new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: null });
@@ -26,7 +26,7 @@ export class ProviderEventProducerService implements OnModuleInit, OnModuleDestr
       console.log(`[BSP EventBus Producer] Connected to Redis`);
     } catch (error: any) {
       if (process.env.NODE_ENV === 'production') {
-        throw new Error(`[BSP EventBus Producer] Failed to connect to Redis at ${redisUrl}: ${error.message}`);
+        throw new Error(`[BSP EventBus Producer] Failed to connect to Redis: ${error.message}`);
       }
       this.simulatedMode = true;
       console.warn(`[BSP EventBus Producer] Failed to connect to Redis: ${error.message}. Running in local fallback mode.`);

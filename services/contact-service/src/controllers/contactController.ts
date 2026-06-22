@@ -4,6 +4,69 @@ import { Contact, FormSubmission, normalizePhoneNumber } from '../models/index.j
 import { publishContactEvent } from '../services/eventBus.js';
 import { logActivity } from '../services/activity-log.js';
 
+function dbNameFromUri(uri?: string) {
+  if (!uri) return undefined;
+  try {
+    const pathname = new URL(uri).pathname.replace(/^\//, '');
+    return pathname || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function getWorkspaceDbNames() {
+  const currentDbName = Contact.db.name;
+  const candidates = [
+    currentDbName,
+    currentDbName?.endsWith('_contact') ? currentDbName.replace(/_contact$/, '_auth') : undefined,
+    process.env.WORKSPACE_DB_NAME,
+    process.env.AUTH_DB_NAME,
+    process.env.AUTH_DATABASE_NAME,
+    dbNameFromUri(process.env.AUTH_MONGO_URI || process.env.AUTH_MONGODB_URI),
+    'wapi_auth',
+    'wapi',
+  ];
+
+  return [...new Set(candidates.filter((name): name is string => Boolean(name)))];
+}
+
+async function findWorkspaceAndPlan(workspaceId: mongoose.Types.ObjectId) {
+  for (const dbName of getWorkspaceDbNames()) {
+    const db = Contact.db.useDb(dbName);
+    const workspaceDoc = await db.collection('workspaces').findOne({ _id: workspaceId });
+    if (!workspaceDoc) continue;
+
+    const planId = workspaceDoc.plan || workspaceDoc.planId;
+    const planDoc = planId ? await db.collection('plans').findOne({ _id: planId }) : null;
+    return { workspaceDoc, planDoc };
+  }
+
+  return { workspaceDoc: null, planDoc: null };
+}
+
+async function enforceContactLimit(workspaceId: mongoose.Types.ObjectId, res: express.Response) {
+  const { workspaceDoc, planDoc } = await findWorkspaceAndPlan(workspaceId);
+  const limits = workspaceDoc?.limits || planDoc?.limits || {};
+  const limit = limits.maxContacts || -1;
+
+  if (limit !== -1) {
+    const currentUsage = await Contact.countDocuments({ workspace: workspaceId });
+    if (currentUsage >= limit) {
+      res.status(402).json({
+        success: false,
+        message: `Plan limit exceeded for contacts. Current: ${currentUsage}/${limit}.`,
+        code: 'PLAN_LIMIT_EXCEEDED',
+        limit,
+        current: currentUsage,
+        resource: 'contacts'
+      });
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export const getContactsInternal = async (req: express.Request, res: express.Response) => {
   try {
     const workspaceId = req.headers['x-workspace-id'];
@@ -70,40 +133,11 @@ export const createContactInternal = async (req: express.Request, res: express.R
       return res.status(409).json({ success: false, message: 'Contact with this phone number already exists in workspace' });
     }
 
-    const db = Contact.db.useDb('wapi');
-    const workspaceDoc = await db.collection('workspaces').findOne({ _id: new mongoose.Types.ObjectId(String(workspaceId)) });
-    if (!workspaceDoc) {
-      return res.status(404).json({ success: false, message: 'Workspace context lost' });
-    }
-
-    const planId = workspaceDoc.plan;
-    let planDoc = null;
-    if (planId) {
-      planDoc = await db.collection('plans').findOne({ _id: planId });
-    }
-    if (!planDoc) {
-      planDoc = await db.collection('plans').findOne({ isDefault: true }) || await db.collection('plans').findOne({ isActive: true });
-    }
-
-    const limits = planDoc?.limits || {};
-    const limit = limits.maxContacts || -1;
-
-    if (limit !== -1) {
-      const currentUsage = await Contact.countDocuments({ workspace: new mongoose.Types.ObjectId(String(workspaceId)) });
-      if (currentUsage >= limit) {
-        return res.status(402).json({
-          success: false,
-          message: `Plan limit exceeded for contacts. Current: ${currentUsage}/${limit}.`,
-          code: 'PLAN_LIMIT_EXCEEDED',
-          limit,
-          current: currentUsage,
-          resource: 'contacts'
-        });
-      }
-    }
+    const workspaceObjectId = new mongoose.Types.ObjectId(String(workspaceId));
+    if (!(await enforceContactLimit(workspaceObjectId, res))) return;
 
     contact = await Contact.create({
-      workspace: new mongoose.Types.ObjectId(String(workspaceId)),
+      workspace: workspaceObjectId,
       name,
       phone: normalizedPhone,
       tags: tags || [],
@@ -286,37 +320,7 @@ export const createContactPublic = async (req: any, res: express.Response) => {
       return res.status(409).json({ success: false, message: 'Contact already exists in workspace' });
     }
 
-    const db = Contact.db.useDb('wapi');
-    const workspaceDoc = await db.collection('workspaces').findOne({ _id: new mongoose.Types.ObjectId(String(workspaceId)) });
-    if (!workspaceDoc) {
-      return res.status(404).json({ success: false, message: 'Workspace context lost' });
-    }
-
-    const planId = workspaceDoc.plan;
-    let planDoc = null;
-    if (planId) {
-      planDoc = await db.collection('plans').findOne({ _id: planId });
-    }
-    if (!planDoc) {
-      planDoc = await db.collection('plans').findOne({ isDefault: true }) || await db.collection('plans').findOne({ isActive: true });
-    }
-
-    const limits = planDoc?.limits || {};
-    const limit = limits.maxContacts || -1;
-
-    if (limit !== -1) {
-      const currentUsage = await Contact.countDocuments({ workspace: new mongoose.Types.ObjectId(String(workspaceId)) });
-      if (currentUsage >= limit) {
-        return res.status(402).json({
-          success: false,
-          message: `Plan limit exceeded for contacts. Current: ${currentUsage}/${limit}.`,
-          code: 'PLAN_LIMIT_EXCEEDED',
-          limit,
-          current: currentUsage,
-          resource: 'contacts'
-        });
-      }
-    }
+    if (!(await enforceContactLimit(new mongoose.Types.ObjectId(String(workspaceId)), res))) return;
 
     contact = await Contact.create({
       workspace: workspaceId,

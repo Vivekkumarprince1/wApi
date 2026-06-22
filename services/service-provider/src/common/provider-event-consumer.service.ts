@@ -27,7 +27,7 @@ export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestr
       return;
     }
 
-    console.log(`[BSP EventBus Consumer] Initializing connection to Redis at ${redisUrl}...`);
+    console.log('[BSP EventBus Consumer] Initializing connection to Redis...');
 
     try {
       this.redisConsumer = new Redis(redisUrl);

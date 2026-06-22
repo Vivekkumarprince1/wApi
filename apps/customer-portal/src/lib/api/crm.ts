@@ -1,4 +1,4 @@
-import api from './client';
+import api, { unwrapData } from './client';
 
 export interface DealNote {
   _id: string;
@@ -75,25 +75,25 @@ export interface Task {
   reminders?: Array<{ timestamp: string; method: string }>;
 }
 
-export const fetchPipelines = () => api.get('/crm/pipelines').then((r: any) => r.data);
-export const createPipeline = (data: any) => api.post('/crm/pipelines', data).then((r: any) => r.data);
-export const fetchCrmAnalytics = (params?: any) => api.get('/crm/analytics', { params }).then((r: any) => r.data);
-export const fetchTasks = (params?: any) => api.get('/crm/tasks', { params }).then((r: any) => r.data);
-export const updateTaskStatus = (id: string, status: string) => api.patch(`/crm/tasks/${id}/status`, { status }).then((r: any) => r.data);
-export const deleteTask = (id: string) => api.delete(`/crm/tasks/${id}`).then((r: any) => r.data);
-export const createTask = (data: any) => api.post('/crm/tasks', data).then((r: any) => r.data);
-export const updateTask = (id: string, data: any) => api.patch(`/crm/tasks/${id}`, data).then((r: any) => r.data);
+export const fetchPipelines = () => api.get('/crm/pipelines').then(unwrapData);
+export const createPipeline = (data: any) => api.post('/crm/pipelines', data).then(unwrapData);
+export const fetchCrmAnalytics = (params?: any) => api.get('/crm/analytics', { params }).then(unwrapData);
+export const fetchTasks = (params?: any) => api.get('/crm/tasks', { params }).then(unwrapData);
+export const updateTaskStatus = (id: string, status: string) => api.patch(`/crm/tasks/${id}/status`, { status }).then(unwrapData);
+export const deleteTask = (id: string) => api.delete(`/crm/tasks/${id}`).then(unwrapData);
+export const createTask = (data: any) => api.post('/crm/tasks', data).then(unwrapData);
+export const updateTask = (id: string, data: any) => api.patch(`/crm/tasks/${id}`, data).then(unwrapData);
 
-export const createDeal = (data: any) => api.post('/crm/deals', data).then((r: any) => r.data);
-export const updateDeal = (id: string, data: any) => api.patch(`/crm/deals/${id}`, data).then((r: any) => r.data);
-export const fetchDeals = (params?: { pipelineId?: string }) => api.get('/crm/deals', { params }).then((r: any) => r.data);
-export const fetchDealById = (id: string) => api.get(`/crm/deals/${id}`).then((r: any) => r.data);
-export const deleteDeal = (id: string) => api.delete(`/crm/deals/${id}`).then((r: any) => r.data);
-export const updateDealStage = (id: string, stageId: string) => api.patch(`/crm/deals/${id}/stage`, { stageId }).then((r: any) => r.data);
-export const fetchContactDeals = (contactId: string) => api.get(`/crm/contacts/${contactId}/deals`).then((r: any) => r.data);
-export const addDealNote = (id: string, text: string) => api.post(`/crm/deals/${id}/notes`, { text }).then((r: any) => r.data);
+export const createDeal = (data: any) => api.post('/crm/deals', data).then(unwrapData);
+export const updateDeal = (id: string, data: any) => api.patch(`/crm/deals/${id}`, data).then(unwrapData);
+export const fetchDeals = (params?: { pipelineId?: string }) => api.get('/crm/deals', { params }).then(unwrapData);
+export const fetchDealById = (id: string) => api.get(`/crm/deals/${id}`).then(unwrapData);
+export const deleteDeal = (id: string) => api.delete(`/crm/deals/${id}`).then(unwrapData);
+export const updateDealStage = (id: string, stageId: string) => api.patch(`/crm/deals/${id}/stage`, { stageId }).then(unwrapData);
+export const fetchContactDeals = (contactId: string) => api.get(`/crm/contacts/${contactId}/deals`).then(unwrapData);
+export const addDealNote = (id: string, text: string) => api.post(`/crm/deals/${id}/notes`, { text }).then(unwrapData);
 export const fetchPipelineAutomation = (pipelineId: string) =>
-  api.get('/crm/automation', { params: { pipelineId } }).then((r: any) => r.data);
+  api.get('/crm/automation', { params: { pipelineId } }).then(unwrapData);
 export const savePipelineAutomationRule = (pipelineId: string, rule: any) =>
   api.post('/crm/automation', { ...rule, config: { ...rule.config, pipelineId } });
 export const deletePipelineAutomationRule = (id: string) =>

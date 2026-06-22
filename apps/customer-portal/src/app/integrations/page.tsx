@@ -265,13 +265,14 @@ export default function IntegrationsPage() {
                            >
                               Configure
                            </Button>
-                           <Button 
-                             variant="outline" 
-                             size="icon" 
-                             onClick={() => handleManualSync(app.id)}
-                             disabled={syncingId === app.id}
-                             className={`h-12 w-12 border-border/50 rounded-2xl hover:bg-accent transition-all shadow-sm ${syncingId === app.id ? 'opacity-50' : ''}`}
-                           >
+	                           <Button 
+	                             variant="outline" 
+	                             size="icon" 
+	                             onClick={() => handleManualSync(app.id)}
+	                             disabled={syncingId === app.id}
+	                             aria-label={`Sync ${app.name}`}
+	                             className={`h-12 w-12 border-border/50 rounded-2xl hover:bg-accent transition-all shadow-sm ${syncingId === app.id ? 'opacity-50' : ''}`}
+	                           >
                               {syncingId === app.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCcw className="h-5 w-5" />}
                            </Button>
                          </>

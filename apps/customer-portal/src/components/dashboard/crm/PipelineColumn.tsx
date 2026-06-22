@@ -52,12 +52,13 @@ export const PipelineColumn: React.FC<PipelineColumnProps> = ({
              </Badge>
           </div>
           <div className="flex items-center gap-1.5 opacity-0 group-hover/column:opacity-100 transition-opacity">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-8 w-8 rounded-xl bg-background/50 border border-border/20 shadow-sm"
-              onClick={() => onAddDeal?.(stage.id)}
-            >
+	            <Button 
+	              variant="ghost" 
+	              size="icon" 
+	              className="h-8 w-8 rounded-xl bg-background/50 border border-border/20 shadow-sm"
+	              onClick={() => onAddDeal?.(stage.id)}
+	              aria-label={`Add deal to ${stage.title}`}
+	            >
               <Plus className="h-4 w-4" />
             </Button>
           </div>

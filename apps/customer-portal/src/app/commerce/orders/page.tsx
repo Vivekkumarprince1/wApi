@@ -290,11 +290,11 @@ export default function CommerceOrdersPage() {
                                    </td>
                                    <td className="p-6 text-right">
                                       <DropdownMenu>
-                                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                                            <Button variant="ghost" size="icon" className="size-10 rounded-2xl opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/10 hover:text-primary">
-                                               <MoreVertical className="size-4" />
-                                            </Button>
-                                         </DropdownMenuTrigger>
+	                                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+	                                            <Button variant="ghost" size="icon" aria-label={`Open actions for order ${order.orderNumber || order._id}`} className="size-10 rounded-2xl opacity-0 group-hover:opacity-100 transition-all hover:bg-primary/10 hover:text-primary">
+	                                               <MoreVertical className="size-4" />
+	                                            </Button>
+	                                         </DropdownMenuTrigger>
                                          <DropdownMenuContent align="end" className="w-64 p-2 rounded-[24px] shadow-2xl border-none ring-1 ring-border/20">
                                             <DropdownMenuItem onClick={() => setSelectedOrder(order)} className="rounded-xl h-11 px-4 font-bold text-xs gap-3">
                                                <FileText className="size-4 opacity-40" /> Order Architecture
@@ -357,10 +357,11 @@ export default function CommerceOrdersPage() {
                        <Button 
                          variant="ghost" 
                          size="sm" 
-                         disabled={page === 1}
-                         onClick={() => setPage(p => p - 1)}
-                         className="rounded-xl size-10 flex items-center justify-center p-0"
-                       >
+	                         disabled={page === 1}
+	                         onClick={() => setPage(p => p - 1)}
+	                         aria-label="Previous orders page"
+	                         className="rounded-xl size-10 flex items-center justify-center p-0"
+	                       >
                          <ChevronLeft className="size-4" />
                        </Button>
                        <div className="px-8 text-[10px] font-black uppercase tracking-widest border-x border-border/20">
@@ -369,10 +370,11 @@ export default function CommerceOrdersPage() {
                        <Button 
                          variant="ghost" 
                          size="sm" 
-                         disabled={page === pagination.pages}
-                         onClick={() => setPage(p => p + 1)}
-                         className="rounded-xl size-10 flex items-center justify-center p-0"
-                       >
+	                         disabled={page === pagination.pages}
+	                         onClick={() => setPage(p => p + 1)}
+	                         aria-label="Next orders page"
+	                         className="rounded-xl size-10 flex items-center justify-center p-0"
+	                       >
                          <ChevronRight className="size-4" />
                        </Button>
                     </div>

@@ -147,12 +147,13 @@ function CampaignWizardContent() {
             {/* Title Section */}
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => router.push('/campaign')}
-                  className="h-9 px-3 gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
-                >
+	                <Button
+	                  variant="ghost"
+	                  size="sm"
+	                  onClick={() => router.push('/campaign')}
+	                  aria-label="Back to campaigns"
+	                  className="h-9 px-3 gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+	                >
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 {React.createElement(STEPS[step - 1].icon, { className: 'h-4 w-4 text-primary' })}

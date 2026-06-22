@@ -231,10 +231,10 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {can("workspaces") && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="ghost"><MoreVertical className="h-4 w-4" /></Button>
-                            </DropdownMenuTrigger>
+	                          <DropdownMenu>
+	                            <DropdownMenuTrigger asChild>
+	                              <Button size="sm" variant="ghost" aria-label={`Open actions for ${u.name || u.email}`}><MoreVertical className="h-4 w-4" /></Button>
+	                            </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>User actions</DropdownMenuLabel>
                               <DropdownMenuItem onClick={() => setRoleEdit({ user: u, role: u.role || "member" })}>

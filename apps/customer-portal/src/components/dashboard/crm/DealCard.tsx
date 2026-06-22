@@ -115,12 +115,12 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit
                          {deal.value?.toLocaleString()}
                       </div>
                       
-                      <DropdownMenu>
-                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button variant="ghost" size="icon" className="size-6 rounded-lg hover:bg-accent opacity-0 group-hover/card:opacity-100 transition-opacity">
-                               <MoreVertical className="size-3 text-muted-foreground" />
-                            </Button>
-                         </DropdownMenuTrigger>
+	                      <DropdownMenu>
+	                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+	                            <Button variant="ghost" size="icon" aria-label={`Open actions for deal ${deal.title}`} className="size-6 rounded-lg hover:bg-accent opacity-0 group-hover/card:opacity-100 transition-opacity">
+	                               <MoreVertical className="size-3 text-muted-foreground" />
+	                            </Button>
+	                         </DropdownMenuTrigger>
                          <DropdownMenuContent align="end" className="w-[180px] rounded-2xl shadow-premium-lg border-border/40 p-2">
                             <DropdownMenuItem 
                               className="rounded-xl font-bold py-2.5 cursor-pointer"
@@ -217,22 +217,22 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit
                        e.stopPropagation();
                        const phone = String(deal.contact?.phone || '').replace(/\D/g, '');
                        if (phone) window.open(`https://wa.me/${phone}`, '_blank');
-                    }} className="size-7 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors" title="Send WhatsApp">
-                       <MessageSquare className="size-3" />
-                    </Button>
+	                    }} className="size-7 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors" title="Send WhatsApp" aria-label={`Send WhatsApp to ${deal.contact?.name || deal.title}`}>
+	                       <MessageSquare className="size-3" />
+	                    </Button>
                     <Button variant="ghost" size="icon" onClick={(e) => {
                        e.stopPropagation();
                        const phone = deal.contact?.phone;
                        if (phone) window.open(`tel:${phone}`);
-                    }} className="size-7 rounded-lg hover:bg-blue-500/10 hover:text-blue-600 transition-colors" title="Call contact">
-                       <Phone className="size-3" />
-                    </Button>
+	                    }} className="size-7 rounded-lg hover:bg-blue-500/10 hover:text-blue-600 transition-colors" title="Call contact" aria-label={`Call ${deal.contact?.name || deal.title}`}>
+	                       <Phone className="size-3" />
+	                    </Button>
                     <Button variant="ghost" size="icon" onClick={(e) => {
                        e.stopPropagation();
                        router.push('/crm/reports');
-                    }} className="size-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors" title="View Analytics">
-                       <BarChart2 className="size-3" />
-                    </Button>
+	                    }} className="size-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors" title="View Analytics" aria-label={`View analytics for ${deal.title}`}>
+	                       <BarChart2 className="size-3" />
+	                    </Button>
                  </div>
               </div>
               

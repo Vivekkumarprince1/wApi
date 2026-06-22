@@ -148,14 +148,14 @@ export const PipelineListView: React.FC<PipelineListViewProps> = ({
               </TableCell>
               <TableCell className="px-8 py-5 text-right" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-end gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => handleMessage(deal)} className="size-10 rounded-xl hover:bg-primary/5 hover:text-primary">
-                    <MessageSquare className="size-4" />
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="size-10 rounded-xl">
-                        <MoreHorizontal className="size-4" />
-                      </Button>
+	                  <Button variant="ghost" size="icon" onClick={() => handleMessage(deal)} aria-label={`Message ${deal.contact?.name || deal.title}`} className="size-10 rounded-xl hover:bg-primary/5 hover:text-primary">
+	                    <MessageSquare className="size-4" />
+	                  </Button>
+	                  <DropdownMenu>
+	                    <DropdownMenuTrigger asChild>
+	                      <Button variant="ghost" size="icon" aria-label={`Open actions for deal ${deal.title}`} className="size-10 rounded-xl">
+	                        <MoreHorizontal className="size-4" />
+	                      </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="rounded-2xl border-border/40 shadow-premium-lg p-2">
                       <DropdownMenuItem 

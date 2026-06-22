@@ -306,19 +306,20 @@ const CampaignsPage = () => {
 
                         <td className="px-6 py-5 text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
-                              onClick={() => router.push(`/campaign/${c._id}`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            
-                            <DropdownMenu>
-                              <DropdownMenuTrigger className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors outline-none cursor-pointer">
-                                <MoreVertical className="h-4 w-4 text-muted-foreground" />
-                              </DropdownMenuTrigger>
+	                            <Button 
+	                              variant="ghost" 
+	                              size="icon" 
+	                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+	                              onClick={() => router.push(`/campaign/${c._id}`)}
+	                              aria-label={`View campaign ${c.name}`}
+	                            >
+	                              <Eye className="h-4 w-4" />
+	                            </Button>
+	                            
+	                            <DropdownMenu>
+	                              <DropdownMenuTrigger aria-label={`Open actions for campaign ${c.name}`} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors outline-none cursor-pointer">
+	                                <MoreVertical className="h-4 w-4 text-muted-foreground" />
+	                              </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-premium border-border/50">
                                 {c.status === 'draft' && (
                                   <DropdownMenuItem 

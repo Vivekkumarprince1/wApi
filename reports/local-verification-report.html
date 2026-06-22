@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>wApi Local Verification Report</title>
+  <style>
+    body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 32px; background: #f7f7f8; color: #171717; }
+    h1 { margin: 0 0 8px; }
+    h2 { margin-top: 28px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px; margin: 14px 0; }
+    table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 10px; overflow: hidden; }
+    th, td { border-bottom: 1px solid #e5e7eb; text-align: left; padding: 10px 12px; font-size: 14px; vertical-align: top; }
+    th { background: #111827; color: #fff; }
+    .ok { color: #087f23; font-weight: 700; }
+    .warn { color: #a16207; font-weight: 700; }
+    .note { color: #4b5563; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .pill { display: inline-block; border-radius: 999px; padding: 2px 8px; background: #eef2ff; color: #3730a3; font-size: 12px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <h1>wApi Local Verification Report</h1>
+  <p class="note">Generated from browser verification on Monday, June 22, 2026. Credentials were verified without displaying the password.</p>
+
+  <div class="card">
+    <h2>Credential Check</h2>
+    <p><strong>Email:</strong> <span class="mono">vivekkumarprince1@gmail.com</span></p>
+    <p><strong>Login:</strong> <span class="ok">success</span> through API gateway and browser.</p>
+    <p><strong>User:</strong> vivek kumar, role <span class="pill">super_admin</span>, account <span class="ok">SIGNUP_COMPLETED</span>, email and phone verified.</p>
+    <p><strong>Workspace:</strong> fmpg, billing active, wallet balance present as numeric INR value.</p>
+  </div>
+
+  <h2>Services</h2>
+  <table>
+    <thead>
+      <tr><th>Component</th><th>Port</th><th>Status</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>MongoDB</td><td>27017</td><td class="ok">Running</td><td>Local listener detected</td></tr>
+      <tr><td>Redis</td><td>6379</td><td class="ok">Running</td><td>Local listener detected</td></tr>
+      <tr><td>API Gateway</td><td>5001</td><td class="ok">OK</td><td><span class="mono">/health</span> 200; route smoke passed</td></tr>
+      <tr><td>Auth Service</td><td>3006</td><td class="ok">OK</td><td><span class="mono">/health</span> 200; login/session success</td></tr>
+      <tr><td>Contact Service</td><td>3007</td><td class="ok">OK</td><td><span class="mono">/health</span> 200; contacts page lists 10 of 10</td></tr>
+      <tr><td>Chat Service</td><td>3008</td><td class="ok">OK</td><td><span class="mono">/health</span> 200; event bus subscribed</td></tr>
+      <tr><td>Campaign Service</td><td>3002</td><td class="ok">OK</td><td><span class="mono">/health</span> 200; database connected</td></tr>
+      <tr><td>Billing Service</td><td>3003</td><td class="ok">OK</td><td><span class="mono">/health</span> 200; database connected</td></tr>
+      <tr><td>Service Provider / BSP</td><td>3004</td><td class="warn">HTTP OK, external sync warning</td><td><span class="mono">/health</span> 200; stored Gupshup webhook sync returned 401 for existing apps</td></tr>
+      <tr><td>Automation Service</td><td>3001</td><td class="warn">HTTP OK, worker warning</td><td><span class="mono">/health</span> 200; Redis-backed worker logs show max-client errors from configured Redis</td></tr>
+      <tr><td>Webhook Ingestor</td><td>3013</td><td class="ok">OK</td><td><span class="mono">/health</span> 200; Redis connected</td></tr>
+      <tr><td>WebSocket Gateway</td><td>3009</td><td class="ok">OK</td><td><span class="mono">/health</span> 200; Redis adapter connected</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Apps</h2>
+  <table>
+    <thead>
+      <tr><th>App</th><th>URL</th><th>Status</th><th>Browser Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Customer Portal</td><td class="mono">http://localhost:3000</td><td class="ok">Working</td><td>Home, privacy, and terms are public; dashboard is protected; login lands on dashboard; contacts shows 10 total.</td></tr>
+      <tr><td>Admin Portal</td><td class="mono">http://localhost:3100</td><td class="ok">Working</td><td>Unauthenticated root redirects to login; verified account logs into the Super Admin dashboard.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="card">
+    <h2>Build Checks</h2>
+    <p><span class="ok">Passed:</span> customer portal production build, admin portal production build, and API gateway route smoke.</p>
+  </div>
+
+  <div class="card">
+    <h2>Open Items</h2>
+    <p><span class="warn">Automation:</span> HTTP is healthy, but background Redis/BullMQ workers are degraded by configured Redis client-limit errors. Use local Redis for local verification or increase the configured Redis client limit.</p>
+    <p><span class="warn">BSP:</span> service is healthy, but stored Gupshup app credentials/webhook sync return 401, so external provider sync is not fully valid.</p>
+    <p><span class="note">Worktree:</span> the privacy/terms public-route change is local and not pushed; old deleted customer-portal helper/output files are still unstaged.</p>
+  </div>
+</body>
+</html>

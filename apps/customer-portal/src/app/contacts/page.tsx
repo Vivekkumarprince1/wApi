@@ -72,6 +72,10 @@ export default function ContactsPage() {
   const [isSendTemplateOpen, setIsSendTemplateOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [contactToRemove, setContactToRemove] = useState<string | null>(null);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [isBulkTagOpen, setIsBulkTagOpen] = useState(false);
+  const [bulkTagValue, setBulkTagValue] = useState('');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 25;
   const router = useRouter();
@@ -148,9 +152,7 @@ export default function ContactsPage() {
   });
 
   const handleRemoveContact = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this contact? All message history will be removed.')) {
-      deleteMutation.mutate(id);
-    }
+    setContactToRemove(id);
   };
 
   const handleExport = () => {
@@ -164,11 +166,21 @@ export default function ContactsPage() {
       toast.error('Select contacts first to apply tags');
       return;
     }
-    const tag = window.prompt(`Tag to apply to ${selectedIds.length} contact(s):`);
-    if (!tag?.trim()) return;
+    setBulkTagValue('');
+    setIsBulkTagOpen(true);
+  };
+
+  const applyBulkTag = async () => {
+    const tag = bulkTagValue.trim();
+    if (!tag) {
+      toast.error('Enter a tag first');
+      return;
+    }
     try {
-      const res: any = await bulkTagContacts(selectedIds, [tag.trim()]);
+      const res: any = await bulkTagContacts(selectedIds, [tag]);
       toast.success(`Tagged ${res?.updated ?? selectedIds.length} contact(s)`);
+      setIsBulkTagOpen(false);
+      setBulkTagValue('');
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
     } catch (err: any) {
       toast.error(err?.response?.data?.error || 'Failed to tag contacts');
@@ -185,15 +197,25 @@ export default function ContactsPage() {
       toast.error('Select contacts first to delete');
       return;
     }
-    if (!window.confirm(`Delete ${selectedIds.length} contact(s)? This cannot be undone.`)) return;
+    setIsBulkDeleteOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
     try {
       const res: any = await bulkDeleteContacts(selectedIds);
       toast.success(`Deleted ${res?.deleted ?? selectedIds.length} contact(s)`);
       setSelectedIds([]);
+      setIsBulkDeleteOpen(false);
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
     } catch (err: any) {
       toast.error(err?.response?.data?.error || 'Failed to delete contacts');
     }
+  };
+
+  const confirmRemoveContact = () => {
+    if (!contactToRemove) return;
+    deleteMutation.mutate(contactToRemove);
+    setContactToRemove(null);
   };
 
   if (isLoading) return <FlashLoader />;
@@ -307,12 +329,12 @@ export default function ContactsPage() {
           <Button variant="outline" onClick={handleExport} className="rounded-xl h-13 px-4 border-border/50 font-bold bg-card shadow-sm">
             <Download className="h-4 w-4 mr-2" /> Export
           </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="rounded-xl h-13 px-4 border-border/50 font-bold bg-card shadow-sm">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+	          <DropdownMenu>
+	            <DropdownMenuTrigger asChild>
+	              <Button variant="outline" aria-label="Open bulk contact actions" className="rounded-xl h-13 px-4 border-border/50 font-bold bg-card shadow-sm">
+	                <MoreHorizontal className="h-4 w-4" />
+	              </Button>
+	            </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50">
                <DropdownMenuItem onClick={handleBulkTag} className="rounded-xl font-bold gap-3 h-11 cursor-pointer"><Tag className="h-4 w-4 text-primary" /> Bulk Tagging</DropdownMenuItem>
                <DropdownMenuItem onClick={handleSyncCrm} className="rounded-xl font-bold gap-3 h-11 cursor-pointer"><RefreshCcw className="h-4 w-4 text-emerald-500" /> Sync with CRM</DropdownMenuItem>
@@ -329,11 +351,12 @@ export default function ContactsPage() {
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-border/40">
                 <TableHead className="w-12 px-6">
-                  <Checkbox 
-                    checked={selectedIds.length === filteredContacts.length && filteredContacts.length > 0} 
-                    onCheckedChange={toggleSelectAll}
-                    className="rounded-md"
-                  />
+	                  <Checkbox 
+	                    checked={selectedIds.length === filteredContacts.length && filteredContacts.length > 0} 
+	                    onCheckedChange={toggleSelectAll}
+	                    aria-label="Select all contacts"
+	                    className="rounded-md"
+	                  />
                 </TableHead>
                 <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/70">Contact Info</TableHead>
                 <TableHead className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground/70">Source / Label</TableHead>
@@ -350,11 +373,12 @@ export default function ContactsPage() {
                     className="group border-border/30 hover:bg-muted/30 transition-colors"
                   >
                     <TableCell className="px-6">
-                       <Checkbox 
-                        checked={selectedIds.includes(contact._id)} 
-                        onCheckedChange={() => toggleSelect(contact._id)}
-                        className="rounded-md"
-                       />
+	                       <Checkbox 
+	                        checked={selectedIds.includes(contact._id)} 
+	                        onCheckedChange={() => toggleSelect(contact._id)}
+	                        aria-label={`Select contact ${contact.name || contact.phone}`}
+	                        className="rounded-md"
+	                       />
                     </TableCell>
                     <TableCell className="px-6 py-4">
                       <div className="flex items-center gap-4">
@@ -403,11 +427,11 @@ export default function ContactsPage() {
                     </TableCell>
                     <TableCell className="px-6 py-4 text-right">
                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-muted opacity-0 group-hover:opacity-100 transition-all">
-                               <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
+	                          <DropdownMenuTrigger asChild>
+	                            <Button variant="ghost" size="icon" aria-label={`Open actions for ${contact.name || contact.phone}`} className="h-8 w-8 rounded-lg hover:bg-muted opacity-0 group-hover:opacity-100 transition-all">
+	                               <MoreVertical className="h-4 w-4" />
+	                            </Button>
+	                          </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50">
                              <DropdownMenuItem 
                                className="rounded-xl font-bold h-10 cursor-pointer"
@@ -467,6 +491,74 @@ export default function ContactsPage() {
               }} 
               contact={selectedContact}
             />
+            {isBulkTagOpen && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div role="dialog" aria-modal="true" aria-labelledby="bulk-tag-title" className="w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-2xl">
+                  <h2 id="bulk-tag-title" className="text-lg font-black tracking-tight text-foreground">Bulk Tag Contacts</h2>
+                  <p className="mt-2 text-sm text-muted-foreground font-medium">
+                    Apply one tag to {selectedIds.length} selected contact(s).
+                  </p>
+                  <Input
+                    autoFocus
+                    value={bulkTagValue}
+                    onChange={(event) => setBulkTagValue(event.target.value)}
+                    placeholder="Enter tag"
+                    className="mt-5 h-12 rounded-xl"
+                  />
+                  <div className="mt-6 flex justify-end gap-3">
+                    <Button
+                      variant="outline"
+                      className="rounded-xl font-bold"
+                      onClick={() => {
+                        setIsBulkTagOpen(false);
+                        setBulkTagValue('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button className="rounded-xl font-bold" onClick={applyBulkTag}>
+                      Apply Tag
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {isBulkDeleteOpen && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div role="dialog" aria-modal="true" aria-labelledby="bulk-delete-title" className="w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-2xl">
+                  <h2 id="bulk-delete-title" className="text-lg font-black tracking-tight text-foreground">Delete Selected Contacts</h2>
+                  <p className="mt-2 text-sm text-muted-foreground font-medium">
+                    Delete {selectedIds.length} selected contact(s)? This cannot be undone.
+                  </p>
+                  <div className="mt-6 flex justify-end gap-3">
+                    <Button variant="outline" className="rounded-xl font-bold" onClick={() => setIsBulkDeleteOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="destructive" className="rounded-xl font-bold" onClick={confirmBulkDelete}>
+                      Delete Contacts
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {contactToRemove && (
+              <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div role="dialog" aria-modal="true" aria-labelledby="remove-contact-title" className="w-full max-w-md rounded-2xl bg-card border border-border p-6 shadow-2xl">
+                  <h2 id="remove-contact-title" className="text-lg font-black tracking-tight text-foreground">Remove Contact</h2>
+                  <p className="mt-2 text-sm text-muted-foreground font-medium">
+                    Delete this contact? All message history will be removed.
+                  </p>
+                  <div className="mt-6 flex justify-end gap-3">
+                    <Button variant="outline" className="rounded-xl font-bold" onClick={() => setContactToRemove(null)}>
+                      Cancel
+                    </Button>
+                    <Button variant="destructive" className="rounded-xl font-bold" onClick={confirmRemoveContact}>
+                      Remove Contact
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             <DirectTemplateModal 
               isOpen={isSendTemplateOpen} 
               onClose={() => {

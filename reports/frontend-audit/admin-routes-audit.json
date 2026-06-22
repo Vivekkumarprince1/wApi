@@ -1,0 +1,2491 @@
+[
+  {
+    "app": "admin",
+    "route": "/",
+    "url": "http://localhost:3100/",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/",
+    "title": "wApi — Super Admin",
+    "h1": "Dashboard",
+    "headings": [
+      "Dashboard"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      },
+      {
+        "href": "/workspaces",
+        "text": "View all"
+      },
+      {
+        "href": "/workspaces/6a1743e113124f8f8aca5f8e",
+        "text": "Vivek prasad's workspace"
+      },
+      {
+        "href": "/workspaces/699c21048e96ba1b49ab6945",
+        "text": "fmpg"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Diagnostics"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Switch to dark theme",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "View all",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 3,
+        "text": "Diagnostics",
+        "type": "button"
+      }
+    ],
+    "inputs": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin Dashboard Platform overview Total Workspaces 2 Active Workspaces 1 Total Users 2 Messages (30d) 0 Active Subscriptions 1 Active BSP Connections 0 Gross Revenue ₹3,500 Workspace Directory Most recent workspaces. View all Vivek prasad's workspace vivekkumarprince9@gmail.com Free Tier fmpg vivek"
+  },
+  {
+    "app": "admin",
+    "route": "/analytics",
+    "url": "http://localhost:3100/analytics",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/analytics",
+    "title": "wApi — Super Admin",
+    "h1": "Analytics",
+    "headings": [
+      "Analytics"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Switch to dark theme",
+        "type": "button"
+      }
+    ],
+    "inputs": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/analytics",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Analytics Analytics Revenue, growth, retention MRR ₹0 ARR ₹0 ARPA ₹0 LTV (est.) — Churn rate 0.0% Activation rate 100.0% Workspaces 2 New (30d) 1 CAC: Not computed — requires marketing/sales spend data not stored in the platform. LTV: Approximate LTV = ARPA / churnRate (shown client-side wh"
+  },
+  {
+    "app": "admin",
+    "route": "/audit-logs",
+    "url": "http://localhost:3100/audit-logs",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/audit-logs",
+    "title": "wApi — Super Admin",
+    "h1": "Audit Logs",
+    "headings": [
+      "Audit Logs"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Switch to dark theme",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "Admin actions",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 3,
+        "text": "Impersonation",
+        "type": "button"
+      }
+    ],
+    "inputs": [
+      {
+        "disabled": false,
+        "name": null,
+        "placeholder": "Filter this page…",
+        "required": false,
+        "tag": "input",
+        "type": null
+      }
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/audit-logs",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Audit Logs Audit Logs Admin activity and impersonation trail Entries (page) 38 Security Events 9 Failures 0 Source Admin Admin actions Impersonation Action Actor Target Outcome IP When USER_IMPERSONATION — — success 127.0.0.1 09/05/2026, 16:43:09 WORKSPACE_PURGE_DELETE — — success 127.0.0.1"
+  },
+  {
+    "app": "admin",
+    "route": "/billing",
+    "url": "http://localhost:3100/billing",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/billing",
+    "title": "wApi — Super Admin",
+    "h1": "Billing & Plans",
+    "headings": [
+      "Billing & Plans",
+      "Subscription Catalog",
+      "Invoice Archive"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Create plan",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "Switch to dark theme",
+        "type": "button"
+      }
+    ],
+    "inputs": [
+      {
+        "disabled": false,
+        "name": null,
+        "placeholder": "Filter plans…",
+        "required": false,
+        "tag": "input",
+        "type": null
+      }
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/billing",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Billing & Plans Billing & Plans Subscription plans, pricing tiers and platform revenue Create plan Gross Revenue ₹3,500 Active Subscriptions 1 Plan Catalog 0 Active tiers Pending Payouts ₹0 Subscription Catalog Manage tiered access plans. No plans found. Invoice Archive Platform settlement "
+  },
+  {
+    "app": "admin",
+    "route": "/compliance",
+    "url": "http://localhost:3100/compliance",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/compliance",
+    "title": "wApi — Super Admin",
+    "h1": "Compliance",
+    "headings": [
+      "Compliance"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Switch to dark theme",
+        "type": "button"
+      }
+    ],
+    "inputs": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/compliance",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Compliance Compliance Verification, audit, and safety controls Compliance profile Business verification mandatory No Verification provider hybrid Webhook audit Enabled Emergency freeze Available"
+  },
+  {
+    "app": "admin",
+    "route": "/data-explorer",
+    "url": "http://localhost:3100/data-explorer",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/data-explorer",
+    "title": "wApi — Super Admin",
+    "h1": "Data Explorer",
+    "headings": [
+      "Data Explorer"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Switch to dark theme",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "activitylogs",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 3,
+        "text": "auditlogs",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 4,
+        "text": "bsphealths",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 5,
+        "text": "bsponboardingstates",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 6,
+        "text": "businessappmaps",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 7,
+        "text": "businesses",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 8,
+        "text": "businessverificationpolicies",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 9,
+        "text": "campaignbatches",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 10,
+        "text": "campaignmessages",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 11,
+        "text": "campaigns",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 12,
+        "text": "checkoutcarts",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 13,
+        "text": "commercesettings",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 14,
+        "text": "contactevents",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 15,
+        "text": "contacts",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 16,
+        "text": "contactsettings",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 17,
+        "text": "conversationledgers",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 18,
+        "text": "conversations",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 19,
+        "text": "deals",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 20,
+        "text": "formsubmissions",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 21,
+        "text": "impersonation_logs",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 22,
+        "text": "importjobs",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 23,
+        "text": "integrations",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 24,
+        "text": "invoices",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 25,
+        "text": "macros",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 26,
+        "text": "messages",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 27,
+        "text": "notifications",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 28,
+        "text": "onboardingstates",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 29,
+        "text": "otpchallenges",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 30,
+        "text": "otps",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 31,
+        "text": "permissions",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 32,
+        "text": "pipelines",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 33,
+        "text": "plans",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 34,
+        "text": "products",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 35,
+        "text": "quickreplies",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 36,
+        "text": "rcsconfigs",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 37,
+        "text": "roles",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 38,
+        "text": "signupotps",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 39,
+        "text": "smsconfigs",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 40,
+        "text": "subscriptions",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 41,
+        "text": "supporttickets",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 42,
+        "text": "system_settings",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 43,
+        "text": "systemsettings",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 44,
+        "text": "tags",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 45,
+        "text": "tasks",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 46,
+        "text": "teams",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 47,
+        "text": "templates",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 48,
+        "text": "usageledgers",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 49,
+        "text": "users",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 50,
+        "text": "wallets",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 51,
+        "text": "wallettransactions",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 52,
+        "text": "webhook_dead_letters",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 53,
+        "text": "webhookconfigauditlogs",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 54,
+        "text": "webhookpolicies",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 55,
+        "text": "whatsappforms",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 56,
+        "text": "widgetconfigs",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 57,
+        "text": "workspaceinvitations",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 58,
+        "text": "workspaces",
+        "type": null
+      }
+    ],
+    "inputs": [
+      {
+        "disabled": false,
+        "name": null,
+        "placeholder": "Search collections…",
+        "required": false,
+        "tag": "input",
+        "type": null
+      }
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/data-explorer",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Data Explorer Data Explorer Inspect and edit raw MongoDB collections 57 collections activitylogsauditlogsbsphealthsbsponboardingstatesbusinessappmapsbusinessesbusinessverificationpoliciescampaignbatchescampaignmessagescampaignscheckoutcartscommercesettingscontacteventscontactscontactsetting"
+  },
+  {
+    "app": "admin",
+    "route": "/entitlement-drift",
+    "url": "http://localhost:3100/entitlement-drift",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/entitlement-drift",
+    "title": "wApi — Super Admin",
+    "h1": "Entitlement Drift",
+    "headings": [
+      "Entitlement Drift"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Repair all",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "Switch to dark theme",
+        "type": "button"
+      }
+    ],
+    "inputs": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/entitlement-drift",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Entitlement Drift Entitlement Drift Workspaces whose effective features diverge from their plan catalogue Repair all Workspaces scanned 2 Drifted 0 Workspace Plan Missing features Extra features Actions No entitlement drift detected. All workspaces match their plan."
+  },
+  {
+    "app": "admin",
+    "route": "/gupshup",
+    "url": "http://localhost:3100/gupshup",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/gupshup",
+    "title": "wApi — Super Admin",
+    "h1": "BSP Providers",
+    "headings": [
+      "BSP Providers"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Reconcile Mapping",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "Switch to dark theme",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 3,
+        "text": "Save",
+        "type": "button"
+      }
+    ],
+    "inputs": [
+      {
+        "disabled": false,
+        "name": null,
+        "placeholder": null,
+        "required": false,
+        "tag": "textarea",
+        "type": null
+      }
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/gupshup",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / BSP Providers BSP Providers Monitor partner health, app mappings, and provisioning across workspaces Reconcile Mapping Mapped Apps 0 Connected Workspaces 2 Orphaned Links 0 Total Workspaces 2 BSP Request Queue Latest onboarding / provisioning requests. Workspace fmpg Business ID 22046952233"
+  },
+  {
+    "app": "admin",
+    "route": "/login",
+    "url": "http://localhost:3100/login",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/",
+    "title": "wApi — Super Admin",
+    "h1": "Dashboard",
+    "headings": [
+      "Dashboard"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      },
+      {
+        "href": "/workspaces",
+        "text": "View all"
+      },
+      {
+        "href": "/workspaces/6a1743e113124f8f8aca5f8e",
+        "text": "Vivek prasad's workspace"
+      },
+      {
+        "href": "/workspaces/699c21048e96ba1b49ab6945",
+        "text": "fmpg"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Diagnostics"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Switch to dark theme",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "View all",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 3,
+        "text": "Diagnostics",
+        "type": "button"
+      }
+    ],
+    "inputs": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin Dashboard Platform overview Total Workspaces 2 Active Workspaces 1 Total Users 2 Messages (30d) 0 Active Subscriptions 1 Active BSP Connections 0 Gross Revenue ₹3,500 Workspace Directory Most recent workspaces. View all Vivek prasad's workspace vivekkumarprince9@gmail.com Free Tier fmpg vivek"
+  },
+  {
+    "app": "admin",
+    "route": "/monitoring",
+    "url": "http://localhost:3100/monitoring",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/monitoring",
+    "title": "wApi — Super Admin",
+    "h1": "Monitoring",
+    "headings": [
+      "Monitoring",
+      "Services",
+      "Databases",
+      "Admin Portal Process"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Switch to dark theme",
+        "type": "button"
+      }
+    ],
+    "inputs": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/monitoring",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Infrastructure Monitoring Live service health, databases, and process metrics Services API Gateway edge · 7 ms up Auth Service backend · 32 ms up Chat Service backend · 31 ms up Contact Service backend · 31 ms up Billing Service backend · 29 ms up Campaign Service backend · 31 ms up Automat"
+  },
+  {
+    "app": "admin",
+    "route": "/operations",
+    "url": "http://localhost:3100/operations",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/operations",
+    "title": "wApi — Super Admin",
+    "h1": "Operations",
+    "headings": [
+      "Campaigns by status"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Reconcile Gupshup",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "Sync Webhooks",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 3,
+        "text": "Replay Dead Webhooks",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 4,
+        "text": "Switch to dark theme",
+        "type": "button"
+      }
+    ],
+    "inputs": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/operations",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Operations Operations Campaigns, automation, and BSP (Gupshup) operations Reconcile Gupshup Sync Webhooks Replay Dead Webhooks Automation rules 0 / 0 enabled Gupshup / BSP Idle Campaigns by status Completed: 6"
+  },
+  {
+    "app": "admin",
+    "route": "/settings",
+    "url": "http://localhost:3100/settings",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/settings",
+    "title": "wApi — Super Admin",
+    "h1": "Settings",
+    "headings": [
+      "Settings"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Save",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "Switch to dark theme",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 3,
+        "text": "on",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 4,
+        "text": "on",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 5,
+        "text": "info",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 6,
+        "text": "warning",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 7,
+        "text": "critical",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": true,
+        "index": 8,
+        "text": "Publish broadcast",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 9,
+        "text": "Clear",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 10,
+        "text": "on",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 11,
+        "text": "Flush Redis cache",
+        "type": "button"
+      }
+    ],
+    "inputs": [
+      {
+        "disabled": false,
+        "name": null,
+        "placeholder": "We'll be back shortly…",
+        "required": false,
+        "tag": "input",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "name": null,
+        "placeholder": "Message shown to all users…",
+        "required": false,
+        "tag": "textarea",
+        "type": null
+      }
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/settings",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Settings Settings Global platform configuration Save Maintenance mode Blocks non-super-admin users when enabled. Enable maintenance mode Maintenance message Signups Control whether new accounts can be created. Allow new signups Global broadcast Publishes a platform-wide system notice shown "
+  },
+  {
+    "app": "admin",
+    "route": "/users",
+    "url": "http://localhost:3100/users",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/users",
+    "title": "wApi — Super Admin",
+    "h1": "User Directory",
+    "headings": [
+      "User Directory"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Invite User",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "Switch to dark theme",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 3,
+        "text": "All roles",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 4,
+        "text": "All status",
+        "type": "button"
+      }
+    ],
+    "inputs": [
+      {
+        "disabled": false,
+        "name": null,
+        "placeholder": "Search by name or email…",
+        "required": false,
+        "tag": "input",
+        "type": null
+      }
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/users",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / User Directory User Directory Manage platform users, roles, and access across all workspaces Invite User All roles All status Showing 2 of 2 User Role Status Last active Actions V Vivek prasad vivekkumarprince9@gmail.com owner active Never V vivek kumar vivekkumarprince1@gmail.com super_adm"
+  },
+  {
+    "app": "admin",
+    "route": "/whatsapp-requests",
+    "url": "http://localhost:3100/whatsapp-requests",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/whatsapp-requests",
+    "title": "wApi — Super Admin",
+    "h1": "WhatsApp Requests",
+    "headings": [
+      "WhatsApp Requests"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Switch to dark theme",
+        "type": "button"
+      }
+    ],
+    "inputs": [],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [],
+    "flags": [],
+    "locationPath": "/whatsapp-requests",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / WhatsApp Requests WhatsApp Requests Embedded-signup (ESB) onboarding flows across all workspaces Workspace Owner WABA / Business ID Phone ESB Status Started fmpg vivekkumarprince1@gmail.com 2204695223399659 917589684588 completed 23/02/2026 Vivek prasad's workspace vivekkumarprince9@gmail.c"
+  },
+  {
+    "app": "admin",
+    "route": "/workspaces",
+    "url": "http://localhost:3100/workspaces",
+    "ok": true,
+    "status": "rendered",
+    "finalUrl": "http://localhost:3100/workspaces",
+    "title": "wApi — Super Admin",
+    "h1": "Workspaces",
+    "headings": [
+      "Workspaces",
+      "Selected Workspace",
+      "Webhook Infrastructure",
+      "Operational Checklist"
+    ],
+    "links": [
+      {
+        "href": "/",
+        "text": "Dashboard"
+      },
+      {
+        "href": "/workspaces",
+        "text": "Workspaces"
+      },
+      {
+        "href": "/users",
+        "text": "User Directory"
+      },
+      {
+        "href": "/billing",
+        "text": "Billing & Plans"
+      },
+      {
+        "href": "/analytics",
+        "text": "Analytics"
+      },
+      {
+        "href": "/gupshup",
+        "text": "BSP Providers"
+      },
+      {
+        "href": "/whatsapp-requests",
+        "text": "WhatsApp Requests"
+      },
+      {
+        "href": "/operations",
+        "text": "Operations"
+      },
+      {
+        "href": "/monitoring",
+        "text": "Infrastructure"
+      },
+      {
+        "href": "/data-explorer",
+        "text": "Data Explorer"
+      },
+      {
+        "href": "/entitlement-drift",
+        "text": "Entitlement Drift"
+      },
+      {
+        "href": "/audit-logs",
+        "text": "Audit Logs"
+      },
+      {
+        "href": "/compliance",
+        "text": "Compliance"
+      },
+      {
+        "href": "/settings",
+        "text": "Settings"
+      },
+      {
+        "href": "/workspaces/6a1743e113124f8f8aca5f8e",
+        "text": "Vivek prasad's workspace"
+      },
+      {
+        "href": "/workspaces/699c21048e96ba1b49ab6945",
+        "text": "fmpg"
+      },
+      {
+        "href": "/gupshup",
+        "text": "Open BSP Provider"
+      }
+    ],
+    "buttons": [
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 0,
+        "text": "Sign out",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 1,
+        "text": "Global Webhook Sync",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 2,
+        "text": "Refresh",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 3,
+        "text": "Switch to dark theme",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 4,
+        "text": "All",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 5,
+        "text": "Connected",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 6,
+        "text": "Needs Attention",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 7,
+        "text": "Open Access",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 9,
+        "text": "Open Access",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 11,
+        "text": "Bypass Access",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 12,
+        "text": "Open BSP Provider",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 13,
+        "text": "Refresh",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 14,
+        "text": "Update existing",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 15,
+        "text": "Apply Sync",
+        "type": "button"
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 16,
+        "text": "All",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 17,
+        "text": "MESSAGE",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 18,
+        "text": "SENT",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 19,
+        "text": "DELIVERED",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 20,
+        "text": "READ",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 21,
+        "text": "FAILED",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 22,
+        "text": "ENQUEUED",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 23,
+        "text": "TEMPLATE",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 24,
+        "text": "ACCOUNT",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 25,
+        "text": "BILLING",
+        "type": null
+      },
+      {
+        "dangerous": true,
+        "disabled": false,
+        "index": 26,
+        "text": "PAYMENTS",
+        "type": null
+      },
+      {
+        "dangerous": false,
+        "disabled": false,
+        "index": 27,
+        "text": "FLOWS_MESSAGE",
+        "type": null
+      }
+    ],
+    "inputs": [
+      {
+        "disabled": false,
+        "name": null,
+        "placeholder": "Search by name, owner email, app id, WABA, or workspace ID…",
+        "required": false,
+        "tag": "input",
+        "type": null
+      },
+      {
+        "disabled": false,
+        "name": null,
+        "placeholder": "System default",
+        "required": false,
+        "tag": "input",
+        "type": null
+      }
+    ],
+    "consoleErrors": [],
+    "consoleWarnings": [
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      },
+      {
+        "level": "warn",
+        "message": "The width(-1) and height(-1) of chart should be greater than 0,\n       please check the style of container, or the props width(100%) and height(100%),\n       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the\n       height and width.",
+        "timestamp": "2026-06-22T03:59:21.757Z",
+        "url": "http://localhost:3000/_next/static/chunks/3647-5c2805dcb9223008.js"
+      }
+    ],
+    "textFlags": [
+      "failed"
+    ],
+    "flags": [
+      "failed"
+    ],
+    "locationPath": "/workspaces",
+    "textSample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Workspaces Workspaces Monitor and manage 2 workspaces, configurations, and connection health Global Webhook Sync Refresh Total Workspaces 2 Connected 2 Configured 2 Needs Attention 0 All Connected Needs Attention Workspace Plan Integration Created Actions VI Vivek prasad's workspace vivekku"
+  }
+]

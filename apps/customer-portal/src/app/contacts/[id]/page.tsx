@@ -64,12 +64,13 @@ export default function ContactProfilePage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-5xl mx-auto">
       {/* Navigation */}
       <div className="flex items-center gap-4">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => router.back()}
-          className="rounded-xl hover:bg-muted"
-        >
+	        <Button 
+	          variant="ghost" 
+	          size="icon" 
+	          onClick={() => router.back()}
+	          aria-label="Back to contacts"
+	          className="rounded-xl hover:bg-muted"
+	        >
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>

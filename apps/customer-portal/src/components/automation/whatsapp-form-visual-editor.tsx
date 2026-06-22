@@ -271,6 +271,7 @@ export default function WhatsAppFormVisualEditor({ initialScreens, disabled, onC
                 variant="ghost"
                 size="icon"
                 disabled={disabled || screens.length <= 1}
+                aria-label={`Delete screen ${screenIdx + 1}`}
                 onClick={() =>
                   setScreens((prev) => prev.filter((_, idx) => idx !== screenIdx))
                 }
@@ -451,6 +452,7 @@ export default function WhatsAppFormVisualEditor({ initialScreens, disabled, onC
                       variant="ghost"
                       size="icon"
                       disabled={disabled || screen.fields.length <= 1}
+                      aria-label={`Delete field ${fieldIdx + 1}`}
                       onClick={() =>
                         setScreens((prev) =>
                           prev.map((item, idx) =>

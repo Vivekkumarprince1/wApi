@@ -26,7 +26,15 @@ export class PricingService {
 
     if (!planId) return 40; // Hard default
 
-    const plan = await PlanModel.findById(planId).lean();
+    const plan = Types.ObjectId.isValid(String(planId))
+      ? await PlanModel.findById(planId).lean()
+      : await PlanModel.findOne({
+          $or: [
+            { slug: String(planId) },
+            { code: String(planId) },
+            { name: String(planId) }
+          ]
+        }).lean();
     if (!plan) return 40;
 
     switch (category) {

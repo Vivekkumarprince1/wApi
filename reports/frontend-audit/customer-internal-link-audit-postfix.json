@@ -1,0 +1,339 @@
+{
+  "generatedAt": "2026-06-22T05:10:30.813Z",
+  "count": 37,
+  "links": [
+    {
+      "bodyChars": 309,
+      "error": false,
+      "finalUrl": "http://localhost:3000/dashboard",
+      "href": "/",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Dashboard Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Dashboard | ConnectSphare"
+    },
+    {
+      "bodyChars": 799,
+      "error": false,
+      "finalUrl": "http://localhost:3000/ads",
+      "href": "/ads",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Campaign Analytics Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V WHATSAPP ADS CLICK-TO-WHATSAPP ",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 1032,
+      "error": false,
+      "finalUrl": "http://localhost:3000/analytics/advanced",
+      "href": "/analytics/advanced",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Analytics Advanced Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V Advanced Analytics Deep insight",
+      "title": "Analytics | ConnectSphare"
+    },
+    {
+      "bodyChars": 309,
+      "error": false,
+      "finalUrl": "http://localhost:3000/dashboard",
+      "href": "/auth/login",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Dashboard Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Dashboard | ConnectSphare"
+    },
+    {
+      "bodyChars": 309,
+      "error": false,
+      "finalUrl": "http://localhost:3000/dashboard",
+      "href": "/auth/register",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Dashboard Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Dashboard | ConnectSphare"
+    },
+    {
+      "bodyChars": 434,
+      "error": false,
+      "finalUrl": "http://localhost:3000/automation",
+      "href": "/automation",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Flow Hub Workflows Auto Replies Instagram QuickFlows WhatsApp Forms AnswerBot Training AI Intent Match Interaktive List Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle S",
+      "title": "Automation | ConnectSphare"
+    },
+    {
+      "bodyChars": 541,
+      "error": false,
+      "finalUrl": "http://localhost:3000/automation/ai-intent-matching",
+      "href": "/automation/ai-intent-matching",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Flow Hub Workflows Auto Replies Instagram QuickFlows WhatsApp Forms AnswerBot Training AI Intent Match Interaktive List Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle S",
+      "title": "Automation | ConnectSphare"
+    },
+    {
+      "bodyChars": 795,
+      "error": false,
+      "finalUrl": "http://localhost:3000/automation/answerbot",
+      "href": "/automation/answerbot",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Flow Hub Workflows Auto Replies Instagram QuickFlows WhatsApp Forms AnswerBot Training AI Intent Match Interaktive List Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle S",
+      "title": "Automation | ConnectSphare"
+    },
+    {
+      "bodyChars": 447,
+      "error": false,
+      "finalUrl": "http://localhost:3000/automation/auto-replies",
+      "href": "/automation/auto-replies",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Flow Hub Workflows Auto Replies Instagram QuickFlows WhatsApp Forms AnswerBot Training AI Intent Match Interaktive List Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle S",
+      "title": "Automation | ConnectSphare"
+    },
+    {
+      "bodyChars": 735,
+      "error": false,
+      "finalUrl": "http://localhost:3000/automation/instagram-quickflows",
+      "href": "/automation/instagram-quickflows",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Flow Hub Workflows Auto Replies Instagram QuickFlows WhatsApp Forms AnswerBot Training AI Intent Match Interaktive List Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle S",
+      "title": "Automation | ConnectSphare"
+    },
+    {
+      "bodyChars": 994,
+      "error": false,
+      "finalUrl": "http://localhost:3000/automation/interaktive-list",
+      "href": "/automation/interaktive-list",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Flow Hub Workflows Auto Replies Instagram QuickFlows WhatsApp Forms AnswerBot Training AI Intent Match Interaktive List Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle S",
+      "title": "Automation | ConnectSphare"
+    },
+    {
+      "bodyChars": 449,
+      "error": false,
+      "finalUrl": "http://localhost:3000/automation/whatsapp-forms",
+      "href": "/automation/whatsapp-forms",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Flow Hub Workflows Auto Replies Instagram QuickFlows WhatsApp Forms AnswerBot Training AI Intent Match Interaktive List Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle S",
+      "title": "Automation | ConnectSphare"
+    },
+    {
+      "bodyChars": 444,
+      "error": false,
+      "finalUrl": "http://localhost:3000/automation/workflows",
+      "href": "/automation/workflows",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Flow Hub Workflows Auto Replies Instagram QuickFlows WhatsApp Forms AnswerBot Training AI Intent Match Interaktive List Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle S",
+      "title": "Automation | ConnectSphare"
+    },
+    {
+      "bodyChars": 315,
+      "error": false,
+      "finalUrl": "http://localhost:3000/billing",
+      "href": "/billing",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Plans & Billing Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Billing | ConnectSphare"
+    },
+    {
+      "bodyChars": 338,
+      "error": false,
+      "finalUrl": "http://localhost:3000/campaign",
+      "href": "/campaign",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Templates & Library Campaigns Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Campaign Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Campaigns | ConnectSphare"
+    },
+    {
+      "bodyChars": 350,
+      "error": false,
+      "finalUrl": "http://localhost:3000/commerce",
+      "href": "/commerce",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce Catalog Order Panel Checkout Bot Settings SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Commerce Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 358,
+      "error": false,
+      "finalUrl": "http://localhost:3000/commerce/catalog",
+      "href": "/commerce/catalog",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce Catalog Order Panel Checkout Bot Settings SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Commerce Catalog Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 363,
+      "error": false,
+      "finalUrl": "http://localhost:3000/commerce/checkout-bot",
+      "href": "/commerce/checkout-bot",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce Catalog Order Panel Checkout Bot Settings SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Commerce Checkout bot Search modules, actions or press ⌘K ⌘ K BALANCE I",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 357,
+      "error": false,
+      "finalUrl": "http://localhost:3000/commerce/orders",
+      "href": "/commerce/orders",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce Catalog Order Panel Checkout Bot Settings SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Commerce Orders Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,4",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 359,
+      "error": false,
+      "finalUrl": "http://localhost:3000/commerce/settings",
+      "href": "/commerce/settings",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce Catalog Order Panel Checkout Bot Settings SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Commerce Settings Search modules, actions or press ⌘K ⌘ K BALANCE INR 1",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 308,
+      "error": false,
+      "finalUrl": "http://localhost:3000/contacts",
+      "href": "/contacts",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Contacts Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Contacts | ConnectSphare"
+    },
+    {
+      "bodyChars": 358,
+      "error": false,
+      "finalUrl": "http://localhost:3000/crm/pipeline",
+      "href": "/crm",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Pipeline Tasks Reports Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar CRM Pipeline Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V PIPELINE TASKS",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 534,
+      "error": false,
+      "finalUrl": "http://localhost:3000/crm/pipeline",
+      "href": "/crm/pipeline",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Pipeline Tasks Reports Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar CRM Pipeline Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V PIPELINE TASKS",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 357,
+      "error": false,
+      "finalUrl": "http://localhost:3000/crm/reports",
+      "href": "/crm/reports",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Pipeline Tasks Reports Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar CRM Reports Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V PIPELINE TASKS ",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 641,
+      "error": false,
+      "finalUrl": "http://localhost:3000/crm/tasks",
+      "href": "/crm/tasks",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Pipeline Tasks Reports Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar CRM Tasks Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V PIPELINE TASKS RE",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 305,
+      "error": false,
+      "finalUrl": "http://localhost:3000/inbox",
+      "href": "/inbox",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Inbox Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Shared Inbox | ConnectSphare"
+    },
+    {
+      "bodyChars": 1480,
+      "error": false,
+      "finalUrl": "http://localhost:3000/integrations",
+      "href": "/integrations",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Integrations Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V INTEGRATIONS The nerve center for you",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 308,
+      "error": false,
+      "finalUrl": "http://localhost:3000/settings",
+      "href": "/settings",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Settings Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Settings | ConnectSphare"
+    },
+    {
+      "bodyChars": 318,
+      "error": false,
+      "finalUrl": "http://localhost:3000/settings/developer",
+      "href": "/settings/developer",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Settings Developer Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Settings | ConnectSphare"
+    },
+    {
+      "bodyChars": 1082,
+      "error": false,
+      "finalUrl": "http://localhost:3000/settings/developer/keys",
+      "href": "/settings/developer/keys",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Settings Developer Keys Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V API Keys Securely manage k",
+      "title": "Settings | ConnectSphare"
+    },
+    {
+      "bodyChars": 1178,
+      "error": false,
+      "finalUrl": "http://localhost:3000/settings/developer/webhooks",
+      "href": "/settings/developer/webhooks",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Settings Developer Webhooks Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V OUTBOUND WEBHOOKS Conf",
+      "title": "Settings | ConnectSphare"
+    },
+    {
+      "bodyChars": 314,
+      "error": false,
+      "finalUrl": "http://localhost:3000/settings/teams",
+      "href": "/settings/teams",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Settings Teams Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "Settings | ConnectSphare"
+    },
+    {
+      "bodyChars": 729,
+      "error": false,
+      "finalUrl": "http://localhost:3000/support",
+      "href": "/support",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Support Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V SUPPORT Support Center Manage the workspac",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 323,
+      "error": false,
+      "finalUrl": "http://localhost:3000/support/chat-assignment",
+      "href": "/support/chat-assignment",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Support Chat assignment Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 523,
+      "error": false,
+      "finalUrl": "http://localhost:3000/support/macros",
+      "href": "/support/macros",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Support Macros Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V Quick Replies Manage your canned re",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 339,
+      "error": false,
+      "finalUrl": "http://localhost:3000/templates",
+      "href": "/templates",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Templates & Library Campaigns Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Templates Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    },
+    {
+      "bodyChars": 849,
+      "error": false,
+      "finalUrl": "http://localhost:3000/widget",
+      "href": "/widget",
+      "notFound": false,
+      "sample": "fmpg WORKSPACE MAIN Dashboard Inbox Billing MESSAGING Campaigns Contacts Ads FEATURES Market Automation Sales CRM Commerce SUPPORT & ANALYSIS Chat Analytics Chat Assignment Team Management Macros TOOLS Integrations Widget Toggle Sidebar Widget Search modules, actions or press ⌘K ⌘ K BALANCE INR 1,452.70 V CLOUD WIDGET Embed customizable WhatsApp ch",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform"
+    }
+  ]
+}

@@ -1,11 +1,11 @@
-import api from './client';
+import api, { unwrapData } from './client';
 
 export const fetchCatalogs = () => api.get('/commerce/catalogs');
 export const fetchProducts = (catalogId: string, params?: any) => api.get(`/commerce/catalogs/${catalogId}/products`, { params });
 export const fetchOrders = (params?: any) => api.get('/commerce/orders', { params });
 export const getOrderById = (id: string) => api.get(`/commerce/orders/${id}`);
 export const updateOrderStatus = (id: string, status: string) => api.patch(`/commerce/orders/${id}/status`, { status });
-export const getCommerceStats = () => api.get<any>('/commerce/stats').then((r: any) => r.data);
+export const getCommerceStats = () => api.get<any>('/commerce/stats').then(unwrapData);
 
 export const fetchProductsList = (params?: any) =>
   api.get<any>('/commerce/products', { params });

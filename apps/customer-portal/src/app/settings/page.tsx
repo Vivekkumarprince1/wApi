@@ -143,9 +143,14 @@ export default function SettingsPage() {
                 <div className="space-y-2">
                    <div className="flex items-center justify-between px-1">
                       <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Permanent Access Token</label>
-                      <button onClick={() => setShowToken(!showToken)} className="text-muted-foreground hover:text-primary transition-colors">
-                         {showToken ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </button>
+	                      <button
+	                        type="button"
+	                        onClick={() => setShowToken(!showToken)}
+	                        aria-label={showToken ? 'Hide permanent access token' : 'Show permanent access token'}
+	                        className="text-muted-foreground hover:text-primary transition-colors"
+	                      >
+	                         {showToken ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+	                      </button>
                    </div>
                    <div className="relative">
                       <Input 

@@ -182,29 +182,30 @@ export default function WhatsAppFormsPage() {
                   </td>
                   <td className="p-4">
                     <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => syncMutation.mutate(form._id)} title="Sync form" disabled={syncMutation.isPending}>
-                        <RefreshCw className="h-4 w-4" />
-                      </Button>
-                      <Link href={`/automation/whatsapp-forms/${form._id}/responses`}>
-                        <Button variant="ghost" size="icon" title="View responses">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                      <Link href={`/automation/whatsapp-forms/${form._id}/edit`}>
-                        <Button variant="ghost" size="icon" disabled={form.status === 'published'} title="Edit form">
-                          <Edit3 className="h-4 w-4" />
-                        </Button>
-                      </Link>
+	                      <Button variant="ghost" size="icon" onClick={() => syncMutation.mutate(form._id)} title="Sync form" aria-label={`Sync ${form.name}`} disabled={syncMutation.isPending}>
+	                        <RefreshCw className="h-4 w-4" />
+	                      </Button>
+	                      <Link href={`/automation/whatsapp-forms/${form._id}/responses`} aria-label={`View responses for ${form.name}`}>
+	                        <Button variant="ghost" size="icon" title="View responses" aria-label={`View responses for ${form.name}`}>
+	                          <Eye className="h-4 w-4" />
+	                        </Button>
+	                      </Link>
+	                      <Link href={`/automation/whatsapp-forms/${form._id}/edit`} aria-label={`Edit ${form.name}`}>
+	                        <Button variant="ghost" size="icon" disabled={form.status === 'published'} title="Edit form" aria-label={`Edit ${form.name}`}>
+	                          <Edit3 className="h-4 w-4" />
+	                        </Button>
+	                      </Link>
                       {form.status === 'draft' ? (
                         <Button size="sm" onClick={() => publishMutation.mutate(form._id)} disabled={publishMutation.isPending}>Publish</Button>
                       ) : (
                         <Button size="sm" variant="secondary" onClick={() => unpublishMutation.mutate(form._id)} disabled={unpublishMutation.isPending}>Unpublish</Button>
                       )}
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        title="Delete form"
-                        disabled={deleteMutation.isPending}
+	                        variant="ghost"
+	                        size="icon"
+	                        title="Delete form"
+	                        aria-label={`Delete ${form.name}`}
+	                        disabled={deleteMutation.isPending}
                         onClick={() => {
                           if (confirm('Delete this form and all its responses?')) {
                             deleteMutation.mutate(form._id);

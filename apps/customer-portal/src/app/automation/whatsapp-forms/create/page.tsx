@@ -140,8 +140,13 @@ export default function CreateWhatsAppFormPage() {
     <div className={`mx-auto w-full max-w-[1440px] px-4 py-6 lg:px-8 lg:py-8 space-y-6 ${editorMode === 'visual' ? 'xl:pr-[390px]' : ''}`}>
       <div className="flex flex-wrap items-start justify-between gap-4 rounded-3xl border border-border/60 bg-gradient-to-br from-primary/10 via-background to-background p-5 lg:p-6">
         <div className="flex items-start gap-3">
-          <Link href="/automation/whatsapp-forms">
-            <Button variant="ghost" size="icon" className="rounded-xl border border-border/60 bg-background/70">
+	          <Link href="/automation/whatsapp-forms" aria-label="Back to WhatsApp Forms">
+	            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-xl border border-border/60 bg-background/70"
+              aria-label="Back to WhatsApp Forms"
+            >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>

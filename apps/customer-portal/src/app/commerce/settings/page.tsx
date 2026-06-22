@@ -152,12 +152,13 @@ export default function CommerceSettingsPage() {
                             <div className="space-y-2">
                                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Sales Tax (GST/VAT %)</Label>
                                <div className="relative">
-                                  <Input 
-                                    type="number" 
-                                    value={form.taxPercentage} 
-                                    onChange={(e) => updateField('taxPercentage', parseFloat(e.target.value))}
-                                    className="h-12 rounded-2xl bg-card/30 border-border/40 pr-12 font-black text-lg" 
-                                  />
+	                                  <Input 
+	                                    type="number" 
+	                                    value={form.taxPercentage} 
+	                                    onChange={(e) => updateField('taxPercentage', parseFloat(e.target.value))}
+	                                    aria-label="Sales tax percentage"
+	                                    className="h-12 rounded-2xl bg-card/30 border-border/40 pr-12 font-black text-lg" 
+	                                  />
                                   <Percent className="absolute right-4 top-1/2 -translate-y-1/2 size-4 text-muted-foreground opacity-40" />
                                </div>
                                <p className="text-[10px] text-muted-foreground px-1 opacity-60 px-2 mt-2 leading-relaxed italic">

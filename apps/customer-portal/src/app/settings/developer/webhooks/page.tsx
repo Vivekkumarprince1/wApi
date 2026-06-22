@@ -70,6 +70,27 @@ const EVENT_TYPES = [
    { id: 'ALL', label: 'All Events', description: "Subscribe to every available outbound trigger." }
 ];
 
+const asArray = (value: any) => Array.isArray(value) ? value : [];
+
+const getSubscriptionList = (payload: any) => {
+   if (Array.isArray(payload)) return payload;
+   if (Array.isArray(payload?.webhooks)) return payload.webhooks;
+   if (Array.isArray(payload?.subscriptions)) return payload.subscriptions;
+   if (Array.isArray(payload?.data)) return payload.data;
+   if (Array.isArray(payload?.data?.webhooks)) return payload.data.webhooks;
+   if (Array.isArray(payload?.data?.subscriptions)) return payload.data.subscriptions;
+   return [];
+};
+
+const getSubscriptionId = (subscription: any) =>
+   subscription?.id || subscription?._id || subscription?.subscriptionId;
+
+const getSubscriptionUrl = (subscription: any) =>
+   subscription?.url || subscription?.callbackUrl || subscription?.endpointUrl || 'Endpoint not configured';
+
+const getSubscriptionEvents = (subscription: any) =>
+   asArray(subscription?.events || subscription?.modes).map((event) => String(event).toUpperCase());
+
 export default function WebhooksPage() {
    const queryClient = useQueryClient();
    const currentUserRole = useAuthStore((state) => state.user?.role);
@@ -95,9 +116,9 @@ export default function WebhooksPage() {
       }
    });
 
-   const subscriptions = subsData?.data || [];
+   const subscriptions = getSubscriptionList(subsData);
    const canManageSubscriptions = isSuperAdmin;
-   const policyMeta = (subsData as any)?.meta?.policy;
+   const policyMeta = (subsData as any)?.meta?.policy || (subsData as any)?.data?.meta?.policy;
 
 
    const updateMutation = useMutation({
@@ -155,8 +176,7 @@ export default function WebhooksPage() {
 
    const handleOpenEdit = (sub: any) => {
        setEditingSubscription(sub);
-       const subEvents = sub.events || sub.modes || [];
-       setSelectedEvents(subEvents.map((e: string) => e.toUpperCase()));
+       setSelectedEvents(getSubscriptionEvents(sub));
        setIsEditModalOpen(true);
    };
 
@@ -323,7 +343,7 @@ export default function WebhooksPage() {
                               <Button variant="ghost" onClick={() => setIsEditModalOpen(false)} className="rounded-xl font-bold text-xs uppercase tracking-widest">Cancel</Button>
                               <Button 
                                  onClick={() => updateMutation.mutate({ 
-                                    subscriptionId: editingSubscription?.id, 
+                                    subscriptionId: getSubscriptionId(editingSubscription), 
                                     events: selectedEvents,
                                     tag: editingSubscription?.tag
                                  })}
@@ -440,7 +460,7 @@ export default function WebhooksPage() {
                         </div>
                      ) : (
                         subscriptions.map((hook: any) => (
-                           <Card key={hook.id} className="border-none ring-1 ring-border/50 bg-background/50 backdrop-blur-xl group hover:shadow-lg transition-all rounded-[1.5rem] overflow-hidden">
+                           <Card key={getSubscriptionId(hook) || getSubscriptionUrl(hook)} className="border-none ring-1 ring-border/50 bg-background/50 backdrop-blur-xl group hover:shadow-lg transition-all rounded-[1.5rem] overflow-hidden">
                               <CardContent className="p-6">
                                  <div className="flex items-start justify-between mb-4">
                                     <div className="flex items-start gap-4 flex-1 overflow-hidden">
@@ -448,7 +468,7 @@ export default function WebhooksPage() {
                                           <Activity className="h-6 w-6" />
                                        </div>
                                        <div className="space-y-1 overflow-hidden">
-                                          <h3 className="font-black text-sm tracking-tight truncate">{hook.url}</h3>
+                                          <h3 className="font-black text-sm tracking-tight truncate">{getSubscriptionUrl(hook)}</h3>
                                           <div className="flex items-center gap-2">
                                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-none text-[8px] font-black uppercase tracking-widest px-2">ACTIVE</Badge>
                                              <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
@@ -462,7 +482,7 @@ export default function WebhooksPage() {
                                        <Button 
                                           variant="ghost" 
                                           size="icon" 
-                                          onClick={() => deleteMutation.mutate(hook.id)}
+                                          onClick={() => deleteMutation.mutate(getSubscriptionId(hook))}
                                           className="h-9 w-9 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
                                        >
                                           <Trash2 className="h-4 w-4" />
@@ -500,8 +520,8 @@ export default function WebhooksPage() {
                                     </div>
                                   </div>
                                   <div className="flex flex-wrap gap-2 pt-4 border-t border-border/10">
-                                     {hook.events?.length > 0 ? (
-                                        hook.events.map((ev: string) => (
+                                     {getSubscriptionEvents(hook).length > 0 ? (
+                                        getSubscriptionEvents(hook).map((ev: string) => (
                                            <Badge key={ev} className="bg-slate-100 text-slate-600 border-none font-bold text-[9px] uppercase tracking-wide px-2 py-0.5 rounded-lg">
                                               {ev}
                                            </Badge>
@@ -531,7 +551,7 @@ export default function WebhooksPage() {
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Target Endpoint</p>
                         <div className="relative group">
                            <Input 
-                              value={subscriptions[0]?.url || "No active endpoint"} 
+                              value={subscriptions[0] ? getSubscriptionUrl(subscriptions[0]) : "No active endpoint"} 
                               className="pr-10 h-11 border-border/50 bg-accent/20 font-bold text-[10px] rounded-xl text-muted-foreground" 
                               readOnly 
                            />

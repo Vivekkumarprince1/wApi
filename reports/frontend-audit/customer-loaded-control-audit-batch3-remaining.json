@@ -1,0 +1,1358 @@
+{
+  "generatedAt": "2026-06-22T05:53:36.152Z",
+  "routes": [
+    {
+      "route": "/ads",
+      "resolved": "/ads",
+      "bodyChars": 665,
+      "controlsCount": 11,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "LAUNCH AD CAMPAIGN Launch Ad Campaign",
+        "CONNECT PIXEL Connect Pixel",
+        "Search ad sets and campaigns...",
+        "Analytics Console Analytics Console",
+        "CONNECT AD ACCOUNT Connect Ad Account"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V WHATSAPP ADS CLICK-TO-WHATSAPP ADS MANAGEMENT (CTWA) LAUNCH AD CAMPAIGN META INTEGRATION ACTIVE Reach 2 Billion WhatsApp Users. Drive traffic from Instagram and Facebook directly into your WhatsApp Inbox. Track conversions, ROI, and agent performance in real-time. AVG. CPC $0.00 TOTAL LEADS 0 Sync Meta Pixel with WhatsApp Flows Automatically retarget users who abandoned their WhatsApp forms. CONNECT PIXEL ACTIVE CAMPAIGNS 0 Analytics Console No Ad Campaigns Found You haven't linked your Facebook Ad Account yet. Connect to start driving high-intent traffic to WhatsApp. CONNECT AD ACCOUNT",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/ads",
+      "errorLogs": []
+    },
+    {
+      "route": "/analytics/advanced",
+      "resolved": "/analytics/advanced",
+      "bodyChars": 774,
+      "controlsCount": 13,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "7D 7D",
+        "30D 30D",
+        "90D 90D",
+        "Export Report Export Report",
+        "SunTueThuFriSunTueThuFriSunTueThuFriSunTueThuFriSatMon01234",
+        "VIEW ALL AGENTS View All Agents"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Advanced Analytics Deep insights into your WhatsApp communication performance. LAST 30 DAYS 7D 30D 90D Export Report TOTAL MESSAGES 0 -100% vs last period ACTIVE CONTACTS 0 -100% vs last period EST. SPEND $0.00 0% vs last period DELIVERY RATE 0.0% -100% outbound confirmed delivery Message Volume Daily sent vs received traffic SENT RECEIVED Sun Tue Thu Fri Sun Tue Thu Fri Sun Tue Thu Fri Sun Tue Thu Fri Sat Mon 0 1 2 3 4 Conversation Mix Estimated cost distribution 0.0% MAPPED MARKETING 0% UTILITY 0% SERVICE 0% AUTH 0% Agent Performance Response times and resolution metrics VIEW ALL AGENTS AGENT NAME RESOLVED AVG. RESPONSE RATING STATUS",
+      "title": "Analytics | ConnectSphare",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<svg cx=\"50%\" cy=\"50%\" role=\"application\" tabindex=\"0\" class=\"recharts-surface\" width=\"643\" height=\"250\" viewBox=\"0 0 643 250\" style=\"width: 100%; height: 100%; display: block;\"><title></title><desc></desc><g tabindex=\"-1\" class=\"recharts-zIndex-layer_-100\"></g><g tabindex=\"-1\" c",
+          "index": 11,
+          "name": "",
+          "role": "application",
+          "tag": "svg",
+          "title": null,
+          "type": null
+        }
+      ],
+      "url": "http://localhost:3000/analytics/advanced",
+      "errorLogs": []
+    },
+    {
+      "route": "/auth/accept-invite",
+      "resolved": "/auth/accept-invite",
+      "bodyChars": 45,
+      "controlsCount": 0,
+      "hasCrashText": false,
+      "labels": [],
+      "links": [],
+      "sample": "VERIFYING INVITE SECURING YOUR CONNECTION...",
+      "title": "Sign in | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/auth/accept-invite",
+      "errorLogs": []
+    },
+    {
+      "route": "/auth/google/callback",
+      "resolved": "/auth/google/callback",
+      "bodyChars": 1192,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Campaign New Campaign",
+        "Send Campaign Reach thousands Send CampaignReach thousands",
+        "Add Contacts Import or create Add ContactsImport or create",
+        "New Create Template Design messages NewCreate TemplateDesign messages",
+        "View Inbox Check responses View InboxCheck responses",
+        "Connected Connected",
+        "Connect Now Connect Now",
+        "VIEW LOGS View Logs",
+        "Launch Campaign Launch Campaign",
+        "Get Help Get Help"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost your WhatsApp marketing Bulk Campaigns Send to thousands instantly Automation Auto-reply & workflows Co",
+      "title": "Dashboard | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/dashboard",
+      "errorLogs": []
+    },
+    {
+      "route": "/auth/login",
+      "resolved": "/auth/login",
+      "bodyChars": 1192,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Campaign New Campaign",
+        "Send Campaign Reach thousands Send CampaignReach thousands",
+        "Add Contacts Import or create Add ContactsImport or create",
+        "New Create Template Design messages NewCreate TemplateDesign messages",
+        "View Inbox Check responses View InboxCheck responses",
+        "Connected Connected",
+        "Connect Now Connect Now",
+        "VIEW LOGS View Logs",
+        "Launch Campaign Launch Campaign",
+        "Get Help Get Help"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost your WhatsApp marketing Bulk Campaigns Send to thousands instantly Automation Auto-reply & workflows Co",
+      "title": "Dashboard | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/dashboard",
+      "errorLogs": []
+    },
+    {
+      "route": "/auth/register",
+      "resolved": "/auth/register",
+      "bodyChars": 1192,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Campaign New Campaign",
+        "Send Campaign Reach thousands Send CampaignReach thousands",
+        "Add Contacts Import or create Add ContactsImport or create",
+        "New Create Template Design messages NewCreate TemplateDesign messages",
+        "View Inbox Check responses View InboxCheck responses",
+        "Connected Connected",
+        "Connect Now Connect Now",
+        "VIEW LOGS View Logs",
+        "Launch Campaign Launch Campaign",
+        "Get Help Get Help"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost your WhatsApp marketing Bulk Campaigns Send to thousands instantly Automation Auto-reply & workflows Co",
+      "title": "Dashboard | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/dashboard",
+      "errorLogs": []
+    },
+    {
+      "route": "/auth/register/verify",
+      "resolved": "/auth/register/verify",
+      "bodyChars": 35,
+      "controlsCount": 1,
+      "hasCrashText": false,
+      "labels": [
+        "Back to sign up Back to sign up"
+      ],
+      "links": [
+        {
+          "href": "/auth/register",
+          "text": "Back to sign up"
+        }
+      ],
+      "sample": "No email provided. Back to sign up",
+      "title": "Sign in | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/auth/register/verify",
+      "errorLogs": []
+    },
+    {
+      "route": "/auth/reset",
+      "resolved": "/auth/reset",
+      "bodyChars": 246,
+      "controlsCount": 3,
+      "hasCrashText": false,
+      "labels": [
+        "name@company.com",
+        "Send Reset Link Send Reset Link",
+        "Back to Login Back to Login"
+      ],
+      "links": [
+        {
+          "href": "/auth/login",
+          "text": "Back to Login"
+        }
+      ],
+      "sample": "Reset Password Enter your email address and we'll send you instructions to reset your password. Email Address Send Reset Link Back to Login Security:We'll never share your email with anyone else. Password reset links expire after a short time.",
+      "title": "Sign in | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/auth/reset",
+      "errorLogs": []
+    },
+    {
+      "route": "/commerce",
+      "resolved": "/commerce",
+      "bodyChars": 1144,
+      "controlsCount": 7,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "NEW PRODUCT New Product"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Commerce Engine OPERATIONAL Managing global sales flows, inventory intelligence, and automated WhatsApp checkout logistics. NEW PRODUCT LIVE TOTAL ECOSYSTEM SALES ₹0 LIVE ORDER THROUGHPUT 0 LIVE ACTIVE CATALOGUE 0 LIVE CUSTOMER REACH -- MODULE CONTROL CENTER IN-STOCK: -- Product Catalog Manage your inventory, pricing tiers, and global scaling. ACCESS MODULE PENDING: -- Sales Orders Monitor fulfillment, logistics, and payment confirmations. ACCESS MODULE ACTIVE Checkout Bot Configure your automated AI WhatsApp selling companion. ACCESS MODULE GLOBAL Store Settings Customize currency, taxes, and international shipping zones. ACCESS MODUL",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/commerce",
+      "errorLogs": []
+    },
+    {
+      "route": "/commerce/catalog",
+      "resolved": "/commerce/catalog",
+      "bodyChars": 433,
+      "controlsCount": 17,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "NEW PRODUCT New Product",
+        "Search catalog intelligence...",
+        "ALL All",
+        "ELECTRONICS Electronics",
+        "APPAREL Apparel",
+        "SERVICES Services",
+        "ARCHITECT NEW UNIT Architect New Unit"
+      ],
+      "links": [
+        {
+          "href": "/commerce",
+          "text": "Commerce"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Product Catalog Managing global inventory intelligence and storefront availability. NEW PRODUCT LIVE SYNC ELITE INVENTORY 0 LIVE SYNC ACTIVE NODES 0 LIVE SYNC OUT OF STOCK 0 LIVE SYNC LOW SUPPLY 0 ALL ELECTRONICS APPAREL SERVICES CATALOG DEPLETED LAUNCH A NEW INTELLIGENCE NODE TO POPULATE THE MANIFEST ARCHITECT NEW UNIT INDEXING 0 OF 0 CATALOG UNITS NODE 1 / 0",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button shrink-0 border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-",
+          "index": 6,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button shrink-0 border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-",
+          "index": 7,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        },
+        {
+          "aria": null,
+          "disabled": true,
+          "href": null,
+          "html": "<button type=\"button\" data-disabled=\"\" tabindex=\"0\" disabled=\"\" data-slot=\"button\" class=\"group/button shrink-0 border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-vis",
+          "index": 15,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button shrink-0 border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-",
+          "index": 16,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        }
+      ],
+      "url": "http://localhost:3000/commerce/catalog",
+      "errorLogs": []
+    },
+    {
+      "route": "/commerce/checkout-bot",
+      "resolved": "/commerce/checkout-bot",
+      "bodyChars": 1079,
+      "controlsCount": 14,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "LOGISTICS HUB Logistics Hub",
+        "LOGISTICS HUB Logistics Hub",
+        "NEW CHECKOUT FLOW New Checkout Flow",
+        "ENGINE OFFLINE on",
+        "SHOP, BUY, CATALOG... SHOP",
+        "on",
+        "on",
+        "OPEN LIVE INBOX Open Live Inbox"
+      ],
+      "links": [
+        {
+          "href": "/commerce",
+          "text": "Commerce"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/commerce/settings",
+          "text": "LOGISTICS HUB"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Checkout Bot OFFLINE Automate the checkout process and close sales directly on WhatsApp. LOGISTICS HUB NEW CHECKOUT FLOW REAL-TIME ORDERS CLOSED 0 No data REAL-TIME TOTAL REVENUE ₹0 Real-time REAL-TIME ABANDONMENT 0% Stable REAL-TIME ACTIVE SESSIONS 0 Monitoring Operation Center MASTER CONTROL & TRIGGER LOGIC ENGINE OFFLINE CHECKOUT TRIGGER KEYWORD The bot will activate when a customer sends this exact word. SMART OVERRIDES INVENTORY GATING Hide products with 0 stock. AUTO-CONFIRMATION Mark orders confirmed on intent. SECURITY PROTOCOL Autonomous Sales Integration Our bot uses a state-of-the-art conversational engine to guide users fro",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/commerce/checkout-bot",
+      "errorLogs": []
+    },
+    {
+      "route": "/commerce/orders",
+      "resolved": "/commerce/orders",
+      "bodyChars": 493,
+      "controlsCount": 18,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "EXPORT MANIFEST Export Manifest",
+        "LAUNCH MANUAL ORDER Launch Manual Order",
+        "ALL all",
+        "PENDING pending",
+        "CONFIRMED confirmed",
+        "PROCESSING processing",
+        "SHIPPED shipped",
+        "DELIVERED delivered",
+        "CANCELLED cancelled",
+        "Search orders, customers, or phone numbers..."
+      ],
+      "links": [
+        {
+          "href": "/commerce",
+          "text": "Commerce"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Mission Logistics Command and fulfill global commerce units across the WhatsApp network. EXPORT MANIFEST LAUNCH MANUAL ORDER REAL-TIME SALES REVENUE ₹0 REAL-TIME ORDER THROUGHPUT 0 REAL-TIME ACTIVE PIPELINES 0 REAL-TIME SYSTEM HEALTH 99.9% ALL PENDING CONFIRMED PROCESSING SHIPPED DELIVERED CANCELLED MANIFEST ID & NODE ENTITY PATH PIPELINE STATUS VALUE NODE NO ACTIVE MANIFESTS INDEXING 0 OF 0 LOGISTICS NODES NODE 1 / 0",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": true,
+          "href": null,
+          "html": "<button type=\"button\" data-disabled=\"\" tabindex=\"0\" disabled=\"\" data-slot=\"button\" class=\"group/button shrink-0 border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-vis",
+          "index": 16,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button shrink-0 border border-transparent bg-clip-padding font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-",
+          "index": 17,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        }
+      ],
+      "url": "http://localhost:3000/commerce/orders",
+      "errorLogs": []
+    },
+    {
+      "route": "/commerce/settings",
+      "resolved": "/commerce/settings",
+      "bodyChars": 604,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "SAVE ARCHITECTURE Save Architecture",
+        "GENERAL General",
+        "PAYMENTS Payments",
+        "SHIPPING Shipping",
+        "SYSTEM System",
+        "GENERAL Core Trading Standard rules for global commerce transactions. BASE CURRENCY INR - Indian Rupee (₹) SALES TAX (GST/VAT %) Applied globally during checkout. Set to 0 to disable tax calculation. Automated Sales Control how the Checkout Bot manages transactions. GLOBAL COMMERCE MODULE Master toggle for all commerce features. AUTO-CONFIRM ORDERS Skip manual review for paid orders. Core TradingStandard rules for global commerce transactions.Base CurrencyINR - Indian Rupee (₹)Sales Tax (GST/VAT %)Applied globally during checkout. Set to 0 to disable tax calculation.Automated SalesControl how the Checkout Bot manages transactions.Global Commerce ModuleMaster toggle for all commerce features.Auto-Confirm OrdersSkip manual review for paid orders.",
+        "INR - Indian Rupee (₹) INR - Indian Rupee (₹)",
+        "on",
+        "on"
+      ],
+      "links": [
+        {
+          "href": "/commerce",
+          "text": "Commerce"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Store Logistics GLOBAL CONFIG Configure your global trading rules, tax compliance, and payment infrastructure. SAVE ARCHITECTURE GENERAL PAYMENTS SHIPPING SYSTEM Core Trading Standard rules for global commerce transactions. BASE CURRENCY INR - Indian Rupee (₹) SALES TAX (GST/VAT %) Applied globally during checkout. Set to 0 to disable tax calculation. Automated Sales Control how the Checkout Bot manages transactions. GLOBAL COMMERCE MODULE Master toggle for all commerce features. AUTO-CONFIRM ORDERS Skip manual review for paid orders.",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<input id=\"base-ui-_r_1k_\" data-slot=\"input\" class=\"w-full min-w-0 border px-2.5 py-1 transition-colors outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:bord",
+          "index": 13,
+          "name": "",
+          "role": null,
+          "tag": "INPUT",
+          "title": null,
+          "type": "number"
+        }
+      ],
+      "url": "http://localhost:3000/commerce/settings",
+      "errorLogs": []
+    },
+    {
+      "route": "/contacts/segments",
+      "resolved": "/contacts/segments",
+      "bodyChars": 300,
+      "controlsCount": 8,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Create Segment Create Segment",
+        "Create Segment Create Segment"
+      ],
+      "links": [
+        {
+          "href": "/contacts",
+          "text": "Contacts"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Dynamic Segments 0 SAVED Build automated audience groups based on behavior, tags, and custom filters. Create Segment No segments yet Create your first segment to start targeted marketing campaigns based on customer behavior. Create Segment",
+      "title": "Contacts | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/contacts/segments",
+      "errorLogs": []
+    },
+    {
+      "route": "/crm",
+      "resolved": "/crm",
+      "bodyChars": 442,
+      "controlsCount": 21,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "PIPELINE Pipeline",
+        "TASKS Tasks",
+        "REPORTS Reports",
+        "ABC abc",
+        "BOARD Board",
+        "LIST List",
+        "INTELLIGENCE Intelligence",
+        "NEW DEAL New Deal",
+        "Search deals by title, contact or value...",
+        "RESET FILTERS Reset Filters",
+        "New pipeline",
+        "CREATE STAGE Create Stage"
+      ],
+      "links": [
+        {
+          "href": "/crm",
+          "text": "CRM"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/crm/pipeline",
+          "text": "PIPELINE"
+        },
+        {
+          "href": "/crm/tasks",
+          "text": "TASKS"
+        },
+        {
+          "href": "/crm/reports",
+          "text": "REPORTS"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V PIPELINE TASKS REPORTS Sales Pipeline ABC Manage your deals workflows and track team performance across multiple channels. BOARD LIST INTELLIGENCE NEW DEAL RESET FILTERS LEADS 0 TOTAL VALUE $0 USD ADD DEAL No deals in this stage yet WON 0 TOTAL VALUE $0 USD ADD DEAL No deals in this stage yet LOST 0 TOTAL VALUE $0 USD ADD DEAL No deals in this stage yet CREATE STAGE",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ri",
+          "index": 17,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ri",
+          "index": 18,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ri",
+          "index": 19,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        }
+      ],
+      "url": "http://localhost:3000/crm/pipeline",
+      "errorLogs": []
+    },
+    {
+      "route": "/crm/pipeline",
+      "resolved": "/crm/pipeline",
+      "bodyChars": 442,
+      "controlsCount": 21,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "PIPELINE Pipeline",
+        "TASKS Tasks",
+        "REPORTS Reports",
+        "ABC abc",
+        "BOARD Board",
+        "LIST List",
+        "INTELLIGENCE Intelligence",
+        "NEW DEAL New Deal",
+        "Search deals by title, contact or value...",
+        "RESET FILTERS Reset Filters",
+        "New pipeline",
+        "CREATE STAGE Create Stage"
+      ],
+      "links": [
+        {
+          "href": "/crm",
+          "text": "CRM"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/crm/pipeline",
+          "text": "PIPELINE"
+        },
+        {
+          "href": "/crm/tasks",
+          "text": "TASKS"
+        },
+        {
+          "href": "/crm/reports",
+          "text": "REPORTS"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V PIPELINE TASKS REPORTS Sales Pipeline ABC Manage your deals workflows and track team performance across multiple channels. BOARD LIST INTELLIGENCE NEW DEAL RESET FILTERS LEADS 0 TOTAL VALUE $0 USD ADD DEAL No deals in this stage yet WON 0 TOTAL VALUE $0 USD ADD DEAL No deals in this stage yet LOST 0 TOTAL VALUE $0 USD ADD DEAL No deals in this stage yet CREATE STAGE",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ri",
+          "index": 17,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ri",
+          "index": 18,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        },
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ri",
+          "index": 19,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        }
+      ],
+      "url": "http://localhost:3000/crm/pipeline",
+      "errorLogs": []
+    },
+    {
+      "route": "/crm/reports",
+      "resolved": "/crm/reports",
+      "bodyChars": 1160,
+      "controlsCount": 13,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "PIPELINE Pipeline",
+        "TASKS Tasks",
+        "REPORTS Reports",
+        "GLOBAL VIEW Global View",
+        "EXPORT INTELLIGENCE Export Intelligence",
+        "HISTORICAL DATA Historical Data"
+      ],
+      "links": [
+        {
+          "href": "/crm",
+          "text": "CRM"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/crm/pipeline",
+          "text": "PIPELINE"
+        },
+        {
+          "href": "/crm/tasks",
+          "text": "TASKS"
+        },
+        {
+          "href": "/crm/reports",
+          "text": "REPORTS"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V PIPELINE TASKS REPORTS Intelligence Hub LIVE ENGINE Analyzing deal velocity, agent throughput, and sales funnel drop-offs to optimize your workspace. GLOBAL VIEW EXPORT INTELLIGENCE SURFACE VALUE ACTIVE PIPELINE VALUE ₹210 RECOGNIZED REVENUE WON DEALS VALUE ₹0 WIN RATE CONVERSION VELOCITY 0% 0 OVERDUE ACTION PERFORMANCE 0 Sales Funnel Efficiency TRACKING LEADS FROM CAPTURE TO CONVERSION. 1 LEADS DEALS 1 VALUE ₹10 0% DROP 2 QUALIFIED DEALS 1 VALUE ₹200 0.0% DROP 3 PROPOSAL DEALS 0 VALUE ₹0 100.0% DROP 4 WON DEALS 0 VALUE ₹0 NAN% DROP 5 LOST DEALS 0 VALUE ₹0 Portfolio Mix ACTIVE DEAL DISTRIBUTION. AVG. WIN RATE 0% ACTIVE 2% WON 0% LOST 0",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<svg cx=\"50%\" cy=\"50%\" role=\"application\" tabindex=\"0\" class=\"recharts-surface\" width=\"531\" height=\"280\" viewBox=\"0 0 531 280\" style=\"width: 100%; height: 100%; display: block;\"><title></title><desc></desc><g tabindex=\"-1\" class=\"recharts-zIndex-layer_-100\"></g><g tabindex=\"-1\" c",
+          "index": 11,
+          "name": "",
+          "role": "application",
+          "tag": "svg",
+          "title": null,
+          "type": null
+        }
+      ],
+      "url": "http://localhost:3000/crm/reports",
+      "errorLogs": []
+    },
+    {
+      "route": "/crm/tasks",
+      "resolved": "/crm/tasks",
+      "bodyChars": 365,
+      "controlsCount": 17,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "PIPELINE Pipeline",
+        "TASKS Tasks",
+        "REPORTS Reports",
+        "ALL TASKS All Tasks",
+        "MY TASKS My Tasks",
+        "NEW TASK New Task",
+        "Search by title, deal or contact...",
+        "ALL ACTIVITY All Activity",
+        "ANY PRIORITY Any Priority",
+        "RESET FILTERS Reset Filters",
+        "CREATE MASTER TASK Create Master Task"
+      ],
+      "links": [
+        {
+          "href": "/crm",
+          "text": "CRM"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/crm/pipeline",
+          "text": "PIPELINE"
+        },
+        {
+          "href": "/crm/tasks",
+          "text": "TASKS"
+        },
+        {
+          "href": "/crm/reports",
+          "text": "REPORTS"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V PIPELINE TASKS REPORTS Daily Actions High-priority follow-ups and agent assignments for your pipeline. ALL TASKS MY TASKS NEW TASK ALL ACTIVITY ANY PRIORITY RESET FILTERS Clean Slate No pending tasks found for these criteria. Perfect time to generate some leads or plan your next move. CREATE MASTER TASK",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/crm/tasks",
+      "errorLogs": []
+    },
+    {
+      "route": "/inbox",
+      "resolved": "/inbox",
+      "bodyChars": 450,
+      "controlsCount": 18,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "ALL All",
+        "ALL all",
+        "OPEN open",
+        "SNOOZED snoozed",
+        "RESOLVED resolved",
+        "SPAM spam",
+        "ALL All",
+        "WA WA",
+        "SMS SMS",
+        "MAIL Mail",
+        "Search chats...",
+        "Start New Chat Start New Chat"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Inbox 6 ALL ALL OPEN SNOOZED RESOLVED SPAM ALL WA SMS MAIL V Vivek Kumar 21:00 New conversation VIP U ujjwal 17:26 New conversation N nilu 17:20 New conversation M madhuri kumar 12:06 New conversation V vk 00:04 New conversation A amit bhaiya 22:34 New conversation Select a conversation Choose a chat from the sidebar to start messaging or managing your contacts. Start New Chat",
+      "title": "Shared Inbox | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/inbox",
+      "errorLogs": []
+    },
+    {
+      "route": "/integrations",
+      "resolved": "/integrations",
+      "bodyChars": 1224,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Search integrations...",
+        "CUSTOM APPS Custom Apps",
+        "COMING SOON Coming Soon",
+        "CONNECT DASHBOARD Connect Dashboard",
+        "CONFIGURE Configure",
+        "COMING SOON Coming Soon",
+        "COMING SOON Coming Soon",
+        "COMING SOON Coming Soon",
+        "BUILD CUSTOM Need a specialized workflow? Use our Webhooks & Developer APIs. View Docs Build CustomNeed a specialized workflow? Use our Webhooks & Developer APIs. View Docs"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/settings/developer",
+          "text": "CUSTOM APPS"
+        },
+        {
+          "href": "/settings/developer",
+          "text": "BUILD CUSTOM Need a specialized workflow? Use our Webhooks & Developer APIs. View Docs"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V INTEGRATIONS The nerve center for your data. Connect your ecosystem to automate engagement. CUSTOM APPS ALL APPS E-COMMERCE MARKETING AUTOMATION PRODUCTIVITY F&B / RETAIL E-COMMERCE BETA Shopify Sync orders, customers, and abandoned carts to WhatsApp. COMING SOON F&B / RETAIL Petpooja POS Official restaurant POS integration. Sync orders and send digital bills. CONNECT DASHBOARD PRODUCTIVITY Google Sheets Trigger WhatsApp messages from new rows in your spreadsheets. LAST SYNCED about 2 months ago RECORDS 0 CONFIGURE MARKETING BETA Meta Lead Ads Automatically trigger messages when a new lead is captured. COMING SOON E-COMMERCE BETA WooCo",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding text-sm font-medium whitespace-nowrap outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/",
+          "index": 11,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        }
+      ],
+      "url": "http://localhost:3000/integrations",
+      "errorLogs": []
+    },
+    {
+      "route": "/onboarding/business-info",
+      "resolved": "/onboarding/business-info",
+      "bodyChars": 56,
+      "controlsCount": 6,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V",
+      "title": "Dashboard | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/dashboard",
+      "errorLogs": []
+    },
+    {
+      "route": "/onboarding/business-verification",
+      "resolved": "/onboarding/business-verification",
+      "bodyChars": 1192,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Campaign New Campaign",
+        "Send Campaign Reach thousands Send CampaignReach thousands",
+        "Add Contacts Import or create Add ContactsImport or create",
+        "New Create Template Design messages NewCreate TemplateDesign messages",
+        "View Inbox Check responses View InboxCheck responses",
+        "Connected Connected",
+        "Connect Now Connect Now",
+        "VIEW LOGS View Logs",
+        "Launch Campaign Launch Campaign",
+        "Get Help Get Help"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost your WhatsApp marketing Bulk Campaigns Send to thousands instantly Automation Auto-reply & workflows Co",
+      "title": "Dashboard | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/dashboard",
+      "errorLogs": []
+    },
+    {
+      "route": "/onboarding/verify-email",
+      "resolved": "/onboarding/verify-email",
+      "bodyChars": 1192,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Campaign New Campaign",
+        "Send Campaign Reach thousands Send CampaignReach thousands",
+        "Add Contacts Import or create Add ContactsImport or create",
+        "New Create Template Design messages NewCreate TemplateDesign messages",
+        "View Inbox Check responses View InboxCheck responses",
+        "Connected Connected",
+        "Connect Now Connect Now",
+        "VIEW LOGS View Logs",
+        "Launch Campaign Launch Campaign",
+        "Get Help Get Help"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost your WhatsApp marketing Bulk Campaigns Send to thousands instantly Automation Auto-reply & workflows Co",
+      "title": "Dashboard | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/dashboard",
+      "errorLogs": []
+    },
+    {
+      "route": "/onboarding/verify-mobile",
+      "resolved": "/onboarding/verify-mobile",
+      "bodyChars": 1192,
+      "controlsCount": 16,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Campaign New Campaign",
+        "Send Campaign Reach thousands Send CampaignReach thousands",
+        "Add Contacts Import or create Add ContactsImport or create",
+        "New Create Template Design messages NewCreate TemplateDesign messages",
+        "View Inbox Check responses View InboxCheck responses",
+        "Connected Connected",
+        "Connect Now Connect Now",
+        "VIEW LOGS View Logs",
+        "Launch Campaign Launch Campaign",
+        "Get Help Get Help"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Monday, June 22 Good morning, vivek! 👋 Your WhatsApp engagement hub is ready. Let's crush it today! 🚀 New Campaign 12% Total Contacts 10 Growing steadily 8% Messages Sent 0 This month 2% Delivery Rate 0% Industry avg: 89% 5% Open Rate 0% Above average! Quick Actions Get started in seconds Send Campaign Reach thousands Add Contacts Import or create New Create Template Design messages View Inbox Check responses WhatsApp Business Your number is connected Connected Instagram Business Expand your reach Connect Now Popular Features Boost your WhatsApp marketing Bulk Campaigns Send to thousands instantly Automation Auto-reply & workflows Co",
+      "title": "Dashboard | ConnectSphare",
+      "unlabeled": [],
+      "url": "http://localhost:3000/dashboard",
+      "errorLogs": []
+    },
+    {
+      "route": "/privacy",
+      "resolved": "/privacy",
+      "bodyChars": 643,
+      "controlsCount": 1,
+      "hasCrashText": false,
+      "labels": [
+        "Back to Home Back to Home"
+      ],
+      "links": [
+        {
+          "href": "/",
+          "text": "Back to Home"
+        }
+      ],
+      "sample": "Back to Home Privacy Policy Last updated: 6/22/2026 1. Information We Collect We collect information you provide directly to us, such as when you create or modify your account, request on-demand services, contact customer support, or otherwise communicate with us. 2. How We Use Information We use the information we collect to provide, maintain, and improve our services, such as to process transactions, authenticate users, and provide customer support. 3. Information Sharing We do not share your personal information with third parties except as described in this privacy policy, such as with your consent or to comply with the law.",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/privacy",
+      "errorLogs": []
+    },
+    {
+      "route": "/support",
+      "resolved": "/support",
+      "bodyChars": 478,
+      "controlsCount": 11,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "OPEN INBOX Open Inbox",
+        "Open Open",
+        "Open Open",
+        "Open Open",
+        "Open Open"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        },
+        {
+          "href": "/inbox",
+          "text": "OPEN INBOX"
+        },
+        {
+          "href": "/support/chat-assignment",
+          "text": "Open"
+        },
+        {
+          "href": "/support/macros",
+          "text": "Open"
+        },
+        {
+          "href": "/settings/teams",
+          "text": "Open"
+        },
+        {
+          "href": "/analytics/advanced",
+          "text": "Open"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V SUPPORT Support Center Manage the workspace support operation from one place. OPEN INBOX ROUTING Chat Assignment Routing, agent availability, SLA, and queue controls. Open REPLIES Macros Reusable replies and keyboard shortcuts for operators. Open ACCESS Team Management Members, roles, invitations, and workspace access. Open INSIGHTS Chat Analytics Conversation volume, response health, and agent metrics. Open",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/support",
+      "errorLogs": []
+    },
+    {
+      "route": "/support/chat-assignment",
+      "resolved": "/support/chat-assignment",
+      "bodyChars": 712,
+      "controlsCount": 21,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "CREATE ROUTING RULE Create Routing Rule",
+        "GENERAL SETTINGS General Settings",
+        "MEMBER AVAILABILITY Member Availability",
+        "ROUTING RULES Routing Rules",
+        "GENERAL SETTINGS Auto-Assignment Distribute incoming chats automatically ASSIGNMENT STRATEGY Load Balanced (Least Busy) Optimizes speed by picking agents with the fewest open tickets. Soft Lock Reservation Temporarily reserve chat for the active agent TIMEOUT (SECONDS) s SLA & Response Limits Define service standards for your team FIRST RESPONSE SLA Min RESOLUTION SLA Min Agent Rate Limiting Prevent conversation floods RATE (MESSAGES/MIN) Auto-AssignmentDistribute incoming chats automaticallyAssignment StrategyLoad Balanced (Least Busy)Optimizes speed by picking agents with the fewest open tickets.Soft Lock ReservationTemporarily reserve chat for the active agentTimeout (Seconds)sSLA & Response LimitsDefine service standards for your teamFirst Response SLAMinResolution SLAMinAgent Rate LimitingPrevent conversation floodsRate (Messages/Min)",
+        "on",
+        "Load Balanced (Least Busy) Load Balanced (Least Busy)",
+        "on",
+        "60",
+        "on",
+        "60",
+        "1440",
+        "on",
+        "30"
+      ],
+      "links": [
+        {
+          "href": "/support",
+          "text": "Support"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Chat Assignment Configure real-time chat routing and agent availability CREATE ROUTING RULE ONLINE MEMBERS 0 / 1 ROUTING STRATEGY LEAST ASSIGNED AUTOMATION Enabled GENERAL SETTINGS MEMBER AVAILABILITY ROUTING RULES Auto-Assignment Distribute incoming chats automatically ASSIGNMENT STRATEGY Load Balanced (Least Busy) Optimizes speed by picking agents with the fewest open tickets. Soft Lock Reservation Temporarily reserve chat for the active agent TIMEOUT (SECONDS) s SLA & Response Limits Define service standards for your team FIRST RESPONSE SLA Min RESOLUTION SLA Min Agent Rate Limiting Prevent conversation floods RATE (MESSAGES/MIN)",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [
+        {
+          "aria": null,
+          "disabled": false,
+          "href": null,
+          "html": "<button type=\"button\" tabindex=\"0\" data-slot=\"button\" class=\"group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-vis",
+          "index": 6,
+          "name": "",
+          "role": null,
+          "tag": "BUTTON",
+          "title": null,
+          "type": "button"
+        }
+      ],
+      "url": "http://localhost:3000/support/chat-assignment",
+      "errorLogs": []
+    },
+    {
+      "route": "/support/macros",
+      "resolved": "/support/macros",
+      "bodyChars": 265,
+      "controlsCount": 12,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Macro New Macro",
+        "Search macros by name, shortcut or content...",
+        "Edit macro hjgjb",
+        "Delete macro hjgjb",
+        "Edit macro jjgjh",
+        "Delete macro jjgjh"
+      ],
+      "links": [
+        {
+          "href": "/support",
+          "text": "Support"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Quick Replies Manage your canned responses and keyboard shortcuts for faster support. New Macro TOTAL 2 ACTIVE 2 hjgjb /DSFGSDF jhgfjhgfjh TEXT ONLY jjgjh /WELCOME ghjsadf{{contact_name}} DYNAMIC",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/support/macros",
+      "errorLogs": []
+    },
+    {
+      "route": "/templates/analytics",
+      "resolved": "/templates/analytics",
+      "bodyChars": 1012,
+      "controlsCount": 10,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "Export Report Export Report",
+        "Last 7 days Last 7 days",
+        "Last 30 days Last 30 days",
+        "Last 90 days Last 90 days"
+      ],
+      "links": [
+        {
+          "href": "/templates",
+          "text": "Templates"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Template Analytics Workspace-wide performance metrics Export Report Last 7 days Last 30 days Last 90 days Total Templates 2 Messages Sent 0 Delivery Rate 0.0% Approved 2 Rejected 0 Engagement Heatmap Intensity of message reads across the week Less More 0:00 3:00 6:00 9:00 12:00 15:00 18:00 21:00 Sun Mon Tue Wed Thu Fri Sat Best Time to Send Analyzing... Your customers are most active during this window. Send campaigns now for maximum engagement. Quick Recommendation Templates with \"MARKETING\" category perform 24% better on weekdays. Response rate drops significantly after 8 PM local time. 🚀 Top Performing Templates 1. welcome_message ",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/templates/analytics",
+      "errorLogs": []
+    },
+    {
+      "route": "/templates/rules",
+      "resolved": "/templates/rules",
+      "bodyChars": 344,
+      "controlsCount": 9,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "New Rule New Rule",
+        "Search rules...",
+        "All Trigger Types Message Keyword Conversation Event User Action Time-based Custom Instagram Comment Instagram DM Instagram Story Reply All Trigger TypesMessage KeywordConversation EventUser ActionTime-basedCustomInstagram CommentInstagram DMInstagram Story Reply"
+      ],
+      "links": [
+        {
+          "href": "/templates",
+          "text": "Templates"
+        },
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V Template Auto-Triggers Create rules to automatically send templates New Rule All Trigger Types Message Keyword Conversation Event User Action Time-based Custom Instagram Comment Instagram DM Instagram Story Reply No template rules yet Create your first rule to auto-trigger templates",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/templates/rules",
+      "errorLogs": []
+    },
+    {
+      "route": "/terms",
+      "resolved": "/terms",
+      "bodyChars": 792,
+      "controlsCount": 1,
+      "hasCrashText": false,
+      "labels": [
+        "Back to Home Back to Home"
+      ],
+      "links": [
+        {
+          "href": "/",
+          "text": "Back to Home"
+        }
+      ],
+      "sample": "Back to Home Terms of Service Last updated: 6/22/2026 1. Agreement to Terms By accessing or using our services, you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the service. 2. Use License Permission is granted to temporarily download one copy of the materials (information or software) on our website for personal, non-commercial transitory viewing only. 3. Disclaimer The materials on our website are provided on an 'as is' basis. We make no warranties, expressed or implied, and hereby disclaim and negate all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particula",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/terms",
+      "errorLogs": []
+    },
+    {
+      "route": "/widget",
+      "resolved": "/widget",
+      "bodyChars": 719,
+      "controlsCount": 10,
+      "hasCrashText": false,
+      "labels": [
+        "Toggle Sidebar Toggle Sidebar",
+        "Search modules, actions or press ⌘K ⌘ K Search modules, actions or press ⌘K⌘K",
+        "Open notifications",
+        "Toggle theme",
+        "Open quick settings",
+        "Open account menu V v",
+        "DESIGN NEW WIDGET Design New Widget",
+        "Edit Visuals Edit Visuals",
+        "Behavior Settings Behavior Settings",
+        "CONFIGURE WIDGET Configure Widget"
+      ],
+      "links": [
+        {
+          "href": "/billing",
+          "text": "BalanceINR 1,452.70"
+        }
+      ],
+      "sample": "Toggle Sidebar Search modules, actions or press ⌘K ⌘ K V CLOUD WIDGET Embed customizable WhatsApp chat buttons on any website. DESIGN NEW WIDGET LIVE PREVIEW AVAILABLE Your website, connected. The wApi Cloud Widget allows your website visitors to start a WhatsApp conversation with a single click. Customize colors, icons, and automated welcome messages. Edit Visuals Behavior Settings Direct Embed Paste this snippet before the closing </body> tag of your website. <script src=\"/widget/runtime.js\" ... WIDGET IMPRESSIONS 0 CLICK-THROUGH RATE 0% CHATS STARTED 0 No Widgets Configured Deploy your first floating chat button or embedded contact form to start receiving chats from your site. CONFIGURE W",
+      "title": "ConnectSphare - WhatsApp CRM & Engagement Platform",
+      "unlabeled": [],
+      "url": "http://localhost:3000/widget",
+      "errorLogs": []
+    }
+  ]
+}

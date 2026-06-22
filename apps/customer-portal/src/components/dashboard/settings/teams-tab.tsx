@@ -79,11 +79,11 @@ export default function TeamsTab({ teams, onEdit, onCreate }: TeamsTabProps) {
                        <Users className="h-7 w-7" />
                     </div>
                     <DropdownMenu>
-                       <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-muted/10">
-                             <MoreVertical className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
-                          </Button>
-                       </DropdownMenuTrigger>
+	                       <DropdownMenuTrigger asChild>
+	                          <Button variant="ghost" size="icon" aria-label={`Open actions for team ${team.name}`} className="h-10 w-10 rounded-xl hover:bg-muted/10">
+	                             <MoreVertical className="h-5 w-5 text-muted-foreground group-hover:text-foreground" />
+	                          </Button>
+	                       </DropdownMenuTrigger>
                        <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50">
                           <DropdownMenuItem onClick={() => onEdit(team)} className="rounded-xl font-bold">
                              <Settings2 className="h-4 w-4 mr-2" /> Team Settings

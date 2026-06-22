@@ -1,0 +1,1968 @@
+{
+  "generatedAt": "2026-06-22T05:03:03.204Z",
+  "base": "http://localhost:3100",
+  "count": 16,
+  "routes": [
+    {
+      "bodyChars": 771,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin Dashboard Platform overview Total Workspaces Active Workspaces Total Users Messages (30d) Active Subscriptions Active BSP Connections Gross Revenue Workspace Directory Most recent workspaces. View all No workspaces. Service Pulse Nominal API Gateway Operational Auth Service Operational Chat Service Operational Contact Service Operational Billing Service Operational Campaign Service Operatio",
+      "buttonCount": 4,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "View all",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "Diagnostics",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Dashboard"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 16,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "View all"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Diagnostics"
+        }
+      ],
+      "requested": "http://localhost:3100/",
+      "route": "/",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 448,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Analytics Analytics Revenue, growth, retention MRR ARR ARPA LTV (est.) Churn rate Activation rate Workspaces New (30d)",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/analytics",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Analytics"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/analytics",
+      "route": "/analytics",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 609,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Audit Logs Audit Logs Admin activity and impersonation trail Entries (page) 0 Security Events 0 Failures 0 Source Admin Admin actions Impersonation Action Actor Target Outcome IP When ",
+      "buttonCount": 4,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "Admin actions",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "Impersonation",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/audit-logs",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Audit Logs"
+        }
+      ],
+      "inputCount": 1,
+      "inputs": [
+        {
+          "disabled": false,
+          "index": 0,
+          "name": null,
+          "placeholder": "Filter this page…",
+          "tag": "INPUT",
+          "type": null,
+          "value": ""
+        }
+      ],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/audit-logs",
+      "route": "/audit-logs",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 588,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Billing & Plans Billing & Plans Subscription plans, pricing tiers and platform revenue Gross Revenue Active Subscriptions Plan Catalog Active tiers Pending Payouts Subscription Catalog Manage tiered access plans. Invoice Archive Platform settlement history.",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/billing",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Billing & Plans"
+        },
+        {
+          "tag": "H2",
+          "text": "Subscription Catalog"
+        },
+        {
+          "tag": "H2",
+          "text": "Invoice Archive"
+        }
+      ],
+      "inputCount": 1,
+      "inputs": [
+        {
+          "disabled": false,
+          "index": 0,
+          "name": null,
+          "placeholder": "Filter plans…",
+          "tag": "INPUT",
+          "type": null,
+          "value": ""
+        }
+      ],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/billing",
+      "route": "/billing",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 404,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Compliance Compliance Verification, audit, and safety controls Compliance profile",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/compliance",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Compliance"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/compliance",
+      "route": "/compliance",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 436,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Data Explorer Data Explorer Inspect and edit raw MongoDB collections Data Explorer requires the SUPER_ADMIN role.",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/data-explorer",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Data Explorer"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/data-explorer",
+      "route": "/data-explorer",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 522,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Entitlement Drift Entitlement Drift Workspaces whose effective features diverge from their plan catalogue Workspace Plan Missing features Extra features Actions ",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/entitlement-drift",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Entitlement Drift"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/entitlement-drift",
+      "route": "/entitlement-drift",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 781,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / BSP Providers BSP Providers Monitor partner health, app mappings, and provisioning across workspaces Mapped Apps Connected Workspaces Orphaned Links Total Workspaces BSP Request Queue Latest onboarding / provisioning requests. Provider Health Partner connection snapshot. Partner status unknown Last checked Unknown Orphaned mappings 0 Developer config Gupshup developer configuration (env-m",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/gupshup",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "BSP Providers"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/gupshup",
+      "route": "/gupshup",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 771,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin Dashboard Platform overview Total Workspaces Active Workspaces Total Users Messages (30d) Active Subscriptions Active BSP Connections Gross Revenue Workspace Directory Most recent workspaces. View all No workspaces. Service Pulse Nominal API Gateway Operational Auth Service Operational Chat Service Operational Contact Service Operational Billing Service Operational Campaign Service Operatio",
+      "buttonCount": 4,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "View all",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "Diagnostics",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Dashboard"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 16,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "View all"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Diagnostics"
+        }
+      ],
+      "requested": "http://localhost:3100/login",
+      "route": "/login",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 1019,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Infrastructure Monitoring Live service health, databases, and process metrics Services API Gateway edge · 1 ms up Auth Service backend · 13 ms up Chat Service backend · 13 ms up Contact Service backend · 8 ms up Billing Service backend · 9 ms up Campaign Service backend · 18 ms up Automation Service backend · 13 ms up BSP / Service Provider backend · 20 ms up Webhook Ingestor backend · 20",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/monitoring",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Monitoring"
+        },
+        {
+          "tag": "H2",
+          "text": "Services"
+        },
+        {
+          "tag": "H2",
+          "text": "Databases"
+        },
+        {
+          "tag": "H2",
+          "text": "Admin Portal Process"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/monitoring",
+      "route": "/monitoring",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 449,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Operations Operations Campaigns, automation, and BSP (Gupshup) operations Automation rules Gupshup / BSP Campaigns by status",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/operations",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Operations"
+        },
+        {
+          "tag": "H2",
+          "text": "Campaigns by status"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/operations",
+      "route": "/operations",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 369,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Settings Settings Global platform configuration",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/settings",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Settings"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/settings",
+      "route": "/settings",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 543,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / User Directory User Directory Manage platform users, roles, and access across all workspaces All roles All status Loading… User Role Status Last active Actions ",
+      "buttonCount": 4,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "All roles",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "All status",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/users",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "User Directory"
+        }
+      ],
+      "inputCount": 1,
+      "inputs": [
+        {
+          "disabled": false,
+          "index": 0,
+          "name": null,
+          "placeholder": "Search by name or email…",
+          "tag": "INPUT",
+          "type": null,
+          "value": ""
+        }
+      ],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/users",
+      "route": "/users",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 550,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / WhatsApp Requests WhatsApp Requests Embedded-signup (ESB) onboarding flows across all workspaces Workspace Owner WABA / Business ID Phone ESB Status Started ",
+      "buttonCount": 2,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/whatsapp-requests",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "WhatsApp Requests"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/whatsapp-requests",
+      "route": "/whatsapp-requests",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 831,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Workspaces Workspaces Monitor and manage 0 workspaces, configurations, and connection health Refresh Total Workspaces Connected Configured Needs Attention All Connected Needs Attention Workspace Plan Integration Created Actions Selected Workspace Select a workspace to inspect its owner, app, wallet and health. Operational Checklist Owner identity: unknown WABA connection: offline Gupshup ",
+      "buttonCount": 6,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": true,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Refresh",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 3,
+          "tag": "BUTTON",
+          "text": "All",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 4,
+          "tag": "BUTTON",
+          "text": "Connected",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 5,
+          "tag": "BUTTON",
+          "text": "Needs Attention",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/workspaces",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Workspaces"
+        },
+        {
+          "tag": "H2",
+          "text": "Selected Workspace"
+        },
+        {
+          "tag": "H2",
+          "text": "Operational Checklist"
+        }
+      ],
+      "inputCount": 1,
+      "inputs": [
+        {
+          "disabled": false,
+          "index": 0,
+          "name": null,
+          "placeholder": "Search by name, owner email, app id, WABA, or workspace ID…",
+          "tag": "INPUT",
+          "type": null,
+          "value": ""
+        }
+      ],
+      "linkCount": 14,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        }
+      ],
+      "requested": "http://localhost:3100/workspaces",
+      "route": "/workspaces",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    },
+    {
+      "bodyChars": 365,
+      "bodySample": "wApi Super Admin PLATFORM Dashboard Workspaces User Directory COMMERCE Billing & Plans Analytics BSP / MESSAGING BSP Providers WhatsApp Requests Operations INFRASTRUCTURE & SECURITY Infrastructure Data Explorer Entitlement Drift Audit Logs Compliance Settings V vivek kumar Super Admin Sign out Super Admin / Workspaces Workspace Workspace detail Back",
+      "buttonCount": 3,
+      "buttons": [
+        {
+          "destructive": true,
+          "disabled": false,
+          "index": 0,
+          "tag": "BUTTON",
+          "text": "Sign out",
+          "type": null
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 1,
+          "tag": "BUTTON",
+          "text": "Back",
+          "type": "button"
+        },
+        {
+          "destructive": false,
+          "disabled": false,
+          "index": 2,
+          "tag": "BUTTON",
+          "text": "Switch to dark theme",
+          "type": "button"
+        }
+      ],
+      "finalUrl": "http://localhost:3100/workspaces/699c21048e96ba1b49ab6945",
+      "hasErrorBoundary": false,
+      "headings": [
+        {
+          "tag": "H1",
+          "text": "Workspace"
+        }
+      ],
+      "inputCount": 0,
+      "inputs": [],
+      "linkCount": 15,
+      "links": [
+        {
+          "disabled": false,
+          "href": "/",
+          "text": "Dashboard"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Workspaces"
+        },
+        {
+          "disabled": false,
+          "href": "/users",
+          "text": "User Directory"
+        },
+        {
+          "disabled": false,
+          "href": "/billing",
+          "text": "Billing & Plans"
+        },
+        {
+          "disabled": false,
+          "href": "/analytics",
+          "text": "Analytics"
+        },
+        {
+          "disabled": false,
+          "href": "/gupshup",
+          "text": "BSP Providers"
+        },
+        {
+          "disabled": false,
+          "href": "/whatsapp-requests",
+          "text": "WhatsApp Requests"
+        },
+        {
+          "disabled": false,
+          "href": "/operations",
+          "text": "Operations"
+        },
+        {
+          "disabled": false,
+          "href": "/monitoring",
+          "text": "Infrastructure"
+        },
+        {
+          "disabled": false,
+          "href": "/data-explorer",
+          "text": "Data Explorer"
+        },
+        {
+          "disabled": false,
+          "href": "/entitlement-drift",
+          "text": "Entitlement Drift"
+        },
+        {
+          "disabled": false,
+          "href": "/audit-logs",
+          "text": "Audit Logs"
+        },
+        {
+          "disabled": false,
+          "href": "/compliance",
+          "text": "Compliance"
+        },
+        {
+          "disabled": false,
+          "href": "/settings",
+          "text": "Settings"
+        },
+        {
+          "disabled": false,
+          "href": "/workspaces",
+          "text": "Back"
+        }
+      ],
+      "requested": "http://localhost:3100/workspaces/699c21048e96ba1b49ab6945",
+      "route": "/workspaces/699c21048e96ba1b49ab6945",
+      "title": "wApi — Super Admin",
+      "errorLogs": []
+    }
+  ]
+}
