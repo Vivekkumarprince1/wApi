@@ -53,6 +53,8 @@ import { authRateLimit, apiRateLimit, bulkRateLimit } from './middleware/rateLim
 const app = express();
 const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5001", 10);
 
+app.set('trust proxy', 1);
+
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
@@ -294,9 +296,31 @@ const proxyRewrite = (target: string, serviceName: string, rewrite: (path: strin
 // Apply general API rate limit to all routes
 app.use('/api', apiRateLimit);
 
+const authRateLimitedPaths = new Set([
+  '/login',
+  '/signup',
+  '/verify-signup-otp',
+  '/otp/send',
+  '/otp/verify',
+  '/request-password-reset',
+  '/reset-password',
+  '/google/login',
+  '/google/callback',
+  '/facebook',
+  '/facebook/login',
+  '/accept-invite',
+]);
+
+const authWriteRateLimit = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (req.method !== 'POST') return next();
+  return authRateLimitedPaths.has(req.path) ? authRateLimit(req, res, next) : next();
+};
+
 // 1. Auth Service
-// Apply stricter authRateLimit specifically to auth/login/signup endpoints
-app.use('/api/v1/auth', authRateLimit, proxyTo(SERVICES.auth, 'auth', '/api/v1/auth'));
+// Apply stricter authRateLimit only to login/signup/OTP/password-reset style writes.
+// Read endpoints such as /session, /workspaces, and /invitations/pending should
+// use the general API limiter so normal app navigation cannot exhaust auth quota.
+app.use('/api/v1/auth', authWriteRateLimit, proxyTo(SERVICES.auth, 'auth', '/api/v1/auth'));
 // Super-admin operations are owned by different services:
 //  - gupshup/* → service-provider admin controller (/internal/v1/bsp/admin/*)
 //    NOTE: admin-portal calls "sync-all-webhooks"; the controller route is "sync-webhooks".

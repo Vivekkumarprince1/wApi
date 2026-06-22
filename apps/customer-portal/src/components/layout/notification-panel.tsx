@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { 
   Bell, 
   Building2, 
@@ -25,36 +25,43 @@ import { cn } from '@/lib/utils';
 
 export function NotificationPanel() {
   const [invitations, setInvitations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [lastFetchedAt, setLastFetchedAt] = useState(0);
   const router = useRouter();
 
-  const fetchInvitations = async () => {
+  const fetchInvitations = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!force && lastFetchedAt && now - lastFetchedAt < 5 * 60 * 1000) {
+      return;
+    }
+
+    setLoading(true);
     try {
       const response = (await getPendingInvitations()) as any;
       const data = response.success && response.invitations 
         ? response.invitations 
         : (response.data || response.invitations || []);
       setInvitations(data);
+      setLastFetchedAt(now);
     } catch (error) {
       console.error('Failed to fetch invitations:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [lastFetchedAt]);
 
-  useEffect(() => {
-    fetchInvitations();
-    // Refresh every minute
-    const interval = setInterval(fetchInvitations, 60000);
-    return () => clearInterval(interval);
-  }, []);
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      fetchInvitations();
+    }
+  };
 
   const handleAccept = (token: string, email: string) => {
     router.push(`/auth/accept-invite?token=${token}&email=${encodeURIComponent(email)}`);
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="relative group rounded-full h-10 w-10">
           <Bell className="h-5 w-5 text-muted-foreground group-hover:text-foreground group-hover:rotate-12 transition-all" />

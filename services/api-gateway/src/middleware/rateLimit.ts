@@ -1,15 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
 import Redis from 'ioredis';
 
-// Create a single Redis client for rate limiting
-const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const redis = new Redis(REDIS_URL, {
-  maxRetriesPerRequest: null,
-  enableReadyCheck: true,
-});
+const REDIS_URL = process.env.REDIS_URL;
+const redis = REDIS_URL
+  ? new Redis(REDIS_URL, {
+      maxRetriesPerRequest: null,
+      enableReadyCheck: true,
+      lazyConnect: true,
+      enableOfflineQueue: false,
+      retryStrategy: () => null,
+    })
+  : null;
 
-redis.on('error', (err) => {
-  console.error('[RateLimit Redis Client Error]:', err);
+if (!REDIS_URL) {
+  console.warn('[RateLimit] REDIS_URL is not set. Falling back to in-memory rate limits for this process.');
+}
+
+redis?.on('error', (err) => {
+  console.error('[RateLimit Redis Client Error]:', err.message);
 });
 
 interface RateLimitOptions {
@@ -18,10 +26,25 @@ interface RateLimitOptions {
   keyGenerator?: (req: Request) => string;
 }
 
+const memoryStore = new Map<string, number[]>();
+
+const getClientIdentifier = (req: Request) => {
+  const forwardedFor = req.header('x-forwarded-for')?.split(',')[0]?.trim();
+  return forwardedFor || req.header('x-real-ip') || req.header('cf-connecting-ip') || req.ip || 'unknown';
+};
+
+const hitMemoryLimit = (key: string, now: number, clearBefore: number) => {
+  const existing = memoryStore.get(key) || [];
+  const recent = existing.filter((timestamp) => timestamp > clearBefore);
+  recent.push(now);
+  memoryStore.set(key, recent);
+  return recent.length;
+};
+
 export const rateLimit = (options: RateLimitOptions = {}) => {
   const windowMs = options.windowMs || 15 * 60 * 1000;
   const maxRequests = options.max || 100;
-  const keyGenerator = options.keyGenerator || ((req: Request) => req.ip || 'unknown');
+  const keyGenerator = options.keyGenerator || getClientIdentifier;
 
   return async (req: Request, res: Response, next: NextFunction) => {
     const correlationId = req.headers['x-correlation-id'] || 'unknown';
@@ -31,25 +54,36 @@ export const rateLimit = (options: RateLimitOptions = {}) => {
       const now = Date.now();
       const clearBefore = now - windowMs;
 
-      // Sliding window log using Redis sorted sets (ZADD, ZREMRANGEBYSCORE, ZCARD, EXPIRE)
-      const pipeline = redis.multi();
-      pipeline.zadd(key, now, now);
-      pipeline.zremrangebyscore(key, 0, clearBefore);
-      pipeline.zcard(key);
-      pipeline.expire(key, Math.ceil(windowMs / 1000));
+      let current: number;
 
-      const results = await pipeline.exec();
-      if (!results) {
-        throw new Error('Redis pipeline execution failed');
+      if (redis) {
+        // Sliding window log using Redis sorted sets (ZADD, ZREMRANGEBYSCORE, ZCARD, EXPIRE)
+        try {
+          const pipeline = redis.multi();
+          pipeline.zadd(key, now, now);
+          pipeline.zremrangebyscore(key, 0, clearBefore);
+          pipeline.zcard(key);
+          pipeline.expire(key, Math.ceil(windowMs / 1000));
+
+          const results = await pipeline.exec();
+          if (!results) {
+            throw new Error('Redis pipeline execution failed');
+          }
+
+          // Check results for errors. In ioredis exec() returns array of [err, result]
+          const cardResult = results[2];
+          if (cardResult[0]) {
+            throw cardResult[0];
+          }
+
+          current = cardResult[1] as number;
+        } catch (err: any) {
+          console.warn(`[RateLimit] Redis unavailable, using in-memory limiter for this request: ${err?.message || err}`);
+          current = hitMemoryLimit(key, now, clearBefore);
+        }
+      } else {
+        current = hitMemoryLimit(key, now, clearBefore);
       }
-
-      // Check results for errors. In ioredis exec() returns array of [err, result]
-      const cardResult = results[2];
-      if (cardResult[0]) {
-        throw cardResult[0];
-      }
-
-      const current = cardResult[1] as number;
 
       // Add rate limit headers
       res.set({
@@ -94,7 +128,7 @@ export const authRateLimit = rateLimit({
   max: 100,
   keyGenerator: (req: Request) => {
     const body = req.body || {};
-    const identifier = body.email || body.phone || req.ip || 'unknown';
+    const identifier = body.email || body.phone || getClientIdentifier(req);
     return `auth:${identifier}`;
   },
 });
