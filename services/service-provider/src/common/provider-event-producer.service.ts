@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 
 @Injectable()
-export class ProviderKafkaProducerService implements OnModuleInit, OnModuleDestroy {
+export class ProviderEventProducerService implements OnModuleInit, OnModuleDestroy {
   private redisProducer: Redis | null = null;
   private simulatedMode = false;
 

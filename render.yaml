@@ -1,7 +1,7 @@
 services:
   - type: keyvalue
     name: wapi-redis
-    plan: starter
+    plan: free
     maxmemoryPolicy: noeviction
     ipAllowList: []
 
@@ -9,7 +9,7 @@ services:
   - type: web
     name: wapi-api-gateway
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/api-gateway
     startCommand: bash scripts/render-start.sh services/api-gateway AUTH_SERVICE_URL=AUTH_SERVICE_HOSTPORT CONTACT_SERVICE_URL=CONTACT_SERVICE_HOSTPORT CHAT_SERVICE_URL=CHAT_SERVICE_HOSTPORT SERVICE_PROVIDER_URL=SERVICE_PROVIDER_HOSTPORT AUTOMATION_SERVICE_URL=AUTOMATION_SERVICE_HOSTPORT BILLING_SERVICE_URL=BILLING_SERVICE_HOSTPORT CAMPAIGN_SERVICE_URL=CAMPAIGN_SERVICE_HOSTPORT WEBSOCKET_URL=WEBSOCKET_HOSTPORT WEBHOOK_INGESTOR_URL=WEBHOOK_INGESTOR_HOSTPORT
@@ -74,7 +74,7 @@ services:
   - type: web
     name: wapi-customer-portal
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh apps/customer-portal BACKEND_API_URL=API_GATEWAY_HOSTPORT
     startCommand: bash scripts/render-start.sh apps/customer-portal BACKEND_API_URL=API_GATEWAY_HOSTPORT
@@ -108,7 +108,7 @@ services:
   - type: web
     name: wapi-admin-portal
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh apps/admin-portal GATEWAY_URL=API_GATEWAY_HOSTPORT BACKEND_API_URL=API_GATEWAY_HOSTPORT
     startCommand: bash scripts/render-start.sh apps/admin-portal GATEWAY_URL=API_GATEWAY_HOSTPORT BACKEND_API_URL=API_GATEWAY_HOSTPORT
@@ -157,7 +157,7 @@ services:
   - type: web
     name: wapi-webhook-ingestor
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/webhook-ingestor
     startCommand: bash scripts/render-start.sh services/webhook-ingestor
@@ -183,7 +183,7 @@ services:
   - type: web
     name: wapi-websocket-gateway
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/websocket-gateway
     startCommand: bash scripts/render-start.sh services/websocket-gateway
@@ -207,7 +207,7 @@ services:
   - type: pserv
     name: wapi-auth-service
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/auth-service
     startCommand: bash scripts/render-start.sh services/auth-service BSP_SERVICE_URL=SERVICE_PROVIDER_HOSTPORT BILLING_SERVICE_URL=BILLING_SERVICE_HOSTPORT AUTOMATION_SERVICE_URL=AUTOMATION_SERVICE_HOSTPORT CAMPAIGN_SERVICE_URL=CAMPAIGN_SERVICE_HOSTPORT
@@ -267,7 +267,7 @@ services:
   - type: pserv
     name: wapi-contact-service
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/contact-service
     startCommand: bash scripts/render-start.sh services/contact-service CAMPAIGN_SERVICE_URL=CAMPAIGN_SERVICE_HOSTPORT AUTOMATION_SERVICE_URL=AUTOMATION_SERVICE_HOSTPORT
@@ -297,7 +297,7 @@ services:
   - type: pserv
     name: wapi-chat-service
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/chat-service
     startCommand: bash scripts/render-start.sh services/chat-service CONTACT_SERVICE_URL=CONTACT_SERVICE_HOSTPORT AUTOMATION_SERVICE_URL=AUTOMATION_SERVICE_HOSTPORT BILLING_SERVICE_URL=BILLING_SERVICE_HOSTPORT BSP_SERVICE_URL=SERVICE_PROVIDER_HOSTPORT
@@ -337,7 +337,7 @@ services:
   - type: pserv
     name: wapi-campaign-service
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/campaign-service
     startCommand: bash scripts/render-start.sh services/campaign-service BILLING_SERVICE_URL=BILLING_SERVICE_HOSTPORT BSP_SERVICE_URL=SERVICE_PROVIDER_HOSTPORT CHAT_SERVICE_URL=CHAT_SERVICE_HOSTPORT CONTACT_SERVICE_URL=CONTACT_SERVICE_HOSTPORT API_GATEWAY_URL=API_GATEWAY_HOSTPORT
@@ -382,7 +382,7 @@ services:
   - type: pserv
     name: wapi-billing-service
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/billing-service
     startCommand: bash scripts/render-start.sh services/billing-service BSP_SERVICE_URL=SERVICE_PROVIDER_HOSTPORT
@@ -415,7 +415,7 @@ services:
   - type: pserv
     name: wapi-automation-service
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/automation-service
     startCommand: bash scripts/render-start.sh services/automation-service MONOLITH_INTERNAL_URL=API_GATEWAY_HOSTPORT BSP_SERVICE_URL=SERVICE_PROVIDER_HOSTPORT CHAT_SERVICE_URL=CHAT_SERVICE_HOSTPORT
@@ -454,7 +454,7 @@ services:
   - type: pserv
     name: wapi-service-provider
     runtime: node
-    plan: starter
+    plan: free
     autoDeploy: true
     buildCommand: bash scripts/render-build.sh services/service-provider
     startCommand: bash scripts/render-start.sh services/service-provider MAIN_SERVICE_URL=API_GATEWAY_HOSTPORT AUTH_SERVICE_URL=AUTH_SERVICE_HOSTPORT CAMPAIGN_SERVICE_URL=CAMPAIGN_SERVICE_HOSTPORT BILLING_SERVICE_URL=BILLING_SERVICE_HOSTPORT
@@ -524,6 +524,8 @@ envVarGroups:
         value: production
       - key: NODE_VERSION
         value: 22
+      - key: NPM_CONFIG_INCLUDE
+        value: dev
       - key: JWT_SECRET
         generateValue: true
       - key: INTERNAL_SERVICE_SECRET

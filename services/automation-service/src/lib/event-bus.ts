@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { KafkaTopics } from '@wapi/contracts';
+import { EventTopics } from '@wapi/contracts';
 
 let producerClient: Redis | null = null;
 let producerReady: Promise<void> | null = null;
@@ -36,7 +36,7 @@ export async function publishAutomationEvent(event: string, workspaceId: string,
     await ensureProducer();
     if (producerClient) {
       await producerClient.publish(
-        KafkaTopics.AUTOMATION_EVENTS,
+        EventTopics.AUTOMATION_EVENTS,
         JSON.stringify({ key: workspaceId, value: JSON.stringify(message) })
       );
     }

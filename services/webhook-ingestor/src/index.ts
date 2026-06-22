@@ -11,7 +11,6 @@ const envSchema = z.object({
   WEBHOOK_VERIFY_TOKEN: z.string().optional(),
   VERIFY_TOKEN: z.string().optional(),
   PORT: z.string().optional(),
-  KAFKA_BROKER: z.string().optional(),
   MONGO_URI: z.string().optional(),
   MONGODB_URI: z.string().optional(),
 }).refine(data => data.WEBHOOK_VERIFY_TOKEN || data.VERIFY_TOKEN, {
@@ -243,7 +242,7 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
     ? 'message.status'
     : 'message.inbound';
 
-  // 3. Asynchronously push to Kafka (Non-blocking)
+  // 3. Asynchronously push to EventBus (Non-blocking)
   const eventMessage = {
     eventId,
     eventType,
@@ -254,9 +253,9 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
 
   try {
     await publishRawWebhook(eventId, eventMessage);
-  } catch (kafkaErr: any) {
-    server.log.error(`[Webhook Ingestor] Kafka dispatch failed: ${kafkaErr.message}`);
-    await persistDeadLetter(eventId, eventMessage, kafkaErr.message);
+  } catch (eventErr: any) {
+    server.log.error(`[Webhook Ingestor] EventBus dispatch failed: ${eventErr.message}`);
+    await persistDeadLetter(eventId, eventMessage, eventErr.message);
   }
 
   // 4. Instantly reply with 200 OK (Prevents timeouts & carrier duplicate retries)
@@ -328,4 +327,3 @@ async function start() {
 }
 
 start();
-

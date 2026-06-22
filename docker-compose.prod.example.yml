@@ -4,7 +4,7 @@
 # secret manager or an env file that is not committed, then deploy with:
 #   docker compose -f docker-compose.prod.yml up -d --build
 #
-# This template intentionally does not run MongoDB/Redis/Kafka containers. Use
+# This template intentionally does not run MongoDB/Redis/EventBus containers. Use
 # managed services or private infrastructure for production data stores.
 
 services:
@@ -81,7 +81,6 @@ services:
       PORT: 3008
       MONGO_URI: ${MONGO_URI_CHAT:?required}
       REDIS_URL: ${REDIS_URL:?required}
-      KAFKA_BROKER: ${KAFKA_BROKER:-}
       JWT_SECRET: ${JWT_SECRET:?required}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:?required}
       BILLING_SERVICE_URL: http://billing-service:3003
@@ -113,7 +112,6 @@ services:
       PORT: 3002
       MONGO_URI: ${MONGO_URI_CAMPAIGN:?required}
       REDIS_URL: ${REDIS_URL:?required}
-      KAFKA_BROKERS: ${KAFKA_BROKERS:-}
       JWT_SECRET: ${JWT_SECRET:?required}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:?required}
       BILLING_SERVICE_URL: http://billing-service:3003
@@ -146,7 +144,6 @@ services:
       PORT: 3004
       MONGO_URI: ${MONGO_URI_BSP:?required}
       REDIS_URL: ${REDIS_URL:?required}
-      KAFKA_BROKER: ${KAFKA_BROKER:-}
       JWT_SECRET: ${JWT_SECRET:?required}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:?required}
       INTEGRATION_ENCRYPTION_KEY: ${INTEGRATION_ENCRYPTION_KEY:?required}
@@ -172,7 +169,6 @@ services:
       PORT: 3013
       MONGO_URI: ${MONGO_URI_WEBHOOK:?required}
       REDIS_URL: ${REDIS_URL:?required}
-      KAFKA_BROKER: ${KAFKA_BROKER:-}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:?required}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:?required}
       VERIFY_TOKEN: ${VERIFY_TOKEN:?required}

@@ -58,10 +58,10 @@ mongoose.connect(MONGODB_URI, {
 })
   .then(() => {
     console.log('✅ Connected to Campaign Database');
-    // Initialize Background Worker + Kafka event consumer ONLY after DB connection
+    // Initialize Background Worker + EventBus event consumer ONLY after DB connection
     startCampaignEventConsumer()
       .then(() => console.log('✅ Campaign event consumer started'))
-      .catch((err) => console.error('❌ Failed to start Kafka consumer:', err.message));
+      .catch((err) => console.error('❌ Failed to start EventBus consumer:', err.message));
     
     new CampaignWorker();
     

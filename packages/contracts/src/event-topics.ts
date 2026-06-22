@@ -1,7 +1,7 @@
 import type { ObjectIdString } from './common';
 
-/** Kafka Topics used across the decoupled wApi platform */
-export const KafkaTopics = {
+/** Redis Pub/Sub topics used across the decoupled wApi platform. */
+export const EventTopics = {
   RAW_WEBHOOK_EVENTS: 'raw-webhook-events',
   PARSED_MESSAGE_EVENTS: 'parsed-message-events',
   CHAT_REALTIME_SYNC: 'chat-realtime-sync',
@@ -15,7 +15,7 @@ export const KafkaTopics = {
   AUDIT_EVENTS: 'audit-events',
 } as const;
 
-export type KafkaTopic = typeof KafkaTopics[keyof typeof KafkaTopics];
+export type EventTopic = typeof EventTopics[keyof typeof EventTopics];
 
 /** 1. Raw Webhook Event Contract */
 export interface RawWebhookEvent {

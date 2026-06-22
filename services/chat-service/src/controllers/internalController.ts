@@ -4,7 +4,7 @@ import { Contact, Conversation, Message, Deal, Pipeline } from '../models/index.
 import { CheckoutCart } from '../models/CheckoutCart.js';
 import { Product } from '../models/Product.js';
 import { CheckoutBotService } from '../services/checkout-bot-service.js';
-import { kafkaProducer, simulatedMode } from '../services/kafkaService.js';
+import { eventProducer, simulatedMode } from '../services/eventBus.js';
 
 /**
  * Shared dispatcher for bot-originated outbound messages (text / interactive / flow).
@@ -93,7 +93,7 @@ async function dispatchBotOutbound(opts: {
 
   await Conversation.findByIdAndUpdate(conversation._id, { lastActivityAt: new Date() });
 
-  if (kafkaProducer && !simulatedMode) {
+  if (eventProducer && !simulatedMode) {
     const syncPayload = {
       workspaceId,
       conversationId: conversation._id.toString(),
@@ -102,7 +102,7 @@ async function dispatchBotOutbound(opts: {
       timestamp: new Date().toISOString(),
       payload: chatMessage,
     };
-    await kafkaProducer.send({
+    await eventProducer.send({
       topic: 'chat-realtime-sync',
       messages: [{ key: conversation._id.toString(), value: JSON.stringify(syncPayload) }],
     });
@@ -234,7 +234,7 @@ export const internalController = {
 
           await Conversation.findByIdAndUpdate(conversation._id, { lastActivityAt: new Date() });
 
-          if (kafkaProducer && !simulatedMode) {
+          if (eventProducer && !simulatedMode) {
             const syncPayload = {
               workspaceId,
               conversationId: conversation._id.toString(),
@@ -243,7 +243,7 @@ export const internalController = {
               timestamp: new Date().toISOString(),
               payload: chatMessage,
             };
-            await kafkaProducer.send({
+            await eventProducer.send({
               topic: 'chat-realtime-sync',
               messages: [{ key: conversation._id.toString(), value: JSON.stringify(syncPayload) }],
             });
@@ -317,14 +317,14 @@ export const internalController = {
         }
 
         case 'socket-broadcast': {
-          if (kafkaProducer && !simulatedMode) {
+          if (eventProducer && !simulatedMode) {
             const syncPayload = {
               workspaceId,
               type: data.event,
               payload: data.payload,
               timestamp: new Date().toISOString(),
             };
-            await kafkaProducer.send({
+            await eventProducer.send({
               topic: 'chat-realtime-sync',
               messages: [{ key: workspaceId, value: JSON.stringify(syncPayload) }],
             });
@@ -443,7 +443,7 @@ export const internalController = {
 
           await Conversation.findByIdAndUpdate(conversation._id, { lastActivityAt: new Date() });
 
-          if (kafkaProducer && !simulatedMode) {
+          if (eventProducer && !simulatedMode) {
             const syncPayload = {
               workspaceId,
               conversationId: conversation._id.toString(),
@@ -452,7 +452,7 @@ export const internalController = {
               timestamp: new Date().toISOString(),
               payload: chatMessage,
             };
-            await kafkaProducer.send({
+            await eventProducer.send({
               topic: 'chat-realtime-sync',
               messages: [{ key: conversation._id.toString(), value: JSON.stringify(syncPayload) }],
             });
@@ -692,7 +692,7 @@ export const internalController = {
         return res.status(400).json({ success: false, error: 'topic is required' });
       }
       
-      const { replayDlq: replayHelper } = await import('../services/kafkaService.js');
+      const { replayDlq: replayHelper } = await import('../services/eventBus.js');
       const result = await replayHelper(topic, limit ? parseInt(String(limit), 10) : 50);
       res.json(result);
     } catch (error: any) {

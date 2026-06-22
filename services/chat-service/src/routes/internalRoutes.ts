@@ -44,7 +44,7 @@ router.post('/checkout/process', internalController.processCheckout);
 
 /**
  * @route POST /api/internal/dlq/replay
- * @desc Replay messages from a Kafka DLQ topic back to its primary topic
+ * @desc Replay messages from a EventBus DLQ topic back to its primary topic
  */
 router.post('/dlq/replay', internalController.replayDlq);
 

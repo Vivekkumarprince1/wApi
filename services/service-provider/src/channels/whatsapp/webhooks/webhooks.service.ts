@@ -6,7 +6,7 @@ import { config } from '../../../config';
 import { ProviderWebhookEvent } from '../../../models/provider-webhook-event.schema';
 import { ProviderApp } from '../../../models/provider-app.schema';
 import { ProviderTemplateMirror } from '../../../models/provider-template-mirror.schema';
-import { ProviderKafkaProducerService } from '../../../common/provider-kafka-producer.service';
+import { ProviderEventProducerService } from '../../../common/provider-event-producer.service';
 
 @Injectable()
 export class WebhooksService {
@@ -14,7 +14,7 @@ export class WebhooksService {
     @InjectModel(ProviderWebhookEvent.name) private readonly eventModel: Model<ProviderWebhookEvent>,
     @InjectModel(ProviderApp.name) private readonly appModel: Model<ProviderApp>,
     @InjectModel(ProviderTemplateMirror.name) private readonly templateModel: Model<ProviderTemplateMirror>,
-    private readonly kafkaProducer: ProviderKafkaProducerService,
+    private readonly eventProducer: ProviderEventProducerService,
   ) {}
 
   async receiveGupshup(rawBody: string, headers: Record<string, string | string[] | undefined>, payload: any) {
@@ -58,7 +58,7 @@ export class WebhooksService {
     // Save raw webhook event into local database. `new: false` returns the
     // pre-existing doc (or null on first insert), which doubles as an atomic
     // dedup check: providers retry deliveries, and re-streaming a seen event
-    // to Kafka would duplicate chat messages downstream.
+    // would duplicate chat messages downstream.
     const priorEvent = await this.eventModel.findOneAndUpdate(
       { eventId },
       {
@@ -92,7 +92,7 @@ export class WebhooksService {
     // approval states update without a manual /templates/sync.
     await this.applyTemplateStatusUpdates(payload, workspaceId);
 
-    // --- STREAM PARSED EVENTS TO KAFKA ---
+    // --- STREAM PARSED EVENTS TO REDIS PUB/SUB ---
 
     // 1. Process Status events
     const statuses = this.extractV3Statuses(payload);
@@ -118,7 +118,7 @@ export class WebhooksService {
       };
 
       console.log(`[WebhooksService] Streaming status update to parsed-message-events:`, JSON.stringify(parsedEvent));
-      await this.kafkaProducer.send('parsed-message-events', [
+      await this.eventProducer.send('parsed-message-events', [
         { key: providerId, value: JSON.stringify(parsedEvent) }
       ]);
     }
@@ -156,7 +156,7 @@ export class WebhooksService {
       };
 
       console.log(`[WebhooksService] Streaming inbound message to parsed-message-events:`, JSON.stringify(parsedEvent));
-      await this.kafkaProducer.send('parsed-message-events', [
+      await this.eventProducer.send('parsed-message-events', [
         { key: messageId, value: JSON.stringify(parsedEvent) }
       ]);
     }

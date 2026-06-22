@@ -21,7 +21,7 @@ export * from './bsp';
 export * from './campaign-events';
 export * from './socket-events';
 export * from './common';
-export * from './kafka-events';
+export * from './event-topics';
 export * from './errors';
 export * from './models';
 

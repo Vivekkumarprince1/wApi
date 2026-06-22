@@ -49,8 +49,8 @@ import { ProviderWebhookEvent, ProviderWebhookEventSchema } from './models/provi
 import { ProviderOnboardingState, ProviderOnboardingStateSchema } from './models/provider-onboarding-state.schema';
 import { ProviderEsbFlow, ProviderEsbFlowSchema } from './models/provider-esb-flow.schema';
 
-import { ProviderKafkaConsumerService } from './common/provider-kafka-consumer.service';
-import { ProviderKafkaProducerService } from './common/provider-kafka-producer.service';
+import { ProviderEventConsumerService } from './common/provider-event-consumer.service';
+import { ProviderEventProducerService } from './common/provider-event-producer.service';
 import { RedisService } from './common/redis.service';
 
 @Module({
@@ -111,12 +111,12 @@ import { RedisService } from './common/redis.service';
     AdminService,
     ChannelService,
     ProviderActionsService,
-    ProviderKafkaConsumerService,
-    ProviderKafkaProducerService,
+    ProviderEventConsumerService,
+    ProviderEventProducerService,
     WebhookSyncService,
   ],
   exports: [
-    ProviderKafkaProducerService,
+    ProviderEventProducerService,
   ],
 })
 export class AppModule {}

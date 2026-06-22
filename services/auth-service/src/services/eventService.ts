@@ -1,5 +1,5 @@
 /**
- * eventService.ts — auth-service (formerly kafkaService)
+ * eventService.ts — auth-service
  *
  * Redis Pub/Sub producer for publishing audit events to the `audit-events` channel,
  * plus a consumer that persists those events into the MongoDB `auditlogs`
@@ -12,7 +12,7 @@
 import Redis from 'ioredis';
 import mongoose from 'mongoose';
 import type { AuditEventPayload } from '@wapi/contracts';
-import { KafkaTopics } from '@wapi/contracts';
+import { EventTopics } from '@wapi/contracts';
 
 // ─── Producer ────────────────────────────────────────────────────────────────
 
@@ -43,8 +43,8 @@ export async function publishAuditEvent(payload: AuditEventPayload): Promise<voi
     const p = await getProducer();
     if (!p) return;
 
-    // Use KafkaTopics.AUDIT_EVENTS as the Redis channel
-    await p.publish(KafkaTopics.AUDIT_EVENTS, JSON.stringify({
+    // Use EventTopics.AUDIT_EVENTS as the Redis channel
+    await p.publish(EventTopics.AUDIT_EVENTS, JSON.stringify({
       key: payload.actorId,
       value: JSON.stringify(payload),
       headers: {
@@ -58,7 +58,7 @@ export async function publishAuditEvent(payload: AuditEventPayload): Promise<voi
 }
 
 /** Gracefully disconnect the producer (call during SIGTERM). */
-export async function disconnectKafkaProducer(): Promise<void> {
+export async function disconnectEventProducer(): Promise<void> {
   if (!producerClient) return;
   try {
     producerClient.disconnect();
@@ -83,7 +83,7 @@ export async function startAuditConsumer(): Promise<void> {
   try {
     consumerClient = new Redis(url);
 
-    consumerClient.subscribe(KafkaTopics.AUDIT_EVENTS, (err, count) => {
+    consumerClient.subscribe(EventTopics.AUDIT_EVENTS, (err, count) => {
       if (err) {
         console.error('[EventService] Failed to subscribe: %s', err.message);
       } else {
@@ -92,7 +92,7 @@ export async function startAuditConsumer(): Promise<void> {
     });
 
     consumerClient.on('message', async (channel, messageStr) => {
-      if (channel !== KafkaTopics.AUDIT_EVENTS) return;
+      if (channel !== EventTopics.AUDIT_EVENTS) return;
       
       try {
         const message = JSON.parse(messageStr);

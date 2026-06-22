@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import config from './config/index.js';
 import { connectDb } from './config/db.js';
-import { initKafka, simulatedMode } from './services/kafkaService.js';
+import { initEventBus, simulatedMode } from './services/eventBus.js';
 import { startSnoozeWorker, stopSnoozeWorker } from './services/snooze-worker.js';
 import apiRouter from './routes/index.js';
 import internalRouter from './routes/internalRoutes.js';
@@ -38,7 +38,7 @@ app.get('/', (req, res) => {
 
 async function start() {
   await connectDb();
-  await initKafka();
+  await initEventBus();
 
   // Start in-process background workers
   startSnoozeWorker();

@@ -1,17 +1,17 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 import { WebhooksService } from '../channels/whatsapp/webhooks/webhooks.service';
-import { ProviderKafkaProducerService } from './provider-kafka-producer.service';
+import { ProviderEventProducerService } from './provider-event-producer.service';
 import { config } from '../config';
 
 @Injectable()
-export class ProviderKafkaConsumerService implements OnModuleInit, OnModuleDestroy {
+export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestroy {
   private redisConsumer: Redis | null = null;
   private simulatedMode = false;
 
   constructor(
     private readonly webhooksService: WebhooksService,
-    private readonly kafkaProducer: ProviderKafkaProducerService,
+    private readonly eventProducer: ProviderEventProducerService,
   ) {}
 
   async onModuleInit() {
@@ -84,7 +84,7 @@ export class ProviderKafkaConsumerService implements OnModuleInit, OnModuleDestr
           console.error(`[BSP EventBus Consumer] Webhook processing failed after ${maxRetries} attempts. Publishing to DLQ...`);
           try {
             const dlqTopic = `${topic}-dlq`;
-            await this.kafkaProducer.send(dlqTopic, [{
+            await this.eventProducer.send(dlqTopic, [{
               key: envelope.eventId || '',
               value: messageStr,
               headers: {

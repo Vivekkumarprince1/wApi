@@ -7,8 +7,8 @@ export let redisProducer: Redis | null = null;
 export let redisConsumer: Redis | null = null;
 export let simulatedMode = false;
 
-// Shim for kafkajs syntax to redis pubsub
-export const kafkaProducer = {
+// Shim for Redis Pub/Sub syntax to redis pubsub
+export const eventProducer = {
   send: async (payload: { topic: string; messages: any[] }) => {
     if (!redisProducer) return;
     for (const msg of payload.messages) {
@@ -24,7 +24,7 @@ export const kafkaProducer = {
   },
 };
 
-export async function initKafka() {
+export async function initEventBus() {
   const url = config.redisUrl;
   if (!url) {
     if (process.env.NODE_ENV === 'production') {
@@ -198,7 +198,7 @@ export async function processParsedMessage(parsed: any) {
   // 2. Process Inbound Messages
   console.log(`[Chat Service EventBus] Ingested message event. Id: ${parsed.messageId}, type: ${parsed.type}`);
 
-  // Dedup: providers (and Kafka redelivery) can replay the same message.
+  // Dedup: providers (and EventBus redelivery) can replay the same message.
   // The monolith skipped already-persisted provider message ids — do the same.
   if (parsed.messageId && parsed.workspaceId) {
     const existing = await Message.findOne({

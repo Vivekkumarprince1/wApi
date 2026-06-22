@@ -8,7 +8,6 @@ const envSchema = z.object({
   PORT: z.string().optional(),
   MONGO_URI: z.string().optional(),
   MONGODB_URI: z.string().optional(),
-  KAFKA_BROKER: z.string().optional(),
   REDIS_URL: z.string().optional(),
   ALLOWED_ORIGINS: z.string().optional(),
 });
@@ -31,7 +30,6 @@ import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import mongoose, { Schema } from 'mongoose';
-// removed kafkajs import
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 
@@ -39,7 +37,6 @@ const app = express();
 const httpServer = createServer(app);
 const PORT = parseInt(process.env.PORT || '3009', 10);
 const JWT_SECRET = process.env.JWT_SECRET!;
-const KAFKA_BROKER = process.env.KAFKA_BROKER || 'localhost:9092';
 
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [

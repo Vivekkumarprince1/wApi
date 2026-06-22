@@ -3,7 +3,7 @@
  *
  * In-process cron that re-opens snoozed conversations when their
  * `snoozedUntil` timestamp has elapsed. Publishes a ChatRealtimeSyncEvent
- * to the `chat-realtime-sync` Kafka topic so the websocket-gateway fans the
+ * to the `chat-realtime-sync` EventBus topic so the websocket-gateway fans the
  * update out to connected clients.
  *
  * No BullMQ dependency — uses a plain setInterval (60-second tick).
@@ -12,9 +12,9 @@
 
 import mongoose from 'mongoose';
 import { Conversation } from '../models/index.js';
-import { kafkaProducer } from './kafkaService.js';
+import { eventProducer } from './eventBus.js';
 import type { ChatRealtimeSyncEvent } from '@wapi/contracts';
-import { KafkaTopics } from '@wapi/contracts';
+import { EventTopics } from '@wapi/contracts';
 import { randomUUID } from 'crypto';
 
 const POLL_INTERVAL_MS = 60_000; // 1 minute
@@ -42,8 +42,8 @@ async function checkExpiredSnoozes(): Promise<void> {
           $unset: { snoozedUntil: '' },
         });
 
-        // Publish real-time update via Kafka → websocket-gateway fans out
-        if (kafkaProducer) {
+        // Publish real-time update via EventBus → websocket-gateway fans out
+        if (eventProducer) {
           const payload: ChatRealtimeSyncEvent = {
             workspaceId: String(conv.workspace),
             conversationId: String(conv._id),
@@ -58,8 +58,8 @@ async function checkExpiredSnoozes(): Promise<void> {
             },
           };
 
-          await kafkaProducer.send({
-            topic: KafkaTopics.CHAT_REALTIME_SYNC,
+          await eventProducer.send({
+            topic: EventTopics.CHAT_REALTIME_SYNC,
             messages: [
               {
                 key: String(conv.workspace),

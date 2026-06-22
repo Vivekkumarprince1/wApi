@@ -7,7 +7,7 @@ import config from './config/index.js';
 import { connectDb } from './config/db.js';
 import apiRouter from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { disconnectKafkaProducer, startAuditConsumer, stopAuditConsumer } from './services/kafkaService.js';
+import { disconnectEventProducer, startAuditConsumer, stopAuditConsumer } from './services/eventService.js';
 
 const app = express();
 
@@ -49,7 +49,7 @@ app.get('/', (req, res) => {
 async function start() {
   await connectDb();
 
-  // Start Kafka audit consumer (persists audit events → auditlogs collection)
+  // Start EventBus audit consumer (persists audit events → auditlogs collection)
   await startAuditConsumer();
 
   const server = app.listen(config.port, '0.0.0.0', () => {
@@ -59,7 +59,7 @@ async function start() {
   // Graceful shutdown
   const shutdown = async () => {
     console.log('[Auth Service] SIGTERM received — shutting down gracefully...');
-    await disconnectKafkaProducer();
+    await disconnectEventProducer();
     await stopAuditConsumer();
     server.close(() => process.exit(0));
   };

@@ -2,7 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import axios from 'axios';
 import { Conversation, Message, Contact, User, Team, Permission, Pipeline } from '../models/index.js';
-import { kafkaProducer, simulatedMode } from '../services/kafkaService.js';
+import { eventProducer, simulatedMode } from '../services/eventBus.js';
 import { isSessionWindowOpen, applyOutboundConversationUpdate } from '../services/conversation-lifecycle.js';
 import { NotificationService } from '../services/notification-service.js';
 import { logActivity } from '../services/activity-log.js';
@@ -70,7 +70,7 @@ export const patchConversationStatusInternal = async (req: express.Request, res:
     }
 
     // Publish WebSocket sync event
-    if (kafkaProducer && !simulatedMode) {
+    if (eventProducer && !simulatedMode) {
       const syncPayload = {
         workspaceId: workspaceId.toString(),
         conversationId: id,
@@ -78,7 +78,7 @@ export const patchConversationStatusInternal = async (req: express.Request, res:
         timestamp: new Date().toISOString(),
         payload: { status },
       };
-      await kafkaProducer.send({
+      await eventProducer.send({
         topic: 'chat-realtime-sync',
         messages: [{ key: id, value: JSON.stringify(syncPayload) }],
       });
@@ -320,8 +320,8 @@ export const patchConversationStatusPublic = async (req: any, res: express.Respo
       return res.status(404).json({ success: false, message: 'Conversation not found' });
     }
 
-    // Kafka event sync
-    if (kafkaProducer && !simulatedMode) {
+    // EventBus event sync
+    if (eventProducer && !simulatedMode) {
       const syncPayload = {
         workspaceId: workspaceId.toString(),
         conversationId: id,
@@ -329,7 +329,7 @@ export const patchConversationStatusPublic = async (req: any, res: express.Respo
         timestamp: new Date().toISOString(),
         payload: { status },
       };
-      await kafkaProducer.send({
+      await eventProducer.send({
         topic: 'chat-realtime-sync',
         messages: [{ key: id, value: JSON.stringify(syncPayload) }],
       });
@@ -508,8 +508,8 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
       );
     }
 
-    // Emit Socket Sync payload to Kafka (websocket-gateway topic)
-    if (kafkaProducer && !simulatedMode) {
+    // Emit Socket Sync payload to EventBus (websocket-gateway topic)
+    if (eventProducer && !simulatedMode) {
       const syncPayload = {
         workspaceId: conversation.workspace.toString(),
         conversationId: conversation._id.toString(),
@@ -524,7 +524,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         } : null
       };
 
-      await kafkaProducer.send({
+      await eventProducer.send({
         topic: 'chat-realtime-sync',
         messages: [{ key: conversation._id.toString(), value: JSON.stringify(syncPayload) }],
       });
@@ -711,8 +711,8 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
       );
     }
 
-    // Emit Socket Sync payload to Kafka (websocket-gateway topic)
-    if (kafkaProducer && !simulatedMode) {
+    // Emit Socket Sync payload to EventBus (websocket-gateway topic)
+    if (eventProducer && !simulatedMode) {
       const syncPayload = {
         workspaceId: workspaceId.toString(),
         conversationId: conversation._id.toString(),
@@ -727,7 +727,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         } : null
       };
 
-      await kafkaProducer.send({
+      await eventProducer.send({
         topic: 'chat-realtime-sync',
         messages: [{ key: conversation._id.toString(), value: JSON.stringify(syncPayload) }],
       });
@@ -967,8 +967,8 @@ export const markAsReadPublic = async (req: any, res: express.Response) => {
       }
     );
 
-    // Emit Socket sync events to Kafka
-    if (result.modifiedCount > 0 && kafkaProducer && !simulatedMode) {
+    // Emit Socket sync events to EventBus
+    if (result.modifiedCount > 0 && eventProducer && !simulatedMode) {
       const unreadMessages = await Message.find({
         workspace: workspaceId,
         conversation: conversationId,
@@ -987,10 +987,10 @@ export const markAsReadPublic = async (req: any, res: express.Response) => {
           payload: { status: 'read', readAt: now.toISOString() },
         };
 
-        await kafkaProducer.send({
+        await eventProducer.send({
           topic: 'chat-realtime-sync',
           messages: [{ key: conversationId, value: JSON.stringify(syncPayload) }],
-        }).catch((err: any) => console.error('[markAsReadPublic] Kafka publish failed:', err.message));
+        }).catch((err: any) => console.error('[markAsReadPublic] EventBus publish failed:', err.message));
       }
     }
 
@@ -1113,8 +1113,8 @@ export const performConversationActionPublic = async (req: any, res: express.Res
       metadata: { action, data },
     });
 
-    // Emit Socket sync event via Kafka
-    if (kafkaProducer && !simulatedMode) {
+    // Emit Socket sync event via EventBus
+    if (eventProducer && !simulatedMode) {
       const syncPayload = {
         workspaceId: workspaceId.toString(),
         conversationId: conversationId,
@@ -1123,10 +1123,10 @@ export const performConversationActionPublic = async (req: any, res: express.Res
         payload: conversation.toObject ? conversation.toObject() : conversation,
       };
 
-      await kafkaProducer.send({
+      await eventProducer.send({
         topic: 'chat-realtime-sync',
         messages: [{ key: conversationId, value: JSON.stringify(syncPayload) }],
-      }).catch((err: any) => console.error('[performConversationActionPublic] Kafka publish failed:', err.message));
+      }).catch((err: any) => console.error('[performConversationActionPublic] EventBus publish failed:', err.message));
     }
 
     return res.status(200).json({ success: true, data: conversation });

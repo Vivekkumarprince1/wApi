@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ProviderKafkaProducerService } from '../common/provider-kafka-producer.service';
+import { ProviderEventProducerService } from '../common/provider-event-producer.service';
 
 const GRAPH_URL = 'https://graph.facebook.com';
 const GRAPH_VERSION = process.env.META_GRAPH_VERSION || 'v18.0';
@@ -8,7 +8,7 @@ type ChannelProvider = 'facebook' | 'instagram' | 'sms' | 'meta';
 
 @Injectable()
 export class ChannelService {
-  constructor(private readonly kafkaProducer: ProviderKafkaProducerService) {}
+  constructor(private readonly eventProducer: ProviderEventProducerService) {}
 
   async getFacebookPages(accessToken: string) {
     const response = await fetch(`${GRAPH_URL}/${GRAPH_VERSION}/me/accounts?` + new URLSearchParams({
@@ -94,7 +94,7 @@ export class ChannelService {
       rawPayload,
     };
 
-    await this.kafkaProducer.send('raw-webhook-events', [{
+    await this.eventProducer.send('raw-webhook-events', [{
       key: eventId,
       value: JSON.stringify(eventMessage),
     }]);
@@ -119,7 +119,7 @@ export class ChannelService {
       },
     };
 
-    await this.kafkaProducer.send('raw-webhook-events', [{
+    await this.eventProducer.send('raw-webhook-events', [{
       key: providerMessageId,
       value: JSON.stringify(eventMessage),
     }]);

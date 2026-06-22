@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 import { Notification } from '../models/index.js';
-import { kafkaProducer, simulatedMode } from './kafkaService.js';
+import { eventProducer, simulatedMode } from './eventBus.js';
 
 export interface CreateNotificationOptions {
   workspaceId: string | Types.ObjectId;
@@ -15,7 +15,7 @@ export interface CreateNotificationOptions {
 /**
  * Port of the monolith NotificationService: persist a notification (served by
  * auth-service GET /auth/notifications) and push it in real time through the
- * websocket-gateway (Kafka `chat-realtime-sync`, type `notification` →
+ * websocket-gateway (EventBus `chat-realtime-sync`, type `notification` →
  * `workspace:notification` to the recipient's personal room).
  */
 export class NotificationService {
@@ -32,7 +32,7 @@ export class NotificationService {
       link,
     });
 
-    if (kafkaProducer && !simulatedMode) {
+    if (eventProducer && !simulatedMode) {
       const syncPayload = {
         workspaceId: workspaceId.toString(),
         recipientId: recipientId.toString(),
@@ -49,7 +49,7 @@ export class NotificationService {
         },
       };
 
-      await kafkaProducer
+      await eventProducer
         .send({
           topic: 'chat-realtime-sync',
           messages: [{ key: recipientId.toString(), value: JSON.stringify(syncPayload) }],

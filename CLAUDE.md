@@ -36,7 +36,7 @@ There is no top-level `package.json`. Each service/app installs its own deps; `@
 
 - **Runtime:** Node, TypeScript 5 (admin-portal is on TS 6, customer-portal on TS 5).
 - **Databases:** MongoDB via Mongoose 8, Redis via ioredis.
-- **Eventing:** kafkajs for cross-service events, BullMQ for job queues.
+- **Eventing:** Redis Pub/Sub for cross-service events, BullMQ for job queues.
 - **HTTP:** Express 4 everywhere except `service-provider` (NestJS 10 + `@nestjs/mongoose`).
 - **Logging:** winston + `@logtail/winston` (optional peer in `contracts`).
 - **Frontends:** Next 16 (webpack on admin-portal), Tailwind v4, Radix/Base UI, TanStack Query, zustand, zod.
@@ -49,7 +49,7 @@ Every `dev`/`build` script sets `NODE_OPTIONS=--max-old-space-size=...` (typical
 
 - Express services follow `src/{config,controllers,middleware,models,routes,services,utils}/index.ts`.
 - `service-provider` follows NestJS module conventions under `src/{admin,channels,common,health,workspace}` with `app.module.ts` + `main.ts` + `config.ts`.
-- Cross-service request/response shapes and Kafka event payloads live in `@wapi/contracts` — add new shared types there rather than duplicating across services.
+- Cross-service request/response shapes and EventBus event payloads live in `@wapi/contracts` — add new shared types there rather than duplicating across services.
 - Admin Portal reads MongoDB directly and writes through `api-gateway`.
 
 ## Gotchas
