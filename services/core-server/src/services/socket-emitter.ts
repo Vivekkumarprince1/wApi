@@ -1,5 +1,5 @@
 import { Emitter } from "@socket.io/redis-emitter";
-import Redis from "ioredis";
+import { getSharedConnection } from '../utils/ioredis';
 
 let emitter: Emitter | null = null;
 
@@ -9,14 +9,9 @@ let emitter: Emitter | null = null;
  */
 export const initSocketEmitter = async () => {
     try {
-        const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
-        
-        redisClient.on('error', (err) => {
-            console.error("[SocketEmitter] Redis Error:", err);
-        });
-
-        emitter = new Emitter(redisClient);
-        console.log("[SocketEmitter] Initialized with ioredis");
+        const redisClient = getSharedConnection();
+        emitter = new Emitter(redisClient as any);
+        console.log("[SocketEmitter] Initialized with shared ioredis");
     } catch (error) {
         console.error("[SocketEmitter] Failed to initialize:", error);
     }

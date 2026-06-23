@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { bullmqConnectionOptions } from '@wapi/contracts';
 import { User, Permission, Conversation } from '../models';
 import { setIO } from './socket-bridge';
+import { getSharedConnection } from '../utils/ioredis';
 
 const { Server } = require('socket.io') as { Server: any };
 type SocketIOServer = any;
@@ -19,6 +20,9 @@ class MicroserviceEventBridge {
     this.ioServer = ioServer;
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
     this.subRedis = new Redis(redisUrl, bullmqConnectionOptions());
+    this.subRedis.on('error', (err) => {
+      console.error('[EventBridge] Redis Subscription Error:', err);
+    });
   }
 
   async start() {
@@ -39,10 +43,6 @@ class MicroserviceEventBridge {
       } catch (error) {
         console.error(`[EventBridge] Error parsing message from ${channel}:`, error);
       }
-    });
-
-    this.subRedis.on('error', (err) => {
-      console.error('[EventBridge] Redis Subscription Error:', err);
     });
   }
 
@@ -135,11 +135,14 @@ export function initSocketServer(httpServer: any) {
     allowEIO3: true
   });
 
+  const pubClient = getSharedConnection();
   const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
-  const pubClient = new Redis(redisUrl, bullmqConnectionOptions());
-  const subClient = pubClient.duplicate();
+  const subClient = new Redis(redisUrl, bullmqConnectionOptions());
+  subClient.on('error', (err) => {
+    console.error('[Redis SubClient] Error:', err.message || err);
+  });
 
-  io.adapter(createAdapter(pubClient, subClient));
+  io.adapter(createAdapter(pubClient as any, subClient));
 
   // Shared bridge initialization
   setIO(io);
@@ -345,9 +348,6 @@ export function initSocketServer(httpServer: any) {
       }
     });
   });
-
-  pubClient.on('error', (err) => console.error('[Redis PubClient] Error:', err.message));
-  subClient.on('error', (err) => console.error('[Redis SubClient] Error:', err.message));
 
   // Start standard Redis event bridge
   const eventBridge = new MicroserviceEventBridge(io);
