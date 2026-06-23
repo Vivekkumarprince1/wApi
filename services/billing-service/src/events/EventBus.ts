@@ -1,15 +1,11 @@
 import { Queue, Worker, Job } from 'bullmq';
-import Redis from 'ioredis';
 import { LedgerService } from '../services/LedgerService';
-import { config } from '../config/index';
+import { redisClient } from '../lib/redis';
 import { QUEUE_NAMES } from '@wapi/contracts';
 
-const REDIS_URL = config.redisUrl || 'redis://localhost:6379';
-const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
-
 // Queues
-export const billingEventsQueue = new Queue(QUEUE_NAMES.BILLING_EVENTS, { connection: connection as any });
-export const campaignEventsQueue = new Queue(QUEUE_NAMES.CAMPAIGN_EVENTS, { connection: connection as any }); // To send events to campaign service
+export const billingEventsQueue = new Queue(QUEUE_NAMES.BILLING_EVENTS, { connection: redisClient as any });
+export const campaignEventsQueue = new Queue(QUEUE_NAMES.CAMPAIGN_EVENTS, { connection: redisClient as any }); // To send events to campaign service
 
 const ledgerService = new LedgerService();
 
@@ -71,7 +67,7 @@ export const billingEventWorker = new Worker(QUEUE_NAMES.BILLING_EVENTS, async (
     default:
       console.warn(`[EventBus] Unknown event type: ${job.name}`);
   }
-}, { connection: connection as any });
+}, { connection: redisClient as any });
 
 billingEventWorker.on('failed', (job, err) => {
   console.error(`[EventBus] Job ${job?.id} failed with error ${err.message}`);

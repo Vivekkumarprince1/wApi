@@ -1,10 +1,8 @@
 import { Segment } from '../models';
 import { monolithWorkerBridge } from '../lib/monolith-worker-client';
 import { Types } from 'mongoose';
-import IORedis from 'ioredis';
+import { getSharedRedis } from '../lib/redis';
 import crypto from 'crypto';
-
-const redis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
 
 export class SegmentService {
   /**
@@ -68,6 +66,7 @@ export class SegmentService {
     const cacheKey = `segment_count:${workspaceId}:${queryHash}`;
 
     // Try cache first
+    const redis = getSharedRedis();
     const cached = await redis.get(cacheKey);
     if (cached) return parseInt(cached);
 
