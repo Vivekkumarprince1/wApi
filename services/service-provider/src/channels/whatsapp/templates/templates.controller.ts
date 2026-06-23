@@ -1,12 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { InternalAuthGuard } from '../../../common/internal-auth.guard';
 import { WorkspaceAuthGuard } from '../../../common/workspace-auth.guard';
 import { ok } from '../../../common/api-response';
 import { ProviderTemplateMirror } from '../../../models/provider-template-mirror.schema';
 import { ProviderTemplateRule } from '../../../models/provider-template-rule.schema';
 import { ProviderApp } from '../../../models/provider-app.schema';
+import { GupshupClientService } from '../providers/gupshup/gupshup-client.service';
 
 @Controller('/internal/v1/bsp/templates')
 @UseGuards(InternalAuthGuard)
@@ -59,6 +60,7 @@ export class TemplatesPublicController {
     @InjectModel(ProviderTemplateMirror.name) private readonly templateModel: Model<ProviderTemplateMirror>,
     @InjectModel(ProviderTemplateRule.name) private readonly ruleModel: Model<ProviderTemplateRule>,
     @InjectModel(ProviderApp.name) private readonly appModel: Model<ProviderApp>,
+    private readonly gupshup: GupshupClientService,
   ) {}
 
   /**
@@ -66,14 +68,18 @@ export class TemplatesPublicController {
    */
   @Get()
   async listTemplates(@Req() req: any, @Query('status') status?: string) {
-    const workspaceId = req.workspace?._id;
+    const workspaceId = String(req.workspace?._id);
+    const appId = await this.getWorkspaceAppId(workspaceId);
     const query: any = { workspaceId: String(workspaceId) };
+    if (appId) {
+      query.appId = appId;
+    }
     if (status) {
       query.status = status;
     }
 
-    const templates = await this.templateModel.find(query).sort({ createdAt: -1 });
-    return ok(templates);
+    const templates = await this.templateModel.find(query).sort({ createdAt: -1 }).lean();
+    return ok(templates.map((template) => this.toPublicTemplate(template)));
   }
 
   /**
@@ -81,9 +87,14 @@ export class TemplatesPublicController {
    */
   @Get('categories')
   async getCategories(@Req() req: any) {
-    const workspaceId = req.workspace?._id;
+    const workspaceId = String(req.workspace?._id);
+    const appId = await this.getWorkspaceAppId(workspaceId);
+    const match: any = { workspaceId };
+    if (appId) {
+      match.appId = appId;
+    }
     const categoriesAgg = await this.templateModel.aggregate([
-      { $match: { workspaceId: String(workspaceId) } },
+      { $match: match },
       { $group: { _id: '$category', count: { $sum: 1 } } }
     ]);
 
@@ -107,30 +118,70 @@ export class TemplatesPublicController {
    */
   @Post('sync')
   async syncTemplates(@Req() req: any) {
-    const workspaceId = req.workspace?._id;
-    // Auto-create dummy template if none exists to simulate a successful sync
-    const count = await this.templateModel.countDocuments({ workspaceId: String(workspaceId) });
-    
-    if (count === 0) {
-      const bspApp = await this.appModel.findOne({ workspaceId: String(workspaceId) });
-      const appId = bspApp?._id?.toString() || 'default';
+    const workspaceId = String(req.workspace?._id);
+    const bspApp = await this.getWorkspaceApp(workspaceId);
+    const appId = this.resolveProviderAppId(bspApp);
 
-      await this.templateModel.create({
-        workspaceId: String(workspaceId),
-        appId,
-        name: 'welcome_message',
-        language: 'en',
-        category: 'MARKETING',
-        status: 'APPROVED',
-        providerData: {
-          components: [
-            { type: 'BODY', text: 'Welcome to our service! How can we assist you today?' }
-          ]
-        }
-      });
+    if (!appId || appId === 'default') {
+      throw new Error('No connected WhatsApp/Gupshup app found for this workspace.');
     }
 
-    return ok({ success: true, message: 'Templates synchronized successfully' });
+    const providerTemplates = await this.gupshup.listTemplates({ appId, status: 'APPROVED' });
+    let created = 0;
+    let updated = 0;
+    let failed = 0;
+    const syncedNames: string[] = [];
+
+    for (const rawTemplate of providerTemplates) {
+      try {
+        const mirror = this.fromGupshupTemplate(rawTemplate, workspaceId, appId);
+        if (!mirror.name) {
+          failed += 1;
+          continue;
+        }
+        syncedNames.push(mirror.name);
+
+        const result = await this.templateModel.updateOne(
+          {
+            workspaceId,
+            provider: 'gupshup',
+            appId,
+            name: mirror.name,
+            language: mirror.language,
+          },
+          { $set: mirror },
+          { upsert: true },
+        );
+
+        if (result.upsertedCount > 0) {
+          created += 1;
+        } else if (result.modifiedCount > 0 || result.matchedCount > 0) {
+          updated += 1;
+        }
+      } catch {
+        failed += 1;
+      }
+    }
+
+    const staleFilter: any = {
+      workspaceId,
+      provider: 'gupshup',
+      $or: [
+        { appId: { $ne: appId } },
+        { appId, name: { $nin: syncedNames } },
+      ],
+    };
+    const stale = await this.templateModel.deleteMany(staleFilter);
+
+    return ok({
+      success: true,
+      message: `Templates synchronized successfully (${providerTemplates.length} approved from Meta)`,
+      synced: providerTemplates.length,
+      created,
+      updated,
+      failed,
+      removedStale: stale.deletedCount || 0,
+    });
   }
 
   /**
@@ -138,9 +189,9 @@ export class TemplatesPublicController {
    */
   @Post()
   async createTemplate(@Req() req: any, @Body() body: any) {
-    const workspaceId = req.workspace?._id;
-    const bspApp = await this.appModel.findOne({ workspaceId: String(workspaceId) });
-    const appId = bspApp?._id?.toString() || 'default';
+    const workspaceId = String(req.workspace?._id);
+    const bspApp = await this.getWorkspaceApp(workspaceId);
+    const appId = this.resolveProviderAppId(bspApp) || 'default';
 
     const template = await this.templateModel.create({
       workspaceId: String(workspaceId),
@@ -404,6 +455,111 @@ export class TemplatesPublicController {
     return templates;
   }
 
+  private async getWorkspaceApp(workspaceId: string) {
+    const workspaceCandidates: any[] = [workspaceId];
+    if (Types.ObjectId.isValid(workspaceId)) {
+      workspaceCandidates.push(new Types.ObjectId(workspaceId));
+    }
+
+    return this.appModel.collection.findOne({
+      workspaceId: { $in: workspaceCandidates },
+      $or: [
+        { whatsappConnected: true },
+        { status: 'connected' },
+        { gupshupAppId: { $exists: true, $ne: '' } },
+        { appId: { $exists: true, $ne: '' } },
+      ],
+    }, {
+      sort: { whatsappConnected: -1, updatedAt: -1 },
+    });
+  }
+
+  private async getWorkspaceAppId(workspaceId: string): Promise<string | null> {
+    return this.resolveProviderAppId(await this.getWorkspaceApp(workspaceId));
+  }
+
+  private resolveProviderAppId(app: any): string | null {
+    return app?.gupshupAppId || app?.appId || app?._id?.toString?.() || null;
+  }
+
+  private parseJsonObject(value: any): Record<string, any> {
+    if (!value) return {};
+    if (typeof value === 'object') return value;
+    try {
+      return JSON.parse(String(value));
+    } catch {
+      return {};
+    }
+  }
+
+  private extractBodyText(providerData: any): string {
+    const components = Array.isArray(providerData?.components) ? providerData.components : [];
+    const body = components.find((component: any) => String(component?.type || '').toUpperCase() === 'BODY');
+    return providerData?.bodyText || body?.text || providerData?.raw?.data || '';
+  }
+
+  private toPublicTemplate(template: any) {
+    const providerData = template.providerData || {};
+    const bodyText = this.extractBodyText(providerData);
+    const components = Array.isArray(providerData.components) ? providerData.components : [];
+
+    return {
+      ...template,
+      id: template._id?.toString?.() || template.id,
+      bodyText,
+      body: { text: bodyText },
+      components,
+      header: providerData.header,
+      footer: providerData.footer,
+      buttons: providerData.buttons,
+      qualityScore: providerData.qualityScore || { score: providerData.quality || 'UNKNOWN' },
+    };
+  }
+
+  private fromGupshupTemplate(raw: any, workspaceId: string, appId: string) {
+    const containerMeta = this.parseJsonObject(raw.containerMeta);
+    const meta = this.parseJsonObject(raw.meta);
+    const bodyText = containerMeta.data || raw.data || raw.body || '';
+    const components: any[] = [];
+
+    if (containerMeta.header || raw.header) {
+      components.push({
+        type: 'HEADER',
+        format: raw.headerType || containerMeta.headerType || 'TEXT',
+        text: containerMeta.header || raw.header,
+      });
+    }
+    components.push({ type: 'BODY', text: bodyText });
+    if (containerMeta.footer) {
+      components.push({ type: 'FOOTER', text: containerMeta.footer });
+    }
+    if (Array.isArray(containerMeta.buttons) && containerMeta.buttons.length > 0) {
+      components.push({ type: 'BUTTONS', buttons: containerMeta.buttons });
+    }
+
+    return {
+      workspaceId,
+      provider: 'gupshup',
+      appId,
+      name: raw.elementName || raw.name || raw.templateName,
+      language: raw.languageCode || raw.language || 'en',
+      status: String(raw.status || 'UNKNOWN').toUpperCase(),
+      category: String(raw.category || 'UNKNOWN').toUpperCase(),
+      providerData: {
+        raw,
+        meta,
+        containerMeta,
+        bodyText,
+        components,
+        footer: containerMeta.footer ? { text: containerMeta.footer } : undefined,
+        buttons: Array.isArray(containerMeta.buttons) ? { items: containerMeta.buttons } : undefined,
+        providerTemplateId: raw.id || raw.externalId,
+        externalId: raw.externalId,
+        reason: raw.reason,
+      },
+    };
+  }
+
   /**
    * Get Single Template
    * NOTE: declared last so the static GET routes above (rules, analytics/*, stats)
@@ -412,10 +568,10 @@ export class TemplatesPublicController {
   @Get(':id')
   async getTemplate(@Req() req: any, @Param('id') id: string) {
     const workspaceId = req.workspace?._id;
-    const template = await this.templateModel.findOne({ _id: id, workspaceId: String(workspaceId) });
+    const template = await this.templateModel.findOne({ _id: id, workspaceId: String(workspaceId) }).lean();
     if (!template) {
       return ok({ success: false, message: 'Template not found' });
     }
-    return ok(template);
+    return ok(this.toPublicTemplate(template));
   }
 }

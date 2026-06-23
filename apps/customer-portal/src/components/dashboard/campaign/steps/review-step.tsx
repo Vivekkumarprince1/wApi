@@ -2,11 +2,9 @@
 
 import React, { useMemo } from 'react';
 import { 
-  CheckCircle2, 
   Users, 
   MessageSquare, 
   Calendar, 
-  Zap, 
   TrendingUp,
   ShieldCheck,
   ArrowRight,
@@ -35,6 +33,10 @@ const SummaryCard = ({ icon: Icon, label, value, subValue, color = 'primary' }: 
 );
 
 export default function ReviewStep({ campaignData }: ReviewStepProps) {
+  const campaignTypeLabel = campaignData.scheduleType === 'later'
+    ? 'scheduled'
+    : campaignData.type.replace('-', ' ');
+
   const audienceCount = useMemo(() => {
     // This is simplified for current context, in real app would match audience logic
     if (campaignData.audienceMode === 'specific') return campaignData.selectedContactIds.length;
@@ -87,7 +89,7 @@ export default function ReviewStep({ campaignData }: ReviewStepProps) {
             </div>
             <div className="space-y-1">
               <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Type</p>
-              <p className="text-sm font-bold text-slate-100 capitalize">{campaignData.type.replace('-', ' ')}</p>
+              <p className="text-sm font-bold text-slate-100 capitalize">{campaignTypeLabel}</p>
             </div>
             {campaignData.description && (
               <div className="space-y-1">

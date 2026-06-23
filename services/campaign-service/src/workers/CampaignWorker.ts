@@ -47,6 +47,30 @@ export class CampaignWorker {
       }
     } catch (err: any) {
       console.error(`[CampaignWorker] CRITICAL ERROR in job ${job.id}:`, err.message);
+      if (job.name === JOB_TYPES.CAMPAIGN_START && job.data?.campaignId) {
+        try {
+          const campaign = await Campaign.findById(job.data.campaignId);
+          if (campaign && ['DRAFT', 'SCHEDULED', 'QUEUED'].includes(campaign.status)) {
+            campaign.status = 'PAUSED';
+            campaign.pausedReason = null;
+            campaign.pausedAt = new Date();
+            await (Campaign as ICampaignModel).addAuditEntry(job.data.campaignId, 'SYSTEM_PAUSED', {
+              reason: `Launch failed: ${err.message}`,
+              systemInitiated: true,
+            });
+            await campaign.save();
+
+            await microserviceWorkerClient.socketBroadcast(job.data.workspaceId, 'campaign:status_update', {
+              campaignId: job.data.campaignId,
+              status: 'PAUSED',
+              reason: err.message,
+              updatedAt: campaign.updatedAt,
+            });
+          }
+        } catch (statusErr: any) {
+          console.error(`[CampaignWorker] Failed to mark campaign as paused after launch error:`, statusErr.message);
+        }
+      }
       throw err;
     }
   }

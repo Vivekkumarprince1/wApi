@@ -1,8 +1,8 @@
 import { Queue, Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
 import mongoose from 'mongoose';
 import { AutomationRule } from '../models';
 import { FlowExecutorService } from '../services/flow-executor';
+import { createRedisConnection } from '../lib/ioredis';
 
 /**
  * Automation Scheduler
@@ -24,23 +24,15 @@ import { FlowExecutorService } from '../services/flow-executor';
  *   shape stabilises.
  */
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const HEARTBEAT_QUEUE = 'automation-scheduler';
 const RUN_QUEUE = 'automation-engine-runs';
 
-const heartbeatConnection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
-const runConnection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
+let heartbeatQueue: Queue | null = null;
+let runQueue: Queue | null = null;
 
-const heartbeatQueue = new Queue(HEARTBEAT_QUEUE, { connection: heartbeatConnection as any });
-const runQueue = new Queue(RUN_QUEUE, {
-  connection: runConnection as any,
-  defaultJobOptions: {
-    attempts: 2,
-    backoff: { type: 'exponential', delay: 5_000 },
-    removeOnComplete: { count: 1000, age: 24 * 3600 },
-    removeOnFail: { count: 1000, age: 7 * 24 * 3600 },
-  },
-});
+function logQueueError(label: string, err: Error) {
+  console.warn(`[${label}] Redis queue unavailable: ${err.message}`);
+}
 
 function isDue(rule: any, now: Date): boolean {
   // Minimal due-check. Extend with real cron parsing if rules carry a
@@ -90,10 +82,11 @@ let started = false;
 export async function startScheduler() {
   if (started) return;
   started = true;
+  const queues = getSchedulerQueues();
 
   // Run a heartbeat every 60 seconds. BullMQ stores the next-run time so
   // the cadence survives restarts and is shared across instances.
-  await heartbeatQueue.add(
+  await queues.heartbeatQueue.add(
     'tick',
     {},
     {
@@ -104,7 +97,7 @@ export async function startScheduler() {
     }
   );
 
-  new Worker(
+  const heartbeatWorker = new Worker(
     HEARTBEAT_QUEUE,
     async (_job: Job) => {
       try {
@@ -113,11 +106,12 @@ export async function startScheduler() {
         console.error('[automation-scheduler] dispatchDueRules failed:', err?.message);
       }
     },
-    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) as any }
+    { connection: createRedisConnection('automation-scheduler:heartbeat-worker') as any }
   );
+  heartbeatWorker.on('error', (err) => logQueueError('automation-scheduler:heartbeat-worker', err));
 
   // Real run worker. Executes the visual workflow graph when triggered by schedule.
-  new Worker(
+  const runWorker = new Worker(
     RUN_QUEUE,
     async (job: Job) => {
       const { ruleId, workspaceId } = job.data || {};
@@ -131,8 +125,32 @@ export async function startScheduler() {
         console.error(`[automation-scheduler] Failed to execute scheduled rule ${ruleId}:`, err.message);
       }
     },
-    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) as any }
+    { connection: createRedisConnection('automation-scheduler:run-worker') as any }
   );
+  runWorker.on('error', (err) => logQueueError('automation-scheduler:run-worker', err));
 
   console.log('[automation-scheduler] started — heartbeat every 60s');
+}
+function getSchedulerQueues() {
+  if (!heartbeatQueue) {
+    heartbeatQueue = new Queue(HEARTBEAT_QUEUE, {
+      connection: createRedisConnection('automation-scheduler:heartbeat-queue') as any,
+    });
+    heartbeatQueue.on('error', (err) => logQueueError('automation-scheduler:heartbeat-queue', err));
+  }
+
+  if (!runQueue) {
+    runQueue = new Queue(RUN_QUEUE, {
+      connection: createRedisConnection('automation-scheduler:run-queue') as any,
+      defaultJobOptions: {
+        attempts: 2,
+        backoff: { type: 'exponential', delay: 5_000 },
+        removeOnComplete: { count: 1000, age: 24 * 3600 },
+        removeOnFail: { count: 1000, age: 7 * 24 * 3600 },
+      },
+    });
+    runQueue.on('error', (err) => logQueueError('automation-scheduler:run-queue', err));
+  }
+
+  return { heartbeatQueue, runQueue };
 }

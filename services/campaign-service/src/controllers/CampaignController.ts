@@ -67,11 +67,32 @@ export const createCampaign = async (req: AuthRequest, res: Response) => {
     const workspaceId = req.workspace?.id;
     const userId = req.user?.id;
     const body = req.body;
-    const { name, template, templateId: _tid, segmentId: _sid, contacts: _contacts, recipientFilter, variableMapping, campaignType = 'one-time' } = body;
+    const {
+      name,
+      template,
+      templateId: _tid,
+      segmentId: _sid,
+      contacts: _contacts,
+      recipientFilter,
+      variableMapping,
+      campaignType = 'one-time',
+      scheduledAt,
+    } = body;
     const templateId = _tid || template;
 
     if (!name) return res.status(400).json({ success: false, message: 'Campaign name is required' });
     if (!templateId) return res.status(400).json({ success: false, message: 'Template is required' });
+
+    const scheduledDate = scheduledAt ? new Date(scheduledAt) : null;
+    if (scheduledAt && Number.isNaN(scheduledDate?.getTime())) {
+      return res.status(400).json({ success: false, message: 'scheduledAt must be a valid date-time' });
+    }
+    if (campaignType === 'scheduled' && !scheduledDate) {
+      return res.status(400).json({ success: false, message: 'scheduledAt is required for scheduled campaigns' });
+    }
+    if (scheduledDate && scheduledDate <= new Date()) {
+      return res.status(400).json({ success: false, message: 'scheduledAt must be in the future' });
+    }
 
     // Store contact IDs; the campaign worker performs service-level template,
     // billing, and contact validation before sending.
@@ -96,6 +117,7 @@ export const createCampaign = async (req: AuthRequest, res: Response) => {
       console.warn('[Campaign:Create] Failed to populate template snapshot:', err);
     }
 
+    const isScheduled = !!scheduledDate || campaignType === 'scheduled';
     const campaign = await Campaign.create({
       workspace: workspaceId,
       name,
@@ -104,8 +126,10 @@ export const createCampaign = async (req: AuthRequest, res: Response) => {
       recipientFilter: _sid ? { type: 'segment', segmentId: _sid } : recipientFilter,
       contacts: contactIds,
       variableMapping,
-      campaignType,
-      status: 'DRAFT',
+      campaignType: isScheduled ? 'scheduled' : campaignType,
+      status: isScheduled ? 'SCHEDULED' : 'DRAFT',
+      scheduledAt: scheduledDate || undefined,
+      scheduleAt: scheduledDate || undefined,
       createdBy: userId,
       totalContacts
     });
@@ -184,9 +208,10 @@ export const lifecycleAction = async (req: AuthRequest, res: Response) => {
       campaign.startedAt = campaign.startedAt || new Date();
       await campaign.save();
 
+      let startResult: any;
       try {
         const { CampaignService } = await import('../services/CampaignService');
-        await CampaignService.startCampaign(id as string, workspaceId as string, userId as string);
+        startResult = await CampaignService.startCampaign(id as string, workspaceId as string, userId as string);
         console.log(`[Lifecycle] Campaign ${id} start requested; awaiting budget reservation`);
       } catch (err: any) {
         console.error(`[Lifecycle] Failed to start campaign:`, err.message);
@@ -196,12 +221,14 @@ export const lifecycleAction = async (req: AuthRequest, res: Response) => {
       return res.json({
         success: true,
         message: isResume ? 'Campaign resume requested' : 'Campaign start requested',
-        data: { status: campaign.status, awaitingBudget: true }
+        data: { status: startResult?.status || 'QUEUED', awaitingBudget: true }
       });
     }
 
     if (action === 'pause') {
-      if (campaign.status !== 'RUNNING') return res.status(400).json({ success: false, message: 'Only running campaigns can be paused' });
+      if (!['RUNNING', 'QUEUED'].includes(campaign.status)) {
+        return res.status(400).json({ success: false, message: 'Only running or queued campaigns can be paused' });
+      }
       campaign.status = 'PAUSED';
       campaign.pausedReason = 'USER_PAUSED';
       campaign.pausedAt = new Date();

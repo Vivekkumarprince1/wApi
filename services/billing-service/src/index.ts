@@ -18,6 +18,8 @@ import workspaceBillingRoutes from './routes/workspaceBillingRoutes';
 // ... (omitted)
 
 const app = express();
+const backgroundWorkersEnabled =
+  process.env.ENABLE_BACKGROUND_WORKERS === 'true' || process.env.NODE_ENV === 'production';
 app.use(helmet());
 app.use(cors());
 app.use(express.json({
@@ -76,7 +78,11 @@ async function bootstrap() {
     await mongoose.connect(config.mongodbUri);
     console.log('[Database] Connected to Billing Database');
 
-    await startBillingEventConsumer();
+    if (backgroundWorkersEnabled) {
+      await startBillingEventConsumer();
+    } else {
+      console.log('[Billing Service] Background event consumer disabled for local development. Set ENABLE_BACKGROUND_WORKERS=true to enable it.');
+    }
 
     app.listen(config.port, () => {
       console.log(`[Billing Service] Listening on port ${config.port}`);
@@ -88,4 +94,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-

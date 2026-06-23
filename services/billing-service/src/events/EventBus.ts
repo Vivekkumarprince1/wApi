@@ -7,6 +7,7 @@
 
 import Redis from 'ioredis';
 import { LedgerService } from '../services/LedgerService';
+import { createRedisConnection } from '../lib/redis';
 
 const BILLING_EVENTS_TOPIC = 'billing-events';
 const CAMPAIGN_EVENTS_TOPIC = 'campaign-events';
@@ -21,7 +22,7 @@ function ensureProducer(): Promise<void> {
     const url = process.env.REDIS_URL;
     if (!url) return Promise.reject(new Error('REDIS_URL is not defined'));
 
-    producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });
+    producerClient = createRedisConnection('billing-event-bus:producer', { lazyConnect: true });
     producerReady = producerClient.connect().then(() => {
       console.log('[BillingEventBus] Redis Producer connected.');
     }).catch(err => {
@@ -111,7 +112,7 @@ export async function startBillingEventConsumer(): Promise<void> {
 
   await ensureProducer();
 
-  consumerClient = new Redis(url);
+  consumerClient = createRedisConnection('billing-event-bus:consumer');
 
   consumerClient.subscribe(BILLING_EVENTS_TOPIC, 'chat-realtime-sync', (err, count) => {
     if (err) {

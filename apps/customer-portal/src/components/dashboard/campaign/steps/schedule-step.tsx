@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { 
-  Send, 
   Clock, 
   Calendar as CalendarIcon, 
   Globe, 
@@ -17,12 +16,15 @@ import { motion } from 'framer-motion';
 
 interface ScheduleStepProps {
   campaignData: any;
-  setCampaignData: (data: any) => void;
+  setCampaignData: React.Dispatch<React.SetStateAction<any>>;
 }
 
 export default function ScheduleStep({ campaignData, setCampaignData }: ScheduleStepProps) {
   // Get today's date in YYYY-MM-DD for min date
   const today = new Date().toISOString().split('T')[0];
+  const updateScheduleField = (field: 'scheduleDate' | 'scheduleTime', value: string) => {
+    setCampaignData((prev: any) => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -31,7 +33,7 @@ export default function ScheduleStep({ campaignData, setCampaignData }: Schedule
         
         <RadioGroup 
           value={campaignData.scheduleType} 
-          onValueChange={(val) => setCampaignData({ ...campaignData, scheduleType: val })}
+          onValueChange={(val) => setCampaignData((prev: any) => ({ ...prev, scheduleType: val }))}
           className="grid grid-cols-1 md:grid-cols-2 gap-6"
         >
           <div 
@@ -41,7 +43,7 @@ export default function ScheduleStep({ campaignData, setCampaignData }: Schedule
                 ? 'border-primary bg-primary/5 ring-1 ring-primary/20 shadow-premium-sm' 
                 : 'border-border/50 hover:border-border'}
             `}
-            onClick={() => setCampaignData({ ...campaignData, scheduleType: 'now' })}
+            onClick={() => setCampaignData((prev: any) => ({ ...prev, scheduleType: 'now' }))}
           >
             <div className="flex items-center justify-between">
               <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
@@ -69,7 +71,7 @@ export default function ScheduleStep({ campaignData, setCampaignData }: Schedule
                 ? 'border-primary bg-primary/5 ring-1 ring-primary/20 shadow-premium-sm' 
                 : 'border-border/50 hover:border-border'}
             `}
-            onClick={() => setCampaignData({ ...campaignData, scheduleType: 'later' })}
+            onClick={() => setCampaignData((prev: any) => ({ ...prev, scheduleType: 'later' }))}
           >
             <div className="flex items-center justify-between">
               <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground group-hover:scale-110 transition-transform">
@@ -101,7 +103,8 @@ export default function ScheduleStep({ campaignData, setCampaignData }: Schedule
                 type="date" 
                 min={today}
                 value={campaignData.scheduleDate}
-                onChange={(e) => setCampaignData({ ...campaignData, scheduleDate: e.target.value })}
+                onInput={(e) => updateScheduleField('scheduleDate', e.currentTarget.value)}
+                onChange={(e) => updateScheduleField('scheduleDate', e.target.value)}
                 className="pl-12 h-12 rounded-xl bg-background border-border/50 focus:ring-primary/20 font-bold"
               />
             </div>
@@ -113,7 +116,8 @@ export default function ScheduleStep({ campaignData, setCampaignData }: Schedule
               <Input 
                 type="time" 
                 value={campaignData.scheduleTime}
-                onChange={(e) => setCampaignData({ ...campaignData, scheduleTime: e.target.value })}
+                onInput={(e) => updateScheduleField('scheduleTime', e.currentTarget.value)}
+                onChange={(e) => updateScheduleField('scheduleTime', e.target.value)}
                 className="pl-12 h-12 rounded-xl bg-background border-border/50 focus:ring-primary/20 font-bold"
               />
             </div>

@@ -1,10 +1,10 @@
 import { Segment } from '../models';
 import { microserviceWorkerClient } from '../lib/microservice-worker-client';
 import { Types } from 'mongoose';
-import IORedis from 'ioredis';
 import crypto from 'crypto';
+import { getSharedRedis } from '../lib/redis';
 
-const redis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redis = getSharedRedis();
 
 export class SegmentService {
   /**

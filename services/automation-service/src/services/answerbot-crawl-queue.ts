@@ -19,6 +19,10 @@ export const answerBotCrawlQueue = new Queue(ANSWERBOT_CRAWL_QUEUE_NAME, {
   },
 });
 
+answerBotCrawlQueue.on('error', (err) => {
+  console.warn(`[AnswerBotCrawlQueue] Redis queue unavailable: ${err.message}`);
+});
+
 export async function enqueueAnswerBotSourceCrawl(sourceId: string, workspaceId: string) {
   const jobId = `answerbot-crawl:${sourceId}`;
 

@@ -21,6 +21,8 @@ import { startIntegrationSyncScheduler, stopIntegrationSyncScheduler } from './s
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const backgroundWorkersEnabled =
+  process.env.ENABLE_BACKGROUND_WORKERS === 'true' || process.env.NODE_ENV === 'production';
 
 // Middleware
 app.use(helmet());
@@ -93,18 +95,22 @@ let server: ReturnType<typeof app.listen> | null = null;
       console.log(`Automation Service listening on port ${PORT}`);
     });
 
-    // Start the time-based scheduler once the DB is ready. Without this
-    // any AutomationRule whose `trigger.event === 'schedule'` would never
-    // fire — there was no cron in this service before.
-    try {
-      const { startScheduler } = await import('./workers/scheduler');
-      await startScheduler();
-    } catch (err: any) {
-      console.error('Scheduler failed to start:', err?.message);
-    }
+    if (backgroundWorkersEnabled) {
+      // Start the time-based scheduler once the DB is ready. Without this
+      // any AutomationRule whose `trigger.event === 'schedule'` would never
+      // fire — there was no cron in this service before.
+      try {
+        const { startScheduler } = await import('./workers/scheduler');
+        await startScheduler();
+      } catch (err: any) {
+        console.error('Scheduler failed to start:', err?.message);
+      }
 
-    // Start integration sync background jobs (Google Sheets, Petpooja)
-    startIntegrationSyncScheduler();
+      // Start integration sync background jobs (Google Sheets, Petpooja)
+      startIntegrationSyncScheduler();
+    } else {
+      console.log('Automation background workers disabled for local development. Set ENABLE_BACKGROUND_WORKERS=true to enable them.');
+    }
   } catch (err) {
     console.error('FATAL: Database connection error during startup:', err);
     process.exit(1);

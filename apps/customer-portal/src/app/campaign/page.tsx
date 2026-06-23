@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Play, 
@@ -9,11 +9,8 @@ import {
   Eye, 
   Search, 
   SlidersHorizontal, 
-  BarChart3, 
-  Calendar, 
   User, 
   Plus, 
-  AlertTriangle, 
   Target,
   TrendingUp,
   MessageSquare,
@@ -27,7 +24,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { fetchCampaigns, performCampaignAction, deleteCampaign, Campaign } from '@/lib/api/campaigns';
-import { useAuthStore } from '@/store/auth-store';
 import FlashLoader from '@/components/ui/flash-loader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,7 +70,7 @@ const CampaignsPage = () => {
     refetchInterval: 10000, // Poll every 10s for status updates
   });
 
-  const campaigns: Campaign[] = data?.campaigns || [];
+  const campaigns: Campaign[] = useMemo(() => data?.campaigns || [], [data?.campaigns]);
 
   const filteredCampaigns = useMemo(() => {
     let filtered = campaigns || [];
@@ -243,10 +239,8 @@ const CampaignsPage = () => {
                 <AnimatePresence mode="popLayout">
                   {filteredCampaigns.map((c) => {
                     const status = getStatusConfig(c.status);
+                    const statusKey = (c.status || '').toLowerCase();
                     const sentPercentage = c.totalContacts > 0 ? (c.sentCount / c.totalContacts) * 100 : 0;
-                    const deliveredPercentage = c.sentCount > 0 ? (c.deliveredCount / c.sentCount) * 100 : 0;
-                    const readPercentage = c.sentCount > 0 ? (c.readCount / c.sentCount) * 100 : 0;
-
                     return (
                       <motion.tr 
                         key={c._id}
@@ -321,7 +315,7 @@ const CampaignsPage = () => {
 	                                <MoreVertical className="h-4 w-4 text-muted-foreground" />
 	                              </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-premium border-border/50">
-                                {c.status === 'draft' && (
+                                {statusKey === 'draft' && (
                                   <DropdownMenuItem 
                                     className="rounded-xl h-10 font-bold text-blue-600 focus:text-blue-600 focus:bg-blue-500/10 cursor-pointer"
                                     onClick={() => actionMutation.mutate({ id: c._id, action: 'start' })}
@@ -329,7 +323,7 @@ const CampaignsPage = () => {
                                     <Play className="h-4 w-4 mr-3" /> Start Now
                                   </DropdownMenuItem>
                                 )}
-                                {['sending', 'queued', 'running'].includes(c.status) && (
+                                {['sending', 'queued', 'running'].includes(statusKey) && (
                                   <DropdownMenuItem 
                                     className="rounded-xl h-10 font-bold text-amber-600 focus:text-amber-600 focus:bg-amber-500/10 cursor-pointer"
                                     onClick={() => actionMutation.mutate({ id: c._id, action: 'pause' })}
@@ -337,7 +331,7 @@ const CampaignsPage = () => {
                                     <Pause className="h-4 w-4 mr-3" /> Pause
                                   </DropdownMenuItem>
                                 )}
-                                {c.status === 'paused' && (
+                                {statusKey === 'paused' && (
                                   <DropdownMenuItem 
                                     className="rounded-xl h-10 font-bold text-emerald-600 focus:text-emerald-600 focus:bg-emerald-500/10 cursor-pointer"
                                     onClick={() => actionMutation.mutate({ id: c._id, action: 'resume' })}
@@ -345,7 +339,7 @@ const CampaignsPage = () => {
                                     <Play className="h-4 w-4 mr-3" /> Resume
                                   </DropdownMenuItem>
                                 )}
-                                {['completed', 'COMPLETED'].includes(c.status) && (
+                                {statusKey === 'completed' && (
                                   <DropdownMenuItem 
                                     className="rounded-xl h-10 font-bold text-primary focus:text-primary focus:bg-primary/10 cursor-pointer"
                                     onClick={() => router.push(`/campaign/${c._id}`)} // Or retarget trigger

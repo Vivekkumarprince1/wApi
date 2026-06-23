@@ -6,7 +6,6 @@ import Link from "next/link";
 import {
   Search,
   User as UserIcon,
-  Bell,
   Moon,
   Sun,
   Settings,
@@ -14,14 +13,12 @@ import {
   LogOut,
   ChevronRight,
   Sparkles,
-  Phone,
   Calendar,
   MessageSquare,
   Users,
   Tag,
   Reply,
   Code,
-  Shield,
 } from "lucide-react";
 
 import {
@@ -34,8 +31,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -244,9 +239,10 @@ export function DashboardHeader() {
                 <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Quick Settings</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {settingsItems.map((item) => (
-                    <Link
+                    <button
                       key={item.path}
-                      href={item.path}
+                      type="button"
+                      onClick={() => handleSettingsClick(item.path)}
                       className="flex items-center gap-3 p-3 rounded-xl hover:bg-accent/80 transition-all duration-200 group text-left"
                     >
                       <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${item.color} transition-colors`}>
@@ -255,7 +251,7 @@ export function DashboardHeader() {
                       <span className="text-sm font-medium text-foreground/80 group-hover:text-foreground transition-colors">
                         {item.label}
                       </span>
-                    </Link>
+                    </button>
                   ))}
                 </div>
               </div>

@@ -53,7 +53,17 @@ export class CampaignService {
       if (!campaign || !campaign.canStart()) throw new Error('INVALID_CAMPAIGN_STATUS');
 
       const preflight = await this.runPreflight(workspaceId, campaign);
-      if (!preflight.valid) throw new Error(`PREFLIGHT_FAILED: ${preflight.reason}`);
+      if (!preflight.valid) {
+        campaign.status = 'PAUSED';
+        campaign.pausedReason = null;
+        campaign.pausedAt = new Date();
+        await (Campaign as ICampaignModel).addAuditEntry(campaign._id.toString(), 'SYSTEM_PAUSED', {
+          userId,
+          reason: `Preflight failed: ${preflight.reason}`,
+        });
+        await campaign.save();
+        throw new Error(`PREFLIGHT_FAILED: ${preflight.reason}`);
+      }
 
       let recipients = campaign.contacts;
       if (campaign.recipientFilter?.type === 'segment' && campaign.recipientFilter.segmentId) {
@@ -64,11 +74,12 @@ export class CampaignService {
       const { CampaignQueueService } = await import("../lib/campaign-queue");
       await CampaignQueueService.enqueue(campaignId, workspaceId);
 
-      // Audit only — actual status flip is deferred to handleBudgetReserved.
+      // Queue accepted. Budget reservation later promotes this to RUNNING.
+      campaign.status = 'QUEUED';
       await (Campaign as ICampaignModel).addAuditEntry(campaign._id.toString(), 'STARTED', { userId });
       await campaign.save();
 
-      return { success: true, recipientCount: recipients.length };
+      return { success: true, status: campaign.status, recipientCount: recipients.length };
     } finally {
       // Release the lock regardless of outcome. BullMQ enqueue + the
       // worker's batch-existence guard prevent double execution beyond this

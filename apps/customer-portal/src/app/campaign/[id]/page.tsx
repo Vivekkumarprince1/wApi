@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCampaignById, performCampaignAction } from "@/lib/api/campaigns";
@@ -18,11 +18,9 @@ import {
   Calendar,
   Layers,
   Info,
-  ExternalLink,
   Target,
   MoreVertical,
   Trash2,
-  Eye,
   TrendingUp
 } from "lucide-react";
 import { 
@@ -40,7 +38,7 @@ import { CampaignRecipientTable } from "@/components/dashboard/campaign/analytic
 import { CampaignTemplatePreview } from "@/components/dashboard/campaign/analytics/CampaignTemplatePreview";
 import { CampaignFailureAnalysis } from "@/components/dashboard/campaign/analytics/CampaignFailureAnalysis";
 import { CampaignButtonTracking } from "@/components/dashboard/campaign/analytics/CampaignButtonTracking";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useRef } from "react";
 
 export default function CampaignDetailsPage() {
@@ -116,6 +114,7 @@ export default function CampaignDetailsPage() {
   };
 
   const statusConfig = getStatusConfig(campaign.status);
+  const statusKey = (campaign.status || '').toLowerCase();
 
   const timelineEntries = Array.isArray(campaign.audit?.history)
     ? [...campaign.audit.history]
@@ -223,18 +222,18 @@ export default function CampaignDetailsPage() {
             </div>
           </div>
 
-          {(campaign.status === 'DRAFT' || campaign.status === 'SCHEDULED' || campaign.status === 'PAUSED' || campaign.status === 'draft') && (
+          {['draft', 'scheduled', 'paused'].includes(statusKey) && (
             <Button 
               onClick={() => handleAction('start')}
               disabled={isActionLoading}
               className="rounded-2xl font-black h-12 bg-primary hover:bg-primary/90 text-primary-foreground px-8 shadow-premium-sm"
             >
               {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2 fill-current" />}
-              {campaign.status === 'PAUSED' || campaign.status === 'paused' ? 'RESUME' : 'START BROADCAST'}
+              {statusKey === 'paused' ? 'RESUME' : 'START BROADCAST'}
             </Button>
           )}
 
-          {['sending', 'running', 'RUNNING'].includes(campaign.status) && (
+          {['sending', 'queued', 'running'].includes(statusKey) && (
             <Button 
               onClick={() => handleAction('pause')}
               disabled={isActionLoading}
@@ -410,14 +409,14 @@ export default function CampaignDetailsPage() {
                   <Progress value={progress} className="h-4 bg-white/5 border border-white/5" indicatorClassName="bg-gradient-to-r from-primary via-blue-500 to-emerald-500" />
                 </div>
 
-                {campaign.status === 'RUNNING' && (
+                {statusKey === 'running' && (
                   <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Live Broadcast In Progress
                   </div>
                 )}
 
-                {campaign.status === 'COMPLETED' && (
+                {statusKey === 'completed' && (
                   <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">
                     <CheckCircle2 className="h-3 w-3" />
                     Broadcast Finished Successfully

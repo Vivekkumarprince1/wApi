@@ -3,6 +3,7 @@ import Redis from 'ioredis';
 import { WebhooksService } from '../channels/whatsapp/webhooks/webhooks.service';
 import { ProviderEventProducerService } from './provider-event-producer.service';
 import { config } from '../config';
+import { createRedisClient } from './redis.service';
 
 @Injectable()
 export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestroy {
@@ -17,6 +18,14 @@ export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestr
   async onModuleInit() {
     const redisUrl = process.env.REDIS_URL;
     const topicName = 'raw-webhook-events';
+    const backgroundWorkersEnabled =
+      process.env.ENABLE_BACKGROUND_WORKERS === 'true' || process.env.NODE_ENV === 'production';
+
+    if (!backgroundWorkersEnabled) {
+      this.simulatedMode = true;
+      console.warn('[BSP EventBus Consumer] Disabled for local development. Set ENABLE_BACKGROUND_WORKERS=true to enable it.');
+      return;
+    }
 
     if (!redisUrl) {
       if (process.env.NODE_ENV === 'production') {
@@ -30,7 +39,7 @@ export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestr
     console.log('[BSP EventBus Consumer] Initializing connection to Redis...');
 
     try {
-      this.redisConsumer = new Redis(redisUrl);
+      this.redisConsumer = createRedisClient('bsp-event-consumer', redisUrl);
       
       this.redisConsumer.subscribe(topicName, (err, count) => {
         if (err) {

@@ -511,32 +511,81 @@ export class GupshupClientService {
       };
     }
 
-    return this.withDualAuth(input.appId, async (headers) => {
-      const url = `/partner/app/${input.appId}/v3/message`;
-      const response = await this.partnerClient.post(
-        url,
-        input.payload,
-        {
-          headers,
-          timeout: 25000,
+    const appToken = await this.resolveAppToken(input.appId);
+    const rawApp = this.normalizeToken(appToken);
+    const url = `/partner/app/${input.appId}/v3/message`;
+    const headerVariants = [
+      { token: rawApp, Accept: 'application/json' },
+      { Authorization: rawApp, Accept: 'application/json' },
+      { Authorization: `Bearer ${rawApp}`, Accept: 'application/json' },
+    ];
+
+    let lastError: any;
+    for (const headers of headerVariants) {
+      try {
+        const response = await this.partnerClient.post(
+          url,
+          input.payload,
+          {
+            headers,
+            timeout: 25000,
+          }
+        );
+      
+        const resData = response.data;
+        const messageId = resData?.messages?.[0]?.id || resData?.message?.id || resData?.messageId || resData?.id || undefined;
+      
+        if (!messageId) {
+          throw new Error('Gupshup did not return a message ID: ' + JSON.stringify(resData));
         }
-      );
       
-      const resData = response.data;
-      const messageId = resData?.messages?.[0]?.id || resData?.message?.id || resData?.messageId || resData?.id || undefined;
-      
-      if (!messageId) {
-        throw new Error('Gupshup did not return a message ID: ' + JSON.stringify(resData));
+        return {
+          id: resData?.id || resData?.messageId || messageId,
+          messageId,
+          appId: input.appId,
+          payload: input.payload,
+          data: resData,
+        };
+      } catch (error: any) {
+        lastError = error;
+        const status = Number(error?.response?.status || 0);
+        if (status !== 401 && status !== 403) {
+          throw error;
+        }
       }
-      
-      return {
-        id: resData?.id || resData?.messageId || messageId,
-        messageId,
-        appId: input.appId,
-        payload: input.payload,
-        data: resData,
-      };
-    });
+    }
+
+    throw lastError;
+  }
+
+  async listTemplates(input: { appId: string; status?: string }) {
+    const appToken = await this.resolveAppToken(input.appId);
+    const rawApp = this.normalizeToken(appToken);
+    const statusQuery = input.status ? `?status=${encodeURIComponent(input.status)}` : '';
+    const url = `/partner/app/${input.appId}/templates${statusQuery}`;
+
+    const headerVariants = [
+      { token: rawApp, Accept: 'application/json' },
+      { Authorization: rawApp, Accept: 'application/json' },
+      { Authorization: `Bearer ${rawApp}`, Accept: 'application/json' },
+    ];
+
+    let lastError: any;
+    for (const headers of headerVariants) {
+      try {
+        const response = await this.partnerClient.get(url, { headers, timeout: 25000 });
+        const templates = response.data?.templates || response.data?.data || [];
+        return Array.isArray(templates) ? templates : [];
+      } catch (error: any) {
+        lastError = error;
+        const status = Number(error?.response?.status || 0);
+        if (status !== 401 && status !== 403) {
+          throw error;
+        }
+      }
+    }
+
+    throw lastError;
   }
 
   async getApp(appId: string) {
@@ -935,4 +984,3 @@ export class GupshupClientService {
     });
   }
 }
-

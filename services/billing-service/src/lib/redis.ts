@@ -1,13 +1,13 @@
 import Redis, { RedisOptions } from 'ioredis';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const MAX_REDIS_RECONNECT_ATTEMPTS = 5;
 
 export function createRedisConnection(
-  label = 'automation-service',
+  label = 'billing-service',
   options: RedisOptions = {}
 ) {
-  const redis = new Redis(redisUrl, {
+  const redis = new Redis(REDIS_URL, {
     maxRetriesPerRequest: null,
     retryStrategy(times) {
       if (times > MAX_REDIS_RECONNECT_ATTEMPTS) return null;
@@ -29,10 +29,3 @@ export function createRedisConnection(
 
   return redis;
 }
-
-export const redis = createRedisConnection('automation-service:shared');
-
-export const getSharedConnection = () => redis;
-export const getConnectionForWorker = () => createRedisConnection('automation-service:worker');
-
-export default redis;

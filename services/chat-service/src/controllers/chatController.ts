@@ -418,7 +418,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
       }
 
       // Fetch the WABA App details to get the appId
-      const db = Conversation.db.useDb('wapi');
+      const db = Conversation.db;
       const workspaceDoc = await db.collection('workspaces').findOne({ _id: conversation.workspace });
       if (!workspaceDoc) {
         return res.status(404).json({ success: false, message: 'Workspace context lost' });
@@ -470,7 +470,8 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         },
         {
           headers: {
-            'x-internal-key': process.env.INTERNAL_AUTH_KEY || 'your-internal-auth-key',
+            'x-internal-service': 'chat-service',
+            'x-internal-service-secret': process.env.INTERNAL_SERVICE_SECRET || '',
           },
           timeout: 20000,
         }
@@ -561,7 +562,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
     }
 
     // Mock populating contact for local DB lookup
-    const db = Conversation.db.useDb('wapi');
+    const db = Conversation.db;
     const contactDoc = await db.collection('contacts').findOne({ _id: conversation.contact });
     if (!contactDoc) {
       return res.status(404).json({ success: false, message: 'Contact not found' });
@@ -673,7 +674,8 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         },
         {
           headers: {
-            'x-internal-key': process.env.INTERNAL_AUTH_KEY || 'your-internal-auth-key',
+            'x-internal-service': 'chat-service',
+            'x-internal-service-secret': process.env.INTERNAL_SERVICE_SECRET || '',
           },
           timeout: 20000,
         }
@@ -771,7 +773,7 @@ export const sendTemplateToContactPublic = async (req: any, res: express.Respons
     }
 
     // Contacts live in the shared 'wapi' DB — validate ownership before sending.
-    const db = Conversation.db.useDb('wapi');
+    const db = Conversation.db;
     const contactDoc = await db.collection('contacts').findOne({ _id: contactObjectId });
     if (!contactDoc) {
       return res.status(404).json({ success: false, message: 'Contact not found' });
@@ -1173,4 +1175,3 @@ export const getMessagesByContactPublic = async (req: any, res: express.Response
     return res.status(500).json({ success: false, message: err.message });
   }
 };
-

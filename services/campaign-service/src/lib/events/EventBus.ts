@@ -13,6 +13,7 @@ import { CampaignQueueService } from '../campaign-queue';
 import { Workspace } from '../../models';
 import { microserviceWorkerClient } from '../microservice-worker-client';
 import { SegmentService } from '../../services/SegmentService';
+import { createRedisConnection } from '../redis';
 
 const BILLING_EVENTS_TOPIC = 'billing-events';
 const CAMPAIGN_EVENTS_TOPIC = 'campaign-events';
@@ -27,7 +28,7 @@ function ensureProducer(): Promise<void> {
     const url = process.env.REDIS_URL;
     if (!url) return Promise.reject(new Error('REDIS_URL is not defined'));
 
-    producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });
+    producerClient = createRedisConnection('campaign-event-bus:producer', { lazyConnect: true });
     producerReady = producerClient.connect().then(() => {
       console.log('[CampaignEventBus] Redis Producer connected.');
     }).catch(err => {
@@ -237,7 +238,7 @@ export async function startCampaignEventConsumer(): Promise<void> {
 
   await ensureProducer();
 
-  consumerClient = new Redis(url);
+  consumerClient = createRedisConnection('campaign-event-bus:consumer');
 
   consumerClient.subscribe(CAMPAIGN_EVENTS_TOPIC, (err, count) => {
     if (err) {

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
@@ -8,22 +8,15 @@ import {
   Users,
   FileText,
   Clock,
-  CheckCircle2,
   Send,
   ChevronRight,
   Loader2,
-  Sparkles,
-  Zap,
-  BrainCircuit
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 
 import { createCampaign, performCampaignAction } from '@/lib/api/campaigns';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 
 // Wizard Step Components (Shells for now)
 import DetailsStep from '@/components/dashboard/campaign/steps/details-step';
@@ -103,7 +96,7 @@ function CampaignWizardContent() {
       const payload = {
         name: campaignData.name,
         description: campaignData.description,
-        campaignType: campaignData.type === 'one-time' ? 'one-time' : 'scheduled',
+        campaignType: campaignData.scheduleType === 'later' || campaignData.type === 'scheduled' ? 'scheduled' : 'one-time',
         template: campaignData.templateId,
         contacts: campaignData.selectedContactIds,
         recipientFilter: {
@@ -224,11 +217,11 @@ function CampaignWizardContent() {
                 {loading ? (
                   <>
                     <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                    Launch...
+                    {campaignData.scheduleType === 'later' ? 'Scheduling...' : 'Launch...'}
                   </>
                 ) : (
                   <>
-                    Launch
+                    {campaignData.scheduleType === 'later' ? 'Schedule' : 'Launch'}
                     <Rocket className="ml-1.5 h-3.5 w-3.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
                   </>
                 )}

@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
+import { createRedisClient } from './redis.service';
 
 @Injectable()
 export class ProviderEventProducerService implements OnModuleInit, OnModuleDestroy {
@@ -8,6 +9,14 @@ export class ProviderEventProducerService implements OnModuleInit, OnModuleDestr
 
   async onModuleInit() {
     const redisUrl = process.env.REDIS_URL;
+    const backgroundWorkersEnabled =
+      process.env.ENABLE_BACKGROUND_WORKERS === 'true' || process.env.NODE_ENV === 'production';
+
+    if (!backgroundWorkersEnabled) {
+      this.simulatedMode = true;
+      console.warn('[BSP EventBus Producer] Disabled for local development. Set ENABLE_BACKGROUND_WORKERS=true to enable it.');
+      return;
+    }
     
     if (!redisUrl) {
       if (process.env.NODE_ENV === 'production') {
@@ -21,7 +30,7 @@ export class ProviderEventProducerService implements OnModuleInit, OnModuleDestr
     console.log('[BSP EventBus Producer] Initializing connection to Redis...');
 
     try {
-      this.redisProducer = new Redis(redisUrl, { lazyConnect: true, maxRetriesPerRequest: null });
+      this.redisProducer = createRedisClient('bsp-event-producer', redisUrl, { lazyConnect: true });
       await this.redisProducer.connect();
       console.log(`[BSP EventBus Producer] Connected to Redis`);
     } catch (error: any) {

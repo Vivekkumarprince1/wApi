@@ -48,6 +48,8 @@ const MONGODB_URI =
   'mongodb://localhost:27017/wa_campaigns';
 
 let server: any;
+const backgroundWorkersEnabled =
+  process.env.ENABLE_BACKGROUND_WORKERS === 'true' || process.env.NODE_ENV === 'production';
 
 console.log('⏳ Connecting to MongoDB Atlas...');
 
@@ -58,12 +60,16 @@ mongoose.connect(MONGODB_URI, {
 })
   .then(() => {
     console.log('✅ Connected to Campaign Database');
-    // Initialize Background Worker + EventBus event consumer ONLY after DB connection
-    startCampaignEventConsumer()
-      .then(() => console.log('✅ Campaign event consumer started'))
-      .catch((err) => console.error('❌ Failed to start EventBus consumer:', err.message));
-    
-    new CampaignWorker();
+    if (backgroundWorkersEnabled) {
+      // Initialize Background Worker + EventBus event consumer ONLY after DB connection
+      startCampaignEventConsumer()
+        .then(() => console.log('✅ Campaign event consumer started'))
+        .catch((err) => console.error('❌ Failed to start EventBus consumer:', err.message));
+
+      new CampaignWorker();
+    } else {
+      console.log('Campaign background workers disabled for local development. Set ENABLE_BACKGROUND_WORKERS=true to enable them.');
+    }
     
     // Start Server ONLY after DB connection
     server = app.listen(PORT, () => {

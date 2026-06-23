@@ -1,4 +1,5 @@
 import Redis from 'ioredis';
+import { createRedisConnection } from './redis';
 
 let producerClient: Redis | null = null;
 let producerReady: Promise<void> | null = null;
@@ -11,7 +12,7 @@ async function ensureProducer() {
       return producerReady;
     }
 
-    producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });
+    producerClient = createRedisConnection('billing-event-publisher', { lazyConnect: true });
     producerReady = producerClient.connect().then(() => {
       console.log('[Billing EventBus] Redis Producer connected.');
     }).catch((error) => {

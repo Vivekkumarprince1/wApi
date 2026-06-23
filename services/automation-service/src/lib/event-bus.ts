@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { EventTopics } from '@wapi/contracts';
+import { createRedisConnection } from './ioredis';
 
 let producerClient: Redis | null = null;
 let producerReady: Promise<void> | null = null;
@@ -12,7 +13,7 @@ async function ensureProducer() {
       return producerReady;
     }
 
-    producerClient = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: null });
+    producerClient = createRedisConnection('automation-event-bus:producer', { lazyConnect: true });
     producerReady = producerClient.connect().then(() => {
       console.log('[Automation EventBus] Redis Producer connected.');
     }).catch((error) => {

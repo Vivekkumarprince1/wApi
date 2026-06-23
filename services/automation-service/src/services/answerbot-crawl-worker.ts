@@ -24,6 +24,10 @@ export class AnswerBotCrawlWorker {
     this.worker.on('failed', (job, err) => {
       console.error(`[AnswerBotCrawlWorker] Failed job ${job?.id}:`, err.message);
     });
+
+    this.worker.on('error', (err) => {
+      console.warn(`[AnswerBotCrawlWorker] Redis queue unavailable: ${err.message}`);
+    });
   }
 
   private async processJob(job: Job) {

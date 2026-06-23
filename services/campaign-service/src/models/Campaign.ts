@@ -93,7 +93,7 @@ export interface ICampaign {
     customFilter?: any;
   };
   
-  status: 'DRAFT' | 'SCHEDULED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'FAILED' | 'draft' | 'queued' | 'sending' | 'completed' | 'paused' | 'failed';
+  status: 'DRAFT' | 'SCHEDULED' | 'QUEUED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'FAILED' | 'draft' | 'queued' | 'sending' | 'completed' | 'paused' | 'failed';
   
   scheduledAt?: Date;
   startedAt?: Date;
@@ -267,7 +267,7 @@ CampaignSchema.pre<ICampaignDocument>('save', function() {
   if (this.status && this.status === this.status.toLowerCase()) {
     const statusMap: Record<string, any> = {
       'draft': 'DRAFT',
-      'queued': 'SCHEDULED',
+      'queued': 'QUEUED',
       'sending': 'RUNNING',
       'completed': 'COMPLETED',
       'paused': 'PAUSED',
@@ -281,7 +281,7 @@ CampaignSchema.pre<ICampaignDocument>('save', function() {
 
 // Instance Methods
 CampaignSchema.methods.canStart = function() {
-  return ['DRAFT', 'SCHEDULED'].includes(this.status);
+  return ['DRAFT', 'SCHEDULED', 'PAUSED'].includes(this.status);
 };
 
 CampaignSchema.methods.canPause = function() {

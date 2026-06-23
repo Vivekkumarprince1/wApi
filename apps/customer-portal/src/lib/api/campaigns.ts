@@ -4,7 +4,7 @@ export interface Campaign {
   _id: string;
   name: string;
   description?: string;
-  status: 'draft' | 'sending' | 'paused' | 'completed' | 'failed' | 'scheduled' | 'queued';
+  status: 'DRAFT' | 'SCHEDULED' | 'QUEUED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'FAILED' | 'draft' | 'sending' | 'paused' | 'completed' | 'failed' | 'scheduled' | 'queued';
   campaignType: 'one-time' | 'scheduled';
   template?: {
     _id: string;
