@@ -28,6 +28,7 @@ import TemplateNode from '@/components/workflows/nodes/TemplateNode';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { apiFetch } from '@/lib/api/client';
 
 const nodeTypes = {
   triggerNode: TriggerNode,
@@ -185,7 +186,7 @@ export default function WorkflowBuilderPage() {
 
       try {
         setIsLoading(true);
-        const res = await fetch(`/api/automation/engine/rules/${ruleId}`);
+        const res = await apiFetch(`/api/automation/engine/rules/${ruleId}`);
         const json = await res.json();
 
         if (!res.ok || !json?.success) {
@@ -377,7 +378,7 @@ export default function WorkflowBuilderPage() {
 
       const method = isCreateMode ? 'POST' : 'PUT';
 
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

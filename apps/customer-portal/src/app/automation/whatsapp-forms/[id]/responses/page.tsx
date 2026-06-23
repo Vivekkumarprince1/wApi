@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import FlashLoader from '@/components/ui/flash-loader';
 import { fetchWhatsAppFormResponses } from '@/lib/api/automation';
+import { apiFetch } from '@/lib/api/client';
 
 export default function WhatsAppFormResponsesPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,7 +27,7 @@ export default function WhatsAppFormResponsesPage() {
 
   const downloadCsv = async () => {
     try {
-      const res = await fetch(`/api/automation/whatsapp-forms/${id}/responses?status=${status}&format=csv`);
+      const res = await apiFetch(`/api/automation/whatsapp-forms/${id}/responses?status=${status}&format=csv`);
       if (!res.ok) {
         throw new Error('Failed to export responses');
       }

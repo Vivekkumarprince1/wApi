@@ -26,6 +26,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { fetchRules, toggleRule, deleteRule, AutomationRule } from '@/lib/api/automation';
+import { apiFetch } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -55,7 +56,7 @@ export default function WorkflowsPage() {
     const messageBody = window.prompt('Test message body (optional):', 'Manual workflow test')?.trim() || 'Manual workflow test';
 
     try {
-      const response = await fetch(`/api/automation/engine/rules/${ruleId}/execute`, {
+      const response = await apiFetch(`/api/automation/engine/rules/${ruleId}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

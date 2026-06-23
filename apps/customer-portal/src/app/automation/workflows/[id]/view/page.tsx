@@ -7,6 +7,7 @@ import { ArrowLeft, Pencil, Play, Workflow } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { getRuleById } from '@/lib/api/automation';
+import { apiFetch } from '@/lib/api/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import FlashLoader from '@/components/ui/flash-loader';
@@ -33,7 +34,7 @@ export default function WorkflowViewPage() {
     }
 
     try {
-      const response = await fetch(`/api/automation/engine/rules/${id}/execute`, {
+      const response = await apiFetch(`/api/automation/engine/rules/${id}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

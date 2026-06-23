@@ -5,6 +5,9 @@ const clearAuthCookie = () => {
     if (typeof document !== 'undefined') {
         document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
     }
+    if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem('socket_auth_token');
+    }
 }
 
 const STARTER_PLAN_FALLBACK = {
