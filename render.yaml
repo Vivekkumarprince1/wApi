@@ -16,6 +16,16 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
+      - key: ALLOWED_ORIGINS
+        value: https://connectsphare-backup.vercel.app,http://localhost:3000,http://localhost:3001,http://localhost:3002
+      - key: CORE_SERVER_URL
+        value: https://wapi-core-server.onrender.com
+      - key: AUTOMATION_SERVICE_URL
+        value: https://wapi-automation-service.onrender.com
+      - key: CAMPAIGN_SERVICE_URL
+        value: https://wapi-campaign-service.onrender.com
+      - key: BILLING_SERVICE_URL
+        value: https://wapi-billing-service.onrender.com
 
   - type: web
     name: wapi-core-server
