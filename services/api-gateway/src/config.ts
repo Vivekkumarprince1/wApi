@@ -20,8 +20,8 @@ const configSchema = z.object({
 
 const result = configSchema.safeParse({
   port: process.env.PORT,
-  jwtSecret: process.env.JWT_SECRET || 'your_jwt_secret_here',
-  internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET || 'your_internal_service_secret_here',
+  jwtSecret: process.env.JWT_SECRET,
+  internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET,
   allowedOrigins: process.env.ALLOWED_ORIGINS,
   coreServerUrl: process.env.CORE_SERVER_URL,
   websocketServiceUrl: process.env.WEBSOCKET_SERVICE_URL,

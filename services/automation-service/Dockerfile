@@ -1,22 +1,27 @@
 FROM node:20-alpine AS builder
 
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
 
-COPY . .
-RUN npm run build
+COPY packages/contracts ./packages/contracts
+RUN cd packages/contracts && npm install --include=dev --no-audit --no-fund && npm run build
+
+COPY services/automation-service/package*.json ./services/automation-service/
+RUN cd services/automation-service && npm install --include=dev --no-audit --no-fund
+
+COPY services/automation-service ./services/automation-service
+RUN cd services/automation-service && npm run build
 
 FROM node:20-alpine AS runner
+
 WORKDIR /app
+ENV NODE_ENV=production
 
-ENV NODE_ENV production
-ENV PORT 3001
+COPY --from=builder /app/packages/contracts/package*.json ./packages/contracts/
+COPY --from=builder /app/packages/contracts/dist ./packages/contracts/dist
+COPY services/automation-service/package*.json ./services/automation-service/
+RUN cd services/automation-service && npm install --omit=dev --no-audit --no-fund
 
-COPY --from=builder /app/package*.json ./
-RUN npm ci --omit=dev
+COPY --from=builder /app/services/automation-service/dist ./services/automation-service/dist
 
-COPY --from=builder /app/dist ./dist
-
-EXPOSE 3001
+WORKDIR /app/services/automation-service
 CMD ["node", "dist/index.js"]

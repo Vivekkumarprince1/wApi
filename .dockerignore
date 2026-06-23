@@ -1,0 +1,14 @@
+.git
+.github
+**/node_modules
+**/.next
+**/dist
+**/dist-test
+**/.turbo
+**/.vercel
+**/.env
+**/.env.*
+**/*.log
+apps/customer-portal/build_output*.txt
+coverage
+.DS_Store

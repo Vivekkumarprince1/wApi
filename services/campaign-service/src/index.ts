@@ -3,12 +3,21 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
+import crypto from 'crypto';
+import { config } from './config';
 
 // Route Imports
 import campaignRoutes from './routes/campaignRoutes';
 import segmentRoutes from './routes/segmentRoutes';
 import { CampaignWorker } from './workers/CampaignWorker';
 import redis, { ensureRedisPolicy } from './lib/redis';
+
+function fingerprint(value: string) {
+  return crypto.createHash('sha256').update(value).digest('hex').slice(0, 8);
+}
+
+console.log(`[campaign-service] JWT_SECRET fingerprint: ${fingerprint(config.jwtSecret)}`);
+console.log(`[campaign-service] INTERNAL_SERVICE_SECRET fingerprint: ${fingerprint(config.internalServiceSecret)}`);
 
 const app = express();
 const PORT = process.env.PORT || 3002;

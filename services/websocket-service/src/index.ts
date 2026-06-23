@@ -6,8 +6,16 @@ import Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
 import cors from 'cors';
 import axios from 'axios';
+import crypto from 'crypto';
 import { config } from './config';
 import { assertRedisPolicy, bullmqConnectionOptions } from '@wapi/contracts';
+
+function fingerprint(value: string) {
+  return crypto.createHash('sha256').update(value).digest('hex').slice(0, 8);
+}
+
+console.log(`[websocket-service] JWT_SECRET fingerprint: ${fingerprint(config.jwtSecret)}`);
+console.log(`[websocket-service] INTERNAL_SERVICE_SECRET fingerprint: ${fingerprint(config.internalServiceSecret)}`);
 
 const app = express();
 app.use(cors({

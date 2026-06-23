@@ -1,24 +1,84 @@
-services:
-  - type: web
-    name: wapi-api-gateway
-    env: node
-    plan: free
-    rootDir: services/api-gateway
-    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/api-gateway && npm install --include=dev && npm run build
-    startCommand: npm start
+# Render injects PORT for Docker web services. Do not copy local PORT or
+# BACKEND_PORT values here; each container must bind to Render's PORT.
+envVarGroups:
+  - name: wapi-shared-auth
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NODE_VERSION
-        value: "20"
-      - key: REDIS_URL
-        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
       - key: JWT_SECRET
         generateValue: true
       - key: INTERNAL_SERVICE_SECRET
         generateValue: true
-      - key: ALLOWED_ORIGINS
+
+services:
+  - type: web
+    name: wapi-customer-portal
+    runtime: docker
+    plan: free
+    dockerContext: .
+    dockerfilePath: apps/customer-portal/Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_APP_NAME
+        value: wApi
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://wapi-customer-portal.onrender.com
+      - key: NEXT_PUBLIC_API_URL
+        value: https://wapi-api-gateway.onrender.com/api/v1
+      - key: NEXT_PUBLIC_SOCKET_URL
+        value: https://wapi-api-gateway.onrender.com
+      - key: BACKEND_API_URL
+        value: https://wapi-api-gateway.onrender.com
+      - key: NEXT_PUBLIC_GOOGLE_CLIENT_ID
         sync: false
+      - key: NEXT_PUBLIC_FACEBOOK_APP_ID
+        sync: false
+
+  - type: web
+    name: wapi-admin-portal
+    runtime: docker
+    plan: free
+    dockerContext: .
+    dockerfilePath: apps/admin-portal/Dockerfile
+    healthCheckPath: /login
+    envVars:
+      - fromGroup: wapi-shared-auth
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_APP_NAME
+        value: wApi
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://wapi-admin-portal.onrender.com
+      - key: ADMIN_COOKIE_NAME
+        value: admin_token
+      - key: ADMIN_SESSION_TTL
+        value: "28800"
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_URI_BILLING
+        sync: false
+      - key: MONGODB_URI_CAMPAIGN
+        sync: false
+      - key: MONGODB_URI_AUTOMATION
+        sync: false
+      - key: GATEWAY_URL
+        value: https://wapi-api-gateway.onrender.com
+      - key: CUSTOMER_PORTAL_URL
+        value: https://wapi-customer-portal.onrender.com
+      - key: IMPERSONATION_COOKIE_DOMAIN
+        sync: false
+
+  - type: web
+    name: wapi-api-gateway
+    runtime: docker
+    plan: free
+    dockerContext: .
+    dockerfilePath: services/api-gateway/Dockerfile
+    healthCheckPath: /live
+    envVars:
+      - fromGroup: wapi-shared-auth
+      - key: ALLOWED_ORIGINS
+        value: https://wapi-customer-portal.onrender.com,https://wapi-admin-portal.onrender.com
       - key: CORE_SERVER_URL
         value: https://wapi-core-server.onrender.com
       - key: WEBSOCKET_SERVICE_URL
@@ -32,27 +92,18 @@ services:
 
   - type: web
     name: wapi-core-server
-    env: node
+    runtime: docker
     plan: free
-    rootDir: services/core-server
-    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/core-server && npm install --include=dev && npm run build
-    startCommand: npm start
+    dockerContext: .
+    dockerfilePath: services/core-server/Dockerfile
+    healthCheckPath: /live
     envVars:
+      - fromGroup: wapi-shared-auth
       - key: NODE_ENV
         value: production
-      - key: NODE_VERSION
-        value: "20"
-      - key: REDIS_URL
-        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
-      - key: JWT_SECRET
-        generateValue: true
-      - key: INTERNAL_SERVICE_SECRET
-        generateValue: true
       - key: MONGODB_URI
         sync: false
-      - key: NEXT_PUBLIC_APP_URL
-        sync: false
-      - key: ALLOWED_ORIGINS
+      - key: REDIS_URL
         sync: false
       - key: AUTOMATION_SERVICE_URL
         value: https://wapi-automation-service.onrender.com
@@ -60,7 +111,6 @@ services:
         value: https://wapi-campaign-service.onrender.com
       - key: BILLING_SERVICE_URL
         value: https://wapi-billing-service.onrender.com
-      # Core Server Specifics
       - key: GOOGLE_CLIENT_ID
         sync: false
       - key: GOOGLE_CLIENT_SECRET
@@ -73,23 +123,13 @@ services:
         value: https://partner.gupshup.io
       - key: GUPSHUP_API_BASE_URL
         value: https://api.gupshup.io
-      - key: GUPSHUP_APP_ID
-        sync: false
-      - key: GUPSHUP_SOURCE_NUMBER
+      - key: ESB_CALLBACK_URL
         sync: false
       - key: WHATSAPP_WEBHOOK_URL
         value: https://wapi-api-gateway.onrender.com/api/webhooks/whatsapp
-      - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
-        sync: false
-      - key: AI_GEMINI_KEY
-        sync: false
       - key: CLOUDINARY_URL
         sync: false
-      - key: RAZORPAY_KEY_ID
-        sync: false
-      - key: RAZORPAY_KEY_SECRET
-        sync: false
-      - key: RAZORPAY_WEBHOOK_SECRET
+      - key: EMAIL_FROM
         sync: false
       - key: APP_NAME
         value: wApi
@@ -99,59 +139,59 @@ services:
         sync: false
       - key: EMAIL_PASS
         sync: false
-      - key: EMAIL_FROM
-        sync: false
-      - key: ENABLE_AUTOMATION_ENGINE
-        value: "true"
-      - key: START_CAMPAIGN_SCHEDULER
-        value: "true"
       - key: BUSINESS_VERIFICATION_MANDATORY
         value: "false"
+      - key: BUSINESS_VERIFICATION_PROVIDER
+        value: hybrid
+      - key: CLEARTAX_API_KEY
+        sync: false
+      - key: KARZA_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_SENDER_PHONE
+        sync: false
+      - key: MSG91_AUTH_KEY
+        sync: false
+      - key: MSG91_OTP_TEMPLATE_ID
+        sync: false
 
   - type: web
     name: wapi-automation-service
-    env: node
+    runtime: docker
     plan: free
-    rootDir: services/automation-service
-    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/automation-service && npm install --include=dev && npm run build
-    startCommand: npm start
+    dockerContext: .
+    dockerfilePath: services/automation-service/Dockerfile
+    healthCheckPath: /live
     envVars:
+      - fromGroup: wapi-shared-auth
       - key: NODE_ENV
         value: production
-      - key: NODE_VERSION
-        value: "20"
-      - key: REDIS_URL
-        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
-      - key: JWT_SECRET
-        generateValue: true
-      - key: INTERNAL_SERVICE_SECRET
-        generateValue: true
       - key: MONGODB_URI_AUTOMATION
+        sync: false
+      - key: REDIS_URL
         sync: false
       - key: AI_GEMINI_KEY
         sync: false
-      - key: MONOLITH_INTERNAL_URL
+      - key: MONOLITH_URL
         value: https://wapi-api-gateway.onrender.com
 
   - type: web
     name: wapi-campaign-service
-    env: node
+    runtime: docker
     plan: free
-    rootDir: services/campaign-service
-    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/campaign-service && npm install --include=dev && npm run build
-    startCommand: npm start
+    dockerContext: .
+    dockerfilePath: services/campaign-service/Dockerfile
+    healthCheckPath: /live
     envVars:
+      - fromGroup: wapi-shared-auth
       - key: NODE_ENV
         value: production
-      - key: NODE_VERSION
-        value: "20"
-      - key: REDIS_URL
-        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
-      - key: JWT_SECRET
-        generateValue: true
-      - key: INTERNAL_SERVICE_SECRET
-        generateValue: true
       - key: MONGODB_URI_CAMPAIGN
+        sync: false
+      - key: REDIS_URL
         sync: false
       - key: MONOLITH_URL
         value: https://wapi-api-gateway.onrender.com
@@ -160,52 +200,40 @@ services:
 
   - type: web
     name: wapi-billing-service
-    env: node
+    runtime: docker
     plan: free
-    rootDir: services/billing-service
-    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/billing-service && npm install --include=dev && npm run build
-    startCommand: npm start
+    dockerContext: .
+    dockerfilePath: services/billing-service/Dockerfile
+    healthCheckPath: /live
     envVars:
+      - fromGroup: wapi-shared-auth
       - key: NODE_ENV
         value: production
-      - key: NODE_VERSION
-        value: "20"
-      - key: REDIS_URL
-        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
-      - key: JWT_SECRET
-        generateValue: true
-      - key: INTERNAL_SERVICE_SECRET
-        generateValue: true
       - key: MONGODB_URI
         sync: false
-      - key: MONOLITH_URL
-        value: https://wapi-api-gateway.onrender.com
+      - key: REDIS_URL
+        sync: false
       - key: RAZORPAY_KEY_ID
         sync: false
       - key: RAZORPAY_KEY_SECRET
         sync: false
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
+      - key: MONOLITH_URL
+        value: https://wapi-api-gateway.onrender.com
 
   - type: web
     name: wapi-websocket-service
-    env: node
+    runtime: docker
     plan: free
-    rootDir: services/websocket-service
-    buildCommand: cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../services/websocket-service && npm install --include=dev && npm run build
-    startCommand: npm start
+    dockerContext: .
+    dockerfilePath: services/websocket-service/Dockerfile
+    healthCheckPath: /live
     envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NODE_VERSION
-        value: "20"
+      - fromGroup: wapi-shared-auth
       - key: REDIS_URL
-        value: redis://default:bOXFUCAIEruLx0YAdY2crNKbVU03AonB@redis-12570.c73.us-east-1-2.ec2.cloud.redislabs.com:12570
-      - key: JWT_SECRET
-        generateValue: true
-      - key: INTERNAL_SERVICE_SECRET
-        generateValue: true
+        sync: false
       - key: CORE_SERVER_URL
         value: https://wapi-core-server.onrender.com
       - key: ALLOWED_ORIGINS
-        sync: false
+        value: https://wapi-customer-portal.onrender.com,https://wapi-admin-portal.onrender.com

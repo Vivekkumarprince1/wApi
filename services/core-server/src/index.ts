@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import crypto from 'crypto';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -49,6 +50,13 @@ if (missingEnv.length > 0) {
 if (process.env.INTERNAL_SERVICE_SECRET === 'your-service-secret') {
   console.warn("\x1b[33m[Main Server] WARNING: Using default INTERNAL_SERVICE_SECRET. Change this for production.\x1b[0m");
 }
+
+const internalSecretFingerprint = crypto
+  .createHash('sha256')
+  .update(process.env.INTERNAL_SERVICE_SECRET || '')
+  .digest('hex')
+  .slice(0, 8);
+console.log(`[Main Server] INTERNAL_SERVICE_SECRET fingerprint: ${internalSecretFingerprint}`);
 
 const app = express();
 const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5005", 10);

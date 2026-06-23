@@ -54,6 +54,22 @@ const normalizeRoomId = (value: unknown): string | null => {
   return null;
 };
 
+const fetchSocketToken = async (): Promise<string | null> => {
+  try {
+    const response = await fetch('/api/auth/session', {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    const session = await response.json();
+    return typeof session?.token === 'string' ? session.token : null;
+  } catch (err) {
+    console.warn('[Socket:Singleton] Could not fetch token from session:', err);
+    return null;
+  }
+};
+
 const getSocket = async (): Promise<Socket> => {
   // If already connected, return it
   if (globalSocket?.connected) return globalSocket;
@@ -85,24 +101,13 @@ const getSocket = async (): Promise<Socket> => {
     // Note: Next.js rewrites `/api/:path*` → `/api/v1/:path*`, so this URL
     // must NOT include `/v1` itself or the backend host will see `/v1/v1`.
     if (!token) {
-      try {
-        console.log('[Socket:Singleton] Token not found locally, fetching from session endpoint...');
-        const response = await fetch('/api/auth/session', {
-          method: 'GET',
-          credentials: 'include',
-        });
-        if (response.ok) {
-          const session = await response.json();
-          token = session.token;
-          if (token) {
-            console.log('[Socket:Singleton] Got token from session endpoint');
-            if (typeof sessionStorage !== 'undefined') {
-              sessionStorage.setItem('socket_auth_token', token);
-            }
-          }
+      console.log('[Socket:Singleton] Token not found locally, fetching from session endpoint...');
+      token = await fetchSocketToken();
+      if (token) {
+        console.log('[Socket:Singleton] Got token from session endpoint');
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('socket_auth_token', token);
         }
-      } catch (err) {
-        console.warn('[Socket:Singleton] Could not fetch token from session:', err);
       }
     }
 
@@ -113,6 +118,7 @@ const getSocket = async (): Promise<Socket> => {
       console.warn('[Socket:Singleton] ⚠️ No auth token available. Will attempt connection with withCredentials.');
     }
 
+    let authRefreshAttempted = false;
     const socket = io(socketBase, {
       auth: { token },
       withCredentials: true,
@@ -128,16 +134,41 @@ const getSocket = async (): Promise<Socket> => {
       resolve(socket);
     });
 
-    socket.on('connect_error', (err) => {
-      // ONLY reject if it's a fatal authentication error from the server
-      if (err.message?.includes('Authentication error') || err.message?.includes('No token provided')) {
-        console.error('[Socket:Singleton] ❌ FATAL AUTH ERROR:', err.message);
+    socket.on('connect_error', async (err) => {
+      const message = err.message || '';
+      const isAuthError =
+        message.includes('Unauthorized') ||
+        message.includes('Authentication') ||
+        message.includes('auth token') ||
+        message.includes('invalid token') ||
+        message.includes('missing auth token') ||
+        message.includes('No token provided');
+
+      if (isAuthError && !authRefreshAttempted) {
+        authRefreshAttempted = true;
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('socket_auth_token');
+        }
+        const freshToken = await fetchSocketToken();
+        if (freshToken) {
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem('socket_auth_token', freshToken);
+          }
+          socket.auth = { token: freshToken };
+          socket.connect();
+          return;
+        }
+      }
+
+      if (isAuthError) {
+        console.error('[Socket:Singleton] ❌ FATAL AUTH ERROR:', message);
         connectionPromise = null;
         reject(err);
-      } else {
-        // Log but don't reject yet, let it retry/fallback
-        console.warn('[Socket:Singleton] 🔄 Connection Attempt Error (Retrying...):', err.message);
+        return;
       }
+
+      // Log but don't reject yet, let it retry/fallback
+      console.warn('[Socket:Singleton] 🔄 Connection Attempt Error (Retrying...):', message);
     });
 
     socket.on('disconnect', (reason) => {

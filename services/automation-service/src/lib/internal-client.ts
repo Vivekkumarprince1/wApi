@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { randomUUID } from 'crypto';
 
-const MONOLITH_URL = process.env.MONOLITH_INTERNAL_URL || 'http://localhost:5001';
+const MONOLITH_URL = process.env.MONOLITH_INTERNAL_URL || process.env.MONOLITH_URL || 'http://localhost:5001';
 const INTERNAL_SECRET = process.env.INTERNAL_SERVICE_SECRET;
 
 if (!INTERNAL_SECRET) {

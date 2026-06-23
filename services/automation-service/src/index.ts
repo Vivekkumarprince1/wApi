@@ -2,6 +2,8 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
+import crypto from 'crypto';
+import { config } from './config';
 
 // Route Imports
 import aiIntentRoutes from './routes/aiIntentRoutes';
@@ -11,6 +13,13 @@ import interaktiveListRoutes from './routes/interaktiveListRoutes';
 import instagramQuickflowRoutes from './routes/instagramQuickflowRoutes';
 import whatsappFormRoutes from './routes/whatsappFormRoutes';
 import { redisClient, ensureRedisPolicy } from './lib/redis';
+
+function fingerprint(value: string) {
+  return crypto.createHash('sha256').update(value).digest('hex').slice(0, 8);
+}
+
+console.log(`[automation-service] JWT_SECRET fingerprint: ${fingerprint(config.jwtSecret)}`);
+console.log(`[automation-service] INTERNAL_SERVICE_SECRET fingerprint: ${fingerprint(config.internalServiceSecret)}`);
 
 const app = express();
 const PORT = process.env.PORT || 3001;

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
+import crypto from 'crypto';
 import { config } from './config/index';
 
 import './events/EventBus'; // Initialize worker
@@ -12,6 +13,12 @@ import { ensureRedisPolicy, redisClient } from './lib/redis';
 
 // --- Startup Guards ---
 // ... (omitted)
+const internalSecretFingerprint = crypto
+  .createHash('sha256')
+  .update(config.internalServiceSecret)
+  .digest('hex')
+  .slice(0, 8);
+console.log(`[Billing Service] INTERNAL_SERVICE_SECRET fingerprint: ${internalSecretFingerprint}`);
 
 const app = express();
 app.use(helmet());
@@ -108,4 +115,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-

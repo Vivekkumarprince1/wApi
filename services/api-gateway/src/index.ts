@@ -4,10 +4,18 @@ import helmet from '@fastify/helmet';
 import replyFrom from '@fastify/reply-from';
 import websocketPlugin from '@fastify/websocket';
 import WebSocket from 'ws';
+import crypto from 'crypto';
 import { config } from './config';
 import { registerProxyRoutes } from './routes/proxy';
 
+function fingerprint(value: string) {
+  return crypto.createHash('sha256').update(value).digest('hex').slice(0, 8);
+}
+
 const start = async () => {
+  console.log(`[API Gateway] JWT_SECRET fingerprint: ${fingerprint(config.jwtSecret)}`);
+  console.log(`[API Gateway] INTERNAL_SERVICE_SECRET fingerprint: ${fingerprint(config.internalServiceSecret)}`);
+
   const fastify = Fastify({
     logger: {
       level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',

@@ -20,32 +20,52 @@ export const useSocketStore = create<SocketState>((set, get) => ({
   initialize: () => {
     if (get().socket?.connected) return;
 
-    const token = typeof document !== 'undefined' ? document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1] : null;
-    
-    const socketBase = appConfig.socketUrl;
+    const connect = async () => {
+      let token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('socket_auth_token') : null;
+      if (!token) {
+        const response = await fetch('/api/auth/session', {
+          method: 'GET',
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        if (response.ok) {
+          const session = await response.json();
+          token = typeof session?.token === 'string' ? session.token : null;
+          if (token && typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem('socket_auth_token', token);
+          }
+        }
+      }
+      
+      const socketBase = appConfig.socketUrl;
 
-    const socket = io(socketBase, {
-      auth: { token },
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionAttempts: 10,
+      const socket = io(socketBase, {
+        auth: { token },
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: 10,
+      });
+
+      socket.on('connect', () => {
+        console.log('[SOCKET] Connected');
+        set({ connected: true });
+      });
+
+      socket.on('disconnect', () => {
+        console.log('[SOCKET] Disconnected');
+        set({ connected: false });
+      });
+
+      socket.on('error', (err) => {
+        console.error('[SOCKET] Error:', err);
+      });
+
+      set({ socket });
+    };
+
+    connect().catch((err) => {
+      console.error('[SOCKET] Initialization failed:', err);
     });
-
-    socket.on('connect', () => {
-      console.log('[SOCKET] Connected');
-      set({ connected: true });
-    });
-
-    socket.on('disconnect', () => {
-      console.log('[SOCKET] Disconnected');
-      set({ connected: false });
-    });
-
-    socket.on('error', (err) => {
-      console.error('[SOCKET] Error:', err);
-    });
-
-    set({ socket });
   },
 
   disconnect: () => {

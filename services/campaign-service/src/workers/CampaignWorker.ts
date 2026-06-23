@@ -55,7 +55,10 @@ export class CampaignWorker {
   private async handleCampaignStart(job: Job) {
     const { campaignId, workspaceId } = job.data;
     const campaign = await Campaign.findById(campaignId);
-    if (!campaign) throw new Error('Campaign not found');
+    if (!campaign) {
+      console.warn(`[CampaignWorker] Stale campaign-start job ${job.id}: campaign ${campaignId} not found. Discarding without retry.`);
+      return { skipped: true, reason: 'campaign_not_found' };
+    }
 
     // 1. Pre-flight Validation (Bridged)
     const preflight = await monolithWorkerBridge.preflightValidate(workspaceId, campaign.template.toString(), campaign.contacts?.length || 0);
@@ -133,7 +136,10 @@ export class CampaignWorker {
     const { batchId, campaignId, workspaceId } = job.data;
     const batch = await (CampaignBatch as any).findById(batchId);
     const campaign = await Campaign.findById(campaignId);
-    if (!batch || !campaign) throw new Error('Batch or Campaign not found');
+    if (!batch || !campaign) {
+      console.warn(`[CampaignWorker] Stale batch job ${job.id}: batch ${batchId} or campaign ${campaignId} not found. Discarding without retry.`);
+      return { skipped: true, reason: 'batch_or_campaign_not_found' };
+    }
 
     await (batch as any).markStarted();
     console.log(`[CampaignWorker] 📤 Processing batch ${batchId} index ${batch.batchIndex}...`);
