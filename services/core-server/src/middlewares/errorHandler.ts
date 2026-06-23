@@ -15,13 +15,18 @@ import { logger } from '../utils/logger';
  * forbidden / validation patterns are visible in the audit trail.
  */
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  const statusCode: number = err.statusCode || (err instanceof ApiError ? err.statusCode : 500);
+  const statusCode: number = err.statusCode || err.status || (err instanceof ApiError ? err.statusCode : 500);
 
-  logger.error(`${err.name || 'Error'}: ${err.message}`, {
+  const logContext = {
     statusCode,
     method: req.method,
     path: req.path,
-  });
+  };
+  if (statusCode >= 500) {
+    logger.error(`${err.name || 'Error'}: ${err.message}`, logContext);
+  } else {
+    logger.warn(`${err.name || 'Error'}: ${err.message}`, logContext);
+  }
 
   const workspaceId = (req as any).workspace?._id;
   const userId = (req as any).user?._id;
@@ -155,6 +160,23 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
       success: false,
       error: 'Token expired',
       errorCode: 'TOKEN_EXPIRED'
+    });
+  }
+
+  if (err.status || err.statusCode) {
+    const errorCode =
+      statusCode === 401 ? 'AUTH_ERROR' :
+      statusCode === 403 ? 'FORBIDDEN' :
+      statusCode === 404 ? 'NOT_FOUND' :
+      statusCode === 409 ? 'CONFLICT' :
+      statusCode >= 500 ? 'INTERNAL_ERROR' :
+      'REQUEST_ERROR';
+
+    return res.status(statusCode).json({
+      success: false,
+      error: err.message,
+      errorCode,
+      ...(process.env.NODE_ENV === 'development' && statusCode >= 500 && { stack: err.stack })
     });
   }
 

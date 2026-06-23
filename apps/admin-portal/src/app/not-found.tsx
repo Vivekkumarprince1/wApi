@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function NotFound() {
   return (
     <html lang="en">
@@ -7,12 +9,12 @@ export default function NotFound() {
           <p className="text-sm text-muted-foreground">
             The admin portal could not find the requested page.
           </p>
-          <a
+          <Link
             href="/"
             className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground"
           >
             Go to dashboard
-          </a>
+          </Link>
         </div>
       </body>
     </html>

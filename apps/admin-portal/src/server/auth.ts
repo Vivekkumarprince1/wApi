@@ -1,4 +1,5 @@
 import "server-only";
+import { webcrypto } from "crypto";
 import { cookies } from "next/headers";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -171,6 +172,6 @@ export const ADMIN_COOKIE_NAME = COOKIE_NAME;
 function randomId(): string {
   // 16 random bytes hex — good enough for a session/audit correlation id.
   const bytes = new Uint8Array(16);
-  (globalThis.crypto || require("crypto").webcrypto).getRandomValues(bytes);
+  (globalThis.crypto || webcrypto).getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }

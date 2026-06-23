@@ -116,7 +116,7 @@ const Banner = ({
 };
 
 export function SystemBanners() {
-  const { stage1Complete, wallet, user } = useAuthStore();
+  const { stage1Complete, wallet, user, systemStatus } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   
@@ -222,7 +222,6 @@ export function SystemBanners() {
   }
 
   // 4. System Notice
-  const { systemStatus } = useAuthStore();
   if (systemStatus?.systemNotice?.active) {
     addBanner({
       id: "system-notice",

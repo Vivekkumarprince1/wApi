@@ -1,4 +1,5 @@
 import "server-only";
+import { webcrypto } from "crypto";
 import { Types } from "mongoose";
 import { coreModels } from "./models";
 
@@ -114,6 +115,6 @@ export async function updateDocument(collection: string, id: string, update: Rec
 
 function randomToken(): string {
   const bytes = new Uint8Array(24);
-  (globalThis.crypto || require("crypto").webcrypto).getRandomValues(bytes);
+  (globalThis.crypto || webcrypto).getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }

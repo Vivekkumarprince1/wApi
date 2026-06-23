@@ -35,10 +35,8 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
 const ReactionsOverlay = React.memo(({ reactions, align = 'right' }: { reactions: any; align?: 'left' | 'right' }) => {
-  if (!reactions || Object.keys(reactions).length === 0) return null;
-
   const reactionItems = React.useMemo(() => {
-    const expandedItems = Object.entries(reactions)
+    const expandedItems = Object.entries(reactions ?? {})
       .filter(([, reaction]) => Boolean(reaction))
       .flatMap(([reactionKey, reaction]: [string, any]) => {
         const repeatCount = Math.max(1, Number(reaction?.count) || 1);
@@ -57,6 +55,8 @@ const ReactionsOverlay = React.memo(({ reactions, align = 'right' }: { reactions
 
     return expandedItems;
   }, [reactions]);
+
+  if (!reactions || Object.keys(reactions).length === 0) return null;
 
   const visibleItems = reactionItems.slice(0, 6);
   const overflowCount = reactionItems.length - visibleItems.length;
