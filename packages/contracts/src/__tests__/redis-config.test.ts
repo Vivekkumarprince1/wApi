@@ -3,6 +3,7 @@ import {
   assertRedisPolicy,
   REQUIRED_MAXMEMORY_POLICY,
   bullmqConnectionOptions,
+  resolveRedisUrl,
 } from '../redis-config';
 
 function test(name: string, fn: () => Promise<void> | void) {
@@ -108,4 +109,39 @@ test('assertRedisPolicy applies autoFix when requested', async () => {
   assert.equal(snapshot.ok, true);
   assert.equal(snapshot.autoFixed, true);
   assert.equal(client.policy, REQUIRED_MAXMEMORY_POLICY);
+});
+
+test('resolveRedisUrl prefers Valkey env vars and falls back to Redis env vars', () => {
+  const original = {
+    VALKEY_URL: process.env.VALKEY_URL,
+    VALKEY_URI: process.env.VALKEY_URI,
+    REDIS_URL: process.env.REDIS_URL,
+    REDIS_URI: process.env.REDIS_URI,
+  };
+
+  try {
+    delete process.env.VALKEY_URL;
+    delete process.env.VALKEY_URI;
+    delete process.env.REDIS_URL;
+    delete process.env.REDIS_URI;
+
+    process.env.REDIS_URL = 'redis://redis.example:6379';
+    assert.equal(resolveRedisUrl(), 'redis://redis.example:6379');
+
+    process.env.VALKEY_URL = 'redis://valkey.example:6379';
+    assert.equal(resolveRedisUrl(), 'redis://valkey.example:6379');
+
+    delete process.env.VALKEY_URL;
+    process.env.VALKEY_URI = 'rediss://valkey-uri.example:6380';
+    assert.equal(resolveRedisUrl(), 'rediss://valkey-uri.example:6380');
+  } finally {
+    for (const key of Object.keys(original) as Array<keyof typeof original>) {
+      const value = original[key];
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    }
+  }
 });

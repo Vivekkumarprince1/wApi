@@ -4,7 +4,7 @@ import IORedis from 'ioredis';
 import { Queue } from 'bullmq';
 import { config } from '../config';
 import { getSharedRedis } from '../utils/ioredis';
-import { QUEUE_NAMES } from '@wapi/contracts';
+import { QUEUE_NAMES, resolveRedisUrl } from '@wapi/contracts';
 
 export type ServiceHealth = {
   status: 'ok' | 'degraded' | 'down';
@@ -54,7 +54,7 @@ export class HealthService {
    * the health endpoint hang too.
    */
   static async checkRedis(): Promise<ServiceHealth> {
-    const redis = new IORedis(process.env.REDIS_URL as string, {
+    const redis = new IORedis(resolveRedisUrl(), {
       maxRetriesPerRequest: 0,
       connectTimeout: 2000,
       retryStrategy: () => null,

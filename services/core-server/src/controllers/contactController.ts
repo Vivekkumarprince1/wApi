@@ -9,6 +9,7 @@ import { InboxService } from '../services/messaging/inbox-service';
 import * as SocketService from '../services/socket-service';
 import { logActivity, getDifferences } from '../services/activity-logging-service';
 import { QUEUE_NAMES } from '@wapi/contracts';
+import { getSharedRedis } from '../utils/ioredis';
 
 export const contactController = {
   /**
@@ -253,7 +254,7 @@ export const contactController = {
       if (contacts.length > 50) {
         const { Queue } = await import('bullmq');
         const importQueue = new Queue(QUEUE_NAMES.IMPORT_JSON, {
-          connection: { host: process.env.REDIS_HOST || 'localhost', port: parseInt(process.env.REDIS_PORT || '6379') }
+          connection: getSharedRedis() as any
         });
         
         await importQueue.add('bulk-import', { 

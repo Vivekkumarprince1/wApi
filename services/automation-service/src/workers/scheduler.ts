@@ -2,6 +2,7 @@ import { Queue, Worker, Job } from 'bullmq';
 import IORedis from 'ioredis';
 import mongoose from 'mongoose';
 import { AutomationRule } from '../models';
+import { resolveRedisUrl } from '@wapi/contracts';
 
 /**
  * Automation Scheduler
@@ -23,12 +24,12 @@ import { AutomationRule } from '../models';
  *   shape stabilises.
  */
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const VALKEY_URL = resolveRedisUrl();
 const HEARTBEAT_QUEUE = 'automation-scheduler';
 const RUN_QUEUE = 'automation-engine-runs';
 
-const heartbeatConnection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
-const runConnection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
+const heartbeatConnection = new IORedis(VALKEY_URL, { maxRetriesPerRequest: null });
+const runConnection = new IORedis(VALKEY_URL, { maxRetriesPerRequest: null });
 
 const heartbeatQueue = new Queue(HEARTBEAT_QUEUE, { connection: heartbeatConnection as any });
 const runQueue = new Queue(RUN_QUEUE, {
@@ -112,7 +113,7 @@ export async function startScheduler() {
         console.error('[automation-scheduler] dispatchDueRules failed:', err?.message);
       }
     },
-    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) as any }
+    { connection: new IORedis(VALKEY_URL, { maxRetriesPerRequest: null }) as any }
   );
 
   // Placeholder run worker. Wire this to your real automation engine.
@@ -123,7 +124,7 @@ export async function startScheduler() {
       console.log(`[automation-scheduler] run-rule fired ruleId=${ruleId} workspaceId=${workspaceId}`);
       // TODO: import and call WorkflowService.execute(rule) once it accepts a ruleId entrypoint.
     },
-    { connection: new IORedis(REDIS_URL, { maxRetriesPerRequest: null }) as any }
+    { connection: new IORedis(VALKEY_URL, { maxRetriesPerRequest: null }) as any }
   );
 
   console.log('[automation-scheduler] started — heartbeat every 60s');

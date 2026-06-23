@@ -1,6 +1,6 @@
 "use strict";
 /**
- * Shared Redis configuration validator + connection helpers.
+ * Shared Redis/Valkey configuration validator + connection helpers.
  *
  * Every service was independently constructing `new IORedis(...)` with
  * subtly different options. That meant:
@@ -119,11 +119,15 @@ function bullmqConnectionOptions() {
     };
 }
 /**
- * Suggest a Redis URL from env, with a sensible fallback. Centralised
- * here so every service uses the same logic.
+ * Suggest a Redis-compatible URL from env, with a sensible fallback.
+ * Valkey speaks the Redis protocol, so ioredis/BullMQ still use a
+ * redis:// or rediss:// URL. Prefer VALKEY_* while keeping REDIS_* as a
+ * compatibility fallback for older deployments.
  */
 function resolveRedisUrl() {
-    return (process.env.REDIS_URL ||
+    return (process.env.VALKEY_URL ||
+        process.env.VALKEY_URI ||
+        process.env.REDIS_URL ||
         process.env.REDIS_URI ||
         'redis://127.0.0.1:6379');
 }

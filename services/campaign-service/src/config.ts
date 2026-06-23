@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { resolveRedisUrl } from '@wapi/contracts';
 dotenv.config();
 
 const jwtSecret = process.env.JWT_SECRET;
@@ -15,7 +16,7 @@ if (!internalServiceSecret) {
 export const config = {
   port: process.env.PORT || 3002,
   mongodbUri: process.env.MONGODB_URI_CAMPAIGN || 'mongodb://localhost:27017/wa_campaigns',
-  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  redisUrl: resolveRedisUrl(),
   billingServiceUrl: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
   monolithUrl: process.env.MONOLITH_URL || 'http://localhost:3000',
   jwtSecret,

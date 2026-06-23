@@ -1,7 +1,7 @@
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 import jwt from 'jsonwebtoken';
-import { bullmqConnectionOptions } from '@wapi/contracts';
+import { bullmqConnectionOptions, resolveRedisUrl } from '@wapi/contracts';
 import { User, Permission, Conversation } from '../models';
 import { setIO } from './socket-bridge';
 import { getSharedConnection } from '../utils/ioredis';
@@ -18,7 +18,7 @@ class MicroserviceEventBridge {
 
   constructor(ioServer: SocketIOServer) {
     this.ioServer = ioServer;
-    const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+    const redisUrl = resolveRedisUrl();
     this.subRedis = new Redis(redisUrl, bullmqConnectionOptions());
     this.subRedis.on('error', (err) => {
       console.error('[EventBridge] Redis Subscription Error:', err);
@@ -136,7 +136,7 @@ export function initSocketServer(httpServer: any) {
   });
 
   const pubClient = getSharedConnection();
-  const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+  const redisUrl = resolveRedisUrl();
   const subClient = new Redis(redisUrl, bullmqConnectionOptions());
   subClient.on('error', (err) => {
     console.error('[Redis SubClient] Error:', err.message || err);

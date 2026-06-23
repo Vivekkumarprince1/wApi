@@ -5,9 +5,9 @@ import {
   resolveRedisUrl,
 } from '@wapi/contracts';
 
-const REDIS_URL = process.env.REDIS_URL || resolveRedisUrl();
+const VALKEY_URL = resolveRedisUrl();
 
-const redis = new IORedis(REDIS_URL, {
+const redis = new IORedis(VALKEY_URL, {
   ...bullmqConnectionOptions(),
   family: 4,
 });

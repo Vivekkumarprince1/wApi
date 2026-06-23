@@ -41,8 +41,11 @@ import internalRoutes from './routes/internalRoutes';
 import compatRoutes from './routes/compatRoutes';
 
 // --- STARTUP GUARDS ---
-const requiredEnv = ['JWT_SECRET', 'MONGODB_URI', 'REDIS_URL', 'INTERNAL_SERVICE_SECRET'];
+const requiredEnv = ['JWT_SECRET', 'MONGODB_URI', 'INTERNAL_SERVICE_SECRET'];
 const missingEnv = requiredEnv.filter(key => !process.env[key]);
+if (!process.env.VALKEY_URL && !process.env.VALKEY_URI && !process.env.REDIS_URL && !process.env.REDIS_URI) {
+  missingEnv.push('VALKEY_URL (or REDIS_URL)');
+}
 
 if (missingEnv.length > 0) {
   console.error(`\x1b[41m\x1b[37m FATAL: Missing required environment variables: ${missingEnv.join(', ')} \x1b[0m`);
@@ -139,7 +142,7 @@ app.use('/api/internal', internalRoutes);
 
 import { HealthService } from './services/health-service';
 import { getSharedConnection, ensureRedisPolicy } from './utils/ioredis';
-import { readMaxMemoryPolicy, REQUIRED_MAXMEMORY_POLICY } from '@wapi/contracts';
+import { readMaxMemoryPolicy, REQUIRED_MAXMEMORY_POLICY, resolveRedisUrl } from '@wapi/contracts';
 
 app.get('/health', async (req, res) => {
   const report = await HealthService.getFullReport();
@@ -178,7 +181,7 @@ app.get('/health/redis', async (_req, res) => {
       policy,
       required: REQUIRED_MAXMEMORY_POLICY,
       ok,
-      url: (process.env.REDIS_URL || '').replace(/:[^:@\/]*@/, ':***@'),
+      url: resolveRedisUrl().replace(/:[^:@\/]*@/, ':***@'),
     });
   } catch (err: any) {
     res.status(503).json({ ok: false, error: err?.message || String(err) });

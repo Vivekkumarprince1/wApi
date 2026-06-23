@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
+import { resolveRedisUrl } from '@wapi/contracts';
 
-const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const redisUrl = resolveRedisUrl();
 
 export const redis = new Redis(redisUrl);
 

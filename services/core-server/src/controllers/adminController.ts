@@ -6,6 +6,7 @@ import { signToken } from '../utils/auth-utils';
 import mongoose from 'mongoose';
 import { proxyController } from './proxyController';
 import { AccountDeletionService } from '../services/auth/account-deletion-service';
+import { resolveRedisUrl } from '@wapi/contracts';
 
 export const adminController = {
   /**
@@ -1203,7 +1204,7 @@ export const adminController = {
           return res.status(500).json({ success: false, message: "Socket service not available" });
         }
         case 'clear-cache': {
-          const redis = new (await import('ioredis')).default(process.env.REDIS_URL as string);
+          const redis = new (await import('ioredis')).default(resolveRedisUrl());
           await redis.flushall();
           redis.disconnect();
           return res.json({ success: true, message: "Platform cache purged successfully across all node clusters." });
@@ -1244,7 +1245,7 @@ export const adminController = {
           await settings.save();
 
           // Force purge all sessions from Redis
-          const redis = new (await import('ioredis')).default(process.env.REDIS_URL as string);
+          const redis = new (await import('ioredis')).default(resolveRedisUrl());
           await redis.flushall();
           redis.disconnect();
 
@@ -1323,7 +1324,7 @@ export const adminController = {
 
       // Get additional metrics
       const dbStats = await mongoose.connection.db?.stats();
-      const redis = new (await import('ioredis')).default(process.env.REDIS_URL as string);
+      const redis = new (await import('ioredis')).default(resolveRedisUrl());
       let redisInfo;
       try {
         redisInfo = await redis.info();

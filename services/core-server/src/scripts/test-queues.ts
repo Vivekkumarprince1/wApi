@@ -10,9 +10,8 @@ dotenv.config({ path: path.join(__dirname, '../../../.env') });
 async function run() {
   console.log("Checking Queue monitoring health preflight...");
   try {
-    const redisUrl = process.env.REDIS_URL;
-    if (!redisUrl) {
-      console.warn("REDIS_URL not found in env! Using default redis://localhost:6379");
+    if (!process.env.VALKEY_URL && !process.env.REDIS_URL) {
+      console.warn("VALKEY_URL/REDIS_URL not found in env! Using default redis://localhost:6379");
     }
 
     console.log("Running HealthService.checkQueues()...");

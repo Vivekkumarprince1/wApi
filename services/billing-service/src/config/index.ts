@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import { resolveRedisUrl } from '@wapi/contracts';
 dotenv.config();
 
 const jwtSecret = process.env.JWT_SECRET || '';
@@ -15,7 +16,7 @@ if (!internalServiceSecret) {
 export const config = {
   port: process.env.PORT || 3003,
   mongodbUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/wapi_billing',
-  redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+  redisUrl: resolveRedisUrl(),
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
   razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',

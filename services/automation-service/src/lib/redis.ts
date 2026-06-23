@@ -5,7 +5,7 @@ import {
   resolveRedisUrl,
 } from '@wapi/contracts';
 
-const redisUrl = process.env.REDIS_URL || resolveRedisUrl();
+const redisUrl = resolveRedisUrl();
 
 export const redisClient = new IORedis(redisUrl, bullmqConnectionOptions());
 

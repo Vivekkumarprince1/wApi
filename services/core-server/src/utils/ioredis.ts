@@ -5,7 +5,7 @@ import {
   resolveRedisUrl,
 } from '@wapi/contracts';
 
-const redisUrl = process.env.REDIS_URL || resolveRedisUrl();
+const redisUrl = resolveRedisUrl();
 
 const baseOptions: RedisOptions = {
   ...bullmqConnectionOptions(),

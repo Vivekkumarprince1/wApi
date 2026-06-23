@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { resolveRedisUrl } from '@wapi/contracts';
 
 /**
  * CONFIGuration
@@ -21,7 +22,7 @@ export const config = {
   port: parseInt(process.env.PORT || '3000', 10),
   mongoUri: process.env.MONGODB_URI || 'mongodb://localhost:27017/wa_saas',
   jwtSecret: _jwtSecret || 'dev-only-insecure-key-change-me',
-  redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+  redisUrl: resolveRedisUrl(),
   baseUrl: process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000',
   socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000',
   

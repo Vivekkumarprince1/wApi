@@ -2,9 +2,10 @@ import { Segment } from '../models';
 import { monolithWorkerBridge } from '../lib/monolith-worker-client';
 import { Types } from 'mongoose';
 import IORedis from 'ioredis';
+import { resolveRedisUrl } from '@wapi/contracts';
 import crypto from 'crypto';
 
-const redis = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379');
+const redis = new IORedis(resolveRedisUrl());
 
 export class SegmentService {
   /**

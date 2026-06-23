@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import { resolveRedisUrl } from '@wapi/contracts';
 import { proxyController } from '../../controllers/proxyController';
 
 /**
@@ -7,10 +8,10 @@ import { proxyController } from '../../controllers/proxyController';
  * This is the official bridge from the Monolith to the Automation Microservice.
  * Now hardened with circuit breakers and retries via proxyController.
  */
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const VALKEY_URL = resolveRedisUrl();
 
 // Initialize the queue
-const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
+const connection = new IORedis(VALKEY_URL, { maxRetriesPerRequest: null });
 connection.on('error', (err) => {
   console.error('[AutomationClient] Redis Error:', err.message || err);
 });

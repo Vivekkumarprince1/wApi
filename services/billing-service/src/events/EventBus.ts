@@ -4,8 +4,8 @@ import { LedgerService } from '../services/LedgerService';
 import { config } from '../config/index';
 import { QUEUE_NAMES } from '@wapi/contracts';
 
-const REDIS_URL = config.redisUrl || 'redis://localhost:6379';
-const connection = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
+const VALKEY_URL = config.redisUrl;
+const connection = new Redis(VALKEY_URL, { maxRetriesPerRequest: null });
 
 // Queues
 export const billingEventsQueue = new Queue(QUEUE_NAMES.BILLING_EVENTS, { connection: connection as any });
