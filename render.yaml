@@ -1,5 +1,3 @@
-# Render injects PORT for Docker web services. Do not copy local PORT or
-# BACKEND_PORT values here; each container must bind to Render's PORT.
 envVarGroups:
   - name: wapi-shared-auth
     envVars:
@@ -18,18 +16,6 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
-      - key: ALLOWED_ORIGINS
-        value: https://wapi-customer-portal.onrender.com,https://wapi-admin-portal.onrender.com
-      - key: CORE_SERVER_URL
-        value: https://wapi-core-server.onrender.com
-      - key: WEBSOCKET_SERVICE_URL
-        value: https://wapi-websocket-service.onrender.com
-      - key: AUTOMATION_SERVICE_URL
-        value: https://wapi-automation-service.onrender.com
-      - key: CAMPAIGN_SERVICE_URL
-        value: https://wapi-campaign-service.onrender.com
-      - key: BILLING_SERVICE_URL
-        value: https://wapi-billing-service.onrender.com
 
   - type: web
     name: wapi-core-server
@@ -40,66 +26,6 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
-      - key: NODE_ENV
-        value: production
-      - key: MONGODB_URI
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: CORE_WORKER_PROFILE
-        value: webhooks
-      - key: AUTOMATION_SERVICE_URL
-        value: https://wapi-automation-service.onrender.com
-      - key: CAMPAIGN_SERVICE_URL
-        value: https://wapi-campaign-service.onrender.com
-      - key: BILLING_SERVICE_URL
-        value: https://wapi-billing-service.onrender.com
-      - key: GOOGLE_CLIENT_ID
-        sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-      - key: GUPSHUP_PARTNER_EMAIL
-        sync: false
-      - key: GUPSHUP_PARTNER_CLIENT_SECRET
-        sync: false
-      - key: GUPSHUP_PARTNER_BASE_URL
-        value: https://partner.gupshup.io
-      - key: GUPSHUP_API_BASE_URL
-        value: https://api.gupshup.io
-      - key: ESB_CALLBACK_URL
-        sync: false
-      - key: WHATSAPP_WEBHOOK_URL
-        value: https://wapi-api-gateway.onrender.com/api/webhooks/whatsapp
-      - key: CLOUDINARY_URL
-        sync: false
-      - key: EMAIL_FROM
-        sync: false
-      - key: APP_NAME
-        value: wApi
-      - key: EMAIL_SERVICE
-        value: gmail
-      - key: EMAIL_USER
-        sync: false
-      - key: EMAIL_PASS
-        sync: false
-      - key: BUSINESS_VERIFICATION_MANDATORY
-        value: "false"
-      - key: BUSINESS_VERIFICATION_PROVIDER
-        value: hybrid
-      - key: CLEARTAX_API_KEY
-        sync: false
-      - key: KARZA_API_KEY
-        sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_SENDER_PHONE
-        sync: false
-      - key: MSG91_AUTH_KEY
-        sync: false
-      - key: MSG91_OTP_TEMPLATE_ID
-        sync: false
 
   - type: web
     name: wapi-automation-service
@@ -110,16 +36,6 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
-      - key: NODE_ENV
-        value: production
-      - key: MONGODB_URI_AUTOMATION
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: AI_GEMINI_KEY
-        sync: false
-      - key: MONOLITH_URL
-        value: https://wapi-api-gateway.onrender.com
 
   - type: web
     name: wapi-campaign-service
@@ -130,16 +46,6 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
-      - key: NODE_ENV
-        value: production
-      - key: MONGODB_URI_CAMPAIGN
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: MONOLITH_URL
-        value: https://wapi-api-gateway.onrender.com
-      - key: BILLING_SERVICE_URL
-        value: https://wapi-billing-service.onrender.com
 
   - type: web
     name: wapi-billing-service
@@ -150,33 +56,3 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
-      - key: NODE_ENV
-        value: production
-      - key: MONGODB_URI
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: RAZORPAY_KEY_ID
-        sync: false
-      - key: RAZORPAY_KEY_SECRET
-        sync: false
-      - key: RAZORPAY_WEBHOOK_SECRET
-        sync: false
-      - key: MONOLITH_URL
-        value: https://wapi-api-gateway.onrender.com
-
-  - type: web
-    name: wapi-websocket-service
-    runtime: docker
-    plan: free
-    dockerContext: .
-    dockerfilePath: services/websocket-service/Dockerfile
-    healthCheckPath: /live
-    envVars:
-      - fromGroup: wapi-shared-auth
-      - key: REDIS_URL
-        sync: false
-      - key: CORE_SERVER_URL
-        value: https://wapi-core-server.onrender.com
-      - key: ALLOWED_ORIGINS
-        value: https://wapi-customer-portal.onrender.com,https://wapi-admin-portal.onrender.com
