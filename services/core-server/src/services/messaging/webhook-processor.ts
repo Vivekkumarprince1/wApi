@@ -13,6 +13,7 @@ import { QUEUE_NAMES } from '@wapi/contracts';
  * Webhook Processor
  */
 
+const connection = getConnectionForWorker('webhookProcessor');
 const globalWebhook = global as unknown as { webhookWorkerInstance?: Worker };
 
 export const initWebhookWorker = () => {
@@ -57,7 +58,7 @@ export const initWebhookWorker = () => {
         throw error;
       }
     },
-    { connection: getConnectionForWorker('webhookProcessor') as any }
+    { connection: connection as any }
   );
 
   globalWebhook.webhookWorkerInstance.on('error', (err) => {

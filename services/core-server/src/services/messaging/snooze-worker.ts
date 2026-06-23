@@ -5,6 +5,8 @@ import { getIO } from "../socket-bridge";
 import { getConnectionForWorker } from '../../utils/ioredis';
 import { QUEUE_NAMES } from '@wapi/contracts';
 
+const connection = getConnectionForWorker('snoozeWorker');
+
 /**
  * SNOOZE WORKER
  * 
@@ -18,7 +20,7 @@ export class SnoozeWorker {
     // We use a regular BullMQ worker structure, but we also initiate a local timer
     // to periodically "pulse" the check if we aren't using a separate scheduler.
     this.worker = new Worker(QUEUE_NAMES.SNOOZE, this.processJob.bind(this), {
-      connection: getConnectionForWorker('snoozeWorker') as any,
+      connection: connection as any,
     });
     this.worker.on('error', (err) => {
       console.error('[SnoozeWorker] Worker error:', err?.message || err);

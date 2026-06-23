@@ -1,22 +1,17 @@
 import { Queue } from 'bullmq';
+import IORedis from 'ioredis';
 import { proxyController } from '../../controllers/proxyController';
-import { getSharedConnection } from '../../utils/ioredis';
 
 /**
  * AUTOMATION MICROSERVICE CLIENT
  * This is the official bridge from the Monolith to the Automation Microservice.
  * Now hardened with circuit breakers and retries via proxyController.
  */
-let automationQueue: Queue | null = null;
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
-function getAutomationQueue() {
-  if (!automationQueue) {
-    automationQueue = new Queue('automation-triggers', {
-      connection: getSharedConnection() as any,
-    });
-  }
-  return automationQueue;
-}
+// Initialize the queue
+const connection = new IORedis(REDIS_URL, { maxRetriesPerRequest: null });
+const automationQueue = new Queue('automation-triggers', { connection: connection as any });
 
 export class AutomationClient {
   /**
@@ -48,7 +43,7 @@ export class AutomationClient {
       });
 
       // 2. Enqueue for background processing (the BullMQ worker in main-server)
-      await getAutomationQueue().add('inbound_message', {
+      await automationQueue.add('inbound_message', {
         type: 'message_received',
         workspaceId: data.workspaceId,
         payload: {
@@ -72,7 +67,7 @@ export class AutomationClient {
   static async triggerEvent(workspaceId: string, event: string, data: any) {
     try {
       // 1. Enqueue for background processing
-      await getAutomationQueue().add('event_trigger', {
+      await automationQueue.add('event_trigger', {
         type: event,
         workspaceId,
         payload: data
