@@ -11,6 +11,25 @@ import { getSharedRedis } from '../utils/ioredis';
 // for rate limiting (the shared client also has an error handler wired).
 const redis = getSharedRedis();
 
+const RATE_LIMIT_REDIS_TIMEOUT_MS = Number(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || 750);
+
+async function withRedisTimeout<T>(operation: Promise<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => {
+          reject(new Error(`${label} timed out after ${RATE_LIMIT_REDIS_TIMEOUT_MS}ms`));
+        }, RATE_LIMIT_REDIS_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /**
  * Simple rate limiter using Redis
  */
@@ -36,11 +55,11 @@ export const rateLimit = (options: {
       }
 
       const key = `rate-limit:${keyGenerator(req)}`;
-      const current = await redis.incr(key);
+      const current = await withRedisTimeout(redis.incr(key), 'rate-limit incr');
 
       if (current === 1) {
         // Set expiration on first request
-        await redis.expire(key, Math.ceil(windowMs / 1000));
+        await withRedisTimeout(redis.expire(key, Math.ceil(windowMs / 1000)), 'rate-limit expire');
       }
 
       // Store in response for later use
@@ -170,7 +189,7 @@ export const distributedRateLimit = (options: {
       const pipeline = redis.pipeline();
       pipeline.incr(key);
       pipeline.expire(key, Math.ceil(windowMs / 1000));
-      const results = await pipeline.exec();
+      const results = await withRedisTimeout(pipeline.exec(), 'distributed-rate-limit pipeline');
       
       const current = (results?.[0]?.[1] as number) || 0;
 

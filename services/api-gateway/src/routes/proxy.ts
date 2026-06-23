@@ -158,7 +158,7 @@ export const registerProxyRoutes = (fastify: FastifyInstance) => {
       automation: config.automationServiceUrl,
       campaign: config.campaignServiceUrl,
       billing: config.billingServiceUrl,
-      websocket: config.websocketServiceUrl,
+      websocket: config.coreServerUrl,
     };
     
     const targetUrl = serviceUrlMap[service];

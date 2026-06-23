@@ -1,6 +1,7 @@
 import 'dotenv/config';
 
 import crypto from 'crypto';
+import { createServer } from 'http';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -10,6 +11,7 @@ import cookieParser from 'cookie-parser';
 
 import { initWorkers } from './services/worker-registry';
 import { initSocketEmitter } from './services/socket-emitter';
+import { initSocketServer } from './services/socket-server';
 import { authRateLimit, apiRateLimit, bulkRateLimit } from './middlewares/rateLimitMiddleware';
 import { correlationIdMiddleware, logger } from './utils/logger';
 import authRoutes from './routes/authRoutes';
@@ -59,6 +61,7 @@ const internalSecretFingerprint = crypto
 console.log(`[Main Server] INTERNAL_SERVICE_SECRET fingerprint: ${internalSecretFingerprint}`);
 
 const app = express();
+const httpServer = createServer(app);
 const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5005", 10);
 console.log(`[Main Server] Configured port: ${port} (BACKEND_PORT=${process.env.BACKEND_PORT}, PORT=${process.env.PORT})`);
 
@@ -236,9 +239,10 @@ async function startServer() {
 
     initWorkers();
     initSocketEmitter();
-    console.log("[Main Server] Background workers and socket emitter initialized.");
+    initSocketServer(httpServer);
+    console.log("[Main Server] Background workers, socket emitter, and socket server initialized.");
 
-    app.listen(port, '0.0.0.0', () => {
+    httpServer.listen(port, '0.0.0.0', () => {
       clearTimeout(startupTimeout);
       console.log(`\x1b[32m[Main Server] Running at http://0.0.0.0:${port}\x1b[0m`);
       const { getAuthCookieOptions } = require('./utils/auth-utils');

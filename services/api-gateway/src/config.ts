@@ -12,7 +12,7 @@ const configSchema = z.object({
     .default('http://localhost:3000,http://127.0.0.1:3000')
     .transform((str) => str.split(',')),
   coreServerUrl: z.string().url().default('http://localhost:5005'),
-  websocketServiceUrl: z.string().url().default('http://localhost:4000'),
+  websocketServiceUrl: z.string().url().default('http://localhost:5005'),
   automationServiceUrl: z.string().url().default('http://localhost:3001'),
   campaignServiceUrl: z.string().url().default('http://localhost:3002'),
   billingServiceUrl: z.string().url().default('http://localhost:3003'),
@@ -24,7 +24,7 @@ const result = configSchema.safeParse({
   internalServiceSecret: process.env.INTERNAL_SERVICE_SECRET,
   allowedOrigins: process.env.ALLOWED_ORIGINS,
   coreServerUrl: process.env.CORE_SERVER_URL,
-  websocketServiceUrl: process.env.WEBSOCKET_SERVICE_URL,
+  websocketServiceUrl: process.env.WEBSOCKET_SERVICE_URL || process.env.CORE_SERVER_URL,
   automationServiceUrl: process.env.AUTOMATION_SERVICE_URL,
   campaignServiceUrl: process.env.CAMPAIGN_SERVICE_URL,
   billingServiceUrl: process.env.BILLING_SERVICE_URL,

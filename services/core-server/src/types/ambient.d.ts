@@ -38,3 +38,12 @@ declare module '@/models-admin/WebhookPolicy' {
   const anyExport: any;
   export = anyExport;
 }
+
+declare module 'socket.io' {
+  export const Server: any;
+  export type Server = any;
+}
+
+declare module '@socket.io/redis-adapter' {
+  export function createAdapter(pubClient: any, subClient: any, opts?: any): any;
+}
