@@ -31,6 +31,49 @@ const parseCookies = (cookieHeader: string | undefined): Record<string, string> 
   return cookies;
 };
 
+const getBearerToken = (authorization: string | undefined) =>
+  authorization?.startsWith('Bearer ') ? authorization.slice('Bearer '.length) : undefined;
+
+async function resolveUserFromCoreSession(request: FastifyRequest, reply: FastifyReply) {
+  const cookie = request.headers.cookie;
+  const authorization = request.headers.authorization;
+  if (!cookie && !authorization) return false;
+
+  const response = await fetch(`${config.coreServerUrl}/api/v1/auth/session`, {
+    method: 'GET',
+    headers: {
+      ...(cookie ? { cookie } : {}),
+      ...(authorization ? { authorization } : {}),
+      'x-correlation-id':
+        (request.headers['x-correlation-id'] as string) ||
+        `corr_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
+    },
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({
+      success: false,
+      error: 'UNAUTHORIZED',
+      message: 'Core session validation failed',
+    }));
+    reply.status(response.status).send(body);
+    return true;
+  }
+
+  const session = await response.json().catch(() => null);
+  const userId = session?.user?.id || session?.user?._id;
+  if (!session?.authenticated || !userId) return false;
+
+  const sessionRole = session?.workspace?.role || session?.user?.role;
+  request.user = {
+    id: String(userId),
+    workspaceId: session?.workspace?.id || session?.workspace?._id,
+    role: sessionRole ? normalizeRole(sessionRole) : undefined,
+    isImpersonating: !!session?.isImpersonating,
+  };
+  return true;
+}
+
 /**
  * Fastify preHandler hook to perform stateless JWT validation.
  * Rejects with 401 if token is missing or invalid.
@@ -38,9 +81,10 @@ const parseCookies = (cookieHeader: string | undefined): Record<string, string> 
 export const authenticateGateway = async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const cookies = parseCookies(request.headers.cookie);
-    const token = cookies['auth_token'] || request.headers.authorization?.split(' ')[1];
+    const token = cookies['auth_token'] || getBearerToken(request.headers.authorization);
 
     if (!token) {
+      if (await resolveUserFromCoreSession(request, reply)) return;
       return reply.status(401).send({
         success: false,
         error: 'UNAUTHORIZED',
@@ -48,8 +92,16 @@ export const authenticateGateway = async (request: FastifyRequest, reply: Fastif
       });
     }
 
-    const decoded = jwt.verify(token, config.jwtSecret) as any;
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, config.jwtSecret) as any;
+    } catch {
+      if (await resolveUserFromCoreSession(request, reply)) return;
+      throw new Error('Token validation failed');
+    }
+
     if (!decoded || !decoded.id) {
+      if (await resolveUserFromCoreSession(request, reply)) return;
       return reply.status(401).send({
         success: false,
         error: 'UNAUTHORIZED',
