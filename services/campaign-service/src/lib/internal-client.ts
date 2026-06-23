@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const MONOLITH_URL = process.env.MONOLITH_URL || 'http://localhost:3000';
+const MONOLITH_URL = (process.env.MONOLITH_URL || 'http://localhost:3000').replace(/\/+$/, '');
 const INTERNAL_SERVICE_SECRET = process.env.INTERNAL_SERVICE_SECRET || 'your-service-secret';
 
 /**

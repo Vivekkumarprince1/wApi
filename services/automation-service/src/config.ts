@@ -13,7 +13,11 @@ if (!internalServiceSecret) {
   throw new Error('FATAL: INTERNAL_SERVICE_SECRET environment variable is required for automation-service.');
 }
 
-const monolithInternalUrl = process.env.MONOLITH_INTERNAL_URL || process.env.MONOLITH_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001');
+const monolithInternalUrl = (
+  process.env.MONOLITH_INTERNAL_URL ||
+  process.env.MONOLITH_URL ||
+  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5001')
+).replace(/\/+$/, '');
 
 if (!monolithInternalUrl) {
   throw new Error('FATAL: MONOLITH_URL environment variable is required for automation-service.');

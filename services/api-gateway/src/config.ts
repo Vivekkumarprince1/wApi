@@ -3,6 +3,8 @@ import { z } from 'zod';
 
 dotenv.config();
 
+const serviceUrl = z.string().url().transform((url) => url.replace(/\/+$/, ''));
+
 const configSchema = z.object({
   port: z.coerce.number().default(5001),
   jwtSecret: z.string().min(1, 'JWT_SECRET is required'),
@@ -11,11 +13,11 @@ const configSchema = z.object({
     .string()
     .default('http://localhost:3000,http://127.0.0.1:3000')
     .transform((str) => str.split(',')),
-  coreServerUrl: z.string().url().default('http://localhost:5005'),
-  websocketServiceUrl: z.string().url().default('http://localhost:5005'),
-  automationServiceUrl: z.string().url().default('http://localhost:3001'),
-  campaignServiceUrl: z.string().url().default('http://localhost:3002'),
-  billingServiceUrl: z.string().url().default('http://localhost:3003'),
+  coreServerUrl: serviceUrl.default('http://localhost:5005'),
+  websocketServiceUrl: serviceUrl.default('http://localhost:5005'),
+  automationServiceUrl: serviceUrl.default('http://localhost:3001'),
+  campaignServiceUrl: serviceUrl.default('http://localhost:3002'),
+  billingServiceUrl: serviceUrl.default('http://localhost:3003'),
 });
 
 const result = configSchema.safeParse({

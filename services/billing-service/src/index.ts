@@ -21,6 +21,13 @@ const internalSecretFingerprint = crypto
 console.log(`[Billing Service] INTERNAL_SERVICE_SECRET fingerprint: ${internalSecretFingerprint}`);
 
 const app = express();
+
+app.use((req, _res, next) => {
+  // Normalize malformed proxy paths like //api/... so mounted routes still match.
+  req.url = req.url.replace(/^\/{2,}/, '/');
+  next();
+});
+
 app.use(helmet());
 app.use(cors());
 app.use(express.json({
@@ -45,6 +52,10 @@ app.use((req, res, next) => {
 app.use('/api/billing/wallets', walletRoutes);
 app.use('/api/billing/webhooks', webhookRoutes);
 app.use('/api/billing/commerce', commerceRoutes);
+
+app.get('/', (_req, res) => {
+  res.json({ status: 'ok', service: 'billing-service', uptime: process.uptime() });
+});
 
 app.get('/health', async (req, res) => {
   const dbState = mongoose.connection.readyState;

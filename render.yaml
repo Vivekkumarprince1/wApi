@@ -47,6 +47,12 @@ services:
           type: keyvalue
           name: wapi-valkey
           property: connectionString
+      - key: AUTOMATION_SERVICE_URL
+        value: https://wapi-automation-service.onrender.com
+      - key: CAMPAIGN_SERVICE_URL
+        value: https://wapi-campaign-service.onrender.com
+      - key: BILLING_SERVICE_URL
+        value: https://wapi-billing-service.onrender.com
 
   - type: web
     name: wapi-automation-service
@@ -62,6 +68,8 @@ services:
           type: keyvalue
           name: wapi-valkey
           property: connectionString
+      - key: MONOLITH_URL
+        value: https://wapi-core-server.onrender.com
 
   - type: web
     name: wapi-campaign-service
@@ -77,6 +85,10 @@ services:
           type: keyvalue
           name: wapi-valkey
           property: connectionString
+      - key: MONOLITH_URL
+        value: https://wapi-core-server.onrender.com
+      - key: BILLING_SERVICE_URL
+        value: https://wapi-billing-service.onrender.com
 
   - type: web
     name: wapi-billing-service
@@ -92,3 +104,5 @@ services:
           type: keyvalue
           name: wapi-valkey
           property: connectionString
+      - key: MONOLITH_URL
+        value: https://wapi-core-server.onrender.com

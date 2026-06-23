@@ -32,7 +32,7 @@ export default async function middleware(request: NextRequest) {
   }
 
   if (token) {
-    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:5001';
+    const backendUrl = (process.env.BACKEND_API_URL || 'http://localhost:5001').replace(/\/+$/, '');
     const sessionUrl = `${backendUrl}/api/v1/auth/session`;
 
     try {

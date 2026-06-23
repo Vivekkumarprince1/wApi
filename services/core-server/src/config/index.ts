@@ -17,6 +17,10 @@ if (!_internalServiceSecret) {
   throw new Error('FATAL: INTERNAL_SERVICE_SECRET environment variable is required.');
 }
 
+function serviceUrl(value: string) {
+  return value.replace(/\/+$/, '');
+}
+
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3000', 10),
@@ -90,9 +94,9 @@ export const config = {
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '',
 
   // Microservices
-  billingServiceUrl: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
-  campaignServiceUrl: process.env.CAMPAIGN_SERVICE_URL || 'http://localhost:3002',
-  automationServiceUrl: process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001',
+  billingServiceUrl: serviceUrl(process.env.BILLING_SERVICE_URL || 'http://localhost:3003'),
+  campaignServiceUrl: serviceUrl(process.env.CAMPAIGN_SERVICE_URL || 'http://localhost:3002'),
+  automationServiceUrl: serviceUrl(process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001'),
   internalServiceSecret: _internalServiceSecret,
 
   appName: process.env.NEXT_PUBLIC_APP_NAME || 'wApi',

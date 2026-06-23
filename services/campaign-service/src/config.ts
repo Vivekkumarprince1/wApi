@@ -13,12 +13,16 @@ if (!internalServiceSecret) {
   throw new Error('FATAL: INTERNAL_SERVICE_SECRET environment variable is required for campaign-service.');
 }
 
+function serviceUrl(value: string) {
+  return value.replace(/\/+$/, '');
+}
+
 export const config = {
   port: process.env.PORT || 3002,
   mongodbUri: process.env.MONGODB_URI_CAMPAIGN || 'mongodb://localhost:27017/wa_campaigns',
   redisUrl: resolveRedisUrl(),
-  billingServiceUrl: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
-  monolithUrl: process.env.MONOLITH_URL || 'http://localhost:3000',
+  billingServiceUrl: serviceUrl(process.env.BILLING_SERVICE_URL || 'http://localhost:3003'),
+  monolithUrl: serviceUrl(process.env.MONOLITH_URL || 'http://localhost:3000'),
   jwtSecret,
   internalServiceSecret,
 };

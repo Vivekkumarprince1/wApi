@@ -23,6 +23,12 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 // Middleware
+app.use((req, _res, next) => {
+  // Normalize malformed proxy paths like //api/... so mounted routes still match.
+  req.url = req.url.replace(/^\/{2,}/, '/');
+  next();
+});
+
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
@@ -76,6 +82,10 @@ app.use('/api/campaign', campaignRoutes);
 app.use('/api/campaign', segmentRoutes);
 
 // Health Check
+app.get('/', (_req, res) => {
+  res.json({ status: 'ok', service: 'campaign-service', uptime: process.uptime() });
+});
+
 app.get('/health', (req, res) => {
   const dbState = mongoose.connection.readyState;
   const dbStatus = dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected';
