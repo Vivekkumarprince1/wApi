@@ -59,6 +59,7 @@ export class HealthService {
       connectTimeout: 2000,
       retryStrategy: () => null,
     });
+    redis.on('error', () => {}); // silence connection errors since we catch ping
 
     const start = Date.now();
     try {

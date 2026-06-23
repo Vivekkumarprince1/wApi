@@ -19,6 +19,9 @@ function getOnboardingLockRedis() {
       enableOfflineQueue: false,
       lazyConnect: true,
     });
+    onboardingLockRedis.on('error', (err) => {
+      console.error('[GupshupOnboardingLockRedis] Redis Error:', err.message || err);
+    });
   }
   return onboardingLockRedis;
 }
