@@ -1,12 +1,11 @@
 import { Worker, Job } from 'bullmq';
-import IORedis from 'ioredis';
 import { Conversation } from "@/models";
 import dbConnect from "@/db-connect";
 import { getIO } from "../socket-bridge";
 import { getConnectionForWorker } from '../../utils/ioredis';
 import { QUEUE_NAMES } from '@wapi/contracts';
 
-const connection = getConnectionForWorker('client');
+const connection = getConnectionForWorker('snoozeWorker');
 
 /**
  * SNOOZE WORKER
@@ -22,6 +21,9 @@ export class SnoozeWorker {
     // to periodically "pulse" the check if we aren't using a separate scheduler.
     this.worker = new Worker(QUEUE_NAMES.SNOOZE, this.processJob.bind(this), {
       connection: connection as any,
+    });
+    this.worker.on('error', (err) => {
+      console.error('[SnoozeWorker] Worker error:', err?.message || err);
     });
 
     console.log('[SnoozeWorker] 🚀 Snooze monitor started');

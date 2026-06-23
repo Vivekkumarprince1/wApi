@@ -156,5 +156,9 @@ export const initBulkMessageWorker = () => {
     });
   });
 
+  worker.on('error', (err) => {
+    logger.error('bulk-message worker error', { error: err?.message });
+  });
+
   return worker;
 };

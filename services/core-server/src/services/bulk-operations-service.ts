@@ -193,6 +193,9 @@ export class BulkOperationsService {
         concurrency: 3,
       }
     );
+    worker.on('error', (err) => {
+      console.error('[BulkOperationsService] Worker error:', err?.message || err);
+    });
   }
 
   /**

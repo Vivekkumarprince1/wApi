@@ -316,6 +316,10 @@ export class ContactImportService {
         error: error.message,
       });
     });
+
+    worker.on('error', (err) => {
+      console.error('[ContactImportService] Worker error:', err?.message || err);
+    });
   }
 
   /**

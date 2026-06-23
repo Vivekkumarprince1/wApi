@@ -96,5 +96,9 @@ export const initImportWorker = () => {
     });
   });
 
+  worker.on('error', (err) => {
+    logger.error('contact-import worker error', { error: err?.message });
+  });
+
   return worker;
 };

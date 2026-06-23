@@ -1,5 +1,5 @@
 import { Worker, Queue, QueueEvents } from 'bullmq';
-import { getSharedConnection } from '../../utils/ioredis';
+import { getConnectionForWorker, getSharedConnection } from '../../utils/ioredis';
 import { Integration } from '../../models/integration/Integration';
 import { GoogleSheetsService } from './google-sheets-service';
 import { PetpoojaService } from './petpooja-service';
@@ -37,8 +37,11 @@ export class IntegrationSyncWorker {
           }
         }
       },
-      { connection: getSharedConnection() as any, concurrency: 1 }
+      { connection: getConnectionForWorker('integrationSyncWorker') as any, concurrency: 1 }
     );
+    this.worker.on('error', (err) => {
+      console.error('[IntegrationSyncWorker] Worker error:', err?.message || err);
+    });
 
     this.setupRepeatableJobs();
   }

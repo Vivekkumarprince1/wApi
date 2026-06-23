@@ -105,6 +105,8 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: CORE_WORKER_PROFILE
+        value: webhooks
       - key: AUTOMATION_SERVICE_URL
         value: https://wapi-automation-service.onrender.com
       - key: CAMPAIGN_SERVICE_URL

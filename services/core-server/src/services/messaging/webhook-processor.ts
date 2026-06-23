@@ -1,6 +1,4 @@
 import { Worker, Job } from 'bullmq';
-import { config } from '../../config';
-import IORedis from 'ioredis';
 import { Workspace, Message, Contact, Conversation, Template } from '@/models';
 import { AutomationClient } from '../automation/automation-client';
 import { isWithinBusinessHoursLegacy } from '../automation/automation-utils';
@@ -15,7 +13,7 @@ import { QUEUE_NAMES } from '@wapi/contracts';
  * Webhook Processor
  */
 
-const connection = getConnectionForWorker('client');
+const connection = getConnectionForWorker('webhookProcessor');
 const globalWebhook = global as unknown as { webhookWorkerInstance?: Worker };
 
 export const initWebhookWorker = () => {
@@ -62,6 +60,10 @@ export const initWebhookWorker = () => {
     },
     { connection: connection as any }
   );
+
+  globalWebhook.webhookWorkerInstance.on('error', (err) => {
+    console.error('[WebhookProcessor] Worker error:', err?.message || err);
+  });
 
   return globalWebhook.webhookWorkerInstance;
 };
