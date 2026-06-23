@@ -7,6 +7,12 @@ envVarGroups:
         generateValue: true
 
 services:
+  - type: keyvalue
+    name: wapi-valkey
+    plan: free
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+
   - type: web
     name: wapi-api-gateway
     runtime: docker
@@ -36,6 +42,11 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
+      - key: VALKEY_URL
+        fromService:
+          type: keyvalue
+          name: wapi-valkey
+          property: connectionString
 
   - type: web
     name: wapi-automation-service
@@ -46,6 +57,11 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
+      - key: VALKEY_URL
+        fromService:
+          type: keyvalue
+          name: wapi-valkey
+          property: connectionString
 
   - type: web
     name: wapi-campaign-service
@@ -56,6 +72,11 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
+      - key: VALKEY_URL
+        fromService:
+          type: keyvalue
+          name: wapi-valkey
+          property: connectionString
 
   - type: web
     name: wapi-billing-service
@@ -66,3 +87,8 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
+      - key: VALKEY_URL
+        fromService:
+          type: keyvalue
+          name: wapi-valkey
+          property: connectionString
