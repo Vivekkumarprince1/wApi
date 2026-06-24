@@ -4,13 +4,18 @@ import Redis from 'ioredis';
 const REDIS_URL = process.env.REDIS_URL;
 const redis = REDIS_URL
   ? new Redis(REDIS_URL, {
-      maxRetriesPerRequest: null,
+      maxRetriesPerRequest: 1,
       enableReadyCheck: true,
       lazyConnect: true,
       enableOfflineQueue: false,
-      retryStrategy: () => null,
+      retryStrategy: (times) => Math.min(times * 200, 2_000),
     })
   : null;
+let redisRetryAfter = 0;
+let lastRedisFallbackLogAt = 0;
+
+const REDIS_RETRY_COOLDOWN_MS = 30_000;
+const REDIS_FALLBACK_LOG_COOLDOWN_MS = 60_000;
 
 if (!REDIS_URL) {
   console.warn('[RateLimit] REDIS_URL is not set. Falling back to in-memory rate limits for this process.');
@@ -41,6 +46,49 @@ const hitMemoryLimit = (key: string, now: number, clearBefore: number) => {
   return recent.length;
 };
 
+const shouldLogRedisFallback = () => {
+  const now = Date.now();
+  if (now - lastRedisFallbackLogAt < REDIS_FALLBACK_LOG_COOLDOWN_MS) return false;
+  lastRedisFallbackLogAt = now;
+  return true;
+};
+
+async function hitRedisLimit(key: string, now: number, clearBefore: number, windowMs: number): Promise<number | null> {
+  if (!redis) return null;
+  if (Date.now() < redisRetryAfter) return null;
+
+  try {
+    if (redis.status === 'wait' || redis.status === 'close' || redis.status === 'end') {
+      await redis.connect();
+    }
+
+    const pipeline = redis.multi();
+    pipeline.zadd(key, now, now);
+    pipeline.zremrangebyscore(key, 0, clearBefore);
+    pipeline.zcard(key);
+    pipeline.expire(key, Math.ceil(windowMs / 1000));
+
+    const results = await pipeline.exec();
+    if (!results) {
+      throw new Error('Redis pipeline execution failed');
+    }
+
+    const cardResult = results[2];
+    if (cardResult[0]) {
+      throw cardResult[0];
+    }
+
+    redisRetryAfter = 0;
+    return cardResult[1] as number;
+  } catch (err: any) {
+    redisRetryAfter = Date.now() + REDIS_RETRY_COOLDOWN_MS;
+    if (shouldLogRedisFallback()) {
+      console.warn(`[RateLimit] Redis unavailable; using in-memory limiter until retry window: ${err?.message || err}`);
+    }
+    return null;
+  }
+}
+
 export const rateLimit = (options: RateLimitOptions = {}) => {
   const windowMs = options.windowMs || 15 * 60 * 1000;
   const maxRequests = options.max || 100;
@@ -56,34 +104,7 @@ export const rateLimit = (options: RateLimitOptions = {}) => {
 
       let current: number;
 
-      if (redis) {
-        // Sliding window log using Redis sorted sets (ZADD, ZREMRANGEBYSCORE, ZCARD, EXPIRE)
-        try {
-          const pipeline = redis.multi();
-          pipeline.zadd(key, now, now);
-          pipeline.zremrangebyscore(key, 0, clearBefore);
-          pipeline.zcard(key);
-          pipeline.expire(key, Math.ceil(windowMs / 1000));
-
-          const results = await pipeline.exec();
-          if (!results) {
-            throw new Error('Redis pipeline execution failed');
-          }
-
-          // Check results for errors. In ioredis exec() returns array of [err, result]
-          const cardResult = results[2];
-          if (cardResult[0]) {
-            throw cardResult[0];
-          }
-
-          current = cardResult[1] as number;
-        } catch (err: any) {
-          console.warn(`[RateLimit] Redis unavailable, using in-memory limiter for this request: ${err?.message || err}`);
-          current = hitMemoryLimit(key, now, clearBefore);
-        }
-      } else {
-        current = hitMemoryLimit(key, now, clearBefore);
-      }
+      current = (await hitRedisLimit(key, now, clearBefore, windowMs)) ?? hitMemoryLimit(key, now, clearBefore);
 
       // Add rate limit headers
       res.set({

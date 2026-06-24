@@ -66,15 +66,21 @@ const SERVICE_CONTROLS_KEY = 'platform:service-controls';
 let redisClient: IORedis | null = null;
 let serviceControlCache: Record<string, ServiceControl> = {};
 let serviceControlCacheUntil = 0;
+let serviceControlErrorLogUntil = 0;
 
-function getRedis(): IORedis {
+function getRedis(): IORedis | null {
+  if (!process.env.REDIS_URL) return null;
   if (!redisClient) {
-    redisClient = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    redisClient = new IORedis(process.env.REDIS_URL, {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
     });
     redisClient.on('error', (err) => {
-      console.warn(`[API Gateway] Redis service-control read failed: ${err.message}`);
+      if (Date.now() > serviceControlErrorLogUntil) {
+        serviceControlErrorLogUntil = Date.now() + 60_000;
+        console.warn(`[API Gateway] Redis service-control read failed: ${err.message}`);
+      }
     });
   }
   return redisClient;
@@ -85,9 +91,15 @@ async function getServiceControls(): Promise<Record<string, ServiceControl>> {
   serviceControlCacheUntil = Date.now() + 5000;
 
   try {
-    const raw = await getRedis().get(SERVICE_CONTROLS_KEY);
+    const redis = getRedis();
+    if (!redis) return serviceControlCache;
+    if (redis.status === 'wait' || redis.status === 'close' || redis.status === 'end') {
+      await redis.connect();
+    }
+    const raw = await redis.get(SERVICE_CONTROLS_KEY);
     serviceControlCache = raw ? JSON.parse(raw) : {};
   } catch {
+    serviceControlCacheUntil = Date.now() + 30_000;
     serviceControlCache = serviceControlCache || {};
   }
 
@@ -378,8 +390,13 @@ const proxyRewrite = (target: string, serviceName: string, rewrite: (path: strin
 
 // --- Proxy Routes ---
 
-// Apply general API rate limit to all routes
-app.use('/api', apiRateLimit);
+// Apply general API rate limit to customer-facing API routes. Internal health
+// probes are intentionally skipped so monitoring does not consume quota or
+// spam Redis fallback logs when Redis is unavailable.
+app.use('/api', (req, res, next) => {
+  if (req.path.startsWith('/internal/health')) return next();
+  return apiRateLimit(req, res, next);
+});
 
 const authRateLimitedPaths = new Set([
   '/login',
