@@ -240,11 +240,15 @@ export const adminController = {
       });
 
       if ((AuditLog as any).logAdminAction) {
+        const workspace = await Workspace.findOne({ gupshupAppId: appId }).select('_id name').lean();
         await (AuditLog as any).logAdminAction({
+          workspaceId: workspace?._id || req.user.activeWorkspace || req.user.workspace,
           userId: req.user._id,
           action: 'GUPSHUP_WEBHOOK_SYNC',
-          resource: { type: 'GupshupApp', id: appId as any },
-          details: { url, modes, strategy },
+          resource: workspace?._id
+            ? { type: 'Workspace', id: workspace._id, name: workspace.name }
+            : { type: 'GupshupApp' },
+          details: { appId, url: targetUrl, modes, strategy },
           req
         });
       }
