@@ -19,13 +19,13 @@ export class LogisticsService {
       const order = orderRes.data?.data;
       if (!order) return false;
 
-      // 2. Fetch contact locally (Main-server owns contacts)
+      // 2. Fetch contact locally (core-server owns contacts)
       const contact = await Contact.findById(order.contactId || order.contact).select("name phone").lean();
       if (!contact || !contact.phone) return false;
 
-      // 3. Fetch commerce settings (Main-server owns settings for now)
+      // 3. Fetch commerce settings (core-server owns settings for now)
       // Actually, if CommerceSettings was in migrated-models, it might be in billing-service?
-      // Let's check commerceController.ts in main-server.
+      // Let's check commerceController.ts in core-server.
       // In Phase 2, I saw commerceController uses CommerceSettings from models.
       // If it's NOT in migrated-models, it's local.
       // Wait, I saw CommerceSettings in migrated-models.ts earlier!

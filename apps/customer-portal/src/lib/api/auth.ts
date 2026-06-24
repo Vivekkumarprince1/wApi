@@ -2,7 +2,7 @@ import api from './client';
 
 /**
  * AUTH API HELPERS
- * Paths match main-server /api/v1/auth/* (Next rewrites /api -> /api/v1).
+ * Paths match core-server /api/v1/auth/* (Next rewrites /api -> /api/v1).
  */
 
 /**

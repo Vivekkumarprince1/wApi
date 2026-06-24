@@ -19,7 +19,7 @@ For the split app, run the backend services first:
 cd ../automation-service && npm run dev
 cd ../campaign-service && npm run dev
 cd ../billing-service && npm run dev
-cd ../main-server && npm run dev
+cd ../core-server && npm run dev
 ```
 
 Then run the frontend development server:
@@ -30,8 +30,8 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-The frontend proxies `/api/*` to `BACKEND_API_URL` and connects Socket.IO to
-`NEXT_PUBLIC_SOCKET_URL`. For local parity with the split backend, use
+The frontend proxies `/api/*` to the merged core gateway at `BACKEND_API_URL`
+and connects Socket.IO to `NEXT_PUBLIC_SOCKET_URL`. For local parity, use
 `BACKEND_API_URL=http://127.0.0.1:5001` and
 `NEXT_PUBLIC_SOCKET_URL=http://127.0.0.1:5001`.
 

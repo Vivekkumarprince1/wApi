@@ -53,7 +53,7 @@ export class CommercePaymentService {
           type: 'commerce_order'
         },
         // Callback should point to the monolith which will proxy or redirect
-        callback_url: `${(process.env.MONOLITH_URL || 'http://localhost:3000').replace(/\/+$/, '')}/api/payments/callback`,
+        callback_url: `${(process.env.MONOLITH_URL || 'http://localhost:5001').replace(/\/+$/, '')}/api/payments/callback`,
         callback_method: 'get'
       });
 

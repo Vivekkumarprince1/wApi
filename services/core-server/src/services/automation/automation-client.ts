@@ -46,7 +46,7 @@ export class AutomationClient {
         console.warn('[AutomationClient] Resilient HTTP trigger failed, relying on queue:', err.message);
       });
 
-      // 2. Enqueue for background processing (the BullMQ worker in main-server)
+      // 2. Enqueue for background processing (the BullMQ worker in core-server)
       await automationQueue.add('inbound_message', {
         type: 'message_received',
         workspaceId: data.workspaceId,

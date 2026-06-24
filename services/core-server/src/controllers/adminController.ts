@@ -464,7 +464,7 @@ export const adminController = {
     const axios = (await import('axios')).default;
     
     const services = [
-      { name: 'main-server', url: `http://127.0.0.1:${process.env.BACKEND_PORT || 3005}/health` },
+      { name: 'core-server', url: `http://127.0.0.1:${process.env.BACKEND_PORT || process.env.PORT || 5001}/health` },
       { name: 'billing-service', url: config.billingServiceUrl + '/health' },
       { name: 'automation-service', url: config.automationServiceUrl + '/health' },
       { name: 'campaign-service', url: config.campaignServiceUrl + '/health' }

@@ -25,7 +25,7 @@ export const createContact = (data: any) => api.post<any>('/contacts', data);
 export const updateContact = (id: string, data: any) => api.patch<any>(`/contacts/${id}`, data);
 export const deleteContact = (id: string) => api.delete<any>(`/contacts/${id}`);
 
-/** Segments are served by the campaign microservice via main-server proxy */
+/** Segments are served by the campaign microservice via core-server proxy */
 export const getSegments = () =>
   api.get<any>('/campaign/segments').then((res: any) => res.segments || unwrap(res));
 export const fetchSegments = getSegments;

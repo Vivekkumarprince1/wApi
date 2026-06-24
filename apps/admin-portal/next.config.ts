@@ -5,10 +5,10 @@ import type { NextConfig } from "next";
  * Admin Portal — standalone Next.js fullstack app (admin.wapi.in).
  *
  * Unlike the customer portal, this app does NOT rewrite /api/* to the
- * gateway. All admin traffic is handled by local route handlers under
+ * standalone gateway. All admin traffic is handled by local route handlers under
  * /api/admin/*:
  *   - reads  -> direct MongoDB (src/server/db.ts + src/server/db-models)
- *   - writes -> API Gateway (src/server/gateway-client.ts)
+ *   - writes -> core-server gateway (src/server/gateway-client.ts)
  */
 const nextConfig: NextConfig = {
   reactCompiler: false,

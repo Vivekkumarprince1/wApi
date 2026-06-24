@@ -39,6 +39,7 @@ import widgetRoutes from './routes/widgetRoutes';
 import bulkOperationsRoutes from './routes/bulkOperationsRoutes';
 import internalRoutes from './routes/internalRoutes';
 import compatRoutes from './routes/compatRoutes';
+import { registerMergedGatewayRoutes } from './routes/mergedGatewayRoutes';
 
 // --- STARTUP GUARDS ---
 const requiredEnv = ['JWT_SECRET', 'MONGODB_URI', 'INTERNAL_SERVICE_SECRET'];
@@ -65,7 +66,7 @@ console.log(`[Main Server] INTERNAL_SERVICE_SECRET fingerprint: ${internalSecret
 
 const app = express();
 const httpServer = createServer(app);
-const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5005", 10);
+const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5001", 10);
 console.log(`[Main Server] Configured port: ${port} (BACKEND_PORT=${process.env.BACKEND_PORT}, PORT=${process.env.PORT})`);
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
@@ -108,6 +109,8 @@ import crmRoutes from './routes/crmRoutes';
 import developerRoutes from './routes/developerRoutes';
 
 import { authenticate } from './middlewares/authMiddleware';
+
+registerMergedGatewayRoutes(app);
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/super-admin', adminRoutes);

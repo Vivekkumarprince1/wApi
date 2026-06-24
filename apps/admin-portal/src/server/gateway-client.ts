@@ -2,10 +2,10 @@ import "server-only";
 import type { AdminTokenPayload } from "./auth";
 
 /**
- * Gateway client for WRITE operations (Rule #5).
+ * Core gateway client for WRITE operations (Rule #5).
  *
  * The admin portal never mutates MongoDB directly. All state changes are
- * delegated to the API Gateway, which routes to the owning service so that
+ * delegated to core-server, which routes to the owning service so that
  * domain events, BullMQ jobs, cache invalidation and audit logs all fire.
  *
  * Requests carry the internal service secret plus the acting admin's identity

@@ -52,16 +52,12 @@
                         CustomerPortal["Customer Portal\n(apps/customer-portal)"]
                     end
 
-                    %% Entrypoint
-                    Gateway["API Gateway\n(Fastify, Port 5001)\n(services/api-gateway)"]
-
                     %% Microservices
                     subgraph Microservices["Backend Services"]
+                        Core["Core Gateway + Server\n(Express + Socket.IO, Port 5001)\n(services/core-server)"]
                         Billing["Billing Service\n(Express, Port 3003)"]
                         Campaign["Campaign Service\n(Express, Port 3002)"]
                         Automation["Automation Service\n(Express, Port 3001)"]
-                        WebSocket["WebSocket Service\n(Socket.IO, Port 4000)"]
-                        Core["Core Server (Monolith)\n(Express, Port 3004)"]
                     end
 
                     %% Data layer
@@ -72,14 +68,13 @@
                     end
 
                     %% Routing Flow
-                    AdminPortal -->|HTTP / WSS| Gateway
-                    CustomerPortal -->|HTTP / WSS| Gateway
+                    AdminPortal -->|HTTP / WSS| Core
+                    CustomerPortal -->|HTTP / WSS| Core
 
-                    Gateway -->|"/api/v1/billing/*"| Billing
-                    Gateway -->|"/api/v1/campaign/*"| Campaign
-                    Gateway -->|"/api/v1/automation/*"| Automation
-                    Gateway -->|"/socket.io/*"| WebSocket
-                    Gateway -->|"Everything else"| Core
+                    Core -->|"/api/v1/billing/*"| Billing
+                    Core -->|"/api/v1/campaign/*"| Campaign
+                    Core -->|"/api/v1/automation/*"| Automation
+                    Core -->|"Core API + /socket.io/*"| Core
 
                     %% Cross-communication
                     Core -.->|"proxyController\nfallback routing"| Billing
@@ -95,7 +90,6 @@
                     Billing --> Redis
                     Campaign --> Redis
                     Automation --> Redis
-                    WebSocket -->|"Redis Adapter"| Redis
                     Core --> Redis
 
                     Billing --> BullMQ
@@ -112,8 +106,8 @@
                 sequenceDiagram
                     autonumber
                     participant Client as Frontend App
-                    participant Gateway as API Gateway
-                    participant Auth as Gateway Auth Middleware
+                    participant Gateway as Core Gateway
+                    participant Auth as Core Auth Middleware
                     participant Microservice as Target Service (e.g. Billing)
                     participant DB as Database / Redis
 

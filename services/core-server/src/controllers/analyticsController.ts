@@ -216,7 +216,7 @@ export const analyticsController = {
       // 5. Automation Summary (from microservice)
       const automationSummaryPromise = proxyController.forwardToService('automation', {
         method: 'GET',
-        path: '/api/automation/hub/summary',
+        path: '/api/automation/engine/hub/summary',
         workspaceId: workspaceId.toString(),
         userId: req.user._id.toString(),
         userRole: req.role || req.user?.role,

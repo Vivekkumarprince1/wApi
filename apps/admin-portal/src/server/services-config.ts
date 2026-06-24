@@ -13,7 +13,7 @@ export interface ServiceDef {
 }
 
 export const SERVICES: ServiceDef[] = [
-  { id: "gateway", name: "API Gateway", baseUrl: process.env.GATEWAY_URL || "http://localhost:5001", healthPath: "/ready" },
+  { id: "gateway", name: "Core Gateway", baseUrl: process.env.GATEWAY_URL || "http://localhost:5001", healthPath: "/ready" },
   { id: "core", name: "Core Server", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/core`, healthPath: "/health" },
   { id: "billing", name: "Billing Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/billing`, healthPath: "/health" },
   { id: "campaign", name: "Campaign Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/campaign`, healthPath: "/health" },

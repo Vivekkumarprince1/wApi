@@ -15,8 +15,8 @@ import { resolveRedisUrl } from '@wapi/contracts';
  * rule whose trigger was supposed to fire on a schedule never ran.
  *
  * Implementation notes:
- * - Uses BullMQ's repeatable jobs so the heartbeat survives restarts
- *   (Redis stores the next-run time).
+ * - Uses an in-process heartbeat to avoid repeatable-job lock contention
+ *   across dev restarts. Real work is still enqueued in BullMQ.
  * - Idempotency: each due rule is enqueued with a job id derived from
  *   `{ruleId}:{HHMM}` so multiple scheduler instances don't duplicate.
  * - The actual run logic lives in `automationRuleWorker` (placeholder
@@ -25,13 +25,10 @@ import { resolveRedisUrl } from '@wapi/contracts';
  */
 
 const VALKEY_URL = resolveRedisUrl();
-const HEARTBEAT_QUEUE = 'automation-scheduler';
 const RUN_QUEUE = 'automation-engine-runs';
 
-const heartbeatConnection = new IORedis(VALKEY_URL, { maxRetriesPerRequest: null });
 const runConnection = new IORedis(VALKEY_URL, { maxRetriesPerRequest: null });
 
-const heartbeatQueue = new Queue(HEARTBEAT_QUEUE, { connection: heartbeatConnection as any });
 const runQueue = new Queue(RUN_QUEUE, {
   connection: runConnection as any,
   defaultJobOptions: {
@@ -83,6 +80,7 @@ async function dispatchDueRules() {
 }
 
 let started = false;
+let heartbeat: NodeJS.Timeout | undefined;
 
 /**
  * Start the scheduler. Idempotent — calling twice is a no-op.
@@ -91,30 +89,17 @@ export async function startScheduler() {
   if (started) return;
   started = true;
 
-  // Run a heartbeat every 60 seconds. BullMQ stores the next-run time so
-  // the cadence survives restarts and is shared across instances.
-  await heartbeatQueue.add(
-    'tick',
-    {},
-    {
-      repeat: { every: 60_000 },
-      jobId: 'automation-scheduler-tick',
-      removeOnComplete: true,
-      removeOnFail: true,
+  const tick = async () => {
+    try {
+      await dispatchDueRules();
+    } catch (err: any) {
+      console.error('[automation-scheduler] dispatchDueRules failed:', err?.message);
     }
-  );
+  };
 
-  new Worker(
-    HEARTBEAT_QUEUE,
-    async (_job: Job) => {
-      try {
-        await dispatchDueRules();
-      } catch (err: any) {
-        console.error('[automation-scheduler] dispatchDueRules failed:', err?.message);
-      }
-    },
-    { connection: new IORedis(VALKEY_URL, { maxRetriesPerRequest: null }) as any }
-  );
+  heartbeat = setInterval(tick, 60_000);
+  heartbeat.unref?.();
+  void tick();
 
   // Placeholder run worker. Wire this to your real automation engine.
   new Worker(
