@@ -35,6 +35,12 @@ services:
         value: https://wapi-campaign-service.onrender.com
       - key: BILLING_SERVICE_URL
         value: https://wapi-billing-service.onrender.com
+      - key: WHATSAPP_WEBHOOK_URL
+        value: https://wapi-core-server-b1f5.onrender.com/api/webhooks/whatsapp
+      - key: GUPSHUP_WEBHOOK_SECRET
+        sync: false
+      - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
+        sync: false
 
   - type: web
     name: wapi-automation-service

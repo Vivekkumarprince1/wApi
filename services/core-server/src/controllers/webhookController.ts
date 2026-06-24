@@ -80,10 +80,10 @@ function isWebhookSignatureValid(rawBody: string, req: Request) {
   // still work, but log loudly so it cannot ship by accident.
   if (!config.whatsappWebhookSecret) {
     if (process.env.NODE_ENV === 'production') {
-      console.error('[Webhook] Rejecting payload: WHATSAPP_WEBHOOK_SECRET is not configured in production.');
+      console.error('[Webhook] Rejecting payload: GUPSHUP_WEBHOOK_SECRET/WHATSAPP_WEBHOOK_SECRET is not configured in production.');
       return false;
     }
-    console.warn('[Webhook] WARNING: WHATSAPP_WEBHOOK_SECRET not set; accepting payload (development only).');
+    console.warn('[Webhook] WARNING: GUPSHUP_WEBHOOK_SECRET/WHATSAPP_WEBHOOK_SECRET not set; accepting payload (development only).');
     return true;
   }
 

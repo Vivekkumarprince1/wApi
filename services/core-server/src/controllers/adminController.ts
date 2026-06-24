@@ -230,10 +230,18 @@ export const adminController = {
       const { url, modes, strategy } = req.body;
       const { GupshupPartnerService } = await import('../services/bsp/gupshup-partner-service');
       const { config } = await import('../config');
+      const targetUrl = url || config.whatsappWebhookUrl;
+
+      if (config.env === 'production' && !config.whatsappWebhookSecret) {
+        return res.status(503).json({
+          success: false,
+          message: 'WhatsApp webhook signing secret is not configured. Set GUPSHUP_WEBHOOK_SECRET or WHATSAPP_WEBHOOK_SECRET on the core server before syncing Gupshup webhooks.'
+        });
+      }
       
       await GupshupPartnerService.setSubscription({
         appId,
-        url: url || config.whatsappWebhookUrl,
+        url: targetUrl,
         events: modes,
         strategy: strategy || 'update'
       });

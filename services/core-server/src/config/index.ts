@@ -49,7 +49,7 @@ export const config = {
   gupshupOtpTemplateName: process.env.GUPSHUP_OTP_TEMPLATE_NAME || '',
   gupshupDefaultRegion: process.env.GUPSHUP_DEFAULT_REGION || 'IN',
   whatsappWebhookUrl: process.env.WHATSAPP_WEBHOOK_URL || '',
-  whatsappWebhookSecret: process.env.GUPSHUP_WEBHOOK_SECRET || '',
+  whatsappWebhookSecret: process.env.GUPSHUP_WEBHOOK_SECRET || process.env.WHATSAPP_WEBHOOK_SECRET || '',
   whatsappWebhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '',
 
   // OTP / communication
