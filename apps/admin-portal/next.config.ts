@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 /**
@@ -20,6 +21,14 @@ const nextConfig: NextConfig = {
   // Mongoose + native deps must run in the Node server runtime, never bundled
   // for the edge or client.
   serverExternalPackages: ["mongoose", "bcryptjs", "bullmq", "ioredis"],
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@wapi/contracts": path.resolve(__dirname, "../../packages/contracts/src/index.ts"),
+    };
+
+    return config;
+  },
   allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS
     ? process.env.ALLOWED_DEV_ORIGINS.split(",")
     : undefined,

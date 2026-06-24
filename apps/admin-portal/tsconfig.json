@@ -29,6 +29,9 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "@wapi/contracts": [
+        "../../packages/contracts/src/index.ts"
       ]
     }
   },
