@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
 import { SERVICES } from "@/server/services-config";
 import { getConnection, type DbName } from "@/server/db";
+import { coreModels } from "@/server/models";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,23 +14,44 @@ interface ServiceHealth {
   tier: string;
   status: "up" | "down";
   latencyMs: number | null;
+  control: ServiceControl;
   detail?: unknown;
+}
+
+interface ServiceControl {
+  published: boolean;
+  customerVisible: boolean;
+  maintenance: boolean;
+  message: string;
+  updatedAt?: string;
+}
+
+const DEFAULT_PROBE_TIMEOUT_MS = 30_000;
+
+function getProbeTimeoutMs(): number {
+  const configured = Number(process.env.MONITORING_PROBE_TIMEOUT_MS);
+  return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_PROBE_TIMEOUT_MS;
+}
+
+function joinUrl(baseUrl: string, path: string): string {
+  return `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
 async function probe(baseUrl: string, healthPath: string): Promise<{ ok: boolean; latencyMs: number; detail?: unknown }> {
   const start = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), getProbeTimeoutMs());
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(`${baseUrl}${healthPath}`, {
+    const res = await fetch(joinUrl(baseUrl, healthPath), {
       cache: "no-store",
       signal: controller.signal,
     });
-    clearTimeout(timer);
     const detail = await res.json().catch(() => undefined);
     return { ok: res.ok, latencyMs: Date.now() - start, detail };
   } catch {
     return { ok: false, latencyMs: Date.now() - start };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -40,6 +62,22 @@ const READY_STATE: Record<number, string> = {
   3: "disconnecting",
 };
 
+function normalizeControl(value: unknown): ServiceControl {
+  const raw = value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  return {
+    published: raw.published !== false,
+    customerVisible: raw.customerVisible !== false,
+    maintenance: raw.maintenance === true,
+    message: typeof raw.message === "string" ? raw.message : "",
+    updatedAt:
+      raw.updatedAt instanceof Date
+        ? raw.updatedAt.toISOString()
+        : typeof raw.updatedAt === "string"
+          ? raw.updatedAt
+          : undefined,
+  };
+}
+
 /**
  * Monitoring snapshot — probes every service health endpoint and reports
  * MongoDB connection states. This is a READ (Rule #4): pure observation.
@@ -47,6 +85,13 @@ const READY_STATE: Record<number, string> = {
 export async function GET() {
   try {
     await requireAdmin("read");
+    const { SystemSettings } = await coreModels();
+    const settings = (await SystemSettings.findOne({}).lean()) as Record<string, unknown> | null;
+    const features = settings?.features && typeof settings.features === "object" ? settings.features as Record<string, unknown> : {};
+    const serviceControls =
+      features.serviceControls && typeof features.serviceControls === "object"
+        ? features.serviceControls as Record<string, unknown>
+        : {};
 
     const services: ServiceHealth[] = await Promise.all(
       SERVICES.map(async (svc) => {
@@ -57,6 +102,7 @@ export async function GET() {
           tier: svc.tier,
           status: r.ok ? "up" : "down",
           latencyMs: r.latencyMs,
+          control: normalizeControl(serviceControls[svc.id]),
           detail: r.detail,
         } as ServiceHealth;
       })

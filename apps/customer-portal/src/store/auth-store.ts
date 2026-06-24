@@ -62,6 +62,15 @@ interface AuthState {
             level: 'info' | 'warning' | 'critical';
             active: boolean;
         } | null;
+        features?: {
+            serviceControls?: Record<string, {
+                published?: boolean;
+                customerVisible?: boolean;
+                maintenance?: boolean;
+                message?: string;
+            }>;
+            [key: string]: any;
+        };
     };
     isImpersonating: boolean;
     inFlightPromise: Promise<any> | null;
@@ -103,7 +112,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     canAccessAdmin: false,
     systemStatus: {
         maintenanceMode: false,
-        systemNotice: null
+        systemNotice: null,
+        features: {}
     },
     isImpersonating: false,
     inFlightPromise: null,
@@ -202,7 +212,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                     canManageTeam: userPerms?.manageTeam ?? ['owner', 'manager', 'admin'].includes(role),
                     canViewBilling: (userPerms?.manageBilling || userPerms?.billing?.view) ?? ['owner', 'admin'].includes(role),
                     canAccessAdmin: role === 'super_admin',
-                    systemStatus: sessionData.systemStatus || { maintenanceMode: false, systemNotice: null },
+                    systemStatus: sessionData.systemStatus || { maintenanceMode: false, systemNotice: null, features: {} },
                     isImpersonating: !!sessionData.isImpersonating,
                     cachedSession: sessionData,
                     lastSessionFetchedAt: Date.now()
@@ -338,6 +348,34 @@ export function useFeatureGate(feature: string) {
 
     const featureKey = getMappedFeatureKey(feature);
     const hasPlanAccess = features.includes(featureKey) || features.includes('ALL');
+    const serviceControls = store.systemStatus?.features?.serviceControls || {};
+    const serviceLabels: Record<string, string> = {
+        auth: 'Sign in',
+        chat: 'Inbox',
+        contact: 'Contacts',
+        billing: 'Billing',
+        campaign: 'Campaigns',
+        automation: 'Automation',
+        bsp: 'WhatsApp connection',
+        ingestor: 'Webhooks',
+    };
+    const featureServices: Record<string, string[]> = {
+        analytics: ['chat', 'campaign'],
+        crm: ['contact'],
+        automation: ['automation'],
+        commerce: ['billing'],
+        inbox: ['chat', 'websocket'],
+        contacts: ['contact'],
+        templates: ['campaign', 'bsp'],
+        campaigns: ['campaign'],
+        messaging: ['chat', 'bsp'],
+        team: ['auth'],
+        billing: ['billing'],
+    };
+    const blockedService = (featureServices[feature.toLowerCase()] || []).find((serviceId) => {
+        const control = serviceControls[serviceId];
+        return control?.published === false || control?.maintenance === true;
+    });
 
     const gates: Record<string, { allowed: boolean; reason?: string }> = {
         analytics: {
@@ -416,12 +454,19 @@ export function useFeatureGate(feature: string) {
         }
     };
 
+    const baseGate = gates[feature.toLowerCase()] || {
+        allowed: hasPlanAccess,
+        reason: !hasPlanAccess ? `Upgrade your plan to unlock ${feature}` : undefined
+    };
+
     const gate = store.isSuperAdmin()
         ? { allowed: true, reason: undefined }
-        : (gates[feature.toLowerCase()] || {
-            allowed: hasPlanAccess,
-            reason: !hasPlanAccess ? `Upgrade your plan to unlock ${feature}` : undefined
-          });
+        : blockedService
+            ? {
+                allowed: false,
+                reason: `${serviceLabels[blockedService] || blockedService} is temporarily unavailable`
+            }
+            : baseGate;
 
     return {
         ...store,

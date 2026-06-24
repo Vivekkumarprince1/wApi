@@ -149,12 +149,19 @@ export const Permission = (mongoose.models.Permission || mongoose.model('Permiss
 const SystemSettingsSchema = new Schema({
   maintenanceMode: { type: Boolean, default: false },
   maintenanceMessage: String,
-}, { strict: false });
+  features: { type: Schema.Types.Mixed },
+}, { strict: false, collection: 'system_settings' });
 
 SystemSettingsSchema.statics.getSettings = async function() {
   let settings = await this.findOne();
   if (!settings) {
-    settings = await this.create({ maintenanceMode: false });
+    const legacy = await this.db.collection('systemsettings').findOne({});
+    settings = await this.create({
+      maintenanceMode: legacy?.maintenanceMode ?? false,
+      maintenanceMessage: legacy?.maintenanceMessage ?? '',
+      systemNotice: legacy?.systemNotice ?? null,
+      features: legacy?.features ?? {},
+    });
   }
   return settings;
 };
@@ -564,4 +571,3 @@ ActivityLogSchema.index({ workspace: 1, timestamp: -1 });
 ActivityLogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 7776000 }); // 90 days
 
 export const ActivityLog = mongoose.models.ActivityLog || mongoose.model('ActivityLog', ActivityLogSchema);
-

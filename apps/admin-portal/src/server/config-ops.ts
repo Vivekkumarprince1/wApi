@@ -28,6 +28,23 @@ export async function updateSystemSettings(patch: Record<string, unknown>) {
   return doc;
 }
 
+export async function updateServiceControl(serviceId: string, patch: Record<string, unknown>) {
+  const { SystemSettings } = await coreModels();
+  const allowed = ["published", "customerVisible", "maintenance", "message"];
+  const set: Record<string, unknown> = {};
+
+  for (const key of allowed) {
+    if (key in patch) {
+      set[`features.serviceControls.${serviceId}.${key}`] = patch[key];
+    }
+  }
+
+  set[`features.serviceControls.${serviceId}.updatedAt`] = new Date();
+
+  const doc = await SystemSettings.findOneAndUpdate({}, { $set: set }, { new: true, upsert: true }).lean();
+  return doc;
+}
+
 /* ── Plans CRUD ───────────────────────────────────────────────────────── */
 
 export async function createPlan(data: Record<string, unknown>) {

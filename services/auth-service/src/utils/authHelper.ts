@@ -240,7 +240,8 @@ export async function buildSessionPayload(user: any) {
     accessRestriction: null,
     systemStatus: {
       maintenanceMode: !!systemSettings?.maintenanceMode,
-      systemNotice: systemSettings?.systemNotice || null
+      systemNotice: systemSettings?.systemNotice || null,
+      features: systemSettings?.features || {}
     },
     isImpersonating: false,
   };

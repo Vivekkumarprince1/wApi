@@ -1,15 +1,35 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, Database, Server, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiGet } from "@/lib/api/client";
+import { Switch } from "@/components/ui/switch";
+import { apiFetch, apiGet } from "@/lib/api/client";
+import { useAdminAuth } from "@/store/admin-auth-store";
+
+interface ServiceControl {
+  published: boolean;
+  customerVisible: boolean;
+  maintenance: boolean;
+  message: string;
+  updatedAt?: string;
+}
+
+interface ServiceHealth {
+  id: string;
+  name: string;
+  tier?: string;
+  status: "up" | "down";
+  latencyMs: number | null;
+  control: ServiceControl;
+}
 
 interface MonitoringData {
-  services: { id: string; name: string; tier?: string; status: "up" | "down"; latencyMs: number | null }[];
+  services: ServiceHealth[];
   databases: { name: string; status: string }[];
   process: { uptimeSec: number; memoryRssMb: number; nodeVersion: string; mongooseVersion: string };
   generatedAt: string;
@@ -23,11 +43,41 @@ function uptime(sec: number): string {
 }
 
 export default function MonitoringPage() {
+  const can = useAdminAuth((s) => s.can);
+  const editable = can("system");
+  const queryClient = useQueryClient();
   const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ["monitoring"],
     queryFn: () => apiGet<MonitoringData>("/api/admin/read/monitoring"),
     refetchInterval: 15_000,
   });
+
+  const updateControl = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Partial<ServiceControl> }) =>
+      apiFetch(`/api/admin/ops/services/${id}`, { method: "PATCH", body: patch }),
+    onSuccess: () => {
+      toast.success("Service control updated");
+      queryClient.invalidateQueries({ queryKey: ["monitoring"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const patchServiceControl = (service: ServiceHealth, patch: Partial<ServiceControl>) => {
+    const nextPatch = { ...patch };
+    if (patch.maintenance === true) {
+      nextPatch.message = window.prompt("Maintenance message shown in customer portal:", service.control.message || "This service is under maintenance.") || "";
+    }
+    if (patch.maintenance === false && service.control.published) {
+      nextPatch.message = "";
+    }
+    if (patch.published === false) {
+      nextPatch.message = window.prompt("Unavailable message shown in customer portal:", service.control.message || "This service is temporarily unavailable.") || "";
+    }
+    if (patch.published === true && !service.control.maintenance) {
+      nextPatch.message = "";
+    }
+    updateControl.mutate({ id: service.id, patch: nextPatch });
+  };
 
   return (
     <>
@@ -60,16 +110,42 @@ export default function MonitoringPage() {
                     ))
                   : data?.services.map((s) => (
                       <Card key={s.id}>
-                        <CardContent className="flex items-center justify-between p-4">
-                          <div>
-                            <p className="font-medium text-sm">{s.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {s.tier ? `${s.tier} · ` : ""}{s.latencyMs != null ? `${s.latencyMs} ms` : "—"}
-                            </p>
+                        <CardContent className="p-4 space-y-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-medium text-sm">{s.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {s.tier ? `${s.tier} · ` : ""}{s.latencyMs != null ? `${s.latencyMs} ms` : "—"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {s.control.maintenance ? <Badge variant="outline">maintenance</Badge> : null}
+                              {!s.control.published ? <Badge variant="outline">unpublished</Badge> : null}
+                              <Badge variant={s.status === "up" ? "success" : "destructive"}>
+                                {s.status}
+                              </Badge>
+                            </div>
                           </div>
-                          <Badge variant={s.status === "up" ? "success" : "destructive"}>
-                            {s.status}
-                          </Badge>
+                          <div className="grid grid-cols-3 gap-3 border-t pt-3">
+                            <ServiceSwitch
+                              label="Publish"
+                              checked={s.control.published}
+                              disabled={!editable || updateControl.isPending}
+                              onChange={(published) => patchServiceControl(s, { published })}
+                            />
+                            <ServiceSwitch
+                              label="Customer"
+                              checked={s.control.customerVisible}
+                              disabled={!editable || updateControl.isPending}
+                              onChange={(customerVisible) => patchServiceControl(s, { customerVisible })}
+                            />
+                            <ServiceSwitch
+                              label="Maint."
+                              checked={s.control.maintenance}
+                              disabled={!editable || updateControl.isPending}
+                              onChange={(maintenance) => patchServiceControl(s, { maintenance })}
+                            />
+                          </div>
                         </CardContent>
                       </Card>
                     ))}
@@ -130,5 +206,24 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="font-medium">{value}</p>
     </div>
+  );
+}
+
+function ServiceSwitch({
+  label,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+      <span>{label}</span>
+      <Switch checked={checked} disabled={disabled} onCheckedChange={onChange} />
+    </label>
   );
 }

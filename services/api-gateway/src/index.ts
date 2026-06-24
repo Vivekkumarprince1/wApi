@@ -40,6 +40,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import crypto from 'crypto';
+import IORedis from 'ioredis';
 // IMPORTANT: http-proxy-middleware v3's `createProxyMiddleware` strips the
 // Express mount prefix from `req.url` BEFORE `pathRewrite` runs. Every
 // pathRewrite in this gateway (and every downstream service, which mount their
@@ -54,6 +55,55 @@ const app = express();
 const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5001", 10);
 
 app.set('trust proxy', 1);
+
+type ServiceControl = {
+  published?: boolean;
+  maintenance?: boolean;
+  message?: string;
+};
+
+const SERVICE_CONTROLS_KEY = 'platform:service-controls';
+let redisClient: IORedis | null = null;
+let serviceControlCache: Record<string, ServiceControl> = {};
+let serviceControlCacheUntil = 0;
+
+function getRedis(): IORedis {
+  if (!redisClient) {
+    redisClient = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+    });
+    redisClient.on('error', (err) => {
+      console.warn(`[API Gateway] Redis service-control read failed: ${err.message}`);
+    });
+  }
+  return redisClient;
+}
+
+async function getServiceControls(): Promise<Record<string, ServiceControl>> {
+  if (Date.now() < serviceControlCacheUntil) return serviceControlCache;
+  serviceControlCacheUntil = Date.now() + 5000;
+
+  try {
+    const raw = await getRedis().get(SERVICE_CONTROLS_KEY);
+    serviceControlCache = raw ? JSON.parse(raw) : {};
+  } catch {
+    serviceControlCache = serviceControlCache || {};
+  }
+
+  return serviceControlCache;
+}
+
+function serviceIdsForPath(path: string): string[] {
+  if (path.startsWith('/socket.io')) return ['websocket'];
+  if (path.startsWith('/api/v1/inbox') || path.startsWith('/api/v1/conversations') || path.startsWith('/api/v1/analytics') || path.startsWith('/api/v1/metrics') || path.startsWith('/api/v1/support')) return ['chat'];
+  if (path.startsWith('/api/v1/contacts') || path.startsWith('/api/v1/crm') || path.startsWith('/api/v1/tags') || path.startsWith('/api/v1/messaging/quick-replies') || path.startsWith('/api/v1/bulk')) return ['contact'];
+  if (path.startsWith('/api/v1/billing') || path.startsWith('/api/v1/commerce') || path.startsWith('/api/v1/workspace/billing') || path.startsWith('/api/v1/workspace/pricing')) return ['billing'];
+  if (path.startsWith('/api/v1/campaign') || path.startsWith('/api/v1/ads')) return ['campaign'];
+  if (path.startsWith('/api/v1/automation') || path.startsWith('/api/v1/flows') || path.startsWith('/api/v1/widget') || path.startsWith('/api/v1/developer') || path.startsWith('/api/v1/integrations')) return ['automation'];
+  if (path.startsWith('/api/v1/onboarding') || path.startsWith('/api/v1/templates') || path.startsWith('/api/v1/upload') || path.startsWith('/api/v1/workspace/waba') || path.startsWith('/api/v1/workspace/profile') || path.startsWith('/api/v1/workspace/webhooks') || path.startsWith('/api/v1/workspace/whatsapp') || path.startsWith('/api/v1/workspace/settings/waba') || path.startsWith('/api/v1/workspace/phone-numbers') || path.startsWith('/api/v1/workspace/connection-status')) return ['bsp'];
+  return [];
+}
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   "http://localhost:3000",
@@ -188,6 +238,41 @@ app.use(async (req, res, next) => {
   }
 
   next();
+});
+
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api/internal') || req.path === '/health' || req.path === '/') {
+    return next();
+  }
+  if (req.headers['x-user-system-role'] === 'super_admin') {
+    return next();
+  }
+
+  const serviceIds = serviceIdsForPath(req.path);
+  if (!serviceIds.length) {
+    return next();
+  }
+
+  const controls = await getServiceControls();
+  const blocked = serviceIds
+    .map((serviceId) => ({ serviceId, control: controls[serviceId] }))
+    .find(({ control }) => control?.published === false || control?.maintenance === true);
+
+  if (!blocked) {
+    return next();
+  }
+
+  const maintenance = blocked.control?.maintenance === true;
+  return res.status(503).json({
+    success: false,
+    error: maintenance ? 'SERVICE_MAINTENANCE' : 'SERVICE_UNAVAILABLE',
+    service: blocked.serviceId,
+    message:
+      blocked.control?.message ||
+      (maintenance
+        ? 'This service is temporarily under maintenance.'
+        : 'This service is temporarily unavailable.'),
+  });
 });
 
 

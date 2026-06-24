@@ -11,7 +11,6 @@ import {
   CreditCard,
   ShieldAlert,
   Zap,
-  Info,
   Lock,
   Megaphone
 } from "lucide-react";
@@ -115,8 +114,33 @@ const Banner = ({
   );
 };
 
+const SERVICE_LABELS: Record<string, string> = {
+  gateway: "API gateway",
+  auth: "Sign in",
+  chat: "Inbox",
+  contact: "Contacts",
+  billing: "Billing",
+  campaign: "Campaigns",
+  automation: "Automation",
+  bsp: "WhatsApp connection",
+  ingestor: "Webhooks",
+  websocket: "Live updates",
+  "customer-portal": "Customer portal",
+};
+
+function getRouteService(path: string) {
+  if (path.includes("/automation") || path.includes("/flows")) return "automation";
+  if (path.includes("/campaign") || path.includes("/templates") || path.includes("/ads")) return "campaign";
+  if (path.includes("/billing") || path.includes("/commerce")) return "billing";
+  if (path.includes("/contacts") || path.includes("/crm")) return "contact";
+  if (path.includes("/inbox") || path.includes("/support")) return "chat";
+  if (path.includes("/settings/whatsapp") || path.includes("/onboarding")) return "bsp";
+  if (path.includes("/settings/developer")) return "ingestor";
+  return null;
+}
+
 export function SystemBanners() {
-  const { stage1Complete, wallet, user } = useAuthStore();
+  const { stage1Complete, wallet, user, systemStatus } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   
@@ -137,6 +161,30 @@ export function SystemBanners() {
       </AnimatePresence>
     </div>
   );
+
+  const serviceControls = systemStatus?.features?.serviceControls || {};
+  const impactedServices = Object.entries(serviceControls)
+    .filter(([, control]: any) => control?.customerVisible !== false && (control?.published === false || control?.maintenance === true))
+    .map(([id, control]: any) => ({
+      id,
+      label: SERVICE_LABELS[id] || id,
+      maintenance: control?.maintenance === true,
+      message: typeof control?.message === "string" ? control.message : "",
+    }));
+
+  if (impactedServices.length) {
+    const labels = impactedServices.slice(0, 3).map((service) => service.label).join(", ");
+    const currentService = getRouteService(pathname);
+    const currentImpact = currentService ? impactedServices.find((service) => service.id === currentService) : null;
+    const service = currentImpact || impactedServices[0];
+    addBanner({
+      id: `service-control-${service.id}`,
+      type: service.maintenance ? "warning" : "error",
+      icon: service.maintenance ? ShieldAlert : Zap,
+      title: service.maintenance ? "Service Maintenance" : "Service Unavailable",
+      description: service.message || `${currentImpact ? service.label : labels} ${service.maintenance ? "is under maintenance." : "is temporarily unavailable."}`,
+    });
+  }
 
   // 1. Onboarding Priority
   if (!stage1Complete) {
@@ -224,7 +272,6 @@ export function SystemBanners() {
   }
 
   // 4. System Notice
-  const { systemStatus } = useAuthStore();
   if (systemStatus?.systemNotice?.active) {
     addBanner({
       id: "system-notice",
