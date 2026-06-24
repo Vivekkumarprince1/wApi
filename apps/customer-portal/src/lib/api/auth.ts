@@ -45,7 +45,11 @@ export const getGoogleAuthUrl = async (formType: string = 'login') => {
 };
 
 export const facebookLogin = async (accessToken: string) => {
-  return api.post<any>('/auth/facebook', { accessToken });
+  const response = await api.post<any>('/auth/facebook', { accessToken });
+  if (response?.token) {
+    storeAuthToken(response.token);
+  }
+  return response;
 };
 
 export const logoutUser = async () => {

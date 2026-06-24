@@ -36,7 +36,7 @@ export async function createOwnerAccount(input: {
   password?: string;
   passwordHash?: string;
   googleId?: string;
-  authProvider: 'local' | 'google' | 'phone' | 'mixed';
+  authProvider: 'local' | 'google' | 'facebook' | 'phone' | 'mixed';
   emailVerified?: boolean;
   phoneVerified?: boolean;
 }) {

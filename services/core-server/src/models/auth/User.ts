@@ -3,7 +3,7 @@ import mongoose, { Document, Schema, Model, Types } from 'mongoose';
 export type UserRole = 'super_admin' | 'owner' | 'admin' | 'manager' | 'agent' | 'member' | 'viewer';
 export type AccountStatus = 'AWAITING_EMAIL_VERIFICATION' | 'AWAITING_MOBILE_VERIFICATION' | 'AWAITING_BUSINESS_INFO' | 'SIGNUP_COMPLETED';
 export type UserStatus = 'active' | 'invited' | 'offline' | 'removed';
-export type AuthProvider = 'local' | 'google' | 'phone' | 'mixed';
+export type AuthProvider = 'local' | 'google' | 'facebook' | 'phone' | 'mixed';
 
 export interface IUser {
   name: string;
@@ -11,6 +11,7 @@ export interface IUser {
   passwordHash?: string;
   googleId?: string;
   facebookId?: string;
+  profilePicture?: string;
   phone?: string;
   phoneVerified: boolean;
   authProvider: AuthProvider;
@@ -39,12 +40,13 @@ const UserSchema = new Schema<IUserDocument>({
   email: { type: String, unique: true, sparse: true, lowercase: true, trim: true },
   passwordHash: { type: String },
   googleId: { type: String, unique: true, sparse: true },
-  facebookId: { type: String },
+  facebookId: { type: String, unique: true, sparse: true },
+  profilePicture: { type: String },
   phone: { type: String, unique: true, sparse: true, trim: true },
   phoneVerified: { type: Boolean, default: false },
   authProvider: {
     type: String,
-    enum: ['local', 'google', 'phone', 'mixed'],
+    enum: ['local', 'google', 'facebook', 'phone', 'mixed'],
     default: 'local'
   },
   company: { type: String },

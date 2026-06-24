@@ -602,9 +602,100 @@ export const authController = {
    */
   async facebookLogin(req: Request, res: Response, next: NextFunction) {
     try {
-      // This would integrate with Facebook SDK
-      // For now, returning placeholder
-      throw new BadRequestError("Facebook authentication not yet implemented");
+      const { accessToken } = req.body;
+      if (!accessToken) throw new BadRequestError('Facebook access token is required');
+
+      const { getFacebookUser } = await import('../services/auth/facebook-auth-service');
+      const facebookUser = await getFacebookUser(accessToken);
+      const { signToken } = await import('../utils/auth-utils');
+
+      let user: any = await User.findOne({
+        $or: [
+          { facebookId: facebookUser.id },
+          { email: facebookUser.email }
+        ]
+      });
+
+      if (!user) {
+        const workspace = await Workspace.create({
+          name: `${facebookUser.name}'s workspace`,
+          onboarding: { step: 'industry_selection', completed: false }
+        });
+
+        user = await User.create({
+          name: facebookUser.name,
+          email: facebookUser.email,
+          facebookId: facebookUser.id,
+          workspace: workspace._id,
+          activeWorkspace: workspace._id,
+          role: 'owner',
+          emailVerified: true,
+          accountStatus: 'SIGNUP_COMPLETED',
+          authProvider: 'facebook',
+          profilePicture: facebookUser.picture
+        });
+
+        workspace.owner = user._id;
+        await workspace.save();
+
+        const { Permission: PermissionModel } = await import('../models/auth/Permission');
+        if ((PermissionModel as any).seedOwnerPermissions) {
+          await (PermissionModel as any).seedOwnerPermissions(workspace._id, user._id);
+        }
+      } else {
+        let needsSave = false;
+        if (!user.facebookId) {
+          user.facebookId = facebookUser.id;
+          user.authProvider = user.authProvider === 'local' ? 'mixed' : user.authProvider || 'facebook';
+          needsSave = true;
+        }
+        if (!user.emailVerified) {
+          user.emailVerified = true;
+          needsSave = true;
+        }
+        if (!user.profilePicture && facebookUser.picture) {
+          user.profilePicture = facebookUser.picture;
+          needsSave = true;
+        }
+        user.lastLoginAt = new Date();
+        needsSave = true;
+        if (needsSave) await user.save();
+      }
+
+      const workspaceId = user.activeWorkspace?.toString() || user.workspace?.toString();
+      let role = user.role;
+      if (workspaceId) {
+        const permission = await Permission.findOne({ workspace: workspaceId, user: user._id });
+        if (permission) {
+          role = permission.role;
+        }
+      }
+
+      const token = signToken({
+        id: user._id.toString(),
+        workspaceId,
+        role
+      });
+
+      const cookieOptions = getAuthCookieOptions();
+      res.cookie('auth_token', token, {
+        httpOnly: cookieOptions.httpOnly,
+        secure: cookieOptions.secure,
+        sameSite: cookieOptions.sameSite,
+        maxAge: cookieOptions.maxAge * 1000,
+        path: cookieOptions.path,
+      });
+
+      res.json({
+        success: true,
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role
+        }
+      });
     } catch (err) {
       next(err);
     }
