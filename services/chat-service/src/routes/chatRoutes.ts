@@ -69,6 +69,7 @@ router.post('/inbox/conversations/:id/messages', authenticate, sendMessagePublic
 router.post('/conversations/:id/messages', authenticate, sendMessagePublic);
 
 // Send a template directly to a contact (gateway maps /api/v1/contacts/:id/send-template here)
+router.post('/api/v1/contacts/:contactId/send-template', authenticate, sendTemplateToContactPublic);
 router.post('/api/v1/inbox/contacts/:contactId/send-template', authenticate, sendTemplateToContactPublic);
 router.post('/inbox/contacts/:contactId/send-template', authenticate, sendTemplateToContactPublic);
 
@@ -77,4 +78,3 @@ router.post('/api/v1/inbox/:id/read', authenticate, markAsReadPublic);
 router.get('/api/v1/inbox/:contactId/messages', authenticate, getMessagesByContactPublic);
 
 export default router;
-

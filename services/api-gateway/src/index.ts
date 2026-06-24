@@ -108,6 +108,7 @@ async function getServiceControls(): Promise<Record<string, ServiceControl>> {
 
 function serviceIdsForPath(path: string): string[] {
   if (path.startsWith('/socket.io')) return ['websocket'];
+  if (/^\/api\/v1\/contacts\/[^/]+\/send-template(?:\/|$)/.test(path)) return ['chat'];
   if (path.startsWith('/api/v1/inbox') || path.startsWith('/api/v1/conversations') || path.startsWith('/api/v1/analytics') || path.startsWith('/api/v1/metrics') || path.startsWith('/api/v1/support')) return ['chat'];
   if (path.startsWith('/api/v1/contacts') || path.startsWith('/api/v1/crm') || path.startsWith('/api/v1/tags') || path.startsWith('/api/v1/messaging/quick-replies') || path.startsWith('/api/v1/bulk')) return ['contact'];
   if (path.startsWith('/api/v1/billing') || path.startsWith('/api/v1/commerce') || path.startsWith('/api/v1/workspace/billing') || path.startsWith('/api/v1/workspace/pricing')) return ['billing'];
@@ -546,7 +547,7 @@ app.use('/api/v1/inbox/settings', proxyRewrite(
 app.use('/api/v1/contacts/:contactId/send-template', proxyRewrite(
   SERVICES.chat,
   'chat',
-  (path) => path.replace('/api/v1/contacts/', '/api/v1/inbox/contacts/')
+  (path, req) => (req?.originalUrl || path).replace('/api/v1/contacts/', '/api/v1/inbox/contacts/')
 ));
 app.use('/api/v1/contacts', proxyTo(SERVICES.contact, 'contact'));
 app.use('/api/v1/crm', proxyTo(SERVICES.contact, 'contact'));
