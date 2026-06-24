@@ -56,6 +56,11 @@ const DEAD_LETTER_COLLECTION = 'webhook_dead_letters';
 let redisProducer: Redis | null = null;
 let simulatedMode = false;
 let mongoClient: MongoClient | null = null;
+let redisReconnectAfter = 0;
+let lastRedisErrorLogAt = 0;
+
+const REDIS_RECONNECT_COOLDOWN_MS = 30_000;
+const REDIS_ERROR_LOG_COOLDOWN_MS = 60_000;
 
 async function deadLetterCollection() {
   if (!mongoClient) {
@@ -67,31 +72,58 @@ async function deadLetterCollection() {
   return mongoClient.db().collection(DEAD_LETTER_COLLECTION);
 }
 
-async function initRedis() {
+function logRedisWarning(message: string) {
+  const now = Date.now();
+  if (now - lastRedisErrorLogAt < REDIS_ERROR_LOG_COOLDOWN_MS) return;
+  lastRedisErrorLogAt = now;
+  console.warn(message);
+}
+
+async function initRedis(force = false): Promise<boolean> {
   if (!REDIS_URL) {
-    if (IS_PRODUCTION) {
-      throw new Error('[Webhook Ingestor] REDIS_URL is missing in production');
-    }
     simulatedMode = true;
-    console.warn('[Webhook Ingestor] REDIS_URL missing. Running in simulated mode.');
-    return;
+    logRedisWarning('[Webhook Ingestor] REDIS_URL missing. Webhooks will be stored in dead letters until Redis is configured.');
+    return false;
+  }
+
+  if (!force && Date.now() < redisReconnectAfter) {
+    return false;
+  }
+
+  if (redisProducer?.status === 'ready') {
+    simulatedMode = false;
+    return true;
   }
 
   try {
-    redisProducer = new Redis(REDIS_URL, { lazyConnect: true, maxRetriesPerRequest: null });
+    redisProducer?.disconnect();
+    redisProducer = new Redis(REDIS_URL, {
+      lazyConnect: true,
+      maxRetriesPerRequest: 1,
+      enableOfflineQueue: false,
+      retryStrategy: (times) => Math.min(times * 200, 2_000),
+    });
+    redisProducer.on('error', (err) => {
+      logRedisWarning(`[Webhook Ingestor] Redis producer error: ${err.message}`);
+    });
     await redisProducer.connect();
+    redisReconnectAfter = 0;
+    simulatedMode = false;
     console.log(`[Webhook Ingestor] Connected to Redis`);
+    return true;
   } catch (error: any) {
-    if (IS_PRODUCTION) {
-      throw new Error(`[Webhook Ingestor] Failed to connect to Redis at ${REDIS_URL}: ${error.message}`);
-    }
+    redisProducer?.disconnect();
+    redisProducer = null;
+    redisReconnectAfter = Date.now() + REDIS_RECONNECT_COOLDOWN_MS;
     simulatedMode = true;
-    console.warn(`[Webhook Ingestor] Failed to connect to Redis (${error.message}). Running in local fallback mode (logging to stdout).`);
+    logRedisWarning(`[Webhook Ingestor] Redis unavailable (${error.message}). Webhooks will be stored in dead letters and replay can retry later.`);
+    return false;
   }
 }
 
 async function publishRawWebhook(eventId: string, eventMessage: any) {
-  if (!redisProducer) {
+  const connected = await initRedis();
+  if (!connected || !redisProducer) {
     throw new Error('Redis producer is not connected');
   }
 
@@ -305,7 +337,11 @@ server.post('/internal/v1/webhooks/replay', async (req, reply) => {
 
 // Health check
 server.get('/health', async () => {
-  return { status: 'OK', redisConnected: !!redisProducer && !simulatedMode };
+  return {
+    status: 'OK',
+    redisConnected: !!redisProducer && redisProducer.status === 'ready' && !simulatedMode,
+    mode: simulatedMode ? 'degraded' : 'live',
+  };
 });
 
 // Root path Tunnel check
