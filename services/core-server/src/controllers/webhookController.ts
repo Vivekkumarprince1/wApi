@@ -36,27 +36,30 @@ export const webhookController = {
   async handleWhatsApp(req: Request, res: Response) {
     try {
       const rawBody = (req as any).rawBody || JSON.stringify(req.body);
-      
-      // Signature validation
-      if (!isWebhookSignatureValid(rawBody, req)) {
-        console.warn(`[Webhook] ❌ Signature validation failed for payload. rawBody length: ${rawBody?.length || 0}`);
-        return res.status(401).send('Invalid signature');
+
+      // Gupshup callback URLs are public receiver endpoints. Their docs
+      // require fast 2xx acknowledgement and async processing; signatures are
+      // optional and validated only when the provider sends a signature header.
+      if (hasWebhookSignature(req) && !isWebhookSignatureValid(rawBody, req)) {
+        console.warn(`[Webhook] Signature validation failed for signed payload. rawBody length: ${rawBody?.length || 0}`);
+        return res.status(401).end();
       }
-      console.log(`[Webhook] ✓ Signature validated. rawBody length: ${rawBody?.length}`);
 
       const payload = req.body;
       const rawBodyDigest = crypto.createHash('sha256').update(rawBody).digest('hex').slice(0, 32);
       const deliveryId = resolveDeliveryId(req, payload, rawBodyDigest);
 
-      console.log(`[Webhook] Received payload. DeliveryID: ${deliveryId}`);
+      console.log(`[Webhook] Accepted payload. DeliveryID: ${deliveryId}, signed: ${hasWebhookSignature(req)}`);
 
-      // Enqueue for background processing
-      await enqueueWebhook(payload, deliveryId || undefined);
+      res.status(200).end();
 
-      res.status(200).send('OK');
+      enqueueWebhook(payload, deliveryId || undefined).catch((error: any) => {
+        console.error('[Webhook] Error enqueueing payload after acknowledgement:', error.message);
+      });
+
     } catch (error: any) {
       console.error('[Webhook] Error receiving payload:', error.message);
-      res.status(500).send('Failed');
+      res.status(500).end();
     }
   },
 
@@ -74,16 +77,13 @@ export const webhookController = {
 
 const V3_STATUS_TYPES = new Set(['status', 'enqueued', 'accepted', 'sent', 'delivered', 'read', 'seen', 'failed']);
 
+function hasWebhookSignature(req: Request) {
+  return Boolean(req.headers['x-hub-signature-256'] || req.headers['x-gupshup-signature']);
+}
+
 function isWebhookSignatureValid(rawBody: string, req: Request) {
-  // Fail closed in production when the shared secret is missing. In
-  // development we allow unsigned payloads so local Gupshup/Meta replays
-  // still work, but log loudly so it cannot ship by accident.
   if (!config.whatsappWebhookSecret) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error('[Webhook] Rejecting payload: GUPSHUP_WEBHOOK_SECRET/WHATSAPP_WEBHOOK_SECRET is not configured in production.');
-      return false;
-    }
-    console.warn('[Webhook] WARNING: GUPSHUP_WEBHOOK_SECRET/WHATSAPP_WEBHOOK_SECRET not set; accepting payload (development only).');
+    console.warn('[Webhook] Signature header present but no webhook secret is configured; accepting Gupshup callback payload.');
     return true;
   }
 

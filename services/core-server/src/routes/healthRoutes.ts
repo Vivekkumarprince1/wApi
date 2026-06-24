@@ -168,7 +168,7 @@ router.get('/signature-verification', (req: Request, res: Response) => {
       length: config.whatsappWebhookVerifyToken?.length || 0
     },
     requirements: {
-      secret: 'Required for signature verification',
+      secret: 'Optional for Gupshup callbacks; used only when provider signature headers are present',
       verifyToken: 'Required for webhook challenge verification'
     }
   });

@@ -231,22 +231,6 @@ export const adminController = {
       const { GupshupPartnerService } = await import('../services/bsp/gupshup-partner-service');
       const { config } = await import('../config');
       const targetUrl = url || config.whatsappWebhookUrl;
-
-      if (config.env === 'production' && !config.whatsappWebhookSecret) {
-        return res.status(503).json({
-          success: false,
-          message: 'WhatsApp webhook signing secret is not visible to the core server process. Set it on the Render core service, not only the admin portal or microservices.',
-          checkedEnv: [
-            'GUPSHUP_WEBHOOK_SECRET',
-            'WHATSAPP_WEBHOOK_SECRET',
-            'WHATSAPP_WEBHOOK_SIGNING_SECRET',
-            'GUPSHUP_CALLBACK_SECRET',
-            'GUPSHUP_WEBHOOK_TOKEN',
-            'WEBHOOK_SECRET'
-          ],
-          loadedSource: config.whatsappWebhookSecretSource || null
-        });
-      }
       
       await GupshupPartnerService.setSubscription({
         appId,
