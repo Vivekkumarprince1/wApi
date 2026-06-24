@@ -10,13 +10,15 @@ export interface ServiceDef {
   baseUrl: string;
   /** Health endpoint path that returns 200 when the service is up. */
   healthPath: string;
+  requiresInternalSecret?: boolean;
 }
 
+const CORE_GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:5001";
+
 export const SERVICES: ServiceDef[] = [
-  { id: "gateway", name: "Core Gateway", baseUrl: process.env.GATEWAY_URL || "http://localhost:5001", healthPath: "/ready" },
-  { id: "core", name: "Core Server", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/core`, healthPath: "/health" },
-  { id: "billing", name: "Billing Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/billing`, healthPath: "/health" },
-  { id: "campaign", name: "Campaign Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/campaign`, healthPath: "/health" },
-  { id: "automation", name: "Automation Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/automation`, healthPath: "/health" },
-  { id: "websocket", name: "WebSocket Service", baseUrl: `${process.env.GATEWAY_URL || "http://localhost:5001"}/api/admin/websocket`, healthPath: "/live" },
+  { id: "core", name: "Core Gateway", baseUrl: CORE_GATEWAY_URL, healthPath: "/ready" },
+  { id: "billing", name: "Billing Service", baseUrl: `${CORE_GATEWAY_URL}/api/admin/billing`, healthPath: "/ready", requiresInternalSecret: true },
+  { id: "campaign", name: "Campaign Service", baseUrl: `${CORE_GATEWAY_URL}/api/admin/campaign`, healthPath: "/ready", requiresInternalSecret: true },
+  { id: "automation", name: "Automation Service", baseUrl: `${CORE_GATEWAY_URL}/api/admin/automation`, healthPath: "/ready", requiresInternalSecret: true },
+  { id: "socket", name: "Socket.IO on Core", baseUrl: CORE_GATEWAY_URL, healthPath: "/ready" },
 ];

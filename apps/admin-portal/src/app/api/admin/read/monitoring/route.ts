@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
-import { SERVICES } from "@/server/services-config";
+import { SERVICES, type ServiceDef } from "@/server/services-config";
 import { getConnection, type DbName } from "@/server/db";
 
 export const runtime = "nodejs";
@@ -15,14 +15,20 @@ interface ServiceHealth {
   detail?: unknown;
 }
 
-async function probe(baseUrl: string, healthPath: string): Promise<{ ok: boolean; latencyMs: number; detail?: unknown }> {
+async function probe(service: ServiceDef): Promise<{ ok: boolean; latencyMs: number; detail?: unknown }> {
   const start = Date.now();
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 4000);
-    const res = await fetch(`${baseUrl}${healthPath}`, {
+    const headers: Record<string, string> = {};
+    if (service.requiresInternalSecret && process.env.INTERNAL_SERVICE_SECRET) {
+      headers["x-internal-service-secret"] = process.env.INTERNAL_SERVICE_SECRET;
+    }
+
+    const res = await fetch(`${service.baseUrl}${service.healthPath}`, {
       cache: "no-store",
       signal: controller.signal,
+      headers,
     });
     clearTimeout(timer);
     const detail = await res.json().catch(() => undefined);
@@ -49,7 +55,7 @@ export async function GET() {
 
     const services: ServiceHealth[] = await Promise.all(
       SERVICES.map(async (svc) => {
-        const r = await probe(svc.baseUrl, svc.healthPath);
+        const r = await probe(svc);
         return {
           id: svc.id,
           name: svc.name,

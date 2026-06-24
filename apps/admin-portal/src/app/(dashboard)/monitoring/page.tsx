@@ -51,7 +51,7 @@ export default function MonitoringPage() {
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {isLoading
-                  ? Array.from({ length: 6 }).map((_, i) => (
+                  ? Array.from({ length: 5 }).map((_, i) => (
                       <Card key={i}>
                         <CardContent className="p-4">
                           <Skeleton className="h-5 w-32" />
