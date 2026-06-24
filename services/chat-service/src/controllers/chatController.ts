@@ -7,6 +7,24 @@ import { isSessionWindowOpen, applyOutboundConversationUpdate } from '../service
 import { NotificationService } from '../services/notification-service.js';
 import { logActivity } from '../services/activity-log.js';
 
+async function fetchContactByIdForWorkspace(contactId: string, workspaceId: mongoose.Types.ObjectId) {
+  const contactServiceUrl = process.env.CONTACT_SERVICE_URL || 'http://localhost:3007';
+  const response = await fetch(`${contactServiceUrl}/internal/v1/contacts/${contactId}`, {
+    headers: {
+      'x-internal-service-secret': process.env.INTERNAL_SERVICE_SECRET || '',
+      'x-workspace-id': workspaceId.toString(),
+    },
+  });
+
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`Contact Service lookup failed with status ${response.status}`);
+  }
+
+  const payload = await response.json() as any;
+  return payload?.data || null;
+}
+
 // --- Internal routes ---
 
 export const getConversationsInternal = async (req: express.Request, res: express.Response) => {
@@ -561,9 +579,10 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
       return res.status(404).json({ success: false, message: 'Conversation not found' });
     }
 
-    // Mock populating contact for local DB lookup
+    // Prefer a caller-provided contact when the route already resolved it via
+    // contact-service; otherwise use the local read model for inbox sends.
     const db = Conversation.db;
-    const contactDoc = await db.collection('contacts').findOne({ _id: conversation.contact });
+    const contactDoc = req.contactOverride || await db.collection('contacts').findOne({ _id: conversation.contact });
     if (!contactDoc) {
       return res.status(404).json({ success: false, message: 'Contact not found' });
     }
@@ -772,13 +791,13 @@ export const sendTemplateToContactPublic = async (req: any, res: express.Respons
       return res.status(400).json({ success: false, message: 'Invalid contact id' });
     }
 
-    // Contacts live in the shared 'wapi' DB — validate ownership before sending.
-    const db = Conversation.db;
-    const contactDoc = await db.collection('contacts').findOne({ _id: contactObjectId });
+    let contactDoc = await fetchContactByIdForWorkspace(contactId, workspaceId);
     if (!contactDoc) {
-      return res.status(404).json({ success: false, message: 'Contact not found' });
+      const db = Conversation.db;
+      contactDoc = await db.collection('contacts').findOne({ _id: contactObjectId });
     }
-    if (contactDoc.workspace && String(contactDoc.workspace) !== String(workspaceId)) {
+
+    if (!contactDoc || (contactDoc.workspace && String(contactDoc.workspace) !== String(workspaceId))) {
       return res.status(404).json({ success: false, message: 'Contact not found' });
     }
 
@@ -799,6 +818,7 @@ export const sendTemplateToContactPublic = async (req: any, res: express.Respons
         components: Array.isArray(variables) ? variables : [],
       },
     };
+    req.contactOverride = contactDoc;
     return sendMessagePublic(req, res);
   } catch (err: any) {
     console.error('[sendTemplateToContactPublic] Error:', err.message);
