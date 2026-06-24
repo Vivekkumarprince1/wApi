@@ -68,6 +68,10 @@ const app = express();
 const httpServer = createServer(app);
 const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5001", 10);
 console.log(`[Main Server] Configured port: ${port} (BACKEND_PORT=${process.env.BACKEND_PORT}, PORT=${process.env.PORT})`);
+const resolveEnvSource = (keys: string[]) => keys.find((key) => Boolean(process.env[key]?.trim())) || 'missing';
+console.log(
+  `[Main Server] WhatsApp webhook config: urlSource=${resolveEnvSource(['WHATSAPP_WEBHOOK_URL', 'GUPSHUP_WEBHOOK_URL', 'WEBHOOK_URL'])}, secretSource=${resolveEnvSource(['GUPSHUP_WEBHOOK_SECRET', 'WHATSAPP_WEBHOOK_SECRET', 'WHATSAPP_WEBHOOK_SIGNING_SECRET', 'GUPSHUP_CALLBACK_SECRET', 'GUPSHUP_WEBHOOK_TOKEN', 'WEBHOOK_SECRET'])}, verifyTokenConfigured=${Boolean(process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN?.trim())}`
+);
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   "http://localhost:3000",

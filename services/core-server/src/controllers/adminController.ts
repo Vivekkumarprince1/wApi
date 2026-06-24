@@ -235,7 +235,16 @@ export const adminController = {
       if (config.env === 'production' && !config.whatsappWebhookSecret) {
         return res.status(503).json({
           success: false,
-          message: 'WhatsApp webhook signing secret is not configured. Set GUPSHUP_WEBHOOK_SECRET or WHATSAPP_WEBHOOK_SECRET on the core server before syncing Gupshup webhooks.'
+          message: 'WhatsApp webhook signing secret is not visible to the core server process. Set it on the Render core service, not only the admin portal or microservices.',
+          checkedEnv: [
+            'GUPSHUP_WEBHOOK_SECRET',
+            'WHATSAPP_WEBHOOK_SECRET',
+            'WHATSAPP_WEBHOOK_SIGNING_SECRET',
+            'GUPSHUP_CALLBACK_SECRET',
+            'GUPSHUP_WEBHOOK_TOKEN',
+            'WEBHOOK_SECRET'
+          ],
+          loadedSource: config.whatsappWebhookSecretSource || null
         });
       }
       

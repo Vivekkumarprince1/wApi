@@ -29,7 +29,11 @@ services:
           type: keyvalue
           name: wapi-valkey
           property: connectionString
+      - key: WHATSAPP_WEBHOOK_URL
+        sync: false
       - key: GUPSHUP_WEBHOOK_SECRET
+        sync: false
+      - key: WHATSAPP_WEBHOOK_SECRET
         sync: false
       - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
         sync: false

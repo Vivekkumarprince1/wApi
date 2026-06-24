@@ -21,6 +21,29 @@ function serviceUrl(value: string) {
   return value.replace(/\/+$/, '');
 }
 
+function firstNonEmptyEnv(keys: string[]) {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return { value, source: key };
+  }
+  return { value: '', source: '' };
+}
+
+const webhookUrlEnv = firstNonEmptyEnv([
+  'WHATSAPP_WEBHOOK_URL',
+  'GUPSHUP_WEBHOOK_URL',
+  'WEBHOOK_URL'
+]);
+
+const webhookSecretEnv = firstNonEmptyEnv([
+  'GUPSHUP_WEBHOOK_SECRET',
+  'WHATSAPP_WEBHOOK_SECRET',
+  'WHATSAPP_WEBHOOK_SIGNING_SECRET',
+  'GUPSHUP_CALLBACK_SECRET',
+  'GUPSHUP_WEBHOOK_TOKEN',
+  'WEBHOOK_SECRET'
+]);
+
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3000', 10),
@@ -48,8 +71,10 @@ export const config = {
   gupshupApiBaseUrl: process.env.GUPSHUP_API_BASE_URL || 'https://api.gupshup.io',
   gupshupOtpTemplateName: process.env.GUPSHUP_OTP_TEMPLATE_NAME || '',
   gupshupDefaultRegion: process.env.GUPSHUP_DEFAULT_REGION || 'IN',
-  whatsappWebhookUrl: process.env.WHATSAPP_WEBHOOK_URL || '',
-  whatsappWebhookSecret: process.env.GUPSHUP_WEBHOOK_SECRET || process.env.WHATSAPP_WEBHOOK_SECRET || '',
+  whatsappWebhookUrl: webhookUrlEnv.value,
+  whatsappWebhookUrlSource: webhookUrlEnv.source,
+  whatsappWebhookSecret: webhookSecretEnv.value,
+  whatsappWebhookSecretSource: webhookSecretEnv.source,
   whatsappWebhookVerifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '',
 
   // OTP / communication

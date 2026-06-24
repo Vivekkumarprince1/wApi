@@ -160,7 +160,8 @@ router.get('/signature-verification', (req: Request, res: Response) => {
     configured: !!config.whatsappWebhookSecret,
     secret: {
       configured: !!config.whatsappWebhookSecret,
-      length: config.whatsappWebhookSecret?.length || 0
+      length: config.whatsappWebhookSecret?.length || 0,
+      source: config.whatsappWebhookSecretSource || null
     },
     verifyToken: {
       configured: !!config.whatsappWebhookVerifyToken,
