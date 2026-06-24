@@ -22,21 +22,11 @@ services:
     healthCheckPath: /live
     envVars:
       - fromGroup: wapi-shared-auth
-      - key: ALLOWED_ORIGINS
-        value: https://connectsphare-backup.vercel.app,http://localhost:3000,http://localhost:3001,http://localhost:3002
       - key: VALKEY_URL
         fromService:
           type: keyvalue
           name: wapi-valkey
           property: connectionString
-      - key: WHATSAPP_WEBHOOK_URL
-        sync: false
-      - key: GUPSHUP_WEBHOOK_SECRET
-        sync: false
-      - key: WHATSAPP_WEBHOOK_SECRET
-        sync: false
-      - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
-        sync: false
 
   - type: web
     name: wapi-automation-service
