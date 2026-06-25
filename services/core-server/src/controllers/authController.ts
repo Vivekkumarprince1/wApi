@@ -4,6 +4,7 @@ import { getAuthCookieOptions } from '../utils/auth-utils';
 import { User, Workspace, Permission, SystemSettings } from '../models';
 import { AuthenticationError, BadRequestError, ForbiddenError, NotFoundError } from '../utils/errors';
 import { proxyController } from './proxyController';
+import { resolveGoogleRedirectUri } from '../utils/google-oauth-redirect';
 
 async function getUserFromCookie(req: Request): Promise<any> {
   if ((req as any).user) return (req as any).user;
@@ -366,7 +367,8 @@ export const authController = {
       if (!code) throw new BadRequestError("Code is required");
 
       const { getGoogleUser } = await import('../services/auth/google-auth-service');
-      const googleUser = await getGoogleUser(code);
+      const { redirectUri } = resolveGoogleRedirectUri(req);
+      const googleUser = await getGoogleUser(code, redirectUri);
 
       if (!googleUser?.email) {
         throw new BadRequestError("Failed to get user info from Google");
@@ -582,13 +584,14 @@ export const authController = {
   async googleUrl(req: Request, res: Response, next: NextFunction) {
     try {
       const clientId = process.env.GOOGLE_CLIENT_ID;
-      const redirectUri = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:5001/api/v1/auth/google/callback';
+      const { redirectUri } = resolveGoogleRedirectUri(req);
       
       const url = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
         client_id: clientId || '',
         redirect_uri: redirectUri,
         response_type: 'code',
-        scope: 'openid profile email'
+        scope: 'openid profile email',
+        state: typeof req.query.type === 'string' ? req.query.type : 'login'
       }).toString()}`;
 
       res.json({ success: true, url });

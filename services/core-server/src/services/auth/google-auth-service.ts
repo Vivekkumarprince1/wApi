@@ -1,12 +1,13 @@
 import { google } from 'googleapis';
+import { resolveGoogleRedirectUri } from '../../utils/google-oauth-redirect';
 
 /**
  * Google OAuth Configuration
  */
-const oauth2Client = new google.auth.OAuth2(
+const createOAuth2Client = (redirectUri: string = resolveGoogleRedirectUri().redirectUri) => new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    `${process.env.NEXT_PUBLIC_APP_URL}/auth/google/callback`
+    redirectUri
 );
 
 if (!process.env.GOOGLE_CLIENT_ID) {
@@ -16,7 +17,8 @@ if (!process.env.GOOGLE_CLIENT_ID) {
 /**
  * Generate Google Auth URL
  */
-export const getGoogleAuthUrl = (type: string = 'login') => {
+export const getGoogleAuthUrl = (type: string = 'login', redirectUri?: string) => {
+    const oauth2Client = createOAuth2Client(redirectUri);
     const scopes = [
         'https://www.googleapis.com/auth/userinfo.profile',
         'https://www.googleapis.com/auth/userinfo.email'
@@ -36,7 +38,8 @@ export const getGoogleAuthUrl = (type: string = 'login') => {
 /**
  * Get Google User from Code
  */
-export const getGoogleUser = async (code: string) => {
+export const getGoogleUser = async (code: string, redirectUri?: string) => {
+    const oauth2Client = createOAuth2Client(redirectUri);
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
 

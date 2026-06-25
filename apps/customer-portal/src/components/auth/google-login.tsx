@@ -11,7 +11,7 @@ export default function GoogleLogin({ formType = 'signup', onError, onSuccess }:
     setIsLoading(true);
 
     try {
-      const data: any = await getGoogleAuthUrl();
+      const data: any = await getGoogleAuthUrl(formType);
       if (!data?.url) {
         throw new Error('Google sign-in is not available right now');
       }
