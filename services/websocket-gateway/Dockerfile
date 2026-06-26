@@ -1,7 +1,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY services/websocket-gateway/package*.json ./services/websocket-gateway/
-RUN cd services/websocket-gateway && npm install
+RUN cd services/websocket-gateway && npm ci --include=dev
 COPY services/websocket-gateway ./services/websocket-gateway
 RUN cd services/websocket-gateway && npm run build
 

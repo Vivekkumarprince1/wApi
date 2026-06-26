@@ -1,7 +1,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY services/api-gateway/package*.json ./services/api-gateway/
-RUN cd services/api-gateway && npm install
+RUN cd services/api-gateway && npm ci --include=dev
 COPY services/api-gateway ./services/api-gateway
 RUN cd services/api-gateway && npm run build
 

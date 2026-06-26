@@ -1,0 +1,70 @@
+FROM node:20-alpine AS builder
+WORKDIR /app
+
+COPY packages/contracts/package*.json ./packages/contracts/
+RUN cd packages/contracts && npm ci --include=dev
+COPY packages/contracts ./packages/contracts
+RUN cd packages/contracts && npm run build
+
+COPY services/api-gateway/package*.json ./services/api-gateway/
+RUN cd services/api-gateway && npm ci --include=dev
+COPY services/api-gateway ./services/api-gateway
+RUN cd services/api-gateway && npm run build
+
+COPY services/auth-service/package*.json ./services/auth-service/
+RUN cd services/auth-service && npm ci --include=dev
+COPY services/auth-service ./services/auth-service
+RUN cd services/auth-service && npm run build
+
+COPY services/contact-service/package*.json ./services/contact-service/
+RUN cd services/contact-service && npm ci --include=dev
+COPY services/contact-service ./services/contact-service
+RUN cd services/contact-service && npm run build
+
+COPY services/chat-service/package*.json ./services/chat-service/
+RUN cd services/chat-service && npm ci --include=dev
+COPY services/chat-service ./services/chat-service
+RUN cd services/chat-service && npm run build
+
+COPY services/billing-service/package*.json ./services/billing-service/
+RUN cd services/billing-service && npm ci --include=dev
+COPY services/billing-service ./services/billing-service
+RUN cd services/billing-service && npm run build
+
+COPY services/campaign-service/package*.json ./services/campaign-service/
+RUN cd services/campaign-service && npm ci --include=dev
+COPY services/campaign-service ./services/campaign-service
+RUN cd services/campaign-service && npm run build
+
+COPY services/automation-service/package*.json ./services/automation-service/
+RUN cd services/automation-service && npm ci --include=dev
+COPY services/automation-service ./services/automation-service
+RUN cd services/automation-service && npm run build
+
+COPY services/service-provider/package*.json ./services/service-provider/
+RUN cd services/service-provider && npm ci --include=dev
+COPY services/service-provider ./services/service-provider
+RUN cd services/service-provider && npm run build
+
+COPY services/webhook-ingestor/package*.json ./services/webhook-ingestor/
+RUN cd services/webhook-ingestor && npm ci --include=dev
+COPY services/webhook-ingestor ./services/webhook-ingestor
+RUN cd services/webhook-ingestor && npm run build
+
+COPY services/websocket-gateway/package*.json ./services/websocket-gateway/
+RUN cd services/websocket-gateway && npm ci --include=dev
+COPY services/websocket-gateway ./services/websocket-gateway
+RUN cd services/websocket-gateway && npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY --from=redis:7-alpine /usr/local/bin/redis-server /usr/local/bin/redis-server
+
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/services ./services
+COPY scripts/start-northflank-free-backend.sh ./scripts/start-northflank-free-backend.sh
+
+EXPOSE 5001
+CMD ["sh", "/app/scripts/start-northflank-free-backend.sh"]

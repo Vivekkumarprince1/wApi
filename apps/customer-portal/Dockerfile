@@ -1,7 +1,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY apps/customer-portal/package*.json ./apps/customer-portal/
-RUN cd apps/customer-portal && npm install
+RUN cd apps/customer-portal && npm ci --include=dev
 COPY apps/customer-portal ./apps/customer-portal
 RUN cd apps/customer-portal && npm run build
 

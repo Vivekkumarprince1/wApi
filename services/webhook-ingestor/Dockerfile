@@ -1,7 +1,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY services/webhook-ingestor/package*.json ./services/webhook-ingestor/
-RUN cd services/webhook-ingestor && npm install
+RUN cd services/webhook-ingestor && npm ci --include=dev
 COPY services/webhook-ingestor ./services/webhook-ingestor
 RUN cd services/webhook-ingestor && npm run build
 

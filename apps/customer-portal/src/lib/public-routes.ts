@@ -1,5 +1,6 @@
 const PUBLIC_ENTRY_ROUTES = new Set([
   '/',
+  '/health',
   '/auth/login',
   '/auth/register',
   '/privacy',
