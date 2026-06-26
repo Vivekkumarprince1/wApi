@@ -23,9 +23,18 @@ export MAIN_SERVICE_URL="${MAIN_SERVICE_URL:-http://127.0.0.1:5001}"
 export MONOLITH_URL="${MONOLITH_URL:-http://127.0.0.1:5001}"
 export MONOLITH_INTERNAL_URL="${MONOLITH_INTERNAL_URL:-http://127.0.0.1:5001}"
 export BSP_SERVICE_URL="${BSP_SERVICE_URL:-http://127.0.0.1:3004}"
+export WAPI_FREE_SERVICES="${WAPI_FREE_SERVICES:-auth,api}"
 
 pids=""
 critical_pids=""
+
+should_start() {
+  service="$1"
+  case ",$WAPI_FREE_SERVICES," in
+    *",$service,"*|*,all,*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 start_process() {
   name="$1"
@@ -79,18 +88,38 @@ redis-server --save "" --appendonly no --protected-mode no &
 pids="$pids $!"
 critical_pids="$critical_pids $!"
 
-start_process "auth-service" "/app/services/auth-service" "3006" "${MONGO_URI_AUTH:-$MONGO_URI}" "true"
-start_process "contact-service" "/app/services/contact-service" "3007" "${MONGO_URI_CONTACT:-$MONGO_URI}"
-start_process "chat-service" "/app/services/chat-service" "3008" "${MONGO_URI_CHAT:-$MONGO_URI}"
-start_process "billing-service" "/app/services/billing-service" "3003" "${MONGO_URI_BILLING:-$MONGO_URI}"
-start_process "campaign-service" "/app/services/campaign-service" "3002" "${MONGO_URI_CAMPAIGN:-$MONGO_URI}"
-start_process "automation-service" "/app/services/automation-service" "3001" "${MONGO_URI_AUTOMATION:-$MONGO_URI}"
-start_process "service-provider" "/app/services/service-provider" "3004" "${MONGO_URI_BSP:-$MONGO_URI}"
-start_process "webhook-ingestor" "/app/services/webhook-ingestor" "3013" "${MONGO_URI_WEBHOOK:-$MONGO_URI}"
-start_process "websocket-gateway" "/app/services/websocket-gateway" "3009" "${MONGO_URI_WEBSOCKET:-$MONGO_URI}"
+if should_start auth; then
+  start_process "auth-service" "/app/services/auth-service" "3006" "${MONGO_URI_AUTH:-$MONGO_URI}" "true"
+fi
+if should_start contact; then
+  start_process "contact-service" "/app/services/contact-service" "3007" "${MONGO_URI_CONTACT:-$MONGO_URI}"
+fi
+if should_start chat; then
+  start_process "chat-service" "/app/services/chat-service" "3008" "${MONGO_URI_CHAT:-$MONGO_URI}"
+fi
+if should_start billing; then
+  start_process "billing-service" "/app/services/billing-service" "3003" "${MONGO_URI_BILLING:-$MONGO_URI}"
+fi
+if should_start campaign; then
+  start_process "campaign-service" "/app/services/campaign-service" "3002" "${MONGO_URI_CAMPAIGN:-$MONGO_URI}"
+fi
+if should_start automation; then
+  start_process "automation-service" "/app/services/automation-service" "3001" "${MONGO_URI_AUTOMATION:-$MONGO_URI}"
+fi
+if should_start bsp; then
+  start_process "service-provider" "/app/services/service-provider" "3004" "${MONGO_URI_BSP:-$MONGO_URI}"
+fi
+if should_start webhook; then
+  start_process "webhook-ingestor" "/app/services/webhook-ingestor" "3013" "${MONGO_URI_WEBHOOK:-$MONGO_URI}"
+fi
+if should_start websocket; then
+  start_process "websocket-gateway" "/app/services/websocket-gateway" "3009" "${MONGO_URI_WEBSOCKET:-$MONGO_URI}"
+fi
 
 # Start the public gateway last, after its local upstreams have begun booting.
-start_process "api-gateway" "/app/services/api-gateway" "$PORT" "$MONGO_URI" "true"
+if should_start api; then
+  start_process "api-gateway" "/app/services/api-gateway" "$PORT" "$MONGO_URI" "true"
+fi
 
 while true; do
   for pid in $pids; do

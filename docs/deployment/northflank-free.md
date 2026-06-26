@@ -9,7 +9,7 @@ This free setup uses:
 - Addon 1: MongoDB, or use an external free MongoDB provider
 - Redis: ephemeral Redis running inside the bundled backend container
 
-Do not use this layout for production. Redis data disappears when the backend container restarts, all backend services share one container, and the admin portal is intentionally omitted to stay within the free service count.
+Do not use this layout for production. Redis data disappears when the backend container restarts, all backend services share one container, and the admin portal is intentionally omitted to stay within the free service count. By default the backend starts only `auth-service` and `api-gateway` so it can survive on the smallest free instance; set `WAPI_FREE_SERVICES=all` only if you increase the service size.
 
 ## Backend Service
 
@@ -37,6 +37,7 @@ NEXT_PUBLIC_APP_URL=https://<customer-portal-domain>
 WEBHOOK_SECRET=<random webhook secret>
 VERIFY_TOKEN=<random verify token>
 WHATSAPP_WEBHOOK_VERIFY_TOKEN=<random verify token>
+WAPI_FREE_SERVICES=auth,api
 RAZORPAY_KEY_ID=dummy-for-free-sandbox
 RAZORPAY_KEY_SECRET=dummy-for-free-sandbox
 RAZORPAY_WEBHOOK_SECRET=dummy-for-free-sandbox
