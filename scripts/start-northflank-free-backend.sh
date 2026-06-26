@@ -25,12 +25,14 @@ export MONOLITH_INTERNAL_URL="${MONOLITH_INTERNAL_URL:-http://127.0.0.1:5001}"
 export BSP_SERVICE_URL="${BSP_SERVICE_URL:-http://127.0.0.1:3004}"
 
 pids=""
+critical_pids=""
 
 start_process() {
   name="$1"
   dir="$2"
   port="$3"
   mongo_uri="${4:-$MONGO_URI}"
+  critical="${5:-false}"
 
   echo "[northflank-free] starting $name on port $port"
   (
@@ -38,6 +40,30 @@ start_process() {
     PORT="$port" MONGO_URI="$mongo_uri" npm run start
   ) &
   pids="$pids $!"
+  if [ "$critical" = "true" ]; then
+    critical_pids="$critical_pids $!"
+  fi
+}
+
+is_critical_pid() {
+  target="$1"
+  for pid in $critical_pids; do
+    if [ "$pid" = "$target" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+remove_pid() {
+  target="$1"
+  next_pids=""
+  for pid in $pids; do
+    if [ "$pid" != "$target" ]; then
+      next_pids="$next_pids $pid"
+    fi
+  done
+  pids="$next_pids"
 }
 
 shutdown() {
@@ -51,8 +77,9 @@ trap shutdown INT TERM
 
 redis-server --save "" --appendonly no --protected-mode no &
 pids="$pids $!"
+critical_pids="$critical_pids $!"
 
-start_process "auth-service" "/app/services/auth-service" "3006" "${MONGO_URI_AUTH:-$MONGO_URI}"
+start_process "auth-service" "/app/services/auth-service" "3006" "${MONGO_URI_AUTH:-$MONGO_URI}" "true"
 start_process "contact-service" "/app/services/contact-service" "3007" "${MONGO_URI_CONTACT:-$MONGO_URI}"
 start_process "chat-service" "/app/services/chat-service" "3008" "${MONGO_URI_CHAT:-$MONGO_URI}"
 start_process "billing-service" "/app/services/billing-service" "3003" "${MONGO_URI_BILLING:-$MONGO_URI}"
@@ -63,14 +90,18 @@ start_process "webhook-ingestor" "/app/services/webhook-ingestor" "3013" "${MONG
 start_process "websocket-gateway" "/app/services/websocket-gateway" "3009" "${MONGO_URI_WEBSOCKET:-$MONGO_URI}"
 
 # Start the public gateway last, after its local upstreams have begun booting.
-start_process "api-gateway" "/app/services/api-gateway" "$PORT" "$MONGO_URI"
+start_process "api-gateway" "/app/services/api-gateway" "$PORT" "$MONGO_URI" "true"
 
 while true; do
   for pid in $pids; do
     if ! kill -0 "$pid" 2>/dev/null; then
-      echo "[northflank-free] process $pid exited; stopping bundle"
-      shutdown
-      exit 1
+      if is_critical_pid "$pid"; then
+        echo "[northflank-free] critical process $pid exited; stopping bundle"
+        shutdown
+        exit 1
+      fi
+      echo "[northflank-free] optional process $pid exited; continuing"
+      remove_pid "$pid"
     fi
   done
   sleep 5
