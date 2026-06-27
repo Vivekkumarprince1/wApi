@@ -64,7 +64,11 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit
 
   const { daysInStage, isCold } = useMemo(() => {
     const lastHistory = [...(deal.activityLog || [])].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-    const start = lastHistory ? new Date(lastHistory.timestamp) : new Date(deal.createdAt || Date.now());
+    const startTimestamp = lastHistory?.timestamp || deal.createdAt;
+    if (!startTimestamp) {
+      return { daysInStage: 0, isCold: false };
+    }
+    const start = new Date(startTimestamp);
     const diff = Math.floor((new Date().getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     return {
       daysInStage: Number.isFinite(diff) ? Math.max(0, diff) : 0,
