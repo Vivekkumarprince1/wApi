@@ -34,6 +34,7 @@ concurrency:
 env:
   PROJECT_ID: wapi-backend-56102
   REGION: us-central1
+  ARTIFACT_REPOSITORY: wapi-repo
   DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE || 'thevivek2003' }}
   WIF_PROVIDER: projects/527014678364/locations/global/workloadIdentityPools/github-actions/providers/github
   WIF_SERVICE_ACCOUNT: github-cloud-run-deployer@wapi-backend-56102.iam.gserviceaccount.com
@@ -101,23 +102,30 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Login to Artifact Registry
+        if: ${{ github.event_name == 'push' || github.event.inputs.service == 'all' || github.event.inputs.service == matrix.service.name }}
+        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
       - name: Build and push image
         if: ${{ github.event_name == 'push' || github.event.inputs.service == 'all' || github.event.inputs.service == matrix.service.name }}
         env:
-          IMAGE: docker.io/${{ env.DOCKERHUB_NAMESPACE }}/wapi-${{ matrix.service.name }}
+          DOCKERHUB_IMAGE: docker.io/${{ env.DOCKERHUB_NAMESPACE }}/wapi-${{ matrix.service.name }}
+          ARTIFACT_IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/wapi-${{ matrix.service.name }}
         run: |
           docker buildx build \
             --platform=linux/amd64 \
             -f "${{ matrix.service.dockerfile }}" \
-            -t "${IMAGE}:${{ github.sha }}" \
-            -t "${IMAGE}:latest" \
+            -t "${DOCKERHUB_IMAGE}:${{ github.sha }}" \
+            -t "${DOCKERHUB_IMAGE}:latest" \
+            -t "${ARTIFACT_IMAGE}:${{ github.sha }}" \
+            -t "${ARTIFACT_IMAGE}:latest" \
             --push \
             .
 
       - name: Update Cloud Run service
         if: ${{ github.event_name == 'push' || github.event.inputs.service == 'all' || github.event.inputs.service == matrix.service.name }}
         env:
-          IMAGE: docker.io/${{ env.DOCKERHUB_NAMESPACE }}/wapi-${{ matrix.service.name }}:${{ github.sha }}
+          IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/wapi-${{ matrix.service.name }}:${{ github.sha }}
         run: |
           gcloud run services update "${{ matrix.service.name }}" \
             --project="${PROJECT_ID}" \

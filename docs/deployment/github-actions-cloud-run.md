@@ -2,7 +2,7 @@
 
 This repo has a backend auto-deploy workflow at `.github/workflows/deploy-cloud-run.yml`.
 
-When code is pushed to `main` under `services/**`, `packages/contracts/**`, or the workflow file, GitHub Actions builds each backend service as a `linux/amd64` Docker image, pushes it to Docker Hub, and updates the matching Google Cloud Run service.
+When code is pushed to `main` under `services/**`, `packages/contracts/**`, or the workflow file, GitHub Actions builds each backend service as a `linux/amd64` Docker image, pushes it to Docker Hub and Google Artifact Registry, then updates the matching Google Cloud Run service from Artifact Registry.
 
 ## Required GitHub Secrets
 
@@ -37,6 +37,7 @@ The deploy service account has:
 ```text
 roles/run.admin
 roles/iam.serviceAccountUser
+roles/artifactregistry.writer
 ```
 
 If you ever need to recreate it, use:
@@ -65,6 +66,11 @@ gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
 gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="serviceAccount:${SA_EMAIL}" \
   --role="roles/iam.serviceAccountUser" \
+  --condition=None
+
+gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/artifactregistry.writer" \
   --condition=None
 
 gcloud iam workload-identity-pools create "${POOL_ID}" \
@@ -107,4 +113,5 @@ api-gateway
 ## Notes
 
 - Cloud Run environment variables, Redis/VPC settings, ingress, memory, CPU, and min/max instance settings are preserved because the workflow only updates the container image.
+- Docker Hub still receives images, but Cloud Run deploys from Artifact Registry to avoid Docker Hub mirror/import delays.
 - Frontend apps are not included because there are currently no `customer-portal` or `admin-portal` Cloud Run services in project `wapi-backend-56102`.
