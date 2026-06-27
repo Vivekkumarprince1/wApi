@@ -89,11 +89,18 @@ export default function PipelinePage() {
   const selectedDeal = deals.find(d => d._id === selectedDealId);
 
   // Filtered deals
-  const filteredDeals = deals.filter(deal => 
-    deal.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    deal.contact?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    deal.contact?.phone?.includes(searchQuery)
-  );
+  const filteredDeals = deals.filter(deal => {
+    const query = searchQuery.toLowerCase();
+    const title = String(deal.title || '').toLowerCase();
+    const contactName = String(deal.contact?.name || '').toLowerCase();
+    const contactPhone = String(deal.contact?.phone || '');
+
+    return (
+      title.includes(query) ||
+      contactName.includes(query) ||
+      contactPhone.includes(searchQuery)
+    );
+  });
 
   const moveMutation = useMutation({
     mutationFn: (payload: { id: string, stage: string }) => updateDealStage(payload.id, payload.stage),

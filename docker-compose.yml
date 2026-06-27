@@ -33,6 +33,7 @@ services:
       - mongodb
       - redis
     environment:
+      - NODE_ENV=development
       - PORT=5001
       - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100

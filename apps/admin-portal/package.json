@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3100",
+    "dev": "next dev -p 3100 --webpack",
     "build": "cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../apps/admin-portal && NODE_ENV=production next build --webpack",
     "start": "next start -p ${PORT:-3100}",
     "lint": "eslint"

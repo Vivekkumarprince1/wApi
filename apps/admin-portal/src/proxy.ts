@@ -15,12 +15,11 @@ export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isLogin = pathname === "/login";
-  const isHealth = pathname === "/health";
   const isApi = pathname.startsWith("/api/");
 
   // API routes self-guard via requireAdmin() and return JSON 401/403 — never
   // redirect them (a redirect would hand an HTML page to a fetch() caller).
-  if (isApi || isHealth) return NextResponse.next();
+  if (isApi) return NextResponse.next();
 
   const token = request.cookies.get(COOKIE_NAME)?.value;
 

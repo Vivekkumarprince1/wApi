@@ -1,12 +1,12 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY packages/contracts/package*.json ./packages/contracts/
-RUN cd packages/contracts && npm ci --include=dev
+RUN cd packages/contracts && npm install
 COPY packages/contracts ./packages/contracts
 RUN cd packages/contracts && npm run build
 
 COPY services/automation-service/package*.json ./services/automation-service/
-RUN cd services/automation-service && npm ci --include=dev
+RUN cd services/automation-service && npm install
 COPY services/automation-service ./services/automation-service
 RUN cd services/automation-service && npm run build
 

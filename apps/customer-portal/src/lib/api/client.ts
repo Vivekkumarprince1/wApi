@@ -4,6 +4,7 @@ import axios, {
   type AxiosResponse,
 } from 'axios';
 import { toast } from 'react-hot-toast';
+import config from '@/lib/config';
 
 /**
  * API CLIENT
@@ -25,8 +26,15 @@ export interface ApiClient extends Omit<AxiosInstance,
   delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
 }
 
+const normalizeApiBaseUrl = (apiUrl: string) => {
+  const base = apiUrl.replace(/\/+$/, '');
+  if (base.endsWith('/api/v1')) return base;
+  if (base.endsWith('/api')) return `${base}/v1`;
+  return `${base}/api/v1`;
+};
+
 const baseClient = axios.create({
-  baseURL: '/api/v1',
+  baseURL: normalizeApiBaseUrl(config.apiUrl),
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',

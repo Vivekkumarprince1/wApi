@@ -45,10 +45,11 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   "http://localhost:3100",
   "http://127.0.0.1:3100"
 ];
+const corsOrigin = allowedOrigins.includes('*') ? true : allowedOrigins;
 
 const io = new SocketIOServer(httpServer, {
   cors: {
-    origin: allowedOrigins,
+    origin: corsOrigin,
     credentials: true,
   },
   transports: ['websocket', 'polling'],

@@ -17,9 +17,10 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   "http://localhost:3100",
   "http://127.0.0.1:3100"
 ];
+const corsOrigin = allowedOrigins.includes('*') ? true : allowedOrigins;
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    if (corsOrigin === true || !origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(null, false);

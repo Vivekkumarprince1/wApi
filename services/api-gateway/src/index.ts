@@ -56,6 +56,30 @@ const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5001", 10
 
 app.set('trust proxy', 1);
 
+const publicAuthPaths = new Set([
+  '/api/v1/auth/login',
+  '/api/v1/auth/signup',
+  '/api/v1/auth/verify-signup-otp',
+  '/api/v1/auth/session',
+  '/api/v1/auth/logout',
+  '/api/v1/auth/otp/send',
+  '/api/v1/auth/otp/verify',
+  '/api/v1/auth/login/send-otp',
+  '/api/v1/auth/login/verify-otp',
+  '/api/v1/auth/request-password-reset',
+  '/api/v1/auth/reset-password',
+  '/api/v1/auth/google/auth-url',
+  '/api/v1/auth/google/url',
+  '/api/v1/auth/google/login',
+  '/api/v1/auth/google/callback',
+  '/api/v1/auth/facebook',
+  '/api/v1/auth/facebook/login',
+  '/api/v1/auth/accept-invite',
+]);
+
+const isPublicAuthPath = (path: string) =>
+  publicAuthPaths.has(path) || path.startsWith('/api/v1/auth/invitation/');
+
 type ServiceControl = {
   published?: boolean;
   maintenance?: boolean;
@@ -124,16 +148,24 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   "http://localhost:3001",
   "http://127.0.0.1:3001"
 ];
+const corsOrigin = allowedOrigins.includes('*') ? true : allowedOrigins;
 
 // Helmet security policy
 app.use(helmet());
 
 // CORS config
 app.use(cors({
-  origin: allowedOrigins,
+  origin: corsOrigin,
   methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
   credentials: true
 }));
+
+app.use('/api', (req, res, next) => {
+  delete req.headers['if-none-match'];
+  delete req.headers['if-modified-since'];
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
 
 app.use(morgan(isProduction ? 'combined' : 'dev'));
 
@@ -168,8 +200,11 @@ app.use(async (req, res, next) => {
   delete req.headers['x-internal-service-secret'];
   delete req.headers['x-internal-service'];
 
-  // Skip verification for internal API calls or public health check endpoints
-  if (req.path.startsWith('/api/internal') || req.path === '/health' || req.path === '/') {
+  // Skip verification for internal API calls, public health check endpoints,
+  // and public auth endpoints. Public auth routes must still reach auth-service
+  // when the browser has an expired/stale auth_token cookie; otherwise login
+  // cannot replace the bad cookie.
+  if (req.path.startsWith('/api/internal') || req.path === '/health' || req.path === '/' || isPublicAuthPath(req.path)) {
     return next();
   }
 

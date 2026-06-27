@@ -46,20 +46,34 @@ const getPriorityStyles = (priority: string) => {
   }
 };
 
+const safeText = (value: unknown, fallback = '') =>
+  typeof value === 'string' && value.trim() ? value.trim() : fallback;
+
+const initialFor = (value: unknown, fallback = '?') =>
+  safeText(value).charAt(0).toUpperCase() || fallback;
+
 export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit, onDelete }) => {
   const router = useRouter();
+  const dealId = safeText(deal._id, `deal-${index}`);
+  const dealTitle = safeText(deal.title, 'Untitled deal');
+  const priority = safeText(deal.priority, 'medium');
+  const currency = safeText(deal.currency, 'INR');
+  const contactName = safeText(deal.contact?.name, 'Unknown Contact');
+  const contactPhone = safeText(deal.contact?.phone);
+  const assignedAgentName = safeText(deal.assignedAgent?.name);
+
   const { daysInStage, isCold } = useMemo(() => {
-    const lastHistory = deal.activityLog?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-    const start = lastHistory ? new Date(lastHistory.timestamp) : new Date(deal.createdAt);
+    const lastHistory = [...(deal.activityLog || [])].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+    const start = lastHistory ? new Date(lastHistory.timestamp) : new Date(deal.createdAt || Date.now());
     const diff = Math.floor((new Date().getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     return {
-      daysInStage: diff,
+      daysInStage: Number.isFinite(diff) ? Math.max(0, diff) : 0,
       isCold: diff >= 4
     };
   }, [deal.activityLog, deal.createdAt]);
 
   return (
-    <Draggable draggableId={deal._id} index={index}>
+    <Draggable draggableId={dealId} index={index}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
@@ -89,8 +103,8 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1.5 flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                     <Badge className={cn("text-[9px] font-black uppercase tracking-widest px-1.5 py-0 rounded-md border shadow-none", getPriorityStyles(deal.priority))}>
-                        {deal.priority}
+                     <Badge className={cn("text-[9px] font-black uppercase tracking-widest px-1.5 py-0 rounded-md border shadow-none", getPriorityStyles(priority))}>
+                        {priority}
                      </Badge>
                      {isCold && (
                        <Badge className="bg-sky-500/10 text-sky-600 border-sky-500/20 text-[8px] font-black uppercase tracking-widest px-1.5 py-0 rounded-md">
@@ -104,20 +118,20 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit
                      )}
                   </div>
                   <h4 className="text-sm font-black text-foreground leading-tight tracking-tight group-hover/card:text-primary transition-colors">
-                    {deal.title}
+                    {dealTitle}
                   </h4>
                 </div>
                 
                 <div className="flex flex-col items-end gap-1 shrink-0">
                    <div className="flex items-center gap-1">
                       <div className="text-xs font-black tracking-tighter text-foreground flex items-center gap-0.5">
-                         <span className="text-muted-foreground opacity-50 text-[10px] mr-1">{deal.currency}</span>
+                         <span className="text-muted-foreground opacity-50 text-[10px] mr-1">{currency}</span>
                          {deal.value?.toLocaleString()}
                       </div>
                       
 	                      <DropdownMenu>
 	                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-	                            <Button variant="ghost" size="icon" aria-label={`Open actions for deal ${deal.title}`} className="size-6 rounded-lg hover:bg-accent opacity-0 group-hover/card:opacity-100 transition-opacity">
+	                            <Button variant="ghost" size="icon" aria-label={`Open actions for deal ${dealTitle}`} className="size-6 rounded-lg hover:bg-accent opacity-0 group-hover/card:opacity-100 transition-opacity">
 	                               <MoreVertical className="size-3 text-muted-foreground" />
 	                            </Button>
 	                         </DropdownMenuTrigger>
@@ -172,15 +186,15 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit
                        <Avatar className="size-7 rounded-xl ring-2 ring-background shadow-premium-sm transition-transform group-hover/card:scale-110">
                          <AvatarImage src={deal.contact?.avatar} />
                          <AvatarFallback className="text-[10px] font-black bg-gradient-to-br from-primary/20 to-primary/5 text-primary">
-                           {deal.contact?.name?.charAt(0) || '?'}
+                           {initialFor(contactName)}
                          </AvatarFallback>
                        </Avatar>
                        {!isCold && <div className="absolute -top-1 -right-1 size-3 bg-emerald-500 border-2 border-background rounded-full" />}
                        {isCold && <div className="absolute -top-1 -right-1 size-3 bg-sky-500 border-2 border-background rounded-full" />}
                     </div>
                     <div className="min-w-0">
-                       <p className="text-[10px] font-black truncate leading-none mb-0.5">{deal.contact?.name}</p>
-                       <p className="text-[9px] font-medium text-muted-foreground/60 truncate italic leading-none">{deal.contact?.phone}</p>
+                       <p className="text-[10px] font-black truncate leading-none mb-0.5">{contactName}</p>
+                       <p className="text-[9px] font-medium text-muted-foreground/60 truncate italic leading-none">{contactPhone || 'No phone'}</p>
                     </div>
                  </div>
 
@@ -189,7 +203,7 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit
                     {deal.assignedAgent && (
                        <Avatar className="size-6 rounded-lg ring-2 ring-background shadow-sm border border-border/40">
                           <AvatarFallback className="text-[8px] font-black bg-muted text-muted-foreground">
-                             {deal.assignedAgent.name.charAt(0)}
+                             {initialFor(assignedAgentName)}
                           </AvatarFallback>
                        </Avatar>
                     )}
@@ -215,22 +229,22 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, index, onClick, onEdit
                   <div className="flex items-center gap-1 opacity-0 group-hover/card:opacity-100 transition-all translate-y-2 group-hover/card:translate-y-0">
                     <Button variant="ghost" size="icon" onClick={(e) => {
                        e.stopPropagation();
-                       const phone = String(deal.contact?.phone || '').replace(/\D/g, '');
+                       const phone = contactPhone.replace(/\D/g, '');
                        if (phone) window.open(`https://wa.me/${phone}`, '_blank');
-	                    }} className="size-7 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors" title="Send WhatsApp" aria-label={`Send WhatsApp to ${deal.contact?.name || deal.title}`}>
+	                    }} className="size-7 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600 transition-colors" title="Send WhatsApp" aria-label={`Send WhatsApp to ${contactName || dealTitle}`}>
 	                       <MessageSquare className="size-3" />
 	                    </Button>
                     <Button variant="ghost" size="icon" onClick={(e) => {
                        e.stopPropagation();
-                       const phone = deal.contact?.phone;
+                       const phone = contactPhone;
                        if (phone) window.open(`tel:${phone}`);
-	                    }} className="size-7 rounded-lg hover:bg-blue-500/10 hover:text-blue-600 transition-colors" title="Call contact" aria-label={`Call ${deal.contact?.name || deal.title}`}>
+	                    }} className="size-7 rounded-lg hover:bg-blue-500/10 hover:text-blue-600 transition-colors" title="Call contact" aria-label={`Call ${contactName || dealTitle}`}>
 	                       <Phone className="size-3" />
 	                    </Button>
                     <Button variant="ghost" size="icon" onClick={(e) => {
                        e.stopPropagation();
                        router.push('/crm/reports');
-	                    }} className="size-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors" title="View Analytics" aria-label={`View analytics for ${deal.title}`}>
+	                    }} className="size-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors" title="View Analytics" aria-label={`View analytics for ${dealTitle}`}>
 	                       <BarChart2 className="size-3" />
 	                    </Button>
                  </div>
