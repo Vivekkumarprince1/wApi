@@ -11,16 +11,9 @@ TIMEOUT="${TIMEOUT:-300}"
 INGRESS="${INGRESS:-all}"
 START_AT="${START_AT:-}"
 SKIP_IMAGE_CHECKS="${SKIP_IMAGE_CHECKS:-false}"
-DEPLOY_ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-https://connect-sphare-plum.vercel.app,https://admin-connectsphare.vercel.app}"
 
 if [[ -z "${PROJECT_ID}" ]]; then
   echo "PROJECT_ID is not set and no gcloud project is configured." >&2
-  exit 1
-fi
-
-PROJECT_NUMBER="${PROJECT_NUMBER:-$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)' 2>/dev/null)}"
-if [[ -z "${PROJECT_NUMBER}" ]]; then
-  echo "PROJECT_NUMBER is not set and could not be resolved for ${PROJECT_ID}." >&2
   exit 1
 fi
 
@@ -120,7 +113,11 @@ join_env_vars() {
 }
 
 service_url() {
-  printf 'https://%s-%s.%s.run.app' "$1" "${PROJECT_NUMBER}" "${REGION}"
+  gcloud run services describe "$1" \
+    --project="${PROJECT_ID}" \
+    --region="${REGION}" \
+    --platform=managed \
+    --format='value(status.url)'
 }
 
 deploy_service() {
@@ -202,20 +199,11 @@ for i in "${!SERVICE_NAMES[@]}"; do
     echo "Skipping ${SERVICE_NAMES[$i]} before START_AT=${START_AT}."
     continue
   fi
-  if [[ "${SERVICE_NAMES[$i]}" == "websocket-gateway" ]]; then
-    deploy_service \
-      "${SERVICE_NAMES[$i]}" \
-      "${SERVICE_IMAGES[$i]}" \
-      "${SERVICE_PORTS[$i]}" \
-      "${SERVICE_ENV_FILES[$i]}" \
-      "ALLOWED_ORIGINS=${DEPLOY_ALLOWED_ORIGINS}"
-  else
-    deploy_service \
-      "${SERVICE_NAMES[$i]}" \
-      "${SERVICE_IMAGES[$i]}" \
-      "${SERVICE_PORTS[$i]}" \
-      "${SERVICE_ENV_FILES[$i]}"
-  fi
+  deploy_service \
+    "${SERVICE_NAMES[$i]}" \
+    "${SERVICE_IMAGES[$i]}" \
+    "${SERVICE_PORTS[$i]}" \
+    "${SERVICE_ENV_FILES[$i]}"
 done
 
 AUTH_SERVICE_URL="$(service_url auth-service)"
@@ -244,7 +232,7 @@ deploy_service \
   "CAMPAIGN_SERVICE_URL=${CAMPAIGN_SERVICE_URL}" \
   "WEBSOCKET_URL=${WEBSOCKET_URL}" \
   "WEBHOOK_INGESTOR_URL=${WEBHOOK_INGESTOR_URL}" \
-  "ALLOWED_ORIGINS=${DEPLOY_ALLOWED_ORIGINS}"
+  "ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}"
 
 API_GATEWAY_URL="$(service_url api-gateway)"
 
