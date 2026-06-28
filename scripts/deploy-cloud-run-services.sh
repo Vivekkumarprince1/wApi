@@ -238,7 +238,10 @@ API_GATEWAY_URL="$(service_url api-gateway)"
 
 echo "Updating services with final dependency URLs..."
 deploy_service "chat-service" "thevivek2003/wapi-chat-service:latest" "3008" "services/chat-service/.env" \
-  "BILLING_SERVICE_URL=${BILLING_SERVICE_URL}"
+  "CONTACT_SERVICE_URL=${CONTACT_SERVICE_URL}" \
+  "BSP_SERVICE_URL=${SERVICE_PROVIDER_URL}" \
+  "BILLING_SERVICE_URL=${BILLING_SERVICE_URL}" \
+  "AUTOMATION_SERVICE_URL=${AUTOMATION_SERVICE_URL}"
 deploy_service "billing-service" "thevivek2003/wapi-billing-service:latest" "3003" "services/billing-service/.env" \
   "BSP_SERVICE_URL=${SERVICE_PROVIDER_URL}"
 deploy_service "campaign-service" "thevivek2003/wapi-campaign-service:latest" "3002" "services/campaign-service/.env" \
