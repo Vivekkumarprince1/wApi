@@ -20,6 +20,12 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+const getAuthCallbackUrl = () => {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('callbackUrl') || params.get('redirectTo');
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState('');
@@ -44,9 +50,26 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!sessionStorage.getItem('socket_auth_token')) return;
+
+    let active = true;
+    fetchSession(true).then((session) => {
+      if (!active || !session?.authenticated) return;
+      const callbackUrl = getAuthCallbackUrl();
+      router.replace(callbackUrl || session.accessRestriction?.targetPath || session.nextStep || '/dashboard');
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [fetchSession, router]);
+
   const handleLoginSuccess = async () => {
     const session = await fetchSession(true);
-    router.push(session?.accessRestriction?.targetPath || session?.nextStep || '/dashboard');
+    const callbackUrl = getAuthCallbackUrl();
+    router.replace(callbackUrl || session?.accessRestriction?.targetPath || session?.nextStep || '/dashboard');
   };
 
   const onSubmit = async (values: LoginFormValues) => {
@@ -57,7 +80,7 @@ export default function LoginPage() {
       await loginUser(values);
       await handleLoginSuccess();
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err?.response?.data?.message || err.message || 'Login failed');
     }
   };
 

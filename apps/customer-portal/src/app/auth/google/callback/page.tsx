@@ -4,11 +4,13 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { completeGoogleCallback } from '@/lib/api/auth';
+import { useAuthStore } from '@/store/auth-store';
 import { Loader2, Sparkles } from 'lucide-react';
 
 function GoogleCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const fetchSession = useAuthStore((s) => s.fetchSession);
   const [status, setStatus] = useState('Verifying your account...');
 
   useEffect(() => {
@@ -32,25 +34,26 @@ function GoogleCallbackContent() {
         const response: any = await completeGoogleCallback(code);
 
         if (response.success) {
+          const session = await fetchSession(true);
           setStatus('Authentication successful! Redirecting...');
           toast.success('Successfully logged in with Google');
 
-          const destination = response.accessRestriction?.targetPath || response.nextStep || '/dashboard';
+          const destination = session?.accessRestriction?.targetPath || session?.nextStep || response.accessRestriction?.targetPath || response.nextStep || '/dashboard';
           setTimeout(() => {
-            router.push(destination);
+            router.replace(destination);
           }, 1500);
         } else {
           throw new Error(response.message || 'Login failed');
         }
       } catch (err: any) {
         console.error('[Google Callback Error]:', err);
-        toast.error(err.message || 'Failed to authenticate with Google');
+        toast.error(err?.response?.data?.message || err.message || 'Failed to authenticate with Google');
         router.push('/auth/login');
       }
     };
 
     verifyCallback();
-  }, [router, searchParams]);
+  }, [fetchSession, router, searchParams]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4">

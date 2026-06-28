@@ -1,4 +1,5 @@
 import api from './client';
+import { storeBrowserAuthToken } from '@/lib/auth-utils';
 
 /**
  * AUTH API HELPERS
@@ -12,6 +13,7 @@ function storeAuthToken(token: string) {
   if (typeof window !== 'undefined' && token) {
     try {
       sessionStorage.setItem('socket_auth_token', token);
+      storeBrowserAuthToken(token);
       console.log('[Auth] ✓ Token stored in sessionStorage for Socket.io');
     } catch (err) {
       console.warn('[Auth] Could not store token in sessionStorage:', err);
@@ -71,7 +73,12 @@ export const acceptInvitation = (data: any) =>
   api.post<any>('/auth/accept-invite', data);
 
 export const completeGoogleCallback = (code: string) =>
-  api.post<any>('/auth/google/callback', { code });
+  api.post<any>('/auth/google/callback', { code }).then((response: any) => {
+    if (response?.token) {
+      storeAuthToken(response.token);
+    }
+    return response;
+  });
 
 export const sendEmailVerificationOTP = (email?: string) =>
   api.post<any>('/auth/otp/send', {

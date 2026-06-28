@@ -41,6 +41,20 @@ const baseClient = axios.create({
   },
 });
 
+baseClient.interceptors.request.use((requestConfig) => {
+  if (typeof window === 'undefined') return requestConfig;
+
+  const token = sessionStorage.getItem('socket_auth_token');
+  if (!token) return requestConfig;
+
+  requestConfig.headers = requestConfig.headers || {};
+  if (!requestConfig.headers.Authorization) {
+    requestConfig.headers.Authorization = `Bearer ${token}`;
+  }
+
+  return requestConfig;
+});
+
 baseClient.interceptors.response.use(
   (response: AxiosResponse) => response.data,
   (error) => {
