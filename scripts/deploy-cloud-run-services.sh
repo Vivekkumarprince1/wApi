@@ -18,6 +18,12 @@ if [[ -z "${PROJECT_ID}" ]]; then
   exit 1
 fi
 
+PROJECT_NUMBER="${PROJECT_NUMBER:-$(gcloud projects describe "${PROJECT_ID}" --format='value(projectNumber)' 2>/dev/null)}"
+if [[ -z "${PROJECT_NUMBER}" ]]; then
+  echo "PROJECT_NUMBER is not set and could not be resolved for ${PROJECT_ID}." >&2
+  exit 1
+fi
+
 SERVICE_NAMES=(
   auth-service
   contact-service
@@ -114,11 +120,7 @@ join_env_vars() {
 }
 
 service_url() {
-  gcloud run services describe "$1" \
-    --project="${PROJECT_ID}" \
-    --region="${REGION}" \
-    --platform=managed \
-    --format='value(status.url)'
+  printf 'https://%s-%s.%s.run.app' "$1" "${PROJECT_NUMBER}" "${REGION}"
 }
 
 deploy_service() {
