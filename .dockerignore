@@ -10,5 +10,5 @@ dist
 **/node_modules
 **/dist
 **/.next
-**/.env
+**/.env*
 **/*.tsbuildinfo

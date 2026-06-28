@@ -1,21 +1,25 @@
-name: Deploy Backend to Cloud Run
+name: Deploy to Cloud Run
 
 on:
   push:
     branches: [main]
     paths:
+      - "apps/admin-portal/**"
+      - "apps/customer-portal/**"
       - "services/**"
       - "packages/contracts/**"
       - ".github/workflows/deploy-cloud-run.yml"
   workflow_dispatch:
     inputs:
       service:
-        description: "Service to deploy: all, api-gateway, auth-service, contact-service, chat-service, billing-service, campaign-service, automation-service, service-provider, webhook-ingestor, websocket-gateway"
+        description: "Service to deploy"
         type: choice
         required: true
         default: "all"
         options:
           - all
+          - admin-portal
+          - customer-portal
           - api-gateway
           - auth-service
           - contact-service
@@ -28,7 +32,7 @@ on:
           - websocket-gateway
 
 concurrency:
-  group: cloud-run-backend-${{ github.ref }}
+  group: cloud-run-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -70,6 +74,10 @@ jobs:
             dockerfile: services/webhook-ingestor/Dockerfile
           - name: websocket-gateway
             dockerfile: services/websocket-gateway/Dockerfile
+          - name: customer-portal
+            dockerfile: apps/customer-portal/Dockerfile
+          - name: admin-portal
+            dockerfile: apps/admin-portal/Dockerfile
 
     steps:
       - name: Skip unmatched manual service
@@ -112,6 +120,59 @@ jobs:
           DOCKERHUB_IMAGE: docker.io/${{ env.DOCKERHUB_NAMESPACE }}/wapi-${{ matrix.service.name }}
           ARTIFACT_IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/wapi-${{ matrix.service.name }}
         run: |
+          service_url() {
+            gcloud run services describe "$1" \
+              --project="${PROJECT_ID}" \
+              --region="${REGION}" \
+              --format='value(status.url)'
+          }
+
+          service_env() {
+            gcloud run services describe "$1" \
+              --project="${PROJECT_ID}" \
+              --region="${REGION}" \
+              --format=json \
+              | jq -r --arg key "$2" '.spec.template.spec.containers[0].env[]? | select(.name == $key) | .value // ""' \
+              | tail -n 1
+          }
+
+          BUILD_ARGS=()
+
+          if [[ "${{ matrix.service.name }}" == "customer-portal" ]]; then
+            CUSTOMER_URL="$(service_url customer-portal)"
+            API_GATEWAY_URL="$(service_url api-gateway)"
+            WEBSOCKET_URL="$(service_url websocket-gateway)"
+            CUSTOMER_APP_NAME="$(service_env customer-portal NEXT_PUBLIC_APP_NAME)"
+            CUSTOMER_API_URL="$(service_env customer-portal NEXT_PUBLIC_API_URL)"
+            BUSINESS_VERIFICATION_MANDATORY="$(service_env customer-portal NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY)"
+            CUSTOMER_APP_NAME="${CUSTOMER_APP_NAME:-ConnectSphare}"
+            CUSTOMER_API_URL="${CUSTOMER_API_URL:-/api}"
+            BUSINESS_VERIFICATION_MANDATORY="${BUSINESS_VERIFICATION_MANDATORY:-false}"
+
+            BUILD_ARGS+=(
+              --build-arg "NEXT_PUBLIC_APP_NAME=${CUSTOMER_APP_NAME}"
+              --build-arg "NEXT_PUBLIC_APP_URL=${CUSTOMER_URL}"
+              --build-arg "NEXT_PUBLIC_API_URL=${CUSTOMER_API_URL}"
+              --build-arg "NEXT_PUBLIC_SOCKET_URL=${WEBSOCKET_URL}"
+              --build-arg "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$(service_env customer-portal NEXT_PUBLIC_GOOGLE_CLIENT_ID)"
+              --build-arg "NEXT_PUBLIC_FACEBOOK_APP_ID=$(service_env customer-portal NEXT_PUBLIC_FACEBOOK_APP_ID)"
+              --build-arg "NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY=${BUSINESS_VERIFICATION_MANDATORY}"
+              --build-arg "BACKEND_API_URL=${API_GATEWAY_URL}"
+              --build-arg "ALLOWED_DEV_ORIGINS=${CUSTOMER_URL}"
+            )
+          fi
+
+          if [[ "${{ matrix.service.name }}" == "admin-portal" ]]; then
+            ADMIN_URL="$(service_url admin-portal)"
+            ADMIN_APP_NAME="$(service_env admin-portal NEXT_PUBLIC_APP_NAME)"
+            ADMIN_APP_NAME="${ADMIN_APP_NAME:-wApi Super Admin}"
+
+            BUILD_ARGS+=(
+              --build-arg "NEXT_PUBLIC_APP_NAME=${ADMIN_APP_NAME}"
+              --build-arg "NEXT_PUBLIC_APP_URL=${ADMIN_URL}"
+            )
+          fi
+
           docker buildx build \
             --platform=linux/amd64 \
             -f "${{ matrix.service.dockerfile }}" \
@@ -119,6 +180,7 @@ jobs:
             -t "${DOCKERHUB_IMAGE}:latest" \
             -t "${ARTIFACT_IMAGE}:${{ github.sha }}" \
             -t "${ARTIFACT_IMAGE}:latest" \
+            "${BUILD_ARGS[@]}" \
             --push \
             .
 

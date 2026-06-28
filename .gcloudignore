@@ -13,3 +13,4 @@ dist/
 .claude/
 .gemini/
 **/*.tsbuildinfo
+**/.env*
