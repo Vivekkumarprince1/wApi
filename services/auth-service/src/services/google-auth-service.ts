@@ -3,18 +3,33 @@ import axios from 'axios';
 
 const APP_URL = () => (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
-export const getGoogleAuthUrl = (type: string = 'login') => {
+const resolveGoogleRedirectUri = (redirectUri?: string) => {
+  if (redirectUri) {
+    try {
+      const parsed = new URL(redirectUri);
+      if ((parsed.protocol === 'https:' || parsed.protocol === 'http:') && parsed.pathname === '/auth/google/callback') {
+        return parsed.toString();
+      }
+    } catch {
+      // Fall through to configured default.
+    }
+  }
+
+  return process.env.GOOGLE_REDIRECT_URI || `${APP_URL()}/auth/google/callback`;
+};
+
+export const getGoogleAuthUrl = (type: string = 'login', redirectUri?: string) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${APP_URL()}/auth/google/callback`;
+  const resolvedRedirectUri = resolveGoogleRedirectUri(redirectUri);
 
   if (!clientId) {
     const devCode = `dev-google-${Date.now()}`;
-    return `${APP_URL()}/auth/google/callback?code=${encodeURIComponent(devCode)}&state=${encodeURIComponent(type)}`;
+    return `${resolvedRedirectUri}?code=${encodeURIComponent(devCode)}&state=${encodeURIComponent(type)}`;
   }
 
   const params = new URLSearchParams({
     client_id: clientId,
-    redirect_uri: redirectUri,
+    redirect_uri: resolvedRedirectUri,
     response_type: 'code',
     scope: 'openid profile email',
     access_type: 'offline',
@@ -25,7 +40,7 @@ export const getGoogleAuthUrl = (type: string = 'login') => {
   return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
 };
 
-export const getGoogleUser = async (code: string) => {
+export const getGoogleUser = async (code: string, redirectUri?: string) => {
   const isDev = String(code).startsWith('dev-google-') || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET;
 
   if (isDev) {
@@ -38,7 +53,7 @@ export const getGoogleUser = async (code: string) => {
     };
   }
 
-  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${APP_URL()}/auth/google/callback`;
+  const resolvedRedirectUri = resolveGoogleRedirectUri(redirectUri);
 
   const tokenResponse = await axios.post(
     'https://oauth2.googleapis.com/token',
@@ -46,7 +61,7 @@ export const getGoogleUser = async (code: string) => {
       code,
       client_id: process.env.GOOGLE_CLIENT_ID,
       client_secret: process.env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: redirectUri,
+      redirect_uri: resolvedRedirectUri,
       grant_type: 'authorization_code'
     },
     { timeout: 10000 }

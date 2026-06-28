@@ -244,7 +244,8 @@ export const updateMe = async (req: express.Request, res: express.Response) => {
 export const googleUrl = async (req: express.Request, res: express.Response) => {
   try {
     const type = String((req.query as any).type || 'login');
-    const url = getGoogleAuthUrl(type);
+    const redirectUri = typeof (req.query as any).redirectUri === 'string' ? (req.query as any).redirectUri : undefined;
+    const url = getGoogleAuthUrl(type, redirectUri);
     return res.status(200).json({ success: true, url, authUrl: url });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: error.message || 'Failed to build Google auth URL' });
@@ -254,9 +255,10 @@ export const googleUrl = async (req: express.Request, res: express.Response) => 
 export const googleCallback = async (req: express.Request, res: express.Response) => {
   try {
     const code = (req.body?.code || (req.query as any)?.code) as string | undefined;
+    const redirectUri = (req.body?.redirectUri || (req.query as any)?.redirectUri) as string | undefined;
     if (!code) return res.status(400).json({ success: false, message: 'Missing Google authorization code' });
 
-    const googleUser = await getGoogleUser(code);
+    const googleUser = await getGoogleUser(code, redirectUri);
     if (!googleUser?.email) {
       return res.status(400).json({ success: false, message: 'Failed to retrieve email from Google' });
     }
@@ -948,4 +950,3 @@ export const updateUserNotifications = async (req: AuthRequest, res: express.Res
     return res.status(500).json({ success: false, message: error.message || 'Failed to update notification settings' });
   }
 };
-

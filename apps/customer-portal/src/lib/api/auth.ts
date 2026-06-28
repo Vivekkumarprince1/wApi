@@ -42,8 +42,18 @@ export const verifySignupOtp = async (email: string, otp: string) => {
   return response;
 };
 
+const getCurrentGoogleRedirectUri = () => {
+  if (typeof window === 'undefined') return undefined;
+  return `${window.location.origin}/auth/google/callback`;
+};
+
 export const getGoogleAuthUrl = async (formType: string = 'login') => {
-  return api.get<any>(`/auth/google/url?type=${formType}`);
+  return api.get<any>('/auth/google/url', {
+    params: {
+      type: formType,
+      redirectUri: getCurrentGoogleRedirectUri(),
+    },
+  });
 };
 
 export const facebookLogin = async (accessToken: string) => {
@@ -73,7 +83,10 @@ export const acceptInvitation = (data: any) =>
   api.post<any>('/auth/accept-invite', data);
 
 export const completeGoogleCallback = (code: string) =>
-  api.post<any>('/auth/google/callback', { code }).then((response: any) => {
+  api.post<any>('/auth/google/callback', {
+    code,
+    redirectUri: getCurrentGoogleRedirectUri(),
+  }).then((response: any) => {
     if (response?.token) {
       storeAuthToken(response.token);
     }
