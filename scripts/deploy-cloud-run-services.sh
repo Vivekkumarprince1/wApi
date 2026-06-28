@@ -11,6 +11,7 @@ TIMEOUT="${TIMEOUT:-300}"
 INGRESS="${INGRESS:-all}"
 START_AT="${START_AT:-}"
 SKIP_IMAGE_CHECKS="${SKIP_IMAGE_CHECKS:-false}"
+DEPLOY_ALLOWED_ORIGINS="${ALLOWED_ORIGINS:-https://connect-sphare-plum.vercel.app,https://admin-connectsphare.vercel.app}"
 
 if [[ -z "${PROJECT_ID}" ]]; then
   echo "PROJECT_ID is not set and no gcloud project is configured." >&2
@@ -199,11 +200,20 @@ for i in "${!SERVICE_NAMES[@]}"; do
     echo "Skipping ${SERVICE_NAMES[$i]} before START_AT=${START_AT}."
     continue
   fi
-  deploy_service \
-    "${SERVICE_NAMES[$i]}" \
-    "${SERVICE_IMAGES[$i]}" \
-    "${SERVICE_PORTS[$i]}" \
-    "${SERVICE_ENV_FILES[$i]}"
+  if [[ "${SERVICE_NAMES[$i]}" == "websocket-gateway" ]]; then
+    deploy_service \
+      "${SERVICE_NAMES[$i]}" \
+      "${SERVICE_IMAGES[$i]}" \
+      "${SERVICE_PORTS[$i]}" \
+      "${SERVICE_ENV_FILES[$i]}" \
+      "ALLOWED_ORIGINS=${DEPLOY_ALLOWED_ORIGINS}"
+  else
+    deploy_service \
+      "${SERVICE_NAMES[$i]}" \
+      "${SERVICE_IMAGES[$i]}" \
+      "${SERVICE_PORTS[$i]}" \
+      "${SERVICE_ENV_FILES[$i]}"
+  fi
 done
 
 AUTH_SERVICE_URL="$(service_url auth-service)"
@@ -232,7 +242,7 @@ deploy_service \
   "CAMPAIGN_SERVICE_URL=${CAMPAIGN_SERVICE_URL}" \
   "WEBSOCKET_URL=${WEBSOCKET_URL}" \
   "WEBHOOK_INGESTOR_URL=${WEBHOOK_INGESTOR_URL}" \
-  "ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}"
+  "ALLOWED_ORIGINS=${DEPLOY_ALLOWED_ORIGINS}"
 
 API_GATEWAY_URL="$(service_url api-gateway)"
 
