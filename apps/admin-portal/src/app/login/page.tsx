@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ShieldCheck, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,6 @@ export default function LoginPage() {
 }
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const login = useAdminAuth((s) => s.login);
 
@@ -42,8 +41,7 @@ function LoginForm() {
     if (result.ok) {
       toast.success("Welcome back");
       const callback = searchParams.get("callbackUrl") || "/";
-      router.replace(callback);
-      router.refresh();
+      window.location.assign(callback);
     } else {
       toast.error(result.message || "Login failed");
     }
