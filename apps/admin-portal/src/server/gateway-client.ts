@@ -13,7 +13,7 @@ import type { AdminTokenPayload } from "./auth";
  * downstream services treat them as authenticated super-admin actions.
  */
 
-const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:5001";
+const GATEWAY_URL = process.env.GATEWAY_URL || process.env.API_GATEWAY_URL || "http://localhost:5001";
 
 function getInternalSecret(): string {
   const secret = process.env.INTERNAL_SERVICE_SECRET;
