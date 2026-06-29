@@ -281,7 +281,9 @@ async function processRealtimeSyncEvent(envelope: any) {
   } 
   else if (envelope.type === 'message_status_updated' || envelope.type === 'message_status_changed') {
     const statusPayload = {
-      messageId: envelope.payload.providerMessageId || envelope.payload.messageId || envelope.messageId,
+      messageId: envelope.payload.messageId || envelope.messageId,
+      providerMessageId: envelope.payload.providerMessageId,
+      whatsappMessageId: envelope.payload.whatsappMessageId,
       conversationId: envelope.payload.conversationId || envelope.conversationId,
       status: (envelope.payload.status || '').toLowerCase(),
       timestamp: envelope.payload.timestamp || envelope.timestamp,

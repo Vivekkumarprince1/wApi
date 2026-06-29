@@ -167,6 +167,50 @@ function isInternalRequest(headers: Record<string, any>) {
   return headers['x-internal-service-secret'] === INTERNAL_SECRET;
 }
 
+function getHeader(headers: Record<string, any>, name: string): string | undefined {
+  const value = headers[name.toLowerCase()] || headers[name];
+  if (Array.isArray(value)) return value[0];
+  return value ? String(value) : undefined;
+}
+
+function providerHeaders(headers: Record<string, any>) {
+  const allowed = [
+    'x-gupshup-signature',
+    'x-hub-signature-256',
+    'x-delivery-id',
+    'x-request-id',
+    'content-type',
+  ];
+
+  return allowed.reduce<Record<string, string>>((acc, name) => {
+    const value = getHeader(headers, name);
+    if (value) acc[name] = value;
+    return acc;
+  }, {});
+}
+
+function resolveWebhookEventId(headers: Record<string, any>, payload: any, rawBody: string) {
+  const firstChangeValue = payload?.entry?.[0]?.changes?.[0]?.value;
+  const providerId =
+    payload?.payload?.id ||
+    payload?.payload?.messageId ||
+    payload?.payload?.gsId ||
+    payload?.payload?.gs_id ||
+    payload?.id ||
+    payload?.messageId ||
+    payload?.gsId ||
+    payload?.gs_id ||
+    firstChangeValue?.messages?.[0]?.id ||
+    firstChangeValue?.statuses?.[0]?.id ||
+    firstChangeValue?.statuses?.[0]?.gs_id ||
+    firstChangeValue?.statuses?.[0]?.gsId;
+
+  const fallbackDigest = crypto.createHash('sha256').update(rawBody).digest('hex');
+  return String(getHeader(headers, 'x-delivery-id') || getHeader(headers, 'x-request-id') || providerId || fallbackDigest)
+    .replace(/[^a-zA-Z0-9._:-]+/g, '-')
+    .slice(0, 180);
+}
+
 // Custom raw body parser plugin for Fastify (so we can get the exact buffer for crypto)
 server.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
   try {
@@ -261,14 +305,7 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
   }
 
   // 2. Resolve target partition or keys
-  const eventId = String(
-    headers['x-delivery-id'] || 
-    headers['x-request-id'] || 
-    parsedPayload?.payload?.id || 
-    parsedPayload?.id || 
-    parsedPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.id || 
-    Date.now()
-  );
+  const eventId = resolveWebhookEventId(headers, parsedPayload, rawBodyString);
 
   const eventType = parsedPayload?.payload?.status || parsedPayload?.entry?.[0]?.changes?.[0]?.value?.statuses?.[0]
     ? 'message.status'
@@ -280,6 +317,8 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
     eventType,
     provider: providerParam || parsedPayload?.provider || 'gupshup',
     timestamp: new Date().toISOString(),
+    rawBody: rawBodyString,
+    headers: providerHeaders(headers),
     rawPayload: parsedPayload,
   };
 

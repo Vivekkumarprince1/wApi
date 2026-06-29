@@ -5,7 +5,22 @@ import { randomUUID } from 'crypto';
 import { ProviderOnboardingSession } from '../../../models/provider-onboarding-session.schema';
 import { ProviderApp } from '../../../models/provider-app.schema';
 import { ProviderOnboardingState, OnboardingStep } from '../../../models/provider-onboarding-state.schema';
+import { ProviderSubscription } from '../../../models/provider-subscription.schema';
 import { GupshupClientService } from '../providers/gupshup/gupshup-client.service';
+import { config } from '../../../config';
+
+const DEFAULT_WEBHOOK_EVENTS = [
+  'MESSAGE',
+  'SENT',
+  'DELIVERED',
+  'READ',
+  'FAILED',
+  'TEMPLATE',
+  'ACCOUNT',
+  'BILLING',
+  'PAYMENTS',
+  'FLOWS_MESSAGE',
+];
 
 @Injectable()
 export class OnboardingService {
@@ -13,6 +28,7 @@ export class OnboardingService {
     @InjectModel(ProviderOnboardingSession.name) private readonly sessionModel: Model<ProviderOnboardingSession>,
     @InjectModel(ProviderApp.name) private readonly appModel: Model<ProviderApp>,
     @InjectModel(ProviderOnboardingState.name) private readonly stateModel: Model<ProviderOnboardingState>,
+    @InjectModel(ProviderSubscription.name) private readonly subscriptionModel: Model<ProviderSubscription>,
     private readonly gupshup: GupshupClientService,
   ) {}
 
@@ -144,6 +160,10 @@ export class OnboardingService {
     // Trigger auto sync after connection
     await this.bspSync({ workspaceId: input.workspaceId, appId }).catch((e: any) =>
       console.warn('[Complete] Auto sync failed:', e.message)
+    );
+
+    await this.ensureDefaultWebhookSubscription(input.workspaceId, appId).catch((e: any) =>
+      console.warn('[Complete] Default webhook subscription failed:', e.message)
     );
 
     return { app, connectedAt: new Date().toISOString() };
@@ -684,6 +704,10 @@ export class OnboardingService {
       console.warn('[BSP Complete] Auto sync metrics failed:', e.message)
     );
 
+    await this.ensureDefaultWebhookSubscription(workspaceId, appId).catch((e: any) =>
+      console.warn('[BSP Complete] Default webhook subscription failed:', e.message)
+    );
+
     return {
       success: true,
       connected: true,
@@ -694,6 +718,51 @@ export class OnboardingService {
         connectedAt: app.connectedAt,
       },
     };
+  }
+
+  private async ensureDefaultWebhookSubscription(workspaceId: string, appId: string) {
+    if (!workspaceId || !appId || String(appId).startsWith('mock_')) {
+      return null;
+    }
+
+    const callbackBase = process.env.WHATSAPP_WEBHOOK_URL || process.env.APP_URL || config.mainServiceUrl;
+    if (!callbackBase) {
+      throw new Error('WHATSAPP_WEBHOOK_URL, APP_URL, or MAIN_SERVICE_URL must be set for default webhook subscription');
+    }
+
+    const response = await this.gupshup.setSubscription({
+      appId,
+      url: callbackBase,
+      events: DEFAULT_WEBHOOK_EVENTS,
+      strategy: 'update',
+    });
+
+    const callbackUrl = response?.registeredUrl || (
+      callbackBase.includes('/api/webhooks/')
+        ? callbackBase
+        : `${callbackBase.replace(/\/$/, '')}/api/webhooks/whatsapp`
+    );
+
+    await this.subscriptionModel.findOneAndUpdate(
+      { workspaceId, provider: 'gupshup', appId, callbackUrl },
+      {
+        $set: {
+          workspaceId,
+          provider: 'gupshup',
+          appId,
+          callbackUrl,
+          events: DEFAULT_WEBHOOK_EVENTS,
+          status: 'active',
+          providerData: {
+            gupshupResponse: response,
+            source: 'onboarding_default',
+          },
+        },
+      },
+      { upsert: true, new: true },
+    );
+
+    return { callbackUrl, events: DEFAULT_WEBHOOK_EVENTS };
   }
 
   async bspDisconnect(input: any) {

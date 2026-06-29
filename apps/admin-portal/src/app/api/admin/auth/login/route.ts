@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: result.message || "Login failed" }, { status: result.status });
   }
 
-  await setAdminCookie(result.token);
-
   const { userId, name, email, role } = result.session;
-  return NextResponse.json({ user: { userId, name, email, role } }, { status: 200 });
+  const response = NextResponse.json({ user: { userId, name, email, role } }, { status: 200 });
+  setAdminCookie(response, result.token, req);
+  return response;
 }

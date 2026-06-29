@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import type { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import {
@@ -131,20 +132,24 @@ export async function getAdminSession(): Promise<AdminTokenPayload | null> {
   return verifyAdminToken(token);
 }
 
-export async function setAdminCookie(token: string): Promise<void> {
-  const store = await cookies();
-  store.set(COOKIE_NAME, token, {
+type CookieRequest = Pick<NextRequest, "headers" | "nextUrl">;
+
+function adminCookieOptions(req?: CookieRequest) {
+  return {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: shouldUseSecureCookie(req),
+    sameSite: "strict" as const,
     path: "/",
     maxAge: SESSION_TTL,
-  });
+  };
 }
 
-export async function clearAdminCookie(): Promise<void> {
-  const store = await cookies();
-  store.set(COOKIE_NAME, "", { httpOnly: true, path: "/", maxAge: 0 });
+export function setAdminCookie(response: NextResponse, token: string, req?: CookieRequest): void {
+  response.cookies.set(COOKIE_NAME, token, adminCookieOptions(req));
+}
+
+export function clearAdminCookie(response: NextResponse, req?: CookieRequest): void {
+  response.cookies.set(COOKIE_NAME, "", { ...adminCookieOptions(req), maxAge: 0 });
 }
 
 /* ── Authorization guard for route handlers ───────────────────────────── */
@@ -177,4 +182,26 @@ function randomId(): string {
   const bytes = new Uint8Array(16);
   (globalThis.crypto || require("crypto").webcrypto).getRandomValues(bytes);
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function shouldUseSecureCookie(req?: CookieRequest): boolean {
+  const override = parseBooleanEnv(process.env.ADMIN_COOKIE_SECURE);
+  if (override !== null) return override;
+
+  const forwardedProto = req?.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
+  const requestProto = req?.nextUrl.protocol.replace(":", "").toLowerCase();
+  const proto = forwardedProto || requestProto;
+
+  if (proto === "https") return true;
+  if (proto === "http") return false;
+
+  return process.env.NODE_ENV === "production";
+}
+
+function parseBooleanEnv(value: string | undefined): boolean | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "off"].includes(normalized)) return false;
+  return null;
 }

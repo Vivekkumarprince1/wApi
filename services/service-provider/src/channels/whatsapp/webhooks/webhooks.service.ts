@@ -17,8 +17,13 @@ export class WebhooksService {
     private readonly eventProducer: ProviderEventProducerService,
   ) {}
 
-  async receiveGupshup(rawBody: string, headers: Record<string, string | string[] | undefined>, payload: any) {
-    if (!this.isSignatureValid(rawBody, headers)) {
+  async receiveGupshup(
+    rawBody: string,
+    headers: Record<string, string | string[] | undefined>,
+    payload: any,
+    options: { skipSignatureVerification?: boolean } = {},
+  ) {
+    if (!options.skipSignatureVerification && !this.isSignatureValid(rawBody, headers)) {
       throw new UnauthorizedException('Invalid Gupshup webhook signature');
     }
 
@@ -101,7 +106,8 @@ export class WebhooksService {
         continue;
       }
 
-      const providerId = status.messageId || status.gsId || status.gs_id || status.id;
+      const providerIds = this.extractStatusMessageIds(status);
+      const providerId = providerIds[0];
       if (!providerId) continue;
 
       const rawStatus = status.status || status.type || 'unknown';
@@ -113,6 +119,7 @@ export class WebhooksService {
         type: 'status_update',
         workspaceId: workspaceId?.toString(),
         messageId: providerId,
+        messageIds: providerIds,
         status: mapped,
         timestamp: this.normalizeTimestampSeconds(status.timestamp || status.ts || status.gs_timestamp),
       };
@@ -126,10 +133,10 @@ export class WebhooksService {
     // 2. Process Inbound Messages
     const messages = this.extractV3Messages(payload);
     for (const incoming of messages) {
-      const from = incoming.from ? String(incoming.from).replace(/\D/g, '') : null;
+      const from = this.extractSenderPhone(incoming);
       const messageId = incoming.id;
       const type = incoming.type || 'text';
-      const body = incoming.text?.body || incoming.body || '';
+      const body = this.extractMessageBody(incoming);
 
       if (!from || !messageId) continue;
 
@@ -143,14 +150,14 @@ export class WebhooksService {
         contactId,
         senderPhone: from,
         senderName:
-          incoming.contacts?.[0]?.profile?.name ||
+          incoming.contact?.profile?.name ||
           payload?.payload?.sender?.name ||
           incoming.sender?.name ||
           null,
         direction: 'inbound',
         type: type === 'text' ? 'text' : type,
         text: body,
-        mediaUrl: incoming.image?.link || incoming.video?.link || incoming.audio?.link || incoming.document?.link || '',
+        mediaUrl: this.extractMediaUrl(incoming),
         messageId,
         timestamp: this.normalizeTimestampSeconds(incoming.timestamp || incoming.ts) ?? Math.floor(Date.now() / 1000),
       };
@@ -241,7 +248,20 @@ export class WebhooksService {
 
   private resolveEventId(headers: Record<string, string | string[] | undefined>, payload: any, digest: string) {
     const headerId = this.headerValue(headers['x-delivery-id']) || this.headerValue(headers['x-request-id']);
-    const providerMessageId = payload?.payload?.id || payload?.id || payload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.id;
+    const firstChangeValue = payload?.entry?.[0]?.changes?.[0]?.value;
+    const providerMessageId =
+      payload?.payload?.id ||
+      payload?.payload?.messageId ||
+      payload?.payload?.gsId ||
+      payload?.payload?.gs_id ||
+      payload?.id ||
+      payload?.messageId ||
+      payload?.gsId ||
+      payload?.gs_id ||
+      firstChangeValue?.messages?.[0]?.id ||
+      firstChangeValue?.statuses?.[0]?.id ||
+      firstChangeValue?.statuses?.[0]?.gs_id ||
+      firstChangeValue?.statuses?.[0]?.gsId;
     return String(headerId || providerMessageId || digest).replace(/[^a-zA-Z0-9._:-]+/g, '-').slice(0, 180);
   }
 
@@ -281,8 +301,11 @@ export class WebhooksService {
   }
   
   private extractV3Messages(payload: any) {
-    const messages = [];
-    if (payload.value?.messages) messages.push(...payload.value.messages);
+    const messages: any[] = [];
+    if (payload.value?.messages) {
+      const contact = payload.value.contacts?.[0];
+      messages.push(...payload.value.messages.map((message: any) => ({ ...message, contact })));
+    }
     
     if (payload.type === 'message' && payload.payload) {
       messages.push(payload.payload);
@@ -291,10 +314,64 @@ export class WebhooksService {
     const changes = payload?.entry?.[0]?.changes;
     if (changes) {
       for (const change of changes) {
-        if (change.value?.messages) messages.push(...change.value.messages);
+        if (change.value?.messages) {
+          const contact = change.value.contacts?.[0];
+          messages.push(...change.value.messages.map((message: any) => ({ ...message, contact })));
+        }
       }
     }
     return messages;
+  }
+
+  private extractStatusMessageIds(status: any): string[] {
+    return [
+      status.messageId,
+      status.whatsappMessageId,
+      status.wamid,
+      status.gsId,
+      status.gs_id,
+      status.id,
+    ]
+      .filter(Boolean)
+      .map((id) => String(id));
+  }
+
+  private extractSenderPhone(incoming: any): string | null {
+    const raw =
+      incoming.from ||
+      incoming.source ||
+      incoming.sender?.phone ||
+      incoming.sender?.wa_id ||
+      incoming.contact?.wa_id;
+    return raw ? String(raw).replace(/\D/g, '') : null;
+  }
+
+  private extractMessageBody(incoming: any): string {
+    return (
+      incoming.text?.body ||
+      incoming.payload?.text ||
+      incoming.payload?.body ||
+      incoming.body ||
+      incoming.button?.text ||
+      incoming.interactive?.button_reply?.title ||
+      incoming.interactive?.list_reply?.title ||
+      ''
+    );
+  }
+
+  private extractMediaUrl(incoming: any): string {
+    return (
+      incoming.image?.link ||
+      incoming.image?.url ||
+      incoming.video?.link ||
+      incoming.video?.url ||
+      incoming.audio?.link ||
+      incoming.audio?.url ||
+      incoming.document?.link ||
+      incoming.document?.url ||
+      incoming.mediaUrl ||
+      ''
+    );
   }
 
   private mapMessageStatus(rawStatus: string): string {

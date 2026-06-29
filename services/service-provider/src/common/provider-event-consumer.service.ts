@@ -52,9 +52,11 @@ export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestr
       this.redisConsumer.on('message', async (topic, messageStr) => {
         if (topic !== topicName) return;
 
-        let envelope;
+        let messageWrapper: any;
+        let envelope: any;
         try {
-          envelope = JSON.parse(messageStr);
+          messageWrapper = JSON.parse(messageStr);
+          envelope = this.unwrapRawWebhookEnvelope(messageWrapper);
         } catch (err) {
           console.error('[BSP EventBus Consumer] Bad JSON:', err);
           return;
@@ -70,13 +72,20 @@ export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestr
             attempt++;
             console.log(`[BSP EventBus Consumer] Ingested raw webhook event. eventId: ${envelope.eventId}, attempt: ${attempt}`);
 
-            const rawBody = JSON.stringify(envelope.rawPayload);
+            if (!envelope.rawPayload) {
+              throw new Error('raw webhook envelope is missing rawPayload');
+            }
+
+            const rawBody = envelope.rawBody || JSON.stringify(envelope.rawPayload);
             const mockHeaders: Record<string, string> = {
+              ...(envelope.headers || {}),
               'x-delivery-id': envelope.eventId,
               'content-type': 'application/json',
             };
 
-            await this.webhooksService.receiveGupshup(rawBody, mockHeaders, envelope.rawPayload);
+            await this.webhooksService.receiveGupshup(rawBody, mockHeaders, envelope.rawPayload, {
+              skipSignatureVerification: true,
+            });
             console.log(`[BSP EventBus Consumer] Webhook processed successfully inside BSP service. eventId: ${envelope.eventId}`);
             success = true;
           } catch (err: any) {
@@ -94,7 +103,7 @@ export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestr
           try {
             const dlqTopic = `${topic}-dlq`;
             await this.eventProducer.send(dlqTopic, [{
-              key: envelope.eventId || '',
+              key: envelope?.eventId || messageWrapper?.key || '',
               value: messageStr,
               headers: {
                 'x-dead-letter-reason': lastError?.message || 'unknown',
@@ -126,5 +135,12 @@ export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestr
         console.error('[BSP EventBus Consumer] Disconnect error:', err.message);
       }
     }
+  }
+
+  private unwrapRawWebhookEnvelope(message: any) {
+    if (message?.value) {
+      return typeof message.value === 'string' ? JSON.parse(message.value) : message.value;
+    }
+    return message;
   }
 }

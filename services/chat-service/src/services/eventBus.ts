@@ -139,9 +139,21 @@ export async function processParsedMessage(parsed: any) {
   if (parsed.type === 'status_update') {
     console.log(`[Chat Service EventBus] Status update event. Message provider ID: ${parsed.messageId}, status: ${parsed.status}`);
 
+    const statusMessageIds = Array.from(
+      new Set([parsed.messageId, ...(Array.isArray(parsed.messageIds) ? parsed.messageIds : [])].filter(Boolean).map(String))
+    );
+
+    if (statusMessageIds.length === 0) {
+      console.warn('[Chat Service EventBus] Status update skipped because no provider message ID was present.');
+      return;
+    }
+
     const chatMessage = await Message.findOne({ 
       workspace: new mongoose.Types.ObjectId(parsed.workspaceId), 
-      messageId: parsed.messageId 
+      $or: [
+        { messageId: { $in: statusMessageIds } },
+        { whatsappMessageId: { $in: statusMessageIds } },
+      ],
     });
 
     if (chatMessage) {
@@ -157,6 +169,7 @@ export async function processParsedMessage(parsed: any) {
         payload: {
           messageId: chatMessage._id.toString(),
           providerMessageId: chatMessage.messageId,
+          whatsappMessageId: chatMessage.whatsappMessageId,
           conversationId: chatMessage.conversation.toString(),
           status: chatMessage.status,
           timestamp: new Date().toISOString()
@@ -190,7 +203,7 @@ export async function processParsedMessage(parsed: any) {
         console.log(`[Chat Service EventBus] ✓ Dispatched MessageStatusUpdateEvent to campaign-events topic for campaign ${chatMessage.campaign.id}`);
       }
     } else {
-      console.warn(`[Chat Service EventBus] Message not found for status update. providerId: ${parsed.messageId}`);
+      console.warn(`[Chat Service EventBus] Message not found for status update. providerIds: ${statusMessageIds.join(',')}`);
     }
     return;
   }
