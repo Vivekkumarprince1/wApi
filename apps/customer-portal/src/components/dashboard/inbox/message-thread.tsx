@@ -500,6 +500,7 @@ export default function MessageThread({
   const lastScrollHeight = useRef<number>(0);
   const isFetchingMore = useRef<boolean>(false);
   const [dates, setDates] = useState({ today: '', yesterday: '' });
+  const [activeDateLabel, setActiveDateLabel] = useState('');
 
   useEffect(() => {
     setDates({
@@ -579,6 +580,63 @@ export default function MessageThread({
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   };
 
+  const getMessageDateLabel = React.useCallback((createdAt: any) => {
+    const dateObj = parseDateSafe(createdAt) || new Date('2000-01-01');
+    const msgDate = dateObj.toDateString();
+
+    if (msgDate === dates.today) return 'Today';
+    if (msgDate === dates.yesterday) return 'Yesterday';
+
+    return dateObj.toLocaleDateString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }, [dates.today, dates.yesterday]);
+
+  const updateActiveDateLabel = React.useCallback(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const messageNodes = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-message-date-label]')
+    );
+
+    if (messageNodes.length === 0) {
+      setActiveDateLabel('');
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const anchorY = containerRect.top + 56;
+    let selectedNode = messageNodes[0];
+    let smallestDistance = Number.POSITIVE_INFINITY;
+
+    for (const node of messageNodes) {
+      const rect = node.getBoundingClientRect();
+
+      if (rect.bottom < containerRect.top) {
+        selectedNode = node;
+        continue;
+      }
+
+      if (rect.top <= anchorY && rect.bottom >= containerRect.top) {
+        selectedNode = node;
+        break;
+      }
+
+      const distance = Math.abs(rect.top - anchorY);
+      if (distance < smallestDistance) {
+        smallestDistance = distance;
+        selectedNode = node;
+      }
+    }
+
+    const nextLabel = selectedNode.dataset.messageDateLabel || '';
+    setActiveDateLabel((currentLabel) => currentLabel === nextLabel ? currentLabel : nextLabel);
+  }, []);
+
   const scrollToBottom = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -601,6 +659,26 @@ export default function MessageThread({
     }
   }, [isLoading, messages]);
 
+  useEffect(() => {
+    const container = scrollRef.current;
+
+    if (isLoading || renderedMessages.length === 0 || !container) {
+      setActiveDateLabel('');
+      return;
+    }
+
+    container.addEventListener('scroll', updateActiveDateLabel, { passive: true });
+    window.addEventListener('resize', updateActiveDateLabel);
+
+    const frame = window.requestAnimationFrame(updateActiveDateLabel);
+
+    return () => {
+      container.removeEventListener('scroll', updateActiveDateLabel);
+      window.removeEventListener('resize', updateActiveDateLabel);
+      window.cancelAnimationFrame(frame);
+    };
+  }, [dates.today, dates.yesterday, isLoading, renderedMessages.length, updateActiveDateLabel]);
+
   const handleLoadMore = () => {
     if (scrollRef.current) {
       lastScrollHeight.current = scrollRef.current.scrollHeight;
@@ -612,38 +690,15 @@ export default function MessageThread({
   const renderedItems: any[] = [];
   let lastSender: any = null;
   let lastDate: any = null;
-  const dateGroupCounts: Record<string, number> = {};
 
   renderedMessages.forEach((msg, idx) => {
     const parsedCreatedAt = parseDateSafe(msg.createdAt);
     const msgDate = parsedCreatedAt ? parsedCreatedAt.toDateString() : `unknown-${idx}`;
     const senderId = msg.direction === 'outbound' ? (msg.sentBy?._id || 'agent') : 'contact';
     const isSystem = msg.type === 'system' || (msg as any).isSystem;
+    const dateLabel = getMessageDateLabel(msg.createdAt);
 
     if (msgDate !== lastDate) {
-      const dateObj = parsedCreatedAt || new Date('2000-01-01');
-      const today = dates.today;
-      const yesterday = dates.yesterday;
-      
-      let dateLabel = dateObj.toLocaleDateString(undefined, { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
-
-      if (msgDate === today) dateLabel = 'Today';
-      else if (msgDate === yesterday) dateLabel = 'Yesterday';
-
-      dateGroupCounts[msgDate] = (dateGroupCounts[msgDate] || 0) + 1;
-
-      renderedItems.push(
-        <div key={`date-${msgDate}-${dateGroupCounts[msgDate]}`} className="flex justify-center my-6 sticky top-2 z-10">
-          <span className="px-4 py-1.5 rounded-lg bg-background/80 backdrop-blur-md shadow-sm text-[10px] font-black uppercase tracking-widest text-muted-foreground border border-border/10">
-            {dateLabel}
-          </span>
-        </div>
-      );
       lastDate = msgDate;
       lastSender = null;
     }
@@ -659,14 +714,15 @@ export default function MessageThread({
       .join('-');
 
     renderedItems.push(
-      <MessageBubble 
-        key={messageKey} 
-        message={msg} 
-        isFirstInGroup={isFirstInGroup} 
-        onReact={onReact}
-        onRetryMedia={onRetryMedia}
-        user={currentUser}
-      />
+      <div key={messageKey} data-message-date-label={dateLabel}>
+        <MessageBubble
+          message={msg}
+          isFirstInGroup={isFirstInGroup}
+          onReact={onReact}
+          onRetryMedia={onRetryMedia}
+          user={currentUser}
+        />
+      </div>
     );
     
     if (!isSystem) lastSender = senderId;
@@ -675,8 +731,15 @@ export default function MessageThread({
 
   return (
     <div className="flex flex-col h-full bg-slate-50/50 dark:bg-transparent relative">
+      {!isLoading && activeDateLabel && (
+        <div className="pointer-events-none absolute left-0 right-0 top-3 z-20 flex justify-center">
+          <span className="rounded-lg border border-border/40 bg-background/90 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground shadow-sm backdrop-blur">
+            {activeDateLabel}
+          </span>
+        </div>
+      )}
       <div 
-        className="flex-1 p-6 space-y-2 relative z-0 overflow-y-auto custom-scrollbar"
+        className="flex-1 px-6 pb-6 pt-12 space-y-2 relative z-0 overflow-y-auto custom-scrollbar"
         ref={scrollRef}
       >
           {isLoading ? (
