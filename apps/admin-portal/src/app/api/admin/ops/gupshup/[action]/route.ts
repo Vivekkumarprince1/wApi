@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
 import { recordAudit, clientIp } from "@/server/audit";
 import { saveWebhookPolicy } from "@/server/config-ops";
-import { internalDeleteJson, internalPost } from "@/server/internal-client";
+import { internalDeleteJson, internalGet, internalPost } from "@/server/internal-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,20 +56,40 @@ export async function POST(
       }
 
       case "sync-webhook": {
-        const appId = String(body.appId || "");
-        if (!appId) return NextResponse.json({ message: "appId is required" }, { status: 400 });
         mode = "service-provider";
-        const res = await internalPost("bsp", `/admin/sync-webhook/${appId}`, body);
+        const resolved = await resolveBspAppId(body);
+        if (!resolved.ok) return serviceError(resolved.res);
+        const { appId } = resolved;
+        if (!appId) {
+          return NextResponse.json(
+            { message: "No Gupshup app is linked to this workspace yet." },
+            { status: 400 }
+          );
+        }
+        const res = await internalPost("bsp", `/admin/sync-webhook/${encodeURIComponent(appId)}`, {
+          ...body,
+          appId,
+        });
         if (!res.ok) return serviceError(res);
         data = res.data;
         break;
       }
 
       case "sync-app-subscriptions": {
-        const appId = String(body.appId || "");
-        if (!appId) return NextResponse.json({ message: "appId is required" }, { status: 400 });
         mode = "service-provider";
-        const res = await internalPost("bsp", `/admin/sync-app-subscriptions/${appId}`, body);
+        const resolved = await resolveBspAppId(body);
+        if (!resolved.ok) return serviceError(resolved.res);
+        const { appId } = resolved;
+        if (!appId) {
+          return NextResponse.json(
+            { message: "No Gupshup app is linked to this workspace yet." },
+            { status: 400 }
+          );
+        }
+        const res = await internalPost("bsp", `/admin/sync-app-subscriptions/${encodeURIComponent(appId)}`, {
+          ...body,
+          appId,
+        });
         if (!res.ok) return serviceError(res);
         data = res.data;
         break;
@@ -122,7 +142,42 @@ export async function POST(
 function serviceError(res: { status: number; error?: string }) {
   const message =
     res.status === 502
-      ? "Gupshup partner API is handled by service-provider, which is not reachable. Start the backend services to run this operation."
+      ? `Gupshup operations are handled by service-provider, which is not reachable from admin-portal. Check SERVICE_PROVIDER_URL/GATEWAY_URL, Cloud Run ingress, and service-provider health.${res.error ? ` Upstream error: ${res.error}` : ""}`
       : res.error || "Operation failed";
   return NextResponse.json({ message }, { status: res.status });
+}
+
+async function resolveBspAppId(
+  body: Record<string, unknown>
+): Promise<{ ok: true; appId: string } | { ok: false; res: { status: number; error?: string } }> {
+  const explicitAppId = normalizeId(body.appId);
+  if (explicitAppId) return { ok: true, appId: explicitAppId };
+
+  const workspaceId = normalizeId(body.workspaceId);
+  if (!workspaceId) return { ok: true, appId: "" };
+
+  const res = await internalGet("bsp", `/admin/apps?workspaceId=${encodeURIComponent(workspaceId)}`);
+  if (!res.ok) return { ok: false, res };
+
+  const apps = extractDataArray(res.data);
+  const app = apps[0];
+  if (!app || typeof app !== "object") return { ok: true, appId: "" };
+
+  const record = app as Record<string, unknown>;
+  const appId =
+    normalizeId(record.gupshupAppId) ||
+    normalizeId((record.gupshupIdentity as Record<string, unknown> | undefined)?.partnerAppId) ||
+    normalizeId(record.appId);
+  return { ok: true, appId };
+}
+
+function normalizeId(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function extractDataArray(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+  const record = data as Record<string, unknown>;
+  return Array.isArray(record.data) ? record.data : [];
 }

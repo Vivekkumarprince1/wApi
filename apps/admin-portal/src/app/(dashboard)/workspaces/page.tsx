@@ -129,6 +129,7 @@ export default function WorkspacesPage() {
 
   const selected = filtered.find((w) => w._id === selectedId) || filtered[0] || null;
   const selectedGupshupAppId = selected?.gupshupAppId || selected?.gupshupIdentity?.partnerAppId || "";
+  const selectedWorkspaceId = selected?._id || "";
 
   const { data: webhookStatus, isFetching: fetchingWebhook, refetch: refetchWebhook } = useQuery({
     queryKey: ["webhook-status", selected?._id],
@@ -159,6 +160,7 @@ export default function WorkspacesPage() {
     mutationFn: () =>
       apiPost("/api/admin/ops/gupshup/sync-webhook", {
         appId: selectedGupshupAppId,
+        workspaceId: selectedWorkspaceId,
         url: webhookForm.url,
         modes: webhookForm.modes,
         strategy: webhookForm.strategy,
@@ -174,7 +176,7 @@ export default function WorkspacesPage() {
     mutationFn: () =>
       apiPost("/api/admin/ops/gupshup/sync-app-subscriptions", {
         appId: selectedGupshupAppId,
-        workspaceId: selected?._id,
+        workspaceId: selectedWorkspaceId,
       }),
     onSuccess: () => {
       toast.success("Subscriptions synced from Gupshup");
@@ -480,8 +482,8 @@ export default function WorkspacesPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => syncAppSubscriptions.mutate()}
-                          disabled={!selectedGupshupAppId || fetchingWebhook || syncAppSubscriptions.isPending}
-                          title={!selectedGupshupAppId ? "Gupshup app ID is required" : "Sync subscriptions from Gupshup"}
+                          disabled={!selectedWorkspaceId || fetchingWebhook || syncAppSubscriptions.isPending}
+                          title={!selectedWorkspaceId ? "Select a workspace first" : "Sync subscriptions from Gupshup"}
                         >
                           <RefreshCw className={`h-3.5 w-3.5 ${syncAppSubscriptions.isPending || fetchingWebhook ? "animate-spin" : ""}`} /> Sync
                         </Button>
@@ -518,7 +520,7 @@ export default function WorkspacesPage() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <Button size="sm" onClick={() => syncWebhook.mutate()} disabled={syncWebhook.isPending}>
+                          <Button size="sm" onClick={() => syncWebhook.mutate()} disabled={!selectedWorkspaceId || syncWebhook.isPending}>
                             {syncWebhook.isPending ? "Syncing…" : "Apply Sync"}
                           </Button>
                         </div>

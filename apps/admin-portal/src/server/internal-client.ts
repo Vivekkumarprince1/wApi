@@ -14,6 +14,7 @@ import jwt from "jsonwebtoken";
  */
 
 const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:5001";
+const INTERNAL_POST_TIMEOUT_MS = Number(process.env.ADMIN_INTERNAL_POST_TIMEOUT_MS || 90000);
 
 // Using a type representing the original services for backward compatibility
 type ServiceId = "automation" | "campaign" | "billing" | "bsp" | "auth" | "contact" | "chat" | "websocket" | "ingestor";
@@ -80,7 +81,7 @@ export async function internalPost(
   try {
     const res = await axios.post(internalUrl(service, path), body, {
       headers: { ...internalHeaders(), "x-internal-service": "admin-portal", "Content-Type": "application/json" },
-      timeout: 15000,
+      timeout: INTERNAL_POST_TIMEOUT_MS,
       validateStatus: () => true,
     });
     return {
@@ -144,11 +145,29 @@ export async function internalDeleteJson(
 function responseMessage(data: unknown): string | undefined {
   if (!data || typeof data !== "object") return undefined;
   const record = data as Record<string, unknown>;
-  return typeof record.message === "string"
-    ? record.message
-    : typeof record.error === "string"
-      ? record.error
-      : undefined;
+  if (typeof record.message === "string") return record.message;
+  if (typeof record.error === "string") return record.error;
+
+  const error = record.error;
+  if (error && typeof error === "object") {
+    const errorRecord = error as Record<string, unknown>;
+    if (typeof errorRecord.message === "string") return errorRecord.message;
+
+    const details = errorRecord.details;
+    if (details && typeof details === "object") {
+      const detailsRecord = details as Record<string, unknown>;
+      if (typeof detailsRecord.message === "string") return detailsRecord.message;
+    }
+  }
+
+  const nestedData = record.data;
+  if (nestedData && typeof nestedData === "object") {
+    const nestedRecord = nestedData as Record<string, unknown>;
+    if (typeof nestedRecord.message === "string") return nestedRecord.message;
+    if (typeof nestedRecord.error === "string") return nestedRecord.error;
+  }
+
+  return undefined;
 }
 
 /**

@@ -196,19 +196,21 @@ export class AdminService {
 
   async syncAllWebhooks(body: any) {
     const { url, modes, strategy } = body;
-    const webhookUrl = url || config.mainServiceUrl + '/api/webhooks/gupshup';
+    const webhookUrl = url || this.defaultWebhookUrl();
 
     const apps = await this.appModel
       .find({ status: { $in: ['connected', 'active'] } })
-      .select('workspaceId appId gupshupAppId')
+      .select('workspaceId appId gupshupAppId gupshupIdentity')
       .lean();
 
     const results = { synced: 0, failed: 0, total: apps.length, details: [] as any[] };
 
     for (const app of apps) {
+      const providerAppId = this.providerAppId(app);
+
       try {
         const response = await this.gupshup.setSubscription({
-          appId: app.gupshupAppId || app.appId,
+          appId: providerAppId,
           url: webhookUrl,
           events: modes || [],
           strategy: strategy || 'update',
@@ -217,12 +219,12 @@ export class AdminService {
         const callbackUrl = response?.registeredUrl || webhookUrl;
 
         await this.subscriptionModel.findOneAndUpdate(
-          { workspaceId: app.workspaceId, appId: app.gupshupAppId || app.appId, callbackUrl },
+          { workspaceId: app.workspaceId, appId: providerAppId, callbackUrl },
           {
             $set: {
               workspaceId: app.workspaceId,
               provider: 'gupshup',
-              appId: app.gupshupAppId || app.appId,
+              appId: providerAppId,
               callbackUrl,
               events: modes || [],
               status: 'active',
@@ -233,10 +235,10 @@ export class AdminService {
         );
 
         results.synced++;
-        results.details.push({ workspaceId: app.workspaceId, appId: app.appId, status: 'synced' });
+        results.details.push({ workspaceId: app.workspaceId, appId: providerAppId, status: 'synced' });
       } catch (err: any) {
         results.failed++;
-        results.details.push({ workspaceId: app.workspaceId, appId: app.appId, status: 'failed', error: err.message });
+        results.details.push({ workspaceId: app.workspaceId, appId: providerAppId, status: 'failed', error: err.message });
       }
     }
 
@@ -245,7 +247,7 @@ export class AdminService {
 
   async syncSpecificWebhook(appId: string, body: any) {
     const { url, modes, strategy } = body;
-    const webhookUrl = url || config.mainServiceUrl + '/api/webhooks/gupshup';
+    const webhookUrl = url || this.defaultWebhookUrl();
 
     const response = await this.gupshup.setSubscription({
       appId,
@@ -255,7 +257,13 @@ export class AdminService {
     });
     const callbackUrl = response?.registeredUrl || webhookUrl;
 
-    const app = await this.appModel.findOne({ $or: [{ appId }, { gupshupAppId: appId }] });
+    const app = await this.appModel.findOne({
+      $or: [
+        { appId },
+        { gupshupAppId: appId },
+        { 'gupshupIdentity.partnerAppId': appId },
+      ],
+    });
 
     if (app) {
       await this.subscriptionModel.findOneAndUpdate(
@@ -276,6 +284,18 @@ export class AdminService {
     }
 
     return { synced: true, appId, callbackUrl, response };
+  }
+
+  private defaultWebhookUrl() {
+    return (
+      process.env.WHATSAPP_WEBHOOK_URL ||
+      process.env.APP_URL ||
+      `${config.mainServiceUrl.replace(/\/+$/, '')}/api/webhooks/whatsapp`
+    );
+  }
+
+  private providerAppId(app: any) {
+    return app?.gupshupAppId || app?.gupshupIdentity?.partnerAppId || app?.appId;
   }
 
   async deleteSubscription(appId: string, subscriptionId: string) {

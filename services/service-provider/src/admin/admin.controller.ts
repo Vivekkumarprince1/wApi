@@ -88,7 +88,7 @@ export class AdminController {
     const query = workspaceId ? { workspaceId } : {};
     const apps = await this.appModel
       .find(query)
-      .select('-whatsappAccessToken -whatsappVerifyToken -accessToken -gupshupIdentity')
+      .select('-whatsappAccessToken -whatsappVerifyToken -accessToken -gupshupIdentity.appApiKey')
       .sort({ updatedAt: -1 })
       .lean();
     return ok(apps);
