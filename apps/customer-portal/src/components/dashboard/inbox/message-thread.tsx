@@ -94,9 +94,16 @@ const StatusIcon = React.memo(({ status, direction }: { status: string, directio
   }
 });
 
+const getMessageBody = (message: Message) => {
+  const body = typeof message.body === 'string' ? message.body : '';
+  const text = typeof (message as any).text === 'string' ? (message as any).text : '';
+  const caption = typeof message.media?.caption === 'string' ? message.media.caption : '';
+  return body || text || caption;
+};
+
 const TemplateRenderer = React.memo(({ message }: { message: Message }) => {
   const template = (message as any).template;
-  const fallbackBody = message.body || `[Template: ${(template?.name || template?.metaTemplateName || 'message')}]`;
+  const fallbackBody = getMessageBody(message) || `[Template: ${(template?.name || template?.metaTemplateName || 'message')}]`;
   if (!template) return <p className="text-[14.5px] leading-[1.45]">{fallbackBody}</p>;
   
   const header = template.header;
@@ -165,7 +172,7 @@ const TemplateRenderer = React.memo(({ message }: { message: Message }) => {
 
 const InteractiveRenderer = React.memo(({ message }: { message: Message }) => {
   const interactive = (message as any).meta?.interactiveReply;
-  if (!interactive) return <p className="text-[14.5px] leading-[1.45] font-medium">{message.body}</p>;
+  if (!interactive) return <p className="text-[14.5px] leading-[1.45] font-medium">{getMessageBody(message)}</p>;
   
   return (
     <div className="flex items-center gap-3 py-2 px-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5">
@@ -183,7 +190,7 @@ const InteractiveRenderer = React.memo(({ message }: { message: Message }) => {
 const FlowMessageRenderer = React.memo(({ message }: { message: Message }) => {
   const flow = (message as any).meta?.flow;
   const header = flow?.header;
-  const body = flow?.body?.text || message.body || 'WhatsApp Flow';
+  const body = flow?.body?.text || getMessageBody(message) || 'WhatsApp Flow';
   const footer = flow?.footer?.text;
   const buttonText = flow?.action?.parameters?.flow_cta || 'Open Form';
 
@@ -243,7 +250,7 @@ const FlowReplyRenderer = React.memo(({ message }: { message: Message }) => {
 
 const ContactsRenderer = React.memo(({ message }: { message: Message }) => {
   const contacts = (message as any).meta?.contacts || [];
-  if (!contacts.length) return <p className="text-[14.5px] leading-[1.45] font-medium">{message.body}</p>;
+  if (!contacts.length) return <p className="text-[14.5px] leading-[1.45] font-medium">{getMessageBody(message)}</p>;
   
   const contact = contacts[0];
   const name = contact.name?.formatted_name || contact.name?.first_name || 'Contact';
@@ -278,7 +285,7 @@ const ContactsRenderer = React.memo(({ message }: { message: Message }) => {
 
 const LocationRenderer = React.memo(({ message }: { message: Message }) => {
   const location = (message as any).meta?.location;
-  if (!location) return <p className="text-[14.5px] leading-[1.45] font-medium">{message.body}</p>;
+  if (!location) return <p className="text-[14.5px] leading-[1.45] font-medium">{getMessageBody(message)}</p>;
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
   
   return (
@@ -349,7 +356,8 @@ const MessageBubble = React.memo(({ message, isFirstInGroup, onReact, onRetryMed
   const isPayment = ['payment', 'pix', 'boleto'].includes(message.type);
   const mediaTypes = ['image', 'video', 'audio', 'document', 'sticker'];
   const isMediaType = mediaTypes.includes(message.type as string);
-  const normalizedBody = typeof message.body === 'string' ? message.body.trim() : '';
+  const displayBody = getMessageBody(message);
+  const normalizedBody = displayBody.trim();
   const isAutoMediaPlaceholder = /^\[(image|video|audio|document|sticker)\]$/i.test(normalizedBody);
   const shouldRenderBody = !isSticker && !isPayment && normalizedBody.length > 0 && (!isMediaType || !isAutoMediaPlaceholder) && !isLocation && message.type !== 'contacts';
   const canRetryFailedMedia = isOutbound && message.status === 'failed' && isMediaType && !!(message as any)?.meta?.localUpload?.canRetry;
@@ -402,7 +410,7 @@ const MessageBubble = React.memo(({ message, isFirstInGroup, onReact, onRetryMed
                   <p className="text-[13px] font-bold truncate">{message.subject}</p>
                 </div>
               )}
-              <p className="text-[14.5px] leading-[1.45] font-medium whitespace-pre-wrap">{message.body}</p>
+              <p className="text-[14.5px] leading-[1.45] font-medium whitespace-pre-wrap">{displayBody}</p>
             </div>
           )
         )}
@@ -443,6 +451,8 @@ const MessageBubble = React.memo(({ message, isFirstInGroup, onReact, onRetryMed
 }, (prev, next) => {
   return prev.message.status === next.message.status && 
          prev.isFirstInGroup === next.isFirstInGroup && 
+         getMessageBody(prev.message) === getMessageBody(next.message) &&
+         prev.message.type === next.message.type &&
          JSON.stringify(prev.message.meta?.reactions) === JSON.stringify(next.message.meta?.reactions);
 });
 
@@ -495,7 +505,7 @@ export default function MessageThread({
       const dedupeKey = String(
         message._id ||
         message.whatsappMessageId ||
-        `${message.direction || 'dir'}-${message.type || 'type'}-${message.createdAt || 'created'}-${message.body || ''}`
+        `${message.direction || 'dir'}-${message.type || 'type'}-${message.createdAt || 'created'}-${getMessageBody(message)}`
       );
 
       if (seenMessages.has(dedupeKey)) {
@@ -535,7 +545,7 @@ export default function MessageThread({
 
       const reactionKey = String(message._id || message.whatsappMessageId || `${targetMessageId}-${message.createdAt}`);
       targetMessage.meta.reactions[reactionKey] = {
-        emoji: message.body || message.meta?.emoji || reactionMeta.emoji || '👍',
+        emoji: getMessageBody(message) || message.meta?.emoji || reactionMeta.emoji || '👍',
         timestamp: message.createdAt,
         reactionMessageId: message._id,
         reactedBy: message.sentBy || null

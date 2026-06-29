@@ -115,6 +115,7 @@ io.use(async (socket: any, next) => {
     }
 
     socket.userId = decoded.id;
+    socket.workspaceId = decoded.workspaceId ? String(decoded.workspaceId) : undefined;
     socket.isSuperAdmin = decoded.role === 'super_admin';
     console.log(`[WebSocket Gateway] Authenticated user: ${socket.userId}`);
     next();
@@ -141,7 +142,8 @@ io.on('connection', (socket: any) => {
     const { workspaceId } = data;
     if (!workspaceId) return;
 
-    const isMember = await userIsWorkspaceMember(socket.userId, workspaceId);
+    const isTokenWorkspace = socket.workspaceId && String(socket.workspaceId) === String(workspaceId);
+    const isMember = isTokenWorkspace || await userIsWorkspaceMember(socket.userId, workspaceId);
     if (!isMember && !socket.isSuperAdmin) {
       socket.emit('socket:error', { event: 'workspace:join', reason: 'forbidden' });
       return;
@@ -166,7 +168,8 @@ io.on('connection', (socket: any) => {
     const { conversationId, workspaceId } = data;
     if (!conversationId || !workspaceId) return;
 
-    const isMember = await userIsWorkspaceMember(socket.userId, workspaceId);
+    const isTokenWorkspace = socket.workspaceId && String(socket.workspaceId) === String(workspaceId);
+    const isMember = isTokenWorkspace || await userIsWorkspaceMember(socket.userId, workspaceId);
     if (!isMember && !socket.isSuperAdmin) {
       socket.emit('socket:error', { event: 'conversation:join', reason: 'forbidden' });
       return;

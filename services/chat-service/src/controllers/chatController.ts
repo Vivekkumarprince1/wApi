@@ -25,6 +25,25 @@ async function fetchContactByIdForWorkspace(contactId: string, workspaceId: mong
   return payload?.data || null;
 }
 
+function serializeMessage(message: any) {
+  const obj = message?.toObject ? message.toObject() : { ...(message || {}) };
+  const body = obj.body || obj.text || obj.media?.caption || '';
+  return {
+    ...obj,
+    body,
+    text: obj.text || body,
+    whatsappMessageId: obj.whatsappMessageId || obj.messageId,
+    media: obj.media || (obj.mediaUrl ? {
+      url: obj.mediaUrl,
+      caption: body || undefined,
+    } : undefined),
+  };
+}
+
+function serializeMessages(messages: any[]) {
+  return messages.map(serializeMessage);
+}
+
 // --- Internal routes ---
 
 export const getConversationsInternal = async (req: express.Request, res: express.Response) => {
@@ -61,7 +80,7 @@ export const getTimelineMessagesInternal = async (req: express.Request, res: exp
       conversation: new mongoose.Types.ObjectId(id),
     }).sort({ sentAt: 1 });
 
-    return res.status(200).json({ success: true, data: list });
+    return res.status(200).json({ success: true, data: serializeMessages(list) });
   } catch (err: any) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -307,7 +326,7 @@ export const getTimelineMessagesPublic = async (req: any, res: express.Response)
 
     return res.status(200).json({
       success: true,
-      data: messages.reverse(),
+      data: serializeMessages(messages.reverse()),
       pagination: {
         total,
         hasMore: actualHasMore,
@@ -392,6 +411,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         direction: 'outbound',
         type: 'text',
         text: body,
+        body,
         mediaUrl: mediaUrl || '',
         messageId: `note_${Date.now()}`,
         status: 'read',
@@ -506,6 +526,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         direction: 'outbound',
         type,
         text: body || '',
+        body: body || '',
         mediaUrl: mediaUrl || '',
         messageId: dispatchResult.providerMessageId,
         status: 'sent',
@@ -535,7 +556,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         messageId: chatMessage._id.toString(),
         type: 'message_created',
         timestamp: new Date().toISOString(),
-        payload: chatMessage,
+        payload: serializeMessage(chatMessage),
         contact: conversation.contact ? {
           _id: (conversation.contact as any)._id.toString(),
           name: (conversation.contact as any).name || 'Unknown',
@@ -549,7 +570,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
       });
     }
 
-    return res.status(200).json({ success: true, data: chatMessage });
+    return res.status(200).json({ success: true, data: serializeMessage(chatMessage) });
   } catch (err: any) {
     console.error('[sendMessageInternal] Error:', err.response?.data || err.message);
     return res.status(500).json({ success: false, message: err.message });
@@ -598,6 +619,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         direction: 'outbound',
         type: 'text',
         text: body,
+        body,
         mediaUrl: mediaUrl || '',
         messageId: `note_${Date.now()}`,
         status: 'read',
@@ -711,6 +733,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         direction: 'outbound',
         type,
         text: body || '',
+        body: body || '',
         mediaUrl: mediaUrl || '',
         messageId: dispatchResult.providerMessageId,
         status: 'sent',
@@ -740,7 +763,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         messageId: chatMessage._id.toString(),
         type: 'message_created',
         timestamp: new Date().toISOString(),
-        payload: chatMessage,
+        payload: serializeMessage(chatMessage),
         contact: contactDoc ? {
           _id: contactDoc._id.toString(),
           name: contactDoc.name || 'Unknown',
@@ -759,7 +782,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
       metadata: { conversationId: conversation._id.toString(), type, isInternalNote: !!isInternalNote },
     });
 
-    return res.status(200).json({ success: true, data: chatMessage });
+    return res.status(200).json({ success: true, data: serializeMessage(chatMessage) });
   } catch (err: any) {
     console.error('[sendMessagePublic] Error:', err.response?.data || err.message);
     return res.status(500).json({ success: false, message: err.message });
@@ -1227,7 +1250,7 @@ export const getMessagesByContactPublic = async (req: any, res: express.Response
 
     return res.status(200).json({
       success: true,
-      data: messages.reverse(),
+      data: serializeMessages(messages.reverse()),
       pagination: {
         hasMore: actualHasMore,
         lastTimestamp

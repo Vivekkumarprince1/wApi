@@ -80,7 +80,7 @@ const publicAuthPaths = new Set([
 const isPublicAuthPath = (path: string) =>
   publicAuthPaths.has(path) || path.startsWith('/api/v1/auth/invitation/');
 
-const isPublicWebhookPath = (path: string) => path.startsWith('/api/webhooks/');
+const isPublicWebhookPath = (path: string) => path === '/api/webhooks' || path.startsWith('/api/webhooks/');
 
 type ServiceControl = {
   published?: boolean;

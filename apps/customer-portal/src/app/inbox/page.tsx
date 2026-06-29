@@ -587,7 +587,11 @@ export default function InboxPage() {
                 onSendMedia={(file) => mediaMutation.mutate(file)}
                 isSending={sendMutation.isPending || mediaMutation.isPending}
                 disabled={false}
-                onTyping={() => socket?.emit('typing', { conversationId: selectedConversation._id, isTyping: true })}
+                onTyping={() => socket?.emit('typing', {
+                  conversationId: selectedConversation._id,
+                  workspaceId: user?.workspace?._id || user?.workspace,
+                  isTyping: true
+                })}
                 channel={selectedConversation.channel}
               />
             </motion.div>

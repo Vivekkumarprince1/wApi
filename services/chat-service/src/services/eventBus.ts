@@ -134,6 +134,21 @@ function isWithinBusinessHours(settings: any): boolean {
   return currentTime >= schedule.startTime && currentTime <= schedule.endTime;
 }
 
+function serializeMessage(message: any) {
+  const obj = message?.toObject ? message.toObject() : { ...(message || {}) };
+  const body = obj.body || obj.text || obj.media?.caption || '';
+  return {
+    ...obj,
+    body,
+    text: obj.text || body,
+    whatsappMessageId: obj.whatsappMessageId || obj.messageId,
+    media: obj.media || (obj.mediaUrl ? {
+      url: obj.mediaUrl,
+      caption: body || undefined,
+    } : undefined),
+  };
+}
+
 export async function processParsedMessage(parsed: any) {
   // 1. Process Status Updates
   if (parsed.type === 'status_update') {
@@ -296,6 +311,7 @@ export async function processParsedMessage(parsed: any) {
       direction: parsed.direction || 'inbound',
       type: messageType,
       text: parsed.text || '',
+      body: parsed.text || '',
       mediaUrl: parsed.mediaUrl || '',
       messageId: parsed.messageId,
       status: parsed.direction === 'inbound' ? 'delivered' : 'sent',
@@ -362,7 +378,7 @@ export async function processParsedMessage(parsed: any) {
       messageId: chatMessage._id.toString(),
       type: 'message_created',
       timestamp: new Date().toISOString(),
-      payload: chatMessage,
+      payload: serializeMessage(chatMessage),
       contact: contactDoc ? {
         _id: (contactDoc as any)._id.toString(),
         name: (contactDoc as any).name || 'Unknown',

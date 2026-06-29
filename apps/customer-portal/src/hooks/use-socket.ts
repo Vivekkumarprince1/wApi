@@ -221,7 +221,7 @@ export const useSocket = (options: SocketOptions = {}) => {
 
     if (conversationRoom) {
       // console.log(`%c[Socket:Singleton] Joining Conversation: ${conversationRoom}`, 'color: #0891b2; font-weight: bold;');
-      socket.emit('conversation:join', { conversationId });
+      socket.emit('conversation:join', { conversationId, workspaceId });
       
       return () => {
         console.log(`[Socket:Singleton] Leaving Conversation: ${conversationRoom}`);
