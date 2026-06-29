@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Types } from "mongoose";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
-import { getConnection } from "@/server/db";
+import { internalGet } from "@/server/internal-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Webhook subscription status for a workspace — direct read (Rule #4). Mirrors
- * core-server adminController.getWebhookStatus (?workspaceId=...). Reads the
- * locally-stored webhook config (subscribedEvents, syncStatus, lastSyncedAt)
- * for the workspace and presents it as a subscriptions list the UI can render.
+ * Webhook subscription status for a workspace. The authoritative mirror for
+ * Gupshup app subscriptions now lives in service-provider `bsp_subscriptions`.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -22,39 +19,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ message: "workspaceId is required" }, { status: 400 });
     }
 
-    const conn = await getConnection("core");
-    const db = conn.db;
-    if (!db) throw new Error("Database handle unavailable");
-
-    let wsRef: Types.ObjectId | string = workspaceId;
-    try {
-      wsRef = new Types.ObjectId(workspaceId);
-    } catch {
-      /* keep as string */
+    const res = await internalGet("bsp", `/admin/webhook-status?workspaceId=${encodeURIComponent(workspaceId)}`);
+    if (!res.ok) {
+      return NextResponse.json(
+        { message: res.error || "Failed to load webhook status from service-provider" },
+        { status: res.status },
+      );
     }
 
-    const config = await db
-      .collection("webhookconfigs")
-      .findOne({ workspace: { $in: [wsRef, workspaceId] } });
-
-    const subscriptions = config
-      ? [
-          {
-            id: String(config._id),
-            url: (config as Record<string, unknown>).endpointUrl || "System default",
-            modes: (config as Record<string, unknown>).subscribedEvents || [],
-            events: (config as Record<string, unknown>).subscribedEvents || [],
-          },
-        ]
-      : [];
-
-    return NextResponse.json({
-      workspaceId,
-      subscriptions,
-      syncStatus: config ? (config as Record<string, unknown>).syncStatus || "unknown" : "not_configured",
-      lastSyncedAt: config ? (config as Record<string, unknown>).lastSyncedAt || null : null,
-      lastError: config ? (config as Record<string, unknown>).lastError || null : null,
-    });
+    const payload = res.data && typeof res.data === "object" ? (res.data as Record<string, unknown>) : {};
+    return NextResponse.json(payload.data || payload);
   } catch (err) {
     if (err instanceof AdminAuthError) {
       return NextResponse.json({ message: err.message }, { status: err.status });

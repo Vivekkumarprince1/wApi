@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic";
  * Service-provider internal admin operations:
  *   reconcile / dashboards-reconcile  -> /internal/v1/bsp/admin/reconcile
  *   sync-webhook                      -> /internal/v1/bsp/admin/sync-webhook/:appId
+ *   sync-app-subscriptions            -> /internal/v1/bsp/admin/sync-app-subscriptions/:appId
  *   sync-all-webhooks                 -> /internal/v1/bsp/admin/sync-webhooks
  *   delete-subscription               -> /internal/v1/bsp/admin/subscription/:appId/:subscriptionId
  */
@@ -59,6 +60,16 @@ export async function POST(
         if (!appId) return NextResponse.json({ message: "appId is required" }, { status: 400 });
         mode = "service-provider";
         const res = await internalPost("bsp", `/admin/sync-webhook/${appId}`, body);
+        if (!res.ok) return serviceError(res);
+        data = res.data;
+        break;
+      }
+
+      case "sync-app-subscriptions": {
+        const appId = String(body.appId || "");
+        if (!appId) return NextResponse.json({ message: "appId is required" }, { status: 400 });
+        mode = "service-provider";
+        const res = await internalPost("bsp", `/admin/sync-app-subscriptions/${appId}`, body);
         if (!res.ok) return serviceError(res);
         data = res.data;
         break;

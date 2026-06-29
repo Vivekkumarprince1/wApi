@@ -65,7 +65,28 @@ export class AdminService {
 
     const subs = await this.subscriptionModel.find(query).lean();
 
-    if (workspaceId) return subs[0] || null;
+    if (workspaceId) {
+      return {
+        workspaceId,
+        subscriptions: subs.map((sub: any) => ({
+          id: String(sub._id),
+          providerSubscriptionId: sub.providerData?.providerSubscriptionId,
+          url: sub.callbackUrl,
+          modes: sub.events || [],
+          events: sub.events || [],
+          status: sub.status || 'unknown',
+          syncedAt: sub.providerData?.syncedAt || sub.updatedAt || null,
+          providerData: sub.providerData || {},
+        })),
+        syncStatus: subs.length ? 'synced' : 'not_configured',
+        lastSyncedAt: subs.reduce((latest: Date | null, sub: any) => {
+          const candidate = sub.providerData?.syncedAt || sub.updatedAt;
+          const date = candidate ? new Date(candidate) : null;
+          if (!date || Number.isNaN(date.getTime())) return latest;
+          return !latest || date > latest ? date : latest;
+        }, null),
+      };
+    }
 
     // Group by workspaceId for multi-workspace view
     const grouped = subs.reduce((acc: any, sub: any) => {
@@ -76,6 +97,101 @@ export class AdminService {
     }, {});
 
     return grouped;
+  }
+
+  async syncSpecificAppSubscriptions(appId: string, body: any = {}) {
+    const app = await this.appModel
+      .findOne({
+        $or: [
+          { appId },
+          { gupshupAppId: appId },
+          { 'gupshupIdentity.partnerAppId': appId },
+        ],
+      })
+      .select('workspaceId appId gupshupAppId gupshupIdentity')
+      .lean();
+
+    const workspaceId = app?.workspaceId || body.workspaceId;
+    if (!workspaceId) {
+      throw new Error(`No workspace mapping found for Gupshup app ${appId}`);
+    }
+
+    const providerAppId = app?.gupshupAppId || app?.gupshupIdentity?.partnerAppId || appId;
+    const subscriptions = await this.gupshup.listSubscriptions(providerAppId);
+    const syncedAt = new Date();
+    const returnedProviderIds = new Set<string>();
+    const returnedUrls = new Set<string>();
+
+    const upserted = [];
+    for (const sub of subscriptions) {
+      const providerSubscriptionId = String(sub.id || sub.subscriptionId || '').trim();
+      const callbackUrl = String(sub.url || sub.callbackUrl || '').trim();
+      if (!callbackUrl) continue;
+
+      if (providerSubscriptionId) returnedProviderIds.add(providerSubscriptionId);
+      returnedUrls.add(callbackUrl);
+
+      const events = Array.isArray(sub.modes)
+        ? sub.modes
+        : Array.isArray(sub.events)
+          ? sub.events
+          : [];
+
+      const saved = await this.subscriptionModel.findOneAndUpdate(
+        {
+          workspaceId,
+          provider: 'gupshup',
+          appId: providerAppId,
+          callbackUrl,
+        },
+        {
+          $set: {
+            workspaceId,
+            provider: 'gupshup',
+            appId: providerAppId,
+            callbackUrl,
+            events,
+            status: sub.active === false ? 'disabled' : 'active',
+            providerData: {
+              gupshupResponse: sub,
+              providerSubscriptionId: providerSubscriptionId || undefined,
+              source: 'app_subscription_sync',
+              syncedAt,
+            },
+          },
+        },
+        { upsert: true, new: true },
+      );
+      upserted.push(saved);
+    }
+
+    const staleQuery: any = {
+      workspaceId,
+      provider: 'gupshup',
+      appId: providerAppId,
+      status: { $ne: 'deleted' },
+    };
+    if (returnedUrls.size > 0) {
+      staleQuery.callbackUrl = { $nin: Array.from(returnedUrls) };
+    }
+
+    const stale = await this.subscriptionModel.updateMany(staleQuery, {
+      $set: {
+        status: 'disabled',
+        'providerData.source': 'app_subscription_sync',
+        'providerData.syncedAt': syncedAt,
+        'providerData.staleReason': 'missing_from_gupshup_subscription_list',
+      },
+    });
+
+    return {
+      appId: providerAppId,
+      workspaceId,
+      synced: upserted.length,
+      disabled: stale.modifiedCount || 0,
+      subscriptions,
+      providerSubscriptionIds: Array.from(returnedProviderIds),
+    };
   }
 
   async syncAllWebhooks(body: any) {

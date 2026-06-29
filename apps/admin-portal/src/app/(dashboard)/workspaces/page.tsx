@@ -87,7 +87,7 @@ interface Workspace {
 }
 
 interface WebhookStatus {
-  subscriptions: Array<{ id: string; url: string; modes?: string[]; events?: string[] }>;
+  subscriptions: Array<{ id: string; url: string; modes?: string[]; events?: string[]; status?: string }>;
   syncStatus?: string;
   lastSyncedAt?: string | null;
 }
@@ -128,6 +128,7 @@ export default function WorkspacesPage() {
   });
 
   const selected = filtered.find((w) => w._id === selectedId) || filtered[0] || null;
+  const selectedGupshupAppId = selected?.gupshupAppId || selected?.gupshupIdentity?.partnerAppId || "";
 
   const { data: webhookStatus, isFetching: fetchingWebhook, refetch: refetchWebhook } = useQuery({
     queryKey: ["webhook-status", selected?._id],
@@ -157,13 +158,26 @@ export default function WorkspacesPage() {
   const syncWebhook = useMutation({
     mutationFn: () =>
       apiPost("/api/admin/ops/gupshup/sync-webhook", {
-        appId: selected?.gupshupAppId,
+        appId: selectedGupshupAppId,
         url: webhookForm.url,
         modes: webhookForm.modes,
         strategy: webhookForm.strategy,
       }),
     onSuccess: () => {
       toast.success("Webhook sync applied");
+      refetchWebhook();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const syncAppSubscriptions = useMutation({
+    mutationFn: () =>
+      apiPost("/api/admin/ops/gupshup/sync-app-subscriptions", {
+        appId: selectedGupshupAppId,
+        workspaceId: selected?._id,
+      }),
+    onSuccess: () => {
+      toast.success("Subscriptions synced from Gupshup");
       refetchWebhook();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -181,7 +195,7 @@ export default function WorkspacesPage() {
 
   const deleteSub = useMutation({
     mutationFn: (subscriptionId: string) =>
-      apiPost("/api/admin/ops/gupshup/delete-subscription", { appId: selected?.gupshupAppId, subscriptionId }),
+      apiPost("/api/admin/ops/gupshup/delete-subscription", { appId: selectedGupshupAppId, subscriptionId }),
     onSuccess: () => {
       toast.success("Subscription deleted");
       refetchWebhook();
@@ -211,6 +225,8 @@ export default function WorkspacesPage() {
     amber: "bg-amber-500/10 text-amber-600",
     rose: "bg-rose-500/10 text-rose-600",
   };
+  const syncedSubscriptions = webhookStatus?.subscriptions ?? [];
+  const activeSubscriptionCount = syncedSubscriptions.filter((sub) => (sub.status || "active") === "active").length;
 
   return (
     <>
@@ -460,13 +476,21 @@ export default function WorkspacesPage() {
                         <h3 className="text-sm font-medium flex items-center gap-2">
                           <Webhook className="h-4 w-4 text-primary" /> Webhook Infrastructure
                         </h3>
-                        <Button size="sm" variant="ghost" onClick={() => refetchWebhook()} disabled={fetchingWebhook}>
-                          <RefreshCw className={`h-3.5 w-3.5 ${fetchingWebhook ? "animate-spin" : ""}`} /> Refresh
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => syncAppSubscriptions.mutate()}
+                          disabled={!selectedGupshupAppId || fetchingWebhook || syncAppSubscriptions.isPending}
+                          title={!selectedGupshupAppId ? "Gupshup app ID is required" : "Sync subscriptions from Gupshup"}
+                        >
+                          <RefreshCw className={`h-3.5 w-3.5 ${syncAppSubscriptions.isPending || fetchingWebhook ? "animate-spin" : ""}`} /> Sync
                         </Button>
                       </div>
                       <div className="flex items-center gap-2 text-sm">
-                        {webhookStatus?.subscriptions?.length ? (
+                        {activeSubscriptionCount > 0 ? (
                           <><CheckCircle2 className="h-4 w-4 text-emerald-500" /> <span className="text-emerald-600">Active &amp; synced</span></>
+                        ) : syncedSubscriptions.length ? (
+                          <><AlertCircle className="h-4 w-4 text-amber-500" /> <span className="text-amber-600">Synced; no active subscription</span></>
                         ) : (
                           <><AlertCircle className="h-4 w-4 text-amber-500" /> <span className="text-amber-600">Sync required</span></>
                         )}
@@ -524,13 +548,18 @@ export default function WorkspacesPage() {
                         </div>
                       </div>
 
-                      {!!webhookStatus?.subscriptions?.length && (
+                      {!!syncedSubscriptions.length && (
                         <div className="space-y-2">
-                          <p className="text-xs text-muted-foreground">Active subscriptions</p>
-                          {webhookStatus.subscriptions.map((sub) => (
+                          <p className="text-xs text-muted-foreground">Synced subscriptions</p>
+                          {syncedSubscriptions.map((sub) => (
                             <div key={sub.id} className="rounded-md border border-border p-2 flex items-start justify-between gap-2">
                               <div className="min-w-0">
-                                <p className="text-xs font-mono break-all">{sub.url}</p>
+                                <div className="flex items-start gap-2">
+                                  <p className="text-xs font-mono break-all">{sub.url}</p>
+                                  <Badge variant={sub.status === "disabled" ? "outline" : "secondary"} className="shrink-0 text-[9px]">
+                                    {sub.status || "active"}
+                                  </Badge>
+                                </div>
                                 <div className="flex flex-wrap gap-1 mt-1">
                                   {(sub.modes || sub.events || []).map((m) => (
                                     <Badge key={m} variant="secondary" className="text-[9px]">{m}</Badge>

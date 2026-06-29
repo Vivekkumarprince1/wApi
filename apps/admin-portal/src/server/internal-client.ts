@@ -95,6 +95,29 @@ export async function internalPost(
   }
 }
 
+/** GET a service-internal path. Returns { ok, status, data }. */
+export async function internalGet(
+  service: ServiceId,
+  path: string
+): Promise<{ ok: boolean; status: number; data: unknown; error?: string }> {
+  try {
+    const res = await axios.get(internalUrl(service, path), {
+      headers: { ...internalHeaders(), "x-internal-service": "admin-portal" },
+      timeout: 15000,
+      validateStatus: () => true,
+    });
+    return {
+      ok: res.status < 400,
+      status: res.status,
+      data: res.data,
+      error: res.status >= 400 ? responseMessage(res.data) || `Internal service returned ${res.status}` : undefined,
+    };
+  } catch (err) {
+    console.error(`[admin-portal/internal] ${service} ${path} unreachable:`, (err as Error).message);
+    return { ok: false, status: 502, data: null, error: (err as Error).message };
+  }
+}
+
 /** DELETE a service-internal path. Returns { ok, status, data }. */
 export async function internalDeleteJson(
   service: ServiceId,

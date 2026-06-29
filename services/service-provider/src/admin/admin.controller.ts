@@ -52,6 +52,11 @@ export class AdminController {
     return ok(await this.adminService.syncSpecificWebhook(appId, body));
   }
 
+  @Post('sync-app-subscriptions/:appId')
+  async syncSpecificAppSubscriptions(@Param('appId') appId: string, @Body() body: any) {
+    return ok(await this.adminService.syncSpecificAppSubscriptions(appId, body));
+  }
+
   @Delete('subscription/:appId/:subscriptionId')
   async deleteSubscription(@Param('appId') appId: string, @Param('subscriptionId') subscriptionId: string) {
     return ok(await this.adminService.deleteSubscription(appId, subscriptionId));
