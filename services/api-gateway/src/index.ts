@@ -80,6 +80,8 @@ const publicAuthPaths = new Set([
 const isPublicAuthPath = (path: string) =>
   publicAuthPaths.has(path) || path.startsWith('/api/v1/auth/invitation/');
 
+const isPublicWebhookPath = (path: string) => path.startsWith('/api/webhooks/');
+
 type ServiceControl = {
   published?: boolean;
   maintenance?: boolean;
@@ -200,11 +202,11 @@ app.use(async (req, res, next) => {
   delete req.headers['x-internal-service-secret'];
   delete req.headers['x-internal-service'];
 
-  // Skip verification for internal API calls, public health check endpoints,
-  // and public auth endpoints. Public auth routes must still reach auth-service
+  // Skip verification for internal API calls, provider webhooks, public health
+  // check endpoints, and public auth endpoints. Public auth routes must still reach auth-service
   // when the browser has an expired/stale auth_token cookie; otherwise login
   // cannot replace the bad cookie.
-  if (req.path.startsWith('/api/internal') || req.path === '/health' || req.path === '/' || isPublicAuthPath(req.path)) {
+  if (req.path.startsWith('/api/internal') || isPublicWebhookPath(req.path) || req.path === '/health' || req.path === '/' || isPublicAuthPath(req.path)) {
     return next();
   }
 
@@ -289,7 +291,7 @@ app.use(async (req, res, next) => {
 });
 
 app.use(async (req, res, next) => {
-  if (req.path.startsWith('/api/internal') || req.path === '/health' || req.path === '/') {
+  if (req.path.startsWith('/api/internal') || isPublicWebhookPath(req.path) || req.path === '/health' || req.path === '/') {
     return next();
   }
   if (req.headers['x-user-system-role'] === 'super_admin') {

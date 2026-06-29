@@ -13,6 +13,8 @@ const envSchema = z.object({
   PORT: z.string().optional(),
   MONGO_URI: z.string().optional(),
   MONGODB_URI: z.string().optional(),
+  REQUIRE_WEBHOOK_SIGNATURE: z.string().optional(),
+  GUPSHUP_REQUIRE_WEBHOOK_SIGNATURE: z.string().optional(),
 }).refine(data => data.WEBHOOK_VERIFY_TOKEN || data.VERIFY_TOKEN, {
   message: 'Either WEBHOOK_VERIFY_TOKEN or VERIFY_TOKEN must be provided',
   path: ['WEBHOOK_VERIFY_TOKEN']
@@ -45,6 +47,9 @@ const server = fastify({
 const PORT = parseInt(process.env.PORT || '3013', 10);
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET!;
+const REQUIRE_WEBHOOK_SIGNATURE =
+  process.env.REQUIRE_WEBHOOK_SIGNATURE === 'true' ||
+  process.env.GUPSHUP_REQUIRE_WEBHOOK_SIGNATURE === 'true';
 const REDIS_URL = process.env.REDIS_URL || '';
 const REDIS_TOPIC = 'raw-webhook-events';
 const INTERNAL_SECRET = process.env.INTERNAL_SERVICE_SECRET!;
@@ -240,12 +245,6 @@ function isSignatureValid(rawBody: string, headers: Record<string, string | stri
   if (!IS_PRODUCTION && !WEBHOOK_SECRET) {
     return true; // Bypass signature verification in dev modes if secret isn't loaded
   }
-
-  if (!WEBHOOK_SECRET) {
-    return false;
-  }
-
-  const digest = crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
   const getHeader = (name: string): string => {
     const val = headers[name];
     return Array.isArray(val) ? val[0] : val || '';
@@ -253,16 +252,22 @@ function isSignatureValid(rawBody: string, headers: Record<string, string | stri
 
   const signature = getHeader('x-gupshup-signature') || getHeader('x-hub-signature-256');
   if (!signature) {
-    // Providers only sign webhooks when HMAC is configured on their side. In
-    // dev, unsigned deliveries (e.g. Gupshup via ngrok) must still ingest —
-    // validate-when-present, allow-when-absent. Production stays strict.
-    if (!IS_PRODUCTION) {
-      console.warn('[Webhook Ingestor] Unsigned webhook accepted (non-production).');
+    // Gupshup subscription setup sends a live POST to the callback URL and may
+    // omit HMAC headers unless webhook signing is configured on their side.
+    // Validate signatures when present; allow unsigned callbacks by default so
+    // the public provider webhook endpoint can be registered and receive events.
+    if (!REQUIRE_WEBHOOK_SIGNATURE) {
+      console.warn('[Webhook Ingestor] Unsigned provider webhook accepted. Set REQUIRE_WEBHOOK_SIGNATURE=true to enforce HMAC.');
       return true;
     }
     return false;
   }
 
+  if (!WEBHOOK_SECRET) {
+    return false;
+  }
+
+  const digest = crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
   const cleanSignature = signature.startsWith('sha256=') ? signature.slice(7) : signature;
 
   const cleanSigBuffer = Buffer.from(cleanSignature, 'hex');
