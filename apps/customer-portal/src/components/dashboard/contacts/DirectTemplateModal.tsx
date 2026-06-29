@@ -178,6 +178,17 @@ export default function DirectTemplateModal({
     sendMutation.mutate({
       templateName: selectedTemplate.name,
       languageCode: selectedTemplate.language || 'en',
+      templatePreview: {
+        id: selectedTemplate.id || selectedTemplate._id,
+        name: selectedTemplate.name,
+        category: selectedTemplate.category,
+        language: selectedTemplate.language || 'en',
+        bodyText: selectedTemplate.bodyText || selectedTemplate.body?.text || '',
+        body: selectedTemplate.body,
+        header: selectedTemplate.header,
+        buttons: selectedTemplate.buttons,
+        components: (selectedTemplate as any).components || [],
+      },
       variables: [
         {
           type: 'body',

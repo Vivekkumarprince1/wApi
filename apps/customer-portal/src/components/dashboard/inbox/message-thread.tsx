@@ -97,16 +97,35 @@ const StatusIcon = React.memo(({ status, direction }: { status: string, directio
 const getMessageBody = (message: Message) => {
   const body = typeof message.body === 'string' ? message.body : '';
   const text = typeof (message as any).text === 'string' ? (message as any).text : '';
+  const template = (message as any).template;
+  const templateBody =
+    typeof template?.bodyText === 'string'
+      ? template.bodyText
+      : typeof template?.body?.text === 'string'
+        ? template.body.text
+        : Array.isArray(template?.components)
+          ? template.components.find((component: any) => String(component?.type || '').toUpperCase() === 'BODY')?.text || ''
+          : '';
   const caption = typeof message.media?.caption === 'string' ? message.media.caption : '';
-  return body || text || caption;
+  return body || text || templateBody || caption;
 };
 
 const TemplateRenderer = React.memo(({ message }: { message: Message }) => {
   const template = (message as any).template;
   const fallbackBody = getMessageBody(message) || `[Template: ${(template?.name || template?.metaTemplateName || 'message')}]`;
-  if (!template) return <p className="text-[14.5px] leading-[1.45]">{fallbackBody}</p>;
+  if (!template) return <p className="text-[14.5px] leading-[1.45] break-words">{fallbackBody}</p>;
   
-  const header = template.header;
+  const components = Array.isArray(template.components) ? template.components : [];
+  const header = template.header || components.find((component: any) => String(component?.type || '').toUpperCase() === 'HEADER');
+  const footerComponent = components.find((component: any) => String(component?.type || '').toUpperCase() === 'FOOTER');
+  const buttonsComponent = components.find((component: any) => String(component?.type || '').toUpperCase() === 'BUTTONS');
+  const buttons = Array.isArray(template.buttons)
+    ? template.buttons
+    : Array.isArray(template.buttons?.items)
+      ? template.buttons.items
+      : Array.isArray(buttonsComponent?.buttons)
+        ? buttonsComponent.buttons
+        : [];
   const hasRealUrl = !!(header?.mediaUrl && header.mediaUrl.startsWith('http'));
   const hasHandle = !!(header?.mediaHandle && !hasRealUrl);
   const isMediaFormat = ['IMAGE', 'VIDEO', 'DOCUMENT'].includes(header?.format);
@@ -120,7 +139,7 @@ const TemplateRenderer = React.memo(({ message }: { message: Message }) => {
         {header && (inferredFormat !== 'NONE' || header.text) && (
           <div className="mb-2 rounded-lg overflow-hidden border border-black/5 bg-black/5 dark:bg-white/5">
             {inferredFormat === 'TEXT' && header.text && (
-              <p className="font-bold text-sm p-3">{header.text}</p>
+              <p className="font-bold text-sm p-3 break-words">{header.text}</p>
             )}
             {inferredFormat === 'IMAGE' && hasRealUrl && (
               <img src={header.mediaUrl} alt="Template header" className="w-full h-auto max-h-[200px] object-cover" onError={(e) => { (e.target as any).style.display = 'none'; }} />
@@ -142,15 +161,15 @@ const TemplateRenderer = React.memo(({ message }: { message: Message }) => {
             )}
           </div>
         )}
-        <p className="text-[14.5px] leading-[1.45] font-medium whitespace-pre-wrap">{fallbackBody}</p>
-        {(template.footer?.enabled || template.footerText) && (
-           <p className="text-[11px] opacity-60 mt-1 font-medium">{template.footer?.text || template.footerText}</p>
+        <p className="text-[14.5px] leading-[1.45] font-medium whitespace-pre-wrap break-words">{fallbackBody}</p>
+        {(template.footer?.enabled || template.footer?.text || template.footerText || footerComponent?.text) && (
+           <p className="text-[11px] opacity-60 mt-1 font-medium break-words">{template.footer?.text || template.footerText || footerComponent?.text}</p>
         )}
       </div>
       
-      {template.buttons && template.buttons.length > 0 && (
+      {buttons.length > 0 && (
         <div className="border-t border-black/5 flex flex-col divide-y divide-black/5 bg-black/5 dark:bg-white/5 rounded-b-2xl">
-          {template.buttons.map((btn: any, idx: number) => (
+          {buttons.map((btn: any, idx: number) => (
             <button
               key={`${btn.type || 'btn'}-${btn.text || 'action'}-${idx}`}
               onClick={() => {
@@ -161,7 +180,7 @@ const TemplateRenderer = React.memo(({ message }: { message: Message }) => {
             >
               {btn.type === 'URL' && <ExternalLink className="h-3.5 w-3.5" />}
               {btn.type === 'PHONE_NUMBER' && <Phone className="h-3.5 w-3.5" />}
-              {btn.text}
+              {btn.text || btn.title || btn.label || 'Action'}
             </button>
           ))}
         </div>
@@ -172,7 +191,7 @@ const TemplateRenderer = React.memo(({ message }: { message: Message }) => {
 
 const InteractiveRenderer = React.memo(({ message }: { message: Message }) => {
   const interactive = (message as any).meta?.interactiveReply;
-  if (!interactive) return <p className="text-[14.5px] leading-[1.45] font-medium">{getMessageBody(message)}</p>;
+  if (!interactive) return <p className="text-[14.5px] leading-[1.45] font-medium break-words">{getMessageBody(message)}</p>;
   
   return (
     <div className="flex items-center gap-3 py-2 px-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5">
@@ -250,7 +269,7 @@ const FlowReplyRenderer = React.memo(({ message }: { message: Message }) => {
 
 const ContactsRenderer = React.memo(({ message }: { message: Message }) => {
   const contacts = (message as any).meta?.contacts || [];
-  if (!contacts.length) return <p className="text-[14.5px] leading-[1.45] font-medium">{getMessageBody(message)}</p>;
+  if (!contacts.length) return <p className="text-[14.5px] leading-[1.45] font-medium break-words">{getMessageBody(message)}</p>;
   
   const contact = contacts[0];
   const name = contact.name?.formatted_name || contact.name?.first_name || 'Contact';
@@ -285,7 +304,7 @@ const ContactsRenderer = React.memo(({ message }: { message: Message }) => {
 
 const LocationRenderer = React.memo(({ message }: { message: Message }) => {
   const location = (message as any).meta?.location;
-  if (!location) return <p className="text-[14.5px] leading-[1.45] font-medium">{getMessageBody(message)}</p>;
+  if (!location) return <p className="text-[14.5px] leading-[1.45] font-medium break-words">{getMessageBody(message)}</p>;
   const mapUrl = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
   
   return (
@@ -410,7 +429,7 @@ const MessageBubble = React.memo(({ message, isFirstInGroup, onReact, onRetryMed
                   <p className="text-[13px] font-bold truncate">{message.subject}</p>
                 </div>
               )}
-              <p className="text-[14.5px] leading-[1.45] font-medium whitespace-pre-wrap">{displayBody}</p>
+              <p className="text-[14.5px] leading-[1.45] font-medium whitespace-pre-wrap break-words">{displayBody}</p>
             </div>
           )
         )}

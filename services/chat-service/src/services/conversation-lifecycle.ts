@@ -69,9 +69,17 @@ export async function applyOutboundConversationUpdate(
   sentByUserId?: string
 ) {
   const now = new Date();
+  const templateBody =
+    message.template?.bodyText ||
+    message.template?.body?.text ||
+    (Array.isArray(message.template?.components)
+      ? message.template.components.find((component: any) => String(component?.type || '').toUpperCase() === 'BODY')?.text
+      : '');
   const preview =
     message.type === 'text'
       ? String(message.text || '').substring(0, 100)
+      : message.type === 'template' && templateBody
+        ? String(templateBody).substring(0, 100)
       : `[${message.type}]`;
 
   const update: any = {

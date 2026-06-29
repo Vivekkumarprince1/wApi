@@ -27,7 +27,7 @@ async function fetchContactByIdForWorkspace(contactId: string, workspaceId: mong
 
 function serializeMessage(message: any) {
   const obj = message?.toObject ? message.toObject() : { ...(message || {}) };
-  const body = obj.body || obj.text || obj.media?.caption || '';
+  const body = obj.body || obj.text || templatePreviewText(obj.template) || obj.media?.caption || '';
   return {
     ...obj,
     body,
@@ -38,6 +38,15 @@ function serializeMessage(message: any) {
       caption: body || undefined,
     } : undefined),
   };
+}
+
+function templatePreviewText(template: any) {
+  if (!template) return '';
+  if (typeof template.bodyText === 'string') return template.bodyText;
+  if (typeof template.body?.text === 'string') return template.body.text;
+  const components = Array.isArray(template.components) ? template.components : [];
+  const bodyComponent = components.find((component: any) => String(component?.type || '').toUpperCase() === 'BODY');
+  return typeof bodyComponent?.text === 'string' ? bodyComponent.text : '';
 }
 
 function serializeMessages(messages: any[]) {
@@ -526,7 +535,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         direction: 'outbound',
         type,
         text: body || '',
-        body: body || '',
+        body: body || templatePreviewText(req.body.template) || '',
         mediaUrl: mediaUrl || '',
         messageId: dispatchResult.providerMessageId,
         status: 'sent',
@@ -733,7 +742,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         direction: 'outbound',
         type,
         text: body || '',
-        body: body || '',
+        body: body || templatePreviewText(req.body.template) || '',
         mediaUrl: mediaUrl || '',
         messageId: dispatchResult.providerMessageId,
         status: 'sent',
@@ -798,7 +807,7 @@ export const sendTemplateToContactPublic = async (req: any, res: express.Respons
   try {
     const workspaceId = req.workspace?._id;
     const { contactId } = req.params;
-    const { templateName, languageCode, variables } = req.body || {};
+    const { templateName, languageCode, variables, templatePreview } = req.body || {};
 
     if (!workspaceId) {
       return res.status(400).json({ success: false, message: 'Workspace context missing' });
@@ -835,7 +844,9 @@ export const sendTemplateToContactPublic = async (req: any, res: express.Respons
     req.params.id = conversation._id.toString();
     req.body = {
       type: 'template',
+      body: templatePreviewText(templatePreview) || templateName,
       template: {
+        ...(templatePreview && typeof templatePreview === 'object' ? templatePreview : {}),
         name: templateName,
         language: languageCode || 'en',
         components: Array.isArray(variables) ? variables : [],
