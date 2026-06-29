@@ -558,6 +558,52 @@ export class GupshupClientService {
     throw lastError;
   }
 
+  async markMessageRead(input: { appId: string; messageId: string }) {
+    const payload = {
+      messaging_product: 'whatsapp',
+      status: 'read',
+      message_id: input.messageId,
+    };
+
+    return this.withDualAuth(input.appId, async (headers) => {
+      const attempts = [
+        { url: `/partner/app/${input.appId}/v3/message/action`, body: payload },
+        { url: `/partner/app/${input.appId}/v3/message`, body: payload },
+        {
+          url: `/partner/app/${input.appId}/v1/event`,
+          body: { type: 'message', message: { id: input.messageId, status: 'read' } },
+        },
+        {
+          url: `/partner/app/${input.appId}/v1/event`,
+          body: { type: 'read', message: { id: input.messageId } },
+        },
+      ];
+
+      let lastError: any = null;
+      for (const attempt of attempts) {
+        try {
+          const response = await this.partnerClient.post(attempt.url, attempt.body, {
+            headers: {
+              ...headers,
+              'Content-Type': 'application/json',
+            },
+            timeout: 10000,
+          });
+          return response.data;
+        } catch (error: any) {
+          lastError = error;
+          const status = Number(error?.response?.status || 0);
+          if ([401, 403, 404, 405, 422].includes(status)) continue;
+          const providerMessage = error?.response?.data?.message || error?.response?.data?.error;
+          if (status === 400 && providerMessage) continue;
+          throw error;
+        }
+      }
+
+      throw lastError;
+    });
+  }
+
   async listTemplates(input: { appId: string; status?: string }) {
     const appToken = await this.resolveAppToken(input.appId);
     const rawApp = this.normalizeToken(appToken);
@@ -671,12 +717,35 @@ export class GupshupClientService {
       }
     }
 
-    const appToken = await this.resolveAppToken(appId);
-    const rawApp = this.normalizeToken(appToken);
-    return fn({
-      Authorization: rawApp,
-      Accept: 'application/json',
-    });
+    const runWithAppToken = async (forceRefresh = false) => {
+      const appToken = await this.resolveAppToken(appId, forceRefresh);
+      const rawApp = this.normalizeToken(appToken);
+      const appHeaderVariants = [
+        { Authorization: rawApp, Accept: 'application/json' },
+        { token: rawApp, Accept: 'application/json' },
+        { Authorization: `Bearer ${rawApp}`, token: rawApp, Accept: 'application/json' },
+      ];
+
+      let lastError: any = null;
+      for (const headers of appHeaderVariants) {
+        try {
+          return await fn(headers);
+        } catch (error: any) {
+          lastError = error;
+          const status = Number(error?.response?.status || 0);
+          if (status !== 401 && status !== 403) throw error;
+        }
+      }
+      throw lastError;
+    };
+
+    try {
+      return await runWithAppToken(false);
+    } catch (error: any) {
+      const status = Number(error?.response?.status || 0);
+      if (status !== 401 && status !== 403) throw error;
+      return runWithAppToken(true);
+    }
   }
 
   async registerPhoneForApp(input: { appId: string; region?: string; phoneNumber: string }) {
@@ -701,9 +770,11 @@ export class GupshupClientService {
 
   async listSubscriptions(appId: string) {
     return this.withDualAuth(appId, async (headers) => {
-      const response = await this.partnerClient.get(`/partner/app/${appId}/subscription`, {
-        headers,
-      });
+      const response = await this.withRateLimitRetry(() =>
+        this.partnerClient.get(`/partner/app/${appId}/subscription`, {
+          headers,
+        }),
+      );
       const rawSubs = response.data?.subscriptions || response.data?.data || [];
       return Array.isArray(rawSubs) ? rawSubs.map((s: any) => ({
         ...s,
@@ -799,6 +870,28 @@ export class GupshupClientService {
         registeredUrl: secureUrl,
       };
     });
+  }
+
+  private async withRateLimitRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
+    let lastError: any = null;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        lastError = error;
+        const status = Number(error?.response?.status || 0);
+        if (status !== 429 || attempt >= retries) throw error;
+
+        const retryAfterSeconds = Number(error?.response?.headers?.['x-rate-limit-retry-after-seconds'] || 0);
+        const delayMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+          ? Math.min(retryAfterSeconds * 1000, 10_000)
+          : 1500 * (attempt + 1);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+
+    throw lastError;
   }
 
   async updateSubscription(input: {
@@ -981,6 +1074,85 @@ export class GupshupClientService {
         }
       );
       return response.data;
+    });
+  }
+
+  /**
+   * Get templates from Meta Library
+   * GET /partner/app/{appId}/template/metalibrary
+   */
+  async getMetaLibraryTemplates(appId: string, vertical?: string) {
+    return this.withDualAuth(appId, async (headers) => {
+      const query = new URLSearchParams();
+      query.append('v', 'v3');
+      if (vertical) query.append('vertical', vertical);
+
+      const response = await this.partnerClient.get(`/partner/app/${appId}/template/metalibrary?${query.toString()}`, {
+        headers,
+        timeout: 15000,
+      });
+      return response.data?.templates || response.data?.data || [];
+    });
+  }
+
+  /**
+   * Create template from Meta Library
+   * POST /partner/app/{appId}/template/metalibrary
+   */
+  async cloneMetaLibraryTemplate(appId: string, payload: {
+    elementName: string;
+    languageCode: string;
+    category: string;
+    components: any[];
+  }) {
+    return this.withDualAuth(appId, async (headers) => {
+      const response = await this.partnerClient.post(`/partner/app/${appId}/template/metalibrary?v=v3`, payload, {
+        headers,
+        timeout: 15000,
+      });
+      return response.data;
+    });
+  }
+
+  /**
+   * Update Business Profile details
+   * PUT/POST /partner/app/{appId}/business/profile
+   */
+  async updateBusinessProfile(appId: string, profile: any) {
+    return this.withDualAuth(appId, async (headers) => {
+      const sanitizedPayload = {
+        ...profile,
+        address: profile.address || 'Not Available',
+        description: profile.description || 'WhatsApp Business Account',
+        websites: Array.isArray(profile.websites) ? profile.websites.filter(Boolean) : profile.websites,
+      };
+
+      try {
+        const response = await this.partnerClient.put(
+          `/partner/app/${appId}/business/profile`,
+          sanitizedPayload,
+          {
+            headers,
+            timeout: 15000,
+          }
+        );
+        return response.data;
+      } catch (error: any) {
+        const status = error.response?.status;
+        if (status === 405 || status === 400) {
+          console.log(`[GupshupProfile] PUT failed with ${status}. Falling back to POST...`);
+          const response = await this.partnerClient.post(
+            `/partner/app/${appId}/business/profile`,
+            sanitizedPayload,
+            {
+              headers,
+              timeout: 15000,
+            }
+          );
+          return response.data;
+        }
+        throw error;
+      }
     });
   }
 }

@@ -7,6 +7,7 @@ import { ProviderApp } from '../../../models/provider-app.schema';
 import { ProviderOnboardingState, OnboardingStep } from '../../../models/provider-onboarding-state.schema';
 import { ProviderSubscription } from '../../../models/provider-subscription.schema';
 import { GupshupClientService } from '../providers/gupshup/gupshup-client.service';
+import { TemplateSeedingService } from './template-seeding.service';
 import { config } from '../../../config';
 
 const DEFAULT_WEBHOOK_EVENTS = [
@@ -30,6 +31,7 @@ export class OnboardingService {
     @InjectModel(ProviderOnboardingState.name) private readonly stateModel: Model<ProviderOnboardingState>,
     @InjectModel(ProviderSubscription.name) private readonly subscriptionModel: Model<ProviderSubscription>,
     private readonly gupshup: GupshupClientService,
+    private readonly templateSeeding: TemplateSeedingService,
   ) {}
 
   async start(input: any) {
@@ -164,6 +166,10 @@ export class OnboardingService {
 
     await this.ensureDefaultWebhookSubscription(input.workspaceId, appId).catch((e: any) =>
       console.warn('[Complete] Default webhook subscription failed:', e.message)
+    );
+
+    await this.templateSeeding.seedBestPracticeTemplates(input.workspaceId).catch((e: any) =>
+      console.warn('[Complete] Template seeding failed:', e.message)
     );
 
     return { app, connectedAt: new Date().toISOString() };
@@ -706,6 +712,10 @@ export class OnboardingService {
 
     await this.ensureDefaultWebhookSubscription(workspaceId, appId).catch((e: any) =>
       console.warn('[BSP Complete] Default webhook subscription failed:', e.message)
+    );
+
+    await this.templateSeeding.seedBestPracticeTemplates(workspaceId).catch((e: any) =>
+      console.warn('[BSP Complete] Template seeding failed:', e.message)
     );
 
     return {

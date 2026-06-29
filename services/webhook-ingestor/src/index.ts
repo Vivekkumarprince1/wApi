@@ -191,6 +191,21 @@ function providerHeaders(headers: Record<string, any>) {
 
 function resolveWebhookEventId(headers: Record<string, any>, payload: any, rawBody: string) {
   const firstChangeValue = payload?.entry?.[0]?.changes?.[0]?.value;
+  const firstStatus = firstChangeValue?.statuses?.[0];
+  const statusName = firstStatus?.status || firstStatus?.type;
+  const statusProviderId =
+    firstStatus?.messageId ||
+    firstStatus?.whatsappMessageId ||
+    firstStatus?.wamid ||
+    firstStatus?.gs_id ||
+    firstStatus?.gsId ||
+    firstStatus?.id;
+  if (!getHeader(headers, 'x-delivery-id') && !getHeader(headers, 'x-request-id') && statusProviderId && statusName) {
+    return `status:${String(statusProviderId)}:${String(statusName)}`
+      .replace(/[^a-zA-Z0-9._:-]+/g, '-')
+      .slice(0, 180);
+  }
+
   const providerId =
     payload?.payload?.id ||
     payload?.payload?.messageId ||
@@ -201,9 +216,9 @@ function resolveWebhookEventId(headers: Record<string, any>, payload: any, rawBo
     payload?.gsId ||
     payload?.gs_id ||
     firstChangeValue?.messages?.[0]?.id ||
-    firstChangeValue?.statuses?.[0]?.id ||
-    firstChangeValue?.statuses?.[0]?.gs_id ||
-    firstChangeValue?.statuses?.[0]?.gsId;
+    firstStatus?.id ||
+    firstStatus?.gs_id ||
+    firstStatus?.gsId;
 
   const fallbackDigest = crypto.createHash('sha256').update(rawBody).digest('hex');
   return String(getHeader(headers, 'x-delivery-id') || getHeader(headers, 'x-request-id') || providerId || fallbackDigest)

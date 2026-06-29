@@ -972,6 +972,13 @@ export const markAsReadPublic = async (req: any, res: express.Response) => {
 
     await conversation.save();
 
+    const lastInboundWithProviderId = await Message.findOne({
+      workspace: workspaceId,
+      conversation: conversationId,
+      direction: 'inbound',
+      messageId: { $exists: true, $nin: [null, ''] },
+    }).sort({ createdAt: -1 }).select('messageId');
+
     // Mark inbound messages as read
     const now = new Date();
     const result = await Message.updateMany(
@@ -1016,7 +1023,43 @@ export const markAsReadPublic = async (req: any, res: express.Response) => {
       }
     }
 
-    return res.status(200).json({ success: true, markedAsReadCount: result.modifiedCount });
+    let providerReadSync: { success: boolean; messageId?: string; error?: string } | undefined;
+    if (lastInboundWithProviderId?.messageId) {
+      try {
+        const db = Conversation.db;
+        const workspaceDoc = await db.collection('workspaces').findOne({ _id: workspaceId });
+        const appId = workspaceDoc?.gupshupAppId;
+
+        if (appId) {
+          const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
+          await axios.post(
+            `${bspUrl}/internal/v1/bsp/messages/read`,
+            {
+              workspaceId: workspaceId.toString(),
+              appId,
+              messageId: lastInboundWithProviderId.messageId,
+            },
+            {
+              headers: {
+                'x-internal-service': 'chat-service',
+                'x-internal-service-secret': process.env.INTERNAL_SERVICE_SECRET || '',
+              },
+              timeout: 12000,
+            },
+          );
+          providerReadSync = { success: true, messageId: lastInboundWithProviderId.messageId };
+        }
+      } catch (err: any) {
+        providerReadSync = {
+          success: false,
+          messageId: lastInboundWithProviderId.messageId,
+          error: err.response?.data?.message || err.message,
+        };
+        console.warn('[markAsReadPublic] WhatsApp read receipt sync failed:', providerReadSync.error);
+      }
+    }
+
+    return res.status(200).json({ success: true, markedAsReadCount: result.modifiedCount, providerReadSync });
   } catch (err: any) {
     console.error("[markAsReadPublic] Error:", err);
     return res.status(500).json({ success: false, message: err.message });

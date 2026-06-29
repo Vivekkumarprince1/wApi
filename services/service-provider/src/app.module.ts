@@ -8,6 +8,7 @@ import { AppsController } from './channels/whatsapp/apps/apps.controller';
 import { AppsService } from './channels/whatsapp/apps/apps.service';
 import { OnboardingController } from './channels/whatsapp/onboarding/onboarding.controller';
 import { OnboardingService } from './channels/whatsapp/onboarding/onboarding.service';
+import { TemplateSeedingService } from './channels/whatsapp/onboarding/template-seeding.service';
 import { TokensController } from './channels/whatsapp/tokens/tokens.controller';
 import { TokensService } from './channels/whatsapp/tokens/tokens.service';
 import { PhonesController } from './channels/whatsapp/phones/phones.controller';
@@ -103,6 +104,7 @@ import { RedisService } from './common/redis.service';
     GupshupClientService,
     AppsService,
     OnboardingService,
+    TemplateSeedingService,
     TokensService,
     MessagesService,
     WebhooksService,

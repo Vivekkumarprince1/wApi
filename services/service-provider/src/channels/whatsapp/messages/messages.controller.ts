@@ -12,4 +12,9 @@ export class MessagesController {
   async send(@Body() body: any) {
     return ok(await this.messages.send(body));
   }
+
+  @Post('read')
+  async markRead(@Body() body: any) {
+    return ok(await this.messages.markRead(body));
+  }
 }

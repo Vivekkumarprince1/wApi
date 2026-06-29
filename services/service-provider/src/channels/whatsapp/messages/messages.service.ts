@@ -43,4 +43,22 @@ export class MessagesService {
       providerResponse,
     };
   }
+
+  async markRead(input: any) {
+    if (!input?.appId || !input?.messageId) {
+      throw new Error('appId and messageId are required');
+    }
+
+    const providerResponse = await this.gupshup.markMessageRead({
+      appId: String(input.appId),
+      messageId: String(input.messageId),
+    });
+
+    return {
+      success: true,
+      appId: input.appId,
+      messageId: input.messageId,
+      providerResponse,
+    };
+  }
 }

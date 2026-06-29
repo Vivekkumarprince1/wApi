@@ -207,15 +207,28 @@ export class AdminService {
 
     for (const app of apps) {
       try {
-        await this.gupshup.providerAction({
+        const response = await this.gupshup.setSubscription({
           appId: app.gupshupAppId || app.appId,
-          action: 'subscribe_webhook',
-          payload: { callbackUrl: webhookUrl, events: modes || [], strategy: strategy || 'update' },
+          url: webhookUrl,
+          events: modes || [],
+          strategy: strategy || 'update',
         });
 
+        const callbackUrl = response?.registeredUrl || webhookUrl;
+
         await this.subscriptionModel.findOneAndUpdate(
-          { workspaceId: app.workspaceId, appId: app.gupshupAppId || app.appId, callbackUrl: webhookUrl },
-          { $set: { workspaceId: app.workspaceId, provider: 'gupshup', appId: app.gupshupAppId || app.appId, callbackUrl: webhookUrl, events: modes || [], status: 'active' } },
+          { workspaceId: app.workspaceId, appId: app.gupshupAppId || app.appId, callbackUrl },
+          {
+            $set: {
+              workspaceId: app.workspaceId,
+              provider: 'gupshup',
+              appId: app.gupshupAppId || app.appId,
+              callbackUrl,
+              events: modes || [],
+              status: 'active',
+              providerData: { gupshupResponse: response, source: 'admin_bulk_sync', syncedAt: new Date() },
+            },
+          },
           { upsert: true },
         );
 
@@ -234,23 +247,35 @@ export class AdminService {
     const { url, modes, strategy } = body;
     const webhookUrl = url || config.mainServiceUrl + '/api/webhooks/gupshup';
 
-    await this.gupshup.providerAction({
+    const response = await this.gupshup.setSubscription({
       appId,
-      action: 'subscribe_webhook',
-      payload: { callbackUrl: webhookUrl, events: modes || [], strategy: strategy || 'update' },
+      url: webhookUrl,
+      events: modes || [],
+      strategy: strategy || 'update',
     });
+    const callbackUrl = response?.registeredUrl || webhookUrl;
 
     const app = await this.appModel.findOne({ $or: [{ appId }, { gupshupAppId: appId }] });
 
     if (app) {
       await this.subscriptionModel.findOneAndUpdate(
-        { workspaceId: app.workspaceId, appId, callbackUrl: webhookUrl },
-        { $set: { workspaceId: app.workspaceId, provider: 'gupshup', appId, callbackUrl: webhookUrl, events: modes || [], status: 'active' } },
+        { workspaceId: app.workspaceId, appId, callbackUrl },
+        {
+          $set: {
+            workspaceId: app.workspaceId,
+            provider: 'gupshup',
+            appId,
+            callbackUrl,
+            events: modes || [],
+            status: 'active',
+            providerData: { gupshupResponse: response, source: 'admin_specific_sync', syncedAt: new Date() },
+          },
+        },
         { upsert: true },
       );
     }
 
-    return { synced: true, appId };
+    return { synced: true, appId, callbackUrl, response };
   }
 
   async deleteSubscription(appId: string, subscriptionId: string) {

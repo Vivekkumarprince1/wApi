@@ -249,6 +249,21 @@ export class WebhooksService {
   private resolveEventId(headers: Record<string, string | string[] | undefined>, payload: any, digest: string) {
     const headerId = this.headerValue(headers['x-delivery-id']) || this.headerValue(headers['x-request-id']);
     const firstChangeValue = payload?.entry?.[0]?.changes?.[0]?.value;
+    const firstStatus = firstChangeValue?.statuses?.[0];
+    const statusName = firstStatus?.status || firstStatus?.type;
+    const statusProviderId =
+      firstStatus?.messageId ||
+      firstStatus?.whatsappMessageId ||
+      firstStatus?.wamid ||
+      firstStatus?.gs_id ||
+      firstStatus?.gsId ||
+      firstStatus?.id;
+    if (!headerId && statusProviderId && statusName) {
+      return `status:${String(statusProviderId)}:${String(statusName)}`
+        .replace(/[^a-zA-Z0-9._:-]+/g, '-')
+        .slice(0, 180);
+    }
+
     const providerMessageId =
       payload?.payload?.id ||
       payload?.payload?.messageId ||
@@ -259,9 +274,9 @@ export class WebhooksService {
       payload?.gsId ||
       payload?.gs_id ||
       firstChangeValue?.messages?.[0]?.id ||
-      firstChangeValue?.statuses?.[0]?.id ||
-      firstChangeValue?.statuses?.[0]?.gs_id ||
-      firstChangeValue?.statuses?.[0]?.gsId;
+      firstStatus?.id ||
+      firstStatus?.gs_id ||
+      firstStatus?.gsId;
     return String(headerId || providerMessageId || digest).replace(/[^a-zA-Z0-9._:-]+/g, '-').slice(0, 180);
   }
 
