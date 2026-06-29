@@ -117,6 +117,15 @@ export class AdminService {
     }
 
     const providerAppId = app?.gupshupAppId || app?.gupshupIdentity?.partnerAppId || appId;
+    if (this.isPlaceholderAppId(providerAppId)) {
+      return {
+        skipped: true,
+        appId: providerAppId,
+        workspaceId,
+        message: 'No live Gupshup app id is available for subscription sync.',
+      };
+    }
+
     const subscriptions = await this.gupshup.listSubscriptions(providerAppId);
     const syncedAt = new Date();
     const returnedProviderIds = new Set<string>();
@@ -203,10 +212,15 @@ export class AdminService {
       .select('workspaceId appId gupshupAppId gupshupIdentity')
       .lean();
 
-    const results = { synced: 0, failed: 0, total: apps.length, details: [] as any[] };
+    const results = { synced: 0, failed: 0, skipped: 0, total: apps.length, details: [] as any[] };
 
     for (const app of apps) {
       const providerAppId = this.providerAppId(app);
+      if (this.isPlaceholderAppId(providerAppId)) {
+        results.skipped++;
+        results.details.push({ workspaceId: app.workspaceId, appId: providerAppId, status: 'skipped', reason: 'No live Gupshup app id' });
+        continue;
+      }
 
       try {
         const response = await this.gupshup.setSubscription({
@@ -248,6 +262,9 @@ export class AdminService {
   async syncSpecificWebhook(appId: string, body: any) {
     const { url, modes, strategy } = body;
     const webhookUrl = url || this.defaultWebhookUrl();
+    if (this.isPlaceholderAppId(appId)) {
+      return { skipped: true, appId, message: 'No live Gupshup app id is available for webhook sync.' };
+    }
 
     const response = await this.gupshup.setSubscription({
       appId,
@@ -296,6 +313,10 @@ export class AdminService {
 
   private providerAppId(app: any) {
     return app?.gupshupAppId || app?.gupshupIdentity?.partnerAppId || app?.appId;
+  }
+
+  private isPlaceholderAppId(appId?: string) {
+    return !appId || appId.startsWith('mock_') || appId.startsWith('pending_');
   }
 
   async deleteSubscription(appId: string, subscriptionId: string) {

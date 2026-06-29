@@ -61,6 +61,14 @@ const GUPSHUP_MODES = [
   "ENQUEUED", "TEMPLATE", "ACCOUNT", "BILLING", "PAYMENTS", "FLOWS_MESSAGE",
 ];
 
+type GupshupOpResult = {
+  ok?: boolean;
+  data?: {
+    skipped?: boolean;
+    message?: string;
+  };
+};
+
 interface Workspace {
   _id: string;
   name: string;
@@ -156,29 +164,37 @@ export default function WorkspacesPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const syncWebhook = useMutation({
+  const syncWebhook = useMutation<GupshupOpResult, Error>({
     mutationFn: () =>
-      apiPost("/api/admin/ops/gupshup/sync-webhook", {
+      apiPost<GupshupOpResult>("/api/admin/ops/gupshup/sync-webhook", {
         appId: selectedGupshupAppId,
         workspaceId: selectedWorkspaceId,
         url: webhookForm.url,
         modes: webhookForm.modes,
         strategy: webhookForm.strategy,
       }),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      if (res.data?.skipped) {
+        toast.warning(res.data.message || "No live Gupshup app is linked to this workspace yet.");
+        return;
+      }
       toast.success("Webhook sync applied");
       refetchWebhook();
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const syncAppSubscriptions = useMutation({
+  const syncAppSubscriptions = useMutation<GupshupOpResult, Error>({
     mutationFn: () =>
-      apiPost("/api/admin/ops/gupshup/sync-app-subscriptions", {
+      apiPost<GupshupOpResult>("/api/admin/ops/gupshup/sync-app-subscriptions", {
         appId: selectedGupshupAppId,
         workspaceId: selectedWorkspaceId,
       }),
-    onSuccess: () => {
+    onSuccess: (res) => {
+      if (res.data?.skipped) {
+        toast.warning(res.data.message || "No live Gupshup app is linked to this workspace yet.");
+        return;
+      }
       toast.success("Subscriptions synced from Gupshup");
       refetchWebhook();
     },

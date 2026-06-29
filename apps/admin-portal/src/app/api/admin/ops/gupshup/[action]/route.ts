@@ -61,10 +61,8 @@ export async function POST(
         if (!resolved.ok) return serviceError(resolved.res);
         const { appId } = resolved;
         if (!appId) {
-          return NextResponse.json(
-            { message: "No Gupshup app is linked to this workspace yet." },
-            { status: 400 }
-          );
+          data = { skipped: true, message: "No live Gupshup app is linked to this workspace yet." };
+          break;
         }
         const res = await internalPost("bsp", `/admin/sync-webhook/${encodeURIComponent(appId)}`, {
           ...body,
@@ -81,10 +79,8 @@ export async function POST(
         if (!resolved.ok) return serviceError(resolved.res);
         const { appId } = resolved;
         if (!appId) {
-          return NextResponse.json(
-            { message: "No Gupshup app is linked to this workspace yet." },
-            { status: 400 }
-          );
+          data = { skipped: true, message: "No live Gupshup app is linked to this workspace yet." };
+          break;
         }
         const res = await internalPost("bsp", `/admin/sync-app-subscriptions/${encodeURIComponent(appId)}`, {
           ...body,
@@ -151,28 +147,37 @@ async function resolveBspAppId(
   body: Record<string, unknown>
 ): Promise<{ ok: true; appId: string } | { ok: false; res: { status: number; error?: string } }> {
   const explicitAppId = normalizeId(body.appId);
-  if (explicitAppId) return { ok: true, appId: explicitAppId };
-
   const workspaceId = normalizeId(body.workspaceId);
+  if (explicitAppId && !isPlaceholderAppId(explicitAppId)) return { ok: true, appId: explicitAppId };
   if (!workspaceId) return { ok: true, appId: "" };
 
   const res = await internalGet("bsp", `/admin/apps?workspaceId=${encodeURIComponent(workspaceId)}`);
   if (!res.ok) return { ok: false, res };
 
   const apps = extractDataArray(res.data);
-  const app = apps[0];
+  const app = apps.find((candidate) => {
+    if (!candidate || typeof candidate !== "object") return false;
+    return !isPlaceholderAppId(providerAppId(candidate as Record<string, unknown>));
+  });
   if (!app || typeof app !== "object") return { ok: true, appId: "" };
 
-  const record = app as Record<string, unknown>;
-  const appId =
-    normalizeId(record.gupshupAppId) ||
-    normalizeId((record.gupshupIdentity as Record<string, unknown> | undefined)?.partnerAppId) ||
-    normalizeId(record.appId);
-  return { ok: true, appId };
+  return { ok: true, appId: providerAppId(app as Record<string, unknown>) };
 }
 
 function normalizeId(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function providerAppId(record: Record<string, unknown>): string {
+  return (
+    normalizeId(record.gupshupAppId) ||
+    normalizeId((record.gupshupIdentity as Record<string, unknown> | undefined)?.partnerAppId) ||
+    normalizeId(record.appId)
+  );
+}
+
+function isPlaceholderAppId(appId: string): boolean {
+  return !appId || appId.startsWith("mock_") || appId.startsWith("pending_");
 }
 
 function extractDataArray(data: unknown): unknown[] {
