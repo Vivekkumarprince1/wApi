@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
 import { recordAudit, clientIp } from "@/server/audit";
 import { saveWebhookPolicy } from "@/server/config-ops";
-import { gatewayCall } from "@/server/gateway-client";
+import { internalDeleteJson, internalPost } from "@/server/internal-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,15 +14,11 @@ export const dynamic = "force-dynamic";
  *   webhook-policy     -> upsert a WebhookPolicy doc directly
  *   developer-config   -> env-managed guidance, persists nothing
  *
- * Gateway-routed (need the live Gupshup partner API via core-server; degrade to
- * a clear 502 when services are down):
- *   reconcile / dashboards-reconcile  -> super-admin/gupshup/reconcile
- *   sync-webhook  (body: { appId, url, modes, strategy })
- *                                     -> super-admin/gupshup/sync-webhook/:appId
- *   sync-all-webhooks (body: { url, modes, strategy })
- *                                     -> super-admin/gupshup/sync-all-webhooks
- *   delete-subscription (body: { appId, subscriptionId })
- *                                     -> super-admin/gupshup/subscription/:appId/:subscriptionId (DELETE)
+ * Service-provider internal admin operations:
+ *   reconcile / dashboards-reconcile  -> /internal/v1/bsp/admin/reconcile
+ *   sync-webhook                      -> /internal/v1/bsp/admin/sync-webhook/:appId
+ *   sync-all-webhooks                 -> /internal/v1/bsp/admin/sync-webhooks
+ *   delete-subscription               -> /internal/v1/bsp/admin/subscription/:appId/:subscriptionId
  */
 export async function POST(
   req: NextRequest,
@@ -35,7 +31,7 @@ export async function POST(
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
 
     let data: unknown;
-    let mode: "direct" | "gateway" = "direct";
+    let mode: "direct" | "service-provider" = "direct";
 
     switch (action) {
       case "webhook-policy":
@@ -51,50 +47,39 @@ export async function POST(
 
       case "reconcile":
       case "dashboards-reconcile": {
-        mode = "gateway";
-        const res = await gatewayCall("super-admin/gupshup/reconcile", { method: "POST", actor });
-        if (!res.ok) return gatewayError(res);
+        mode = "service-provider";
+        const res = await internalPost("bsp", "/admin/reconcile", {});
+        if (!res.ok) return serviceError(res);
         data = res.data;
         break;
       }
 
       case "sync-webhook": {
-        mode = "gateway";
         const appId = String(body.appId || "");
         if (!appId) return NextResponse.json({ message: "appId is required" }, { status: 400 });
-        const res = await gatewayCall(`super-admin/gupshup/sync-webhook/${appId}`, {
-          method: "POST",
-          body,
-          actor,
-        });
-        if (!res.ok) return gatewayError(res);
+        mode = "service-provider";
+        const res = await internalPost("bsp", `/admin/sync-webhook/${appId}`, body);
+        if (!res.ok) return serviceError(res);
         data = res.data;
         break;
       }
 
       case "sync-all-webhooks": {
-        mode = "gateway";
-        const res = await gatewayCall("super-admin/gupshup/sync-all-webhooks", {
-          method: "POST",
-          body,
-          actor,
-        });
-        if (!res.ok) return gatewayError(res);
+        mode = "service-provider";
+        const res = await internalPost("bsp", "/admin/sync-webhooks", body);
+        if (!res.ok) return serviceError(res);
         data = res.data;
         break;
       }
 
       case "delete-subscription": {
-        mode = "gateway";
         const appId = String(body.appId || "");
         const subscriptionId = String(body.subscriptionId || "");
         if (!appId || !subscriptionId)
           return NextResponse.json({ message: "appId and subscriptionId are required" }, { status: 400 });
-        const res = await gatewayCall(`super-admin/gupshup/subscription/${appId}/${subscriptionId}`, {
-          method: "DELETE",
-          actor,
-        });
-        if (!res.ok) return gatewayError(res);
+        mode = "service-provider";
+        const res = await internalDeleteJson("bsp", `/admin/subscription/${appId}/${subscriptionId}`);
+        if (!res.ok) return serviceError(res);
         data = res.data;
         break;
       }
@@ -123,10 +108,10 @@ export async function POST(
   }
 }
 
-function gatewayError(res: { status: number; error?: string }) {
+function serviceError(res: { status: number; error?: string }) {
   const message =
     res.status === 502
-      ? "Gupshup partner API is handled by the core service, which is not reachable. Start the backend services to run this operation."
+      ? "Gupshup partner API is handled by service-provider, which is not reachable. Start the backend services to run this operation."
       : res.error || "Operation failed";
   return NextResponse.json({ message }, { status: res.status });
 }
