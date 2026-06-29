@@ -60,7 +60,7 @@ export default function ConversationsList({
   const getChannelIcon = (channel: string) => {
     switch (channel) {
       case 'messenger': return <MessageSquare className="h-3 w-3 text-blue-600" />;
-      case 'instagram': return <Camera className="h-3 w-3 text-pink-600" />;
+      case 'instagram': return <Camera className="h-3.5 w-3.5 text-pink-600" />;
       case 'sms': return <Smartphone className="h-3 w-3 text-amber-600" />;
       case 'email': return <Mail className="h-3 w-3 text-purple-600" />;
       default: return <MessageCircle className="h-3 w-3 text-emerald-600" />;
@@ -127,7 +127,8 @@ export default function ConversationsList({
             { id: 'all', icon: InboxIcon, label: 'All' },
             { id: 'whatsapp', icon: MessageCircle, label: 'WA' },
             { id: 'sms', icon: Smartphone, label: 'SMS' },
-            { id: 'email', icon: Mail, label: 'Mail' }
+            { id: 'email', icon: Mail, label: 'Mail' },
+            { id: 'instagram', icon: Camera, label: 'IG' }
           ].map((ch) => (
             <button
               key={ch.id}

@@ -1,7 +1,97 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
-import { Campaign, CampaignMessage, ICampaignModel } from '../models';
+import { Campaign, CampaignMessage, ICampaignModel, Template } from '../models';
+import { microserviceWorkerClient } from '../lib/microservice-worker-client';
 import mongoose from 'mongoose';
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const getComponent = (components: any[] = [], type: string) =>
+  components.find((component: any) => String(component?.type || '').toUpperCase() === type);
+
+const normalizeTemplate = (template: any) => {
+  if (!template) return null;
+
+  const providerData = template.providerData || {};
+  const components = Array.isArray(template.components)
+    ? template.components
+    : Array.isArray(providerData.components)
+      ? providerData.components
+      : [];
+  const body = getComponent(components, 'BODY');
+  const header = template.header || providerData.header || getComponent(components, 'HEADER');
+  const footer = template.footer || providerData.footer || getComponent(components, 'FOOTER');
+  const buttonsComponent = getComponent(components, 'BUTTONS');
+  const buttons = template.buttons || providerData.buttons || (Array.isArray(buttonsComponent?.buttons)
+    ? { items: buttonsComponent.buttons }
+    : undefined);
+  const bodyText = template.bodyText || template.body?.text || providerData.bodyText || body?.text || providerData.raw?.data || '';
+
+  return {
+    _id: template._id,
+    id: template._id?.toString?.() || template.id,
+    name: template.name || template.metaTemplateName || providerData.raw?.elementName,
+    category: template.category || providerData.raw?.category,
+    language: template.language || providerData.raw?.languageCode || 'en',
+    status: template.status,
+    components,
+    bodyText,
+    body: { text: bodyText },
+    header,
+    footer,
+    buttons,
+    headerType: template.headerType || header?.format || (header ? 'TEXT' : undefined),
+    metaTemplateName: template.metaTemplateName,
+  };
+};
+
+const buildTemplateSnapshot = (template: any, existingSnapshot: any = {}) => {
+  const normalized = normalizeTemplate(template);
+  if (!normalized) return existingSnapshot || {};
+
+  return {
+    name: normalized.name,
+    category: normalized.category,
+    language: normalized.language,
+    headerType: normalized.headerType || 'TEXT',
+    bodyText: normalized.bodyText,
+    components: normalized.components,
+    buttons: normalized.buttons,
+    ...existingSnapshot,
+  };
+};
+
+const loadTemplateForCampaign = async (workspaceId: string, templateId: string) => {
+  let localTemplate: any = null;
+
+  try {
+    localTemplate = await Template.findOne({ _id: templateId, workspace: workspaceId }).lean();
+  } catch {
+    localTemplate = null;
+  }
+
+  if (localTemplate) return normalizeTemplate(localTemplate);
+
+  try {
+    const response = await microserviceWorkerClient.getTemplate(workspaceId, templateId);
+    return normalizeTemplate(response?.template || response?.data || response);
+  } catch (err: any) {
+    console.warn(`[Campaign:Template] Failed to load template ${templateId}: ${err.message}`);
+    return null;
+  }
+};
+
+const getContactFromResponse = (response: any) => response?.contact || response?.data || response;
+
+const getCampaignMessageScope = (campaignId: string, workspaceId: string) => ({
+  campaign: new mongoose.Types.ObjectId(campaignId),
+  $or: [
+    { workspace: new mongoose.Types.ObjectId(workspaceId) },
+    { workspace: workspaceId },
+    { workspace: { $exists: false } },
+    { workspace: null },
+  ],
+});
 
 /**
  * GET /campaigns — paginated list with aggregate stats
@@ -53,7 +143,21 @@ export const getCampaignById = async (req: AuthRequest, res: Response) => {
     const workspaceId = req.workspace?.id;
     const campaign = await Campaign.findOne({ _id: id, workspace: workspaceId }).lean();
     if (!campaign) return res.status(404).json({ success: false, message: 'Not found' });
-    res.json({ success: true, campaign });
+
+    const templateId = (campaign as any).template?.toString?.() || String((campaign as any).template || '');
+    const template = templateId ? await loadTemplateForCampaign(String(workspaceId), templateId) : null;
+    const templateSnapshot = template
+      ? buildTemplateSnapshot(template, (campaign as any).templateSnapshot)
+      : (campaign as any).templateSnapshot;
+
+    res.json({
+      success: true,
+      campaign: {
+        ...campaign,
+        template: template || (campaign as any).template,
+        templateSnapshot,
+      }
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -102,17 +206,8 @@ export const createCampaign = async (req: AuthRequest, res: Response) => {
     // 3. Populate Template Snapshot for execution parity.
     let templateSnapshot = body.templateSnapshot || {};
     try {
-      const { Template } = await import('../models');
-      const templateDoc = await Template.findById(templateId).lean();
-      if (templateDoc) {
-        templateSnapshot = {
-          name: (templateDoc as any).name,
-          category: (templateDoc as any).category,
-          language: (templateDoc as any).language,
-          headerType: (templateDoc as any).components?.find((c: any) => c.type === 'HEADER')?.format || 'TEXT',
-          ...templateSnapshot
-        };
-      }
+      const templateDoc = await loadTemplateForCampaign(String(workspaceId), String(templateId));
+      templateSnapshot = buildTemplateSnapshot(templateDoc, templateSnapshot);
     } catch (err) {
       console.warn('[Campaign:Create] Failed to populate template snapshot:', err);
     }
@@ -264,16 +359,85 @@ export const getMessages = async (req: AuthRequest, res: Response) => {
     const page = parseInt(req.query.page as string || '1', 10);
     const limit = parseInt(req.query.limit as string || '20', 10);
     const status = req.query.status as string;
+    const search = String(req.query.search || '').trim();
 
-    const query: any = { workspace: workspaceId, campaign: new mongoose.Types.ObjectId(id) };
+    const campaign = await Campaign.findOne({ _id: id, workspace: workspaceId }).select('_id workspace').lean();
+    if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found' });
+
+    const query: any = getCampaignMessageScope(id, String(workspaceId));
     if (status && status !== 'all') query.status = status;
+
+    if (search) {
+      const pattern = escapeRegex(search);
+      const searchRegex = new RegExp(pattern, 'i');
+      let matchingContactIds: any[] = [];
+
+      try {
+        const contactResponse = await microserviceWorkerClient.queryContacts(String(workspaceId), {
+          $or: [
+            { name: { $regex: pattern, $options: 'i' } },
+            { phone: { $regex: pattern, $options: 'i' } },
+            { 'metadata.email': { $regex: pattern, $options: 'i' } },
+            { 'metadata.whatsappName': { $regex: pattern, $options: 'i' } },
+          ],
+        });
+        matchingContactIds = Array.isArray(contactResponse?.contacts) ? contactResponse.contacts : [];
+      } catch (err: any) {
+        console.warn(`[Campaign:Messages] Contact search failed for campaign ${id}: ${err.message}`);
+      }
+
+      query.$and = [
+        {
+          $or: [
+            { phone: searchRegex },
+            { whatsappMessageId: searchRegex },
+            { failureReason: searchRegex },
+            { lastError: searchRegex },
+            ...(matchingContactIds.length > 0 ? [{ contact: { $in: matchingContactIds } }] : []),
+          ],
+        },
+      ];
+    }
 
     const [messages, total] = await Promise.all([
       CampaignMessage.find(query).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
       CampaignMessage.countDocuments(query)
     ]);
 
-    res.json({ success: true, messages, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
+    const contactIds = [...new Set(messages.map((message: any) => message.contact?.toString?.() || String(message.contact || '')).filter(Boolean))];
+    const contactCache = new Map<string, any>();
+
+    await Promise.all(contactIds.map(async (contactId) => {
+      try {
+        const response = await microserviceWorkerClient.getContact(String(workspaceId), contactId);
+        const contact = getContactFromResponse(response);
+        if (contact) contactCache.set(contactId, contact);
+      } catch (err: any) {
+        console.warn(`[Campaign:Messages] Failed to hydrate contact ${contactId}: ${err.message}`);
+      }
+    }));
+
+    const enrichedMessages = messages.map((message: any) => {
+      const contactId = message.contact?.toString?.() || String(message.contact || '');
+      const contact = contactCache.get(contactId);
+
+      return {
+        ...message,
+        contact: contact ? {
+          _id: contact._id || contactId,
+          name: contact.name,
+          displayName: contact.displayName,
+          phone: contact.phone,
+          email: contact.metadata?.email,
+          whatsappName: contact.metadata?.whatsappName,
+          tags: contact.tags || [],
+          leadStatus: contact.leadStatus,
+          optOut: contact.optOut,
+        } : { _id: contactId },
+      };
+    });
+
+    res.json({ success: true, messages: enrichedMessages, pagination: { total, page, limit, pages: Math.ceil(total / limit) } });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -291,7 +455,7 @@ export const exportCsv = async (req: AuthRequest, res: Response) => {
     const campaign = await Campaign.findOne({ _id: id, workspace: workspaceId });
     if (!campaign) return res.status(404).json({ success: false, message: 'Campaign not found' });
 
-    const messages = await CampaignMessage.find({ workspace: workspaceId, campaign: id }).sort({ createdAt: 1 }).lean();
+    const messages = await CampaignMessage.find(getCampaignMessageScope(id, String(workspaceId))).sort({ createdAt: 1 }).lean();
 
     const headers = ['Phone', 'Status', 'Sent At', 'Delivered At', 'Read At', 'Error Reason'];
     const rows = messages.map((m: any) => [
@@ -319,7 +483,8 @@ export const exportCsv = async (req: AuthRequest, res: Response) => {
  */
 export const retargetCampaign = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    if (!id) return res.status(400).json({ success: false, message: 'Campaign id is required' });
     const workspaceId = req.workspace?.id;
     const userId = req.user?.id;
 
@@ -327,7 +492,10 @@ export const retargetCampaign = async (req: AuthRequest, res: Response) => {
     if (!parent) return res.status(404).json({ success: false, message: 'Campaign not found' });
 
     // Find non-read recipients
-    const nonReadMessages = await CampaignMessage.find({ campaign: id, workspace: workspaceId, status: { $ne: 'read' } }).distinct('contact');
+    const nonReadMessages = await CampaignMessage.find({
+      ...getCampaignMessageScope(id, String(workspaceId)),
+      status: { $ne: 'read' },
+    }).distinct('contact');
     if (nonReadMessages.length === 0) return res.status(400).json({ success: false, message: 'No targets found for retargeting' });
 
     const retarget = await Campaign.create({

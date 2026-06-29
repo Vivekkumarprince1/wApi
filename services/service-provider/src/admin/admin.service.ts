@@ -252,7 +252,7 @@ export class AdminService {
         results.details.push({ workspaceId: app.workspaceId, appId: providerAppId, status: 'synced' });
       } catch (err: any) {
         results.failed++;
-        results.details.push({ workspaceId: app.workspaceId, appId: providerAppId, status: 'failed', error: err.message });
+        results.details.push({ workspaceId: app.workspaceId, appId: providerAppId, status: 'failed', error: this.providerErrorMessage(err) });
       }
     }
 
@@ -266,12 +266,17 @@ export class AdminService {
       return { skipped: true, appId, message: 'No live Gupshup app id is available for webhook sync.' };
     }
 
-    const response = await this.gupshup.setSubscription({
-      appId,
-      url: webhookUrl,
-      events: modes || [],
-      strategy: strategy || 'update',
-    });
+    let response: any;
+    try {
+      response = await this.gupshup.setSubscription({
+        appId,
+        url: webhookUrl,
+        events: modes || [],
+        strategy: strategy || 'update',
+      });
+    } catch (err: any) {
+      throw new Error(`Gupshup subscription sync failed: ${this.providerErrorMessage(err)}`);
+    }
     const callbackUrl = response?.registeredUrl || webhookUrl;
 
     const app = await this.appModel.findOne({
@@ -317,6 +322,17 @@ export class AdminService {
 
   private isPlaceholderAppId(appId?: string) {
     return !appId || appId.startsWith('mock_') || appId.startsWith('pending_');
+  }
+
+  private providerErrorMessage(err: any) {
+    const status = err?.response?.status;
+    const providerMessage =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.response?.data?.details ||
+      err?.message ||
+      'Unknown provider error';
+    return status ? `Gupshup returned ${status}: ${providerMessage}` : String(providerMessage);
   }
 
   async deleteSubscription(appId: string, subscriptionId: string) {

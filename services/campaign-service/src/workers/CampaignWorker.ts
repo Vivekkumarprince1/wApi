@@ -131,7 +131,8 @@ export class CampaignWorker {
             name: template?.name,
             category: template?.category,
             language: template?.language,
-            headerType: template?.components?.find((c: any) => c.type === 'HEADER')?.format || 'TEXT'
+            headerType: template?.components?.find((c: any) => String(c?.type || '').toUpperCase() === 'HEADER')?.format || 'TEXT',
+            bodyText: template?.bodyText || template?.body?.text || template?.providerData?.bodyText || template?.components?.find((c: any) => String(c?.type || '').toUpperCase() === 'BODY')?.text,
         };
         await campaign.save();
     }
@@ -174,8 +175,9 @@ export class CampaignWorker {
         const chunk = activeRecipients.slice(i, i + CONCURRENCY);
         await Promise.all(chunk.map(async (recipient: any) => {
             try {
-                const { contact } = await microserviceWorkerClient.getContact(workspaceId, recipient.contactId);
-                if (!contact) return;
+                const contactResponse = await microserviceWorkerClient.getContact(workspaceId, recipient.contactId);
+                const contact = contactResponse?.contact || contactResponse?.data || contactResponse;
+                if (!contact) throw new Error('CONTACT_NOT_FOUND');
 
                 const components: any[] = [];
                 const mapping = batch.variableMapping || {};
@@ -209,8 +211,24 @@ export class CampaignWorker {
                     await (batch as any).updateRecipientStatus(contact._id.toString(), 'sent', messageId);
                     await CampaignMessage.findOneAndUpdate(
                       { campaign: campaignId, contact: contact._id },
-                      { status: 'sent', whatsappMessageId: messageId, sentAt: new Date(), batchId: batch._id, batchIndex: batch.batchIndex },
-                      { upsert: true }
+                      {
+                        $set: {
+                          workspace: workspaceId,
+                          campaign: campaignId,
+                          contact: contact._id,
+                          phone: contact.phone,
+                          status: 'sent',
+                          whatsappMessageId: messageId,
+                          sentAt: new Date(),
+                          batchId: batch._id,
+                          batchIndex: batch.batchIndex,
+                        },
+                        $setOnInsert: {
+                          queuedAt: new Date(),
+                          createdAt: new Date(),
+                        },
+                      },
+                      { upsert: true, new: true, setDefaultsOnInsert: true }
                     );
                 } else {
                     failCount++;
@@ -218,13 +236,53 @@ export class CampaignWorker {
                     await (batch as any).updateRecipientStatus(contact._id.toString(), 'failed', null, error);
                     await CampaignMessage.findOneAndUpdate(
                       { campaign: campaignId, contact: contact._id },
-                      { status: 'failed', failedAt: new Date(), failureReason: error, batchId: batch._id, batchIndex: batch.batchIndex },
-                      { upsert: true }
+                      {
+                        $set: {
+                          workspace: workspaceId,
+                          campaign: campaignId,
+                          contact: contact._id,
+                          phone: contact.phone,
+                          status: 'failed',
+                          failedAt: new Date(),
+                          failureReason: error,
+                          batchId: batch._id,
+                          batchIndex: batch.batchIndex,
+                        },
+                        $setOnInsert: {
+                          queuedAt: new Date(),
+                          createdAt: new Date(),
+                        },
+                      },
+                      { upsert: true, new: true, setDefaultsOnInsert: true }
                     );
                 }
             } catch (err: any) {
                 failCount++;
                 await (batch as any).updateRecipientStatus(recipient.contactId, 'failed', null, err.message);
+                if (recipient.contactId) {
+                  await CampaignMessage.findOneAndUpdate(
+                    { campaign: campaignId, contact: recipient.contactId },
+                    {
+                      $set: {
+                        workspace: workspaceId,
+                        campaign: campaignId,
+                        contact: recipient.contactId,
+                        phone: recipient.phone,
+                        status: 'failed',
+                        failedAt: new Date(),
+                        failureReason: err.message,
+                        lastError: err.message,
+                        batchId: batch._id,
+                        batchIndex: batch.batchIndex,
+                      },
+                      $setOnInsert: {
+                        queuedAt: new Date(),
+                        createdAt: new Date(),
+                      },
+                    },
+                    { upsert: true, new: true, setDefaultsOnInsert: true }
+                  );
+                }
             }
         }));
         

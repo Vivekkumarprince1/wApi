@@ -51,16 +51,80 @@ import {
 } from '@/components/ui/dropdown-menu';
 import FlashLoader from '@/components/ui/flash-loader';
 
+const toEntityId = (value: any): string | null => {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (typeof value === 'object') {
+    if (value._id) return toEntityId(value._id);
+    if (value.id) return toEntityId(value.id);
+  }
+
+  const normalized = value?.toString?.();
+  return normalized && normalized !== '[object Object]' ? normalized : null;
+};
+
+const getMessageBody = (message: any) =>
+  message?.body || message?.text || message?.media?.caption || message?.lastMessagePreview || '';
+
+const messageIdentityValues = (message: any) => {
+  const whatsappMessageId = message?.whatsappMessageId;
+  return [
+    toEntityId(message?._id),
+    toEntityId(message?.id),
+    typeof whatsappMessageId === 'object' ? toEntityId(whatsappMessageId) : whatsappMessageId,
+    message?.messageId,
+    message?.providerMessageId,
+  ].filter(Boolean).map(String);
+};
+
+const isSameMessage = (left: any, right: any) => {
+  const leftIds = new Set(messageIdentityValues(left));
+  return messageIdentityValues(right).some((id) => leftIds.has(id));
+};
+
+const getUnreadForUser = (counts: any, userId: string | null): number | undefined => {
+  if (!counts || !userId) return undefined;
+  if (counts instanceof Map) return Number(counts.get(userId)) || 0;
+  if (typeof counts === 'object' && userId in counts) return Number(counts[userId]) || 0;
+  return undefined;
+};
+
+const setUnreadForUser = (counts: any, userId: string | null, unreadCount: number) => {
+  if (!userId) return counts;
+  if (counts instanceof Map) {
+    const next = new Map(counts);
+    next.set(userId, unreadCount);
+    return next;
+  }
+  return {
+    ...(counts || {}),
+    [userId]: unreadCount,
+  };
+};
+
+const normalizeSocketMessage = (message: any): Message => ({
+  ...(message || {}),
+  body: getMessageBody(message),
+  text: message?.text || getMessageBody(message),
+  whatsappMessageId: message?.whatsappMessageId || message?.messageId,
+}) as Message;
+
 export default function InboxPage() {
   const queryClient = useQueryClient();
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, workspace } = useAuthStore();
   
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [assignmentFilter, setAssignmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [channelFilter, setChannelFilter] = useState('all');
   const [isDetailsOpen, setIsDetailsOpen] = useState(true);
+  const workspaceId = React.useMemo(
+    () => toEntityId(workspace?._id || workspace?.id || user?.workspace?._id || user?.workspace),
+    [workspace, user]
+  );
+  const currentUserId = React.useMemo(() => toEntityId(user?._id || user?.id), [user]);
 
   // 1. Fetch Conversations
   const { data: convsData, isLoading: isConvsLoading } = useQuery({
@@ -129,9 +193,173 @@ export default function InboxPage() {
 
   // Handle Socket Updates - Sync with React Query Cache
   const { socket, isConnected } = useSocket({
-    workspaceId: user?.workspace?._id || user?.workspace,
+    workspaceId: workspaceId || undefined,
     conversationId: selectedConversation?._id
   });
+
+  const clearUnreadInConversationCaches = useCallback((conversationId: string) => {
+    queryClient.setQueriesData({ queryKey: ['conversations'] }, (old: any) => {
+      if (!old?.data || !Array.isArray(old.data)) return old;
+
+      let changed = false;
+      const data = old.data.map((conv: any) => {
+        if (toEntityId(conv?._id) !== conversationId) return conv;
+        changed = true;
+        return {
+          ...conv,
+          unreadCount: 0,
+          myUnreadCount: 0,
+          agentUnreadCounts: setUnreadForUser(conv.agentUnreadCounts, currentUserId, 0),
+        };
+      });
+
+      return changed ? { ...old, data } : old;
+    });
+
+    setSelectedConversation((current) => (
+      current && toEntityId(current._id) === conversationId
+        ? {
+            ...current,
+            unreadCount: 0,
+            myUnreadCount: 0,
+            agentUnreadCounts: setUnreadForUser((current as any).agentUnreadCounts, currentUserId, 0),
+          } as any
+        : current
+    ));
+  }, [queryClient, currentUserId]);
+
+  const markConversationAsRead = useCallback(async (conversationId: string | null) => {
+    if (!conversationId) return;
+
+    clearUnreadInConversationCaches(conversationId);
+    try {
+      await markAsRead(conversationId);
+    } finally {
+      void queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    }
+  }, [clearUnreadInConversationCaches, queryClient]);
+
+  const patchConversationCachesForMessage = useCallback((data: any, isSelected: boolean) => {
+    const conversationId = toEntityId(data?.conversationId || data?.conversation?._id);
+    if (!conversationId) return;
+
+    const message = normalizeSocketMessage(data?.message);
+    const eventConversation = data?.conversation || {};
+    const eventUnreadForUser = getUnreadForUser(eventConversation.agentUnreadCounts, currentUserId);
+    const isInbound = !message.direction || message.direction === 'inbound';
+    const timestamp =
+      message.createdAt ||
+      (message as any).sentAt ||
+      data?.timestamp ||
+      eventConversation.lastActivityAt ||
+      new Date().toISOString();
+    const preview = getMessageBody(message) || eventConversation.lastMessagePreview || 'New message';
+
+    const patchConversation = (conv: any) => {
+      const duplicateLastMessage = isSameMessage(conv.lastMessage, message);
+      const shouldClearUnread = isSelected && isInbound;
+      const shouldIncrementUnread = isInbound && !shouldClearUnread && !duplicateLastMessage;
+      const nextUnreadCount = shouldClearUnread
+        ? 0
+        : Number(eventConversation.unreadCount ?? ((Number(conv.unreadCount) || 0) + (shouldIncrementUnread ? 1 : 0)));
+      const nextMyUnreadCount = shouldClearUnread
+        ? 0
+        : Number(eventUnreadForUser ?? ((Number(conv.myUnreadCount) || 0) + (shouldIncrementUnread ? 1 : 0)));
+
+      return {
+        ...conv,
+        ...eventConversation,
+        _id: conv._id,
+        contact: data?.contact || eventConversation.contact || conv.contact,
+        lastMessage: message,
+        lastMessageAt: timestamp,
+        lastActivityAt: timestamp,
+        lastMessagePreview: preview,
+        lastMessageDirection: message.direction || eventConversation.lastMessageDirection || conv.lastMessageDirection,
+        lastMessageType: message.type || eventConversation.lastMessageType || conv.lastMessageType,
+        unreadCount: nextUnreadCount,
+        myUnreadCount: nextMyUnreadCount,
+        agentUnreadCounts: setUnreadForUser(
+          eventConversation.agentUnreadCounts || conv.agentUnreadCounts,
+          currentUserId,
+          nextMyUnreadCount
+        ),
+      };
+    };
+
+    queryClient.setQueriesData({ queryKey: ['conversations'] }, (old: any) => {
+      if (!old?.data || !Array.isArray(old.data)) return old;
+
+      let changed = false;
+      const dataList = old.data.map((conv: any) => {
+        if (toEntityId(conv?._id) !== conversationId) return conv;
+        changed = true;
+        return patchConversation(conv);
+      });
+
+      if (!changed) return old;
+
+      dataList.sort((left: any, right: any) => {
+        const leftTime = new Date(left.lastActivityAt || left.lastMessageAt || 0).getTime();
+        const rightTime = new Date(right.lastActivityAt || right.lastMessageAt || 0).getTime();
+        return rightTime - leftTime;
+      });
+
+      return { ...old, data: dataList };
+    });
+
+    setSelectedConversation((current) => (
+      current && toEntityId(current._id) === conversationId
+        ? patchConversation(current)
+        : current
+    ));
+  }, [queryClient, currentUserId]);
+
+  const patchConversationCachesForUpdate = useCallback((data: any) => {
+    const conversationId = toEntityId(data?.conversationId || data?._id);
+    if (!conversationId) return;
+
+    queryClient.setQueriesData({ queryKey: ['conversations'] }, (old: any) => {
+      if (!old?.data || !Array.isArray(old.data)) return old;
+
+      let changed = false;
+      const dataList = old.data.map((conv: any) => {
+        if (toEntityId(conv?._id) !== conversationId) return conv;
+
+        changed = true;
+        const userReadThisConversation = data.readBy && currentUserId && String(data.readBy) === currentUserId;
+        const nextMyUnreadCount = userReadThisConversation
+          ? 0
+          : Number(data.myUnreadCount ?? conv.myUnreadCount ?? 0);
+        const nextUnreadCount = userReadThisConversation
+          ? Number(data.unreadCount ?? 0)
+          : Number(data.unreadCount ?? conv.unreadCount ?? 0);
+
+        return {
+          ...conv,
+          ...data,
+          _id: conv._id,
+          unreadCount: nextUnreadCount,
+          myUnreadCount: nextMyUnreadCount,
+          agentUnreadCounts: setUnreadForUser(conv.agentUnreadCounts, currentUserId, nextMyUnreadCount),
+        };
+      });
+
+      return changed ? { ...old, data: dataList } : old;
+    });
+
+    setSelectedConversation((current) => {
+      if (!current || toEntityId(current._id) !== conversationId) return current;
+      const userReadThisConversation = data.readBy && currentUserId && String(data.readBy) === currentUserId;
+      return {
+        ...current,
+        ...data,
+        _id: current._id,
+        unreadCount: userReadThisConversation ? Number(data.unreadCount ?? 0) : Number(data.unreadCount ?? current.unreadCount ?? 0),
+        myUnreadCount: userReadThisConversation ? 0 : Number(data.myUnreadCount ?? current.myUnreadCount ?? 0),
+      } as any;
+    });
+  }, [queryClient, currentUserId]);
 
   // Diagnostic listeners — own effect so they don't get re-registered (and
   // never cleaned up) every time `isConnected`/`selectedConversation`
@@ -158,31 +386,43 @@ export default function InboxPage() {
 
     const handleNewMessage = (data: any) => {
       console.log('[Inbox:Socket] New Message Received:', data);
-      
-      // Update cache only if it matches current selected conversation
-      if (selectedConversation && String(data.conversationId) === String(selectedConversation._id)) {
-        queryClient.setQueryData(['messages', selectedConversation._id], (old: any) => {
+
+      const conversationId = toEntityId(data?.conversationId || data?.conversation?._id);
+      const selectedConversationId = toEntityId(selectedConversation?._id);
+      const message = normalizeSocketMessage(data?.message);
+      const isSelectedConversation = !!conversationId && conversationId === selectedConversationId;
+
+      patchConversationCachesForMessage(data, isSelectedConversation);
+
+      // Update cache only if it matches current selected conversation.
+      if (isSelectedConversation && selectedConversationId) {
+        queryClient.setQueryData(['messages', selectedConversationId], (old: any) => {
           if (!old) return old;
-          const lastPageIdx = old.pages.length - 1;
-          const lastPage = old.pages[lastPageIdx];
+          if (!Array.isArray(old.pages) || old.pages.length === 0) return old;
+          const newestPageIdx = 0;
+          const newestPage = old.pages[newestPageIdx];
           
           // Prevent duplicates
-          const exists = lastPage.data.some((m: any) => m._id === data.message._id || m.whatsappMessageId === data.message.whatsappMessageId);
+          const exists = old.pages.some((page: any) =>
+            (page.data || []).some((cachedMessage: any) => isSameMessage(cachedMessage, message))
+          );
           if (exists) return old;
 
           const updatedPages = [...old.pages];
-          updatedPages[lastPageIdx] = {
-            ...lastPage,
-            data: [...lastPage.data, data.message]
+          updatedPages[newestPageIdx] = {
+            ...newestPage,
+            data: [...(newestPage.data || []), message]
           };
           
           return { ...old, pages: updatedPages };
         });
 
-        markAsRead(selectedConversation._id).catch(() => {});
+        if (message.direction === 'inbound' || !message.direction) {
+          void markConversationAsRead(selectedConversationId);
+        }
       }
       
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      void queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
     const handleStatusUpdate = (data: any) => {
@@ -195,7 +435,11 @@ export default function InboxPage() {
           pages: old.pages.map((page: any) => ({
             ...page,
             data: page.data.map((msg: any) => 
-               String(msg._id) === String(data.messageId) || msg.whatsappMessageId === data.messageId 
+               messageIdentityValues(msg).some((id) => [
+                 data.messageId,
+                 data.providerMessageId,
+                 data.whatsappMessageId,
+               ].filter(Boolean).map(String).includes(id))
                 ? { ...msg, status: data.status, statusUpdatedAt: data.timestamp } 
                 : msg
             )
@@ -225,26 +469,39 @@ export default function InboxPage() {
       });
     };
 
+    const handleConversationUpdate = (data: any) => {
+      console.log('[Inbox:Socket] Conversation Update:', data);
+      patchConversationCachesForUpdate(data);
+    };
+
     // Listen to CORRECT backend event names
     socket.on('inbox:message_new', handleNewMessage);
     socket.on('inbox:message_sent', handleNewMessage); // Also treat sent as new message
     socket.on('inbox:message_status', handleStatusUpdate);
     socket.on('inbox:status_batch', handleStatusBatch);
+    socket.on('inbox:conversation_updated', handleConversationUpdate);
 
     return () => {
       socket.off('inbox:message_new', handleNewMessage);
       socket.off('inbox:message_sent', handleNewMessage);
       socket.off('inbox:message_status', handleStatusUpdate);
       socket.off('inbox:status_batch', handleStatusBatch);
+      socket.off('inbox:conversation_updated', handleConversationUpdate);
     };
-  }, [socket, isConnected, selectedConversation, queryClient]);
+  }, [
+    socket,
+    isConnected,
+    selectedConversation,
+    queryClient,
+    markConversationAsRead,
+    patchConversationCachesForMessage,
+    patchConversationCachesForUpdate
+  ]);
 
   // Handle Conversation Selection
   const handleSelectConversation = async (conv: Conversation) => {
     setSelectedConversation(conv);
-    // Mark as read immediately for the local badge
-    markAsRead(conv._id).catch(() => {});
-    queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    void markConversationAsRead(conv._id);
   };
 
   // Mutations
@@ -589,7 +846,7 @@ export default function InboxPage() {
                 disabled={false}
                 onTyping={() => socket?.emit('typing', {
                   conversationId: selectedConversation._id,
-                  workspaceId: user?.workspace?._id || user?.workspace,
+                  workspaceId: workspaceId || undefined,
                   isTyping: true
                 })}
                 channel={selectedConversation.channel}

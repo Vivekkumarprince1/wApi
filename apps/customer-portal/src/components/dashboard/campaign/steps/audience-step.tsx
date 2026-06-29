@@ -311,9 +311,9 @@ export default function AudienceStep({ campaignData, setCampaignData }: Audience
               </Button>
             </div>
 
-            <ScrollArea className="h-64 rounded-xl border border-border/50 bg-background/50 p-2">
+            <div className="h-64 overflow-y-auto rounded-xl border border-border/50 bg-background/50 p-3 space-y-1.5 scrollbar-thin">
               {loadingContacts ? (
-                <div className="space-y-2 p-2">
+                <div className="space-y-2">
                   {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-10 w-full rounded-lg" />)}
                 </div>
               ) : (
@@ -321,7 +321,7 @@ export default function AudienceStep({ campaignData, setCampaignData }: Audience
                   {filteredContacts.map((contact: any) => (
                     <div 
                       key={contact._id}
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                      className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted/50 transition-colors cursor-pointer group"
                       onClick={() => toggleContact(contact._id)}
                     >
                       <Checkbox 
@@ -340,7 +340,7 @@ export default function AudienceStep({ campaignData, setCampaignData }: Audience
                   )}
                 </div>
               )}
-            </ScrollArea>
+            </div>
             <div className="flex justify-between items-center px-1">
               <span className="text-[10px] font-black uppercase tracking-widest text-primary">
                 {campaignData.selectAllContacts ? 'All' : campaignData.selectedContactIds.length} Contacts Selected
@@ -479,7 +479,7 @@ export default function AudienceStep({ campaignData, setCampaignData }: Audience
             {campaignData.csvContacts?.length > 0 && (
               <div className="w-full space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="rounded-2xl border border-border/50 bg-background/50 overflow-hidden shadow-inner">
-                  <ScrollArea className="h-48">
+                  <div className="h-48 overflow-y-auto scrollbar-thin">
                     <table className="w-full text-left text-[10px] border-collapse">
                       <thead className="sticky top-0 bg-muted/50 backdrop-blur-sm border-b border-border/40 z-10">
                         <tr>
@@ -498,7 +498,7 @@ export default function AudienceStep({ campaignData, setCampaignData }: Audience
                         ))}
                       </tbody>
                     </table>
-                  </ScrollArea>
+                  </div>
                 </div>
                 
                 <div className="flex justify-center">

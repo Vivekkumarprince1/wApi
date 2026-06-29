@@ -25,7 +25,16 @@ import {
   Trash2,
   Filter,
   ArrowRight,
-  AlertTriangle
+  AlertTriangle,
+  Globe,
+  Phone,
+  CornerDownLeft,
+  Settings,
+  KeyRound,
+  Tag,
+  MessageSquare,
+  Send,
+  Pencil
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -62,6 +71,87 @@ import CreateTemplateModal from '@/components/modals/create-template-modal';
 
 import UseTemplateModal from '@/components/modals/use-template-modal';
 import DirectTemplateModal from '@/components/dashboard/contacts/DirectTemplateModal';
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  show: { opacity: 1, y: 0, transition: { type: 'spring' as const, stiffness: 280, damping: 22 } }
+};
+
+const getCategoryBadge = (category: string) => {
+  const cat = (category || '').toUpperCase();
+  let icon = <Tag className="h-3 w-3" />;
+  let color = 'bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20';
+
+  if (cat === 'AUTHENTICATION') {
+    icon = <KeyRound className="h-3 w-3" />;
+    color = 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+  } else if (cat === 'UTILITY') {
+    icon = <Settings className="h-3 w-3" />;
+    color = 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+  }
+
+  return (
+    <Badge variant="outline" className={`text-[9px] font-black h-5 uppercase tracking-wider flex items-center gap-1 bg-card/50 ${color}`}>
+      {icon}
+      {cat}
+    </Badge>
+  );
+};
+
+const renderQualityScore = (quality?: any) => {
+  const q = String(quality?.score || quality || 'UNKNOWN').toUpperCase();
+  let color = 'bg-slate-400';
+  let label = 'Unknown Quality';
+  let pillColor = 'bg-slate-500/10 text-slate-600 border-slate-500/20';
+  
+  if (q === 'HIGH' || q === 'GREEN') {
+    color = 'bg-emerald-500';
+    label = 'High Quality';
+    pillColor = 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
+  } else if (q === 'MEDIUM' || q === 'YELLOW') {
+    color = 'bg-amber-500';
+    label = 'Medium Quality';
+    pillColor = 'bg-amber-500/10 text-amber-600 border-amber-500/20';
+  } else if (q === 'LOW' || q === 'RED') {
+    color = 'bg-rose-500';
+    label = 'Low Quality';
+    pillColor = 'bg-rose-500/10 text-rose-600 border-rose-500/20';
+  }
+
+  return (
+    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-wider ${pillColor}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${color} animate-pulse`} />
+      {label}
+    </div>
+  );
+};
+
+const formatBodyTextWithPills = (text: string = '') => {
+  if (!text) return '';
+  const parts = text.split(/(\{\{\d+\}\})/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('{{') && part.endsWith('}}')) {
+      return (
+        <span 
+          key={index} 
+          className="inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary font-bold border border-primary/20 text-[10px] mx-0.5"
+        >
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+};
 
 export default function TemplatesPage() {
   const router = useRouter();
@@ -334,197 +424,414 @@ export default function TemplatesPage() {
               </Button>
             </div>
           ) : viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <motion.div 
+              variants={containerVariants}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            >
               {filteredTemplates.map((template) => (
-                <div 
-                  key={template._id} 
-                  className="group bg-card border border-border/50 rounded-3xl overflow-hidden shadow-sm hover:shadow-premium transition-all flex flex-col h-full relative"
-                >
-                  <div className="p-5 flex-1 space-y-4">
-                    <div className="flex items-center justify-between gap-2">
-                       {getStatusBadge(template.status)}
-                       <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                           {/* PRIMARY ACTIONS: Only Draft/Approved (REJECTED/FAILED moved to menu to avoid confusion) */}
-                          {template.status === 'APPROVED' && (
-                            <Button 
-                             variant="outline" 
-                             size="icon" 
-	                             className="h-8 w-8 rounded-full bg-emerald-500/5 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10 shadow-premium-sm"
-	                             onClick={() => { setSelectedTemplate(template); setIsUseModalOpen(true); }}
-	                             title="Create Campaign"
-	                             aria-label={`Create campaign from ${template.name}`}
-	                            >
-                              <Plus className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {template.status === 'DRAFT' && (
-                            <Button 
-                             variant="outline" 
-                             size="icon" 
-                             className="h-8 w-8 rounded-full bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 shadow-premium-sm"
-	                             onClick={() => submitMutation.mutate(template._id)}
-	                             disabled={submitMutation.isPending}
-	                             title="Submit for Approval"
-	                             aria-label={`Submit ${template.name} for approval`}
-	                            >
-                              <Zap className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {/* Dropdown Menu for all other actions */}
-	                          <DropdownMenu>
-	                            <DropdownMenuTrigger asChild>
-	                              <Button variant="ghost" size="icon" aria-label={`Open actions for ${template.name}`} className="h-8 w-8 rounded-full shadow-none"><MoreVertical className="h-4 w-4" /></Button>
-	                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-52 rounded-2xl p-2 shadow-premium border-border/50">
-                              {/* Submit: Only for Drafts/Rejected/Failed */}
-                              {(template.status === 'DRAFT' || template.status === 'REJECTED' || template.status === 'FAILED') && (
-                                <DropdownMenuItem className="rounded-xl h-10 font-bold cursor-pointer text-primary" onClick={() => submitMutation.mutate(template._id)}>
-                                  <Zap className="h-4 w-4 mr-2" /> Submit to Meta
-                                </DropdownMenuItem>
-                              )}
-                              
-                              {/* Edit: Only if NOT Pending/Deleted/Approved */}
-                              {!['PENDING', 'DELETED', 'APPROVED'].includes(template.status) && (
-                                <DropdownMenuItem className="rounded-xl h-10 font-bold cursor-pointer" onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}>
-                                  Edit Template
-                                </DropdownMenuItem>
-                              )}
+                <div key={template._id} className="relative h-[360px] w-full group">
+                  <motion.div 
+                    variants={itemVariants}
+                    className="absolute top-0 left-0 w-full h-full group-hover:h-auto group-hover:min-h-[360px] transition-all duration-300 z-10 group-hover:z-30 bg-card border border-border/50 rounded-3xl shadow-sm group-hover:shadow-xl flex flex-col overflow-hidden"
+                  >
+                    {/* Card Info Header */}
+                    <div className="p-5 pb-3 flex flex-col gap-3">
+                      <div className="flex items-center justify-between gap-2">
+                         {getStatusBadge(template.status)}
+                          <div className="flex items-center gap-1.5">
+                             {/* APPROVED */}
+                             {template.status === 'APPROVED' && (
+                               <>
+                                 <Button 
+                                   variant="outline" 
+                                   size="icon" 
+                                   className="h-8 w-8 rounded-full bg-emerald-500/5 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10 shadow-sm transition-all"
+                                   onClick={() => { setSelectedTemplate(template); setIsUseModalOpen(true); }}
+                                   title="Create Campaign"
+                                   aria-label={`Create campaign from ${template.name}`}
+                                 >
+                                   <Send className="h-3.5 w-3.5" />
+                                 </Button>
+                                 <Button 
+                                   variant="outline" 
+                                   size="icon" 
+                                   className="h-8 w-8 rounded-full bg-destructive/5 text-destructive border-destructive/20 hover:bg-destructive/10 shadow-sm transition-all"
+                                   onClick={() => { if(confirm('Are you sure you want to archive this template?')) deleteMutation.mutate(template._id) }}
+                                   title="Archive Template"
+                                   aria-label={`Archive ${template.name}`}
+                                 >
+                                   <Trash2 className="h-3.5 w-3.5" />
+                                 </Button>
+                               </>
+                             )}
 
-                              {/* Restore: From DELETED to DRAFT */}
-                              {template.status === 'DELETED' && (
-                                <DropdownMenuItem className="rounded-xl h-10 font-bold text-emerald-600 bg-emerald-500/5 cursor-pointer" onClick={() => updateStatusMutation.mutate({ id: template._id, status: 'DRAFT' })}>
-                                  <RefreshCcw className="h-4 w-4 mr-2" /> Move to Draft
-                                </DropdownMenuItem>
-                              )}
+                             {/* DRAFT */}
+                             {template.status === 'DRAFT' && (
+                               <>
+                                 <Button 
+                                   variant="outline" 
+                                   size="icon" 
+                                   className="h-8 w-8 rounded-full bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 shadow-sm transition-all"
+                                   onClick={() => submitMutation.mutate(template._id)}
+                                   disabled={submitMutation.isPending}
+                                   title="Submit to Meta"
+                                   aria-label={`Submit ${template.name} to Meta`}
+                                 >
+                                   <Zap className="h-3.5 w-3.5" />
+                                 </Button>
+                                 <Button 
+                                   variant="outline" 
+                                   size="icon" 
+                                   className="h-8 w-8 rounded-full bg-muted text-muted-foreground border-border hover:bg-muted/50 shadow-sm transition-all"
+                                   onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}
+                                   title="Edit Template"
+                                   aria-label={`Edit ${template.name}`}
+                                 >
+                                   <Pencil className="h-3.5 w-3.5" />
+                                 </Button>
+                                 <Button 
+                                   variant="outline" 
+                                   size="icon" 
+                                   className="h-8 w-8 rounded-full bg-destructive/5 text-destructive border-destructive/20 hover:bg-destructive/10 shadow-sm transition-all"
+                                   onClick={() => { if(confirm('Are you sure you want to archive this template?')) deleteMutation.mutate(template._id) }}
+                                   title="Archive Template"
+                                   aria-label={`Archive ${template.name}`}
+                                 >
+                                   <Trash2 className="h-3.5 w-3.5" />
+                                 </Button>
+                               </>
+                             )}
 
-                              {/* Delete: Only if NOT Pending/Deleted */}
-                              {!['PENDING', 'DELETED'].includes(template.status) && (
-                                <DropdownMenuItem className="rounded-xl h-10 font-bold text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer" onClick={() => { if(confirm('Are you sure you want to archive this template?')) deleteMutation.mutate(template._id) }}>
-                                  Archive
-                                </DropdownMenuItem>
-                              )}
+                             {/* REJECTED / FAILED */}
+                             {(template.status === 'REJECTED' || template.status === 'FAILED') && (
+                               <>
+                                 <Button 
+                                   variant="outline" 
+                                   size="icon" 
+                                   className="h-8 w-8 rounded-full bg-primary/5 text-primary border-primary/20 hover:bg-primary/10 shadow-sm transition-all"
+                                   onClick={() => submitMutation.mutate(template._id)}
+                                   disabled={submitMutation.isPending}
+                                   title="Resubmit to Meta"
+                                   aria-label={`Resubmit ${template.name} to Meta`}
+                                 >
+                                   <Zap className="h-3.5 w-3.5" />
+                                 </Button>
+                                 <Button 
+                                   variant="outline" 
+                                   size="icon" 
+                                   className="h-8 w-8 rounded-full bg-muted text-muted-foreground border-border hover:bg-muted/50 shadow-sm transition-all"
+                                   onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}
+                                   title="Edit Template"
+                                   aria-label={`Edit ${template.name}`}
+                                 >
+                                   <Pencil className="h-3.5 w-3.5" />
+                                 </Button>
+                                 <Button 
+                                   variant="outline" 
+                                   size="icon" 
+                                   className="h-8 w-8 rounded-full bg-destructive/5 text-destructive border-destructive/20 hover:bg-destructive/10 shadow-sm transition-all"
+                                   onClick={() => { if(confirm('Are you sure you want to archive this template?')) deleteMutation.mutate(template._id) }}
+                                   title="Archive Template"
+                                   aria-label={`Archive ${template.name}`}
+                                 >
+                                   <Trash2 className="h-3.5 w-3.5" />
+                                 </Button>
+                               </>
+                             )}
 
-                              {/* Info for Pending */}
-                              {template.status === 'PENDING' && (
-                                <DropdownMenuItem disabled className="rounded-xl h-10 font-bold text-muted-foreground opacity-60">
-                                  Template Locked (In Review)
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                       </div>
-                    </div>
+                             {/* DELETED */}
+                             {template.status === 'DELETED' && (
+                               <Button 
+                                 variant="outline" 
+                                 size="icon" 
+                                 className="h-8 w-8 rounded-full bg-emerald-500/5 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/10 shadow-sm transition-all"
+                                 onClick={() => updateStatusMutation.mutate({ id: template._id, status: 'DRAFT' })}
+                                 title="Restore Template"
+                                 aria-label={`Restore ${template.name}`}
+                               >
+                                 <RefreshCcw className="h-3.5 w-3.5" />
+                               </Button>
+                             )}
 
-                    <div className="space-y-1">
-                      <h3 className="font-black text-[15px] text-foreground line-clamp-1 group-hover:text-primary transition-colors cursor-pointer" onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}>
-                        {template.name}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[8px] font-black h-4 uppercase tracking-tighter opacity-70 border-border/50">{template.category}</Badge>
-                        <Badge variant="outline" className="text-[8px] font-black h-4 uppercase tracking-tighter opacity-70 border-border/50">EN</Badge>
-                      </div>
-                    </div>
-
-                    <div className="bg-muted/30 dark:bg-muted/10 p-4 rounded-2xl text-[12px] font-medium leading-relaxed text-muted-foreground h-32 overflow-hidden relative shadow-inner">
-                       <div className="line-clamp-5 whitespace-pre-wrap">{template.bodyText || template.body?.text}</div>
-                       <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-card/80 to-transparent" />
-                    </div>
-
-                    {template.buttons && template.buttons.items.length > 0 && (
-                      <div className="space-y-2">
-                        {template.buttons.items.slice(0, 2).map((btn, i) => (
-                          <div key={i} className="py-2.5 px-4 bg-muted/40 border border-border/50 rounded-xl text-[11px] font-bold text-center text-primary/80 group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                            {btn.text}
+                             {/* PENDING / IN_APPEAL */}
+                             {(template.status === 'PENDING' || template.status === 'IN_APPEAL') && (
+                               <div className="h-8 w-8 rounded-full flex items-center justify-center bg-amber-500/5 text-amber-600 border border-amber-500/20" title="Locked (In Review)">
+                                 <Clock className="h-4 w-4" />
+                               </div>
+                             )}
                           </div>
-                        ))}
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="px-5 py-3 bg-muted/20 border-t border-border/40 flex items-center justify-between">
-                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Created {new Date(template.createdAt).toLocaleDateString()}</span>
-                     <div className="flex items-center gap-3">
-                       {template.header?.enabled && <div className="text-muted-foreground">{getHeaderIcon(template.header.format)}</div>}
-                       {template.status === 'APPROVED' && <TrendingUp className="h-4 w-4 text-emerald-500 opacity-60" />}
-                     </div>
-                  </div>
+
+                      <div className="space-y-1.5">
+                        <h3 
+                          className="font-bold text-[14px] text-foreground line-clamp-1 group-hover:text-primary transition-colors cursor-pointer"
+                          onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}
+                          title={template.name}
+                        >
+                          {template.name}
+                        </h3>
+                        <div className="flex items-center gap-1.5">
+                          {getCategoryBadge(template.category)}
+                          <Badge variant="outline" className="text-[9px] font-black h-5 uppercase tracking-wider flex items-center gap-1 bg-card/50 opacity-70 border-border/50">
+                            <Globe className="h-3 w-3" />
+                            {template.language || 'en'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Simulated WhatsApp Interface Centerpiece */}
+                    <div className="px-5 pb-5 flex-1 flex flex-col justify-between">
+                      <div className="bg-[#efeae2] dark:bg-zinc-900/40 p-3.5 rounded-2xl relative border border-border/40 select-none flex-1 flex flex-col justify-between overflow-hidden shadow-inner h-[180px] group-hover:h-auto transition-all duration-300 relative">
+                        {/* WhatsApp wallpaper texture */}
+                        <div className="absolute inset-0 opacity-[0.06] pointer-events-none bg-repeat bg-center" style={{ backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")' }} />
+                        
+                        {/* Bottom fade overlay when card is collapsed */}
+                        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#efeae2] dark:from-zinc-900 to-transparent pointer-events-none z-20 group-hover:opacity-0 transition-opacity duration-300" />
+
+                        {/* WhatsApp Bubble Container */}
+                        <div className="bg-background dark:bg-zinc-950 rounded-xl rounded-tl-none shadow-sm border border-border/10 p-3 relative flex-1 flex flex-col justify-between z-10">
+                          {/* Bubble Tail */}
+                          <div className="absolute top-0 -left-1 w-2.5 h-2.5 bg-background dark:bg-zinc-950 border-l border-t border-border/10 -rotate-45" />
+                          
+                          <div>
+                            {/* Header Attachment Rendering */}
+                            {template.header?.enabled && (
+                              <div className="mb-2">
+                                {template.header.format === 'TEXT' && template.header.text && (
+                                  <div className="text-xs font-bold text-foreground mb-1">{template.header.text}</div>
+                                )}
+                                {template.header.format === 'IMAGE' && (
+                                  <div className="aspect-[16/9] w-full rounded-lg bg-muted dark:bg-zinc-900 flex flex-col items-center justify-center border border-border/30 mb-2 text-muted-foreground/60">
+                                    <ImageIcon className="h-5 w-5 mb-0.5 text-muted-foreground/40" />
+                                    <span className="text-[8px] font-black uppercase tracking-wider">Image Header</span>
+                                  </div>
+                                )}
+                                {template.header.format === 'VIDEO' && (
+                                  <div className="aspect-[16/9] w-full rounded-lg bg-muted dark:bg-zinc-900 flex flex-col items-center justify-center border border-border/30 mb-2 text-muted-foreground/60 relative">
+                                    <Video className="h-5 w-5 mb-0.5 text-muted-foreground/40" />
+                                    <span className="text-[8px] font-black uppercase tracking-wider">Video Header</span>
+                                  </div>
+                                )}
+                                {template.header.format === 'DOCUMENT' && (
+                                  <div className="py-2 px-3 rounded-lg bg-muted dark:bg-zinc-900 flex items-center gap-2 border border-border/30 mb-2 text-muted-foreground/70">
+                                    <FileIcon className="h-4 w-4 text-primary/70 flex-shrink-0" />
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                      <span className="text-[9px] font-bold truncate">document.pdf</span>
+                                      <span className="text-[7px] opacity-75 font-semibold">PDF Attachment</span>
+                                    </div>
+                                  </div>
+                                )}
+                                {(template.header.format as string) === 'LOCATION' && (
+                                  <div className="aspect-[16/9] w-full rounded-lg bg-muted dark:bg-zinc-900 flex flex-col items-center justify-center border border-border/30 mb-2 text-muted-foreground/60">
+                                    <MapPin className="h-5 w-5 mb-0.5 text-muted-foreground/40" />
+                                    <span className="text-[8px] font-black uppercase tracking-wider">Location Header</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Body Text */}
+                            <div className="text-[11px] font-medium leading-relaxed text-foreground whitespace-pre-wrap">
+                              {formatBodyTextWithPills(template.bodyText || template.body?.text)}
+                            </div>
+
+                            {/* Footer Text */}
+                            {template.bodyText && template.bodyText.includes('\n\n') && (
+                              <div className="text-[9px] text-muted-foreground mt-2 font-medium">
+                                {template.name}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* WhatsApp Style Buttons */}
+                          {template.buttons && template.buttons.items.length > 0 && (
+                            <div className="border-t border-border/10 mt-3 pt-1 divide-y divide-border/10">
+                              {template.buttons.items.map((btn, i) => (
+                                <div 
+                                  key={i} 
+                                  className="py-2 text-[10px] font-bold text-primary hover:bg-primary/5 cursor-pointer flex items-center justify-center gap-1.5 select-none transition-colors border-border/10"
+                                >
+                                  {btn.type === 'URL' && <ExternalLink className="h-3 w-3 flex-shrink-0" />}
+                                  {btn.type === 'PHONE_NUMBER' && <Phone className="h-3 w-3 flex-shrink-0" />}
+                                  {btn.type === 'QUICK_REPLY' && <CornerDownLeft className="h-3 w-3 flex-shrink-0" />}
+                                  {btn.text}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Card Metadata Footer */}
+                    <div className="px-5 py-3 bg-muted/20 border-t border-border/40 flex items-center justify-between">
+                       <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/70">Created {new Date(template.createdAt).toLocaleDateString()}</span>
+                       {renderQualityScore(template.qualityScore)}
+                    </div>
+                  </motion.div>
                 </div>
               ))}
-            </div>
+            </motion.div>
           ) : (
             <div className="bg-card border border-border/50 rounded-3xl overflow-hidden shadow-sm">
-              <table className="w-full text-left whitespace-nowrap">
-                <thead>
-                  <tr className="bg-muted/30 border-b border-border/40">
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Template Name</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Status</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Category</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Language</th>
-                    <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/30">
-                  {filteredTemplates.map((template) => (
-                    <tr key={template._id} className="group hover:bg-muted/20 transition-colors">
-                       <td className="px-6 py-5">
-                          <div className="flex items-center gap-4">
-                             <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all">
-                               {template.header?.enabled ? getHeaderIcon(template.header.format) : <FileText className="h-5 w-5" />}
-                             </div>
-                             <div className="flex flex-col">
-                                <span className="text-sm font-bold text-foreground group-hover:text-primary flex items-center gap-2 cursor-pointer" onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}>
-                                  {template.name}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[300px]">{template.bodyText || template.body?.text}</span>
-                             </div>
-                          </div>
-                       </td>
-                       <td className="px-6 py-5">{getStatusBadge(template.status)}</td>
-                       <td className="px-6 py-5"><Badge variant="outline" className="text-[10px] font-bold uppercase tracking-tighter opacity-70">{template.category}</Badge></td>
-                       <td className="px-6 py-5"><span className="text-xs font-black uppercase text-muted-foreground">{template.language}</span></td>
-                       <td className="px-6 py-5 text-right">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                            {template.status === 'APPROVED' && (
-	                              <Button variant="ghost" size="icon" aria-label={`Create campaign from ${template.name}`} className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600" onClick={() => { setSelectedTemplate(template); setIsUseModalOpen(true); }}>
-	                                <TrendingUp className="h-4 w-4" />
-	                              </Button>
-                            )}
-                            {template.status === 'DRAFT' && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-	                                className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary" 
-	                                onClick={() => submitMutation.mutate(template._id)}
-	                                title="Submit for Approval"
-	                                aria-label={`Submit ${template.name} for approval`}
-	                              >
-                                <Zap className="h-4 w-4" />
-                              </Button>
-                            )}
+               <table className="w-full text-left whitespace-nowrap">
+                 <thead>
+                   <tr className="bg-muted/30 border-b border-border/40">
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Template Name</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Status</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Category</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Quality</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest">Language</th>
+                     <th className="px-6 py-4 text-[10px] font-black text-muted-foreground/70 uppercase tracking-widest text-right">Actions</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-border/30">
+                   {filteredTemplates.map((template) => (
+                     <tr key={template._id} className="group hover:bg-muted/20 transition-colors">
+                        <td className="px-6 py-5">
+                           <div className="flex items-center gap-4">
+                              <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center text-muted-foreground group-hover:text-primary group-hover:scale-110 transition-all">
+                                {template.header?.enabled ? getHeaderIcon(template.header.format) : <FileText className="h-5 w-5" />}
+                              </div>
+                              <div className="flex flex-col">
+                                 <span className="text-sm font-bold text-foreground group-hover:text-primary flex items-center gap-2 cursor-pointer" onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}>
+                                   {template.name}
+                                 </span>
+                                 <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[300px]">{template.bodyText || template.body?.text}</span>
+                              </div>
+                           </div>
+                        </td>
+                        <td className="px-6 py-5">{getStatusBadge(template.status)}</td>
+                        <td className="px-6 py-5">{getCategoryBadge(template.category)}</td>
+                        <td className="px-6 py-5">{renderQualityScore(template.qualityScore)}</td>
+                        <td className="px-6 py-5">
+                          <span className="inline-flex items-center gap-1 text-xs font-black uppercase text-muted-foreground">
+                            <Globe className="h-3.5 w-3.5" />
+                            {template.language}
+                          </span>
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                           <div className="flex items-center justify-end gap-1.5">
+                             {/* APPROVED */}
+                             {template.status === 'APPROVED' && (
+                               <>
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   aria-label={`Create campaign from ${template.name}`} 
+                                   className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600" 
+                                   onClick={() => { setSelectedTemplate(template); setIsUseModalOpen(true); }}
+                                 >
+                                   <Send className="h-4 w-4" />
+                                 </Button>
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   aria-label={`Archive ${template.name}`} 
+                                   className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive" 
+                                   onClick={() => { if(confirm('Are you sure you want to archive this template?')) deleteMutation.mutate(template._id) }}
+                                 >
+                                   <Trash2 className="h-4 w-4" />
+                                 </Button>
+                               </>
+                             )}
 
-                            {/* Dropdown Menu for Table Mode */}
-	                            <DropdownMenu>
-	                              <DropdownMenuTrigger asChild>
-	                                <Button variant="ghost" size="icon" aria-label={`Open actions for ${template.name}`} className="h-8 w-8 rounded-lg"><MoreVertical className="h-4 w-4" /></Button>
-	                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-premium border-border/50">
-                                {!['PENDING', 'DELETED', 'APPROVED'].includes(template.status) && (
-                                  <DropdownMenuItem className="rounded-xl h-10 font-bold cursor-pointer" onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}>Edit</DropdownMenuItem>
-                                )}
-                                {template.status === 'DELETED' && (
-                                  <DropdownMenuItem className="rounded-xl h-10 font-bold text-emerald-600 bg-emerald-500/5 cursor-pointer" onClick={() => updateStatusMutation.mutate({ id: template._id, status: 'DRAFT' })}>Restore</DropdownMenuItem>
-                                )}
-                                {!['PENDING', 'DELETED'].includes(template.status) && (
-                                  <DropdownMenuItem className="rounded-xl h-10 font-bold text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer" onClick={() => { if(confirm('Archive?')) deleteMutation.mutate(template._id) }}>Archive</DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                       </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                             {/* DRAFT */}
+                             {template.status === 'DRAFT' && (
+                               <>
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   aria-label={`Submit ${template.name} for approval`} 
+                                   className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary" 
+                                   onClick={() => submitMutation.mutate(template._id)}
+                                   disabled={submitMutation.isPending}
+                                 >
+                                   <Zap className="h-4 w-4" />
+                                 </Button>
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   aria-label={`Edit ${template.name}`} 
+                                   className="h-8 w-8 rounded-lg hover:bg-muted-foreground/10" 
+                                   onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}
+                                 >
+                                   <Pencil className="h-4 w-4" />
+                                 </Button>
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   aria-label={`Archive ${template.name}`} 
+                                   className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive" 
+                                   onClick={() => { if(confirm('Are you sure you want to archive this template?')) deleteMutation.mutate(template._id) }}
+                                 >
+                                   <Trash2 className="h-4 w-4" />
+                                 </Button>
+                               </>
+                             )}
+
+                             {/* REJECTED / FAILED */}
+                             {(template.status === 'REJECTED' || template.status === 'FAILED') && (
+                               <>
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   aria-label={`Resubmit ${template.name}`} 
+                                   className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary" 
+                                   onClick={() => submitMutation.mutate(template._id)}
+                                   disabled={submitMutation.isPending}
+                                 >
+                                   <Zap className="h-4 w-4" />
+                                 </Button>
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   aria-label={`Edit ${template.name}`} 
+                                   className="h-8 w-8 rounded-lg hover:bg-muted-foreground/10" 
+                                   onClick={() => { setSelectedTemplate(template); setIsEditModalOpen(true); }}
+                                 >
+                                   <Pencil className="h-4 w-4" />
+                                 </Button>
+                                 <Button 
+                                   variant="ghost" 
+                                   size="icon" 
+                                   aria-label={`Archive ${template.name}`} 
+                                   className="h-8 w-8 rounded-lg hover:bg-destructive/10 hover:text-destructive" 
+                                   onClick={() => { if(confirm('Are you sure you want to archive this template?')) deleteMutation.mutate(template._id) }}
+                                 >
+                                   <Trash2 className="h-4 w-4" />
+                                 </Button>
+                               </>
+                             )}
+
+                             {/* DELETED */}
+                             {template.status === 'DELETED' && (
+                               <Button 
+                                 variant="ghost" 
+                                 size="icon" 
+                                 aria-label={`Restore ${template.name}`} 
+                                 className="h-8 w-8 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-600" 
+                                 onClick={() => updateStatusMutation.mutate({ id: template._id, status: 'DRAFT' })}
+                               >
+                                 <RefreshCcw className="h-4 w-4" />
+                               </Button>
+                             )}
+
+                             {/* PENDING / IN_APPEAL */}
+                             {(template.status === 'PENDING' || template.status === 'IN_APPEAL') && (
+                               <div className="h-8 w-8 rounded-lg flex items-center justify-center text-amber-600 bg-amber-500/5 border border-amber-500/10" title="Locked (In Review)">
+                                 <Clock className="h-4 w-4" />
+                               </div>
+                             )}
+                           </div>
+                        </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
             </div>
           )}
         </motion.div>

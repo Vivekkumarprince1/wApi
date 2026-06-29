@@ -126,8 +126,22 @@ const getSocket = async (): Promise<Socket> => {
 
     socket.on('connect_error', (err) => {
       // ONLY reject if it's a fatal authentication error from the server
-      if (err.message?.includes('Authentication error') || err.message?.includes('No token provided')) {
+      const message = err.message || '';
+      const isFatalAuthError =
+        message.toLowerCase().includes('unauthorized') ||
+        message.toLowerCase().includes('authentication') ||
+        message.toLowerCase().includes('token');
+
+      if (isFatalAuthError) {
         console.error('[Socket:Singleton] ❌ FATAL AUTH ERROR:', err.message);
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem('socket_auth_token');
+        }
+        try {
+          socket.removeAllListeners();
+          socket.disconnect();
+        } catch {}
+        globalSocket = null;
         connectionPromise = null;
         reject(err);
       } else {

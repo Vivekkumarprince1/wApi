@@ -27,7 +27,7 @@ export const deleteCampaign = (id: string) => api.delete(`/campaign/campaigns/${
 export const performCampaignAction = (id: string, action: any) => api.post(`/campaign/campaigns/${id}/lifecycle`, { action });
 export const retargetCampaign = (id: string, type: any) => api.post(`/campaign/campaigns/${id}/retarget`, { type });
 export const fetchCampaignMessages = (campaignId: string, params?: any) =>
-  api.get<any>(`/campaigns/${campaignId}/messages`, { params });
+  api.get<any>(`/campaign/campaigns/${campaignId}/messages`, { params });
 
 // Segments
 export const fetchSegments = () => api.get('/campaign/segments');
@@ -37,4 +37,4 @@ export const updateSegment = (id: string, data: any) => api.put(`/campaign/segme
 export const deleteSegment = (id: string) => api.delete(`/campaign/segments/${id}`);
 
 export const getCampaignExportUrl = (campaignId: string) =>
-  `/api/v1/campaigns/${campaignId}/export`;
+  `/api/v1/campaign/campaigns/${campaignId}/export`;

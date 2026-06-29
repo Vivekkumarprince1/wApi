@@ -172,21 +172,21 @@ export default function CampaignDetailsPage() {
       className="space-y-6 max-w-7xl mx-auto pb-10"
     >
       {/* Header with Navigation */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
 	          <Button 
 	            variant="ghost" 
 	            size="icon" 
-	            className="rounded-full h-10 w-10 bg-background border border-border/50 shadow-sm"
+	            className="h-10 w-10 shrink-0 rounded-lg bg-background border border-border/70"
 	            onClick={() => router.push('/campaign')}
 	            aria-label="Back to campaigns"
 	          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-xl md:text-3xl font-black tracking-tight">{campaign.name}</h1>
-              <Badge variant="outline" className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest border shadow-sm ${statusConfig.color}`}>
+          <div className="min-w-0">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 mb-1">
+              <h1 className="min-w-0 break-words text-xl font-semibold tracking-tight md:text-2xl">{campaign.name}</h1>
+              <Badge variant="outline" className={`w-fit rounded-md px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest border ${statusConfig.color}`}>
                 {statusConfig.pulse && <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current animate-pulse" />}
                 {campaign.status}
               </Badge>
@@ -202,13 +202,13 @@ export default function CampaignDetailsPage() {
               </p>
               <p className="flex items-center gap-2 text-primary">
                 <Layers className="h-3 w-3" />
-                {campaign.templateSnapshot?.name || 'Standard Template'}
+                {campaign.templateSnapshot?.name || campaign.template?.name || campaign.templateName || 'Standard Template'}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center lg:justify-end">
           {/* Engagement Overview (Main Page Alignment) */}
           <div className="hidden lg:flex items-center bg-card/30 backdrop-blur-sm border border-border/50 rounded-2xl px-6 py-2 gap-6 mr-2">
             <div className="flex flex-col items-center">
@@ -226,7 +226,7 @@ export default function CampaignDetailsPage() {
             <Button 
               onClick={() => handleAction('start')}
               disabled={isActionLoading}
-              className="rounded-2xl font-black h-12 bg-primary hover:bg-primary/90 text-primary-foreground px-8 shadow-premium-sm"
+              className="h-11 w-full rounded-lg bg-primary px-5 font-semibold text-primary-foreground hover:bg-primary/90 sm:w-auto"
             >
               {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2 fill-current" />}
               {statusKey === 'paused' ? 'RESUME' : 'START BROADCAST'}
@@ -238,7 +238,7 @@ export default function CampaignDetailsPage() {
               onClick={() => handleAction('pause')}
               disabled={isActionLoading}
               variant="outline"
-              className="rounded-2xl font-black h-12 border-amber-500/20 text-amber-500 hover:bg-amber-500/5 px-8"
+              className="h-11 w-full rounded-lg border-amber-500/30 px-5 font-semibold text-amber-600 hover:bg-amber-500/5 sm:w-auto"
             >
               {isActionLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Pause className="h-4 w-4 mr-2 fill-current" />}
               PAUSE
@@ -247,11 +247,11 @@ export default function CampaignDetailsPage() {
 
 	          <DropdownMenu>
 	            <DropdownMenuTrigger asChild>
-	              <Button variant="outline" aria-label={`Open actions for campaign ${campaign.name}`} className="rounded-2xl h-12 w-12 p-0 border-border/50 bg-background hover:bg-muted transition-colors">
+	              <Button variant="outline" aria-label={`Open actions for campaign ${campaign.name}`} className="h-11 w-full rounded-lg border-border/70 bg-background hover:bg-muted transition-colors sm:w-11 sm:p-0">
 	                <MoreVertical className="h-4 w-4" />
 	              </Button>
 	            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-[24px] p-2 shadow-premium border-border/50">
+            <DropdownMenuContent align="end" className="w-56 rounded-xl p-2 shadow-premium border-border/50">
               <DropdownMenuItem 
                 onClick={() => refetch()}
                 className="rounded-xl h-11 font-bold focus:bg-primary/5 focus:text-primary cursor-pointer"
@@ -294,20 +294,20 @@ export default function CampaignDetailsPage() {
         {/* Left Column: Stats & Funnel */}
         <div className="lg:col-span-2 space-y-6">
           {/* Main Stats Funnel */}
-          <div className="bg-background rounded-[40px] p-8 border border-border/50 shadow-premium-sm relative overflow-hidden">
+          <div className="bg-background rounded-xl p-4 sm:p-6 border border-border/70 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
                 <BarChart className="h-48 w-48 text-primary" />
             </div>
             
-            <div className="flex items-center justify-between mb-8">
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground/50">Performance Funnel</h2>
-                <div className="flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-full border border-border/50">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">Performance Funnel</h2>
+                <div className="flex w-fit items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-md border border-border/50">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">Live Data</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-widest leading-none">Live Data</span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 mb-10">
               {[
                 { label: 'Recipients', count: counts.total, icon: Users, color: 'text-foreground', filter: 'all' },
                 { label: 'Delivered', count: counts.delivered, icon: CheckCircle2, color: 'text-emerald-500', sub: `${deliveryRate}%`, filter: 'delivered' },
@@ -319,14 +319,14 @@ export default function CampaignDetailsPage() {
                     whileHover={{ y: -5 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleMetricClick(stat.filter)}
-                    className="space-y-2 group cursor-pointer"
+                    className="space-y-2 group cursor-pointer rounded-lg border border-transparent p-2 transition-colors hover:border-border/70 hover:bg-muted/20"
                 >
-                  <p className={`text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 group-hover:${stat.color} transition-colors`}>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2 transition-colors group-hover:text-foreground">
                       <stat.icon className="h-3 w-3" /> {stat.label}
                   </p>
                   <div className="flex items-baseline gap-2">
-                      <p className={`text-4xl font-black tracking-tighter ${statusFilter === stat.filter ? stat.color : ''}`}>{(stat.count || 0).toLocaleString()}</p>
-                      {stat.sub && <span className="text-xs font-black opacity-30">{stat.sub}</span>}
+                      <p className={`text-2xl sm:text-3xl font-semibold tracking-tight ${statusFilter === stat.filter ? stat.color : ''}`}>{(stat.count || 0).toLocaleString()}</p>
+                      {stat.sub && <span className="text-xs font-semibold text-muted-foreground">{stat.sub}</span>}
                   </div>
                   {statusFilter === stat.filter && (
                     <motion.div layoutId="activeFilter" className={`h-1 w-8 rounded-full bg-current ${stat.color}`} />
@@ -348,7 +348,6 @@ export default function CampaignDetailsPage() {
 
           {/* Marketing Insights Section */}
           <div className="relative">
-            <div className="absolute inset-0 bg-primary/5 rounded-[50px] -m-4 blur-3xl opacity-50 pointer-events-none" />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
                <CampaignFailureAnalysis campaign={campaign} />
                <CampaignButtonTracking campaign={campaign} />
@@ -356,10 +355,10 @@ export default function CampaignDetailsPage() {
           </div>
 
           {/* Detailed Recipient Activity */}
-          <div ref={tableRef} className="bg-background rounded-[40px] p-8 border border-border/50 shadow-premium-sm">
-             <div className="flex items-center justify-between mb-8">
+          <div ref={tableRef} className="bg-background rounded-xl p-4 sm:p-6 border border-border/70">
+             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
                 <div className="space-y-1">
-                    <h2 className="text-lg font-black tracking-tight">Recipient Activity Log</h2>
+                    <h2 className="text-base font-semibold tracking-tight">Recipient Activity Log</h2>
                     <p className="text-xs font-medium text-muted-foreground flex items-center gap-2">
                         <Info className="h-3 w-3" /> Detailed delivery and read status per contact
                     </p>
@@ -388,10 +387,8 @@ export default function CampaignDetailsPage() {
         <div className="space-y-6">
            <CampaignTemplatePreview campaign={campaign} />
 
-            <div className="bg-slate-900 rounded-[40px] p-8 border border-slate-800 shadow-premium-lg relative overflow-hidden">
-             <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-[100px]" />
-             
-             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-6 flex items-center gap-2">
+            <div className="bg-slate-950 rounded-xl p-4 sm:p-6 border border-slate-800 relative overflow-hidden">
+             <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/50 mb-6 flex items-center gap-2">
                 <RefreshCw className="h-3 w-3" /> Execution Progress
              </h3>
 
@@ -399,8 +396,8 @@ export default function CampaignDetailsPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-end">
                     <div className="space-y-1">
-                        <p className="text-3xl font-black text-white">{progress}%</p>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-white/30">Total Progress</p>
+                        <p className="text-3xl font-semibold text-white">{progress}%</p>
+                        <p className="text-[9px] font-semibold uppercase tracking-widest text-white/40">Total Progress</p>
                     </div>
                     <div className="text-right pb-1">
                         <p className="text-xs font-black text-white/80">{counts.sent + counts.failed} / {counts.total}</p>
@@ -425,8 +422,8 @@ export default function CampaignDetailsPage() {
              </div>
            </div>
 
-           <div className="bg-background rounded-[40px] p-8 border border-border/50 shadow-premium-sm">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-6 flex items-center gap-2">
+           <div className="bg-background rounded-xl p-4 sm:p-6 border border-border/70">
+              <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground mb-6 flex items-center gap-2">
                 <Info className="h-4 w-4" /> Context Summary
               </h3>
               <div className="space-y-3">
@@ -437,19 +434,19 @@ export default function CampaignDetailsPage() {
                    { label: 'Batches', value: `${campaign.batching?.completedBatches || 0} / ${campaign.batching?.totalBatches || 0}` }
                  ].map((item, i) => (
                     <div key={i} className="flex justify-between items-center py-2 border-b border-border/50 last:border-0">
-                       <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{item.label}</span>
-                       <span className="text-xs font-black truncate max-w-[120px]">{item.value}</span>
+                       <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">{item.label}</span>
+                       <span className="text-xs font-semibold truncate max-w-[160px]" title={item.value}>{item.value}</span>
                     </div>
                  ))}
               </div>
            </div>
 
-           <div className="bg-background rounded-[40px] p-8 border border-border/50 shadow-premium-sm">
+           <div className="bg-background rounded-xl p-4 sm:p-6 border border-border/70">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 flex items-center gap-2">
+                <h3 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" /> Campaign Timeline
                 </h3>
-                <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-primary">
                   {timelineEntries.length} Events
                 </span>
               </div>

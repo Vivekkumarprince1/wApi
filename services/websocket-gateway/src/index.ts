@@ -10,6 +10,8 @@ const envSchema = z.object({
   MONGODB_URI: z.string().optional(),
   REDIS_URL: z.string().optional(),
   ALLOWED_ORIGINS: z.string().optional(),
+  AUTH_SERVICE_URL: z.string().optional(),
+  AUTH_SERVICE_TIMEOUT_MS: z.string().optional(),
 });
 
 const envParseResult = envSchema.safeParse(process.env);
@@ -37,6 +39,10 @@ const app = express();
 const httpServer = createServer(app);
 const PORT = parseInt(process.env.PORT || '3009', 10);
 const JWT_SECRET = process.env.JWT_SECRET!;
+const AUTH_SERVICE_URL =
+  process.env.AUTH_SERVICE_URL ||
+  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3006');
+const AUTH_SERVICE_TIMEOUT_MS = parseInt(process.env.AUTH_SERVICE_TIMEOUT_MS || '2000', 10);
 
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
@@ -92,6 +98,105 @@ async function userIsWorkspaceMember(userId: string, workspaceId: string): Promi
   }
 }
 
+function toSocketId(value: any): string | undefined {
+  if (!value) return undefined;
+  if (typeof value === 'string') return value;
+  if (value._id) return toSocketId(value._id);
+  if (typeof value.toString === 'function') {
+    const id = value.toString();
+    return id && id !== '[object Object]' ? id : undefined;
+  }
+  return undefined;
+}
+
+function serializeUnreadCounts(value: any): Record<string, number> {
+  if (!value) return {};
+  if (value instanceof Map) {
+    return Object.fromEntries(
+      Array.from(value.entries()).map(([key, count]) => [String(key), Number(count) || 0])
+    );
+  }
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, count]) => [String(key), Number(count) || 0])
+    );
+  }
+  return {};
+}
+
+function serializeConversationForSocket(conversation: any, contactPayload: any) {
+  if (!conversation) return null;
+  return {
+    _id: toSocketId(conversation._id),
+    contact: contactPayload || conversation.contact,
+    channel: conversation.channel || 'whatsapp',
+    assignedTo: toSocketId(conversation.assignedTo),
+    team: toSocketId(conversation.team),
+    status: conversation.status || 'open',
+    priority: conversation.priority || 'normal',
+    unreadCount: Number(conversation.unreadCount) || 0,
+    agentUnreadCounts: serializeUnreadCounts(conversation.agentUnreadCounts),
+    lastActivityAt: conversation.lastActivityAt,
+    lastMessageAt: conversation.lastMessageAt,
+    lastMessagePreview: conversation.lastMessagePreview,
+    lastMessageDirection: conversation.lastMessageDirection,
+    lastMessageType: conversation.lastMessageType,
+    isOpen: conversation.isOpen,
+    windowExpiresAt: conversation.windowExpiresAt,
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+  };
+}
+
+async function verifySessionWithAuthService(token: string) {
+  if (!AUTH_SERVICE_URL) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AUTH_SERVICE_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(`${AUTH_SERVICE_URL.replace(/\/+$/, '')}/internal/v1/auth/verify-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+      signal: controller.signal,
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Unauthorized: authentication failed');
+    }
+
+    if (!response.ok) return null;
+
+    const session = await response.json() as any;
+    if (!session?.success) return null;
+
+    const userId = toSocketId(session.user?._id || session.user?.id);
+    if (!userId) return null;
+
+    return {
+      userId,
+      workspaceId: toSocketId(
+        session.workspace?._id ||
+        session.workspace?.id ||
+        session.user?.activeWorkspace ||
+        session.user?.workspace
+      ),
+      role: session.user?.role,
+      workspaceRole: session.role,
+      isSuperAdmin: session.user?.role === 'super_admin',
+    };
+  } catch (err: any) {
+    if (err?.message?.startsWith('Unauthorized')) {
+      throw err;
+    }
+    console.warn(`[WebSocket Gateway] Auth service session verification unavailable: ${err?.message || err}`);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // --- SOCKET AUTH MIDDLEWARE ---
 io.use(async (socket: any, next) => {
   try {
@@ -114,10 +219,13 @@ io.use(async (socket: any, next) => {
       return next(new Error('Unauthorized: invalid token'));
     }
 
-    socket.userId = decoded.id;
-    socket.workspaceId = decoded.workspaceId ? String(decoded.workspaceId) : undefined;
-    socket.isSuperAdmin = decoded.role === 'super_admin';
-    console.log(`[WebSocket Gateway] Authenticated user: ${socket.userId}`);
+    const verifiedSession = await verifySessionWithAuthService(token);
+
+    socket.userId = verifiedSession?.userId || decoded.id;
+    socket.workspaceId = verifiedSession?.workspaceId || (decoded.workspaceId ? String(decoded.workspaceId) : undefined);
+    socket.workspaceRole = verifiedSession?.workspaceRole;
+    socket.isSuperAdmin = verifiedSession?.isSuperAdmin || decoded.role === 'super_admin';
+    console.log(`[WebSocket Gateway] Authenticated user: ${socket.userId}${socket.workspaceId ? ` workspace:${socket.workspaceId}` : ''}`);
     next();
   } catch (err: any) {
     next(new Error('Unauthorized: authentication failed'));
@@ -240,28 +348,29 @@ async function processRealtimeSyncEvent(envelope: any) {
     }
 
     // Fetch Conversation and Contact to construct full inbox:message_new payload
+    let conversationPayload = envelope.conversation || null;
     let contactPayload = envelope.contact || null;
-    if (!contactPayload) {
-      try {
-        const conversation = await db.collection('conversations').findOne({
+    try {
+      if (!conversationPayload) {
+        conversationPayload = await db.collection('conversations').findOne({
           _id: new mongoose.Types.ObjectId(envelope.conversationId),
         });
-
-        if (conversation && conversation.contact) {
-          const contact = await db.collection('contacts').findOne({
-            _id: conversation.contact,
-          });
-          if (contact) {
-            contactPayload = {
-              _id: contact._id.toString(),
-              name: contact.name || 'Unknown',
-              phone: contact.phone || '',
-            };
-          }
-        }
-      } catch (dbErr: any) {
-        console.error('[WS Gateway EventBus] MongoDB lookup error:', dbErr.message);
       }
+
+      if (!contactPayload && conversationPayload?.contact) {
+        const contact = await db.collection('contacts').findOne({
+          _id: conversationPayload.contact,
+        });
+        if (contact) {
+          contactPayload = {
+            _id: contact._id.toString(),
+            name: contact.name || 'Unknown',
+            phone: contact.phone || '',
+          };
+        }
+      }
+    } catch (dbErr: any) {
+      console.error('[WS Gateway EventBus] MongoDB lookup error:', dbErr.message);
     }
 
     const socketMsgPayload = {
@@ -272,6 +381,7 @@ async function processRealtimeSyncEvent(envelope: any) {
         body: envelope.payload.text || envelope.payload.body || '',
       },
       contact: contactPayload,
+      conversation: serializeConversationForSocket(conversationPayload, contactPayload),
     };
 
     // Emit frontend compatible new message event
@@ -308,6 +418,18 @@ async function processRealtimeSyncEvent(envelope: any) {
     io.to(workspaceRoom).emit('conversation:updated', updatePayload);
     io.to(conversationRoom).emit('conversation:status-updated', envelope.payload);
     console.log(`[WS Gateway EventBus] Broadcasted inbox:conversation_updated status: ${updatePayload.status}`);
+  }
+  else if (envelope.type === 'conversation_read' || envelope.type === 'conversation_updated') {
+    const updatePayload = {
+      conversationId: envelope.conversationId || envelope.payload?.conversationId,
+      ...envelope.payload,
+      updatedAt: envelope.timestamp,
+    };
+
+    io.to(workspaceRoom).emit('inbox:conversation_updated', updatePayload);
+    io.to(conversationRoom).emit('inbox:conversation_updated', updatePayload);
+    io.to(workspaceRoom).emit('conversation:updated', updatePayload);
+    console.log(`[WS Gateway EventBus] Broadcasted inbox:conversation_updated for conversation: ${updatePayload.conversationId}`);
   }
 }
 

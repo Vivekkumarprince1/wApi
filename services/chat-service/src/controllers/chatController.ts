@@ -994,15 +994,11 @@ export const markAsReadPublic = async (req: any, res: express.Response) => {
 
     const userIdStr = user._id.toString();
 
-    // Reset global unread count if assigned to this user
-    if (conversation.assignedTo?.toString() === userIdStr) {
-      conversation.unreadCount = 0;
-    }
-
-    // Reset per-agent unread counts
-    if (conversation.agentUnreadCounts) {
-      conversation.agentUnreadCounts.set(userIdStr, 0);
-    }
+    // Keep the legacy/global unread count in sync with the per-agent read state.
+    // The inbox list falls back to `unreadCount` when no per-agent value exists
+    // (for example unassigned conversations), so leaving it non-zero keeps the
+    // badge visible even after the current agent reads the thread.
+    (conversation as any).markReadForAgent(user._id);
 
     await conversation.save();
 
@@ -1031,6 +1027,27 @@ export const markAsReadPublic = async (req: any, res: express.Response) => {
     );
 
     // Emit Socket sync events to EventBus
+    if (eventProducer && !simulatedMode) {
+      const conversationSyncPayload = {
+        workspaceId: workspaceId.toString(),
+        conversationId,
+        type: 'conversation_read',
+        timestamp: now.toISOString(),
+        payload: {
+          conversationId,
+          readBy: userIdStr,
+          unreadCount: conversation.unreadCount || 0,
+          myUnreadCount: (conversation as any).getUnreadForAgent(user._id),
+          viewedAt: now.toISOString(),
+        },
+      };
+
+      await eventProducer.send({
+        topic: 'chat-realtime-sync',
+        messages: [{ key: conversationId, value: JSON.stringify(conversationSyncPayload) }],
+      }).catch((err: any) => console.error('[markAsReadPublic] Conversation read publish failed:', err.message));
+    }
+
     if (result.modifiedCount > 0 && eventProducer && !simulatedMode) {
       const unreadMessages = await Message.find({
         workspace: workspaceId,
@@ -1093,7 +1110,13 @@ export const markAsReadPublic = async (req: any, res: express.Response) => {
       }
     }
 
-    return res.status(200).json({ success: true, markedAsReadCount: result.modifiedCount, providerReadSync });
+    return res.status(200).json({
+      success: true,
+      markedAsReadCount: result.modifiedCount,
+      unreadCount: conversation.unreadCount || 0,
+      myUnreadCount: (conversation as any).getUnreadForAgent(user._id),
+      providerReadSync
+    });
   } catch (err: any) {
     console.error("[markAsReadPublic] Error:", err);
     return res.status(500).json({ success: false, message: err.message });

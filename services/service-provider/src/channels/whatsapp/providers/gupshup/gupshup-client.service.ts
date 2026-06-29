@@ -688,6 +688,46 @@ export class GupshupClientService {
     return `WAPI-V3-${Math.abs(hash).toString(36).toUpperCase()}`;
   }
 
+  private generateNonceTag(appId: string, url: string): string {
+    return this.generateUniqueTag(appId, `${url}:${Date.now()}:${Math.random().toString(36).slice(2)}`);
+  }
+
+  private providerSubscriptionId(subscription: any): string {
+    return String(
+      subscription?.id ||
+      subscription?.subscriptionId ||
+      subscription?.subscription_id ||
+      subscription?.providerSubscriptionId ||
+      ''
+    ).trim();
+  }
+
+  private providerSubscriptionUrl(subscription: any): string {
+    return String(subscription?.url || subscription?.callbackUrl || subscription?.callback_url || '').trim();
+  }
+
+  private providerSubscriptionTag(subscription: any): string {
+    return String(subscription?.tag || subscription?.componentTag || subscription?.component_tag || '').trim();
+  }
+
+  private normalizeWebhookUrl(url: string): string {
+    return String(url || '').trim().replace(/\/+$/, '');
+  }
+
+  private sameWebhookUrl(a: string, b: string): boolean {
+    return this.normalizeWebhookUrl(a) === this.normalizeWebhookUrl(b);
+  }
+
+  private isDuplicateComponentTagError(error: any): boolean {
+    const message = String(
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      ''
+    ).toLowerCase();
+    return message.includes('duplicate component tag') || message.includes('duplicate tag');
+  }
+
   async withPartnerAuth<T>(fn: (token: string) => Promise<T>): Promise<T> {
     try {
       const token = await this.getPartnerToken();
@@ -778,6 +818,11 @@ export class GupshupClientService {
       const rawSubs = response.data?.subscriptions || response.data?.data || [];
       return Array.isArray(rawSubs) ? rawSubs.map((s: any) => ({
         ...s,
+        id: this.providerSubscriptionId(s) || s.id,
+        subscriptionId: this.providerSubscriptionId(s) || s.subscriptionId,
+        url: this.providerSubscriptionUrl(s) || s.url,
+        callbackUrl: this.providerSubscriptionUrl(s) || s.callbackUrl,
+        tag: this.providerSubscriptionTag(s) || s.tag,
         events: s.modes || s.events || [],
       })) : [];
     });
@@ -810,65 +855,114 @@ export class GupshupClientService {
 
       if (strategy === 'replace' && existing.length > 0) {
         for (const sub of existing) {
-          if (sub.id) {
-            await this.deleteSubscription(input.appId, sub.id).catch(e =>
-              console.warn(`[GupshupClientService] Failed to delete sub ${sub.id}:`, e.message)
+          const subscriptionId = this.providerSubscriptionId(sub);
+          if (subscriptionId) {
+            await this.deleteSubscription(input.appId, subscriptionId).catch(e =>
+              console.warn(`[GupshupClientService] Failed to delete sub ${subscriptionId}:`, e.message)
             );
           }
         }
       }
 
+      const stableTag = this.generateUniqueTag(input.appId, secureUrl);
       if (strategy === 'update') {
-        const existingSub = existing.find((s: any) => s.url === secureUrl);
-        if (existingSub?.id) {
+        const existingSub = existing.find((s: any) => this.sameWebhookUrl(this.providerSubscriptionUrl(s), secureUrl));
+        const existingSubId = this.providerSubscriptionId(existingSub);
+        if (existingSubId) {
           return this.updateSubscription({
             appId: input.appId,
-            subscriptionId: existingSub.id,
+            subscriptionId: existingSubId,
             url: secureUrl,
             events: normalizedEvents,
-            tag: existingSub.tag,
+            tag: this.providerSubscriptionTag(existingSub) || stableTag,
+          });
+        }
+
+        const existingTagSub = existing.find((s: any) => this.providerSubscriptionTag(s) === stableTag);
+        const existingTagSubId = this.providerSubscriptionId(existingTagSub);
+        if (existingTagSubId) {
+          return this.updateSubscription({
+            appId: input.appId,
+            subscriptionId: existingTagSubId,
+            url: secureUrl,
+            events: normalizedEvents,
+            tag: stableTag,
           });
         }
       }
 
-      const params = new URLSearchParams();
-      params.append('url', secureUrl);
-      params.append('version', '3');
-      params.append('tag', this.generateUniqueTag(input.appId, secureUrl));
-      
-      const uniqueModes = new Set<string>();
-      normalizedEvents.forEach((e: any) => {
-        const upper = String(e).toUpperCase().replace(/-EVENT/i, '').replace(/_/g, '_');
-        if (['USER', 'SYSTEM', 'OTHERS'].includes(upper)) {
-          uniqueModes.add('OTHERS');
-        } else if (['BILLING_EVENT', 'BILLING'].includes(upper)) {
-          uniqueModes.add('BILLING');
-        } else if (['ACCOUNT_EVENT', 'ACCOUNT'].includes(upper)) {
-          uniqueModes.add('ACCOUNT');
-        } else if (['TEMPLATE_EVENT', 'TEMPLATE'].includes(upper)) {
-          uniqueModes.add('TEMPLATE');
-        } else {
-          uniqueModes.add(upper);
-        }
-      });
-      params.append('modes', Array.from(uniqueModes).join(','));
-      params.append('showOnUI', 'true');
+      const existingTags = new Set(existing.map((s: any) => this.providerSubscriptionTag(s)).filter(Boolean));
+      const requestedTag = strategy === 'add' && existingTags.has(stableTag)
+        ? this.generateNonceTag(input.appId, secureUrl)
+        : stableTag;
 
-      const response = await this.partnerClient.post(
-        `/partner/app/${input.appId}/subscription?v=v3`,
-        params.toString(),
-        {
-          headers: {
-            ...headers,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        }
-      );
-
-      return {
-        ...response.data,
-        registeredUrl: secureUrl,
+      const buildParams = (tag: string) => {
+        const params = new URLSearchParams();
+        params.append('url', secureUrl);
+        params.append('version', '3');
+        params.append('tag', tag);
+        
+        const uniqueModes = new Set<string>();
+        normalizedEvents.forEach((e: any) => {
+          const upper = String(e).toUpperCase().replace(/-EVENT/i, '').replace(/_/g, '_');
+          if (['USER', 'SYSTEM', 'OTHERS'].includes(upper)) {
+            uniqueModes.add('OTHERS');
+          } else if (['BILLING_EVENT', 'BILLING'].includes(upper)) {
+            uniqueModes.add('BILLING');
+          } else if (['ACCOUNT_EVENT', 'ACCOUNT'].includes(upper)) {
+            uniqueModes.add('ACCOUNT');
+          } else if (['TEMPLATE_EVENT', 'TEMPLATE'].includes(upper)) {
+            uniqueModes.add('TEMPLATE');
+          } else {
+            uniqueModes.add(upper);
+          }
+        });
+        params.append('modes', Array.from(uniqueModes).join(','));
+        params.append('showOnUI', 'true');
+        return params;
       };
+
+      const createSubscription = async (tag: string) => {
+        const params = buildParams(tag);
+        const response = await this.partnerClient.post(
+          `/partner/app/${input.appId}/subscription?v=v3`,
+          params.toString(),
+          {
+            headers: {
+              ...headers,
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+          }
+        );
+
+        return {
+          ...response.data,
+          registeredUrl: secureUrl,
+        };
+      };
+
+      try {
+        return await createSubscription(requestedTag);
+      } catch (error: any) {
+        if (!this.isDuplicateComponentTagError(error)) {
+          throw error;
+        }
+
+        const latest = await this.listSubscriptions(input.appId).catch(() => []);
+        const duplicate = latest.find((s: any) => this.providerSubscriptionTag(s) === requestedTag);
+        const duplicateId = this.providerSubscriptionId(duplicate);
+        if (strategy === 'update' && duplicateId) {
+          return this.updateSubscription({
+            appId: input.appId,
+            subscriptionId: duplicateId,
+            url: secureUrl,
+            events: normalizedEvents,
+            tag: requestedTag,
+          });
+        }
+
+        return createSubscription(this.generateNonceTag(input.appId, secureUrl));
+      }
     });
   }
 
