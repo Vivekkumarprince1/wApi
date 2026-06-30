@@ -89,13 +89,6 @@ export function SocketHub() {
       invalidateCampaignQueries(campaignIds);
     };
 
-    const handleInboxUpdate = (data: { conversationId?: string }) => {
-      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      if (data?.conversationId) {
-        void queryClient.invalidateQueries({ queryKey: ["messages", data.conversationId] });
-      }
-    };
-
     // Register global listeners
     socket.on("workspace:wallet_update", handleWalletUpdate);
     socket.on("workspace:notification", handleGlobalNotification);
@@ -103,9 +96,6 @@ export function SocketHub() {
     socket.on("campaign:batch_completed", handleCampaignStatus);
     socket.on("campaign:message_status_batch", handleCampaignMessageBatch);
     socket.on("campaign:message_status_update", handleCampaignMessageBatch);
-    socket.on("inbox:message_new", handleInboxUpdate);
-    socket.on("inbox:message_sent", handleInboxUpdate);
-    socket.on("inbox:conversation_updated", handleInboxUpdate);
 
     return () => {
       socket.off("workspace:wallet_update", handleWalletUpdate);
@@ -114,9 +104,6 @@ export function SocketHub() {
       socket.off("campaign:batch_completed", handleCampaignStatus);
       socket.off("campaign:message_status_batch", handleCampaignMessageBatch);
       socket.off("campaign:message_status_update", handleCampaignMessageBatch);
-      socket.off("inbox:message_new", handleInboxUpdate);
-      socket.off("inbox:message_sent", handleInboxUpdate);
-      socket.off("inbox:conversation_updated", handleInboxUpdate);
     };
   }, [socket, isConnected, queryClient]);
 

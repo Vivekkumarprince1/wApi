@@ -112,7 +112,9 @@ const getSocket = async (): Promise<Socket> => {
     const socket = io(socketBase || undefined, {
       auth: { token },
       withCredentials: true,
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
+      upgrade: false,
+      tryAllTransports: true,
       reconnectionAttempts: 10,
       reconnectionDelay: 1000,
     });

@@ -519,8 +519,6 @@ export default function InboxPage() {
           void markConversationAsRead(selectedConversationId);
         }
       }
-      
-      void queryClient.invalidateQueries({ queryKey: ['conversations'] });
     };
 
     const handleStatusUpdate = (data: any) => {
