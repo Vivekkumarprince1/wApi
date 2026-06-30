@@ -24,7 +24,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     
     const socketBase = appConfig.socketUrl;
 
-    const socket = io(socketBase, {
+    const socket = io(socketBase || undefined, {
       auth: { token },
       transports: ['websocket'],
       reconnection: true,

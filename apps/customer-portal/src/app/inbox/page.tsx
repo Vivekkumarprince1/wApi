@@ -73,14 +73,25 @@ const messageIdentityValues = (message: any) => {
     toEntityId(message?._id),
     toEntityId(message?.id),
     typeof whatsappMessageId === 'object' ? toEntityId(whatsappMessageId) : whatsappMessageId,
-    message?.messageId,
-    message?.providerMessageId,
+    toEntityId(message?.messageId),
+    toEntityId(message?.providerMessageId),
   ].filter(Boolean).map(String);
 };
 
 const isSameMessage = (left: any, right: any) => {
   const leftIds = new Set(messageIdentityValues(left));
   return messageIdentityValues(right).some((id) => leftIds.has(id));
+};
+
+const messageMatchesStatusPayload = (message: any, data: any) => {
+  const statusIds = new Set([
+    data?.messageId,
+    data?.providerMessageId,
+    data?.whatsappMessageId,
+  ].filter(Boolean).map(String));
+
+  if (statusIds.size === 0) return false;
+  return messageIdentityValues(message).some((id) => statusIds.has(id));
 };
 
 const getUnreadForUser = (counts: any, userId: string | null): number | undefined => {
@@ -108,6 +119,7 @@ const normalizeSocketMessage = (message: any): Message => ({
   body: getMessageBody(message),
   text: message?.text || getMessageBody(message),
   whatsappMessageId: message?.whatsappMessageId || message?.messageId,
+  createdAt: message?.createdAt || message?.sentAt || message?.timestamp || new Date().toISOString(),
 }) as Message;
 
 export default function InboxPage() {
@@ -239,12 +251,42 @@ export default function InboxPage() {
     }
   }, [clearUnreadInConversationCaches, queryClient]);
 
+  const conversationMatchesActiveFilters = useCallback((conversation: any) => {
+    const status = conversation?.status || 'open';
+    const channel = conversation?.channel || 'whatsapp';
+    const assignedToId = toEntityId(conversation?.assignedTo);
+
+    if (!['all', 'open'].includes(statusFilter) && status !== statusFilter) return false;
+    if (channelFilter !== 'all' && channel !== channelFilter) return false;
+    if (assignmentFilter === 'me' && assignedToId !== currentUserId) return false;
+    if (assignmentFilter === 'unassigned' && assignedToId) return false;
+
+    return true;
+  }, [assignmentFilter, channelFilter, currentUserId, statusFilter]);
+
   const patchConversationCachesForMessage = useCallback((data: any, isSelected: boolean) => {
     const conversationId = toEntityId(data?.conversationId || data?.conversation?._id);
     if (!conversationId) return;
 
     const message = normalizeSocketMessage(data?.message);
     const eventConversation = data?.conversation || {};
+    const baseConversation = {
+      _id: conversationId,
+      contact: data?.contact || eventConversation.contact || message.contact || {
+        _id: toEntityId(message.contact),
+        name: 'Unknown',
+        phone: '',
+      },
+      channel: eventConversation.channel || 'whatsapp',
+      status: eventConversation.status || 'open',
+      priority: eventConversation.priority || 'normal',
+      unreadCount: eventConversation.unreadCount || 0,
+      myUnreadCount: eventConversation.myUnreadCount || 0,
+      agentUnreadCounts: eventConversation.agentUnreadCounts || {},
+      lastActivityAt: eventConversation.lastActivityAt,
+      lastMessageAt: eventConversation.lastMessageAt,
+      ...eventConversation,
+    };
     const eventUnreadForUser = getUnreadForUser(eventConversation.agentUnreadCounts, currentUserId);
     const isInbound = !message.direction || message.direction === 'inbound';
     const timestamp =
@@ -308,12 +350,68 @@ export default function InboxPage() {
       return { ...old, data: dataList };
     });
 
+    queryClient.setQueryData(['conversations', statusFilter, assignmentFilter, channelFilter], (old: any) => {
+      if (!old?.data || !Array.isArray(old.data)) return old;
+      const exists = old.data.some((conv: any) => toEntityId(conv?._id) === conversationId);
+      if (exists || !conversationMatchesActiveFilters(baseConversation)) return old;
+
+      return {
+        ...old,
+        data: [patchConversation(baseConversation), ...old.data],
+        pagination: old.pagination
+          ? { ...old.pagination, total: Number(old.pagination.total || 0) + 1 }
+          : old.pagination,
+      };
+    });
+
     setSelectedConversation((current) => (
       current && toEntityId(current._id) === conversationId
         ? patchConversation(current)
         : current
     ));
-  }, [queryClient, currentUserId]);
+  }, [
+    queryClient,
+    currentUserId,
+    statusFilter,
+    assignmentFilter,
+    channelFilter,
+    conversationMatchesActiveFilters,
+  ]);
+
+  const patchConversationCachesForStatus = useCallback((data: any) => {
+    const conversationId = toEntityId(data?.conversationId);
+    if (!conversationId) return;
+
+    const patchStatus = (conv: any) => {
+      if (toEntityId(conv?._id) !== conversationId) return conv;
+      if (!conv.lastMessage || !messageMatchesStatusPayload(conv.lastMessage, data)) return conv;
+      return {
+        ...conv,
+        lastMessage: {
+          ...conv.lastMessage,
+          status: data.status,
+          statusUpdatedAt: data.timestamp,
+        },
+      };
+    };
+
+    queryClient.setQueriesData({ queryKey: ['conversations'] }, (old: any) => {
+      if (!old?.data || !Array.isArray(old.data)) return old;
+      let changed = false;
+      const dataList = old.data.map((conv: any) => {
+        const next = patchStatus(conv);
+        if (next !== conv) changed = true;
+        return next;
+      });
+      return changed ? { ...old, data: dataList } : old;
+    });
+
+    setSelectedConversation((current) => {
+      if (!current) return current;
+      const next = patchStatus(current);
+      return next === current ? current : next;
+    });
+  }, [queryClient]);
 
   const patchConversationCachesForUpdate = useCallback((data: any) => {
     const conversationId = toEntityId(data?.conversationId || data?._id);
@@ -427,46 +525,64 @@ export default function InboxPage() {
 
     const handleStatusUpdate = (data: any) => {
       console.log('[Inbox:Socket] Status Update:', data);
-      if (!selectedConversation) return;
-      queryClient.setQueryData(['messages', selectedConversation._id], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page: any) => ({
-            ...page,
-            data: page.data.map((msg: any) => 
-               messageIdentityValues(msg).some((id) => [
-                 data.messageId,
-                 data.providerMessageId,
-                 data.whatsappMessageId,
-               ].filter(Boolean).map(String).includes(id))
-                ? { ...msg, status: data.status, statusUpdatedAt: data.timestamp } 
-                : msg
-            )
-          }))
-        };
-      });
-    };
+      const conversationId = toEntityId(data?.conversationId || selectedConversation?._id);
+      if (!conversationId) return;
 
-    const handleStatusBatch = (data: any) => {
-      console.log('[Inbox:Socket] Status Batch Update:', data);
-      if (!selectedConversation) return;
-      const updates = data.updates || [];
-      if (!updates.length) return;
-
-      queryClient.setQueryData(['messages', selectedConversation._id], (old: any) => {
+      let matched = false;
+      queryClient.setQueryData(['messages', conversationId], (old: any) => {
         if (!old) return old;
         return {
           ...old,
           pages: old.pages.map((page: any) => ({
             ...page,
             data: page.data.map((msg: any) => {
-              const update = updates.find((u: any) => String(msg._id) === String(u.messageId) || msg.whatsappMessageId === u.messageId);
-              return update ? { ...msg, status: update.status, statusUpdatedAt: update.timestamp } : msg;
+              if (!messageMatchesStatusPayload(msg, data)) return msg;
+              matched = true;
+              return { ...msg, status: data.status, statusUpdatedAt: data.timestamp };
             })
           }))
         };
       });
+
+      patchConversationCachesForStatus(data);
+      if (!matched) {
+        void queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      }
+    };
+
+    const handleStatusBatch = (data: any) => {
+      console.log('[Inbox:Socket] Status Batch Update:', data);
+      const updates = data.updates || [];
+      if (!updates.length) return;
+
+      const conversationId = toEntityId(data?.conversationId || updates[0]?.conversationId || selectedConversation?._id);
+      if (!conversationId) return;
+
+      let matched = false;
+      queryClient.setQueryData(['messages', conversationId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            data: page.data.map((msg: any) => {
+              const update = updates.find((u: any) => messageMatchesStatusPayload(msg, u));
+              if (!update) return msg;
+              matched = true;
+              return { ...msg, status: update.status, statusUpdatedAt: update.timestamp };
+            })
+          }))
+        };
+      });
+
+      updates.forEach((update: any) => patchConversationCachesForStatus({
+        ...update,
+        conversationId: update.conversationId || conversationId,
+      }));
+
+      if (!matched) {
+        void queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      }
     };
 
     const handleConversationUpdate = (data: any) => {
@@ -474,7 +590,35 @@ export default function InboxPage() {
       patchConversationCachesForUpdate(data);
     };
 
+    const handleInboxSync = (envelope: any) => {
+      if (!envelope?.type) return;
+
+      if (envelope.type === 'message_created') {
+        handleNewMessage({
+          conversationId: envelope.conversationId,
+          message: envelope.payload,
+          contact: envelope.contact,
+          conversation: envelope.conversation,
+          timestamp: envelope.timestamp,
+        });
+      } else if (envelope.type === 'message_status_updated' || envelope.type === 'message_status_changed') {
+        handleStatusUpdate({
+          ...envelope.payload,
+          messageId: envelope.payload?.messageId || envelope.messageId,
+          conversationId: envelope.payload?.conversationId || envelope.conversationId,
+          timestamp: envelope.payload?.timestamp || envelope.timestamp,
+        });
+      } else if (envelope.type === 'conversation_status_changed' || envelope.type === 'conversation_read' || envelope.type === 'conversation_updated') {
+        handleConversationUpdate({
+          conversationId: envelope.conversationId || envelope.payload?.conversationId,
+          ...envelope.payload,
+          updatedAt: envelope.timestamp,
+        });
+      }
+    };
+
     // Listen to CORRECT backend event names
+    socket.on('inbox:sync', handleInboxSync);
     socket.on('inbox:message_new', handleNewMessage);
     socket.on('inbox:message_sent', handleNewMessage); // Also treat sent as new message
     socket.on('inbox:message_status', handleStatusUpdate);
@@ -482,6 +626,7 @@ export default function InboxPage() {
     socket.on('inbox:conversation_updated', handleConversationUpdate);
 
     return () => {
+      socket.off('inbox:sync', handleInboxSync);
       socket.off('inbox:message_new', handleNewMessage);
       socket.off('inbox:message_sent', handleNewMessage);
       socket.off('inbox:message_status', handleStatusUpdate);
@@ -495,6 +640,7 @@ export default function InboxPage() {
     queryClient,
     markConversationAsRead,
     patchConversationCachesForMessage,
+    patchConversationCachesForStatus,
     patchConversationCachesForUpdate
   ]);
 

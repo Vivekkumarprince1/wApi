@@ -102,14 +102,14 @@ const getSocket = async (): Promise<Socket> => {
       }
     }
 
-    console.log('[Socket:Singleton] 🌐 Connecting to:', socketBase);
+    console.log('[Socket:Singleton] 🌐 Connecting to:', socketBase || 'current origin');
     if (token) {
       console.log('[Socket:Singleton] 🔑 Found auth token (Length: ' + token.length + ')');
     } else {
       console.warn('[Socket:Singleton] ⚠️ No auth token available. Will attempt connection with withCredentials.');
     }
 
-    const socket = io(socketBase, {
+    const socket = io(socketBase || undefined, {
       auth: { token },
       withCredentials: true,
       transports: ['polling', 'websocket'],

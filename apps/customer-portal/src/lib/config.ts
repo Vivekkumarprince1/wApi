@@ -7,8 +7,10 @@ export const config = {
   env: process.env.NODE_ENV || 'development',
   baseUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   apiUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
-  // Socket connects to backend server via BACKEND_API_URL (not NEXT_PUBLIC, so it's server-side)
-  socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL || 'http://127.0.0.1:5001',
+  // Empty means Socket.io uses the current origin. `next.config.ts` rewrites
+  // /socket.io to the API gateway, so Docker/prod builds do not accidentally
+  // bake a developer localhost into the browser bundle.
+  socketUrl: process.env.NEXT_PUBLIC_SOCKET_URL || '',
   
   // Public Integration Keys (Safe for client)
   googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',

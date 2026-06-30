@@ -247,6 +247,10 @@ services:
     build:
       context: .
       dockerfile: apps/customer-portal/Dockerfile
+      args:
+        BACKEND_API_URL: http://api-gateway:5001
+        NEXT_PUBLIC_API_URL: /api
+        NEXT_PUBLIC_SOCKET_URL: ""
     container_name: wapi-customer-portal
     ports:
       - "3000:3000"
