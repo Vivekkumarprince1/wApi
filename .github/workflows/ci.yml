@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Run Production Readiness Checks
         run: ./scripts/production/check-readiness.sh
@@ -23,12 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Build Contracts
         run: |
@@ -37,7 +37,7 @@ jobs:
           npm run build
 
       - name: Cache Shared Contracts Build
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           path: packages/contracts/dist
           key: ${{ github.sha }}-contracts-dist
@@ -65,16 +65,16 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Restore Shared Contracts Build
         if: ${{ matrix.service.needs_contracts }}
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: packages/contracts/dist
           key: ${{ github.sha }}-contracts-dist

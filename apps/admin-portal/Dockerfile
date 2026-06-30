@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 ARG NEXT_PUBLIC_APP_NAME="wApi Super Admin"
 ARG NEXT_PUBLIC_APP_URL
@@ -14,7 +14,7 @@ RUN cd apps/admin-portal && npm install
 COPY apps/admin-portal ./apps/admin-portal
 RUN cd apps/admin-portal && npm run build
 
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ARG NEXT_PUBLIC_APP_NAME="wApi Super Admin"
