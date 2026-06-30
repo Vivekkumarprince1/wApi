@@ -45,13 +45,38 @@ const AUTH_SERVICE_URL =
 const AUTH_SERVICE_TIMEOUT_MS = parseInt(process.env.AUTH_SERVICE_TIMEOUT_MS || '2000', 10);
 
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
+const defaultAllowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://localhost:3100",
   "http://127.0.0.1:3100"
 ];
-const corsOrigin = allowedOrigins.includes('*') ? true : allowedOrigins;
+const allowedOrigins = (process.env.ALLOWED_ORIGINS?.split(',') || defaultAllowedOrigins)
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowAnyOrigin = allowedOrigins.includes('*');
+const allowedOriginSet = new Set(allowedOrigins);
+
+function isAllowedCloudRunFrontendOrigin(origin: string) {
+  try {
+    const url = new URL(origin);
+    const host = url.hostname;
+    return url.protocol === 'https:' &&
+      host.endsWith('.run.app') &&
+      (host.startsWith('customer-portal-') || host.startsWith('admin-portal-'));
+  } catch {
+    return false;
+  }
+}
+
+const corsOrigin = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+  if (!origin || allowAnyOrigin || allowedOriginSet.has(origin) || isAllowedCloudRunFrontendOrigin(origin)) {
+    callback(null, true);
+    return;
+  }
+
+  callback(new Error(`Origin ${origin} is not allowed by websocket CORS`), false);
+};
 
 const io = new SocketIOServer(httpServer, {
   cors: {

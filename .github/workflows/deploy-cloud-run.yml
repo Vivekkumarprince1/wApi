@@ -189,8 +189,26 @@ jobs:
         env:
           IMAGE: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/wapi-${{ matrix.service.name }}:${{ github.sha }}
         run: |
+          UPDATE_ARGS=()
+
+          if [[ "${{ matrix.service.name }}" == "websocket-gateway" ]]; then
+            CUSTOMER_URL="$(gcloud run services describe customer-portal \
+              --project="${PROJECT_ID}" \
+              --region="${REGION}" \
+              --format='value(status.url)' || true)"
+            ADMIN_URL="$(gcloud run services describe admin-portal \
+              --project="${PROJECT_ID}" \
+              --region="${REGION}" \
+              --format='value(status.url)' || true)"
+            ORIGINS="$(printf '%s\n%s\n' "${CUSTOMER_URL}" "${ADMIN_URL}" | awk 'NF' | paste -sd, -)"
+            if [[ -n "${ORIGINS}" ]]; then
+              UPDATE_ARGS+=(--update-env-vars "ALLOWED_ORIGINS=${ORIGINS}")
+            fi
+          fi
+
           gcloud run services update "${{ matrix.service.name }}" \
             --project="${PROJECT_ID}" \
             --region="${REGION}" \
             --image="${IMAGE}" \
+            "${UPDATE_ARGS[@]}" \
             --quiet
