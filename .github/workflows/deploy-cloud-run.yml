@@ -202,7 +202,7 @@ jobs:
               --format='value(status.url)' || true)"
             ORIGINS="$(printf '%s\n%s\n' "${CUSTOMER_URL}" "${ADMIN_URL}" | awk 'NF' | paste -sd, -)"
             if [[ -n "${ORIGINS}" ]]; then
-              UPDATE_ARGS+=(--update-env-vars "ALLOWED_ORIGINS=${ORIGINS}")
+              UPDATE_ARGS+=(--update-env-vars "^|^ALLOWED_ORIGINS=${ORIGINS}")
             fi
           fi
 
