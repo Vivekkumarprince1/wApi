@@ -423,7 +423,12 @@ let redisConsumer: Redis | null = null;
 async function processRealtimeSyncEvent(envelope: any) {
   const safeEnvelope = normalizeRealtimeEnvelope(envelope);
   const workspaceRoom = `workspace:${safeEnvelope.workspaceId}`;
-  const conversationRoom = `conversation:${safeEnvelope.conversationId}`;
+  const conversationId = safeEnvelope.conversationId || safeEnvelope.payload?.conversationId;
+  const conversationRoom = conversationId ? `conversation:${conversationId}` : null;
+  const emitToInboxRooms = (event: string, payload: any) => {
+    const target = conversationRoom ? io.to(workspaceRoom).to(conversationRoom) : io.to(workspaceRoom);
+    target.emit(event, payload);
+  };
 
   // Personal notifications target only the recipient's room — never the
   // whole workspace. Payload shape matches the frontend socket-hub handler
@@ -442,12 +447,9 @@ async function processRealtimeSyncEvent(envelope: any) {
     return;
   }
 
-  // 1. Always emit generic inbox sync (fallback support). Never emit the raw
-  // envelope here; some producers still publish Mongoose/BSON-rich payloads
-  // that can overflow Socket.io's recursive encoder.
-  io.to(workspaceRoom).emit('inbox:sync', safeEnvelope);
-
-  // 2. Map and emit exact frontend-compatible Socket.io events
+  // Map and emit exact frontend-compatible Socket.io events. Use Socket.io's
+  // room union operator so sockets joined to both workspace and conversation
+  // receive each logical update once.
   if (safeEnvelope.type === 'message_created') {
     const db = mongoose.connection.db;
     if (!db) {
@@ -490,11 +492,12 @@ async function processRealtimeSyncEvent(envelope: any) {
     };
 
     // Emit frontend compatible new message event
-    io.to(workspaceRoom).emit('inbox:message_new', socketMsgPayload);
-    io.to(conversationRoom).emit('inbox:message_new', socketMsgPayload);
+    emitToInboxRooms('inbox:message_new', socketMsgPayload);
 
     // Also emit legacy compatibility events
-    io.to(conversationRoom).emit('message:created', messagePayload);
+    if (conversationRoom) {
+      io.to(conversationRoom).emit('message:created', messagePayload);
+    }
     console.log(`[WS Gateway EventBus] Broadcasted inbox:message_new for messageId: ${safeEnvelope.messageId}`);
   } 
   else if (safeEnvelope.type === 'message_status_updated' || safeEnvelope.type === 'message_status_changed') {
@@ -502,13 +505,12 @@ async function processRealtimeSyncEvent(envelope: any) {
       messageId: safeEnvelope.payload?.messageId || safeEnvelope.messageId,
       providerMessageId: safeEnvelope.payload?.providerMessageId,
       whatsappMessageId: safeEnvelope.payload?.whatsappMessageId,
-      conversationId: safeEnvelope.payload?.conversationId || safeEnvelope.conversationId,
+      conversationId,
       status: (safeEnvelope.payload?.status || '').toLowerCase(),
       timestamp: safeEnvelope.payload?.timestamp || safeEnvelope.timestamp,
     };
 
-    io.to(workspaceRoom).emit('inbox:message_status', statusPayload);
-    io.to(conversationRoom).emit('inbox:message_status', statusPayload);
+    emitToInboxRooms('inbox:message_status', statusPayload);
     console.log(`[WS Gateway EventBus] Broadcasted inbox:message_status status: ${statusPayload.status}`);
   } 
   else if (safeEnvelope.type === 'conversation_status_changed') {
@@ -519,9 +521,11 @@ async function processRealtimeSyncEvent(envelope: any) {
       lastActivityAt: safeEnvelope.timestamp,
     };
 
-    io.to(workspaceRoom).emit('inbox:conversation_updated', updatePayload);
+    emitToInboxRooms('inbox:conversation_updated', updatePayload);
     io.to(workspaceRoom).emit('conversation:updated', updatePayload);
-    io.to(conversationRoom).emit('conversation:status-updated', safeEnvelope.payload);
+    if (conversationRoom) {
+      io.to(conversationRoom).emit('conversation:status-updated', safeEnvelope.payload);
+    }
     console.log(`[WS Gateway EventBus] Broadcasted inbox:conversation_updated status: ${updatePayload.status}`);
   }
   else if (safeEnvelope.type === 'conversation_read' || safeEnvelope.type === 'conversation_updated') {
@@ -531,10 +535,14 @@ async function processRealtimeSyncEvent(envelope: any) {
       updatedAt: safeEnvelope.timestamp,
     };
 
-    io.to(workspaceRoom).emit('inbox:conversation_updated', updatePayload);
-    io.to(conversationRoom).emit('inbox:conversation_updated', updatePayload);
+    emitToInboxRooms('inbox:conversation_updated', updatePayload);
     io.to(workspaceRoom).emit('conversation:updated', updatePayload);
     console.log(`[WS Gateway EventBus] Broadcasted inbox:conversation_updated for conversation: ${updatePayload.conversationId}`);
+  }
+  else {
+    // Fallback for newer producers that do not have a dedicated frontend event
+    // yet. Keep it off known inbox event paths to avoid double-processing.
+    io.to(workspaceRoom).emit('inbox:sync', safeEnvelope);
   }
 }
 

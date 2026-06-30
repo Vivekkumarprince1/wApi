@@ -94,6 +94,112 @@ const messageMatchesStatusPayload = (message: any, data: any) => {
   return messageIdentityValues(message).some((id) => statusIds.has(id));
 };
 
+const MESSAGE_STATUS_RANK: Record<string, number> = {
+  pending: 0,
+  queued: 0,
+  sending: 1,
+  sent: 2,
+  received: 2,
+  delivered: 3,
+  read: 4,
+};
+
+const normalizeMessageStatusValue = (status: any) =>
+  typeof status === 'string' ? status.toLowerCase() : '';
+
+const getMessageStatusRank = (status: any) => {
+  const normalized = normalizeMessageStatusValue(status);
+  return MESSAGE_STATUS_RANK[normalized] ?? -1;
+};
+
+const parseEventTime = (value: any) => {
+  if (!value) return 0;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const isStatusEventNewer = (message: any, data: any) => {
+  const incomingTime = parseEventTime(data?.timestamp || data?.statusUpdatedAt || data?.updatedAt);
+  const currentTime = parseEventTime(message?.statusUpdatedAt || message?.updatedAt);
+  if (incomingTime && currentTime) return incomingTime > currentTime;
+  if (incomingTime && !currentTime) return true;
+  return normalizeMessageStatusValue(data?.status) !== normalizeMessageStatusValue(message?.status);
+};
+
+const shouldApplyStatusUpdate = (message: any, data: any) => {
+  const incomingStatus = normalizeMessageStatusValue(data?.status);
+  if (!incomingStatus) return false;
+
+  const currentStatus = normalizeMessageStatusValue(message?.status);
+  if (!currentStatus) return true;
+
+  const incomingRank = getMessageStatusRank(incomingStatus);
+  const currentRank = getMessageStatusRank(currentStatus);
+
+  if (incomingStatus === 'failed') {
+    if (currentStatus === 'failed') return isStatusEventNewer(message, data);
+    return currentRank < MESSAGE_STATUS_RANK.delivered;
+  }
+
+  if (currentStatus === 'failed') {
+    return incomingRank >= MESSAGE_STATUS_RANK.delivered;
+  }
+
+  if (incomingRank < currentRank) return false;
+  if (incomingRank > currentRank) return true;
+  return isStatusEventNewer(message, data);
+};
+
+const applyStatusUpdateToMessage = (message: any, data: any) => {
+  if (!messageMatchesStatusPayload(message, data)) return { message, matched: false, changed: false };
+  if (!shouldApplyStatusUpdate(message, data)) return { message, matched: true, changed: false };
+
+  return {
+    message: {
+      ...message,
+      status: normalizeMessageStatusValue(data.status),
+      statusUpdatedAt: data.timestamp || message.statusUpdatedAt,
+    },
+    matched: true,
+    changed: true,
+  };
+};
+
+const rememberSocketEvent = (cache: Map<string, number>, key: string | null) => {
+  if (!key) return true;
+
+  const now = Date.now();
+  if (cache.has(key)) return false;
+
+  cache.set(key, now);
+  if (cache.size > 500) {
+    for (const [cachedKey, seenAt] of cache) {
+      if (now - seenAt > 60_000 || cache.size > 400) {
+        cache.delete(cachedKey);
+      }
+    }
+  }
+
+  return true;
+};
+
+const buildMessageEventKey = (data: any) => {
+  const conversationId = toEntityId(data?.conversationId || data?.conversation?._id);
+  const ids = messageIdentityValues(data?.message);
+  if (!conversationId || ids.length === 0) return null;
+  return `message:${conversationId}:${ids.sort().join('|')}`;
+};
+
+const buildStatusEventKey = (data: any) => {
+  const conversationId = toEntityId(data?.conversationId);
+  const ids = [data?.messageId, data?.providerMessageId, data?.whatsappMessageId]
+    .filter(Boolean)
+    .map(String)
+    .sort();
+  if (!conversationId || ids.length === 0) return null;
+  return `status:${conversationId}:${ids.join('|')}:${normalizeMessageStatusValue(data?.status)}:${data?.timestamp || ''}`;
+};
+
 const getUnreadForUser = (counts: any, userId: string | null): number | undefined => {
   if (!counts || !userId) return undefined;
   if (counts instanceof Map) return Number(counts.get(userId)) || 0;
@@ -137,6 +243,8 @@ export default function InboxPage() {
     [workspace, user]
   );
   const currentUserId = React.useMemo(() => toEntityId(user?._id || user?.id), [user]);
+  const seenMessageEventsRef = React.useRef(new Map<string, number>());
+  const seenStatusEventsRef = React.useRef(new Map<string, number>());
 
   // 1. Fetch Conversations
   const { data: convsData, isLoading: isConvsLoading } = useQuery({
@@ -384,14 +492,13 @@ export default function InboxPage() {
 
     const patchStatus = (conv: any) => {
       if (toEntityId(conv?._id) !== conversationId) return conv;
-      if (!conv.lastMessage || !messageMatchesStatusPayload(conv.lastMessage, data)) return conv;
+      if (!conv.lastMessage) return conv;
+      const result = applyStatusUpdateToMessage(conv.lastMessage, data);
+      if (!result.changed) return conv;
+
       return {
         ...conv,
-        lastMessage: {
-          ...conv.lastMessage,
-          status: data.status,
-          statusUpdatedAt: data.timestamp,
-        },
+        lastMessage: result.message,
       };
     };
 
@@ -483,6 +590,7 @@ export default function InboxPage() {
     if (!socket || !isConnected) return;
 
     const handleNewMessage = (data: any) => {
+      if (!rememberSocketEvent(seenMessageEventsRef.current, buildMessageEventKey(data))) return;
       console.log('[Inbox:Socket] New Message Received:', data);
 
       const conversationId = toEntityId(data?.conversationId || data?.conversation?._id);
@@ -522,6 +630,7 @@ export default function InboxPage() {
     };
 
     const handleStatusUpdate = (data: any) => {
+      if (!rememberSocketEvent(seenStatusEventsRef.current, buildStatusEventKey(data))) return;
       console.log('[Inbox:Socket] Status Update:', data);
       const conversationId = toEntityId(data?.conversationId || selectedConversation?._id);
       if (!conversationId) return;
@@ -529,17 +638,17 @@ export default function InboxPage() {
       let matched = false;
       queryClient.setQueryData(['messages', conversationId], (old: any) => {
         if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page: any) => ({
-            ...page,
-            data: page.data.map((msg: any) => {
-              if (!messageMatchesStatusPayload(msg, data)) return msg;
-              matched = true;
-              return { ...msg, status: data.status, statusUpdatedAt: data.timestamp };
-            })
-          }))
-        };
+        let changed = false;
+        const pages = old.pages.map((page: any) => ({
+          ...page,
+          data: page.data.map((msg: any) => {
+            const result = applyStatusUpdateToMessage(msg, data);
+            if (result.matched) matched = true;
+            if (result.changed) changed = true;
+            return result.message;
+          })
+        }));
+        return changed ? { ...old, pages } : old;
       });
 
       patchConversationCachesForStatus(data);
@@ -559,18 +668,19 @@ export default function InboxPage() {
       let matched = false;
       queryClient.setQueryData(['messages', conversationId], (old: any) => {
         if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page: any) => ({
-            ...page,
-            data: page.data.map((msg: any) => {
-              const update = updates.find((u: any) => messageMatchesStatusPayload(msg, u));
-              if (!update) return msg;
-              matched = true;
-              return { ...msg, status: update.status, statusUpdatedAt: update.timestamp };
-            })
-          }))
-        };
+        let changed = false;
+        const pages = old.pages.map((page: any) => ({
+          ...page,
+          data: page.data.map((msg: any) => {
+            const update = updates.find((u: any) => messageMatchesStatusPayload(msg, u));
+            if (!update) return msg;
+            matched = true;
+            const result = applyStatusUpdateToMessage(msg, update);
+            if (result.changed) changed = true;
+            return result.message;
+          })
+        }));
+        return changed ? { ...old, pages } : old;
       });
 
       updates.forEach((update: any) => patchConversationCachesForStatus({
@@ -591,22 +701,11 @@ export default function InboxPage() {
     const handleInboxSync = (envelope: any) => {
       if (!envelope?.type) return;
 
-      if (envelope.type === 'message_created') {
-        handleNewMessage({
-          conversationId: envelope.conversationId,
-          message: envelope.payload,
-          contact: envelope.contact,
-          conversation: envelope.conversation,
-          timestamp: envelope.timestamp,
-        });
-      } else if (envelope.type === 'message_status_updated' || envelope.type === 'message_status_changed') {
-        handleStatusUpdate({
-          ...envelope.payload,
-          messageId: envelope.payload?.messageId || envelope.messageId,
-          conversationId: envelope.payload?.conversationId || envelope.conversationId,
-          timestamp: envelope.payload?.timestamp || envelope.timestamp,
-        });
-      } else if (envelope.type === 'conversation_status_changed' || envelope.type === 'conversation_read' || envelope.type === 'conversation_updated') {
+      if (envelope.type === 'message_created' || envelope.type === 'message_status_updated' || envelope.type === 'message_status_changed') {
+        return;
+      }
+
+      if (envelope.type === 'conversation_status_changed' || envelope.type === 'conversation_read' || envelope.type === 'conversation_updated') {
         handleConversationUpdate({
           conversationId: envelope.conversationId || envelope.payload?.conversationId,
           ...envelope.payload,
