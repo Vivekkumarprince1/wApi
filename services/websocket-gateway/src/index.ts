@@ -101,6 +101,8 @@ async function userIsWorkspaceMember(userId: string, workspaceId: string): Promi
 function toSocketId(value: any): string | undefined {
   if (!value) return undefined;
   if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (typeof value.toHexString === 'function') return value.toHexString();
   if (value._id) return toSocketId(value._id);
   if (typeof value.toString === 'function') {
     const id = value.toString();
@@ -124,27 +126,105 @@ function serializeUnreadCounts(value: any): Record<string, number> {
   return {};
 }
 
+function toSocketPlainValue(value: any, seen = new WeakSet<object>()): any {
+  if (value === null || value === undefined) return value;
+  if (typeof value !== 'object') return value;
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value.toHexString === 'function') return value.toHexString();
+  if (Buffer.isBuffer(value)) return value.toString('base64');
+  if (ArrayBuffer.isView(value)) return Array.from(value as any);
+
+  if (seen.has(value)) return undefined;
+  seen.add(value);
+
+  if (value instanceof Map) {
+    return Object.fromEntries(
+      Array.from(value.entries()).map(([key, mapValue]) => [
+        String(key),
+        toSocketPlainValue(mapValue, seen),
+      ])
+    );
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => toSocketPlainValue(item, seen))
+      .filter((item) => item !== undefined);
+  }
+
+  const source = typeof value.toObject === 'function'
+    ? value.toObject({ depopulate: true, virtuals: false, getters: false })
+    : value;
+
+  const output: Record<string, any> = {};
+  for (const [key, entryValue] of Object.entries(source)) {
+    if (typeof entryValue === 'function') continue;
+    if (key.startsWith('$')) continue;
+
+    const plainValue = toSocketPlainValue(entryValue, seen);
+    if (plainValue !== undefined) {
+      output[key] = plainValue;
+    }
+  }
+
+  return output;
+}
+
+function normalizeSocketMessage(message: any) {
+  const plain = toSocketPlainValue(message) || {};
+  const body = plain.body || plain.text || plain.media?.caption || plain.lastMessagePreview || '';
+
+  return {
+    ...plain,
+    _id: toSocketId(plain._id) || plain._id,
+    id: toSocketId(plain.id) || plain.id,
+    workspace: toSocketId(plain.workspace) || plain.workspace,
+    conversation: toSocketId(plain.conversation) || plain.conversation,
+    contact: toSocketPlainValue(plain.contact),
+    body,
+    text: plain.text || body,
+    whatsappMessageId: plain.whatsappMessageId || plain.messageId,
+    createdAt: plain.createdAt || plain.sentAt || plain.timestamp || new Date().toISOString(),
+  };
+}
+
+function normalizeRealtimeEnvelope(envelope: any) {
+  const plain = toSocketPlainValue(envelope) || {};
+  return {
+    ...plain,
+    workspaceId: toSocketId(plain.workspaceId) || plain.workspaceId,
+    conversationId: toSocketId(plain.conversationId) || plain.conversationId,
+    messageId: toSocketId(plain.messageId) || plain.messageId,
+    payload: plain.type === 'message_created'
+      ? normalizeSocketMessage(plain.payload)
+      : toSocketPlainValue(plain.payload),
+    contact: toSocketPlainValue(plain.contact),
+    conversation: toSocketPlainValue(plain.conversation),
+  };
+}
+
 function serializeConversationForSocket(conversation: any, contactPayload: any) {
   if (!conversation) return null;
+  const plain = toSocketPlainValue(conversation) || {};
   return {
-    _id: toSocketId(conversation._id),
-    contact: contactPayload || conversation.contact,
-    channel: conversation.channel || 'whatsapp',
-    assignedTo: toSocketId(conversation.assignedTo),
-    team: toSocketId(conversation.team),
-    status: conversation.status || 'open',
-    priority: conversation.priority || 'normal',
-    unreadCount: Number(conversation.unreadCount) || 0,
-    agentUnreadCounts: serializeUnreadCounts(conversation.agentUnreadCounts),
-    lastActivityAt: conversation.lastActivityAt,
-    lastMessageAt: conversation.lastMessageAt,
-    lastMessagePreview: conversation.lastMessagePreview,
-    lastMessageDirection: conversation.lastMessageDirection,
-    lastMessageType: conversation.lastMessageType,
-    isOpen: conversation.isOpen,
-    windowExpiresAt: conversation.windowExpiresAt,
-    createdAt: conversation.createdAt,
-    updatedAt: conversation.updatedAt,
+    _id: toSocketId(plain._id),
+    contact: toSocketPlainValue(contactPayload || plain.contact),
+    channel: plain.channel || 'whatsapp',
+    assignedTo: toSocketId(plain.assignedTo),
+    team: toSocketId(plain.team),
+    status: plain.status || 'open',
+    priority: plain.priority || 'normal',
+    unreadCount: Number(plain.unreadCount) || 0,
+    agentUnreadCounts: serializeUnreadCounts(plain.agentUnreadCounts),
+    lastActivityAt: plain.lastActivityAt,
+    lastMessageAt: plain.lastMessageAt,
+    lastMessagePreview: plain.lastMessagePreview,
+    lastMessageDirection: plain.lastMessageDirection,
+    lastMessageType: plain.lastMessageType,
+    isOpen: plain.isOpen,
+    windowExpiresAt: plain.windowExpiresAt,
+    createdAt: plain.createdAt,
+    updatedAt: plain.updatedAt,
   };
 }
 
@@ -316,31 +396,34 @@ let redisProducer: Redis | null = null;
 let redisConsumer: Redis | null = null;
 
 async function processRealtimeSyncEvent(envelope: any) {
-  const workspaceRoom = `workspace:${envelope.workspaceId}`;
-  const conversationRoom = `conversation:${envelope.conversationId}`;
+  const safeEnvelope = normalizeRealtimeEnvelope(envelope);
+  const workspaceRoom = `workspace:${safeEnvelope.workspaceId}`;
+  const conversationRoom = `conversation:${safeEnvelope.conversationId}`;
 
   // Personal notifications target only the recipient's room — never the
   // whole workspace. Payload shape matches the frontend socket-hub handler
   // ({ title, message, type }).
-  if (envelope.type === 'notification') {
-    if (envelope.recipientId) {
+  if (safeEnvelope.type === 'notification') {
+    if (safeEnvelope.recipientId) {
       // The frontend handler calls toast[type], which only knows these four —
       // map domain types like 'assignment' to 'info'.
       const toastTypes = ['success', 'info', 'error', 'warning'];
       const payload = {
-        ...envelope.payload,
-        type: toastTypes.includes(envelope.payload?.type) ? envelope.payload.type : 'info',
+        ...safeEnvelope.payload,
+        type: toastTypes.includes(safeEnvelope.payload?.type) ? safeEnvelope.payload.type : 'info',
       };
-      io.to(`user:${envelope.recipientId}`).emit('workspace:notification', payload);
+      io.to(`user:${safeEnvelope.recipientId}`).emit('workspace:notification', payload);
     }
     return;
   }
 
-  // 1. Always emit generic inbox sync (fallback support)
-  io.to(workspaceRoom).emit('inbox:sync', envelope);
+  // 1. Always emit generic inbox sync (fallback support). Never emit the raw
+  // envelope here; some producers still publish Mongoose/BSON-rich payloads
+  // that can overflow Socket.io's recursive encoder.
+  io.to(workspaceRoom).emit('inbox:sync', safeEnvelope);
 
   // 2. Map and emit exact frontend-compatible Socket.io events
-  if (envelope.type === 'message_created') {
+  if (safeEnvelope.type === 'message_created') {
     const db = mongoose.connection.db;
     if (!db) {
       console.error('[WS Gateway EventBus] Database connection db object is missing.');
@@ -348,12 +431,12 @@ async function processRealtimeSyncEvent(envelope: any) {
     }
 
     // Fetch Conversation and Contact to construct full inbox:message_new payload
-    let conversationPayload = envelope.conversation || null;
-    let contactPayload = envelope.contact || null;
+    let conversationPayload = safeEnvelope.conversation || null;
+    let contactPayload = safeEnvelope.contact || null;
     try {
       if (!conversationPayload) {
         conversationPayload = await db.collection('conversations').findOne({
-          _id: new mongoose.Types.ObjectId(envelope.conversationId),
+          _id: new mongoose.Types.ObjectId(safeEnvelope.conversationId),
         });
       }
 
@@ -373,14 +456,11 @@ async function processRealtimeSyncEvent(envelope: any) {
       console.error('[WS Gateway EventBus] MongoDB lookup error:', dbErr.message);
     }
 
+    const messagePayload = normalizeSocketMessage(safeEnvelope.payload);
     const socketMsgPayload = {
-      conversationId: envelope.conversationId,
-      message: {
-        ...envelope.payload,
-        // Ensure front-end receives text as body/text interchangeably
-        body: envelope.payload.text || envelope.payload.body || '',
-      },
-      contact: contactPayload,
+      conversationId: safeEnvelope.conversationId,
+      message: messagePayload,
+      contact: toSocketPlainValue(contactPayload),
       conversation: serializeConversationForSocket(conversationPayload, contactPayload),
     };
 
@@ -389,41 +469,41 @@ async function processRealtimeSyncEvent(envelope: any) {
     io.to(conversationRoom).emit('inbox:message_new', socketMsgPayload);
 
     // Also emit legacy compatibility events
-    io.to(conversationRoom).emit('message:created', envelope.payload);
-    console.log(`[WS Gateway EventBus] Broadcasted inbox:message_new for messageId: ${envelope.messageId}`);
+    io.to(conversationRoom).emit('message:created', messagePayload);
+    console.log(`[WS Gateway EventBus] Broadcasted inbox:message_new for messageId: ${safeEnvelope.messageId}`);
   } 
-  else if (envelope.type === 'message_status_updated' || envelope.type === 'message_status_changed') {
+  else if (safeEnvelope.type === 'message_status_updated' || safeEnvelope.type === 'message_status_changed') {
     const statusPayload = {
-      messageId: envelope.payload.messageId || envelope.messageId,
-      providerMessageId: envelope.payload.providerMessageId,
-      whatsappMessageId: envelope.payload.whatsappMessageId,
-      conversationId: envelope.payload.conversationId || envelope.conversationId,
-      status: (envelope.payload.status || '').toLowerCase(),
-      timestamp: envelope.payload.timestamp || envelope.timestamp,
+      messageId: safeEnvelope.payload?.messageId || safeEnvelope.messageId,
+      providerMessageId: safeEnvelope.payload?.providerMessageId,
+      whatsappMessageId: safeEnvelope.payload?.whatsappMessageId,
+      conversationId: safeEnvelope.payload?.conversationId || safeEnvelope.conversationId,
+      status: (safeEnvelope.payload?.status || '').toLowerCase(),
+      timestamp: safeEnvelope.payload?.timestamp || safeEnvelope.timestamp,
     };
 
     io.to(workspaceRoom).emit('inbox:message_status', statusPayload);
     io.to(conversationRoom).emit('inbox:message_status', statusPayload);
     console.log(`[WS Gateway EventBus] Broadcasted inbox:message_status status: ${statusPayload.status}`);
   } 
-  else if (envelope.type === 'conversation_status_changed') {
+  else if (safeEnvelope.type === 'conversation_status_changed') {
     const updatePayload = {
-      conversationId: envelope.conversationId,
-      status: envelope.payload.status,
-      isOpen: envelope.payload.status === 'open',
-      lastActivityAt: envelope.timestamp,
+      conversationId: safeEnvelope.conversationId,
+      status: safeEnvelope.payload?.status,
+      isOpen: safeEnvelope.payload?.status === 'open',
+      lastActivityAt: safeEnvelope.timestamp,
     };
 
     io.to(workspaceRoom).emit('inbox:conversation_updated', updatePayload);
     io.to(workspaceRoom).emit('conversation:updated', updatePayload);
-    io.to(conversationRoom).emit('conversation:status-updated', envelope.payload);
+    io.to(conversationRoom).emit('conversation:status-updated', safeEnvelope.payload);
     console.log(`[WS Gateway EventBus] Broadcasted inbox:conversation_updated status: ${updatePayload.status}`);
   }
-  else if (envelope.type === 'conversation_read' || envelope.type === 'conversation_updated') {
+  else if (safeEnvelope.type === 'conversation_read' || safeEnvelope.type === 'conversation_updated') {
     const updatePayload = {
-      conversationId: envelope.conversationId || envelope.payload?.conversationId,
-      ...envelope.payload,
-      updatedAt: envelope.timestamp,
+      conversationId: safeEnvelope.conversationId || safeEnvelope.payload?.conversationId,
+      ...safeEnvelope.payload,
+      updatedAt: safeEnvelope.timestamp,
     };
 
     io.to(workspaceRoom).emit('inbox:conversation_updated', updatePayload);
@@ -434,25 +514,26 @@ async function processRealtimeSyncEvent(envelope: any) {
 }
 
 async function processPlatformEvent(topic: string, envelope: any) {
-  const workspaceId = envelope.workspaceId || envelope.payload?.workspaceId;
+  const safeEnvelope = toSocketPlainValue(envelope) || {};
+  const workspaceId = safeEnvelope.workspaceId || safeEnvelope.payload?.workspaceId;
   if (!workspaceId) return;
 
   const workspaceRoom = `workspace:${workspaceId}`;
-  io.to(workspaceRoom).emit('platform:event', { topic, ...envelope });
+  io.to(workspaceRoom).emit('platform:event', { topic, ...safeEnvelope });
 
   if (topic === 'contact-events') {
-    io.to(workspaceRoom).emit('contact:updated', envelope);
-    io.to(workspaceRoom).emit('inbox:contact_updated', envelope);
+    io.to(workspaceRoom).emit('contact:updated', safeEnvelope);
+    io.to(workspaceRoom).emit('inbox:contact_updated', safeEnvelope);
   } else if (topic === 'automation-events') {
-    io.to(workspaceRoom).emit('automation:event', envelope);
-    io.to(workspaceRoom).emit('automation:execution_update', envelope);
+    io.to(workspaceRoom).emit('automation:event', safeEnvelope);
+    io.to(workspaceRoom).emit('automation:execution_update', safeEnvelope);
   } else if (topic === 'billing-events') {
-    io.to(workspaceRoom).emit('billing:event', envelope);
-    if (envelope.event === 'wallet_recharged') {
-      io.to(workspaceRoom).emit('wallet:recharged', envelope.payload);
+    io.to(workspaceRoom).emit('billing:event', safeEnvelope);
+    if (safeEnvelope.event === 'wallet_recharged') {
+      io.to(workspaceRoom).emit('wallet:recharged', safeEnvelope.payload);
     }
   } else if (topic === 'campaign-events' || topic === 'billing-events') {
-    io.to(workspaceRoom).emit('campaign:event', envelope);
+    io.to(workspaceRoom).emit('campaign:event', safeEnvelope);
   }
 }
 
