@@ -51,6 +51,7 @@ jobs:
       id-token: write
     strategy:
       fail-fast: false
+      max-parallel: 3
       matrix:
         service:
           - name: api-gateway
@@ -97,14 +98,6 @@ jobs:
       - name: Setup gcloud
         if: ${{ github.event_name == 'push' || github.event.inputs.service == 'all' || github.event.inputs.service == matrix.service.name }}
         uses: google-github-actions/setup-gcloud@v3
-
-      - name: Setup Docker Buildx
-        if: ${{ github.event_name == 'push' || github.event.inputs.service == 'all' || github.event.inputs.service == matrix.service.name }}
-        uses: docker/setup-buildx-action@v4
-
-      - name: Login to Artifact Registry
-        if: ${{ github.event_name == 'push' || github.event.inputs.service == 'all' || github.event.inputs.service == matrix.service.name }}
-        run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
       - name: Build and push image
         if: ${{ github.event_name == 'push' || github.event.inputs.service == 'all' || github.event.inputs.service == matrix.service.name }}
@@ -164,13 +157,42 @@ jobs:
             )
           fi
 
-          docker buildx build \
-            --platform=linux/amd64 \
-            -f "${{ matrix.service.dockerfile }}" \
-            -t "${ARTIFACT_IMAGE}:${{ github.sha }}" \
-            -t "${ARTIFACT_IMAGE}:latest" \
-            "${BUILD_ARGS[@]}" \
-            --push \
+          CLOUDBUILD_CONFIG="$(mktemp)"
+          {
+            echo "steps:"
+            echo "  - name: gcr.io/cloud-builders/docker"
+            echo "    args:"
+          } > "${CLOUDBUILD_CONFIG}"
+
+          append_arg() {
+            printf '      - %s\n' "$(jq -Rn --arg value "$1" '$value')" >> "${CLOUDBUILD_CONFIG}"
+          }
+
+          append_arg "build"
+          append_arg "--platform=linux/amd64"
+          append_arg "-f"
+          append_arg "${{ matrix.service.dockerfile }}"
+          append_arg "-t"
+          append_arg "${ARTIFACT_IMAGE}:${{ github.sha }}"
+          append_arg "-t"
+          append_arg "${ARTIFACT_IMAGE}:latest"
+          for arg in "${BUILD_ARGS[@]}"; do
+            append_arg "${arg}"
+          done
+          append_arg "."
+
+          {
+            echo "images:"
+            echo "  - ${ARTIFACT_IMAGE}:${{ github.sha }}"
+            echo "  - ${ARTIFACT_IMAGE}:latest"
+          } >> "${CLOUDBUILD_CONFIG}"
+
+          echo "Submitting Cloud Build for ${{ matrix.service.name }}"
+          cat "${CLOUDBUILD_CONFIG}"
+          gcloud builds submit \
+            --project="${PROJECT_ID}" \
+            --region="${REGION}" \
+            --config="${CLOUDBUILD_CONFIG}" \
             .
 
       - name: Update Cloud Run service
