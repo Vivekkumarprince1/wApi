@@ -16,6 +16,7 @@ import whatsappFormRoutes from './routes/whatsappFormRoutes';
 import flowRoutes from './routes/flowRoutes';
 import widgetRoutes from './routes/widgetRoutes';
 import developerRoutes from './routes/developerRoutes';
+import externalApiRoutes from './routes/externalApiRoutes';
 import integrationRoutes from './routes/integrationRoutes';
 import { startIntegrationSyncScheduler, stopIntegrationSyncScheduler } from './services/integration-sync-scheduler';
 
@@ -81,6 +82,7 @@ app.use('/api/automation/engine', whatsappFormRoutes);
 app.use('/', flowRoutes);
 app.use('/', widgetRoutes);
 app.use('/', developerRoutes);
+app.use('/', externalApiRoutes);
 app.use('/', integrationRoutes);
 
 

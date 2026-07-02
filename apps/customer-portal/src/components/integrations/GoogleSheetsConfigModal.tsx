@@ -35,6 +35,7 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
   const [sheets, setSheets] = useState<any[]>([]);
   const [selectedSpreadsheet, setSelectedSpreadsheet] = useState('');
   const [selectedSheet, setSelectedSheet] = useState('');
+  const [syncExisting, setSyncExisting] = useState(false);
 
   // 1. Check if already authenticated when modal opens
   useEffect(() => {
@@ -115,7 +116,8 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
     try {
       await saveGoogleSheetsConfig({
         spreadsheetId: selectedSpreadsheet,
-        sheetName: selectedSheet
+        sheetName: selectedSheet,
+        syncExisting
       });
       toast.success("Google Sheets configured!");
       onSuccess();
@@ -172,6 +174,7 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Spreadsheet</Label>
                 <Select disabled={loading} value={selectedSpreadsheet} onValueChange={(val) => {
                   setSelectedSpreadsheet(val);
+                  setSelectedSheet('');
                   fetchSheets(val);
                 }}>
                   <SelectTrigger className="h-12 bg-accent/20 border-border/50">
@@ -205,6 +208,16 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
                    Syncing starts automatically every 15 minutes. Ensure the first row of your sheet contains headers like 'Name', 'Phone', and 'Email'.
                  </p>
               </div>
+
+              <label className="flex items-center gap-3 rounded-xl border border-border/50 bg-accent/10 p-4 text-xs font-bold">
+                <input
+                  type="checkbox"
+                  checked={syncExisting}
+                  onChange={(event) => setSyncExisting(event.target.checked)}
+                  className="h-4 w-4 rounded border-border"
+                />
+                Sync existing rows on first run
+              </label>
             </div>
           )}
         </div>

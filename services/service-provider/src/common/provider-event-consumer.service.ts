@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
 import { WebhooksService } from '../channels/whatsapp/webhooks/webhooks.service';
+import { InstagramWebhooksService } from '../channels/instagram/instagram-webhooks.service';
 import { ProviderEventProducerService } from './provider-event-producer.service';
 import { config } from '../config';
 import { createRedisClient } from './redis.service';
@@ -12,6 +13,7 @@ export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestr
 
   constructor(
     private readonly webhooksService: WebhooksService,
+    private readonly instagramWebhooksService: InstagramWebhooksService,
     private readonly eventProducer: ProviderEventProducerService,
   ) {}
 
@@ -83,9 +85,15 @@ export class ProviderEventConsumerService implements OnModuleInit, OnModuleDestr
               'content-type': 'application/json',
             };
 
-            await this.webhooksService.receiveGupshup(rawBody, mockHeaders, envelope.rawPayload, {
-              skipSignatureVerification: true,
-            });
+            const provider = String(envelope.provider || envelope.rawPayload?.provider || '').toLowerCase();
+            const channel = String(envelope.channel || envelope.rawPayload?.channel || '').toLowerCase();
+            if (provider === 'instagram' || channel === 'instagram') {
+              await this.instagramWebhooksService.receiveInstagram(rawBody, mockHeaders, envelope.rawPayload);
+            } else {
+              await this.webhooksService.receiveGupshup(rawBody, mockHeaders, envelope.rawPayload, {
+                skipSignatureVerification: true,
+              });
+            }
             console.log(`[BSP EventBus Consumer] Webhook processed successfully inside BSP service. eventId: ${envelope.eventId}`);
             success = true;
           } catch (err: any) {

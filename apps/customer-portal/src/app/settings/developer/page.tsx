@@ -1,10 +1,9 @@
 "use client";
 
 import React from 'react';
-import { Terminal, Key, Webhook, Code2, Shield, ArrowRight, Zap, Copy, ExternalLink, Activity, Lock } from 'lucide-react';
+import { Terminal, Key, Webhook, Code2, Shield, ArrowRight, Zap, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { getDeveloperSettings } from '@/lib/api/settings';
@@ -12,7 +11,7 @@ import FlashLoader from '@/components/ui/flash-loader';
 import { SnippetGenerator } from '@/components/dashboard/settings/developer/snippet-generator';
 
 export default function DeveloperHubPage() {
-  const { data: config, isLoading } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['developer-settings'],
     queryFn: () => getDeveloperSettings()
   });
@@ -87,7 +86,7 @@ export default function DeveloperHubPage() {
                         <div className="space-y-2">
                             <h2 className="text-3xl font-black tracking-tight">Webhooks & Events</h2>
                             <p className="text-muted-foreground font-bold leading-relaxed opacity-70">
-                                Configure real-time event notifications for message delivery, read receipts, and incoming customer chats.
+                                Configure outbound event notifications for auth templates, OTP delivery, template sends, and delivery receipts.
                             </p>
                         </div>
                     </div>
@@ -122,14 +121,14 @@ export default function DeveloperHubPage() {
               <div className="space-y-4">
                   <div className="space-y-2">
                       <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">Generic Template</p>
-                      <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-                          <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded">/messages/template</code> — High-throughput endpoint for marketing and utility messages.
+                  <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+                          <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded">/external/messages/template</code> — Send any approved WhatsApp template from your backend.
                       </p>
                   </div>
                   <div className="space-y-2">
-                      <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">Auth Specialization</p>
+                      <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">WhatsApp OTP</p>
                       <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-                          <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded">/auth/send-otp</code> — Optimized for OTP delivery with dedicated monitoring.
+                          <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded">/external/otp/send</code> and <code className="text-primary bg-primary/5 px-1.5 py-0.5 rounded">/external/otp/verify</code> — Generate, deliver, and verify OTPs using Meta-approved auth templates.
                       </p>
                   </div>
               </div>

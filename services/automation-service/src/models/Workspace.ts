@@ -11,11 +11,15 @@ export interface IWorkspace extends Document {
 }
 
 const WebhookSubscriptionSchema = new Schema({
+  name: { type: String, default: 'Outbound Endpoint' },
   url: { type: String, required: true },
   events: [{ type: String }],
   secret: { type: String },
   isActive: { type: Boolean, default: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+  lastDeliveryAt: { type: Date },
+  lastDeliveryStatus: { type: String }
 });
 
 const ApiKeySchema = new Schema({

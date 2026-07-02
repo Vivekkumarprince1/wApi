@@ -4,6 +4,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { createInstagramQuickflow, getInstagramQuickflow, updateInstagramQuickflow } from '@/lib/api/automation';
+import { getInstagramStatus } from '@/lib/api/integrations';
+import { AccessRestrictedState } from '@/components/shared/access-restricted-state';
 
 const PRESETS: Record<string, { name: string; type: string; triggerType: string; keywords: string[]; message: string }> = {
   price_please: {
@@ -64,7 +67,15 @@ function QuickflowEditor() {
     message: '',
   });
 
+  const { data: instagramStatus, isLoading: isInstagramStatusLoading } = useQuery({
+    queryKey: ['instagram-integration-status'],
+    queryFn: () => getInstagramStatus()
+  });
+
+  const isInstagramOnboarded = instagramStatus?.status === 'connected';
+
   useEffect(() => {
+    if (!isInstagramOnboarded) return;
     if (presetId && PRESETS[presetId]) {
       const p = PRESETS[presetId];
       setForm({
@@ -75,9 +86,10 @@ function QuickflowEditor() {
         message: p.message,
       });
     }
-  }, [presetId]);
+  }, [presetId, isInstagramOnboarded]);
 
   useEffect(() => {
+    if (!isInstagramOnboarded) return;
     if (!editId) return;
     (async () => {
       try {
@@ -98,7 +110,7 @@ function QuickflowEditor() {
         setIsLoading(false);
       }
     })();
-  }, [editId]);
+  }, [editId, isInstagramOnboarded]);
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast.error('Name is required'); return; }
@@ -131,11 +143,25 @@ function QuickflowEditor() {
     }
   };
 
-  if (isLoading) {
+  if (isInstagramStatusLoading || (isInstagramOnboarded && isLoading)) {
     return (
       <div className="py-32 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
       </div>
+    );
+  }
+
+  if (!isInstagramOnboarded) {
+    return (
+      <AccessRestrictedState
+        title="Instagram onboarding required"
+        description="Connect an Instagram professional account before designing QuickFlows."
+        actionLabel="Connect Instagram"
+        targetPath="/settings/channels?connect=instagram"
+        secondaryLabel="Back to QuickFlows"
+        secondaryPath="/automation/instagram-quickflows"
+        statusLabel={instagramStatus?.status || 'not connected'}
+      />
     );
   }
 

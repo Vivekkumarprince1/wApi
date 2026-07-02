@@ -15,7 +15,8 @@ import {
   Code,
   Search,
   Loader2,
-  ExternalLink
+  ExternalLink,
+  Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,6 +24,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { PetpoojaConnectModal } from "@/components/integrations/PetpoojaConnectModal";
 import { GoogleSheetsConfigModal } from "@/components/integrations/GoogleSheetsConfigModal";
+import { InstagramConnectModal } from "@/components/integrations/InstagramConnectModal";
+import { MetaAdsConnectModal } from "@/components/integrations/MetaAdsConnectModal";
 import { UtensilsCrossed } from "lucide-react";
 import { getIntegrations, syncIntegration } from '@/lib/api/integrations';
 import { toast } from 'sonner';
@@ -59,13 +62,23 @@ const INTEGRATIONS_METADATA = [
   },
   { 
     id: "meta_ads", 
-    name: "Meta Lead Ads", 
-    description: "Automatically trigger messages when a new lead is captured.", 
+    name: "Meta Ads",
+    description: "Launch Click-to-WhatsApp ads from customer ad accounts.",
     icon: MessageSquare, 
     color: "text-blue-600", 
     bgColor: "bg-blue-500/10",
     category: "Marketing",
-    isComingSoon: true
+    supportsSync: false
+  },
+  {
+    id: "instagram",
+    name: "Instagram Business",
+    description: "Paid customer onboarding for Instagram DMs, comments, and automation.",
+    icon: Camera,
+    color: "text-pink-600",
+    bgColor: "bg-pink-500/10",
+    category: "Marketing",
+    supportsSync: false
   },
   { 
     id: "woocommerce", 
@@ -155,6 +168,16 @@ export default function IntegrationsPage() {
       />
       <GoogleSheetsConfigModal 
         isOpen={activeModal === 'google_sheets'} 
+        onClose={() => setActiveModal(null)}
+        onSuccess={fetchIntegrations}
+      />
+      <InstagramConnectModal
+        isOpen={activeModal === 'instagram'}
+        onClose={() => setActiveModal(null)}
+        onSuccess={fetchIntegrations}
+      />
+      <MetaAdsConnectModal
+        isOpen={activeModal === 'meta_ads'}
         onClose={() => setActiveModal(null)}
         onSuccess={fetchIntegrations}
       />
@@ -265,16 +288,18 @@ export default function IntegrationsPage() {
                            >
                               Configure
                            </Button>
-	                           <Button 
-	                             variant="outline" 
-	                             size="icon" 
-	                             onClick={() => handleManualSync(app.id)}
-	                             disabled={syncingId === app.id}
-	                             aria-label={`Sync ${app.name}`}
-	                             className={`h-12 w-12 border-border/50 rounded-2xl hover:bg-accent transition-all shadow-sm ${syncingId === app.id ? 'opacity-50' : ''}`}
-	                           >
-                              {syncingId === app.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCcw className="h-5 w-5" />}
-                           </Button>
+                           {app.supportsSync !== false && (
+                             <Button
+                               variant="outline"
+                               size="icon"
+                               onClick={() => handleManualSync(app.id)}
+                               disabled={syncingId === app.id}
+                               aria-label={`Sync ${app.name}`}
+                               className={`h-12 w-12 border-border/50 rounded-2xl hover:bg-accent transition-all shadow-sm ${syncingId === app.id ? 'opacity-50' : ''}`}
+                             >
+                               {syncingId === app.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCcw className="h-5 w-5" />}
+                             </Button>
+                           )}
                          </>
                       ) : app.isComingSoon ? (
                          <Button disabled className="w-full bg-accent/20 border-none text-muted-foreground/50 font-black h-12 rounded-2xl uppercase tracking-widest text-[10px]">

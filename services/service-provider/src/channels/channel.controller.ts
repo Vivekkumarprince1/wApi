@@ -18,6 +18,48 @@ export class ChannelController {
     return ok(await this.channelService.getInstagramAccounts(accessToken));
   }
 
+  @Post('instagram/oauth-url')
+  async instagramOAuthUrl(@Body() body: {
+    workspaceId: string;
+    userId?: string;
+    redirectUri: string;
+    returnTo?: string;
+    forceReauth?: boolean;
+  }) {
+    return ok(this.channelService.generateInstagramAuthUrl(body));
+  }
+
+  @Post('instagram/complete-oauth')
+  async completeInstagramOAuth(@Body() body: {
+    code: string;
+    redirectUri: string;
+    workspaceId?: string;
+    userId?: string;
+  }) {
+    return ok(await this.channelService.completeInstagramOAuth(body.code, body.redirectUri, {
+      workspaceId: body.workspaceId,
+      userId: body.userId,
+    }));
+  }
+
+  @Post('instagram/refresh-token')
+  async refreshInstagramToken(@Body() body: { accessToken: string }) {
+    return ok(await this.channelService.refreshInstagramToken(body.accessToken));
+  }
+
+  @Post('instagram/graph')
+  async instagramGraph(@Body() body: {
+    accessToken: string;
+    method?: 'GET' | 'POST' | 'DELETE';
+    path: string;
+    query?: Record<string, any>;
+    body?: Record<string, any>;
+    graphHost?: 'instagram' | 'facebook';
+    apiVersion?: string;
+  }) {
+    return ok(await this.channelService.instagramGraph(body));
+  }
+
   @Post(':provider/send')
   async send(@Param('provider') provider: 'facebook' | 'instagram' | 'sms' | 'meta', @Body() body: any) {
     return ok(await this.channelService.sendMessage(provider, body));

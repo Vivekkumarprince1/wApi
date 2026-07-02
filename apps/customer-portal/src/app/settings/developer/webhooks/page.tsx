@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import DashboardLayout from "@/components/layout/dashboard-layout";
+import React, { useState } from 'react';
 import {
    Card,
    CardContent,
@@ -25,19 +24,16 @@ import {
 import {
    Webhook,
    Plus,
-   Settings2,
    Activity,
    CheckCircle2,
    RefreshCcw,
-   Send,
+   Copy,
    Lock,
    ChevronRight,
    MoreVertical,
    Play,
    Trash2,
-   Zap,
    AlertCircle,
-   Smartphone,
    Activity as ActivityIcon
 } from "lucide-react";
 import {
@@ -48,27 +44,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-   getWhatsappSubscriptions,
-   createWhatsappSubscription,
-   updateWhatsappSubscription,
-   deleteWhatsappSubscription,
-   testWABAConnection
+   getOutboundWebhookSubscriptions,
+   createOutboundWebhookSubscription,
+   updateOutboundWebhookSubscription,
+   deleteOutboundWebhookSubscription
 } from '@/lib/api/settings';
 import { useAuthStore } from '@/store/auth-store';
 import { toast } from 'sonner';
 
 const EVENT_TYPES = [
-   { id: 'MESSAGE', label: 'Message Received', description: "Triggered when a new message is received in the platform." },
-   { id: 'SENT', label: 'Message Sent', description: "Triggered when a message is successfully sent to the provider." },
-   { id: 'DELIVERED', label: 'Message Delivered', description: "Triggered when a message is delivered to the user's device." },
-   { id: 'READ', label: 'Message Read', description: "Triggered when a message is read by the recipient." },
-   { id: 'FAILED', label: 'Message Failed', description: "Triggered when a message delivery failure occurs." },
-   { id: 'TEMPLATE', label: 'Template Update', description: "Triggered when a message template status changes." },
-   { id: 'BILLING', label: 'Billing Event', description: "Triggered for conversation charges and billing updates." },
-   { id: 'PAYMENTS', label: 'Payment Update', description: "Triggered for payment status updates." },
-   { id: 'FLOWS_MESSAGE', label: 'Flow Submission', description: "Triggered when an interactive flow is submitted." },
-   { id: 'ALL', label: 'All Events', description: "Subscribe to every available outbound trigger." }
+   { id: 'auth.template.sent', label: 'Auth Template Sent', description: "Triggered when an authentication template is accepted for delivery." },
+   { id: 'auth.otp.sent', label: 'OTP Sent', description: "Triggered when an external OTP request is sent." },
+   { id: 'auth.otp.verified', label: 'OTP Verified', description: "Triggered when an OTP verification succeeds." },
+   { id: 'auth.otp.failed', label: 'OTP Failed', description: "Triggered when OTP delivery or verification fails." },
+   { id: 'template.message.sent', label: 'Template Sent', description: "Triggered when a utility or marketing template is sent." },
+   { id: 'template.message.delivered', label: 'Template Delivered', description: "Triggered when a template reaches the recipient device." },
+   { id: 'template.message.read', label: 'Template Read', description: "Triggered when the recipient reads a template message." },
+   { id: 'template.message.failed', label: 'Template Failed', description: "Triggered when a template message fails." },
+   { id: 'message.status.updated', label: 'Message Status', description: "Triggered for outbound status changes after API sends." },
+   { id: 'billing.conversation.charged', label: 'Billing Charged', description: "Triggered when outbound usage creates a charge." },
+   { id: 'ALL', label: 'All Events', description: "Subscribe to every outbound developer event." }
 ];
+
+const SAMPLE_PAYLOAD_TIMESTAMP = 1782777600000;
 
 const asArray = (value: any) => Array.isArray(value) ? value : [];
 
@@ -86,10 +84,28 @@ const getSubscriptionId = (subscription: any) =>
    subscription?.id || subscription?._id || subscription?.subscriptionId;
 
 const getSubscriptionUrl = (subscription: any) =>
-   subscription?.url || subscription?.callbackUrl || subscription?.endpointUrl || 'Endpoint not configured';
+   subscription?.url || subscription?.endpointUrl || 'Endpoint not configured';
 
 const getSubscriptionEvents = (subscription: any) =>
-   asArray(subscription?.events || subscription?.modes).map((event) => String(event).toUpperCase());
+   asArray(subscription?.events || subscription?.modes).map((event) => String(event));
+
+const getSubscriptionName = (subscription: any) =>
+   subscription?.name || subscription?.tag || 'Outbound Endpoint';
+
+const getSubscriptionSecret = (subscription: any) =>
+   subscription?.secret || subscription?.signingSecret;
+
+const getEventLabel = (eventId: string) =>
+   EVENT_TYPES.find((event) => event.id.toLowerCase() === eventId.toLowerCase())?.label || eventId;
+
+const isValidWebhookUrl = (value: string) => {
+   try {
+      const url = new URL(value);
+      return url.protocol === 'https:' || (url.protocol === 'http:' && ['localhost', '127.0.0.1', '::1'].includes(url.hostname));
+   } catch {
+      return false;
+   }
+};
 
 export default function WebhooksPage() {
    const queryClient = useQueryClient();
@@ -98,18 +114,15 @@ export default function WebhooksPage() {
    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
    const [editingSubscription, setEditingSubscription] = useState<any>(null);
-   const [mounted, setMounted] = useState(false);
-   const [selectedEvents, setSelectedEvents] = useState<string[]>(['MESSAGE', 'TEMPLATE']);
-   const [testTimestamp, setTestTimestamp] = useState<number>(0);
-
-    useEffect(() => {
-        setMounted(true);
-        setTestTimestamp(Date.now());
-    }, []);
+   const [selectedEvents, setSelectedEvents] = useState<string[]>(['auth.template.sent', 'auth.otp.sent']);
+   const [endpointName, setEndpointName] = useState('External App');
+   const [endpointUrl, setEndpointUrl] = useState('');
+   const [selectedTestEvent, setSelectedTestEvent] = useState('auth.otp.sent');
+   const [testTimestamp, setTestTimestamp] = useState<number>(SAMPLE_PAYLOAD_TIMESTAMP);
 
    const { data: subsData, isLoading, error } = useQuery({
       queryKey: ['outbound-webhooks'],
-      queryFn: () => getWhatsappSubscriptions(),
+      queryFn: () => getOutboundWebhookSubscriptions(),
       retry: (failureCount, error: any) => {
          if (error?.status === 403) return false;
          return failureCount < 2;
@@ -122,7 +135,12 @@ export default function WebhooksPage() {
 
 
    const updateMutation = useMutation({
-      mutationFn: (data: { subscriptionId: string; events: string[]; tag?: string }) => updateWhatsappSubscription(data),
+      mutationFn: (data: { subscriptionId: string; name: string; url: string; events: string[] }) =>
+         updateOutboundWebhookSubscription(data.subscriptionId, {
+            name: data.name,
+            url: data.url,
+            events: data.events
+         }),
       onSuccess: () => {
          queryClient.invalidateQueries({ queryKey: ['outbound-webhooks'] });
          setIsEditModalOpen(false);
@@ -135,10 +153,11 @@ export default function WebhooksPage() {
    });
 
    const createMutation = useMutation({
-      mutationFn: (data: { events: string[] }) => createWhatsappSubscription(data),
+      mutationFn: (data: { name: string; url: string; events: string[] }) => createOutboundWebhookSubscription(data),
       onSuccess: () => {
          queryClient.invalidateQueries({ queryKey: ['outbound-webhooks'] });
          setIsAddModalOpen(false);
+         setEndpointUrl('');
          toast.success("Endpoint added successfully");
       },
       onError: (err: any) => {
@@ -148,7 +167,7 @@ export default function WebhooksPage() {
 
 
    const deleteMutation = useMutation({
-      mutationFn: (id?: string) => deleteWhatsappSubscription(id),
+      mutationFn: (id?: string) => deleteOutboundWebhookSubscription(id),
       onSuccess: () => {
          queryClient.invalidateQueries({ queryKey: ['outbound-webhooks'] });
          toast.success("Endpoint removed");
@@ -170,14 +189,52 @@ export default function WebhooksPage() {
    };
 
    const handleOpenAdd = () => {
-       setSelectedEvents(['MESSAGE', 'TEMPLATE']);
+       setEndpointName('External App');
+       setEndpointUrl('');
+       setSelectedEvents(['auth.template.sent', 'auth.otp.sent']);
        setIsAddModalOpen(true);
    };
 
    const handleOpenEdit = (sub: any) => {
        setEditingSubscription(sub);
+       setEndpointName(getSubscriptionName(sub));
+       setEndpointUrl(getSubscriptionUrl(sub) === 'Endpoint not configured' ? '' : getSubscriptionUrl(sub));
        setSelectedEvents(getSubscriptionEvents(sub));
        setIsEditModalOpen(true);
+   };
+
+   const buildSamplePayload = (timestamp = testTimestamp) => {
+      const eventParts = selectedTestEvent.split('.');
+      const eventStatus = eventParts[eventParts.length - 1] || 'sent';
+
+      return {
+         id: `evt_${timestamp}`,
+         type: selectedTestEvent,
+         workspaceId: 'workspace_id',
+         createdAt: new Date(timestamp).toISOString(),
+         data: {
+            channel: 'whatsapp',
+            template: {
+               name: selectedTestEvent.startsWith('auth.') ? 'login_otp' : 'order_update',
+               category: selectedTestEvent.startsWith('auth.') ? 'AUTHENTICATION' : 'UTILITY'
+            },
+            message: {
+               id: 'wamid.HBgM...',
+               status: eventStatus,
+               recipient: '+919999999999'
+            },
+            otp: selectedTestEvent.includes('otp')
+               ? { purpose: 'login', deliveryStatus: eventStatus }
+               : undefined
+         }
+      };
+   };
+
+   const copySamplePayload = async () => {
+      const nextTimestamp = testTimestamp + 1000;
+      setTestTimestamp(nextTimestamp);
+      await navigator.clipboard.writeText(JSON.stringify(buildSamplePayload(nextTimestamp), null, 2));
+      toast.success('Sample outbound payload copied');
    };
 
    return (
@@ -193,7 +250,7 @@ export default function WebhooksPage() {
                      <h1 className="text-3xl font-black tracking-tight uppercase">Outbound Webhooks</h1>
                   </div>
                   <p className="text-muted-foreground flex items-center gap-2 font-medium">
-                     Configure endpoints to receive real-time notifications from our platform.
+                     Send real-time auth, OTP, template, and delivery events from wApi to your external apps.
                   </p>
                </div>
                <div className="flex flex-wrap gap-2">
@@ -228,9 +285,35 @@ export default function WebhooksPage() {
                      <DialogContent className="sm:max-w-[500px] border-none bg-background/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-0 overflow-hidden">
                         <DialogHeader className="p-10 pb-4">
                            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Add Webhook</DialogTitle>
-                           <p className="text-sm text-muted-foreground font-medium">Configure a new endpoint for platform events.</p>
+                           <p className="text-sm text-muted-foreground font-medium">Configure where wApi should deliver outbound developer events.</p>
                         </DialogHeader>
                         <div className="p-10 pt-0 space-y-8">
+
+                           <div className="space-y-4">
+                              <div className="space-y-2">
+                                 <Label htmlFor="add-webhook-name" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Endpoint Name</Label>
+                                 <Input
+                                    id="add-webhook-name"
+                                    value={endpointName}
+                                    onChange={(event) => setEndpointName(event.target.value)}
+                                    className="h-11 rounded-xl border-border/50 bg-accent/10 font-bold text-xs"
+                                    placeholder="External App"
+                                 />
+                              </div>
+                              <div className="space-y-2">
+                                 <Label htmlFor="add-webhook-url" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Destination URL</Label>
+                                 <Input
+                                    id="add-webhook-url"
+                                    value={endpointUrl}
+                                    onChange={(event) => setEndpointUrl(event.target.value)}
+                                    className="h-11 rounded-xl border-border/50 bg-accent/10 font-mono text-xs"
+                                    placeholder="https://api.yourapp.com/wapi/events"
+                                 />
+                                 <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tight">
+                                    HTTPS is required for production destinations.
+                                 </p>
+                              </div>
+                           </div>
 
                            <div className="space-y-4">
                               <div className="flex items-center justify-between">
@@ -276,8 +359,8 @@ export default function WebhooksPage() {
                            <div className="flex gap-3">
                               <Button variant="ghost" onClick={() => setIsAddModalOpen(false)} className="rounded-xl font-bold text-xs uppercase tracking-widest">Cancel</Button>
                               <Button 
-                                 onClick={() => createMutation.mutate({ events: selectedEvents })}
-                                 disabled={createMutation.isPending || selectedEvents.length === 0}
+                                 onClick={() => createMutation.mutate({ name: endpointName, url: endpointUrl, events: selectedEvents })}
+                                 disabled={createMutation.isPending || selectedEvents.length === 0 || !isValidWebhookUrl(endpointUrl)}
                                  className="bg-slate-900 border-none hover:bg-slate-800 text-white font-black h-11 rounded-xl px-8 shadow-lg shadow-slate-900/20 uppercase tracking-widest text-[10px]"
                               >
                                  {createMutation.isPending ? "Creating..." : "Save Endpoint"}
@@ -294,9 +377,30 @@ export default function WebhooksPage() {
                      <DialogContent className="sm:max-w-[500px] border-none bg-background/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-0 overflow-hidden">
                         <DialogHeader className="p-10 pb-4">
                            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Edit Webhook</DialogTitle>
-                           <p className="text-sm text-muted-foreground font-medium">Update endpoint configuration and events.</p>
+                           <p className="text-sm text-muted-foreground font-medium">Update destination and outbound event subscriptions.</p>
                         </DialogHeader>
                         <div className="p-10 pt-0 space-y-8">
+
+                           <div className="space-y-4">
+                              <div className="space-y-2">
+                                 <Label htmlFor="edit-webhook-name" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Endpoint Name</Label>
+                                 <Input
+                                    id="edit-webhook-name"
+                                    value={endpointName}
+                                    onChange={(event) => setEndpointName(event.target.value)}
+                                    className="h-11 rounded-xl border-border/50 bg-accent/10 font-bold text-xs"
+                                 />
+                              </div>
+                              <div className="space-y-2">
+                                 <Label htmlFor="edit-webhook-url" className="text-[11px] font-black uppercase tracking-widest text-muted-foreground">Destination URL</Label>
+                                 <Input
+                                    id="edit-webhook-url"
+                                    value={endpointUrl}
+                                    onChange={(event) => setEndpointUrl(event.target.value)}
+                                    className="h-11 rounded-xl border-border/50 bg-accent/10 font-mono text-xs"
+                                 />
+                              </div>
+                           </div>
 
                            <div className="space-y-4">
                               <div className="flex items-center justify-between">
@@ -344,10 +448,11 @@ export default function WebhooksPage() {
                               <Button 
                                  onClick={() => updateMutation.mutate({ 
                                     subscriptionId: getSubscriptionId(editingSubscription), 
-                                    events: selectedEvents,
-                                    tag: editingSubscription?.tag
+                                    name: endpointName,
+                                    url: endpointUrl,
+                                    events: selectedEvents
                                  })}
-                                 disabled={updateMutation.isPending || selectedEvents.length === 0}
+                                 disabled={updateMutation.isPending || selectedEvents.length === 0 || !isValidWebhookUrl(endpointUrl)}
                                  className="bg-primary border-none hover:bg-primary/90 text-primary-foreground font-black h-11 rounded-xl px-8 shadow-lg shadow-primary/20 uppercase tracking-widest text-[10px]"
                               >
                                  {updateMutation.isPending ? "Updating..." : "Update Endpoint"}
@@ -413,17 +518,21 @@ export default function WebhooksPage() {
                         <CheckCircle2 className="h-6 w-6" /> Security & Signing
                      </h3>
                      <p className="text-sm font-bold opacity-90 leading-relaxed mb-6">
-                        Verify the authenticity of incoming webhooks using our payload signing. All requests include an <code>x-wapi-signature</code> HMAC SHA256 header.
+                        Verify outbound deliveries from wApi using payload signing. Each request includes an <code>x-wapi-signature</code> HMAC SHA256 header.
                      </p>
                      <Button
                         variant="secondary"
                         onClick={() => {
                            const first = subscriptions[0];
-                           if (first) handleOpenEdit(first);
+                           const secret = getSubscriptionSecret(first);
+                           if (secret) {
+                              navigator.clipboard.writeText(secret);
+                              toast.success('Signing secret copied');
+                           }
                            else toast.info('Add a webhook endpoint first — each endpoint has its own signing secret');
                         }}
                         className="bg-white/20 hover:bg-white/30 text-white border-none font-bold text-[10px] uppercase tracking-widest h-10 px-6 rounded-xl">
-                        View Signing Secret
+                        Copy Signing Secret
                      </Button>
                   </div>
                </CardContent>
@@ -433,7 +542,7 @@ export default function WebhooksPage() {
 
                {/* Webhooks Endpoints List */}
                <div className="lg:col-span-2 space-y-6">
-                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Live Endpoints</h2>
+                  <h2 className="text-sm font-black uppercase tracking-[0.2em] text-muted-foreground ml-1">Outbound Endpoints</h2>
                   <div className="grid grid-cols-1 gap-4">
                      {isLoading ? (
                         <div className="flex items-center justify-center p-20 bg-accent/5 rounded-[2rem] border border-dashed border-border/50">
@@ -445,7 +554,7 @@ export default function WebhooksPage() {
                            <div className="space-y-1">
                               <p className="text-sm font-black uppercase tracking-tight text-muted-foreground">No active endpoints found</p>
                               <p className="text-[10px] text-muted-foreground/60 max-w-[200px] mx-auto font-medium leading-relaxed">
-                                 Add a new endpoint to begin receiving real-time platform events.
+                                 Add a destination URL to receive outbound auth, OTP, and template events.
                               </p>
                            </div>
                            <Button 
@@ -468,11 +577,12 @@ export default function WebhooksPage() {
                                           <Activity className="h-6 w-6" />
                                        </div>
                                        <div className="space-y-1 overflow-hidden">
-                                          <h3 className="font-black text-sm tracking-tight truncate">{getSubscriptionUrl(hook)}</h3>
+                                          <h3 className="font-black text-sm tracking-tight truncate">{getSubscriptionName(hook)}</h3>
+                                          <p className="text-[10px] text-muted-foreground font-mono truncate">{getSubscriptionUrl(hook)}</p>
                                           <div className="flex items-center gap-2">
                                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-none text-[8px] font-black uppercase tracking-widest px-2">ACTIVE</Badge>
                                              <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                                                <ActivityIcon className="h-3 w-3" /> Endpoint is receiving events
+                                                <ActivityIcon className="h-3 w-3" /> wApi will send outbound events
                                              </span>
                                           </div>
                                        </div>
@@ -484,6 +594,7 @@ export default function WebhooksPage() {
                                           size="icon" 
                                           onClick={() => deleteMutation.mutate(getSubscriptionId(hook))}
                                           className="h-9 w-9 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                          aria-label="Delete outbound webhook endpoint"
                                        >
                                           <Trash2 className="h-4 w-4" />
                                        </Button>
@@ -491,7 +602,7 @@ export default function WebhooksPage() {
                                        {canManageSubscriptions && (
                                        <DropdownMenu>
                                           <DropdownMenuTrigger asChild>
-                                             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl border-border/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                                             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl border-border/50 opacity-0 group-hover:opacity-100 transition-opacity" aria-label="Open webhook endpoint actions">
                                                 <MoreVertical className="h-4 w-4" />
                                              </Button>
                                           </DropdownMenuTrigger>
@@ -504,16 +615,18 @@ export default function WebhooksPage() {
                                              </DropdownMenuItem>
                                              <DropdownMenuItem
                                                 onClick={() => {
-                                                   navigator.clipboard.writeText(JSON.stringify({
-                                                      type: 'message',
-                                                      appId: hook.appId || '...',
-                                                      timestamp: Date.now(),
-                                                      version: 'v3',
-                                                      payload: { id: 'msg_12345', text: 'Hello World!' }
-                                                   }, null, 2));
+                                                   navigator.clipboard.writeText(JSON.stringify(buildSamplePayload(), null, 2));
                                                    toast.success('Sample payload copied to clipboard');
                                                 }}
-                                                className="font-black text-[10px] py-3 rounded-lg uppercase tracking-widest cursor-pointer">Debug Payload</DropdownMenuItem>
+                                                className="font-black text-[10px] py-3 rounded-lg uppercase tracking-widest cursor-pointer">Copy Payload</DropdownMenuItem>
+                                             {getSubscriptionSecret(hook) && (
+                                                <DropdownMenuItem
+                                                   onClick={() => {
+                                                      navigator.clipboard.writeText(getSubscriptionSecret(hook));
+                                                      toast.success('Signing secret copied');
+                                                   }}
+                                                   className="font-black text-[10px] py-3 rounded-lg uppercase tracking-widest cursor-pointer">Copy Secret</DropdownMenuItem>
+                                             )}
                                           </DropdownMenuContent>
                                        </DropdownMenu>
                                           )}
@@ -523,7 +636,7 @@ export default function WebhooksPage() {
                                      {getSubscriptionEvents(hook).length > 0 ? (
                                         getSubscriptionEvents(hook).map((ev: string) => (
                                            <Badge key={ev} className="bg-slate-100 text-slate-600 border-none font-bold text-[9px] uppercase tracking-wide px-2 py-0.5 rounded-lg">
-                                              {ev}
+                                              {getEventLabel(ev)}
                                            </Badge>
                                         ))
                                      ) : (
@@ -544,7 +657,7 @@ export default function WebhooksPage() {
                         <Play className="h-5 w-5 text-indigo-600" />
                         Payload Tester
                      </CardTitle>
-                     <CardDescription className="text-xs font-medium">Verify your endpoint receives the correct structure.</CardDescription>
+                     <CardDescription className="text-xs font-medium">Preview the outbound payload your endpoint should accept.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8 pt-0 space-y-6">
                      <div className="space-y-2">
@@ -561,8 +674,15 @@ export default function WebhooksPage() {
 
                      <div className="space-y-2">
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Event Type</p>
-                        <select className="w-full h-11 bg-accent/20 border-border/50 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-indigo-600/20 appearance-none">
-                           {EVENT_TYPES.map(ev => (
+                        <select
+                           value={selectedTestEvent}
+                           onChange={(event) => {
+                              setSelectedTestEvent(event.target.value);
+                              setTestTimestamp((current) => current + 1000);
+                           }}
+                           className="w-full h-11 bg-accent/20 border-border/50 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-indigo-600/20 appearance-none"
+                        >
+                           {EVENT_TYPES.filter(ev => ev.id !== 'ALL').map(ev => (
                               <option key={ev.id} value={ev.id}>{ev.label}</option>
                            ))}
                         </select>
@@ -572,33 +692,16 @@ export default function WebhooksPage() {
                         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">JSON Schema Preview</p>
                         <div className="bg-slate-950 rounded-2xl p-5 font-mono text-[9px] text-indigo-400 overflow-hidden shadow-inner border border-white/5">
                            <pre>
-                              {`{
-  "type": "message",
-  "appId": "${subscriptions[0]?.appId || '...'}",
-  "timestamp": ${testTimestamp || '...'},
-  "version": "v3",
-  "payload": {
-    "id": "msg_12345",
-    "text": "Hello World!"
-  }
-}`}
+                              {JSON.stringify(buildSamplePayload(), null, 2)}
                            </pre>
                         </div>
                      </div>
 
                      <Button
-                        onClick={async () => {
-                           setTestTimestamp(Date.now());
-                           try {
-                              await testWABAConnection();
-                              toast.success('Test trigger dispatched via your WABA connection');
-                           } catch (err: any) {
-                              toast.error(err?.response?.data?.message || 'Test dispatch failed — check your WABA connection');
-                           }
-                        }}
+                        onClick={copySamplePayload}
                         className="w-full bg-slate-900 border-none text-white font-black h-12 rounded-xl shadow-lg hover:shadow-indigo-500/10 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]">
-                        <Send className="h-4 w-4" />
-                        Send Test Trigger
+                        <Copy className="h-4 w-4" />
+                        Copy Sample Payload
                      </Button>
                   </CardContent>
                </Card>

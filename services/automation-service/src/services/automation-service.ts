@@ -1,11 +1,11 @@
 
 import mongoose from "mongoose";
-import { AutomationRule } from "../models";
+import { AutomationRule, InstagramQuickflow, InstagramQuickflowLog, Integration } from "../models";
 import { FlowExecutorService } from "./flow-executor";
 import { AutoReplyService } from "./auto-reply-service";
 import { AnswerBotService } from "./answer-bot-service";
 import { AIIntentService } from "./ai-intent-service";
-import { chatInternalClient } from "../lib/internal-client";
+import { bspInternalClient, chatInternalClient } from "../lib/internal-client";
 
 export interface IAutomationEvent {
   workspaceId: string;
@@ -60,13 +60,17 @@ export class AutomationService {
         } catch (e) {}
       }
 
-      // 2. Rule-based Auto Reply
+      // 2. Instagram Quickflows
+      const quickflowHandled = await this.handleInstagramQuickflows(event);
+      if (quickflowHandled) return true;
+
+      // 3. Rule-based Auto Reply
       if (messageBody) {
         const handled = await this.handleRuleBasedAutoReply(event);
         if (handled) return true;
       }
 
-      // 3. Workflows
+      // 4. Workflows
       const flowTriggered = await this.handleEvent({
         ...event,
         type: event.type || "message_received",
@@ -75,7 +79,7 @@ export class AutomationService {
 
       if (flowTriggered) return true;
 
-      // 4. FAQ Bot
+      // 5. FAQ Bot
       if (messageBody && event.conversationId) {
         const faqMatch = await AnswerBotService.processMessage(
           event.workspaceId,
@@ -85,7 +89,7 @@ export class AutomationService {
         if (faqMatch) return true;
       }
 
-      // 5. AI Intent
+      // 6. AI Intent
       if (messageBody && event.conversationId) {
         const intentHandled = await AIIntentService.processMessage({
           workspaceId: event.workspaceId,
@@ -102,6 +106,135 @@ export class AutomationService {
       console.error("[AutomationService] Pipeline Error:", err);
       return false;
     }
+  }
+
+  private static async handleInstagramQuickflows(event: IAutomationEvent): Promise<boolean> {
+    const instagram = event.metadata?.instagram;
+    const channel = event.metadata?.channel || event.metadata?.provider;
+    if (!instagram || channel !== "instagram") return false;
+
+    const triggerType = instagram.triggerType;
+    if (!["comment", "dm", "story_reply", "mention"].includes(triggerType)) return false;
+
+    const workspaceFilter = this.workspaceFilter(event.workspaceId);
+    const message = (event.body || "").toLowerCase().trim();
+    const quickflows = await InstagramQuickflow.find({
+      workspace: workspaceFilter,
+      enabled: true,
+      triggerType,
+    }).sort({ createdAt: -1 });
+
+    if (!quickflows.length) return false;
+
+    const integration = await (Integration as any).findOne({
+      workspace: workspaceFilter,
+      type: 'instagram',
+      status: { $in: ['connected', 'pending'] },
+    }).select('+config');
+    const storedConfig = integration?.getDecryptedConfig?.() || {};
+    const accessToken = storedConfig?.tokens?.accessToken;
+
+    let handled = false;
+    for (const quickflow of quickflows) {
+      if (!this.matchesQuickflowKeywords(quickflow, message)) continue;
+
+      const instagramUserId = String(instagram.senderId || event.phone || "");
+      if (!instagramUserId) continue;
+
+      if (quickflow.rateLimitEnabled) {
+        const since = new Date(Date.now() - (quickflow.rateLimitWindow || 24) * 60 * 60 * 1000);
+        const recent = await InstagramQuickflowLog.findOne({
+          workspace: workspaceFilter,
+          quickflow: quickflow._id,
+          instagramUserId,
+          triggeredAt: { $gte: since },
+        }).lean();
+        if (recent) continue;
+      }
+
+      const responseText =
+        quickflow.response?.message ||
+        quickflow.response?.redirectToWhatsApp?.message ||
+        "";
+      let responseSent = false;
+      let responseId: string | undefined;
+
+      if (accessToken && responseText) {
+        try {
+          const sendPayload: any = {
+            workspaceId: event.workspaceId,
+            accessToken,
+            recipientId: triggerType === "comment" ? undefined : instagramUserId,
+            commentId: triggerType === "comment" ? instagram.commentId : undefined,
+            instagramAccountId: storedConfig?.instagramAccountId || instagram.recipientId,
+            text: responseText,
+          };
+          const sendResponse = await bspInternalClient.post('/internal/v1/bsp/channels/instagram/send', sendPayload);
+          responseId = sendResponse.data?.data?.providerMessageId || sendResponse.data?.data?.id || sendResponse.data?.providerMessageId;
+          responseSent = true;
+        } catch (err: any) {
+          console.error(`[AutomationService] Instagram quickflow reply failed: ${err?.response?.data?.message || err.message}`);
+        }
+      }
+
+      await InstagramQuickflowLog.create({
+        workspace: this.objectIdOrString(event.workspaceId),
+        quickflow: quickflow._id,
+        instagramUserId,
+        instagramUsername: instagram.username,
+        triggerType,
+        triggerPostId: instagram.mediaId,
+        triggerMessageId: event.messageId,
+        triggerContent: event.body,
+        responseSent,
+        responseContent: responseText,
+        responseId,
+        whatsappRedirected: Boolean(quickflow.response?.redirectToWhatsApp?.enabled),
+        triggeredAt: new Date(),
+        replySentAt: responseSent ? new Date() : undefined,
+      });
+
+      await InstagramQuickflow.updateOne(
+        { _id: quickflow._id },
+        {
+          $inc: {
+            totalTriggered: 1,
+            totalRepliesSent: responseSent ? 1 : 0,
+          },
+          $set: {
+            lastTriggeredAt: new Date(),
+            ...(responseSent ? { lastReplySentAt: new Date() } : {}),
+          },
+        },
+      );
+      handled = true;
+    }
+
+    return handled;
+  }
+
+  private static matchesQuickflowKeywords(quickflow: any, message: string) {
+    const keywords = Array.isArray(quickflow.keywords) ? quickflow.keywords : [];
+    if (!keywords.length) return true;
+    const mode = quickflow.matchMode || "contains";
+    return keywords.some((keyword: string) => {
+      const normalized = String(keyword || "").toLowerCase().trim();
+      if (!normalized) return false;
+      if (mode === "exact") return message === normalized;
+      if (mode === "starts_with") return message.startsWith(normalized);
+      return message.includes(normalized);
+    });
+  }
+
+  private static workspaceFilter(workspaceId: string) {
+    if (mongoose.Types.ObjectId.isValid(workspaceId)) {
+      return { $in: [workspaceId, new mongoose.Types.ObjectId(workspaceId)] };
+    }
+    return workspaceId;
+  }
+
+  private static objectIdOrString(value: string) {
+    return mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : value;
   }
 
   static async handleEvent(event: IAutomationEvent): Promise<boolean> {

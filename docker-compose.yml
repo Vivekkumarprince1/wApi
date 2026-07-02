@@ -23,6 +23,7 @@ services:
 
   # --- Microservices ---
   api-gateway:
+    image: thevivek2003/wapi-api-gateway:latest
     build:
       context: .
       dockerfile: services/api-gateway/Dockerfile
@@ -51,6 +52,7 @@ services:
       - wapi-network
 
   auth-service:
+    image: thevivek2003/wapi-auth-service:latest
     build:
       context: .
       dockerfile: services/auth-service/Dockerfile
@@ -71,6 +73,7 @@ services:
       - wapi-network
 
   campaign-service:
+    image: thevivek2003/wapi-campaign-service:latest
     build:
       context: .
       dockerfile: services/campaign-service/Dockerfile
@@ -90,6 +93,7 @@ services:
       - wapi-network
 
   billing-service:
+    image: thevivek2003/wapi-billing-service:latest
     build:
       context: .
       dockerfile: services/billing-service/Dockerfile
@@ -109,6 +113,7 @@ services:
       - wapi-network
 
   service-provider:
+    image: thevivek2003/wapi-service-provider:latest
     build:
       context: .
       dockerfile: services/service-provider/Dockerfile
@@ -130,6 +135,7 @@ services:
       - wapi-network
 
   automation-service:
+    image: thevivek2003/wapi-automation-service:latest
     build:
       context: .
       dockerfile: services/automation-service/Dockerfile
@@ -150,6 +156,7 @@ services:
       - wapi-network
 
   chat-service:
+    image: thevivek2003/wapi-chat-service:latest
     build:
       context: .
       dockerfile: services/chat-service/Dockerfile
@@ -169,6 +176,7 @@ services:
       - wapi-network
 
   contact-service:
+    image: thevivek2003/wapi-contact-service:latest
     build:
       context: .
       dockerfile: services/contact-service/Dockerfile
@@ -188,6 +196,7 @@ services:
       - wapi-network
 
   webhook-ingestor:
+    image: thevivek2003/wapi-webhook-ingestor:latest
     build:
       context: .
       dockerfile: services/webhook-ingestor/Dockerfile
@@ -208,6 +217,7 @@ services:
       - wapi-network
 
   websocket-gateway:
+    image: thevivek2003/wapi-websocket-gateway:latest
     build:
       context: .
       dockerfile: services/websocket-gateway/Dockerfile
@@ -229,6 +239,7 @@ services:
 
   # --- Frontend / Portals ---
   admin-portal:
+    image: thevivek2003/wapi-admin-portal:latest
     build:
       context: .
       dockerfile: apps/admin-portal/Dockerfile
@@ -244,6 +255,7 @@ services:
       - wapi-network
 
   customer-portal:
+    image: thevivek2003/wapi-customer-portal:latest
     build:
       context: .
       dockerfile: apps/customer-portal/Dockerfile

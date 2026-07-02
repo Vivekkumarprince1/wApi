@@ -1,37 +1,140 @@
 "use client";
 
 import React from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getWidgetConfig, updateWidgetConfig } from '@/lib/api/widget';
-import { Grid, MousePointer2, Settings, Code, Sparkles, MessageCircle, Copy, Check, ArrowRight, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  ArrowRight,
+  Check,
+  Code,
+  Copy,
+  ExternalLink,
+  Info,
+  Loader2,
+  MessageCircle,
+  MousePointer2,
+  RefreshCcw,
+  Settings,
+} from 'lucide-react';
 import { toast } from 'sonner';
+
+import {
+  getWidgetConfig,
+  updateWidgetConfig,
+  type WidgetConfig,
+  type WidgetPosition,
+} from '@/lib/api/widget';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+
+const positions: Array<{ value: WidgetPosition; label: string }> = [
+  { value: 'bottom-right', label: 'Bottom right' },
+  { value: 'bottom-left', label: 'Bottom left' },
+  { value: 'top-right', label: 'Top right' },
+  { value: 'top-left', label: 'Top left' },
+  { value: 'full-width-bottom', label: 'Full width bottom' },
+];
+
+const defaultDraft: WidgetConfig = {
+  widgetId: '',
+  enabled: false,
+  phoneNumber: '',
+  position: 'bottom-right',
+  color: {
+    primary: '#25D366',
+    secondary: '#1ea652',
+    text: '#ffffff',
+  },
+  greeting: {
+    enabled: true,
+    text: 'Welcome! How can we help?',
+    subtext: '',
+  },
+  defaultMessage: 'Hello! Thanks for reaching out.',
+  behavior: {
+    showByDefault: false,
+    buttonLabel: 'Chat with us',
+    allowedPages: ['*'],
+    excludedPages: [],
+    delayBeforeShow: 0,
+  },
+  attribution: {
+    enabled: true,
+    customText: 'Powered by wApi',
+  },
+  usage: {
+    sessionsThisMonth: 0,
+    messagesThisMonth: 0,
+    uniqueVisitorsThisMonth: 0,
+  },
+};
+
+function mergeDraft(config?: WidgetConfig): WidgetConfig {
+  return {
+    ...defaultDraft,
+    ...(config || {}),
+    color: { ...defaultDraft.color, ...(config?.color || {}) },
+    greeting: { ...defaultDraft.greeting, ...(config?.greeting || {}) },
+    behavior: { ...defaultDraft.behavior, ...(config?.behavior || {}) },
+    attribution: { ...defaultDraft.attribution, ...(config?.attribution || {}) },
+    usage: { ...defaultDraft.usage, ...(config?.usage || {}) },
+  };
+}
+
+function formatNumber(value?: number) {
+  return new Intl.NumberFormat('en-IN').format(value || 0);
+}
+
+function getPreviewFrameClasses(position: WidgetPosition) {
+  if (position === 'bottom-left') return { button: 'left-6 bottom-6', greeting: 'left-6 bottom-[104px]' };
+  if (position === 'top-right') return { button: 'right-6 top-32', greeting: 'right-6 top-[210px]' };
+  if (position === 'top-left') return { button: 'left-6 top-32', greeting: 'left-6 top-[210px]' };
+  if (position === 'full-width-bottom') return {
+    button: 'left-6 right-6 bottom-6 justify-center',
+    greeting: 'left-6 right-6 bottom-[104px]',
+  };
+  return { button: 'right-6 bottom-6', greeting: 'right-6 bottom-[104px]' };
+}
 
 export default function CloudWidgetHubPage() {
   const queryClient = useQueryClient();
-  const { data: config, isLoading } = useQuery({
-    queryKey: ['widget-config'],
-    queryFn: getWidgetConfig
-  });
   const [copied, setCopied] = React.useState(false);
   const [isEditorOpen, setIsEditorOpen] = React.useState(false);
-  const [form, setForm] = React.useState({ phoneNumber: '', themeColor: '#25D366', welcomeMessage: '' });
+  const [appOrigin, setAppOrigin] = React.useState('');
+  const [draft, setDraft] = React.useState<WidgetConfig>(defaultDraft);
 
-  const openEditor = () => {
-    setForm({
-      phoneNumber: (config as any)?.phoneNumber || '',
-      themeColor: (config as any)?.themeColor || '#25D366',
-      welcomeMessage: (config as any)?.welcomeMessage || 'Hi! How can we help you?',
-    });
-    setIsEditorOpen(true);
-  };
+  React.useEffect(() => {
+    setAppOrigin(window.location.origin);
+  }, []);
+
+  const {
+    data: config,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['widget-config'],
+    queryFn: getWidgetConfig,
+  });
+
+  const safeConfig = mergeDraft(config);
+  const isConfigured = Boolean(safeConfig.phoneNumber);
+  const isLive = Boolean(safeConfig.enabled && safeConfig.phoneNumber);
+  const previewPlacement = getPreviewFrameClasses(safeConfig.position);
+  const runtimeUrl = `${appOrigin || ''}/widget/runtime.js`;
+  const snippet = safeConfig.widgetId
+    ? `<script src="${runtimeUrl}" data-wapi-id="${safeConfig.widgetId}" async></script>`
+    : '';
 
   const saveMutation = useMutation({
-    mutationFn: () => updateWidgetConfig(form),
+    mutationFn: (payload: WidgetConfig) => updateWidgetConfig(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['widget-config'] });
       setIsEditorOpen(false);
@@ -40,197 +143,380 @@ export default function CloudWidgetHubPage() {
     onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to save widget config'),
   });
 
-  // Widget runtime URL is sourced from env so each deployment can point at
-  // its own CDN/origin instead of the previous hard-coded `cdn.wapi.com`,
-  // which never resolved.
-  const widgetRuntimeUrl =
-    process.env.NEXT_PUBLIC_WIDGET_URL || '/widget/runtime.js';
-  const widgetId = (config as any)?.widgetId || 'YOUR_WIDGET_ID';
-  const snippet = `<script src="${widgetRuntimeUrl}" data-id="${widgetId}"></script>`;
-  const snippetPreview = `<script src="${widgetRuntimeUrl}" ...`;
-
-  const copySnippet = () => {
-    navigator.clipboard.writeText(snippet);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const openEditor = () => {
+    setDraft(mergeDraft(config));
+    setIsEditorOpen(true);
   };
 
-  return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 pb-20">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-[24px] bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                <Grid className="h-8 w-8" />
-            </div>
-            <div>
-                <h1 className="text-4xl font-black tracking-tight text-foreground uppercase">Cloud Widget</h1>
-                <p className="text-muted-foreground mt-1 font-medium flex items-center gap-2">
-                    <MousePointer2 className="h-4 w-4" /> Embed customizable WhatsApp chat buttons on any website.
-                </p>
-            </div>
+  const copySnippet = async () => {
+    if (!snippet) return;
+    await navigator.clipboard.writeText(snippet);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  };
+
+  const saveDraft = () => {
+    if (draft.enabled && !draft.phoneNumber.trim()) {
+      toast.error('Phone number is required before enabling the widget');
+      return;
+    }
+    saveMutation.mutate(draft);
+  };
+
+  const openWhatsAppTest = () => {
+    if (!safeConfig.phoneNumber) {
+      toast.error('Add a WhatsApp phone number first');
+      return;
+    }
+    const phone = safeConfig.phoneNumber.replace(/[^\d]/g, '');
+    const text = encodeURIComponent(safeConfig.defaultMessage || 'Hello');
+    window.open(`https://wa.me/${phone}?text=${text}`, '_blank', 'noopener,noreferrer');
+  };
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
+        <Skeleton className="h-20 w-full" />
+        <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+          <Skeleton className="h-80 w-full" />
+          <Skeleton className="h-80 w-full" />
         </div>
-        <Button onClick={openEditor} className="rounded-full px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold h-12 uppercase tracking-tight">
-          <Sparkles className="mr-2 h-4 w-4" /> Design New Widget
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-xl flex-col items-center justify-center gap-4 p-6 text-center">
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-destructive">
+          <Settings className="h-6 w-6" />
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Widget config could not load</h1>
+          <p className="mt-1 text-sm text-muted-foreground">The service did not return the saved widget configuration.</p>
+        </div>
+        <Button onClick={() => refetch()} variant="outline" className="gap-2">
+          <RefreshCcw className="h-4 w-4" /> Retry
         </Button>
       </div>
+    );
+  }
 
-      {/* Widget Concept Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 border-none ring-1 ring-border/50 bg-card rounded-[48px] overflow-hidden shadow-sm relative group">
-            <div className="absolute top-0 right-0 p-10 opacity-5 group-hover:scale-110 transition-transform">
-                <MessageCircle className="w-48 h-48" />
-            </div>
-            <div className="p-10 relative z-10 space-y-6">
-                <Badge className="bg-indigo-500/10 text-indigo-600 border-none px-4 py-1 rounded-full font-black text-[10px] tracking-widest uppercase">Live Preview Available</Badge>
-                <div className="space-y-2 max-w-lg">
-                    <h2 className="text-3xl font-black tracking-tight">Your website, connected.</h2>
-                    <p className="text-muted-foreground leading-relaxed">
-                        The wApi Cloud Widget allows your website visitors to start a WhatsApp conversation with a single click. Customize colors, icons, and automated welcome messages.
-                    </p>
-                </div>
-                <div className="flex gap-4">
-                    <Button variant="outline" onClick={openEditor} className="rounded-full px-6 font-bold h-11 border-border/50">Edit Visuals</Button>
-                    <Button variant="outline" onClick={openEditor} className="rounded-full px-6 font-bold h-11 border-border/50">Behavior Settings</Button>
-                </div>
-            </div>
-        </Card>
+  return (
+    <div className="mx-auto flex max-w-7xl flex-col gap-6 p-6 pb-16">
+      <header className="flex flex-col gap-4 border-b border-border pb-5 md:flex-row md:items-center md:justify-between">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-tight">Website Widget</h1>
+            <Badge variant={isLive ? 'success' : 'outline'}>{isLive ? 'Live' : isConfigured ? 'Paused' : 'Not configured'}</Badge>
+          </div>
+          <p className="max-w-2xl text-sm text-muted-foreground">
+            Add a small WhatsApp button to your website. Visitors click it, WhatsApp opens with your prefilled message, and the click is tracked here.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={copySnippet} disabled={!isConfigured || !appOrigin} className="gap-2">
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? 'Copied' : 'Copy snippet'}
+          </Button>
+          <Button onClick={openEditor} className="gap-2">
+            <Settings className="h-4 w-4" /> Configure
+          </Button>
+        </div>
+      </header>
 
-        <Card className="border-none ring-1 ring-border/50 bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-[40px] p-8 flex flex-col justify-between shadow-xl">
-            <div className="space-y-4">
-                <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center">
-                    <Code className="h-6 w-6" />
-                </div>
-                <h3 className="text-xl font-black tracking-tight">Direct Embed</h3>
-                <p className="text-indigo-100/70 text-xs font-medium leading-relaxed">
-                    Paste this snippet before the closing &lt;/body&gt; tag of your website.
+      <section className="grid gap-3 md:grid-cols-3">
+        {[
+          {
+            title: '1. Configure',
+            body: 'Set your WhatsApp number, button text, greeting, color, and enable the widget.',
+          },
+          {
+            title: '2. Install',
+            body: 'Copy the snippet and paste it before the closing body tag on your website.',
+          },
+          {
+            title: '3. Convert',
+            body: 'Website visitors start WhatsApp chats without searching for your number.',
+          },
+        ].map((item) => (
+          <div key={item.title} className="rounded-xl border border-border bg-card p-4">
+            <p className="text-sm font-medium">{item.title}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
+          </div>
+        ))}
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
+        <Card className="rounded-xl">
+          <CardHeader className="border-b border-border">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle className="text-base font-medium">Live Preview</CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  This is how the widget appears on a website. Use the test button to confirm the WhatsApp link.
                 </p>
+              </div>
+              <Button variant="outline" onClick={openWhatsAppTest} disabled={!isConfigured} className="gap-2">
+                <ExternalLink className="h-4 w-4" /> Test WhatsApp
+              </Button>
             </div>
-            <div className="mt-6 bg-black/20 rounded-2xl p-4 flex items-center justify-between border border-white/10 group cursor-pointer" onClick={copySnippet}>
-                <code className="text-[10px] font-mono opacity-80 truncate mr-4">
-                    {snippetPreview}
-                </code>
-                {copied ? <Check className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4 text-white opacity-50 group-hover:opacity-100 transition-opacity" />}
+          </CardHeader>
+          <CardContent className="p-5">
+            <div className="relative min-h-[430px] overflow-hidden rounded-lg border border-border bg-background">
+              <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                <div className="ml-2 min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-1 text-xs text-muted-foreground">
+                  your-website.com
+                </div>
+              </div>
+
+              <div className="absolute left-5 right-5 top-16 z-10 flex flex-col gap-3 rounded-lg border border-border bg-background p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${isLive ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {isLive ? 'Saved widget is live in preview' : isConfigured ? 'Saved widget is paused' : 'Widget needs a phone number'}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {isConfigured ? `${safeConfig.phoneNumber} - ${positions.find((item) => item.value === safeConfig.position)?.label}` : 'Configure the widget to generate the button and embed snippet.'}
+                    </p>
+                  </div>
+                </div>
+                <Button size="sm" variant="outline" onClick={openWhatsAppTest} disabled={!isConfigured} className="gap-2">
+                  <ExternalLink className="h-3.5 w-3.5" /> Open test
+                </Button>
+              </div>
+
+              <div className="grid gap-4 p-5 pt-36 sm:grid-cols-2">
+                <div className="space-y-3 rounded-md border border-border bg-muted/20 p-4">
+                  <div className="h-3 w-28 rounded-full bg-muted" />
+                  <div className="h-2 w-full rounded-full bg-muted/70" />
+                  <div className="h-2 w-4/5 rounded-full bg-muted/70" />
+                </div>
+                <div className="space-y-3 rounded-md border border-border bg-muted/20 p-4">
+                  <div className="h-3 w-24 rounded-full bg-muted" />
+                  <div className="h-2 w-full rounded-full bg-muted/70" />
+                  <div className="h-2 w-3/4 rounded-full bg-muted/70" />
+                </div>
+                <div className="h-28 rounded-md border border-border bg-muted/20 sm:col-span-2" />
+              </div>
+              {safeConfig.greeting.enabled && safeConfig.greeting.text ? (
+                <div className={`absolute z-20 ${previewPlacement.greeting} max-w-[340px] rounded-xl border border-border bg-background p-4 text-sm font-medium shadow-lg`}>
+                  {safeConfig.greeting.text}
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={openWhatsAppTest}
+                disabled={!isConfigured}
+                className={`absolute z-20 flex min-h-14 min-w-[176px] items-center gap-2 rounded-full px-5 text-sm font-semibold shadow-xl ring-4 ring-background transition hover:scale-[1.01] hover:opacity-95 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60 ${previewPlacement.button}`}
+                style={{ backgroundColor: safeConfig.color.primary, color: safeConfig.color.text }}
+              >
+                <MessageCircle className="h-4 w-4" />
+                {safeConfig.behavior.buttonLabel}
+              </button>
+              {!isLive ? (
+                <div className="absolute left-5 top-36 z-20 max-w-sm rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-900 dark:text-amber-100">
+                  <div className="flex gap-2">
+                    <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                    <p>
+                      {isConfigured
+                        ? 'Preview is testable, but the public widget is paused until you enable it.'
+                        : 'Add your WhatsApp number to make this preview and snippet functional.'}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
             </div>
+          </CardContent>
         </Card>
+
+        <div className="flex flex-col gap-4">
+          <Card className="rounded-xl">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="flex items-center gap-2 text-base font-medium">
+                <Code className="h-4 w-4" /> Embed
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 p-5">
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <p className="font-medium">Benefit</p>
+                <p className="mt-1 text-muted-foreground">
+                  This converts website visitors into WhatsApp conversations, so your team can reply from the existing inbox instead of losing leads on the website.
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <code className="block break-all text-xs text-muted-foreground">
+                  {isConfigured ? snippet : 'Configure a phone number to generate your snippet.'}
+                </code>
+              </div>
+              <Button onClick={copySnippet} disabled={!isConfigured || !appOrigin} variant="outline" className="w-full gap-2">
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? 'Copied to clipboard' : 'Copy embed code'}
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-xl">
+            <CardHeader className="border-b border-border">
+              <CardTitle className="text-base font-medium">Current Config</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 p-5 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Phone</span>
+                <span className="truncate font-medium">{safeConfig.phoneNumber || 'Not set'}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Position</span>
+                <span className="font-medium">{positions.find((item) => item.value === safeConfig.position)?.label}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Button</span>
+                <span className="truncate font-medium">{safeConfig.behavior.buttonLabel}</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Analytics Snapshot */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid gap-4 md:grid-cols-3">
         {[
-            { label: 'Widget Impressions', value: '0', icon: Sparkles },
-            { label: 'Click-Through Rate', value: '0%', icon: MousePointer2 },
-            { label: 'Chats Started', value: '0', icon: MessageCircle },
-        ].map((stat, i) => (
-            <Card key={i} className="border-none ring-1 ring-border/50 bg-card rounded-[32px] p-6 shadow-sm">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{stat.label}</p>
-                <div className="flex items-center justify-between">
-                    <h4 className="text-2xl font-black">{stat.value}</h4>
-                    <stat.icon className="h-5 w-5 text-indigo-500 opacity-20" />
-                </div>
-            </Card>
+          { label: 'Widget impressions', value: safeConfig.usage.sessionsThisMonth, icon: MousePointer2 },
+          { label: 'Chats started', value: safeConfig.usage.messagesThisMonth, icon: MessageCircle },
+          { label: 'Unique clicks', value: safeConfig.usage.uniqueVisitorsThisMonth, icon: ArrowRight },
+        ].map((item) => (
+          <Card key={item.label} className="rounded-xl">
+            <CardContent className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{item.label}</p>
+                <p className="mt-1 text-2xl font-semibold">{formatNumber(item.value)}</p>
+              </div>
+              <item.icon className="h-5 w-5 text-muted-foreground" />
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Empty State / Config Details */}
-      <div className="bg-card border border-border/50 rounded-[40px] p-20 flex flex-col items-center text-center space-y-4 shadow-sm">
-        {isLoading ? (
-          <div className="flex flex-col items-center gap-4 py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-indigo-500" />
-            <p className="text-sm font-bold text-muted-foreground">Loading Configuration...</p>
-          </div>
-        ) : !config || !config.phoneNumber ? (
-          <>
-            <div className="w-20 h-20 rounded-[28px] bg-indigo-500/10 flex items-center justify-center text-indigo-600 mb-2">
-              <Grid className="h-10 w-10" />
-            </div>
-            <h3 className="text-2xl font-black text-foreground">No Widgets Configured</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto font-medium">
-                Deploy your first floating chat button or embedded contact form to start receiving chats from your site.
-            </p>
-            <Button variant="ghost" onClick={openEditor} className="text-xs font-black uppercase tracking-widest text-primary mt-4 group">
-                Configure Widget <ArrowRight className="ml-2 h-3 w-3 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </>
-        ) : (
-          <div className="w-full max-w-2xl text-left space-y-6">
-             <div className="flex items-center justify-between">
-                <h3 className="text-xl font-black uppercase">Active Configuration</h3>
-                <Badge variant="success">Online</Badge>
-             </div>
-             <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-muted/30 rounded-2xl border border-border/40">
-                   <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Phone Number</p>
-                   <p className="text-sm font-bold">{config.phoneNumber}</p>
-                </div>
-                <div className="p-4 bg-muted/30 rounded-2xl border border-border/40">
-                   <p className="text-[10px] font-black uppercase text-muted-foreground mb-1">Theme Color</p>
-                   <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.themeColor }}></div>
-                      <p className="text-sm font-bold">{config.themeColor}</p>
-                   </div>
-                </div>
-             </div>
-             <div className="p-6 bg-primary/5 rounded-3xl border border-primary/20">
-                <p className="text-[10px] font-black uppercase text-primary mb-2 tracking-widest">Welcome Message</p>
-                <p className="text-sm font-medium italic">"{config.welcomeMessage}"</p>
-             </div>
-          </div>
-        )}
-      </div>
+      {!isConfigured ? (
+        <div className="rounded-xl border border-dashed border-border p-6 text-center">
+          <h2 className="text-base font-medium">No widget is configured yet</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Add a WhatsApp number and enable the widget to make the embed snippet live.</p>
+          <Button onClick={openEditor} className="mt-4 gap-2">
+            Configure widget <ArrowRight className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : null}
 
       <Dialog open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-        <DialogContent className="rounded-3xl max-w-md">
+        <DialogContent className="max-h-[90vh] overflow-y-auto rounded-xl sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black uppercase tracking-tight">Widget Configuration</DialogTitle>
+            <DialogTitle>Widget Configuration</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">WhatsApp Phone Number</p>
-              <Input
-                value={form.phoneNumber}
-                onChange={(e) => setForm(f => ({ ...f, phoneNumber: e.target.value }))}
-                placeholder="919876543210"
-                className="h-11 rounded-xl"
-              />
+
+          <div className="grid gap-5 py-2">
+            <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-4">
+              <div>
+                <Label className="text-sm font-medium">Enable widget</Label>
+                <p className="text-xs text-muted-foreground">The public script renders only when this is enabled and a phone number is set.</p>
+              </div>
+              <Switch checked={draft.enabled} onCheckedChange={(enabled) => setDraft((current) => ({ ...current, enabled }))} />
             </div>
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Theme Color</p>
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={form.themeColor}
-                  onChange={(e) => setForm(f => ({ ...f, themeColor: e.target.value }))}
-                  className="h-11 w-14 rounded-xl border border-border/50 bg-transparent cursor-pointer"
-                />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="widget-phone">WhatsApp phone number</Label>
                 <Input
-                  value={form.themeColor}
-                  onChange={(e) => setForm(f => ({ ...f, themeColor: e.target.value }))}
-                  className="h-11 rounded-xl font-mono"
+                  id="widget-phone"
+                  value={draft.phoneNumber}
+                  onChange={(event) => setDraft((current) => ({ ...current, phoneNumber: event.target.value }))}
+                  placeholder="919876543210"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Position</Label>
+                <Select value={draft.position} onValueChange={(position: WidgetPosition) => setDraft((current) => ({ ...current, position }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {positions.map((position) => (
+                      <SelectItem key={position.value} value={position.value}>{position.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-[120px_1fr_1fr]">
+              <div className="space-y-2">
+                <Label htmlFor="widget-color">Color</Label>
+                <input
+                  id="widget-color"
+                  type="color"
+                  value={draft.color.primary}
+                  onChange={(event) => setDraft((current) => ({
+                    ...current,
+                    color: { ...current.color, primary: event.target.value, secondary: event.target.value },
+                  }))}
+                  className="h-10 w-full rounded-md border border-border bg-background"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="button-label">Button label</Label>
+                <Input
+                  id="button-label"
+                  value={draft.behavior.buttonLabel}
+                  onChange={(event) => setDraft((current) => ({
+                    ...current,
+                    behavior: { ...current.behavior, buttonLabel: event.target.value },
+                  }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="show-delay">Show delay seconds</Label>
+                <Input
+                  id="show-delay"
+                  type="number"
+                  min={0}
+                  value={draft.behavior.delayBeforeShow}
+                  onChange={(event) => setDraft((current) => ({
+                    ...current,
+                    behavior: { ...current.behavior, delayBeforeShow: Number(event.target.value || 0) },
+                  }))}
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Welcome Message</p>
-              <Input
-                value={form.welcomeMessage}
-                onChange={(e) => setForm(f => ({ ...f, welcomeMessage: e.target.value }))}
-                placeholder="Hi! How can we help you?"
-                className="h-11 rounded-xl"
+
+            <div className="space-y-2">
+              <Label htmlFor="greeting">Greeting text</Label>
+              <Textarea
+                id="greeting"
+                value={draft.greeting.text}
+                onChange={(event) => setDraft((current) => ({
+                  ...current,
+                  greeting: { ...current.greeting, text: event.target.value },
+                }))}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="default-message">Default WhatsApp message</Label>
+              <Textarea
+                id="default-message"
+                value={draft.defaultMessage}
+                onChange={(event) => setDraft((current) => ({ ...current, defaultMessage: event.target.value }))}
               />
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditorOpen(false)} className="rounded-xl font-bold">Cancel</Button>
-            <Button
-              onClick={() => {
-                if (!form.phoneNumber.trim()) { toast.error('Phone number is required'); return; }
-                saveMutation.mutate();
-              }}
-              disabled={saveMutation.isPending}
-              className="rounded-xl font-bold"
-            >
-              {saveMutation.isPending ? 'Saving…' : 'Save Widget'}
+            <Button variant="outline" onClick={() => setIsEditorOpen(false)}>Cancel</Button>
+            <Button onClick={saveDraft} disabled={saveMutation.isPending} className="gap-2">
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {saveMutation.isPending ? 'Saving...' : 'Save widget'}
             </Button>
           </DialogFooter>
         </DialogContent>

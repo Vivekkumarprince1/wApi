@@ -142,6 +142,12 @@ When requests hit the API Gateway, they go through several operations before pro
 | `createAd(data)` | POST | `/ads` | `/api/v1/ads` (no rewrite) | `/api/v1/ads` | `campaign-service` (3002) |
 | `updateAd(id, data)` | PUT | `/ads/:id` | `/api/v1/ads/:id` (no rewrite) | `/api/v1/ads/:id` | `campaign-service` (3002) |
 | `deleteAd(id)` | DELETE | `/ads/:id` | `/api/v1/ads/:id` (no rewrite) | `/api/v1/ads/:id` | `campaign-service` (3002) |
+| `getMetaAdsReadiness()` | GET | `/ads/meta/readiness` | `/api/v1/ads` (no rewrite) | `/api/v1/ads/meta/readiness` | `campaign-service` (3002) |
+| `publishAd(id,status)` | POST | `/ads/:id/publish` | `/api/v1/ads` (no rewrite) | `/api/v1/ads/:id/publish` | `campaign-service` (3002) |
+| `updateAdStatus(id,status)` | POST | `/ads/:id/status` | `/api/v1/ads` (no rewrite) | `/api/v1/ads/:id/status` | `campaign-service` (3002) |
+| `getAdPreview(id,format)` | GET | `/ads/:id/preview` | `/api/v1/ads` (no rewrite) | `/api/v1/ads/:id/preview` | `campaign-service` (3002) |
+| `syncAd(id,params)` | POST | `/ads/:id/sync` | `/api/v1/ads` (no rewrite) | `/api/v1/ads/:id/sync` | `campaign-service` (3002) |
+| `syncAllAds(params)` | POST | `/ads/meta/sync-all` | `/api/v1/ads` (no rewrite) | `/api/v1/ads/meta/sync-all` | `campaign-service` (3002) |
 
 ---
 
@@ -499,6 +505,16 @@ When requests hit the API Gateway, they go through several operations before pro
 | `getGoogleSheetsColumns(id,s)` | GET | `/integrations/google/spreadsheets/:id/columns` | Passes through without edits | `/api/v1/integrations/google/spreadsheets/:id/columns` | `automation-service` (3001) |
 | `getIntegrations()` | GET | `/integrations` | Passes through without edits | `/api/v1/integrations` | `automation-service` (3001) |
 | `syncIntegration(type)` | POST | `/integrations/:type/sync` | Passes through without edits | `/api/v1/integrations/:type/sync` | `automation-service` (3001) |
+| `getInstagramStatus()` | GET | `/integrations/instagram/status` | Passes through without edits | `/api/v1/integrations/instagram/status` | `automation-service` (3001) |
+| `getInstagramAuthUrl(force)` | GET | `/integrations/instagram/auth-url` | Passes through without edits | `/api/v1/integrations/instagram/auth-url` | `automation-service` (3001) |
+| `refreshInstagramToken()` | POST | `/integrations/instagram/refresh-token` | Passes through without edits | `/api/v1/integrations/instagram/refresh-token` | `automation-service` (3001) |
+| `getMetaAdsStatus()` | GET | `/integrations/meta-ads/status` | Passes through without edits | `/api/v1/integrations/meta-ads/status` | `automation-service` (3001) |
+| `getMetaAdsAuthUrl(force)` | GET | `/integrations/meta-ads/auth-url` | Passes through without edits | `/api/v1/integrations/meta-ads/auth-url` | `automation-service` (3001) |
+| `refreshMetaAdsAssets()` | POST | `/integrations/meta-ads/refresh-assets` | Passes through without edits | `/api/v1/integrations/meta-ads/refresh-assets` | `automation-service` (3001) |
+| `saveMetaAdsConfig(data)` | POST | `/integrations/meta-ads/config` | Passes through without edits | `/api/v1/integrations/meta-ads/config` | `automation-service` (3001) |
+| `listMetaCatalogProducts(id)` | GET | `/integrations/meta-ads/catalogs/:id/products` | Passes through without edits | `/api/v1/integrations/meta-ads/catalogs/:id/products` | `automation-service` (3001) |
+| `syncMetaCatalogProduct(id,p)` | POST | `/integrations/meta-ads/catalogs/:id/products/sync` | Passes through without edits | `/api/v1/integrations/meta-ads/catalogs/:id/products/sync` | `automation-service` (3001) |
+| `createMetaProductSet(id,d)` | POST | `/integrations/meta-ads/catalogs/:id/product-sets` | Passes through without edits | `/api/v1/integrations/meta-ads/catalogs/:id/product-sets` | `automation-service` (3001) |
 | `connectPetpooja(data)` | POST | `/integrations/petpooja/connect` | Passes through without edits | `/api/v1/integrations/petpooja/connect` | `automation-service` (3001) |
 
 ---

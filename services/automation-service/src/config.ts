@@ -42,6 +42,7 @@ export const config = {
   jwtSecret,
   internalServiceSecret,
   chatServiceUrl: process.env.CHAT_SERVICE_URL || 'http://localhost:3008',
+  contactServiceUrl: process.env.CONTACT_SERVICE_URL || 'http://localhost:3007',
   bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
   integrationEncryptionKey,
 };

@@ -2,6 +2,8 @@ import mongoose, { Document, Schema, Types, Model } from 'mongoose';
 
 export interface IWidgetConfig extends Document {
   workspace: Types.ObjectId;
+  widgetId: string;
+  phoneNumber: string;
   enabled: boolean;
   position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'full-width-bottom';
   color: {
@@ -44,6 +46,8 @@ export interface IWidgetConfig extends Document {
 
 const WidgetConfigSchema = new Schema({
   workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },
+  widgetId: { type: String, required: true, index: true, unique: true },
+  phoneNumber: { type: String, default: '' },
   enabled: { type: Boolean, default: false },
   position: { type: String, enum: ['bottom-right', 'bottom-left', 'top-right', 'top-left', 'full-width-bottom'], default: 'bottom-right' },
   color: {
@@ -83,5 +87,7 @@ const WidgetConfigSchema = new Schema({
     lastActivityAt: Date
   }
 }, { timestamps: true });
+
+WidgetConfigSchema.index({ workspace: 1 }, { unique: true });
 
 export const WidgetConfig: Model<IWidgetConfig> = (mongoose.models.WidgetConfig as any) || mongoose.model<IWidgetConfig>('WidgetConfig', WidgetConfigSchema);

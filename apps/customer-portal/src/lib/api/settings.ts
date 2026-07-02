@@ -35,9 +35,17 @@ export const deleteTag = (id: string) => api.delete<any>(`/workspace/tags/${id}`
 // Developer Settings — owned by automation-service (gateway /api/v1/developer)
 export const getDeveloperSettings = () => api.get<any>('/developer/settings').then(unwrapData);
 export const updateDeveloperSettings = (data: any) => api.patch<any>('/developer/settings', data);
+export const getOutboundWebhookSubscriptions = () => api.get<any>('/developer/webhooks').then(unwrapData);
+export const createOutboundWebhookSubscription = (data: any) =>
+  api.post<any>('/developer/webhooks', data).then(unwrapData);
+export const updateOutboundWebhookSubscription = (id: string, data: any) =>
+  api.patch<any>(`/developer/webhooks/${id}`, data).then(unwrapData);
+export const deleteOutboundWebhookSubscription = (id?: string) =>
+  api.delete<any>(id ? `/developer/webhooks/${id}` : '/developer/webhooks').then(unwrapData);
 export const getDeveloperKeys = () => api.get<any>('/developer/keys').then(unwrapData);
-export const createDeveloperKey = (name: string) => api.post<any>('/developer/keys', { name });
-export const deleteDeveloperKey = (id: string) => api.delete<any>(`/developer/keys/${id}`);
+export const createDeveloperKey = (name: string) => api.post<any>('/developer/keys', { name }).then(unwrapData);
+export const getDeveloperKeySecret = (id: string) => api.get<any>(`/developer/keys/${id}/secret`).then(unwrapData);
+export const deleteDeveloperKey = (id: string) => api.delete<any>(`/developer/keys/${id}`).then(unwrapData);
 
 // Roles & Permissions
 export const getRoles = () => api.get<any>('/workspace/roles').then(unwrapData);

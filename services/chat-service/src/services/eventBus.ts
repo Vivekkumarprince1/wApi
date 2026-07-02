@@ -412,7 +412,12 @@ export async function processParsedMessage(parsed: any) {
           messageId: chatMessage._id.toString(),
           body: parsed.text || '',
           phone: parsed.senderPhone || '',
-          metadata: { type: parsed.type },
+          metadata: {
+            ...(parsed.metadata || {}),
+            type: parsed.type,
+            channel: parsed.metadata?.channel || parsed.channel,
+            provider: parsed.metadata?.provider || parsed.provider,
+          },
           isOutsideBusinessHours: !isWithinBusinessHours(workspaceDoc?.settings),
         }),
       })

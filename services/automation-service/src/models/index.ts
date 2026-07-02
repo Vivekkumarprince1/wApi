@@ -16,8 +16,8 @@ export * from './WhatsAppFormResponse';
 export * from './WhatsAppFlow';
 export * from './WidgetConfig';
 export * from './Workspace';
+export * from './DeveloperOtpChallenge';
 export * from './Integration';
-
 
 
 

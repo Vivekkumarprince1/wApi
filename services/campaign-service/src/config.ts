@@ -43,6 +43,7 @@ export const config = {
   bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
   chatServiceUrl: process.env.CHAT_SERVICE_URL || 'http://localhost:3008',
   contactServiceUrl: process.env.CONTACT_SERVICE_URL || 'http://localhost:3007',
+  automationServiceUrl: process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001',
   apiGatewayUrl: process.env.API_GATEWAY_URL || 'http://localhost:5001',
   jwtSecret,
   internalServiceSecret,

@@ -1,7 +1,7 @@
 import axios, { type AxiosRequestConfig } from 'axios';
 import { config } from '../config';
 
-type ServiceName = 'billing' | 'chat' | 'contact' | 'bsp' | 'gateway';
+type ServiceName = 'billing' | 'chat' | 'contact' | 'bsp' | 'automation' | 'gateway';
 
 type CircuitState = {
   failures: number;
@@ -18,6 +18,7 @@ const circuitState: Record<ServiceName, CircuitState> = {
   chat: { failures: 0, lastFailure: 0, isOpen: false },
   contact: { failures: 0, lastFailure: 0, isOpen: false },
   bsp: { failures: 0, lastFailure: 0, isOpen: false },
+  automation: { failures: 0, lastFailure: 0, isOpen: false },
   gateway: { failures: 0, lastFailure: 0, isOpen: false },
 };
 
@@ -26,6 +27,7 @@ function baseUrlFor(service: ServiceName) {
   if (service === 'chat') return config.chatServiceUrl;
   if (service === 'contact') return config.contactServiceUrl;
   if (service === 'bsp') return config.bspServiceUrl;
+  if (service === 'automation') return config.automationServiceUrl;
   return config.apiGatewayUrl;
 }
 

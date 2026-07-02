@@ -34,6 +34,7 @@ import { AdminController } from './admin/admin.controller';
 import { AdminService } from './admin/admin.service';
 import { ChannelController } from './channels/channel.controller';
 import { ChannelService } from './channels/channel.service';
+import { InstagramWebhooksService } from './channels/instagram/instagram-webhooks.service';
 import { ProviderApp, ProviderAppSchema } from './models/provider-app.schema';
 import { ProviderCredential, ProviderCredentialSchema } from './models/provider-credential.schema';
 import { ProviderHealthSnapshot, ProviderHealthSnapshotSchema } from './models/provider-health-snapshot.schema';
@@ -112,6 +113,7 @@ import { RedisService } from './common/redis.service';
     WorkspaceService,
     AdminService,
     ChannelService,
+    InstagramWebhooksService,
     ProviderActionsService,
     ProviderEventConsumerService,
     ProviderEventProducerService,

@@ -81,6 +81,7 @@ const isPublicAuthPath = (path: string) =>
   publicAuthPaths.has(path) || path.startsWith('/api/v1/auth/invitation/');
 
 const isPublicWebhookPath = (path: string) => path === '/api/webhooks' || path.startsWith('/api/webhooks/');
+const isPublicWidgetPath = (path: string) => path.startsWith('/api/v1/widget/public/');
 
 type ServiceControl = {
   published?: boolean;
@@ -139,7 +140,7 @@ function serviceIdsForPath(path: string): string[] {
   if (path.startsWith('/api/v1/contacts') || path.startsWith('/api/v1/crm') || path.startsWith('/api/v1/tags') || path.startsWith('/api/v1/messaging/quick-replies') || path.startsWith('/api/v1/bulk')) return ['contact'];
   if (path.startsWith('/api/v1/billing') || path.startsWith('/api/v1/commerce') || path.startsWith('/api/v1/workspace/billing') || path.startsWith('/api/v1/workspace/pricing')) return ['billing'];
   if (path.startsWith('/api/v1/campaign') || path.startsWith('/api/v1/ads')) return ['campaign'];
-  if (path.startsWith('/api/v1/automation') || path.startsWith('/api/v1/flows') || path.startsWith('/api/v1/widget') || path.startsWith('/api/v1/developer') || path.startsWith('/api/v1/integrations')) return ['automation'];
+  if (path.startsWith('/api/v1/automation') || path.startsWith('/api/v1/flows') || path.startsWith('/api/v1/widget') || path.startsWith('/api/v1/developer') || path.startsWith('/api/v1/external') || path.startsWith('/api/v1/integrations')) return ['automation'];
   if (path.startsWith('/api/v1/onboarding') || path.startsWith('/api/v1/templates') || path.startsWith('/api/v1/upload') || path.startsWith('/api/v1/workspace/waba') || path.startsWith('/api/v1/workspace/profile') || path.startsWith('/api/v1/workspace/webhooks') || path.startsWith('/api/v1/workspace/whatsapp') || path.startsWith('/api/v1/workspace/settings/waba') || path.startsWith('/api/v1/workspace/phone-numbers') || path.startsWith('/api/v1/workspace/connection-status')) return ['bsp'];
   return [];
 }
@@ -154,6 +155,21 @@ const corsOrigin = allowedOrigins.includes('*') ? true : allowedOrigins;
 
 // Helmet security policy
 app.use(helmet());
+
+// Public website widget runtime calls this endpoint from arbitrary customer
+// domains, so it needs a narrow CORS carve-out. All authenticated APIs keep the
+// normal allow-list below.
+app.use('/api/v1/widget/public', (req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+  next();
+});
 
 // CORS config
 app.use(cors({
@@ -206,7 +222,7 @@ app.use(async (req, res, next) => {
   // check endpoints, and public auth endpoints. Public auth routes must still reach auth-service
   // when the browser has an expired/stale auth_token cookie; otherwise login
   // cannot replace the bad cookie.
-  if (req.path.startsWith('/api/internal') || isPublicWebhookPath(req.path) || req.path === '/health' || req.path === '/' || isPublicAuthPath(req.path)) {
+  if (req.path.startsWith('/api/internal') || isPublicWebhookPath(req.path) || isPublicWidgetPath(req.path) || req.path === '/health' || req.path === '/' || isPublicAuthPath(req.path)) {
     return next();
   }
 
@@ -291,7 +307,7 @@ app.use(async (req, res, next) => {
 });
 
 app.use(async (req, res, next) => {
-  if (req.path.startsWith('/api/internal') || isPublicWebhookPath(req.path) || req.path === '/health' || req.path === '/') {
+  if (req.path.startsWith('/api/internal') || isPublicWebhookPath(req.path) || isPublicWidgetPath(req.path) || req.path === '/health' || req.path === '/') {
     return next();
   }
   if (req.headers['x-user-system-role'] === 'super_admin') {
@@ -628,6 +644,7 @@ app.use('/api/v1/automation', proxyRewrite(
 app.use('/api/v1/flows', proxyTo(SERVICES.automation, 'automation'));
 app.use('/api/v1/widget', proxyTo(SERVICES.automation, 'automation'));
 app.use('/api/v1/developer', proxyTo(SERVICES.automation, 'automation'));
+app.use('/api/v1/external', proxyTo(SERVICES.automation, 'automation'));
 app.use('/api/v1/integrations', proxyTo(SERVICES.automation, 'automation'));
 
 // 11. BSP Onboarding and Templates

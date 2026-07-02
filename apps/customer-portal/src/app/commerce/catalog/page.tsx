@@ -30,7 +30,8 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
-  X
+  X,
+  RefreshCcw
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -39,7 +40,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
-import { deleteProduct as deleteProductApi, fetchProductsList } from '@/lib/api/commerce';
+import { deleteProduct as deleteProductApi, fetchProductsList, updateProduct as updateProductApi } from '@/lib/api/commerce';
+import { getMetaAdsStatus, syncMetaCatalogProduct } from '@/lib/api/integrations';
 import FlashLoader from '@/components/ui/flash-loader';
 import { ProductDialog } from '@/components/dashboard/commerce/ProductDialog';
 import { cn } from '@/lib/utils';
@@ -68,6 +70,11 @@ export default function CommerceCatalogPage() {
     }
   });
 
+  const { data: metaAdsStatus } = useQuery({
+    queryKey: ['meta-ads-commerce-status'],
+    queryFn: getMetaAdsStatus,
+  });
+
   // Products Query
   const { data: productsData, isLoading } = useQuery({
     queryKey: ['products', page, search, category],
@@ -90,6 +97,47 @@ export default function CommerceCatalogPage() {
       toast.success("Product deleted successfully.");
     },
     onError: () => toast.error("Failed to delete product.")
+  });
+
+  const selectedMetaCatalog = metaAdsStatus?.integration?.configMetadata?.selected || {};
+  const selectedCatalogId = selectedMetaCatalog.productCatalogId || "";
+  const selectedCatalogName = selectedMetaCatalog.productCatalogName || selectedCatalogId;
+
+  const syncProductToMeta = useMutation({
+    mutationFn: async (product: any) => {
+      if (!selectedCatalogId) throw new Error("Select a Meta product catalog in Integrations first.");
+      const result = await syncMetaCatalogProduct(selectedCatalogId, {
+        ...product,
+        retailerId: product.metaRetailerId || product._id,
+        metaProductId: product.metaProductId,
+        imageUrl: product.images?.find?.((image: any) => image?.isPrimary)?.url || product.images?.[0]?.url,
+        url: product.url || product.images?.[0]?.url,
+      });
+      const metaProductId = result?.data?.id || product.metaProductId;
+      await updateProductApi(product._id, {
+        metaCatalogId: selectedCatalogId,
+        metaCatalogName: selectedCatalogName,
+        metaProductId,
+        metaRetailerId: result?.retailerId || product.metaRetailerId || product._id,
+        metaProductStatus: result?.action || 'synced',
+        metaSyncedAt: new Date().toISOString(),
+        metaSyncError: undefined,
+      });
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast.success("Product synced to Meta catalog.");
+    },
+    onError: async (err: any, product: any) => {
+      if (product?._id) {
+        await updateProductApi(product._id, {
+          metaSyncError: err?.response?.data?.message || err?.message || "Meta catalog sync failed",
+        }).catch(() => undefined);
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+      }
+      toast.error(err?.response?.data?.message || err?.message || "Meta catalog sync failed");
+    }
   });
 
   const products = productsData?.data || [];
@@ -263,6 +311,12 @@ export default function CommerceCatalogPage() {
                     >
                       {product.isActive ? 'Visible' : 'Archived'}
                     </Badge>
+                    <Badge
+                      variant={product.metaSyncError ? "destructive" : product.metaProductId ? "default" : "outline"}
+                      className="rounded-xl font-black border-none text-[8px] uppercase tracking-widest px-3 py-1"
+                    >
+                      {product.metaSyncError ? "Meta error" : product.metaProductId ? "Meta synced" : "Local"}
+                    </Badge>
                   </div>
                 </div>
 
@@ -309,6 +363,14 @@ export default function CommerceCatalogPage() {
 	                      </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56 p-2 rounded-[24px] shadow-2xl border-none ring-1 ring-border/20">
                         <DropdownMenuItem className="rounded-xl h-11 px-4 font-bold text-xs" onClick={() => handleEdit(product)}>Duplicate Listing</DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="rounded-xl h-11 px-4 font-bold text-xs"
+                          onClick={() => syncProductToMeta.mutate(product)}
+                          data-disabled={!selectedCatalogId || syncProductToMeta.isPending}
+                        >
+                          <RefreshCcw className="size-4" />
+                          Sync to Meta catalog
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => { router.push('/analytics/advanced'); }} className="rounded-xl h-11 px-4 font-bold text-xs">Analytics Digest</DropdownMenuItem>
                         <div className="h-px bg-border/40 my-2" />
                         <DropdownMenuItem 

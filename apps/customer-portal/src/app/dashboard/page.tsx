@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Rocket, 
-  Loader2, 
   Zap, 
   User, 
   MessageSquare, 
@@ -65,6 +64,7 @@ const DashboardPageClient = () => {
   const stage1Complete = workspace?.stage1?.complete || false;
   const phoneStatus = workspace?.stage1?.details?.phoneStatus || workspace?.phoneStatus;
   const isWhatsAppConnected = stage1Complete || activePhoneStatuses.includes(String(phoneStatus || '').toUpperCase());
+  const onboardingStatus = workspace?.onboardingStatus;
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -85,7 +85,7 @@ const DashboardPageClient = () => {
     }
 
     setConnectNumberModalOpen(true);
-  }, [searchParams, callbackPayload, isWhatsAppConnected, router]);
+  }, [searchParams, callbackPayload, isWhatsAppConnected, onboardingStatus, router]);
 
   const handleCloseConnectModal = () => {
     setConnectNumberModalOpen(false);
@@ -172,7 +172,6 @@ const DashboardPageClient = () => {
     : null;
   const showTrial = user?.role === 'owner' && trialDaysLeft !== null && trialDaysLeft > 0;
 
-  const onboardingStatus = workspace?.onboardingStatus;
   const isProvisioning = ['PROVISIONING_STARTED', 'APP_ASSIGNED', 'TOKEN_RESOLVED', 'CONTACTS_SET', 'WEBHOOKS_CONFIGURED'].includes(onboardingStatus || '');
 
   const greeting = useMemo(() => {

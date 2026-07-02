@@ -16,6 +16,13 @@ export interface IProduct extends Document {
   category?: string;
   images: IProductImage[];
   isActive: boolean;
+  metaCatalogId?: string;
+  metaCatalogName?: string;
+  metaProductId?: string;
+  metaRetailerId?: string;
+  metaProductStatus?: string;
+  metaSyncedAt?: Date;
+  metaSyncError?: string;
   isDeleted: boolean;
   deletedAt?: Date;
   createdBy?: mongoose.Types.ObjectId;
@@ -44,6 +51,13 @@ const ProductSchema: Schema = new Schema({
   category: { type: String, trim: true },
   images: [ProductImageSchema],
   isActive: { type: Boolean, default: true, index: true },
+  metaCatalogId: { type: String },
+  metaCatalogName: { type: String },
+  metaProductId: { type: String },
+  metaRetailerId: { type: String },
+  metaProductStatus: { type: String },
+  metaSyncedAt: { type: Date },
+  metaSyncError: { type: String },
   isDeleted: { type: Boolean, default: false, index: true },
   deletedAt: Date,
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },

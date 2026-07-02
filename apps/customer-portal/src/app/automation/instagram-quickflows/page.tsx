@@ -7,39 +7,34 @@ import {
   Search, 
   ToggleLeft, 
   ToggleRight, 
-  Eye, 
   Pencil, 
   Trash2, 
   Zap, 
-  Target, 
   ArrowRight,
-  Filter,
   MoreVertical,
   Activity,
-  CheckCircle2,
   MessageCircleIcon,
   Hash,
   Gift,
-  ChevronDown,
   Clock,
   Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { 
   fetchInstagramQuickflows, 
   toggleInstagramQuickflow, 
-  deleteInstagramQuickflow, 
-  createInstagramQuickflow 
+  deleteInstagramQuickflow
 } from '@/lib/api/automation';
+import { getInstagramStatus } from '@/lib/api/integrations';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import FlashLoader from '@/components/ui/flash-loader';
+import { AccessRestrictedState } from '@/components/shared/access-restricted-state';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -94,9 +89,17 @@ export default function InstagramQuickflowsPage() {
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const { data: instagramStatus, isLoading: isInstagramStatusLoading } = useQuery({
+    queryKey: ['instagram-integration-status'],
+    queryFn: () => getInstagramStatus()
+  });
+
+  const isInstagramOnboarded = instagramStatus?.status === 'connected';
+
   const { data: quickflows, isLoading } = useQuery({
     queryKey: ['instagram-quickflows'],
-    queryFn: () => fetchInstagramQuickflows()
+    queryFn: () => fetchInstagramQuickflows(),
+    enabled: isInstagramOnboarded
   });
 
   const toggleMutation = useMutation({
@@ -138,7 +141,21 @@ export default function InstagramQuickflowsPage() {
     triggered: flows.reduce((acc: number, f: any) => acc + (f.totalTriggered || 0), 0)
   };
 
-  if (isLoading) return <FlashLoader />;
+  if (isInstagramStatusLoading || (isInstagramOnboarded && isLoading)) return <FlashLoader />;
+
+  if (!isInstagramOnboarded) {
+    return (
+      <AccessRestrictedState
+        title="Instagram onboarding required"
+        description="Connect an Instagram professional account before creating QuickFlows for DMs, comments, mentions, and story replies."
+        actionLabel="Connect Instagram"
+        targetPath="/settings/channels?connect=instagram"
+        secondaryLabel="Back to automation"
+        secondaryPath="/automation"
+        statusLabel={instagramStatus?.status || 'not connected'}
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">

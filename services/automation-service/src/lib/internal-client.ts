@@ -3,6 +3,8 @@ import { randomUUID } from 'crypto';
 import { config } from '../config';
 
 const CHAT_SERVICE_URL = config.chatServiceUrl;
+const CONTACT_SERVICE_URL = config.contactServiceUrl;
+const BSP_SERVICE_URL = config.bspServiceUrl;
 const INTERNAL_SECRET = config.internalServiceSecret;
 
 if (!INTERNAL_SECRET) {
@@ -23,7 +25,38 @@ export const chatInternalClient = axios.create({
   }
 });
 
+export const contactInternalClient = axios.create({
+  baseURL: CONTACT_SERVICE_URL,
+  timeout: 15_000,
+  headers: {
+    'x-internal-service-secret': INTERNAL_SECRET || ''
+  }
+});
+
+export const bspInternalClient = axios.create({
+  baseURL: BSP_SERVICE_URL,
+  timeout: 30_000,
+  headers: {
+    'x-internal-service': 'automation-service',
+    'x-internal-service-secret': INTERNAL_SECRET || ''
+  }
+});
+
 chatInternalClient.interceptors.request.use((reqConfig) => {
+  if (!reqConfig.headers['x-correlation-id']) {
+    reqConfig.headers['x-correlation-id'] = randomUUID();
+  }
+  return reqConfig;
+});
+
+contactInternalClient.interceptors.request.use((reqConfig) => {
+  if (!reqConfig.headers['x-correlation-id']) {
+    reqConfig.headers['x-correlation-id'] = randomUUID();
+  }
+  return reqConfig;
+});
+
+bspInternalClient.interceptors.request.use((reqConfig) => {
   if (!reqConfig.headers['x-correlation-id']) {
     reqConfig.headers['x-correlation-id'] = randomUUID();
   }
