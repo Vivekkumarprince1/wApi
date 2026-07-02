@@ -191,7 +191,6 @@ jobs:
           cat "${CLOUDBUILD_CONFIG}"
           gcloud builds submit \
             --project="${PROJECT_ID}" \
-            --region="${REGION}" \
             --config="${CLOUDBUILD_CONFIG}" \
             .
 
