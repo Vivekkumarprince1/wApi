@@ -138,7 +138,7 @@ export async function POST(
 function serviceError(res: { status: number; error?: string }) {
   const message =
     res.status === 502
-      ? `Gupshup operations are handled by service-provider, which is not reachable from admin-portal. Check SERVICE_PROVIDER_URL/GATEWAY_URL, Cloud Run ingress, and service-provider health.${res.error ? ` Upstream error: ${res.error}` : ""}`
+      ? `Gupshup operations are handled by service-provider, which is not reachable from admin-portal. Check SERVICE_PROVIDER_URL/GATEWAY_URL, service ingress, and service-provider health.${res.error ? ` Upstream error: ${res.error}` : ""}`
       : res.error || "Operation failed";
   return NextResponse.json({ message }, { status: res.status });
 }
