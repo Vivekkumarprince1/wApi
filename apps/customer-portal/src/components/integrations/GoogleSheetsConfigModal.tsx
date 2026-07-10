@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -37,14 +37,31 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
   const [selectedSheet, setSelectedSheet] = useState('');
   const [syncExisting, setSyncExisting] = useState(false);
 
-  // 1. Check if already authenticated when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      checkAuthStatus();
+  const fetchSpreadsheets = useCallback(async () => {
+    setLoading(true);
+    try {
+      const resp = await getGoogleSheetsSpreadsheets();
+      setSpreadsheets(resp.files || []);
+    } catch (err) {
+      toast.error("Failed to fetch spreadsheets");
+    } finally {
+      setLoading(false);
     }
-  }, [isOpen]);
+  }, []);
 
-  const checkAuthStatus = async () => {
+  const fetchSheets = useCallback(async (spreadsheetId: string) => {
+    setLoading(true);
+    try {
+      const resp = await getGoogleSheetsSheets(spreadsheetId);
+      setSheets(resp.sheets || []);
+    } catch (err) {
+      toast.error("Failed to fetch sheets");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const checkAuthStatus = useCallback(async () => {
     try {
       const resp = await getGoogleSheetsStatus();
       if (resp.connected) {
@@ -65,34 +82,17 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
       } else {
         setStep('auth');
       }
-    } catch (err) {
+    } catch {
       setStep('auth');
     }
-  };
+  }, [fetchSheets, fetchSpreadsheets]);
 
-  const fetchSpreadsheets = async () => {
-    setLoading(true);
-    try {
-      const resp = await getGoogleSheetsSpreadsheets();
-      setSpreadsheets(resp.files || []);
-    } catch (err) {
-      toast.error("Failed to fetch spreadsheets");
-    } finally {
-      setLoading(false);
+  // 1. Check if already authenticated when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      checkAuthStatus();
     }
-  };
-
-  const fetchSheets = async (spreadsheetId: string) => {
-    setLoading(true);
-    try {
-      const resp = await getGoogleSheetsSheets(spreadsheetId);
-      setSheets(resp.sheets || []);
-    } catch (err) {
-      toast.error("Failed to fetch sheets");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isOpen, checkAuthStatus]);
 
   const handleAuthorize = async () => {
     setLoading(true);

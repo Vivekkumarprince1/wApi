@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Send,
   Paperclip,
@@ -82,12 +82,7 @@ export default function EmailComposer({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const subjectRef = useRef<HTMLInputElement>(null);
 
-  // Load templates on mount
-  useEffect(() => {
-    loadTemplates();
-  }, [conversationId]);
-
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     try {
       setLoadingTemplates(true);
       const data = await fetchTemplatesByChannel('email', 10);
@@ -97,7 +92,12 @@ export default function EmailComposer({
     } finally {
       setLoadingTemplates(false);
     }
-  };
+  }, []);
+
+  // Load templates on mount
+  useEffect(() => {
+    loadTemplates();
+  }, [conversationId, loadTemplates]);
 
   const handleSend = () => {
     if (!subject.trim() || !(useHtml ? htmlBody.trim() : body.trim()) || disabled || isSending) {

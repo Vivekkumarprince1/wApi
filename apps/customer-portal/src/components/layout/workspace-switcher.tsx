@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Building2, 
   ChevronDown, 
@@ -40,11 +40,7 @@ export function WorkspaceSwitcher() {
 
   const activeWorkspace = workspaces?.find(w => w?.isActive);
 
-  useEffect(() => {
-    fetchWorkspaces();
-  }, []);
-
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = useCallback(async () => {
     try {
       const response = await getWorkspaces() as any;
       setWorkspaces(response.workspaces || []);
@@ -54,7 +50,11 @@ export function WorkspaceSwitcher() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchWorkspaces();
+  }, [fetchWorkspaces]);
 
   const handleSwitch = async (workspaceId: string) => {
     if (workspaceId === activeWorkspace?.id?.toString()) return;

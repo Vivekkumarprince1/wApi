@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Dialog,
@@ -79,12 +79,7 @@ export function InstagramConnectModal({ isOpen, onClose, onSuccess }: InstagramC
     });
   }, [metadata.tokenExpiresAt]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    checkStatus();
-  }, [isOpen]);
-
-  const checkStatus = async () => {
+  const checkStatus = useCallback(async () => {
     setChecking(true);
     try {
       const resp = await getInstagramStatus();
@@ -94,7 +89,12 @@ export function InstagramConnectModal({ isOpen, onClose, onSuccess }: InstagramC
     } finally {
       setChecking(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    checkStatus();
+  }, [isOpen, checkStatus]);
 
   const handleAuthorize = async (force = false) => {
     if (!hasBillingAccess && !isConnected) {

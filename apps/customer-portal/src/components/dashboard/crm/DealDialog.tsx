@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -107,17 +107,7 @@ export const DealDialog: React.FC<DealDialogProps> = ({
     }
   }, [deal, contact, pipelines, isOpen]);
 
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (contactSearch.length > 2) {
-        searchContacts();
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [contactSearch]);
-
-  const searchContacts = async () => {
+  const searchContacts = useCallback(async () => {
     setIsSearchingContacts(true);
     try {
       const res = await fetchContacts(1, 10, { search: contactSearch });
@@ -127,7 +117,17 @@ export const DealDialog: React.FC<DealDialogProps> = ({
     } finally {
       setIsSearchingContacts(false);
     }
-  };
+  }, [contactSearch]);
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (contactSearch.length > 2) {
+        searchContacts();
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [contactSearch, searchContacts]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

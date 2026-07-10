@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { getCurrentUser, sendEmailVerificationOTP, verifyEmailOTP } from '@/lib/api/auth';
@@ -16,38 +16,11 @@ export default function VerifyEmailPage() {
   const hasFetched = useRef(false);
   const { user } = useAuthStore();
 
-  useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
-
-    const init = async () => {
-      try {
-        const session = user ? { user } : await getCurrentUser();
-        const currentUser = session?.user || session;
-        if (currentUser) {
-          setEmail(currentUser.email || '');
-          if (currentUser.emailVerified) {
-            router.push(session?.nextStep || '/onboarding/verify-mobile');
-            return;
-          }
-          sendOTP();
-        } else {
-          router.push('/auth/login');
-        }
-      } catch (err) {
-        console.error('Error getting user:', err);
-        router.push('/auth/login');
-      }
-    };
-
-    init();
-  }, [router, user]);
-
-  const sendOTP = async () => {
+  const sendOTP = useCallback(async (targetEmail = email) => {
     try {
       setLoading(true);
       setError('');
-      await sendEmailVerificationOTP(email);
+      await sendEmailVerificationOTP(targetEmail);
       setCountdown(60);
 
       const timer = setInterval(() => {
@@ -68,7 +41,35 @@ export default function VerifyEmailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [email]);
+
+  useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
+    const init = async () => {
+      try {
+        const session = user ? { user } : await getCurrentUser();
+        const currentUser = session?.user || session;
+        if (currentUser) {
+          const currentEmail = currentUser.email || '';
+          setEmail(currentEmail);
+          if (currentUser.emailVerified) {
+            router.push(session?.nextStep || '/onboarding/verify-mobile');
+            return;
+          }
+          sendOTP(currentEmail);
+        } else {
+          router.push('/auth/login');
+        }
+      } catch (err) {
+        console.error('Error getting user:', err);
+        router.push('/auth/login');
+      }
+    };
+
+    init();
+  }, [router, sendOTP, user]);
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
