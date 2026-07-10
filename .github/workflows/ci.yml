@@ -61,7 +61,7 @@ jobs:
           - { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', needs_contracts: false }
           - { name: 'websocket-gateway', dir: 'services/websocket-gateway', needs_contracts: false }
           - { name: 'admin-portal', dir: 'apps/admin-portal', needs_contracts: true }
-          - { name: 'frontend', dir: 'apps/customer-portal', needs_contracts: false }
+          - { name: 'customer-portal', dir: 'apps/customer-portal', needs_contracts: false }
 
     steps:
       - name: Checkout Code
@@ -95,6 +95,16 @@ jobs:
         run: |
           cd ${{ matrix.service.dir }}
           npm run build
+
+      - name: Test (if configured)
+        run: |
+          cd ${{ matrix.service.dir }}
+          test_script="$(node -p "require('./package.json').scripts?.test || ''")"
+          if [ -z "$test_script" ] || echo "$test_script" | grep -qi 'no test specified'; then
+            echo "No runnable test script configured for ${{ matrix.service.name }}; skipping."
+            exit 0
+          fi
+          npm test
 
       - name: Lint (if configured)
         run: |

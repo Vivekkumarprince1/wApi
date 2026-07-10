@@ -1,0 +1,52 @@
+global:
+  image:
+    registry: changeme.azurecr.io
+    repositoryPrefix: connectsphere
+    tag: latest
+    pullPolicy: IfNotPresent
+
+config:
+  create: true
+  name: connectsphere-config
+  data:
+    NODE_ENV: production
+    ALLOWED_ORIGINS: https://app.example.com,https://admin.example.com
+    NEXT_PUBLIC_APP_NAME: ConnectSphere
+    NEXT_PUBLIC_APP_URL: https://app.example.com
+    NEXT_PUBLIC_API_URL: /api
+    NEXT_PUBLIC_SOCKET_URL: ""
+    CUSTOMER_PORTAL_URL: https://app.example.com
+    ADMIN_PORTAL_URL: https://admin.example.com
+    GATEWAY_URL: http://connectsphere-api-gateway:5001
+    API_GATEWAY_URL: http://connectsphere-api-gateway:5001
+    AUTH_SERVICE_URL: http://connectsphere-auth-service:3006
+    CONTACT_SERVICE_URL: http://connectsphere-contact-service:3007
+    CHAT_SERVICE_URL: http://connectsphere-chat-service:3008
+    SERVICE_PROVIDER_URL: http://connectsphere-service-provider:3004
+    BSP_SERVICE_URL: http://connectsphere-service-provider:3004
+    AUTOMATION_SERVICE_URL: http://connectsphere-automation-service:3001
+    BILLING_SERVICE_URL: http://connectsphere-billing-service:3003
+    CAMPAIGN_SERVICE_URL: http://connectsphere-campaign-service:3002
+    WEBSOCKET_URL: http://connectsphere-websocket-gateway:3009
+    WEBHOOK_INGESTOR_URL: http://connectsphere-webhook-ingestor:3013
+
+secret:
+  create: false
+  name: connectsphere-secrets
+
+ingress:
+  enabled: false
+  className: nginx
+  hosts:
+    - host: app.example.com
+      service: customer-portal
+      path: /
+      pathType: Prefix
+    - host: admin.example.com
+      service: admin-portal
+      path: /
+      pathType: Prefix
+    - host: api.example.com
+      service: api-gateway
+      path: /
+      pathType: Prefix

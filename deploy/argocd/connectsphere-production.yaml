@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: connectsphere-production
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ORG/connectsphere-gitops.git
+    targetRevision: main
+    path: environments/production/connectsphere
+    helm:
+      releaseName: connectsphere
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: connectsphere
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
