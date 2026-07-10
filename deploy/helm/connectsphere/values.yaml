@@ -12,13 +12,14 @@ config:
   name: connectsphere-config
   data:
     NODE_ENV: production
-    ALLOWED_ORIGINS: https://app.example.com,https://admin.example.com
+    ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     NEXT_PUBLIC_APP_NAME: ConnectSphere
-    NEXT_PUBLIC_APP_URL: https://app.example.com
+    NEXT_PUBLIC_APP_URL: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com
     NEXT_PUBLIC_API_URL: /api
     NEXT_PUBLIC_SOCKET_URL: ""
-    CUSTOMER_PORTAL_URL: https://app.example.com
-    ADMIN_PORTAL_URL: https://admin.example.com
+    CUSTOMER_PORTAL_URL: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com
+    CUSTOMER_PORTAL_HEALTH_URL: http://connectsphere-customer-portal:3000
+    ADMIN_PORTAL_URL: http://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     GATEWAY_URL: http://connectsphere-api-gateway:5001
     API_GATEWAY_URL: http://connectsphere-api-gateway:5001
     AUTH_SERVICE_URL: http://connectsphere-auth-service:3006

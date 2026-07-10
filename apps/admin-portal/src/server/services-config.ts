@@ -68,8 +68,8 @@ export const SERVICES: ServiceDef[] = [
   {
     id: "customer-portal",
     name: "Customer Portal (frontend)",
-    baseUrl: firstEnv("CUSTOMER_PORTAL_URL") || "http://localhost:3000",
-    healthPath: "/",
+    baseUrl: firstEnv("CUSTOMER_PORTAL_HEALTH_URL", "CUSTOMER_PORTAL_INTERNAL_URL", "CUSTOMER_PORTAL_URL") || "http://localhost:3000",
+    healthPath: "/health",
     tier: "frontend",
   },
 ];
