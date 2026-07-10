@@ -11,6 +11,8 @@ spec:
     path: environments/production/connectsphere
     helm:
       releaseName: connectsphere
+      valueFiles:
+        - production-values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: connectsphere

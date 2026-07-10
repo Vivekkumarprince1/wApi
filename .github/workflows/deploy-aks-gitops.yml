@@ -202,14 +202,14 @@ jobs:
           set -euo pipefail
           mkdir -p "gitops/$GITOPS_ENV_DIR"
 
-          if [ ! -f "gitops/$GITOPS_ENV_DIR/values.yaml" ]; then
-            cp source/deploy/gitops/production-values.yaml "gitops/$GITOPS_ENV_DIR/values.yaml"
+          if [ ! -f "gitops/$GITOPS_ENV_DIR/production-values.yaml" ]; then
+            cp source/deploy/gitops/production-values.yaml "gitops/$GITOPS_ENV_DIR/production-values.yaml"
           fi
 
-          rsync -a --delete --exclude values.yaml source/deploy/helm/connectsphere/ "gitops/$GITOPS_ENV_DIR/"
+          rsync -a --delete --exclude production-values.yaml source/deploy/helm/connectsphere/ "gitops/$GITOPS_ENV_DIR/"
 
           python3 source/deploy/scripts/update-values.py \
-            "gitops/$GITOPS_ENV_DIR/values.yaml" \
+            "gitops/$GITOPS_ENV_DIR/production-values.yaml" \
             "$ACR_LOGIN_SERVER" \
             "$IMAGE_TAG"
 

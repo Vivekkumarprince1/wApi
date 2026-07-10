@@ -45,4 +45,4 @@ Replace the placeholders in `deploy/argocd/connectsphere-production.yaml`, then 
 kubectl apply -f deploy/argocd/connectsphere-production.yaml
 ```
 
-The GitHub workflow copies `deploy/helm/connectsphere` into the GitOps environment directory and updates `global.image.registry` plus `global.image.tag` in `values.yaml`. Argo CD then syncs the new image tag into AKS.
+The GitHub workflow copies `deploy/helm/connectsphere` into the GitOps environment directory and updates `global.image.registry` plus `global.image.tag` in `production-values.yaml`. Argo CD then syncs the new image tag into AKS.
