@@ -34,6 +34,41 @@ secret:
   create: false
   name: connectsphere-secrets
 
+services:
+  auth-service:
+    secretEnv:
+      MONGO_URI: MONGO_URI_AUTH
+  campaign-service:
+    secretEnv:
+      MONGO_URI: MONGO_URI_CAMPAIGN
+  billing-service:
+    secretEnv:
+      MONGO_URI: MONGO_URI_BILLING
+  service-provider:
+    secretEnv:
+      MONGO_URI: MONGO_URI_BSP
+  automation-service:
+    secretEnv:
+      MONGO_URI: MONGO_URI_AUTOMATION
+  chat-service:
+    secretEnv:
+      MONGO_URI: MONGO_URI_CHAT
+  contact-service:
+    secretEnv:
+      MONGO_URI: MONGO_URI_CONTACT
+  webhook-ingestor:
+    secretEnv:
+      MONGO_URI: MONGO_URI_WEBHOOK
+  websocket-gateway:
+    secretEnv:
+      MONGO_URI: MONGO_URI_WEBSOCKET
+  admin-portal:
+    secretEnv:
+      MONGODB_URI: MONGODB_URI
+      MONGODB_URI_BILLING: MONGODB_URI_BILLING
+      MONGODB_URI_CAMPAIGN: MONGODB_URI_CAMPAIGN
+      MONGODB_URI_AUTOMATION: MONGODB_URI_AUTOMATION
+
 ingress:
   enabled: false
   className: nginx

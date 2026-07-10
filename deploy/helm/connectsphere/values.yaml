@@ -90,6 +90,8 @@ services:
     servicePort: 3006
     env:
       PORT: "3006"
+    secretEnv:
+      MONGO_URI: MONGO_URI_AUTH
     resources:
       requests:
         cpu: 100m
@@ -107,6 +109,8 @@ services:
     servicePort: 3002
     env:
       PORT: "3002"
+    secretEnv:
+      MONGO_URI: MONGO_URI_CAMPAIGN
     resources:
       requests:
         cpu: 100m
@@ -124,6 +128,8 @@ services:
     servicePort: 3003
     env:
       PORT: "3003"
+    secretEnv:
+      MONGO_URI: MONGO_URI_BILLING
     resources:
       requests:
         cpu: 100m
@@ -141,6 +147,8 @@ services:
     servicePort: 3004
     env:
       PORT: "3004"
+    secretEnv:
+      MONGO_URI: MONGO_URI_BSP
     resources:
       requests:
         cpu: 150m
@@ -158,6 +166,8 @@ services:
     servicePort: 3001
     env:
       PORT: "3001"
+    secretEnv:
+      MONGO_URI: MONGO_URI_AUTOMATION
     resources:
       requests:
         cpu: 150m
@@ -175,6 +185,8 @@ services:
     servicePort: 3008
     env:
       PORT: "3008"
+    secretEnv:
+      MONGO_URI: MONGO_URI_CHAT
     resources:
       requests:
         cpu: 100m
@@ -192,6 +204,8 @@ services:
     servicePort: 3007
     env:
       PORT: "3007"
+    secretEnv:
+      MONGO_URI: MONGO_URI_CONTACT
     resources:
       requests:
         cpu: 100m
@@ -209,6 +223,8 @@ services:
     servicePort: 3013
     env:
       PORT: "3013"
+    secretEnv:
+      MONGO_URI: MONGO_URI_WEBHOOK
     resources:
       requests:
         cpu: 100m
@@ -226,6 +242,8 @@ services:
     servicePort: 3009
     env:
       PORT: "3009"
+    secretEnv:
+      MONGO_URI: MONGO_URI_WEBSOCKET
     resources:
       requests:
         cpu: 100m
@@ -244,6 +262,11 @@ services:
     env:
       PORT: "3100"
       BACKEND_API_URL: http://connectsphere-api-gateway:5001
+    secretEnv:
+      MONGODB_URI: MONGODB_URI
+      MONGODB_URI_BILLING: MONGODB_URI_BILLING
+      MONGODB_URI_CAMPAIGN: MONGODB_URI_CAMPAIGN
+      MONGODB_URI_AUTOMATION: MONGODB_URI_AUTOMATION
     resources:
       requests:
         cpu: 100m

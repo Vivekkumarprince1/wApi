@@ -48,6 +48,13 @@ spec:
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
+            {{- range $key, $secretKey := $service.secretEnv }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.secret.name }}
+                  key: {{ $secretKey }}
+            {{- end }}
           {{- if $.Values.probes.enabled }}
           readinessProbe:
             httpGet:
