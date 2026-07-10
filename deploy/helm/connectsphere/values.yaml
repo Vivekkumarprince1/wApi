@@ -78,11 +78,19 @@ publicServices:
       port: 80
       targetPort: 3100
       annotations: {}
-    - name: api-gateway-public
-      service: api-gateway
-      port: 80
-      targetPort: 5001
-      annotations: {}
+
+apiGatewayProxy:
+  enabled: false
+  host: ""
+  email: ""
+  image: caddy:2.9-alpine
+  upstream: connectsphere-api-gateway:5001
+  storage:
+    enabled: true
+    size: 1Gi
+    storageClassName: ""
+  service:
+    annotations: {}
 
 services:
   api-gateway:
