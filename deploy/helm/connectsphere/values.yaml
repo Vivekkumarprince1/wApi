@@ -63,6 +63,21 @@ ingress:
       path: /
       pathType: Prefix
 
+publicServices:
+  enabled: false
+  annotations: {}
+  items:
+    - name: customer-portal-public
+      service: customer-portal
+      port: 80
+      targetPort: 3000
+      annotations: {}
+    - name: admin-portal-public
+      service: admin-portal
+      port: 80
+      targetPort: 3100
+      annotations: {}
+
 services:
   api-gateway:
     enabled: true
