@@ -102,3 +102,9 @@ publicServices:
       targetPort: 3100
       annotations:
         service.beta.kubernetes.io/azure-dns-label-name: connectsphere-admin-vivek
+    - name: api-gateway-public
+      service: api-gateway
+      port: 80
+      targetPort: 5001
+      annotations:
+        service.beta.kubernetes.io/azure-dns-label-name: connectsphere-api-vivek

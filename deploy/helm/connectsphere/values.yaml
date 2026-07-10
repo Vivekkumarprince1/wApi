@@ -78,6 +78,11 @@ publicServices:
       port: 80
       targetPort: 3100
       annotations: {}
+    - name: api-gateway-public
+      service: api-gateway
+      port: 80
+      targetPort: 5001
+      annotations: {}
 
 services:
   api-gateway:
