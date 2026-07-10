@@ -1,4 +1,4 @@
-# wApi — Database Analysis
+# ConnectSphere — Database Analysis
 
 > Derived from Mongoose schemas across all services, the native-driver usage in webhook-ingestor, and the multi-DB admin-portal connector. All indexes cited are the ones **declared in code** (`schema.index(...)` or `index:true`). Indexes that *should* exist but do not are listed in §5.
 
@@ -6,20 +6,20 @@
 
 ## 1. Storage Topology (the central finding)
 
-wApi uses **MongoDB** (Mongoose 8 across services; native `mongodb` driver in webhook-ingestor — `webhook-ingestor/src/index.ts:5`) and **Redis** (ioredis; BullMQ queues; socket.io redis-adapter).
+ConnectSphere uses **MongoDB** (Mongoose 8 across services; native `mongodb` driver in webhook-ingestor — `webhook-ingestor/src/index.ts:5`) and **Redis** (ioredis; BullMQ queues; socket.io redis-adapter).
 
 The MongoDB topology is **inconsistent between code defaults**:
 
 | Service | Default DB in code | Source |
 |---|---|---|
-| auth, chat, contact, websocket-gateway, ingestor | `wapi` | `chat-service/src/config/db.ts:28`, `webhook-ingestor:19`, etc. |
-| billing-service | `wapi_billing` | `billing-service/src/config/index.ts:17` |
+| auth, chat, contact, websocket-gateway, ingestor | `connectsphere` | `chat-service/src/config/db.ts:28`, `webhook-ingestor:19`, etc. |
+| billing-service | `connectsphere_billing` | `billing-service/src/config/index.ts:17` |
 | campaign-service | `wa_campaigns` | `campaign-service/src/config.ts` |
-| automation-service | `wapi_automation` | `automation-service/src/config.ts` |
-| service-provider | `wapi_bsp` | `service-provider/src/config.ts:17` |
+| automation-service | `connectsphere_automation` | `automation-service/src/config.ts` |
+| service-provider | `connectsphere_bsp` | `service-provider/src/config.ts:17` |
 | admin-portal | expects **4** URIs: `MONGODB_URI` (core), `_BILLING`, `_CAMPAIGN`, `_AUTOMATION` | `apps/admin-portal/src/server/db.ts:14-21` |
 
-> **Implication.** In code, the platform *looks* database-per-service. But every `MONGO_URI`/`MONGODB_URI` is env-overridable, so in a real deployment all services can be (and per the memory notes, in the `test`/`wapi` DB **are**) pointed at one shared database. The admin-portal hardcodes a 4-DB assumption. This is an **unresolved data-ownership decision** — the system is neither cleanly database-per-service nor cleanly shared-DB. The biggest consequence: **cross-service entities are redefined locally in every service** (next section).
+> **Implication.** In code, the platform *looks* database-per-service. But every `MONGO_URI`/`MONGODB_URI` is env-overridable, so in a real deployment all services can be (and per the memory notes, in the `test`/`connectsphere` DB **are**) pointed at one shared database. The admin-portal hardcodes a 4-DB assumption. This is an **unresolved data-ownership decision** — the system is neither cleanly database-per-service nor cleanly shared-DB. The biggest consequence: **cross-service entities are redefined locally in every service** (next section).
 
 ### Redefined (shared-kernel) collections
 
@@ -37,25 +37,25 @@ The same logical collection is modeled independently by multiple services:
 
 ## 2. Collection Inventory (by owning service)
 
-### auth-service (`core` / `wapi`) — `auth-service/src/models/index.ts`
+### auth-service (`core` / `connectsphere`) — `auth-service/src/models/index.ts`
 `users`, `plans`, `workspaces`, `permissions`, `systemsettings`, `otps`, `businesses`, `workspaceinvitations`, `teams`, `roles`, `notifications`, `otpchallenges`, `signupotps`, `webhookpolicies`, `auditlogs`, `businessappmaps`, `bsphealths`, `businessverificationpolicies`.
 
-### contact-service (`wapi`) — `contact-service/src/models/index.ts`
+### contact-service (`connectsphere`) — `contact-service/src/models/index.ts`
 `contacts`, `tags`, `quickreplies`, `formsubmissions`, `pipelines`, `deals`, `tasks`, `importjobs`, `contactevents`.
 
-### chat-service (`wapi`) — `chat-service/src/models/index.ts` + `contracts/models.ts`
+### chat-service (`connectsphere`) — `chat-service/src/models/index.ts` + `contracts/models.ts`
 `conversations`, `messages`, `conversationledgers`, `supporttickets`, `macros`, `checkoutcarts`, `products`, `commercesettings`.
 
 ### campaign-service (`wa_campaigns`) — `campaign-service/src/models/*`
 `campaigns`, `campaignbatches`, `campaignmessages`, `campaignsummaries`, `segments`, `templates`, `whatsappads`, `workspaces`(local).
 
-### billing-service (`wapi_billing`) — `billing-service/src/models/*`
+### billing-service (`connectsphere_billing`) — `billing-service/src/models/*`
 `wallets`, `wallettransactions`, `invoices`, `invoicesequences`, `subscriptions`, `plans`, `razorpayorders`, `products`, `orders`, `commercesettings`, `workspaces`(minimal).
 
-### automation-service (`wapi_automation`) — `automation-service/src/models/*`
+### automation-service (`connectsphere_automation`) — `automation-service/src/models/*`
 `automationrules`, `automationexecutions`, `workflowexecutions`, `autoreplies`, `autoreplylogs`, `automationauditlogs`, `answerbotsettings`, `answerbotsources`, `aiintentmatchlogs`, `faqs`, `instagramquickflows`, `instagramquickflowlogs`, `interaktivelists`, `whatsappforms`, `whatsappflows`, `whatsappformresponses`, `integrations`, `widgetconfigs`, `workspaces`(local).
 
-### service-provider (`wapi_bsp`) — `service-provider/src/models/*.schema.ts` (explicit `collection:` names)
+### service-provider (`connectsphere_bsp`) — `service-provider/src/models/*.schema.ts` (explicit `collection:` names)
 `bsp_providers`, `bsp_apps`, `bsp_credentials`, `bsp_tokens`, `bsp_subscriptions`, `bsp_profiles`, `bsp_onboarding_sessions`, `bsp_webhook_events`, `bsp_health_snapshots`, `bsp_media_assets`, `bsp_template_mirrors`, `bsp_template_rules`, `bsp_message_dispatches`.
 
 ### webhook-ingestor (native driver)
@@ -199,7 +199,7 @@ The natural partition key everywhere is **`workspace` (tenant id)** — every ho
 
 1. **Phase A — single cluster, tenant-prefixed indexes (now):** every query already filters by workspace; enforce it with a lint/guard. No sharding yet.
 2. **Phase B — MongoDB sharding** on `{ workspace: "hashed" }` for the two unbounded collections (`messages`, `conversations`) and `campaignmessages`. Workspace is high-cardinality and present in every query → good shard key with minimal scatter-gather.
-3. **Phase C — physical DB-per-bounded-context** (matching §1's intent): split into `wapi_core` (identity/tenant), `wapi_messaging` (conv/msg/ledger), `wapi_contacts`, `wapi_campaign`, `wapi_billing`, `wapi_automation`, `wapi_bsp`. Stop redefining `Workspace`/`Contact` locally; expose them via owner-service APIs or a read-replica/CDC stream.
+3. **Phase C — physical DB-per-bounded-context** (matching §1's intent): split into `connectsphere_core` (identity/tenant), `connectsphere_messaging` (conv/msg/ledger), `connectsphere_contacts`, `connectsphere_campaign`, `connectsphere_billing`, `connectsphere_automation`, `connectsphere_bsp`. Stop redefining `Workspace`/`Contact` locally; expose them via owner-service APIs or a read-replica/CDC stream.
 4. **Phase D — hot/cold tiering:** route analytics/read-heavy queries to a secondary/analytics node or a CDC-fed warehouse so OLAP never touches OLTP.
 
 > Note: today there is **no observed multi-document transaction usage** — searches for `session`/`startTransaction` find only Mongoose driver typings, not application calls. The campaign budget flow relies on the **saga/compensation pattern** instead of distributed transactions (`CampaignWorker.ts` + `billing-events.ts`), which is the correct choice for cross-service consistency.

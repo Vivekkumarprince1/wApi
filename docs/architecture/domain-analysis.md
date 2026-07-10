@@ -1,4 +1,4 @@
-# wApi — Domain Analysis
+# ConnectSphere — Domain Analysis
 
 > Reverse-engineered from the Mongoose schemas, controllers, routes, and Kafka event contracts in the repository. Bounded contexts are inferred from **which service owns the write path** and **which collections it mutates**, not from naming alone.
 
@@ -54,7 +54,7 @@ The platform decomposes into these contexts. "Owner service" = the service that 
 **Relationship classification (DDD patterns):**
 - **Conformist:** every downstream service conforms to the auth-service's session shape (workspaceId, role, permissions) injected by the gateway. No anti-corruption layer — services read `x-workspace-id` directly (`service-provider/.../workspace-auth.guard.ts:24-30`).
 - **Customer/Supplier (sync ACL):** chat→contact (`/internal/v1/contacts/resolve`), chat→BSP (`/internal/v1/bsp/messages/send`), campaign→billing/contact/BSP. The caller depends on the supplier's uptime.
-- **Published Language (events):** BC4↔BC7↔BC9 communicate via Kafka payloads defined in `@wapi/contracts` (`billing-events.ts`, `campaign-events.ts`, `kafka-events.ts`) — the cleanest seam.
+- **Published Language (events):** BC4↔BC7↔BC9 communicate via Kafka payloads defined in `@connectsphere/contracts` (`billing-events.ts`, `campaign-events.ts`, `kafka-events.ts`) — the cleanest seam.
 - **Shared Kernel (problematic):** Workspace, Contact, Message, Plan are **redefined** in multiple services against a shared DB rather than accessed via one owner. This is an implicit shared kernel that DDD would flag as a coupling smell (see Database doc).
 
 ---
@@ -156,7 +156,7 @@ From `packages/contracts/src/kafka-events.ts`, `billing-events.ts`, `campaign-ev
 `workspace:*` (wallet_update, notification, campaign:*, inbox:*, agent:online/offline) and `conversation:*` (typing, user-joined/left). (`packages/contracts/src/socket-events.ts`.)
 
 **Event-design observations:**
-- Events are **JSON, schemaless on the wire** — no Avro/Protobuf/schema-registry. `@wapi/contracts` is the only enforcement and it is compile-time only, not validated at consume time.
+- Events are **JSON, schemaless on the wire** — no Avro/Protobuf/schema-registry. `@connectsphere/contracts` is the only enforcement and it is compile-time only, not validated at consume time.
 - Several declared topics are **not fully wired**: `CAMPAIGN_LEDGER_OPS`, `CAMPAIGN_BUDGET_RESERVED` (declared in `kafka-events.ts:10-11`, no observed producer/consumer).
 - The **status-update event crosses three contexts** (BSP→chat→campaign) and is re-shaped at each hop, which is why `websocket-gateway` tolerates multiple field names (`providerMessageId || messageId`, `index.ts:228`).
 

@@ -5,7 +5,7 @@ export type UsageResource = 'contacts' | 'messages' | 'templates' | 'campaigns' 
 export class UsageTracker {
   /**
    * Increments usage for a specific resource in the shared workspaces collection.
-   * Reuses the existing mongoose connection, dynamically switching to the 'wapi' database context.
+   * Reuses the existing mongoose connection, dynamically switching to the 'connectsphere' database context.
    */
   static async increment(
     workspaceId: string | Types.ObjectId, 
@@ -27,7 +27,7 @@ export class UsageTracker {
     if (!field) throw new Error(`INVALID_RESOURCE: ${resource}`);
 
     try {
-      const db = mongoose.connection.useDb('wapi');
+      const db = mongoose.connection.useDb('connectsphere');
       const result = await db.collection('workspaces').findOneAndUpdate(
         { _id: new mongoose.Types.ObjectId(String(workspaceId)) },
         { 

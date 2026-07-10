@@ -136,7 +136,7 @@ export function InstagramConnectModal({ isOpen, onClose, onSuccess }: InstagramC
           </div>
           <DialogTitle className="text-2xl font-black tracking-tight">Connect Instagram Business</DialogTitle>
           <DialogDescription className="text-sm font-medium leading-relaxed text-muted-foreground">
-            Let customers connect their Instagram professional account to wApi for DMs, comments, and automation. Billing stays under your workspace plan or Instagram add-on.
+            Let customers connect their Instagram professional account to ConnectSphere for DMs, comments, and automation. Billing stays under your workspace plan or Instagram add-on.
           </DialogDescription>
         </DialogHeader>
 
@@ -209,7 +209,7 @@ export function InstagramConnectModal({ isOpen, onClose, onSuccess }: InstagramC
                 <div className="space-y-2">
                   <h3 className="text-sm font-bold">Customer onboarding checklist</h3>
                   <p className="text-sm leading-relaxed text-muted-foreground">
-                    Customer pays for the Instagram add-on, connects a professional Instagram account, grants Meta permissions, and wApi stores the 60-day token encrypted for automation.
+                    Customer pays for the Instagram add-on, connects a professional Instagram account, grants Meta permissions, and ConnectSphere stores the 60-day token encrypted for automation.
                   </p>
                 </div>
               </div>

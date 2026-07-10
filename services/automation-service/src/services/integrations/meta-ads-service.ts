@@ -150,7 +150,7 @@ function normalizeCatalogProduct(product: any = {}) {
     currency,
     url,
     image_url: imageUrl || undefined,
-    brand: String(product.brand || product.vendor || 'WApi').trim(),
+    brand: String(product.brand || product.vendor || 'ConnectSphere').trim(),
     category: product.category ? String(product.category).trim() : undefined,
     product_type: product.category ? String(product.category).trim() : undefined,
     visibility: product.isActive === false ? 'staging' : 'published',

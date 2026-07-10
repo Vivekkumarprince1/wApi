@@ -13,8 +13,8 @@
 import mongoose from 'mongoose';
 import { Conversation } from '../models/index.js';
 import { eventProducer } from './eventBus.js';
-import type { ChatRealtimeSyncEvent } from '@wapi/contracts';
-import { EventTopics } from '@wapi/contracts';
+import type { ChatRealtimeSyncEvent } from '@connectsphere/contracts';
+import { EventTopics } from '@connectsphere/contracts';
 import { randomUUID } from 'crypto';
 
 const POLL_INTERVAL_MS = 60_000; // 1 minute

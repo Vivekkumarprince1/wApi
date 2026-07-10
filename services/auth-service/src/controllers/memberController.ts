@@ -293,11 +293,11 @@ export const inviteTeamMember = async (req: AuthRequest, res: express.Response) 
     let emailStatus = { success: false };
     try {
       const transporter = await getMailTransporter();
-      const from = config.smtpFrom || config.smtpUser || 'no-reply@local.wapi';
+      const from = config.smtpFrom || config.smtpUser || 'no-reply@local.connectsphere';
       await transporter.sendMail({
         from,
         to: cleanEmail,
-        subject: `Invitation to join ${req.workspace.name} on wApi`,
+        subject: `Invitation to join ${req.workspace.name} on ConnectSphere`,
         html: `<p>Hello ${name || 'there'},</p><p>You have been invited by ${req.user.name} to join <strong>${req.workspace.name}</strong> as ${role}.</p><p><a href="${invitationUrl}">Accept Invitation</a></p>`
       });
       emailStatus = { success: true };
@@ -465,11 +465,11 @@ export const resendInvitation = async (req: AuthRequest, res: express.Response) 
 
     try {
       const transporter = await getMailTransporter();
-      const from = config.smtpFrom || config.smtpUser || 'no-reply@local.wapi';
+      const from = config.smtpFrom || config.smtpUser || 'no-reply@local.connectsphere';
       await transporter.sendMail({
         from,
         to: invitation.email,
-        subject: `Invitation to join ${req.workspace.name} on wApi (Resent)`,
+        subject: `Invitation to join ${req.workspace.name} on ConnectSphere (Resent)`,
         html: `<p>Hello ${invitation.name || 'there'},</p><p>You have been invited by ${req.user.name} to join <strong>${req.workspace.name}</strong> as ${invitation.role}.</p><p><a href="${invitationUrl}">Accept Invitation</a></p>`
       });
     } catch (mailErr: any) {

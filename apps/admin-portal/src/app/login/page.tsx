@@ -59,7 +59,7 @@ function LoginForm() {
           <div className="h-12 w-12 rounded-xl bg-primary/10 ring-1 ring-primary/15 flex items-center justify-center mb-3">
             <ShieldCheck className="h-6 w-6 text-primary" />
           </div>
-          <h1 className="text-xl font-semibold tracking-tight">wApi Super Admin</h1>
+          <h1 className="text-xl font-semibold tracking-tight">ConnectSphere Super Admin</h1>
           <p className="text-sm text-muted-foreground">Internal control plane</p>
         </div>
 
@@ -81,7 +81,7 @@ function LoginForm() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@wapi.in"
+                  placeholder="admin@connectsphere.in"
                 />
               </div>
               <div className="space-y-2">

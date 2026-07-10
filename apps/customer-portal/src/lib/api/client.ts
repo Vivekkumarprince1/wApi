@@ -13,7 +13,7 @@ import config from '@/lib/config';
  * returns the parsed JSON body directly. We re-type the standard axios
  * methods so callers get the body type instead of `AxiosResponse<T>`.
  *
- * For new code, prefer importing types from `@wapi/contracts` and using
+ * For new code, prefer importing types from `@connectsphere/contracts` and using
  * `apiClient.get<T>('/route')` so the call site is fully typed.
  */
 export interface ApiClient extends Omit<AxiosInstance,

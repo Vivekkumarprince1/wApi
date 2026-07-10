@@ -58,7 +58,7 @@ export default function BillingPage() {
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "wApi Platform",
+        name: "ConnectSphere Platform",
         description: "Verify & Save Payment Method",
         order_id: orderData.orderId,
         handler: async function (response: any) {

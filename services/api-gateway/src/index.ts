@@ -784,7 +784,7 @@ app.use('/socket.io', wsProxy);
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
-    service: 'wapi-api-gateway',
+    service: 'connectsphere-api-gateway',
     timestamp: new Date().toISOString()
   });
 });
@@ -793,7 +793,7 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'ok',
-    service: 'wapi-api-gateway',
+    service: 'connectsphere-api-gateway',
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });

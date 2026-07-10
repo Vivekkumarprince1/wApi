@@ -67,7 +67,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR' }: Rec
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "wApi Platform",
+        name: "ConnectSphere Platform",
         description: `Wallet Recharge - ${amountNum} ${currency}`,
         order_id: orderData.orderId,
         handler: async function (response: any) {

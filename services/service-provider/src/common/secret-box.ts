@@ -6,7 +6,7 @@ const CBC_ALGORITHM = 'aes-256-cbc';
 
 function getKey(): Buffer {
   const baseKey = config.integrationEncryptionKey;
-  return crypto.scryptSync(baseKey, 'wapi-integration-secrets', 32);
+  return crypto.scryptSync(baseKey, 'connectsphere-integration-secrets', 32);
 }
 
 export function encryptSecret(value?: string | null): string | null {

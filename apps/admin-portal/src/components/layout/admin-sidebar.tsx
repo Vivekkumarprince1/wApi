@@ -19,7 +19,7 @@ import {
   Smartphone,
   GitCompareArrows,
 } from "lucide-react";
-import type { AdminCapability } from "@wapi/contracts";
+import type { AdminCapability } from "@connectsphere/contracts";
 import { cn } from "@/lib/utils";
 import { useAdminAuth } from "@/store/admin-auth-store";
 
@@ -95,7 +95,7 @@ export function AdminSidebar() {
           <ShieldCheck className="h-4.5 w-4.5 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold leading-tight">wApi</p>
+          <p className="truncate text-sm font-semibold leading-tight">ConnectSphere</p>
           <p className="truncate text-[11px] leading-tight text-muted-foreground">Super Admin</p>
         </div>
       </div>

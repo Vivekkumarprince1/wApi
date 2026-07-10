@@ -53,7 +53,7 @@ const REQUIRE_WEBHOOK_SIGNATURE =
 const REDIS_URL = process.env.REDIS_URL || '';
 const REDIS_TOPIC = 'raw-webhook-events';
 const INTERNAL_SECRET = process.env.INTERNAL_SERVICE_SECRET!;
-const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/wapi';
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/connectsphere';
 const DEAD_LETTER_COLLECTION = 'webhook_dead_letters';
 
 
@@ -405,7 +405,7 @@ server.get('/health', async () => {
 
 // Root path Tunnel check
 server.get('/', async () => {
-  return { service: 'wapi-webhook-ingestor', healthy: true };
+  return { service: 'connectsphere-webhook-ingestor', healthy: true };
 });
 
 async function start() {

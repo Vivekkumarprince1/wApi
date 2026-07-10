@@ -44,7 +44,7 @@ export const config = {
     process.env.MONGO_URI ||
     process.env.MONGODB_URI_BSP ||
     process.env.MONGODB_URI ||
-    'mongodb://localhost:27017/wapi_bsp',
+    'mongodb://localhost:27017/connectsphere_bsp',
   redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
   internalServiceSecret,
   jwtSecret,

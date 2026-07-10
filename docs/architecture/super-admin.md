@@ -1,4 +1,4 @@
-# wApi — Super-Admin Platform Design
+# ConnectSphere — Super-Admin Platform Design
 
 > The Super-Admin Portal **already exists** as `apps/admin-portal` (Next.js, port 3100) with its own auth realm, RBAC capability model, and feature pages. This document describes what is built (cited), the gaps, and the target design.
 
@@ -9,7 +9,7 @@
 ### Separate identity realm
 - Dedicated `admin_token` cookie (default name `admin_token`, 8h TTL), entirely separate from the customer `auth_token` (`apps/admin-portal/src/server/auth.ts:26-27`).
 - Login verifies email+password against the **core `User` collection** but rejects any non-admin role (`auth.ts:82-98`). Uniform failure to prevent enumeration (`auth.ts:88`).
-- Four platform roles with a capability matrix in `@wapi/contracts` (`packages/contracts/src/admin.ts`):
+- Four platform roles with a capability matrix in `@connectsphere/contracts` (`packages/contracts/src/admin.ts`):
   - `super_admin` → all capabilities.
   - `super_admin_readonly` → `read`.
   - `super_admin_support` → `read, workspaces, users, operations`.

@@ -8,12 +8,12 @@ export type AssignmentStrategy = 'ROUND_ROBIN' | 'LEAST_ASSIGNED' | 'LEAST_UNREA
  * Port of the monolith's AutoAssignService — same strategies, same
  * availability filters (isActive + isAvailable + isOnline + capacity),
  * driven by workspace.inboxSettings. Workspace docs live in the shared
- * `wapi` DB and are owned by auth-service, so we read/update them via
+ * `connectsphere` DB and are owned by auth-service, so we read/update them via
  * the raw collection (same pattern as chatController).
  */
 export class AutoAssignService {
   private static workspaces() {
-    return Conversation.db.useDb('wapi').collection('workspaces');
+    return Conversation.db.useDb('connectsphere').collection('workspaces');
   }
 
   static async assign(workspaceId: string | Types.ObjectId, conversationId: string | Types.ObjectId, force = false) {

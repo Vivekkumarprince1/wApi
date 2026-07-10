@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import mongoose from 'mongoose';
 import { config } from './config/index';
 import { logger, correlationIdMiddleware, getCorrelationId } from './lib/logger';
-import { mountSwaggerUI } from '@wapi/contracts';
+import { mountSwaggerUI } from '@connectsphere/contracts';
 import { openapiDocument } from './openapi';
 
 import { startBillingEventConsumer } from './events/EventBus';

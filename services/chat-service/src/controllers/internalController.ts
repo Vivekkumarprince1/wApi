@@ -258,7 +258,7 @@ export const internalController = {
           const workspace = await db?.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
           if (!workspace) return res.json({ valid: false, reason: 'WORKSPACE_NOT_FOUND' });
 
-          const bspDb = (mongoose.connection as any).getClient().db('wapi_bsp');
+          const bspDb = (mongoose.connection as any).getClient().db('connectsphere_bsp');
           const template = await bspDb.collection('bsp_template_mirrors').findOne({ _id: new Types.ObjectId(templateId) });
           if (!template) return res.json({ valid: false, reason: 'TEMPLATE_MISSING' });
 

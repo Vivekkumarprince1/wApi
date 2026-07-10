@@ -1,6 +1,6 @@
-# @wapi/contracts
+# @connectsphere/contracts
 
-Shared TypeScript types between the wApi services and frontend.
+Shared TypeScript types between the ConnectSphere services and frontend.
 
 ## What lives here
 

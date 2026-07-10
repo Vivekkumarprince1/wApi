@@ -539,7 +539,7 @@ export default function DeveloperKeysPage() {
           </div>
           <pre className="overflow-x-auto p-4 text-sm">
 {`curl -X POST http://localhost:5001/api/v1/external/otp/send \\
-  -H "x-api-key: YOUR_WAPI_API_KEY" \\
+  -H "x-api-key: YOUR_CONNECTSPHERE_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "phone": "+919876543210",

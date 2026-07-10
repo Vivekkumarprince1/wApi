@@ -15,7 +15,7 @@ function bullmqConnectionOptions(): IORedis {
  * When the admin writes directly to Mongo (bypassing the services), the
  * services' BullMQ jobs / Redis pub-sub / cache invalidation would normally
  * not fire. This module lets the portal reproduce those side-effects itself:
- *   - enqueue BullMQ jobs on the shared queues (same names via @wapi/contracts)
+ *   - enqueue BullMQ jobs on the shared queues (same names via @connectsphere/contracts)
  *   - publish Redis pub-sub events the services listen for
  *   - bust the session/workspace caches the services read
  *

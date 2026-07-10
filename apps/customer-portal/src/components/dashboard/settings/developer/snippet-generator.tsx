@@ -41,7 +41,7 @@ interface ApiKey {
 type UseCase = 'otp' | 'template';
 type SnippetLanguage = 'curl' | 'node';
 
-const API_KEY_PLACEHOLDER = 'YOUR_WAPI_API_KEY';
+const API_KEY_PLACEHOLDER = 'YOUR_CONNECTSPHERE_API_KEY';
 
 function normalizeApiBaseUrl(apiUrl: string) {
   const base = apiUrl.replace(/\/+$/, '');
@@ -51,7 +51,7 @@ function normalizeApiBaseUrl(apiUrl: string) {
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
     return 'http://localhost:5001/api/v1';
   }
-  return 'https://api.wapi.app/api/v1';
+  return 'https://api.connectsphere.app/api/v1';
 }
 
 function templateBody(template?: Template) {
@@ -188,10 +188,10 @@ export function SnippetGenerator() {
 
   const nodeSnippet = useMemo(() => {
     if (useCase === 'otp') {
-      return `const WAPI_API_KEY = process.env.WAPI_API_KEY;\n\nexport async function sendWhatsappOtp(user) {\n  const response = await fetch("${sendOtpUrl}", {\n    method: "POST",\n    headers: {\n      "x-api-key": WAPI_API_KEY,\n      "content-type": "application/json"\n    },\n    body: JSON.stringify(${codeFenceJson(sendOtpPayload, 4)})\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}\n\nexport async function verifyWhatsappOtp(user, otp) {\n  const response = await fetch("${verifyOtpUrl}", {\n    method: "POST",\n    headers: {\n      "x-api-key": WAPI_API_KEY,\n      "content-type": "application/json"\n    },\n    body: JSON.stringify({\n      phone: \`+91\${${phoneVariable || 'user.phone'}}\`,\n      purpose: "${purpose || 'login'}",\n      otp\n    })\n  });\n\n  const result = await response.json();\n  return response.ok && result.verified === true;\n}`;
+      return `const CONNECTSPHERE_API_KEY = process.env.CONNECTSPHERE_API_KEY;\n\nexport async function sendWhatsappOtp(user) {\n  const response = await fetch("${sendOtpUrl}", {\n    method: "POST",\n    headers: {\n      "x-api-key": CONNECTSPHERE_API_KEY,\n      "content-type": "application/json"\n    },\n    body: JSON.stringify(${codeFenceJson(sendOtpPayload, 4)})\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}\n\nexport async function verifyWhatsappOtp(user, otp) {\n  const response = await fetch("${verifyOtpUrl}", {\n    method: "POST",\n    headers: {\n      "x-api-key": CONNECTSPHERE_API_KEY,\n      "content-type": "application/json"\n    },\n    body: JSON.stringify({\n      phone: \`+91\${${phoneVariable || 'user.phone'}}\`,\n      purpose: "${purpose || 'login'}",\n      otp\n    })\n  });\n\n  const result = await response.json();\n  return response.ok && result.verified === true;\n}`;
     }
 
-    return `const WAPI_API_KEY = process.env.WAPI_API_KEY;\n\nexport async function sendTemplateMessage(user) {\n  const response = await fetch("${templateUrl}", {\n    method: "POST",\n    headers: {\n      "x-api-key": WAPI_API_KEY,\n      "content-type": "application/json"\n    },\n    body: JSON.stringify(${codeFenceJson(templatePayload, 4)})\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}`;
+    return `const CONNECTSPHERE_API_KEY = process.env.CONNECTSPHERE_API_KEY;\n\nexport async function sendTemplateMessage(user) {\n  const response = await fetch("${templateUrl}", {\n    method: "POST",\n    headers: {\n      "x-api-key": CONNECTSPHERE_API_KEY,\n      "content-type": "application/json"\n    },\n    body: JSON.stringify(${codeFenceJson(templatePayload, 4)})\n  });\n\n  if (!response.ok) throw new Error(await response.text());\n  return response.json();\n}`;
   }, [phoneVariable, purpose, sendOtpPayload, sendOtpUrl, templatePayload, templateUrl, useCase, verifyOtpUrl]);
 
   const activeSnippet = language === 'curl' ? curlSnippet : nodeSnippet;
@@ -381,7 +381,7 @@ export function SnippetGenerator() {
               <div className="flex gap-2">
                 <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 <p className="text-xs leading-5 text-muted-foreground">
-                  Call these endpoints from your backend only. Browser/mobile clients should call your server, then your server calls wApi with the API key.
+                  Call these endpoints from your backend only. Browser/mobile clients should call your server, then your server calls ConnectSphere with the API key.
                 </p>
               </div>
             </div>

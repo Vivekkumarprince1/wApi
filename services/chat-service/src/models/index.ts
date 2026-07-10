@@ -776,7 +776,7 @@ PermissionSchema.index({ workspace: 1, user: 1 }, { unique: true });
 
 export const Permission = mongoose.models.Permission || mongoose.model('Permission', PermissionSchema);
 
-// Notification — shared `notifications` collection in the wapi DB; auth-service
+// Notification — shared `notifications` collection in the connectsphere DB; auth-service
 // owns the read API (GET /auth/notifications). Keep field names in sync with
 // auth-service's schema (`message`, not `body`).
 const NotificationSchema = new Schema({

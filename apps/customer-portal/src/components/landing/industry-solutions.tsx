@@ -74,7 +74,7 @@ const industrySlides = [
 
 export default function IndustrySolutions({ isDark }: { isDark: boolean }) {
   const [slide, setSlide] = useState(0);
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'wApi';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere';
 
   useEffect(() => {
     const timer = setInterval(() => {

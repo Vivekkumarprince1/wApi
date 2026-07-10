@@ -532,7 +532,7 @@ const BusinessVerificationPolicySchema = new Schema({
 
 export const BusinessVerificationPolicy = mongoose.models.BusinessVerificationPolicy || mongoose.model('BusinessVerificationPolicy', BusinessVerificationPolicySchema);
 
-// ActivityLog — workspace-scoped audit trail in the shared wapi DB (monolith
+// ActivityLog — workspace-scoped audit trail in the shared connectsphere DB (monolith
 // parity). Same schema as chat/contact services'; the analytics dashboard reads it.
 const ActivityLogSchema = new Schema({
   workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },

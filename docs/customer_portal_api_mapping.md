@@ -134,7 +134,7 @@ When requests hit the API Gateway, they go through several operations before pro
 > All paths in the tables below are relative to `/api` on the frontend client (since Axios prefixes all calls).
 > Downstream paths indicate what the microservice receives after Next.js rewriting and Gateway path transformation.
 
-### 4.1. [ads.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/ads.ts)
+### 4.1. [ads.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/ads.ts)
 
 | Function Name | HTTP Method | Frontend URL Path | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
 |:---|:---|:---|:---|:---|:---|
@@ -151,7 +151,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.2. [auth.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/auth.ts)
+### 4.2. [auth.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/auth.ts)
 
 | Function Name | HTTP Method | Frontend URL Path | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
 |:---|:---|:---|:---|:---|:---|
@@ -178,7 +178,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.3. [billing.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/billing.ts)
+### 4.3. [billing.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/billing.ts)
 
 | Function Name | HTTP Method | Frontend URL Path | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
 |:---|:---|:---|:---|:---|:---|
@@ -189,7 +189,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.4. [business.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/business.ts)
+### 4.4. [business.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/business.ts)
 
 | Function Name | HTTP Method | Frontend URL Path | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
 |:---|:---|:---|:---|:---|:---|
@@ -199,7 +199,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.5. [campaigns.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/campaigns.ts)
+### 4.5. [campaigns.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/campaigns.ts)
 
 | Function Name | HTTP Method | Frontend URL Path | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
 |:---|:---|:---|:---|:---|:---|
@@ -218,7 +218,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.6. [automation.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/automation.ts)
+### 4.6. [automation.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/automation.ts)
 
 > [!IMPORTANT]
 > All automation routes go to `automation-service` on port `3001`. 
@@ -266,7 +266,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.7. [commerce.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/commerce.ts)
+### 4.7. [commerce.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/commerce.ts)
 
 > [!NOTE]
 > `/api/v1/commerce` requests pass through to the `billing-service` without any gateway path stripping.
@@ -283,7 +283,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.8. [contacts.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/contacts.ts)
+### 4.8. [contacts.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/contacts.ts)
 
 | Function Name | HTTP Method | Frontend URL Path | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
 |:---|:---|:---|:---|:---|:---|
@@ -303,7 +303,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.9. [crm.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/crm.ts)
+### 4.9. [crm.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/crm.ts)
 
 > [!NOTE]
 > `/api/v1/crm` requests pass through to the `contact-service` without any gateway path stripping.
@@ -327,7 +327,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.10. [flows.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/flows.ts)
+### 4.10. [flows.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/flows.ts)
 
 > [!NOTE]
 > `/api/v1/flows` requests pass through to the `automation-service` without any gateway path stripping.
@@ -346,7 +346,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.11. [inbox.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/inbox.ts)
+### 4.11. [inbox.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/inbox.ts)
 
 > [!NOTE]
 > `/api/v1/inbox` routes pass to the `chat-service`. `/api/v1/upload` routes pass to the `service-provider`. 
@@ -367,7 +367,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.12. [onboarding.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/onboarding.ts)
+### 4.12. [onboarding.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/onboarding.ts)
 
 > [!NOTE]
 > Onboarding routes match `/api/v1/onboarding` and rewrite to `/provider/v1/onboarding` pointing to `service-provider` (port 3004).
@@ -387,7 +387,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.13. [settings.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/settings.ts)
+### 4.13. [settings.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/settings.ts)
 
 | Function Name | HTTP Method | Frontend URL Path | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
 |:---|:---|:---|:---|:---|:---|
@@ -431,7 +431,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.14. [support.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/support.ts)
+### 4.14. [support.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/support.ts)
 
 > [!NOTE]
 > `/api/v1/support` requests pass through to the `chat-service` (port 3008) without any gateway path stripping.
@@ -448,7 +448,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.15. [templates.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/templates.ts)
+### 4.15. [templates.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/templates.ts)
 
 > [!NOTE]
 > `/api/v1/templates` routes to `service-provider` (port 3004) without path stripping.
@@ -478,7 +478,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.16. [widget.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/widget.ts)
+### 4.16. [widget.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/widget.ts)
 
 > [!NOTE]
 > `/api/v1/widget` routes to `automation-service` (port 3001) without path stripping.
@@ -490,7 +490,7 @@ When requests hit the API Gateway, they go through several operations before pro
 
 ---
 
-### 4.17. [integrations.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/lib/api/integrations.ts)
+### 4.17. [integrations.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/lib/api/integrations.ts)
 
 > [!NOTE]
 > `/api/v1/integrations` passes through to `automation-service` (port 3001) without path stripping.
@@ -525,33 +525,33 @@ In addition to the centralized API directory, several UI pages, components, and 
 
 | Calling File Path | HTTP Method | Frontend Request URL | Gateway Routing & Rewrite | Downstream Microservice Path | Destination Service |
 |:---|:---|:---|:---|:---|:---|
-| [use-socket.ts](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/hooks/use-socket.ts) | GET | `/api/auth/session` | Strips `/api/v1/auth` | `/session` | `auth-service` (3006) |
-| [workspace-switcher.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/workspace-switcher.tsx) | GET | `/api/auth/workspaces` | Strips `/api/v1/auth` | `/workspaces` | `auth-service` (3006) |
+| [use-socket.ts](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/hooks/use-socket.ts) | GET | `/api/auth/session` | Strips `/api/v1/auth` | `/session` | `auth-service` (3006) |
+| [workspace-switcher.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/layout/workspace-switcher.tsx) | GET | `/api/auth/workspaces` | Strips `/api/v1/auth` | `/workspaces` | `auth-service` (3006) |
 | *(workspace-switcher)* | POST | `/api/auth/switch-workspace` | Strips `/api/v1/auth` | `/switch-workspace` | `auth-service` (3006) |
-| [notification-panel.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/layout/notification-panel.tsx) | GET | `/api/auth/invitations/pending` | Strips `/api/v1/auth` | `/invitations/pending` | `auth-service` (3006) |
-| [accept-invite/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/accept-invite/page.tsx) | GET | `/api/auth/invitation/:token?email=` | Strips `/api/v1/auth` | `/invitation/:token?email=` | `auth-service` (3006) |
+| [notification-panel.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/layout/notification-panel.tsx) | GET | `/api/auth/invitations/pending` | Strips `/api/v1/auth` | `/invitations/pending` | `auth-service` (3006) |
+| [accept-invite/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/auth/accept-invite/page.tsx) | GET | `/api/auth/invitation/:token?email=` | Strips `/api/v1/auth` | `/invitation/:token?email=` | `auth-service` (3006) |
 | *(accept-invite)* | POST | `/api/auth/accept-invite` | Strips `/api/v1/auth` | `/accept-invite` | `auth-service` (3006) |
-| [google/callback/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/auth/google/callback/page.tsx) | POST | `/api/auth/google/callback` | Strips `/api/v1/auth` | `/google/callback` | `auth-service` (3006) |
-| [sms-composer.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/sms-composer.tsx) | GET | `/api/templates?channel=sms&limit=10` | Passes through without edits | `/api/v1/templates?channel=sms&limit=10` | `service-provider` (3004) |
-| [email-composer.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/inbox/email-composer.tsx) | GET | `/api/templates?channel=email&limit=10` | Passes through without edits | `/api/v1/templates?channel=email&limit=10` | `service-provider` (3004) |
-| [DirectTemplateModal.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/contacts/DirectTemplateModal.tsx) | GET | `/api/workspace/pricing` | `/api/v1/workspace/pricing` → `/pricing` | `/pricing` | `billing-service` (3003) |
-| [member-panel.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/member-panel.tsx) | GET | `/api/workspace/team/search` | `/api/v1/workspace` → `/workspace` | `/workspace/team/search` | `auth-service` (3006) |
-| [snippet-generator.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/settings/developer/snippet-generator.tsx) | GET | `/api/developer/keys` | Passes through without edits | `/api/v1/developer/keys` | `automation-service` (3001) |
-| [contacts/[id]/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/contacts/%5Bid%5D/page.tsx) | GET | `/api/contacts/:id/form-submissions` | Passes through without edits | `/api/v1/contacts/:id/form-submissions` | `contact-service` (3007) |
-| [CampaignRecipientTable.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/campaign/analytics/CampaignRecipientTable.tsx) | GET | `/api/campaigns/:campaignId/messages` | `/api/v1/campaign` → `/api/campaign` | `/api/campaign/:campaignId/messages` | `campaign-service` (3002) |
-| [catalog/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/catalog/page.tsx) | GET | `/api/commerce/products` | Passes through without edits | `/api/v1/commerce/products` | `billing-service` (3003) |
+| [google/callback/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/auth/google/callback/page.tsx) | POST | `/api/auth/google/callback` | Strips `/api/v1/auth` | `/google/callback` | `auth-service` (3006) |
+| [sms-composer.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/inbox/sms-composer.tsx) | GET | `/api/templates?channel=sms&limit=10` | Passes through without edits | `/api/v1/templates?channel=sms&limit=10` | `service-provider` (3004) |
+| [email-composer.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/inbox/email-composer.tsx) | GET | `/api/templates?channel=email&limit=10` | Passes through without edits | `/api/v1/templates?channel=email&limit=10` | `service-provider` (3004) |
+| [DirectTemplateModal.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/contacts/DirectTemplateModal.tsx) | GET | `/api/workspace/pricing` | `/api/v1/workspace/pricing` → `/pricing` | `/pricing` | `billing-service` (3003) |
+| [member-panel.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/settings/member-panel.tsx) | GET | `/api/workspace/team/search` | `/api/v1/workspace` → `/workspace` | `/workspace/team/search` | `auth-service` (3006) |
+| [snippet-generator.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/settings/developer/snippet-generator.tsx) | GET | `/api/developer/keys` | Passes through without edits | `/api/v1/developer/keys` | `automation-service` (3001) |
+| [contacts/[id]/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/contacts/%5Bid%5D/page.tsx) | GET | `/api/contacts/:id/form-submissions` | Passes through without edits | `/api/v1/contacts/:id/form-submissions` | `contact-service` (3007) |
+| [CampaignRecipientTable.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/campaign/analytics/CampaignRecipientTable.tsx) | GET | `/api/campaigns/:campaignId/messages` | `/api/v1/campaign` → `/api/campaign` | `/api/campaign/:campaignId/messages` | `campaign-service` (3002) |
+| [catalog/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/commerce/catalog/page.tsx) | GET | `/api/commerce/products` | Passes through without edits | `/api/v1/commerce/products` | `billing-service` (3003) |
 | *(catalog/page)* | DELETE | `/api/commerce/products/:id` | Passes through without edits | `/api/v1/commerce/products/:id` | `billing-service` (3003) |
-| [ProductDialog.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/commerce/ProductDialog.tsx) | POST | `/api/commerce/products` | Passes through without edits | `/api/v1/commerce/products` | `billing-service` (3003) |
+| [ProductDialog.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/commerce/ProductDialog.tsx) | POST | `/api/commerce/products` | Passes through without edits | `/api/v1/commerce/products` | `billing-service` (3003) |
 | *(ProductDialog)* | PUT | `/api/commerce/products/:id` | Passes through without edits | `/api/v1/commerce/products/:id` | `billing-service` (3003) |
-| [ManualOrderDialog.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/commerce/ManualOrderDialog.tsx) | GET | `/api/commerce/products?search=&limit=10` | Passes through without edits | `/api/v1/commerce/products` | `billing-service` (3003) |
+| [ManualOrderDialog.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/commerce/ManualOrderDialog.tsx) | GET | `/api/commerce/products?search=&limit=10` | Passes through without edits | `/api/v1/commerce/products` | `billing-service` (3003) |
 | *(ManualOrderDialog)* | POST | `/api/commerce/orders` | Passes through without edits | `/api/v1/commerce/orders` | `billing-service` (3003) |
-| [checkout-bot/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/commerce/checkout-bot/page.tsx) | GET | `/api/commerce/checkout-bot/stats` | Passes through without edits | `/api/v1/commerce/checkout-bot/stats` | `billing-service` (3003) |
+| [checkout-bot/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/commerce/checkout-bot/page.tsx) | GET | `/api/commerce/checkout-bot/stats` | Passes through without edits | `/api/v1/commerce/checkout-bot/stats` | `billing-service` (3003) |
 | *(checkout-bot)* | POST | `/api/commerce/settings` | Passes through without edits | `/api/v1/commerce/settings` | `billing-service` (3003) |
-| [crm/reports/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/crm/reports/page.tsx) | GET | `/api/crm/analytics` | Passes through without edits | `/api/v1/crm/analytics` | `contact-service` (3007) |
-| [PipelineDialog.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/PipelineDialog.tsx) | POST | `/api/crm/pipelines` | Passes through without edits | `/api/v1/crm/pipelines` | `contact-service` (3007) |
-| [PipelineAutomation.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/components/dashboard/crm/PipelineAutomation.tsx) | GET | `/api/crm/automation?pipelineId=` | Passes through without edits | `/api/v1/crm/automation` | `contact-service` (3007) |
+| [crm/reports/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/crm/reports/page.tsx) | GET | `/api/crm/analytics` | Passes through without edits | `/api/v1/crm/analytics` | `contact-service` (3007) |
+| [PipelineDialog.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/crm/PipelineDialog.tsx) | POST | `/api/crm/pipelines` | Passes through without edits | `/api/v1/crm/pipelines` | `contact-service` (3007) |
+| [PipelineAutomation.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/crm/PipelineAutomation.tsx) | GET | `/api/crm/automation?pipelineId=` | Passes through without edits | `/api/v1/crm/automation` | `contact-service` (3007) |
 | *(PipelineAutomation)* | POST | `/api/crm/automation` | Passes through without edits | `/api/v1/crm/automation` | `contact-service` (3007) |
 | *(PipelineAutomation)* | DELETE | `/api/crm/automation?id=` | Passes through without edits | `/api/v1/crm/automation` | `contact-service` (3007) |
-| [responses/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/whatsapp-forms/%5Bid%5D/responses/page.tsx) | GET | `/api/automation/whatsapp-forms/:id/responses` | Rewrites `/api/v1/automation` → `/api/automation` | `/api/automation/whatsapp-forms/:id/responses` | `automation-service` (3001) |
-| [workflows/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/page.tsx) | POST | `/api/automation/engine/rules/:ruleId/execute` | Rewrites `/api/v1/automation` → `/api/automation` | `/api/automation/engine/rules/:ruleId/execute` | `automation-service` (3001) |
-| [builder/[id]/page.tsx](file:///Users/vivekkumar/devlopment/wApi/apps/customer-portal/src/app/automation/workflows/builder/%5Bid%5D/page.tsx) | GET | `/api/automation/engine/rules/:ruleId` | Rewrites `/api/v1/automation` → `/api/automation` | `/api/automation/engine/rules/:ruleId` | `automation-service` (3001) |
+| [responses/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/automation/whatsapp-forms/%5Bid%5D/responses/page.tsx) | GET | `/api/automation/whatsapp-forms/:id/responses` | Rewrites `/api/v1/automation` → `/api/automation` | `/api/automation/whatsapp-forms/:id/responses` | `automation-service` (3001) |
+| [workflows/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/automation/workflows/page.tsx) | POST | `/api/automation/engine/rules/:ruleId/execute` | Rewrites `/api/v1/automation` → `/api/automation` | `/api/automation/engine/rules/:ruleId/execute` | `automation-service` (3001) |
+| [builder/[id]/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/automation/workflows/builder/%5Bid%5D/page.tsx) | GET | `/api/automation/engine/rules/:ruleId` | Rewrites `/api/v1/automation` → `/api/automation` | `/api/automation/engine/rules/:ruleId` | `automation-service` (3001) |

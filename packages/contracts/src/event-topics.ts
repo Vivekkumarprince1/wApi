@@ -1,6 +1,6 @@
 import type { ObjectIdString } from './common';
 
-/** Redis Pub/Sub topics used across the decoupled wApi platform. */
+/** Redis Pub/Sub topics used across the decoupled ConnectSphere platform. */
 export const EventTopics = {
   RAW_WEBHOOK_EVENTS: 'raw-webhook-events',
   PARSED_MESSAGE_EVENTS: 'parsed-message-events',

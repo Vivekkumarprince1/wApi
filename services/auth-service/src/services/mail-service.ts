@@ -62,8 +62,8 @@ export class MailService {
     console.log(`[MailService] Preparing to send email to: ${options.to} (Subject: ${options.subject})`);
     const transporter = await this.getTransporter();
     
-    const fromName = config.appName || 'wApi';
-    const fromEmail = config.smtpFrom || 'noreply@wapi.com';
+    const fromName = config.appName || 'ConnectSphere';
+    const fromEmail = config.smtpFrom || 'noreply@connectsphere.com';
     
     const mailOptions = {
       from: `"${fromName}" <${fromEmail}>`,

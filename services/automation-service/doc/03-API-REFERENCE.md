@@ -74,4 +74,4 @@ Important endpoints
   - DELETE `/api/automation/engine/interaktive-list/:id`
 
 OpenAPI
-- See `src/openapi.ts` — the service uses `zod-to-openapi` and `@wapi/contracts` to generate the OpenAPI spec. The document includes a manual entry for `/api/automation/engine/execute` (internal execution endpoint).
+- See `src/openapi.ts` — the service uses `zod-to-openapi` and `@connectsphere/contracts` to generate the OpenAPI spec. The document includes a manual entry for `/api/automation/engine/execute` (internal execution endpoint).

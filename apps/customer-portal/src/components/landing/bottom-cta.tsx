@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 export default function BottomCTA({ isDark }: { isDark: boolean }) {
   const router = useRouter();
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'wApi';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere';
 
   return (
     <section className="w-full bg-[#f4ffe9] dark:bg-black py-8 sm:py-12 md:py-16 flex flex-col items-center" style={{ backgroundColor: isDark ? '#000' : '#f4ffe9' }}>

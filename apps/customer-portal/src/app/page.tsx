@@ -121,7 +121,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="w-full border-t border-border bg-gray-50 dark:bg-black py-6 mt-8 text-center text-muted-foreground text-sm font-medium">
-        &copy; 2025 {process.env.NEXT_PUBLIC_APP_NAME || 'wApi'}. All rights reserved.
+        &copy; 2025 {process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere'}. All rights reserved.
       </footer>
     </div>
   )

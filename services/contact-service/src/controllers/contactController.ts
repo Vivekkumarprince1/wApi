@@ -23,8 +23,8 @@ function getWorkspaceDbNames() {
     process.env.AUTH_DB_NAME,
     process.env.AUTH_DATABASE_NAME,
     dbNameFromUri(process.env.AUTH_MONGO_URI || process.env.AUTH_MONGODB_URI),
-    'wapi_auth',
-    'wapi',
+    'connectsphere_auth',
+    'connectsphere',
   ];
 
   return [...new Set(candidates.filter((name): name is string => Boolean(name)))];

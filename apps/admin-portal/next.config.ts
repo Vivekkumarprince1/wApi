@@ -3,7 +3,7 @@ import webpack from "webpack";
 
 // Optional native/cloud deps that `mongodb` lazily requires (kerberos, AWS/GCP
 // auth, compression). They are not installed and not needed for our usage, but
-// because @wapi/contracts is transpiled, webpack tries to resolve them and warns.
+// because @connectsphere/contracts is transpiled, webpack tries to resolve them and warns.
 // Ignore them at the bundler level so the build is clean.
 const MONGODB_OPTIONAL_DEPS = [
   "aws4",
@@ -17,7 +17,7 @@ const MONGODB_OPTIONAL_DEPS = [
 ];
 
 /**
- * Admin Portal — standalone Next.js fullstack app (admin.wapi.in).
+ * Admin Portal — standalone Next.js fullstack app (admin.connectsphere.in).
  *
  * Unlike the customer portal, this app does NOT rewrite /api/* to the
  * gateway. All admin traffic is handled by local route handlers under
@@ -27,7 +27,7 @@ const MONGODB_OPTIONAL_DEPS = [
  */
 const nextConfig: NextConfig = {
   reactCompiler: false,
-  transpilePackages: ["@wapi/contracts"],
+  transpilePackages: ["@connectsphere/contracts"],
   experimental: {
     externalDir: true,
     webpackMemoryOptimizations: true,
@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
   },
   // Keep these out of the bundle so their optional native deps (aws4,
   // kerberos, @mongodb-js/zstd, …) are required at runtime, not webpack-bundled.
-  // `mongodb` is pulled in transitively via @wapi/contracts/dist/models.js.
+  // `mongodb` is pulled in transitively via @connectsphere/contracts/dist/models.js.
   serverExternalPackages: ["mongoose", "mongodb", "bcryptjs", "bullmq", "ioredis"],
   allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS
     ? process.env.ALLOWED_DEV_ORIGINS.split(",")

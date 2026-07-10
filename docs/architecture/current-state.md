@@ -1,4 +1,4 @@
-# wApi — Current State Architecture
+# ConnectSphere — Current State Architecture
 
 > **Scope & method.** This document is reverse-engineered *only* from source in this repository. Every claim cites the file(s) it was derived from. Where the code is ambiguous or a path appears dead, that is called out explicitly rather than assumed.
 > **Snapshot date:** derived from repo state as of the analysis run.
@@ -7,15 +7,15 @@
 
 ## 1. Monorepo Structure
 
-A monorepo with **no root `package.json`** — each service/app installs its own dependencies, and `@wapi/contracts` is linked by relative `file:` path. (Source: `CLAUDE.md`; absence verified by `ls` of repo root.)
+A monorepo with **no root `package.json`** — each service/app installs its own dependencies, and `@connectsphere/contracts` is linked by relative `file:` path. (Source: `CLAUDE.md`; absence verified by `ls` of repo root.)
 
 ```
-wApi/
+connectsphere/
 ├── apps/
 │   ├── admin-portal/      Next 16 + React 19 — Super Admin Platform (port 3100)
 │   └── customer-portal/   Next 16 + React 19 — customer app (port 3000)
 ├── packages/
-│   └── contracts/         @wapi/contracts — shared types, DTOs, Kafka/Socket event payloads
+│   └── contracts/         @connectsphere/contracts — shared types, DTOs, Kafka/Socket event payloads
 ├── services/
 │   ├── api-gateway/       Express + http-proxy-middleware (5001)
 │   ├── auth-service/      Express (3006) — identity, JWT, OTP, RBAC, audit consumer
@@ -126,13 +126,13 @@ The **API Gateway** (`services/api-gateway/src/index.ts`) is the single ingress 
 
 **Shared infrastructure:** MongoDB (Mongoose 8 / native driver in ingestor), Redis (ioredis + BullMQ + socket.io redis-adapter), Kafka (kafkajs). (Source: dependency lists in §1, broker/URI usage throughout.)
 
-`@wapi/contracts` is depended on by: auth, automation, billing, campaign, chat, contact, service-provider, admin-portal (`package.json` deps). **Not** depended on by api-gateway, webhook-ingestor, or websocket-gateway — those three redefine event/topic strings as local literals (e.g. `KAFKA_TOPIC = 'raw-webhook-events'` in `webhook-ingestor/src/index.ts:17`; topic list in `websocket-gateway/src/index.ts:289`). This is a contract-drift risk.
+`@connectsphere/contracts` is depended on by: auth, automation, billing, campaign, chat, contact, service-provider, admin-portal (`package.json` deps). **Not** depended on by api-gateway, webhook-ingestor, or websocket-gateway — those three redefine event/topic strings as local literals (e.g. `KAFKA_TOPIC = 'raw-webhook-events'` in `webhook-ingestor/src/index.ts:17`; topic list in `websocket-gateway/src/index.ts:289`). This is a contract-drift risk.
 
 ---
 
 ## 4. Runtime Architecture
 
-There is a committed Docker Compose dev stack for MongoDB, Redis, the backend services, admin portal, and customer portal (`docker-compose.yml`). Individual services/apps can also be run directly with their local `npm run dev` scripts. No `wapi-runner.js` is currently committed.
+There is a committed Docker Compose dev stack for MongoDB, Redis, the backend services, admin portal, and customer portal (`docker-compose.yml`). Individual services/apps can also be run directly with their local `npm run dev` scripts. No `connectsphere-runner.js` is currently committed.
 
 Memory is a first-class constraint: most `dev`/`build` scripts set `NODE_OPTIONS=--max-old-space-size=2048..4096` because the target dev box is 8 GB and many services may run together (`CLAUDE.md` "Memory constraints"; visible in service/app `package.json` files).
 
@@ -184,7 +184,7 @@ Browser ──(auth_token cookie / Bearer)──▶ api-gateway
 
 **Two separate identity realms:**
 - Customer realm: `auth_token` cookie, workspace roles `owner/admin/manager/agent/viewer` (`auth-service/src/models/index.ts:76-135`).
-- Admin realm: `admin_token` cookie, platform roles `super_admin / super_admin_support / super_admin_finance / super_admin_readonly`, capabilities resolved by `adminCan()` in `@wapi/contracts` (`apps/admin-portal/src/server/auth.ts`, `packages/contracts/src/admin.ts`). Admin login verifies against the *same* core `User` collection but rejects non-admin roles (`auth.ts:96-98`).
+- Admin realm: `admin_token` cookie, platform roles `super_admin / super_admin_support / super_admin_finance / super_admin_readonly`, capabilities resolved by `adminCan()` in `@connectsphere/contracts` (`apps/admin-portal/src/server/auth.ts`, `packages/contracts/src/admin.ts`). Admin login verifies against the *same* core `User` collection but rejects non-admin roles (`auth.ts:96-98`).
 
 ---
 
@@ -254,10 +254,10 @@ Browser ──(auth_token cookie / Bearer)──▶ api-gateway
 ## 12. Scalability Limitations
 
 1. **No production horizontal-scale story.** Dockerfiles and Compose exist for local use, but there is no Kubernetes/Helm/IaC, load balancer, production service discovery, or ingress definition. Services still default to hardcoded `localhost:PORT` env values outside Compose (`api-gateway/src/index.ts:133-143`).
-2. **Shared-but-divergent database.** Service code defaults to *different* databases (`wapi`, `wapi_billing`, `wa_campaigns`, `wapi_automation`, `wapi_bsp`) yet cross-service entities (Workspace, Contact, Message, Plan) are **redefined locally in each service** (`auth-service/models/index.ts`, `campaign-service/models/Workspace.ts`, `billing-service/models/index.ts` `MinimalWorkspaceSchema`, `chat-service` Contact). Whether they collapse to one DB or shard is purely an env decision — there is no enforced ownership. This blocks independent scaling and risks schema drift. (See `database-analysis.md`.)
+2. **Shared-but-divergent database.** Service code defaults to *different* databases (`connectsphere`, `connectsphere_billing`, `wa_campaigns`, `connectsphere_automation`, `connectsphere_bsp`) yet cross-service entities (Workspace, Contact, Message, Plan) are **redefined locally in each service** (`auth-service/models/index.ts`, `campaign-service/models/Workspace.ts`, `billing-service/models/index.ts` `MinimalWorkspaceSchema`, `chat-service` Contact). Whether they collapse to one DB or shard is purely an env decision — there is no enforced ownership. This blocks independent scaling and risks schema drift. (See `database-analysis.md`.)
 3. **Gateway is a single point of routing** with order-sensitive, hand-maintained rules and a per-instance rate limiter and per-request auth fan-out (B1, B5).
 4. **Stateful in-process workers.** Campaign pacing and the answerbot crawl queue live inside service processes; restart loses in-flight pacing (`CampaignWorker.ts`, `automation-service/src/services/answerbot-crawl-queue.ts`).
-5. **Kafka optional locally** → event backbone can silently degrade; no schema registry; topic names are string literals partly outside `@wapi/contracts`.
+5. **Kafka optional locally** → event backbone can silently degrade; no schema registry; topic names are string literals partly outside `@connectsphere/contracts`.
 6. **No observability stack.** Logging is `morgan`/`console.log`/`winston` to stdout; correlation IDs are generated (`index.ts:42`) but there is no tracing, metrics, or centralized log sink committed (`@logtail` is an *optional* peer).
 7. **Multichannel is scaffolding only.** `service-provider/src/channels/insta` and `/rcs` directories are **empty** — Instagram and RCS (named platform requirements) are not implemented; only WhatsApp/Gupshup exists.
 

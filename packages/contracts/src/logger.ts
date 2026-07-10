@@ -1,5 +1,5 @@
 /**
- * Shared structured logger for wApi services.
+ * Shared structured logger for ConnectSphere services.
  *
  * - Production: JSON to stdout + (optional) Better Stack / Logtail HTTP transport
  * - Development: colourised single-line console output
@@ -7,7 +7,7 @@
  *   can be reconstructed across HTTP → BullMQ → worker hops.
  *
  * Usage in a service:
- *   import { createServiceLogger, correlationIdMiddleware } from '@wapi/contracts/logger';
+ *   import { createServiceLogger, correlationIdMiddleware } from '@connectsphere/contracts/logger';
  *   export const { logger, withCorrelationId, getCorrelationId } =
  *     createServiceLogger({ service: 'campaign-service' });
  *

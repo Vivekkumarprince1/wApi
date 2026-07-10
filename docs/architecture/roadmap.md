@@ -1,4 +1,4 @@
-# wApi — Implementation Roadmap
+# ConnectSphere — Implementation Roadmap
 
 > A phased migration from the current laptop-deployed, partially-coupled microservices toward an enterprise multi-tenant SaaS. Each item lists **Priority** (P0 critical → P3 nice-to-have), **Effort** (S ≤ 1wk, M 1–3wk, L 1–2mo, XL > 2mo), **Risk** (Low/Med/High of regression), and **Dependencies**. Timeline assumes a small team; adjust to capacity. Every item traces back to a finding in the analysis docs.
 
@@ -41,7 +41,7 @@ Goal: remove the hot-path bottlenecks and the systemic isolation risk without sp
 | 2.6 | Remove DB lookups on websocket fan-out (trust enriched sync payload) | P1 | S | Low | — | database Q3, message-flow M3-adjacent |
 | 2.7 | Campaign throughput: distributed token-bucket rate-limit + **bulk** contact read API (kill N+1) | P1 | M | Med | 2.1 | message-flow M6, campaign §7 |
 | 2.8 | Shared Redis split: durable (BullMQ) vs ephemeral (cache); managed Redis with failover | P1 | M | Low | 2.4 | infrastructure §4 |
-| 2.9 | Event envelope + schema registry + versioning; make gateway/ingestor/ws-gateway depend on `@wapi/contracts` | P1 | M | Med | Kafka | future-state §6, current-state §3 |
+| 2.9 | Event envelope + schema registry + versioning; make gateway/ingestor/ws-gateway depend on `@connectsphere/contracts` | P1 | M | Med | Kafka | future-state §6, current-state §3 |
 | 2.10 | Analytics rollups: tee event stream → rollup collections; move `/analytics` off chat-service live queries | P1 | L | Low | 2.5 | database Q6, message-flow §5 |
 
 **Exit criteria:** outbound fully async; isolation guard enforced + tested; auth off the request hot path; running on K8s with HPA + tracing; campaign throughput no longer single-process bound.

@@ -33,7 +33,7 @@ if (process.env.NODE_ENV === 'production') {
 
 export const config = {
   port: process.env.PORT || 3003,
-  mongodbUri: process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/wapi_billing',
+  mongodbUri: process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/connectsphere_billing',
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',

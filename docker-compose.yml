@@ -2,23 +2,23 @@ services:
   # --- Infrastructure Services ---
   mongodb:
     image: mongo:6.0
-    container_name: wapi-mongodb
+    container_name: connectsphere-mongodb
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
     networks:
-      - wapi-network
+      - connectsphere-network
 
   redis:
     image: redis:7-alpine
-    container_name: wapi-redis
+    container_name: connectsphere-redis
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
     networks:
-      - wapi-network
+      - connectsphere-network
 
 
   # --- Microservices ---
@@ -26,7 +26,7 @@ services:
     build:
       context: .
       dockerfile: services/api-gateway/Dockerfile
-    container_name: wapi-api-gateway
+    container_name: connectsphere-api-gateway
     ports:
       - "5001:5001"
     depends_on:
@@ -48,13 +48,13 @@ services:
       - WEBHOOK_INGESTOR_URL=http://webhook-ingestor:3013
       - REDIS_URL=redis://redis:6379
     networks:
-      - wapi-network
+      - connectsphere-network
 
   auth-service:
     build:
       context: .
       dockerfile: services/auth-service/Dockerfile
-    container_name: wapi-auth-service
+    container_name: connectsphere-auth-service
     ports:
       - "3006:3006"
     depends_on:
@@ -64,17 +64,17 @@ services:
       - PORT=3006
       - JWT_SECRET=replace-with-generated-jwt-secret
       - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
-      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - MONGO_URI=mongodb://mongodb:27017/connectsphere
       - REDIS_URL=redis://redis:6379
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
     networks:
-      - wapi-network
+      - connectsphere-network
 
   campaign-service:
     build:
       context: .
       dockerfile: services/campaign-service/Dockerfile
-    container_name: wapi-campaign-service
+    container_name: connectsphere-campaign-service
     ports:
       - "3002:3002"
     depends_on:
@@ -84,16 +84,16 @@ services:
       - PORT=3002
       - JWT_SECRET=replace-with-generated-jwt-secret
       - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
-      - MONGO_URI=mongodb://mongodb:27017/wapi_campaign
+      - MONGO_URI=mongodb://mongodb:27017/connectsphere_campaign
       - REDIS_URL=redis://redis:6379
     networks:
-      - wapi-network
+      - connectsphere-network
 
   billing-service:
     build:
       context: .
       dockerfile: services/billing-service/Dockerfile
-    container_name: wapi-billing-service
+    container_name: connectsphere-billing-service
     ports:
       - "3003:3003"
     depends_on:
@@ -103,16 +103,16 @@ services:
       - PORT=3003
       - JWT_SECRET=replace-with-generated-jwt-secret
       - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
-      - MONGO_URI=mongodb://mongodb:27017/wapi_billing
+      - MONGO_URI=mongodb://mongodb:27017/connectsphere_billing
       - REDIS_URL=redis://redis:6379
     networks:
-      - wapi-network
+      - connectsphere-network
 
   service-provider:
     build:
       context: .
       dockerfile: services/service-provider/Dockerfile
-    container_name: wapi-service-provider
+    container_name: connectsphere-service-provider
     ports:
       - "3004:3004"
     depends_on:
@@ -123,17 +123,17 @@ services:
       - JWT_SECRET=replace-with-generated-jwt-secret
       - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - INTEGRATION_ENCRYPTION_KEY=replace-with-generated-integration-encryption-key
-      - MONGO_URI=mongodb://mongodb:27017/wapi_bsp
+      - MONGO_URI=mongodb://mongodb:27017/connectsphere_bsp
       - REDIS_URL=redis://redis:6379
       - MAIN_SERVICE_URL=http://api-gateway:5001
     networks:
-      - wapi-network
+      - connectsphere-network
 
   automation-service:
     build:
       context: .
       dockerfile: services/automation-service/Dockerfile
-    container_name: wapi-automation-service
+    container_name: connectsphere-automation-service
     ports:
       - "3001:3001"
     depends_on:
@@ -144,16 +144,16 @@ services:
       - JWT_SECRET=replace-with-generated-jwt-secret
       - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
       - INTEGRATION_ENCRYPTION_KEY=replace-with-generated-integration-encryption-key
-      - MONGO_URI=mongodb://mongodb:27017/wapi_automation
+      - MONGO_URI=mongodb://mongodb:27017/connectsphere_automation
       - REDIS_URL=redis://redis:6379
     networks:
-      - wapi-network
+      - connectsphere-network
 
   chat-service:
     build:
       context: .
       dockerfile: services/chat-service/Dockerfile
-    container_name: wapi-chat-service
+    container_name: connectsphere-chat-service
     ports:
       - "3008:3008"
     depends_on:
@@ -163,16 +163,16 @@ services:
       - PORT=3008
       - JWT_SECRET=replace-with-generated-jwt-secret
       - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
-      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - MONGO_URI=mongodb://mongodb:27017/connectsphere
       - REDIS_URL=redis://redis:6379
     networks:
-      - wapi-network
+      - connectsphere-network
 
   contact-service:
     build:
       context: .
       dockerfile: services/contact-service/Dockerfile
-    container_name: wapi-contact-service
+    container_name: connectsphere-contact-service
     ports:
       - "3007:3007"
     depends_on:
@@ -182,16 +182,16 @@ services:
       - PORT=3007
       - JWT_SECRET=replace-with-generated-jwt-secret
       - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
-      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - MONGO_URI=mongodb://mongodb:27017/connectsphere
       - REDIS_URL=redis://redis:6379
     networks:
-      - wapi-network
+      - connectsphere-network
 
   webhook-ingestor:
     build:
       context: .
       dockerfile: services/webhook-ingestor/Dockerfile
-    container_name: wapi-webhook-ingestor
+    container_name: connectsphere-webhook-ingestor
     ports:
       - "3013:3013"
     depends_on:
@@ -201,17 +201,17 @@ services:
       - PORT=3013
       - WEBHOOK_SECRET=dev-webhook-secret-change-me
       - INTERNAL_SERVICE_SECRET=replace-with-generated-internal-service-secret
-      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - MONGO_URI=mongodb://mongodb:27017/connectsphere
       - REDIS_URL=redis://redis:6379
-      - VERIFY_TOKEN=wapi-verify-token
+      - VERIFY_TOKEN=connectsphere-verify-token
     networks:
-      - wapi-network
+      - connectsphere-network
 
   websocket-gateway:
     build:
       context: .
       dockerfile: services/websocket-gateway/Dockerfile
-    container_name: wapi-websocket-gateway
+    container_name: connectsphere-websocket-gateway
     ports:
       - "3009:3009"
     depends_on:
@@ -220,19 +220,19 @@ services:
     environment:
       - PORT=3009
       - JWT_SECRET=replace-with-generated-jwt-secret
-      - MONGO_URI=mongodb://mongodb:27017/wapi
+      - MONGO_URI=mongodb://mongodb:27017/connectsphere
       - REDIS_URL=redis://redis:6379
       - AUTH_SERVICE_URL=http://auth-service:3006
       - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3100,http://127.0.0.1:3000,http://127.0.0.1:3100
     networks:
-      - wapi-network
+      - connectsphere-network
 
   # --- Frontend / Portals ---
   admin-portal:
     build:
       context: .
       dockerfile: apps/admin-portal/Dockerfile
-    container_name: wapi-admin-portal
+    container_name: connectsphere-admin-portal
     ports:
       - "3100:3100"
     depends_on:
@@ -241,7 +241,7 @@ services:
       - PORT=3100
       - BACKEND_API_URL=http://api-gateway:5001
     networks:
-      - wapi-network
+      - connectsphere-network
 
   customer-portal:
     build:
@@ -251,7 +251,7 @@ services:
         BACKEND_API_URL: http://api-gateway:5001
         NEXT_PUBLIC_API_URL: /api
         NEXT_PUBLIC_SOCKET_URL: ""
-    container_name: wapi-customer-portal
+    container_name: connectsphere-customer-portal
     ports:
       - "3000:3000"
     depends_on:
@@ -260,10 +260,10 @@ services:
       - PORT=3000
       - BACKEND_API_URL=http://api-gateway:5001
     networks:
-      - wapi-network
+      - connectsphere-network
 
 networks:
-  wapi-network:
+  connectsphere-network:
     driver: bridge
 
 volumes:

@@ -67,7 +67,7 @@ const defaultDraft: WidgetConfig = {
   },
   attribution: {
     enabled: true,
-    customText: 'Powered by wApi',
+    customText: 'Powered by ConnectSphere',
   },
   usage: {
     sessionsThisMonth: 0,
@@ -130,7 +130,7 @@ export default function CloudWidgetHubPage() {
   const previewPlacement = getPreviewFrameClasses(safeConfig.position);
   const runtimeUrl = `${appOrigin || ''}/widget/runtime.js`;
   const snippet = safeConfig.widgetId
-    ? `<script src="${runtimeUrl}" data-wapi-id="${safeConfig.widgetId}" async></script>`
+    ? `<script src="${runtimeUrl}" data-connectsphere-id="${safeConfig.widgetId}" async></script>`
     : '';
 
   const saveMutation = useMutation({

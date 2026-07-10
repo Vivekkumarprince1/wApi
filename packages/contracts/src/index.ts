@@ -1,5 +1,5 @@
 /**
- * @wapi/contracts
+ * @connectsphere/contracts
  *
  * Shared types between the monolith (`server/`), the microservices
  * (`automation-service/`, `campaign-service/`, `billing-service/`), and

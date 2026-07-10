@@ -9,7 +9,7 @@ import {
   adminCan,
   type AdminRole,
   type AdminCapability,
-} from "@wapi/contracts";
+} from "@connectsphere/contracts";
 import { coreModels } from "./models";
 
 /**
@@ -20,7 +20,7 @@ import { coreModels } from "./models";
  * (super_admin, super_admin_support, super_admin_finance, super_admin_readonly)
  * may authenticate here; customer workspace roles are rejected at login.
  *
- * Role logic is delegated to @wapi/contracts (single source of truth) — this
+ * Role logic is delegated to @connectsphere/contracts (single source of truth) — this
  * module never re-implements role checks.
  */
 

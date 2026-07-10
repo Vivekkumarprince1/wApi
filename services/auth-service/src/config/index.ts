@@ -34,7 +34,7 @@ if (process.env.NODE_ENV === 'production') {
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3006', 10),
-  mongoUri: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/wapi',
+  mongoUri: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/connectsphere',
   jwtSecret: _jwtSecret,
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   
@@ -44,7 +44,7 @@ export const config = {
   internalServiceSecret: _internalServiceSecret,
 
   // OTP Pepper
-  otpPepper: process.env.OTP_PEPPER || 'wapi-default-otp-pepper-key',
+  otpPepper: process.env.OTP_PEPPER || 'connectsphere-default-otp-pepper-key',
 
   // Email Config
   smtpService: process.env.EMAIL_SERVICE || process.env.SMTP_SERVICE || '',

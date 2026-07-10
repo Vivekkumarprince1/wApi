@@ -1,4 +1,4 @@
-# wApi — Infrastructure Analysis
+# ConnectSphere — Infrastructure Analysis
 
 > Based strictly on what exists in the repo: process orchestration, `.env(.example)` files, and the infrastructure clients each service instantiates. Where an infrastructure capability is **absent**, that is stated as a finding, not assumed to exist elsewhere.
 
@@ -12,7 +12,7 @@
 | Orchestration (Kubernetes/Helm/Nomad) | ❌ **None** | no manifests/charts |
 | CI/CD | ❌ **None** | no `.github/workflows`, no other CI config |
 | Cloud IaC (Azure/Terraform/Pulumi) | ❌ **None** | no IaC files; no Azure config |
-| Process management | ⚠️ Dev-only | `wapi-runner.js` spawns 12 Node processes locally |
+| Process management | ⚠️ Dev-only | `connectsphere-runner.js` spawns 12 Node processes locally |
 | Service discovery | ⚠️ Static | hardcoded `localhost:PORT` env defaults (`api-gateway/src/index.ts:133-143`) |
 | MongoDB | ✅ Client only | Mongoose 8 / native driver; URIs via env; no provisioning |
 | Redis | ✅ Client only | ioredis; BullMQ; socket.io redis-adapter |
@@ -27,11 +27,11 @@
 
 ---
 
-## 2. Process Orchestration (`wapi-runner.js`)
+## 2. Process Orchestration (`connectsphere-runner.js`)
 
 The only orchestrator. It:
-- Defines 12 processes with name/dir/cmd/color (`wapi-runner.js:6-18`).
-- `spawn`s each in a **detached process group** (`detached:true`, `wapi-runner.js:51-56`) so the whole tree can be killed via `process.kill(-pid)` (`:129`) — required for clean port release on Ctrl-C.
+- Defines 12 processes with name/dir/cmd/color (`connectsphere-runner.js:6-18`).
+- `spawn`s each in a **detached process group** (`detached:true`, `connectsphere-runner.js:51-56`) so the whole tree can be killed via `process.kill(-pid)` (`:129`) — required for clean port release on Ctrl-C.
 - Demotes known-benign stderr lines (`warning`, `deprecation`, kafkajs warn, cloudinary missing, reserved schema pathname) to `[WARN]` (`:86-91`).
 - **Auto-restarts crashed children after 3s** (`:102-112`) — a crude supervisor with no backoff cap or crash-loop detection.
 - Interactive console: `status/restart/stop/start/log/logs/clear/exit` (`:182-316`).
@@ -44,7 +44,7 @@ This is appropriate for a single 8 GB dev box (the documented target — `CLAUDE
 
 - **Driver:** Mongoose 8 in all services except webhook-ingestor (native `mongodb`, `index.ts:5,29`).
 - **Connection:** each service opens its own pool; `bufferCommands` disabled in some (`websocket-gateway/src/index.ts:29`); admin-portal opens up to **4** pooled connections (core via `mongoose.connect`, others via `createConnection`, `maxPoolSize:5`, `db.ts:48-91`).
-- **DB names diverge by service default** (`wapi`, `wapi_billing`, `wa_campaigns`, `wapi_automation`, `wapi_bsp`) — see database-analysis §1.
+- **DB names diverge by service default** (`connectsphere`, `connectsphere_billing`, `wa_campaigns`, `connectsphere_automation`, `connectsphere_bsp`) — see database-analysis §1.
 - **No replica-set / sharding / backup config** in repo. No transactions used (saga pattern instead).
 - **Provisioning, HA, PITR backups, encryption-at-rest: undefined.**
 
@@ -68,7 +68,7 @@ Three distinct uses, all on the same Redis by default (`REDIS_URL || redis://loc
 ## 5. Kafka
 
 - **Client:** kafkajs everywhere; broker `KAFKA_BROKER`/`KAFKA_BROKERS` default `localhost:9092`.
-- **Topology:** 8 topics + per-topic DLQs (see message-flow §1). Consumer groups: `wapi-bsp-webhook-group`, `wapi-chat-service-group`, `wapi-websocket-gateway-group`, billing/campaign/audit groups.
+- **Topology:** 8 topics + per-topic DLQs (see message-flow §1). Consumer groups: `connectsphere-bsp-webhook-group`, `connectsphere-chat-service-group`, `connectsphere-websocket-gateway-group`, billing/campaign/audit groups.
 - **Critical behavior:** **non-production fails soft** — on connect error services set `simulatedMode=true` and continue without the bus (`webhook-ingestor:48-54`, `chat/kafkaService.ts:77-83`, `websocket/index.ts:349-351`, `provider-kafka-consumer.service.ts:91-97`). In production they `throw`.
 - **No schema registry, no partitioning strategy documented, no topic provisioning/IaC, no `fromBeginning` replay strategy** (`fromBeginning:false` everywhere).
 
@@ -113,7 +113,7 @@ Three distinct uses, all on the same Redis by default (`REDIS_URL || redis://loc
 
 ## 8. Observability
 
-- **Logging:** `morgan` (HTTP) + `console.log` + `winston` (some services). `@logtail/winston` is an **optional** peer in contracts — not guaranteed wired. The runner colorizes/prefixes stdout (`wapi-runner.js`).
+- **Logging:** `morgan` (HTTP) + `console.log` + `winston` (some services). `@logtail/winston` is an **optional** peer in contracts — not guaranteed wired. The runner colorizes/prefixes stdout (`connectsphere-runner.js`).
 - **Correlation:** gateway generates/propagates `x-correlation-id` (`index.ts:42-44`) and downstream calls forward it in places (`internal/v1/auth/verify-session` sends it — `index.ts:80`). But there is **no trace propagation** through Kafka or BullMQ.
 - **Health:** each service exposes `GET /health` (e.g. `api-gateway/src/index.ts:442`, `webhook-ingestor:251`); ingestor reports Kafka connectivity. No aggregated health/readiness, no `/metrics`.
 - **No metrics, no tracing, no dashboards, no alerting, no SLO definitions.**

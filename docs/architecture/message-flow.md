@@ -1,4 +1,4 @@
-# wApi — Message Flow Analysis
+# ConnectSphere — Message Flow Analysis
 
 > Traced end-to-end from source. Sequence diagrams use Mermaid. Every step cites the file/line that implements it. Two inbound paths exist and both are documented; the duplication is flagged.
 

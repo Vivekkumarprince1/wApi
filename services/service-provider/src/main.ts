@@ -21,7 +21,7 @@ async function bootstrap() {
   // NestJS generates the spec from controllers + class-validator DTOs. The
   // raw spec is served at /docs/openapi.json so it can be consumed by tooling.
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('wApi — BSP Service')
+    .setTitle('ConnectSphere — BSP Service')
     .setDescription(
       'Gupshup Business Service Provider integration: apps, onboarding, ' +
         'tokens, phones, templates, media, profiles, webhooks, and ESB flows.',

@@ -1,6 +1,6 @@
-# wApi — Target Enterprise Architecture (Future State)
+# ConnectSphere — Target Enterprise Architecture (Future State)
 
-> Designed as an evolution of the **existing** codebase, not a rewrite. The current event-driven messaging seam, `@wapi/contracts`, the BSP abstraction, and the separate admin realm are kept and hardened. New elements address the gaps surfaced in the current-state, infrastructure, and security analyses.
+> Designed as an evolution of the **existing** codebase, not a rewrite. The current event-driven messaging seam, `@connectsphere/contracts`, the BSP abstraction, and the separate admin realm are kept and hardened. New elements address the gaps surfaced in the current-state, infrastructure, and security analyses.
 
 **Target product scope:** Multi-tenant SaaS · WhatsApp Business API · Instagram Messaging · RCS · Omnichannel Inbox · Campaigns · Automation Builder · Template Management · Analytics · Billing · Team Management · Super-Admin Portal.
 
@@ -24,7 +24,7 @@ graph TB
       DEV[Integrator / Developer<br/>API + webhooks]
     end
 
-    WAPI((wApi Enterprise Platform))
+    ConnectSphere((ConnectSphere Enterprise Platform))
 
     subgraph External
       META[Meta Cloud API<br/>WhatsApp / Instagram]
@@ -36,21 +36,21 @@ graph TB
       CDN[Media CDN / Cloudinary]
     end
 
-    CU -->|HTTPS| WAPI
-    SA -->|HTTPS admin| WAPI
-    DEV -->|REST + webhooks| WAPI
+    CU -->|HTTPS| ConnectSphere
+    SA -->|HTTPS admin| ConnectSphere
+    DEV -->|REST + webhooks| ConnectSphere
     EU <-->|messages| META
     EU <-->|messages| RCSP
     META <-->|BSP| GS
-    WAPI <-->|send / templates / onboarding| GS
-    WAPI <-->|RCS send| RCSP
-    WAPI -->|payments| RZP
-    WAPI -->|OAuth| GAUTH
-    WAPI -->|notify| SMTP
-    WAPI -->|media| CDN
-    GS -->|webhooks| WAPI
-    RCSP -->|webhooks| WAPI
-    RZP -->|webhooks| WAPI
+    ConnectSphere <-->|send / templates / onboarding| GS
+    ConnectSphere <-->|RCS send| RCSP
+    ConnectSphere -->|payments| RZP
+    ConnectSphere -->|OAuth| GAUTH
+    ConnectSphere -->|notify| SMTP
+    ConnectSphere -->|media| CDN
+    GS -->|webhooks| ConnectSphere
+    RCSP -->|webhooks| ConnectSphere
+    RZP -->|webhooks| ConnectSphere
 ```
 
 ---
@@ -250,7 +250,7 @@ graph TB
     DLQ{{per-topic DLQ}} --> DLQDRAIN[DLQ Drain + Alert]
 ```
 
-**Envelope standard (new):** every event carries `{ eventId, eventType, eventVersion, occurredAt, workspaceId, correlationId, causationId, channel, payload }`; partition key = `workspaceId` for ordering; validated against a **schema registry** on consume. Extends today's `@wapi/contracts` shapes with version + envelope.
+**Envelope standard (new):** every event carries `{ eventId, eventType, eventVersion, occurredAt, workspaceId, correlationId, causationId, channel, payload }`; partition key = `workspaceId` for ordering; validated against a **schema registry** on consume. Extends today's `@connectsphere/contracts` shapes with version + envelope.
 
 ---
 
@@ -285,9 +285,9 @@ The empty `channels/insta` and `channels/rcs` dirs become real adapters implemen
 | Inbound pipeline | webhook→Kafka→normalize→conversation→realtime | collapse double ingress; add analytics tee |
 | Outbound | BSP dispatch + ProviderMessageDispatch record | make async via queue + retry + idempotency |
 | Campaign saga | budget reserve/settle pattern | distributed rate-limit; bulk contact read-model |
-| Contracts | `@wapi/contracts` central types | add event envelope + versioning + runtime validation |
+| Contracts | `@connectsphere/contracts` central types | add event envelope + versioning + runtime validation |
 | Auth | separate admin realm, RBAC permission maps | split auth/tenant/user; stateless JWKS verify |
 | Realtime | socket.io + Redis adapter | keep; remove DB lookups on fan-out |
 | Data | per-context intent | enforce DB-per-context; single writer; CDC read-models |
-| Infra | wapi-runner for dev | add containers + K8s + CI/CD + observability + secrets mgr |
+| Infra | connectsphere-runner for dev | add containers + K8s + CI/CD + observability + secrets mgr |
 | Channels | ProviderApp abstraction | implement Instagram + RCS adapters |

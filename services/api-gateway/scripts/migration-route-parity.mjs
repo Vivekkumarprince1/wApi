@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
-const backupRoot = path.resolve(repoRoot, '../wApi-backup/server/src');
+const backupRoot = path.resolve(repoRoot, '../ConnectSphere-backup/server/src');
 
 const OLD_ROUTE_DIR = path.join(backupRoot, 'routes');
 const OLD_INDEX = path.join(backupRoot, 'index.ts');

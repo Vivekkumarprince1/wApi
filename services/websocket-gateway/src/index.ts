@@ -8,6 +8,7 @@ const envSchema = z.object({
   PORT: z.string().optional(),
   MONGO_URI: z.string().optional(),
   MONGODB_URI: z.string().optional(),
+  MONGO_SERVER_SELECTION_TIMEOUT_MS: z.string().optional(),
   REDIS_URL: z.string().optional(),
   ALLOWED_ORIGINS: z.string().optional(),
   AUTH_SERVICE_URL: z.string().optional(),
@@ -89,13 +90,14 @@ const io = new SocketIOServer(httpServer, {
 // Database connection
 async function connectDb() {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/wapi';
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/connectsphere';
     mongoose.set('bufferCommands', false);
-    await mongoose.connect(mongoUri);
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: parseInt(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || '10000', 10),
+    });
     console.log(`[WebSocket Gateway] Connected to MongoDB`);
   } catch (err: any) {
     console.error(`[WebSocket Gateway] Database connection failed: ${err.message}`);
-    process.exit(1);
   }
 }
 
@@ -652,7 +654,11 @@ async function initEventBus() {
 }
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', service: 'wapi-websocket-gateway' });
+  res.json({
+    status: 'OK',
+    service: 'connectsphere-websocket-gateway',
+    mongoConnected: mongoose.connection.readyState === 1,
+  });
 });
 
 async function initRedisAdapter() {
@@ -671,12 +677,13 @@ async function initRedisAdapter() {
 }
 
 async function start() {
-  await connectDb();
-  await initRedisAdapter();
-  await initEventBus();
   httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`[WebSocket Gateway] Running at http://localhost:${PORT}`);
   });
+
+  await connectDb();
+  await initRedisAdapter();
+  await initEventBus();
 }
 
 start();

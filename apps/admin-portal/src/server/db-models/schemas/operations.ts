@@ -2,7 +2,7 @@ import type { Schema as SchemaType, Types } from "mongoose";
 import type { SchemaCtor } from "../types";
 
 /* Read-only schemas for the campaign (wa_campaigns) and automation
- * (wapi_automation) databases. Focused + strict:false. */
+ * (connectsphere_automation) databases. Focused + strict:false. */
 
 export interface ICampaign {
   workspace: Types.ObjectId;

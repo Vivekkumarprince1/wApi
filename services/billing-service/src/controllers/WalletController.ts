@@ -429,8 +429,8 @@ export class WalletController {
             </div>
             <div class="header">
                 <div class="company-details">
-                    <h1>wApi Platform</h1>
-                    <p>Tech Corp Ltd.<br>123 Tech Park, Innovation Hub<br>support@wapi.example.com</p>
+                    <h1>ConnectSphere Platform</h1>
+                    <p>Tech Corp Ltd.<br>123 Tech Park, Innovation Hub<br>support@connectsphere.example.com</p>
                 </div>
                 <div class="invoice-details">
                     <h2>Invoice</h2>

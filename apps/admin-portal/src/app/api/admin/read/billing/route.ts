@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Billing overview — direct read from wapi_billing (Rule #4).
+ * Billing overview — direct read from connectsphere_billing (Rule #4).
  * Returns subscription counts by status, wallet totals, recent transactions,
  * and the plan catalogue (from the core DB).
  */

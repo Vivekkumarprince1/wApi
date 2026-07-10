@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import type { AdminRole, AdminCapability } from "@wapi/contracts";
+import type { AdminRole, AdminCapability } from "@connectsphere/contracts";
 
 export interface AdminUser {
   userId: string;
@@ -20,7 +20,7 @@ interface AdminAuthState {
   can: (capability: AdminCapability) => boolean;
 }
 
-// Mirror of @wapi/contracts adminCan, evaluated client-side for UI gating only.
+// Mirror of @connectsphere/contracts adminCan, evaluated client-side for UI gating only.
 // The server re-checks every mutation — this is purely for hiding controls.
 const CAPS: Record<AdminRole, AdminCapability[]> = {
   super_admin: ["read", "workspaces", "billing", "operations", "system"],

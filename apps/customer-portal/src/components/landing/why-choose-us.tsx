@@ -5,7 +5,7 @@ import { ChevronRight, TrendingUp, Files, CircuitBoard, BarChart3, Headphones } 
 
 export default function WhyChooseUs({ isDark }: { isDark: boolean }) {
   const cardBg = isDark ? '#111' : '#fff';
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'wApi';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere';
 
   const reasons = [
     {

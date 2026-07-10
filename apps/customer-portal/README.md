@@ -1,4 +1,4 @@
-# wApi Premium Emerald
+# ConnectSphere Premium Emerald
 
 A modern Next.js platform for WhatsApp BSP management and automation.
 

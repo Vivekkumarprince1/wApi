@@ -1,4 +1,4 @@
-# wApi — Microservice Design (Target)
+# ConnectSphere — Microservice Design (Target)
 
 > Each service below maps to existing code where it already exists (cited) and notes what is **new** or **extracted**. APIs use the current `/api/v1` convention from `api-gateway/src/index.ts`. Events use the target envelope from future-state §6. "DB ownership" = the only service allowed to **write** those collections.
 
@@ -186,7 +186,7 @@
 | Resilience | Circuit breakers on provider calls; retries with backoff; bulkheads per provider |
 | Config | Secrets from Key Vault; fail-fast on missing; no hardcoded fallbacks |
 | Observability | OTel traces/metrics/logs with `correlationId`+`workspaceId`; consumer-lag + DLQ-depth SLOs |
-| Contracts | `@wapi/contracts` remains the single type source; gateway/ingestor/ws-gateway must depend on it (today they don't — current-state §3) |
+| Contracts | `@connectsphere/contracts` remains the single type source; gateway/ingestor/ws-gateway must depend on it (today they don't — current-state §3) |
 
 ---
 

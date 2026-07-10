@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import { logger, correlationIdMiddleware, getCorrelationId } from './lib/logger';
-import { mountSwaggerUI } from '@wapi/contracts';
+import { mountSwaggerUI } from '@connectsphere/contracts';
 import { openapiDocument } from './openapi';
 
 // Route Imports

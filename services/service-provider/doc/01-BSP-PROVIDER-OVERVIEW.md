@@ -25,7 +25,7 @@
 
 ## Executive Summary
 
-The **BSP Provider** is a critical infrastructure component within the WAPI ecosystem that manages Business Service Provider (BSP) lifecycle operations, specifically handling Gupshup integration for WhatsApp Business messaging. It serves as the abstraction layer between the internal WAPI platform and external BSP endpoints, enabling seamless multi-provider support.
+The **BSP Provider** is a critical infrastructure component within the ConnectSphere ecosystem that manages Business Service Provider (BSP) lifecycle operations, specifically handling Gupshup integration for WhatsApp Business messaging. It serves as the abstraction layer between the internal ConnectSphere platform and external BSP endpoints, enabling seamless multi-provider support.
 
 ### Key Metrics at a Glance
 
@@ -59,7 +59,7 @@ In a WhatsApp messaging platform, managing multiple BSPs is complex:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              WAPI Platform (Multi-BSP)                  │
+│              ConnectSphere Platform (Multi-BSP)                  │
 ├─────────────────────────────────────────────────────────┤
 │  Main Service  │ Campaign  │ Billing  │  BSP Service    │
 └────────────────┴───────────┴──────────┴─────────────────┘
@@ -760,7 +760,7 @@ The architecture is designed to support:
 ```bash
 # Required environment variables
 INTERNAL_SERVICE_SECRET=your-secret-key
-MONGODB_URI_BSP=mongodb://localhost:27017/wapi_bsp
+MONGODB_URI_BSP=mongodb://localhost:27017/connectsphere_bsp
 REDIS_URL=redis://127.0.0.1:6379
 GUPSHUP_PARTNER_TOKEN=your-gupshup-token
 GUPSHUP_WEBHOOK_SECRET=your-webhook-secret

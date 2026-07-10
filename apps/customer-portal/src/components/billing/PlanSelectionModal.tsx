@@ -75,7 +75,7 @@ export default function PlanSelectionModal({
           key: response.keyId,
           amount: response.amount,
           currency: response.currency,
-          name: "wApi Platform",
+          name: "ConnectSphere Platform",
           description: `Plan Upgrade: ${response.planName}`,
           order_id: response.orderId,
           handler: async (resp: any) => {

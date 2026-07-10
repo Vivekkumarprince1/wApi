@@ -1,10 +1,10 @@
 # Instagram Customer Onboarding
 
-This is the customer-facing flow for selling Instagram as a paid wApi add-on, similar to products that let a business connect Meta channels without handling API setup themselves.
+This is the customer-facing flow for selling Instagram as a paid ConnectSphere add-on, similar to products that let a business connect Meta channels without handling API setup themselves.
 
 ## Meta Setup
 
-Create or reuse one Meta app for wApi and configure:
+Create or reuse one Meta app for ConnectSphere and configure:
 
 - Instagram API setup with Instagram Login.
 - Business Login for Instagram.
@@ -27,7 +27,7 @@ Recommended webhook fields:
 messages,message_reactions,message_echoes,comments
 ```
 
-## wApi Environment
+## ConnectSphere Environment
 
 Set Meta provider credentials on `service-provider`:
 
@@ -51,14 +51,14 @@ BSP_SERVICE_URL=http://service-provider:3004
 
 ## Customer Flow
 
-1. Customer buys your Instagram plan/add-on in wApi billing.
+1. Customer buys your Instagram plan/add-on in ConnectSphere billing.
 2. Customer opens `Integrations -> Instagram Business`.
-3. wApi sends the customer to Meta Business Login for Instagram.
+3. ConnectSphere sends the customer to Meta Business Login for Instagram.
 4. Meta redirects back with an authorization code.
 5. `automation-service` sends the OAuth code to `service-provider`.
 6. `service-provider` exchanges the code for a short-lived token, exchanges that for a 60-day token, fetches the profile, and subscribes webhook fields.
 7. `automation-service` stores the returned long-lived token encrypted in the existing `Integration` model.
-8. wApi stores profile metadata and the provider webhook subscription result.
+8. ConnectSphere stores profile metadata and the provider webhook subscription result.
 9. The customer sees either `Ready` or `Needs webhook setup`.
 
 ## Important Behavior

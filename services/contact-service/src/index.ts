@@ -23,11 +23,11 @@ app.use(errorHandler);
 
 // Health check endpoints
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', service: 'wapi-contact-service' });
+  res.json({ status: 'OK', service: 'connectsphere-contact-service' });
 });
 
 app.get('/', (req, res) => {
-  res.json({ service: 'wapi-contact-service', healthy: true });
+  res.json({ service: 'connectsphere-contact-service', healthy: true });
 });
 
 async function start() {

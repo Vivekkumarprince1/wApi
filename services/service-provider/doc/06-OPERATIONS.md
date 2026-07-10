@@ -535,7 +535,7 @@ ls -la /backups/daily/
 # 2. Restore single collection
 mongorestore --uri "mongodb://user:pass@host/db" \
   --archive=/backups/daily/2026-05-19/dump.archive \
-  --nsInclude='wapi_bsp.bsp_apps'
+  --nsInclude='connectsphere_bsp.bsp_apps'
 
 # 3. Verify restoration
 db.bsp_apps.findOne({ appId: 'corrupted_app' })
@@ -556,12 +556,12 @@ mongorestore --uri "mongodb://localhost" \
 
 # 3. Verify data
 mongosh
-use wapi_bsp
+use connectsphere_bsp
 db.bsp_apps.count()
 
 # 4. Point service to new database
 kubectl set env deployment/bsp-service \
-  MONGODB_URI_BSP="mongodb://new-host:27017/wapi_bsp"
+  MONGODB_URI_BSP="mongodb://new-host:27017/connectsphere_bsp"
 
 # 5. Verify service connectivity
 curl http://bsp-service/health
@@ -652,7 +652,7 @@ kubectl describe nodes | grep -A 5 "Allocated resources"
 **MongoDB Sharding:**
 ```bash
 # Enable sharding on collection
-sh.shardCollection("wapi_bsp.bsp_apps", { "workspaceId": 1, "appId": 1 })
+sh.shardCollection("connectsphere_bsp.bsp_apps", { "workspaceId": 1, "appId": 1 })
 
 # Add more shards
 sh.addShard("shard1.example.com:27017")

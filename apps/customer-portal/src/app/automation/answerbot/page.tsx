@@ -350,7 +350,7 @@ export default function AnswerBotPage() {
                           <Textarea 
                             value={settings.systemPrompt || ''}
                             onChange={e => saveSettingsMutation.mutate({ systemPrompt: e.target.value })}
-                            placeholder="You are an expert sales consultant for wApi. Your tone is professional yet friendly. Only answer based on the knowledge provided..."
+                            placeholder="You are an expert sales consultant for ConnectSphere. Your tone is professional yet friendly. Only answer based on the knowledge provided..."
                             className="min-h-[200px] rounded-2xl bg-muted/20 border-none font-medium p-4 focus-visible:ring-primary/20"
                           />
                        </div>

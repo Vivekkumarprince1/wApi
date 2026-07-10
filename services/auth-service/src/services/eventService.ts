@@ -11,8 +11,8 @@
 
 import Redis from 'ioredis';
 import mongoose from 'mongoose';
-import type { AuditEventPayload } from '@wapi/contracts';
-import { EventTopics } from '@wapi/contracts';
+import type { AuditEventPayload } from '@connectsphere/contracts';
+import { EventTopics } from '@connectsphere/contracts';
 
 // ─── Producer ────────────────────────────────────────────────────────────────
 

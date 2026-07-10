@@ -326,7 +326,7 @@ export async function processParsedMessage(parsed: any) {
     if (isInbound) {
       try {
         workspaceDoc = await Conversation.db
-          .useDb('wapi')
+          .useDb('connectsphere')
           .collection('workspaces')
           .findOne(
             { _id: conversation.workspace },

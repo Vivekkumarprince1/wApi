@@ -305,7 +305,7 @@ export const facebookLogin = async (_req: express.Request, res: express.Response
     success: true,
     message: 'Facebook login mock callback successful',
     token: 'mock-fb-token',
-    user: { name: 'Facebook User', email: 'fb.user@local.wapi', role: 'owner' }
+    user: { name: 'Facebook User', email: 'fb.user@local.connectsphere', role: 'owner' }
   });
 };
 
@@ -335,7 +335,7 @@ export const requestPasswordReset = async (req: express.Request, res: express.Re
 
     await MailService.sendMail({
       to: user.email!,
-      subject: 'Reset your wApi password',
+      subject: 'Reset your ConnectSphere password',
       text: `Hello ${user.name || 'there'},\n\nClick here to reset your password:\n${resetUrl}\n\nThis link is valid for 1 hour.`,
       html: `<p>Hello ${user.name || 'there'},</p><p>Click <a href="${resetUrl}">here</a> to reset your password.</p><p>This link is valid for 1 hour.</p>`
     });

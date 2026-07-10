@@ -1,4 +1,4 @@
-# wApi — Security Review
+# ConnectSphere — Security Review
 
 > Findings derived from source inspection only. Severity uses CVSS-style qualitative bands (Critical/High/Medium/Low) considering exploitability × impact for a **multi-tenant SaaS handling customer PII and payments**. Each finding cites code and gives a concrete mitigation.
 
@@ -78,7 +78,7 @@ The platform has **several correct, deliberate controls** — gateway header san
 |---|---|---|---|---|
 | WH-1 | **Signature check bypassed when secret unset in non-production** | High | `webhook-ingestor/src/index.ts:115-117`, `webhooks.service.ts:146-148` | Acceptable in dev; ensure `NODE_ENV=production` + secret are guaranteed in every non-dev env; alert if bypass path taken |
 | WH-2 | HMAC compare uses plain `===` (not constant-time) | Medium | `webhook-ingestor/src/index.ts:128`, `webhooks.service.ts:152` | Use `crypto.timingSafeEqual` to prevent timing attacks |
-| WH-3 | Verify-token handshake default `'wapi-verify-token'` | Low | `webhook-ingestor/src/index.ts:139` | Require env; no default |
+| WH-3 | Verify-token handshake default `'connectsphere-verify-token'` | Low | `webhook-ingestor/src/index.ts:139` | Require env; no default |
 | WH-4 | **Positive:** instant-200 + idempotent dead-letter + replay; idempotency on `eventId`/`messageId` | — | `webhook-ingestor`, `webhooks.service.ts:57` | Keep |
 
 ---

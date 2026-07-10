@@ -26,7 +26,7 @@ export class TemplateSeedingService {
   }
 
   async seedBestPracticeTemplates(workspaceId: string) {
-    const mainDb = this.appModel.db.useDb('wapi');
+    const mainDb = this.appModel.db.useDb('connectsphere');
     
     let workspace: any = null;
     try {

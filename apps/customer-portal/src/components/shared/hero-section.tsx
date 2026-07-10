@@ -83,7 +83,7 @@ export default function HeroSection() {
             <MessageCircle className="w-6 h-6 text-white" />
           </div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-[#13C18D] to-[#0e8c6c] bg-clip-text text-transparent">
-            {process.env.NEXT_PUBLIC_APP_NAME || 'wApi'}
+            {process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere'}
           </h1>
         </div>
 

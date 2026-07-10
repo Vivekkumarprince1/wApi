@@ -7,8 +7,8 @@ const inter = { variable: "font-sans" };
 
 export const metadata: Metadata = {
   title: {
-    default: "wApi — Super Admin",
-    template: "%s · wApi Super Admin",
+    default: "ConnectSphere — Super Admin",
+    template: "%s · ConnectSphere Super Admin",
   },
   description: "Internal control plane: workspaces, users, billing, operations, monitoring.",
   // Admin portal must never be indexed.
