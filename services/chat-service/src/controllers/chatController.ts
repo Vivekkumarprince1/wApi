@@ -6,6 +6,7 @@ import { eventProducer, simulatedMode } from '../services/eventBus.js';
 import { isSessionWindowOpen, applyOutboundConversationUpdate } from '../services/conversation-lifecycle.js';
 import { NotificationService } from '../services/notification-service.js';
 import { logActivity } from '../services/activity-log.js';
+import { chargeTemplateMessage, refundTemplateCharge } from '../services/billing-client.js';
 
 async function fetchContactByIdForWorkspace(contactId: string, workspaceId: mongoose.Types.ObjectId) {
   const contactServiceUrl = process.env.CONTACT_SERVICE_URL || 'http://localhost:3007';
@@ -388,6 +389,10 @@ export const patchConversationStatusPublic = async (req: any, res: express.Respo
 };
 
 export const sendMessageInternal = async (req: express.Request, res: express.Response) => {
+  let templateCharge: Awaited<ReturnType<typeof chargeTemplateMessage>> | null = null;
+  let templateDispatchSucceeded = false;
+  let chargeWorkspaceId: string | null = null;
+
   try {
     const workspaceId = req.headers['x-workspace-id'];
     const { id } = req.params; // Conversation ID
@@ -498,6 +503,20 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
       const appId = workspaceDoc?.gupshupAppId || `mock_${workspaceId}`;
 
       const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
+
+      const isBillableTemplate = type === 'template' && template && !req.body.campaign;
+      if (isBillableTemplate) {
+        chargeWorkspaceId = conversation.workspace.toString();
+        templateCharge = await chargeTemplateMessage({
+          workspaceId: chargeWorkspaceId,
+          templateName: template.name,
+          templateCategory: template.category || template.templateCategory,
+          contactId: (conversation.contact as any)?._id?.toString?.(),
+          phone: conversation.contact.phone || (conversation.contact as any).phone || '',
+          source: 'internal',
+          idempotencyKey: req.header('x-idempotency-key') || req.header('idempotency-key') || undefined,
+        });
+      }
       
       console.log(`[Chat Service] Dispatching outbound to bsp-service: ${bspUrl}/internal/v1/bsp/messages/send`);
       
@@ -528,6 +547,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
       if (!dispatchResult?.success) {
         throw new Error('BSP Message Dispatch failed: ' + JSON.stringify(bspRes.data));
       }
+      templateDispatchSucceeded = true;
 
       chatMessage = await Message.create({
         workspace: conversation.workspace,
@@ -581,12 +601,19 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
 
     return res.status(200).json({ success: true, data: serializeMessage(chatMessage) });
   } catch (err: any) {
+    if (chargeWorkspaceId && templateCharge && !templateDispatchSucceeded) {
+      await refundTemplateCharge(chargeWorkspaceId, templateCharge, err.message);
+    }
     console.error('[sendMessageInternal] Error:', err.response?.data || err.message);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
 
 export const sendMessagePublic = async (req: any, res: express.Response) => {
+  let templateCharge: Awaited<ReturnType<typeof chargeTemplateMessage>> | null = null;
+  let templateDispatchSucceeded = false;
+  let chargeWorkspaceId: string | null = null;
+
   try {
     const workspaceId = req.workspace?._id;
     const { id } = req.params; // Conversation ID
@@ -705,6 +732,21 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
       const appId = workspaceDoc?.gupshupAppId || `mock_${workspaceId}`;
 
       const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
+
+      const isBillableTemplate = type === 'template' && template && !req.body.campaign;
+      if (isBillableTemplate) {
+        const billWorkspaceId = workspaceId.toString();
+        chargeWorkspaceId = billWorkspaceId;
+        templateCharge = await chargeTemplateMessage({
+          workspaceId: billWorkspaceId,
+          templateName: template.name,
+          templateCategory: template.category || template.templateCategory,
+          contactId: contactDoc._id?.toString?.(),
+          phone: contactDoc.phone || '',
+          source: 'inbox',
+          idempotencyKey: req.header?.('x-idempotency-key') || req.header?.('idempotency-key') || undefined,
+        });
+      }
       
       console.log(`[Chat Service] Dispatching outbound to bsp-service: ${bspUrl}/internal/v1/bsp/messages/send`);
       
@@ -735,6 +777,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
       if (!dispatchResult?.success) {
         throw new Error('BSP Message Dispatch failed: ' + JSON.stringify(bspRes.data));
       }
+      templateDispatchSucceeded = true;
 
       chatMessage = await Message.create({
         workspace: workspaceId,
@@ -793,6 +836,9 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
 
     return res.status(200).json({ success: true, data: serializeMessage(chatMessage) });
   } catch (err: any) {
+    if (chargeWorkspaceId && templateCharge && !templateDispatchSucceeded) {
+      await refundTemplateCharge(chargeWorkspaceId, templateCharge, err.message);
+    }
     console.error('[sendMessagePublic] Error:', err.response?.data || err.message);
     return res.status(500).json({ success: false, message: err.message });
   }

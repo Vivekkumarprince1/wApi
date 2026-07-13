@@ -1,6 +1,6 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
 import { Response } from 'express';
-import { formatErrorResponse, ApiError } from '@connectsphere/contracts';
+import { formatErrorResponse, ApiError } from '@wapi/contracts';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {

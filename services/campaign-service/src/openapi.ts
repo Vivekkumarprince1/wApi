@@ -6,7 +6,7 @@
  */
 
 import { OpenAPIRegistry, OpenApiGeneratorV3 } from '@asteasolutions/zod-to-openapi';
-import { buildOpenApiDocument } from '@connectsphere/contracts';
+import { buildOpenApiDocument } from '@wapi/contracts';
 
 export const registry = new OpenAPIRegistry();
 
@@ -15,7 +15,7 @@ const generated = generator.generateComponents() as Record<string, any>;
 
 export const openapiDocument = buildOpenApiDocument({
   info: {
-    title: 'ConnectSphere — Campaign Service',
+    title: 'wApi — Campaign Service',
     version: '1.0.0',
     description:
       'Broadcast & template messaging management. Handles campaign creation, ' +

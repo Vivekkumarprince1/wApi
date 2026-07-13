@@ -1,4 +1,5 @@
 import "server-only";
+import { config } from "@/config/env";
 
 /**
  * Registry of platform services for the Monitoring Center. URLs are overridable
@@ -18,15 +19,7 @@ export interface ServiceDef {
   tier: "edge" | "backend" | "frontend";
 }
 
-const firstEnv = (...names: string[]): string | undefined => {
-  for (const name of names) {
-    const value = process.env[name]?.trim();
-    if (value) return value.replace(/\/+$/, "");
-  }
-  return undefined;
-};
-
-const gatewayUrl = firstEnv("GATEWAY_URL", "API_GATEWAY_URL") || "http://localhost:5001";
+const gatewayUrl = config.gatewayUrl;
 
 const throughGateway = (
   id: string,
@@ -47,7 +40,9 @@ const directOrGateway = (
   healthService: string,
   envNames: string[]
 ): ServiceDef => {
-  const directUrl = firstEnv(...envNames);
+  const directUrl = envNames
+    .map((name) => serviceUrlFromEnvName(name))
+    .find(Boolean);
   if (directUrl) {
     return { id, name, baseUrl: directUrl, healthPath: "/health", tier: "backend" };
   }
@@ -68,8 +63,24 @@ export const SERVICES: ServiceDef[] = [
   {
     id: "customer-portal",
     name: "Customer Portal (frontend)",
-    baseUrl: firstEnv("CUSTOMER_PORTAL_HEALTH_URL", "CUSTOMER_PORTAL_INTERNAL_URL", "CUSTOMER_PORTAL_URL") || "http://localhost:3000",
-    healthPath: "/health",
+    baseUrl: config.services.customerPortal,
+    healthPath: "/",
     tier: "frontend",
   },
 ];
+
+function serviceUrlFromEnvName(name: string): string | undefined {
+  const urls: Record<string, string | undefined> = {
+    AUTH_SERVICE_URL: config.services.auth,
+    CHAT_SERVICE_URL: config.services.chat,
+    CONTACT_SERVICE_URL: config.services.contact,
+    BILLING_SERVICE_URL: config.services.billing,
+    CAMPAIGN_SERVICE_URL: config.services.campaign,
+    AUTOMATION_SERVICE_URL: config.services.automation,
+    SERVICE_PROVIDER_URL: config.services.serviceProvider,
+    BSP_SERVICE_URL: config.services.serviceProvider,
+    WEBHOOK_INGESTOR_URL: config.services.webhookIngestor,
+    WEBSOCKET_URL: config.services.websocket,
+  };
+  return urls[name];
+}

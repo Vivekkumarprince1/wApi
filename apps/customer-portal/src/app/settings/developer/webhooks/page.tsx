@@ -250,7 +250,7 @@ export default function WebhooksPage() {
                      <h1 className="text-3xl font-black tracking-tight uppercase">Outbound Webhooks</h1>
                   </div>
                   <p className="text-muted-foreground flex items-center gap-2 font-medium">
-                     Send real-time auth, OTP, template, and delivery events from ConnectSphere to your external apps.
+                     Send real-time auth, OTP, template, and delivery events from wApi to your external apps.
                   </p>
                </div>
                <div className="flex flex-wrap gap-2">
@@ -285,7 +285,7 @@ export default function WebhooksPage() {
                      <DialogContent className="sm:max-w-[500px] border-none bg-background/80 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl p-0 overflow-hidden">
                         <DialogHeader className="p-10 pb-4">
                            <DialogTitle className="text-2xl font-black uppercase tracking-tight">Add Webhook</DialogTitle>
-                           <p className="text-sm text-muted-foreground font-medium">Configure where ConnectSphere should deliver outbound developer events.</p>
+                           <p className="text-sm text-muted-foreground font-medium">Configure where wApi should deliver outbound developer events.</p>
                         </DialogHeader>
                         <div className="p-10 pt-0 space-y-8">
 
@@ -307,7 +307,7 @@ export default function WebhooksPage() {
                                     value={endpointUrl}
                                     onChange={(event) => setEndpointUrl(event.target.value)}
                                     className="h-11 rounded-xl border-border/50 bg-accent/10 font-mono text-xs"
-                                    placeholder="https://api.yourapp.com/connectsphere/events"
+                                    placeholder="https://api.yourapp.com/wapi/events"
                                  />
                                  <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tight">
                                     HTTPS is required for production destinations.
@@ -518,7 +518,7 @@ export default function WebhooksPage() {
                         <CheckCircle2 className="h-6 w-6" /> Security & Signing
                      </h3>
                      <p className="text-sm font-bold opacity-90 leading-relaxed mb-6">
-                        Verify outbound deliveries from ConnectSphere using payload signing. Each request includes an <code>x-connectsphere-signature</code> HMAC SHA256 header.
+                        Verify outbound deliveries from wApi using payload signing. Each request includes an <code>x-wapi-signature</code> HMAC SHA256 header.
                      </p>
                      <Button
                         variant="secondary"
@@ -582,7 +582,7 @@ export default function WebhooksPage() {
                                           <div className="flex items-center gap-2">
                                              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-none text-[8px] font-black uppercase tracking-widest px-2">ACTIVE</Badge>
                                              <span className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                                                <ActivityIcon className="h-3 w-3" /> ConnectSphere will send outbound events
+                                                <ActivityIcon className="h-3 w-3" /> wApi will send outbound events
                                              </span>
                                           </div>
                                        </div>

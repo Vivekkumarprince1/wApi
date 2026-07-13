@@ -1,0 +1,15 @@
+{
+  "cookies": [
+    {
+      "name": "career_session",
+      "value": "eyJ1c2VySWQiOiJhZG1pbl9hcGFybmEiLCJleHAiOjE3ODM4MzgwMzd9.1SZv9igAysGZhmXAoL8emdAFY5a2ILk_ss7TSWaU2tA",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1783838037,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Strict"
+    }
+  ],
+  "origins": []
+}

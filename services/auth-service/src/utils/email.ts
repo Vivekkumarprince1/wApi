@@ -33,7 +33,7 @@ export const getMailTransporter = async () => {
 
 export const sendSignupOtpEmail = async (email: string, name: string, otp: string) => {
   const transporter = await getMailTransporter();
-  const from = config.smtpFrom || config.smtpUser || 'no-reply@local.connectsphere';
+  const from = config.smtpFrom || config.smtpUser || 'no-reply@local.wapi';
   const ttlLabel = `${config.signupOtpTtlMinutes} minute${config.signupOtpTtlMinutes === 1 ? '' : 's'}`;
   await transporter.sendMail({
     from,

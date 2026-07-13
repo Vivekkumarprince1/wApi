@@ -1,14 +1,14 @@
 (function () {
   var script = document.currentScript;
-  if (!script || script.dataset.connectsphereMounted === 'true') return;
-  script.dataset.connectsphereMounted = 'true';
+  if (!script || script.dataset.wapiMounted === 'true') return;
+  script.dataset.wapiMounted = 'true';
 
-  var widgetId = script.getAttribute('data-connectsphere-id') || script.getAttribute('data-id');
+  var widgetId = script.getAttribute('data-wapi-id') || script.getAttribute('data-id');
   if (!widgetId) return;
 
   var scriptUrl = new URL(script.src, window.location.href);
   var origin = script.getAttribute('data-api-origin') || scriptUrl.origin;
-  var rootId = 'connectsphere-widget-root-' + widgetId.replace(/[^a-zA-Z0-9_-]/g, '');
+  var rootId = 'wapi-widget-root-' + widgetId.replace(/[^a-zA-Z0-9_-]/g, '');
 
   function postEvent(type) {
     try {

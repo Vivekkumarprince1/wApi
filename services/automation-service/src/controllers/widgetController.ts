@@ -10,7 +10,7 @@ function normalizePhoneNumber(phone: unknown) {
 }
 
 function buildWidgetId(workspaceId: unknown) {
-  return `connectsphere_${String(workspaceId)}`;
+  return `wapi_${String(workspaceId)}`;
 }
 
 function toPublicConfig(config: any, workspace: any) {
@@ -44,7 +44,7 @@ function toPublicConfig(config: any, workspace: any) {
     },
     attribution: {
       enabled: config?.attribution?.enabled ?? true,
-      customText: config?.attribution?.customText || 'Powered by ConnectSphere',
+      customText: config?.attribution?.customText || 'Powered by wApi',
     },
     usage: config?.usage || {
       sessionsThisMonth: 0,
@@ -175,9 +175,9 @@ export const widgetController = {
       const scriptUrl = process.env.WIDGET_SCRIPT_URL || '/widget/runtime.js';
       const widgetId = buildWidgetId(workspaceId);
       
-      const embedCode = `<!-- ConnectSphere Widget Start -->
-<script src="${scriptUrl}" data-connectsphere-id="${widgetId}" async></script>
-<!-- ConnectSphere Widget End -->`;
+      const embedCode = `<!-- WApi Widget Start -->
+<script src="${scriptUrl}" data-wapi-id="${widgetId}" async></script>
+<!-- WApi Widget End -->`;
 
       res.json({
         success: true,
@@ -198,7 +198,7 @@ export const widgetController = {
       const widgetId = String(req.params.widgetId || '');
       if (!widgetId) return res.status(400).json({ success: false, message: 'Widget id is required' });
 
-      const workspaceId = widgetId.startsWith('connectsphere_') ? widgetId.replace(/^connectsphere_/, '') : widgetId;
+      const workspaceId = widgetId.startsWith('wapi_') ? widgetId.replace(/^wapi_/, '') : widgetId;
       const query = mongoose.Types.ObjectId.isValid(workspaceId)
         ? { $or: [{ widgetId }, { workspace: new mongoose.Types.ObjectId(workspaceId) }] }
         : { widgetId };
@@ -228,7 +228,7 @@ export const widgetController = {
         return res.status(400).json({ success: false, message: 'Invalid widget event' });
       }
 
-      const workspaceId = widgetId.startsWith('connectsphere_') ? widgetId.replace(/^connectsphere_/, '') : widgetId;
+      const workspaceId = widgetId.startsWith('wapi_') ? widgetId.replace(/^wapi_/, '') : widgetId;
       const query = mongoose.Types.ObjectId.isValid(workspaceId)
         ? { $or: [{ widgetId }, { workspace: new mongoose.Types.ObjectId(workspaceId) }] }
         : { widgetId };

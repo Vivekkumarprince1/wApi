@@ -47,7 +47,7 @@ export const getGoogleUser = async (code: string, redirectUri?: string) => {
     const digest = crypto.createHash('sha1').update(String(code)).digest('hex').slice(0, 12);
     return {
       id: `mock-google-id-${digest}`,
-      email: `google.${digest}@local.connectsphere`,
+      email: `google.${digest}@local.wapi`,
       name: `Google User ${digest.slice(0, 4)}`,
       picture: `https://avatar.vercel.sh/google-${digest}`
     };

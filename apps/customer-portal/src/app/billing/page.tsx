@@ -26,11 +26,6 @@ export default function BillingPage() {
   const [isRechargeOpen, setIsRechargeOpen] = React.useState(false);
   const [isPlanSelectionOpen, setIsPlanSelectionOpen] = React.useState(false);
   const [isAddingPaymentMethod, setIsAddingPaymentMethod] = React.useState(false);
-  const [currentTime, setCurrentTime] = React.useState<number | null>(null);
-
-  React.useEffect(() => {
-    setCurrentTime(Date.now());
-  }, []);
 
   if (isLoading) return <FlashLoader />;
 
@@ -47,9 +42,8 @@ export default function BillingPage() {
   // Helper to calculate days remaining until next billing event
   const getDaysRemaining = () => {
     if (!subscription.billingPivotDate) return 30; // Default fallback
-    if (currentTime === null) return 30;
     const pivot = new Date(subscription.billingPivotDate);
-    const diff = pivot.getTime() - currentTime;
+    const diff = pivot.getTime() - Date.now();
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
 
@@ -64,7 +58,7 @@ export default function BillingPage() {
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
-        name: "ConnectSphere Platform",
+        name: "wApi Platform",
         description: "Verify & Save Payment Method",
         order_id: orderData.orderId,
         handler: async function (response: any) {

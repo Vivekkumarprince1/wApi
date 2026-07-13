@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
-        appName: process.env.NEXT_PUBLIC_APP_NAME || "ConnectSphere",
+        appName: process.env.NEXT_PUBLIC_APP_NAME || "wApi",
         maintenanceMode: (s as Record<string, unknown>).maintenanceMode || false,
         maintenanceMessage: (s as Record<string, unknown>).maintenanceMessage || "",
         allowNewSignups: (s as Record<string, unknown>).allowNewSignups !== false,

@@ -252,7 +252,7 @@ curl http://localhost:3004/ready
 ### Database Troubleshooting
 ```bash
 # MongoDB shell
-mongosh "mongodb://localhost:27017/connectsphere_bsp"
+mongosh "mongodb://localhost:27017/wapi_bsp"
 
 # Test connection
 npm run test:db-connection
@@ -302,7 +302,7 @@ kubectl logs deployment/bsp-service | grep "message.*failed"
 ```bash
 # Required
 INTERNAL_SERVICE_SECRET=secret-key
-MONGODB_URI_BSP=mongodb://localhost:27017/connectsphere_bsp
+MONGODB_URI_BSP=mongodb://localhost:27017/wapi_bsp
 REDIS_URL=redis://localhost:6379
 
 # Optional
@@ -437,16 +437,16 @@ kubectl exec deployment/bsp-service -- env | grep SECRET
 
 ```bash
 # Full backup
-mongodump --uri "mongodb://localhost:27017/connectsphere_bsp" \
+mongodump --uri "mongodb://localhost:27017/wapi_bsp" \
   --out /backups/$(date +%Y-%m-%d)
 
 # Backup specific collection
-mongodump --uri "mongodb://localhost:27017/connectsphere_bsp" \
+mongodump --uri "mongodb://localhost:27017/wapi_bsp" \
   --collection bsp_apps \
   --out /backups/apps-$(date +%Y-%m-%d)
 
 # Restore backup
-mongorestore --uri "mongodb://localhost:27017/connectsphere_bsp" \
+mongorestore --uri "mongodb://localhost:27017/wapi_bsp" \
   /backups/2026-05-20
 
 # List backups
@@ -610,10 +610,10 @@ Status Page:          https://status.your-domain.com
 
 ```bash
 # Alias for common commands
-alias bsp-dev='cd ~/devlopment/connectsphere/bsp-service && npm run dev'
-alias bsp-test='cd ~/devlopment/connectsphere/bsp-service && npm run test'
+alias bsp-dev='cd ~/devlopment/wApi/bsp-service && npm run dev'
+alias bsp-test='cd ~/devlopment/wApi/bsp-service && npm run test'
 alias bsp-logs='docker logs -f bsp-service'
-alias bsp-db='mongosh "mongodb://localhost:27017/connectsphere_bsp"'
+alias bsp-db='mongosh "mongodb://localhost:27017/wapi_bsp"'
 
 # Quick health check
 alias bsp-health='curl -s http://localhost:3004/health/deep | jq'

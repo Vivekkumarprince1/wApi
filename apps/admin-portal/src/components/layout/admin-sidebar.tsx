@@ -19,7 +19,7 @@ import {
   Smartphone,
   GitCompareArrows,
 } from "lucide-react";
-import type { AdminCapability } from "@connectsphere/contracts";
+import type { AdminCapability } from "@wapi/contracts";
 import { cn } from "@/lib/utils";
 import { useAdminAuth } from "@/store/admin-auth-store";
 
@@ -86,28 +86,40 @@ export function AdminSidebar() {
     ...g,
     items: g.items.filter((i) => can(i.cap)),
   })).filter((g) => g.items.length > 0);
+  const initials = (user?.name || user?.email || "?").charAt(0).toUpperCase();
 
   return (
-    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-border bg-sidebar">
-      {/* Brand */}
-      <div className="flex h-16 items-center gap-2.5 border-b border-border px-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-          <ShieldCheck className="h-4.5 w-4.5 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold leading-tight">ConnectSphere</p>
-          <p className="truncate text-[11px] leading-tight text-muted-foreground">Super Admin</p>
+    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border/70 bg-sidebar/95 shadow-[1px_0_0_rgba(255,255,255,0.35)_inset] backdrop-blur-xl">
+      <div className="border-b border-sidebar-border/70 p-4">
+        <Link href="/" className="group flex items-center gap-2.5">
+          <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-105">
+            <ShieldCheck className="size-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-lg font-bold leading-tight tracking-tight">ConnectSphere</p>
+            <p className="truncate text-[10px] font-black uppercase leading-tight tracking-widest text-primary">
+              Super Admin
+            </p>
+          </div>
+        </Link>
+        <div className="mt-4 rounded-xl border border-sidebar-border/70 bg-background/60 p-3 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Control Plane</p>
+              <p className="mt-0.5 text-sm font-semibold leading-tight">Platform operations</p>
+            </div>
+            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.75)]" />
+          </div>
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 py-3">
+      <nav className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
         {visibleGroups.map((group) => (
-          <div key={group.label} className="mb-4 last:mb-0">
-            <p className="px-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+          <div key={group.label} className="mb-5 last:mb-0">
+            <p className="px-2.5 pb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
               {group.label}
             </p>
-            <div className="space-y-0.5">
+            <div className="space-y-1">
               {group.items.map((item) => {
                 const active = isActive(pathname, item.href);
                 const Icon = item.icon;
@@ -118,17 +130,24 @@ export function AdminSidebar() {
                     title={item.label}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "group relative flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+                      "group relative flex h-11 items-center gap-2.5 rounded-xl px-3 text-sm transition-all duration-300",
                       active
-                        ? "bg-primary/10 font-medium text-primary"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                        ? "bg-primary/10 font-bold text-primary shadow-sm"
+                        : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                     )}
                   >
                     {active && (
-                      <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-primary" aria-hidden />
+                      <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary" aria-hidden />
                     )}
-                    <Icon className={cn("h-4 w-4 shrink-0", active ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                    <span className="truncate">{item.label}</span>
+                    <span
+                      className={cn(
+                        "flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                        active ? "bg-primary/10 text-primary" : "bg-transparent text-muted-foreground group-hover:bg-background/70 group-hover:text-foreground"
+                      )}
+                    >
+                      <Icon className="size-4" />
+                    </span>
+                    <span className="truncate tracking-tight">{item.label}</span>
                   </Link>
                 );
               })}
@@ -137,26 +156,27 @@ export function AdminSidebar() {
         ))}
       </nav>
 
-      {/* User footer */}
-      <div className="shrink-0 border-t border-border p-3">
-        <div className="flex items-center gap-2.5 px-1 pb-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold uppercase text-primary">
-            {(user?.name || user?.email || "?").charAt(0)}
+      <div className="shrink-0 border-t border-sidebar-border/70 p-3">
+        <div className="rounded-xl border border-sidebar-border/70 bg-background/60 p-2 shadow-sm">
+          <div className="flex items-center gap-2.5 px-1 pb-2">
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold uppercase text-primary ring-1 ring-primary/15">
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold" title={user?.name || user?.email}>
+                {user?.name || user?.email}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">{formatRole(user?.role)}</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium" title={user?.name || user?.email}>
-              {user?.name || user?.email}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">{formatRole(user?.role)}</p>
-          </div>
+          <button
+            onClick={() => logout()}
+            className="flex h-9 w-full items-center justify-center gap-2 rounded-lg px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <LogOut className="size-4" />
+            Sign out
+          </button>
         </div>
-        <button
-          onClick={() => logout()}
-          className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </button>
       </div>
     </aside>
   );

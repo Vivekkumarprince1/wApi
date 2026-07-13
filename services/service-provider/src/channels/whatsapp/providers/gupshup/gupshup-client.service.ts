@@ -685,7 +685,7 @@ export class GupshupClientService {
       hash = ((hash << 5) - hash) + combined.charCodeAt(i);
       hash |= 0;
     }
-    return `CONNECTSPHERE-V3-${Math.abs(hash).toString(36).toUpperCase()}`;
+    return `WAPI-V3-${Math.abs(hash).toString(36).toUpperCase()}`;
   }
 
   private generateNonceTag(appId: string, url: string): string {

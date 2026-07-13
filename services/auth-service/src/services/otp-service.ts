@@ -53,7 +53,7 @@ function generateOtp(): string {
 }
 
 async function sendEmailOtp(identifier: string, otp: string, purpose: OtpPurpose) {
-  const subject = purpose === 'signup_email' ? 'Verify your ConnectSphere account' : 'Your ConnectSphere verification code';
+  const subject = purpose === 'signup_email' ? 'Verify your wApi account' : 'Your wApi verification code';
   const text = `Your verification code is ${otp}. It expires in 5 minutes.`;
   const result = await MailService.sendMail({
     to: identifier,

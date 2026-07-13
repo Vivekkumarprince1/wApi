@@ -23,9 +23,11 @@ export function AdminShell({
   }, [initialUser]);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className="admin-surface flex h-screen overflow-hidden bg-background text-foreground">
       <AdminSidebar />
-      <main className="relative flex-1 overflow-y-auto overflow-x-hidden">{children}</main>
+      <main id="main" className="relative flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="min-h-full">{children}</div>
+      </main>
     </div>
   );
 }

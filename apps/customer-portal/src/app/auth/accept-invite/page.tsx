@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -38,18 +38,33 @@ function AcceptInviteContent() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  const checkAuth = useCallback(async () => {
+  useEffect(() => {
+    if (token && email) {
+      setError(null);
+      verifyInvite();
+      checkAuth();
+    }
+    // If we have searchParams but NO token/email, then it's a real error
+    else if (searchParams.size > 0 && (!token || !email)) {
+      setIsVerifying(false);
+      setCheckingAuth(false);
+    }
+  }, [token, email, searchParams]);
+
+  const checkAuth = async () => {
     try {
       const response = await getCurrentUser() as any;
       setCurrentUser(response?.success && response?.user ? response.user : (response?.user || response?.data || null));
-    } catch {
+    } catch (err) {
       setCurrentUser(null);
     } finally {
       setCheckingAuth(false);
     }
-  }, []);
+  };
 
-  const verifyInvite = useCallback(async () => {
+
+
+  const verifyInvite = async () => {
     console.log(`[Verify] Sending request for token: ${token}, email: ${email}`);
     try {
       const res = await getInvitation(token || '', email || '') as any;
@@ -74,20 +89,7 @@ function AcceptInviteContent() {
     } finally {
       setIsVerifying(false);
     }
-  }, [email, router, token]);
-
-  useEffect(() => {
-    if (token && email) {
-      setError(null);
-      verifyInvite();
-      checkAuth();
-    }
-    // If we have searchParams but NO token/email, then it's a real error
-    else if (searchParams.size > 0 && (!token || !email)) {
-      setIsVerifying(false);
-      setCheckingAuth(false);
-    }
-  }, [token, email, searchParams, verifyInvite, checkAuth]);
+  };
 
 
   const handleLoginRedirect = () => {

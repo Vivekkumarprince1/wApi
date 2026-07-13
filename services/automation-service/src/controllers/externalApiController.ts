@@ -203,7 +203,7 @@ export const externalApiController = {
       const includeOtpButton = req.body?.includeOtpButton === true || (req.body?.includeOtpButton !== false && templateHasButton(template));
       const components = buildOtpComponents(req.body?.bodyVariables || req.body?.variables, otp, includeOtpButton);
 
-      const result = await WabaService.sendTemplateMessage(workspaceId, phone, templateName, languageCode, components);
+      const result = await WabaService.sendTemplateMessage(workspaceId, phone, templateName, languageCode, components, template.category);
       const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
 
       await DeveloperOtpChallenge.updateMany(
@@ -366,7 +366,7 @@ export const externalApiController = {
       }
 
       const components = buildTemplateComponents(req.body || {}, template);
-      const result = await WabaService.sendTemplateMessage(workspaceId, phone, templateName, languageCode, components);
+      const result = await WabaService.sendTemplateMessage(workspaceId, phone, templateName, languageCode, components, template.category);
 
       void emitDeveloperEvent(workspaceId, 'auth.template.sent', {
         phone,

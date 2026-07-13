@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 export default function GetStartedWays({ isDark }: { isDark: boolean }) {
   const router = useRouter();
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'wApi';
 
   const cards = [
     {

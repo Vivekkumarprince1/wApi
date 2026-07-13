@@ -21,26 +21,26 @@ export function PageHeader({
   const crumb = sectionLabel(pathname);
 
   return (
-    <div className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
-      <div className="flex items-center justify-between gap-4 px-6 py-3 min-h-16">
+    <div className="sticky top-0 z-20 border-b border-border/70 bg-background/85 backdrop-blur-xl supports-[backdrop-filter]:bg-background/70">
+      <div className="flex min-h-16 items-center justify-between gap-4 px-5 py-3 sm:px-6 lg:px-8">
         <div className="min-w-0">
-          <nav className="flex items-center gap-1.5 text-xs text-muted-foreground" aria-label="Breadcrumb">
-            <span>Super Admin</span>
+          <nav className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground" aria-label="Breadcrumb">
+            <span>ConnectSphere</span>
             {crumb ? (
               <>
                 <span className="text-muted-foreground/40">/</span>
-                <span className="text-foreground/70">{crumb}</span>
+                <span className="text-primary">{crumb}</span>
               </>
             ) : null}
           </nav>
-          <h1 className="truncate text-lg font-semibold tracking-tight">{title}</h1>
+          <h1 className="mt-0.5 truncate text-xl font-semibold tracking-tight">{title}</h1>
           {description ? (
             <p className="truncate text-sm text-muted-foreground">{description}</p>
           ) : null}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {actions}
-          <div className="h-5 w-px bg-border" aria-hidden />
+          <div className="h-6 w-px bg-border" aria-hidden />
           <ThemeToggle />
         </div>
       </div>

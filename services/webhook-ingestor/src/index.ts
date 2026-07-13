@@ -1,60 +1,24 @@
-import 'dotenv/config';
-import { z } from 'zod';
-
-const envSchema = z.object({
-  WEBHOOK_SECRET: z.string({
-    required_error: 'WEBHOOK_SECRET is required'
-  }).min(1, 'WEBHOOK_SECRET cannot be empty'),
-  INTERNAL_SERVICE_SECRET: z.string({
-    required_error: 'INTERNAL_SERVICE_SECRET is required'
-  }).min(1, 'INTERNAL_SERVICE_SECRET cannot be empty'),
-  WEBHOOK_VERIFY_TOKEN: z.string().optional(),
-  VERIFY_TOKEN: z.string().optional(),
-  PORT: z.string().optional(),
-  MONGO_URI: z.string().optional(),
-  MONGODB_URI: z.string().optional(),
-  REQUIRE_WEBHOOK_SIGNATURE: z.string().optional(),
-  GUPSHUP_REQUIRE_WEBHOOK_SIGNATURE: z.string().optional(),
-}).refine(data => data.WEBHOOK_VERIFY_TOKEN || data.VERIFY_TOKEN, {
-  message: 'Either WEBHOOK_VERIFY_TOKEN or VERIFY_TOKEN must be provided',
-  path: ['WEBHOOK_VERIFY_TOKEN']
-});
-
-const envParseResult = envSchema.safeParse(process.env);
-if (!envParseResult.success) {
-  console.error('❌ Environment validation failed for webhook-ingestor:');
-  console.error(JSON.stringify(envParseResult.error.format(), null, 2));
-  process.exit(1);
-}
-
-if (process.env.NODE_ENV === 'production') {
-  if (process.env.INTERNAL_SERVICE_SECRET === 'dev-internal-service-secret-change-me') {
-    throw new Error('FATAL: A secure, non-default INTERNAL_SERVICE_SECRET environment variable is required in production.');
-  }
-}
-
 import fastify from 'fastify';
 import crypto from 'crypto';
 import Redis from 'ioredis';
 import { MongoClient } from 'mongodb';
+import { config } from './config/env.js';
 
 const server = fastify({
-  logger: process.env.NODE_ENV !== 'production',
+  logger: config.env !== 'production',
   // Ensure we capture the raw body as a string for precise HMAC validation
   bodyLimit: 1048576, // 1MB
 });
 
-const PORT = parseInt(process.env.PORT || '3013', 10);
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET!;
-const REQUIRE_WEBHOOK_SIGNATURE =
-  process.env.REQUIRE_WEBHOOK_SIGNATURE === 'true' ||
-  process.env.GUPSHUP_REQUIRE_WEBHOOK_SIGNATURE === 'true';
-const REDIS_URL = process.env.REDIS_URL || '';
-const REDIS_TOPIC = 'raw-webhook-events';
-const INTERNAL_SECRET = process.env.INTERNAL_SERVICE_SECRET!;
-const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/connectsphere';
-const DEAD_LETTER_COLLECTION = 'webhook_dead_letters';
+const PORT = config.port;
+const IS_PRODUCTION = config.isProduction;
+const WEBHOOK_SECRET = config.webhookSecret;
+const REQUIRE_WEBHOOK_SIGNATURE = config.requireWebhookSignature;
+const REDIS_URL = config.redisUrl;
+const REDIS_TOPIC = config.redisTopic;
+const INTERNAL_SECRET = config.internalServiceSecret;
+const MONGO_URI = config.mongoUri;
+const DEAD_LETTER_COLLECTION = config.deadLetterCollection;
 
 
 // --- REDIS SETUP ---
@@ -288,7 +252,7 @@ server.get('/webhooks', async (req, reply) => {
   const hubChallenge = query['hub.challenge'] || query['challenge'];
   const hubVerifyToken = query['hub.verify_token'] || query['verify_token'];
 
-  const localVerifyToken = process.env.WEBHOOK_VERIFY_TOKEN || process.env.VERIFY_TOKEN || '';
+  const localVerifyToken = config.verifyToken;
 
   if (hubChallenge && hubVerifyToken === localVerifyToken) {
     console.log('[Webhook Ingestor] Subscription validation successful.');
@@ -405,7 +369,7 @@ server.get('/health', async () => {
 
 // Root path Tunnel check
 server.get('/', async () => {
-  return { service: 'connectsphere-webhook-ingestor', healthy: true };
+  return { service: 'wapi-webhook-ingestor', healthy: true };
 });
 
 async function start() {

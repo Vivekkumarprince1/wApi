@@ -1,9 +1,8 @@
-import 'dotenv/config';
+import config from './config/index.js';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
-import config from './config/index.js';
 import { connectDb } from './config/db.js';
 import { initEventBus, simulatedMode } from './services/eventBus.js';
 import { startSnoozeWorker, stopSnoozeWorker } from './services/snooze-worker.js';
@@ -30,11 +29,11 @@ app.use(errorHandler);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', service: 'connectsphere-chat-service', simulatedMode });
+  res.json({ status: 'OK', service: 'wapi-chat-service', simulatedMode });
 });
 
 app.get('/', (req, res) => {
-  res.json({ service: 'connectsphere-chat-service', healthy: true });
+  res.json({ service: 'wapi-chat-service', healthy: true });
 });
 
 async function start() {

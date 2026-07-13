@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export function GET() {
   return NextResponse.json({
     status: "ok",
-    service: "connectsphere-customer-portal",
+    service: "wapi-customer-portal",
     timestamp: new Date().toISOString(),
   });
 }

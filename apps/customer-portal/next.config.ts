@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 import dotenv from "dotenv";
+import type { DotenvConfigOptions } from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true } as DotenvConfigOptions);
 
 const normalizeAllowedDevOrigin = (origin: string): string | undefined => {
   const trimmed = origin.trim();
@@ -104,10 +105,6 @@ const nextConfig: NextConfig = {
       {
         source: '/api/v1/:path*',
         destination: `${backendUrl}/api/v1/:path*`,
-      },
-      {
-        source: '/socket.io/:path*',
-        destination: `${backendUrl}/socket.io/:path*`,
       },
     ];
   },

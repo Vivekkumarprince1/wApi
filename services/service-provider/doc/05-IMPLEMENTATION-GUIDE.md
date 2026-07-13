@@ -44,7 +44,7 @@
 ```bash
 # 1. Clone the repository
 git clone <repo-url>
-cd connectsphere/bsp-service
+cd wApi/bsp-service
 
 # 2. Install dependencies
 npm install
@@ -54,7 +54,7 @@ cp .env.example .env
 
 # 4. Update .env with local values
 INTERNAL_SERVICE_SECRET=dev-secret-key
-MONGODB_URI_BSP=mongodb://localhost:27017/connectsphere_bsp
+MONGODB_URI_BSP=mongodb://localhost:27017/wapi_bsp
 REDIS_URL=redis://127.0.0.1:6379
 GUPSHUP_PARTNER_TOKEN=your-dev-token
 
@@ -966,7 +966,7 @@ lsof -i :3004
 
 ```bash
 # Test MongoDB connection
-mongosh "mongodb://localhost:27017/connectsphere_bsp"
+mongosh "mongodb://localhost:27017/wapi_bsp"
 
 # Check indexes
 db.bsp_apps.getIndexes()

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { formatErrorResponse } from '@connectsphere/contracts';
+import { formatErrorResponse } from '@wapi/contracts';
 
 export function errorHandler(err: any, req: Request, res: Response, next: NextFunction) {
   if (res.headersSent) {

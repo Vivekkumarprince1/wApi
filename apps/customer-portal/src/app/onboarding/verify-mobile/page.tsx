@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Smartphone, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { sendMobileVerificationOTP, verifyMobileVerificationOTP } from '@/lib/api/auth';
@@ -17,7 +17,25 @@ export default function VerifyMobilePage() {
   const [countdown, setCountdown] = useState(0);
   const hasSentInitialOTP = useRef(false);
 
-  const startCountdown = useCallback(() => {
+  useEffect(() => {
+    if (authLoading) return;
+    
+    if (!user) {
+      router.push('/auth/login');
+      return;
+    }
+
+    const currentPhone = authPhone?.number || '';
+    if (currentPhone) {
+      setPhone(currentPhone);
+      if (!user.phoneVerified && !hasSentInitialOTP.current) {
+        hasSentInitialOTP.current = true;
+        sendOTP(currentPhone);
+      }
+    }
+  }, [user, authPhone, authLoading, router]);
+
+  const startCountdown = () => {
     setCountdown(60);
     const timer = setInterval(() => {
       setCountdown((prev) => {
@@ -28,9 +46,9 @@ export default function VerifyMobilePage() {
         return prev - 1;
       });
     }, 1000);
-  }, []);
+  };
 
-  const sendOTP = useCallback(async (phoneNumber = phone) => {
+  const sendOTP = async (phoneNumber = phone) => {
     if (!phoneNumber) {
       setError('Phone number is required');
       return;
@@ -52,25 +70,7 @@ export default function VerifyMobilePage() {
     } finally {
       setLoading(false);
     }
-  }, [phone, startCountdown]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    
-    if (!user) {
-      router.push('/auth/login');
-      return;
-    }
-
-    const currentPhone = authPhone?.number || '';
-    if (currentPhone) {
-      setPhone(currentPhone);
-      if (!user.phoneVerified && !hasSentInitialOTP.current) {
-        hasSentInitialOTP.current = true;
-        sendOTP(currentPhone);
-      }
-    }
-  }, [user, authPhone, authLoading, router, sendOTP]);
+  };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();

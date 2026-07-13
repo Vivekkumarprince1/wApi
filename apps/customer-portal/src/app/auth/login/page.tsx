@@ -98,7 +98,7 @@ export default function LoginPage() {
               <Sparkles className="text-2xl" />
             </div>
             <span className="text-2xl font-bold tracking-tight">
-              {process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere'}
+              {process.env.NEXT_PUBLIC_APP_NAME || 'wApi'}
             </span>
           </div>
 
@@ -132,10 +132,10 @@ export default function LoginPage() {
         <header className="w-full border-b border-border/50 bg-background/80 backdrop-blur-sm">
           <div className="flex items-center justify-between max-w-lg mx-auto px-6 py-4 w-full">
             <Link href="/" className="font-bold text-base tracking-tight text-foreground uppercase lg:hidden">
-               {process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere'}
+               {process.env.NEXT_PUBLIC_APP_NAME || 'wApi'}
             </Link>
             <div className="text-sm text-muted-foreground ml-auto">
-              <span className="hidden sm:inline">Not on {process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere'}?</span>
+              <span className="hidden sm:inline">Not on {process.env.NEXT_PUBLIC_APP_NAME || 'wApi'}?</span>
               <Link href="/auth/register" className="ml-2 font-semibold text-primary hover:text-primary/80 transition-colors">
                 Sign Up
               </Link>

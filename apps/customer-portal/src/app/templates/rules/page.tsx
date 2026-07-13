@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Zap, Plus, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -30,7 +30,11 @@ export default function TemplateRulesPage() {
   const [testingRuleId, setTestingRuleId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const loadRules = useCallback(async () => {
+  useEffect(() => {
+    loadRules();
+  }, [pagination.page, triggerTypeFilter, searchTerm]);
+
+  const loadRules = async () => {
     try {
       setLoading(true);
       const params: Record<string, string | number> = {
@@ -54,11 +58,7 @@ export default function TemplateRulesPage() {
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, pagination.pageSize, searchTerm, triggerTypeFilter]);
-
-  useEffect(() => {
-    loadRules();
-  }, [loadRules]);
+  };
 
   const handleCreateNew = () => {
     setEditingRule(null);

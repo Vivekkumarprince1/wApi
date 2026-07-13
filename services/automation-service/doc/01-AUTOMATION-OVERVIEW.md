@@ -1,6 +1,6 @@
 # Automation Service — Overview
 
-This document set describes the `automation-service` (workflow / automation engine) used by ConnectSphere.
+This document set describes the `automation-service` (workflow / automation engine) used by wApi.
 It covers architecture, runtime components, public and internal APIs, data models, controllers, services and deployment/run instructions.
 
 Purpose

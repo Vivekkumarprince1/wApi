@@ -56,7 +56,7 @@ export class AnswerBotCrawlerService {
 
     try {
       const res = await fetch(source.websiteUrl, {
-        headers: { 'User-Agent': 'ConnectSphere-AnswerBotCrawler/1.0' },
+        headers: { 'User-Agent': 'wApi-AnswerBotCrawler/1.0' },
         signal: AbortSignal.timeout(12000),
       });
 

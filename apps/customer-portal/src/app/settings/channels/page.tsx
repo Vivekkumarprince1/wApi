@@ -83,7 +83,7 @@ export default function ChannelsSettingsPage() {
             <h1 className="text-3xl font-black tracking-tight text-foreground">Channels</h1>
             <p className="text-sm font-medium text-muted-foreground">Connect the entry points that feed conversations into your workspace.</p>
           </div>
-          <Badge className="w-fit rounded-full px-3 py-1 font-bold text-[10px] uppercase tracking-widest bg-sky-500/10 text-sky-600 border-none">Inspired by ConnectSphere</Badge>
+          <Badge className="w-fit rounded-full px-3 py-1 font-bold text-[10px] uppercase tracking-widest bg-sky-500/10 text-sky-600 border-none">Inspired by wApi</Badge>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

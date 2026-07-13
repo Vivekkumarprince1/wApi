@@ -1,9 +1,8 @@
-import 'dotenv/config';
+import config from './config/index.js';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
-import config from './config/index.js';
 import { connectDb } from './config/db.js';
 import apiRouter from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -40,11 +39,11 @@ app.use(errorHandler);
 
 // Health check endpoints
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', service: 'connectsphere-auth-service' });
+  res.json({ status: 'OK', service: 'wapi-auth-service' });
 });
 
 app.get('/', (req, res) => {
-  res.json({ service: 'connectsphere-auth-service', healthy: true });
+  res.json({ service: 'wapi-auth-service', healthy: true });
 });
 
 async function start() {

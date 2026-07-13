@@ -35,7 +35,7 @@ export default function DeveloperHubPage() {
         </div>
         <div className="flex gap-3">
              <Button asChild variant="outline" className="rounded-2xl px-6 font-bold border-border/50 h-12 text-xs uppercase tracking-widest bg-card shadow-sm hover:bg-accent transition-all">
-                 <Link href="https://docs.connectsphere.com" target="_blank">
+                 <Link href="https://docs.wapi.com" target="_blank">
                     <ExternalLink className="mr-2 h-4 w-4" /> API Docs
                  </Link>
              </Button>
@@ -62,7 +62,7 @@ export default function DeveloperHubPage() {
                         <div className="space-y-2">
                             <h2 className="text-3xl font-black tracking-tight">API Access Keys</h2>
                             <p className="text-muted-foreground font-bold leading-relaxed opacity-70">
-                                Generate and manage secure keys to authenticate your custom applications with the ConnectSphere Cloud Messaging engine.
+                                Generate and manage secure keys to authenticate your custom applications with the wApi Cloud Messaging engine.
                             </p>
                         </div>
                     </div>

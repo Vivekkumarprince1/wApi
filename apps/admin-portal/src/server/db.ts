@@ -1,5 +1,6 @@
 import "server-only";
 import mongoose, { Connection } from "mongoose";
+import { config } from "@/config/env";
 
 /**
  * Multi-database connection manager for the admin portal.
@@ -14,10 +15,10 @@ import mongoose, { Connection } from "mongoose";
 type DbName = "core" | "billing" | "campaign" | "automation";
 
 const URIS: Record<DbName, string | undefined> = {
-  core: process.env.MONGODB_URI,
-  billing: process.env.MONGODB_URI_BILLING,
-  campaign: process.env.MONGODB_URI_CAMPAIGN,
-  automation: process.env.MONGODB_URI_AUTOMATION,
+  core: config.mongodb.core,
+  billing: config.mongodb.billing,
+  campaign: config.mongodb.campaign,
+  automation: config.mongodb.automation,
 };
 
 interface ConnCacheEntry {

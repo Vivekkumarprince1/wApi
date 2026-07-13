@@ -23,7 +23,7 @@
     "@nestjs/platform-express": "^10.4.22",
     "@nestjs/swagger": "^7.4.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "@connectsphere/contracts": "file:../../packages/contracts",
+    "@wapi/contracts": "file:../../packages/contracts",
     "axios": "^1.15.2",
     "bullmq": "^5.76.4",
     "class-transformer": "^0.5.1",

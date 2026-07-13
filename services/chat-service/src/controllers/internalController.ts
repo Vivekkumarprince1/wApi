@@ -5,6 +5,7 @@ import { CheckoutCart } from '../models/CheckoutCart.js';
 import { Product } from '../models/Product.js';
 import { CheckoutBotService } from '../services/checkout-bot-service.js';
 import { eventProducer, simulatedMode } from '../services/eventBus.js';
+import { chargeTemplateMessage, refundTemplateCharge } from '../services/billing-client.js';
 
 /**
  * Shared dispatcher for bot-originated outbound messages (text / interactive / flow).
@@ -127,6 +128,7 @@ export const internalController = {
       switch (action) {
         case 'send-template': {
           const { to, templateName, languageCode, components, options = {} } = data;
+          let templateCharge: Awaited<ReturnType<typeof chargeTemplateMessage>> | null = null;
           
           let contact;
           try {
@@ -183,30 +185,48 @@ export const internalController = {
           const workspaceDoc = await db?.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
           const appId = workspaceDoc?.gupshupAppId || `mock_${workspaceId}`;
 
-          const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
-          const bspRes = await fetch(`${bspUrl}/internal/v1/bsp/messages/send`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-internal-secret': process.env.INTERNAL_SERVICE_SECRET!,
-              'x-internal-service': 'chat-service'
-            },
-            body: JSON.stringify({
+          if (!options.campaignId) {
+            templateCharge = await chargeTemplateMessage({
               workspaceId,
-              appId,
-              to,
-              type: 'template',
-              payload: {
-                messaging_product: 'whatsapp',
-                recipient_type: 'individual',
-                to,
-                ...formattedPayload
-              }
-            })
-          });
+              templateName,
+              templateCategory: data.templateCategory || data.category,
+              contactId: contact._id?.toString?.(),
+              phone: to,
+              source: 'automation',
+              idempotencyKey: data.idempotencyKey,
+            });
+          }
 
-          if (!bspRes.ok) {
-            throw new Error('BSP Message Dispatch failed: ' + bspRes.statusText);
+          const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
+          let bspRes: globalThis.Response;
+          try {
+            bspRes = await fetch(`${bspUrl}/internal/v1/bsp/messages/send`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-internal-secret': process.env.INTERNAL_SERVICE_SECRET!,
+                'x-internal-service': 'chat-service'
+              },
+              body: JSON.stringify({
+                workspaceId,
+                appId,
+                to,
+                type: 'template',
+                payload: {
+                  messaging_product: 'whatsapp',
+                  recipient_type: 'individual',
+                  to,
+                  ...formattedPayload
+                }
+              })
+            });
+
+            if (!bspRes.ok) {
+              throw new Error('BSP Message Dispatch failed: ' + bspRes.statusText);
+            }
+          } catch (err: any) {
+            await refundTemplateCharge(workspaceId, templateCharge, err.message);
+            throw err;
           }
 
           const bspData = await bspRes.json() as any;
@@ -258,7 +278,7 @@ export const internalController = {
           const workspace = await db?.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
           if (!workspace) return res.json({ valid: false, reason: 'WORKSPACE_NOT_FOUND' });
 
-          const bspDb = (mongoose.connection as any).getClient().db('connectsphere_bsp');
+          const bspDb = (mongoose.connection as any).getClient().db('wapi_bsp');
           const template = await bspDb.collection('bsp_template_mirrors').findOne({ _id: new Types.ObjectId(templateId) });
           if (!template) return res.json({ valid: false, reason: 'TEMPLATE_MISSING' });
 
@@ -467,6 +487,7 @@ export const internalController = {
             templateName: payload.templateName ?? config.templateName,
             languageCode: payload.languageCode ?? config.languageCode ?? 'en_US',
             components: payload.components ?? config.components ?? [],
+            templateCategory: payload.templateCategory ?? payload.category ?? config.templateCategory ?? config.category,
             options: { contactId, conversationId: payload.conversationId }
           };
 
@@ -701,4 +722,3 @@ export const internalController = {
     }
   }
 };
-

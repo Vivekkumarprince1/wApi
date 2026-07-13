@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import { logger, correlationIdMiddleware, getCorrelationId } from './lib/logger';
-import { mountSwaggerUI } from '@connectsphere/contracts';
+import { mountSwaggerUI } from '@wapi/contracts';
 import { openapiDocument } from './openapi';
 
 // Route Imports
@@ -50,7 +50,7 @@ const MONGODB_URI =
   process.env.MONGO_URI ||
   process.env.MONGODB_URI_AUTOMATION ||
   process.env.MONGODB_URI ||
-  'mongodb://localhost:27017/connectsphere_automation';
+  'mongodb://localhost:27017/wapi_automation';
 
 // API Docs — Swagger UI at /docs, raw spec at /docs/openapi.json
 mountSwaggerUI(app, openapiDocument);

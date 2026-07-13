@@ -1,7 +1,7 @@
 {
-  "name": "@connectsphere/auth-service",
+  "name": "@wapi/auth-service",
   "version": "1.0.0",
-  "description": "Auth & Identity microservice for ConnectSphere",
+  "description": "Auth & Identity microservice for wApi",
   "main": "dist/index.js",
   "scripts": {
     "dev": "NODE_OPTIONS=--max-old-space-size=2048 tsx watch src/index.ts",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@types/nodemailer": "^8.0.0",
-    "@connectsphere/contracts": "file:../../packages/contracts",
+    "@wapi/contracts": "file:../../packages/contracts",
     "axios": "^1.16.1",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",

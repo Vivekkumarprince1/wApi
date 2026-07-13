@@ -282,7 +282,7 @@ export function CommandCenter() {
           </div>
           <div className="flex items-center gap-1">
             <MessageSquare className="h-3 w-3" />
-            <span>ConnectSphere Spotlight</span>
+            <span>wApi Spotlight</span>
           </div>
         </div>
       </DialogContent>

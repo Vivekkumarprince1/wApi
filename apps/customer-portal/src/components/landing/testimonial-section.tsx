@@ -2,7 +2,7 @@
 
 export default function TestimonialSection({ isDark }: { isDark: boolean }) {
   const cardBg = isDark ? '#111' : '#fff';
-  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'ConnectSphere';
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'wApi';
 
   return (
     <section className="w-full bg-white dark:bg-black py-8 sm:py-12 md:py-16 flex flex-col items-center" style={{ backgroundColor: isDark ? '#000' : '#fff' }}>

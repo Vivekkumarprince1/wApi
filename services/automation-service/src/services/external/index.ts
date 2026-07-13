@@ -9,8 +9,8 @@ import { sendInternalAction } from '../../lib/internal-client';
 export const WabaService = {
   sendTextMessage: (workspaceId: string, phone: string, text: string, options?: any) =>
     sendInternalAction('send_text', { workspaceId, phone, text, options }),
-  sendTemplateMessage: (workspaceId: string, phone: string, templateName: string, languageCode: string, components: any[]) =>
-    sendInternalAction('send_template', { workspaceId, phone, templateName, languageCode, components }),
+  sendTemplateMessage: (workspaceId: string, phone: string, templateName: string, languageCode: string, components: any[], templateCategory?: string) =>
+    sendInternalAction('send_template', { workspaceId, phone, templateName, languageCode, components, templateCategory }),
   sendInteractiveMessage: (workspaceId: string, phone: string, interactive: any, options?: any) =>
     sendInternalAction('send_interactive', { workspaceId, phone, interactive, options }),
   sendFlowMessage: (workspaceId: string, phone: string, flow: any, options?: any) =>
@@ -42,4 +42,3 @@ export const ContactService = {
 };
 
 export * from './bsp-client';
-

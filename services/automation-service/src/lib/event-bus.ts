@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { EventTopics } from '@connectsphere/contracts';
+import { EventTopics } from '@wapi/contracts';
 import { createRedisConnection } from './ioredis';
 
 let producerClient: Redis | null = null;

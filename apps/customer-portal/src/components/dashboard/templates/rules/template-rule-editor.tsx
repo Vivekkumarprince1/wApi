@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2 } from 'lucide-react';
 import {
   MATCH_MODES,
@@ -52,7 +52,13 @@ export default function TemplateRuleEditor({ rule = null, templates = [], onSave
     enabled: rule?.enabled ?? true,
   });
 
-  const loadTemplates = useCallback(async () => {
+  useEffect(() => {
+    if (templates.length === 0) {
+      loadTemplates();
+    }
+  }, [templates]);
+
+  const loadTemplates = async () => {
     try {
       setLoading(true);
       const response = await fetchTemplates({ limit: 100 });
@@ -62,13 +68,7 @@ export default function TemplateRuleEditor({ rule = null, templates = [], onSave
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    if (templates.length === 0) {
-      loadTemplates();
-    }
-  }, [templates.length, loadTemplates]);
+  };
 
   const validateForm = () => {
     const newErrors: Partial<Record<'name' | 'template' | 'keywords', string>> = {};

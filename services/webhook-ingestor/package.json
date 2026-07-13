@@ -1,7 +1,7 @@
 {
-  "name": "@connectsphere/webhook-ingestor",
+  "name": "@wapi/webhook-ingestor",
   "version": "1.0.0",
-  "description": "High-performance, stateless webhook ingestion service for ConnectSphere",
+  "description": "High-performance, stateless webhook ingestion service for wApi",
   "main": "dist/index.js",
   "scripts": {
     "dev": "NODE_OPTIONS=--max-old-space-size=2048 tsx watch src/index.ts",

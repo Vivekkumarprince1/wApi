@@ -300,7 +300,7 @@ const ImportJobSchema = new Schema({
 
 export const ImportJob = mongoose.models.ImportJob || mongoose.model('ImportJob', ImportJobSchema);
 
-// ActivityLog — workspace-scoped audit trail in the shared connectsphere DB (monolith
+// ActivityLog — workspace-scoped audit trail in the shared wapi DB (monolith
 // parity). Same schema as chat-service's; the analytics dashboard reads it.
 const ActivityLogSchema = new Schema({
   workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true, index: true },

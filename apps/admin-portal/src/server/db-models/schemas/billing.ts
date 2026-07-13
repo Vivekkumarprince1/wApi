@@ -1,7 +1,7 @@
 import type { Schema as SchemaType, Types } from "mongoose";
 import type { SchemaCtor } from "../types";
 
-/* Schemas for the billing database (connectsphere_billing). Mirror billing-service's
+/* Schemas for the billing database (wapi_billing). Mirror billing-service's
  * persistence layer (services/billing-service/src/models/index.ts). Focused +
  * strict:false so owner-service fields round-trip. Read-only from the portal. */
 

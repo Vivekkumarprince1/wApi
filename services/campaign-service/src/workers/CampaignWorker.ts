@@ -313,15 +313,18 @@ export class CampaignWorker {
         if (finalized) {
             const { template } = await microserviceWorkerClient.getTemplate(workspaceId, finalized.template.toString());
             const { cost } = await microserviceWorkerClient.getPricing(workspaceId, template?.category || 'MARKETING');
+            const reservedRecipientCount =
+              finalized.totals?.totalRecipients ||
+              finalized.totalContacts ||
+              await this.countReservedRecipients(campaignId);
             
             const successAmount = (finalized.totals?.sent || 0) * cost;
-            const failAmount = (finalized.totals?.failed || 0) * cost;
             
             const { billingEventsQueue } = await import('../lib/events/EventBus');
             await billingEventsQueue.add('CampaignCompletedEvent', {
               campaignId: campaignId.toString(),
               workspaceId,
-              reservedAmount: (finalized.contacts?.length || 0) * cost, // Estimated original reservation
+              reservedAmount: reservedRecipientCount * cost,
               actualSpend: successAmount // We only deduct actual successes
             });
             
@@ -332,6 +335,14 @@ export class CampaignWorker {
     }
 
     return { successCount, failCount };
+  }
+
+  private async countReservedRecipients(campaignId: string) {
+    const result = await CampaignBatch.aggregate([
+      { $match: { campaign: new Types.ObjectId(campaignId) } },
+      { $group: { _id: null, total: { $sum: '$recipientCount' } } }
+    ]);
+    return result[0]?.total || 0;
   }
 
   private resolveVar(contact: any, field: string): any {

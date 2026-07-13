@@ -3,13 +3,14 @@ import { cookies } from "next/headers";
 import type { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import { config } from "@/config/env";
 import {
   normalizeAdminRole,
   isAdminRole,
   adminCan,
   type AdminRole,
   type AdminCapability,
-} from "@connectsphere/contracts";
+} from "@wapi/contracts";
 import { coreModels } from "./models";
 
 /**
@@ -20,15 +21,15 @@ import { coreModels } from "./models";
  * (super_admin, super_admin_support, super_admin_finance, super_admin_readonly)
  * may authenticate here; customer workspace roles are rejected at login.
  *
- * Role logic is delegated to @connectsphere/contracts (single source of truth) — this
+ * Role logic is delegated to @wapi/contracts (single source of truth) — this
  * module never re-implements role checks.
  */
 
-const COOKIE_NAME = process.env.ADMIN_COOKIE_NAME || "admin_token";
-const SESSION_TTL = Number(process.env.ADMIN_SESSION_TTL || 28800); // 8h
+const COOKIE_NAME = config.adminCookieName;
+const SESSION_TTL = config.adminSessionTtlSeconds;
 
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
+  const secret = config.jwtSecret;
   if (!secret) throw new Error("[admin-portal/auth] JWT_SECRET is not set");
   return secret;
 }
@@ -185,7 +186,7 @@ function randomId(): string {
 }
 
 function shouldUseSecureCookie(req?: CookieRequest): boolean {
-  const override = parseBooleanEnv(process.env.ADMIN_COOKIE_SECURE);
+  const override = parseBooleanEnv(config.adminCookieSecure);
   if (override !== null) return override;
 
   const forwardedProto = req?.headers.get("x-forwarded-proto")?.split(",")[0]?.trim().toLowerCase();
@@ -195,7 +196,7 @@ function shouldUseSecureCookie(req?: CookieRequest): boolean {
   if (proto === "https") return true;
   if (proto === "http") return false;
 
-  return process.env.NODE_ENV === "production";
+  return config.env === "production";
 }
 
 function parseBooleanEnv(value: string | undefined): boolean | null {

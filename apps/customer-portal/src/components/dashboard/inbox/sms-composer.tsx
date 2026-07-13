@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Send,
   Paperclip,
@@ -69,7 +69,12 @@ export default function SMSComposer({
   const remainingChars = (SMS_CHAR_LIMIT - (charCount % SMS_CHAR_LIMIT)) % SMS_CHAR_LIMIT || SMS_CHAR_LIMIT;
   const isOverLimit = charCount > SMS_LONG_CHAR_LIMIT;
 
-  const loadTemplates = useCallback(async () => {
+  // Load templates on component mount
+  useEffect(() => {
+    loadTemplates();
+  }, [conversationId]);
+
+  const loadTemplates = async () => {
     try {
       setLoadingTemplates(true);
       const data = await fetchTemplatesByChannel('sms', 10);
@@ -79,12 +84,7 @@ export default function SMSComposer({
     } finally {
       setLoadingTemplates(false);
     }
-  }, []);
-
-  // Load templates on component mount
-  useEffect(() => {
-    loadTemplates();
-  }, [conversationId, loadTemplates]);
+  };
 
   const handleSend = () => {
     if ((!text.trim() && !selectedFile) || disabled || isSending || isOverLimit) return;

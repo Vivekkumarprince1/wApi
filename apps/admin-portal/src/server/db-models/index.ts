@@ -82,7 +82,7 @@ export function registerCoreModels(conn: Connection): CoreModels {
   };
 }
 
-/** Models that live in the billing database (`connectsphere_billing`). */
+/** Models that live in the billing database (`wapi_billing`). */
 export interface BillingModels {
   Wallet: Model<IWallet>;
   WalletTransaction: Model<IWalletTransaction>;
@@ -108,7 +108,7 @@ export function registerCampaignModels(conn: Connection): CampaignModels {
   return { Campaign: modelOnce<ICampaign>(conn, "Campaign", buildCampaignSchema) };
 }
 
-/** Models in the automation database (`connectsphere_automation`). */
+/** Models in the automation database (`wapi_automation`). */
 export interface AutomationModels {
   AutomationRule: Model<IAutomationRule>;
 }

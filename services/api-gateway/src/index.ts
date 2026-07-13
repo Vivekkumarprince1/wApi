@@ -1,46 +1,10 @@
-import 'dotenv/config.js';
-import { z } from 'zod';
-
-const envSchema = z.object({
-  NODE_ENV: z.string().optional(),
-  INTERNAL_SERVICE_SECRET: z.string({
-    required_error: 'INTERNAL_SERVICE_SECRET is required'
-  }).min(1, 'INTERNAL_SERVICE_SECRET cannot be empty'),
-  PORT: z.string().optional(),
-  ALLOWED_ORIGINS: z.string().optional(),
-});
-
-const envParseResult = envSchema.safeParse(process.env);
-if (!envParseResult.success) {
-  console.error('❌ Environment validation failed for api-gateway:');
-  console.error(JSON.stringify(envParseResult.error.format(), null, 2));
-  process.exit(1);
-}
-
-const isProduction = process.env.NODE_ENV === 'production';
-if (isProduction) {
-  const internalSecret = process.env.INTERNAL_SERVICE_SECRET || '';
-  const devSecrets = new Set([
-    'dev-internal-service-secret-change-me',
-    'your_internal_service_secret_here',
-    'change-me-in-production',
-  ]);
-
-  if (devSecrets.has(internalSecret) || internalSecret.length < 32) {
-    throw new Error('FATAL: A secure, non-default INTERNAL_SERVICE_SECRET with at least 32 characters is required in production.');
-  }
-
-  if (!process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGINS.includes('localhost') || process.env.ALLOWED_ORIGINS.includes('127.0.0.1')) {
-    throw new Error('FATAL: Production ALLOWED_ORIGINS must be explicit public HTTPS origins, not localhost defaults.');
-  }
-}
-
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import crypto from 'crypto';
 import IORedis from 'ioredis';
+import { config } from './config/env';
 // IMPORTANT: http-proxy-middleware v3's `createProxyMiddleware` strips the
 // Express mount prefix from `req.url` BEFORE `pathRewrite` runs. Every
 // pathRewrite in this gateway (and every downstream service, which mount their
@@ -52,7 +16,8 @@ import { legacyCreateProxyMiddleware as createProxyMiddleware } from 'http-proxy
 import { authRateLimit, apiRateLimit, bulkRateLimit } from './middleware/rateLimit.js';
 
 const app = express();
-const port = parseInt(process.env.BACKEND_PORT || process.env.PORT || "5001", 10);
+const port = config.port;
+const isProduction = config.isProduction;
 
 app.set('trust proxy', 1);
 
@@ -96,9 +61,9 @@ let serviceControlCacheUntil = 0;
 let serviceControlErrorLogUntil = 0;
 
 function getRedis(): IORedis | null {
-  if (!process.env.REDIS_URL) return null;
+  if (!config.redisUrl) return null;
   if (!redisClient) {
-    redisClient = new IORedis(process.env.REDIS_URL, {
+    redisClient = new IORedis(config.redisUrl, {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
@@ -145,13 +110,7 @@ function serviceIdsForPath(path: string): string[] {
   return [];
 }
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "http://localhost:3001",
-  "http://127.0.0.1:3001"
-];
-const corsOrigin = allowedOrigins.includes('*') ? true : allowedOrigins;
+const corsOrigin = config.corsOrigin;
 
 // Helmet security policy
 app.use(helmet());
@@ -198,7 +157,7 @@ app.use(async (req, res, next) => {
   // shared INTERNAL_SERVICE_SECRET. Identity headers it sends are kept as-is and
   // session verification is skipped. Constant-time compare to avoid timing leaks.
   const callerSecret = req.headers['x-internal-service-secret'];
-  const expectedSecret = process.env.INTERNAL_SERVICE_SECRET || '';
+  const expectedSecret = config.internalServiceSecret;
   if (typeof callerSecret === 'string' && callerSecret.length === expectedSecret.length &&
       crypto.timingSafeEqual(Buffer.from(callerSecret), Buffer.from(expectedSecret))) {
     // service-provider's guards additionally require an x-internal-service name.
@@ -272,7 +231,7 @@ app.use(async (req, res, next) => {
           }
 
           // Inject shared internal key to prove that these headers were set by API Gateway
-          req.headers['x-internal-service-secret'] = process.env.INTERNAL_SERVICE_SECRET;
+          req.headers['x-internal-service-secret'] = config.internalServiceSecret;
           req.headers['x-internal-service'] = 'api-gateway';
         }
       } else if (verifyRes.status === 401 || verifyRes.status === 403 || verifyRes.status === 400) {
@@ -344,15 +303,7 @@ app.use(async (req, res, next) => {
 
 // Define the Microservice URLs
 const SERVICES = {
-  auth: process.env.AUTH_SERVICE_URL || 'http://localhost:3006',
-  contact: process.env.CONTACT_SERVICE_URL || 'http://localhost:3007',
-  chat: process.env.CHAT_SERVICE_URL || 'http://localhost:3008',
-  serviceProvider: process.env.SERVICE_PROVIDER_URL || process.env.BSP_SERVICE_URL || 'http://localhost:3004',
-  automation: process.env.AUTOMATION_SERVICE_URL || 'http://localhost:3001',
-  billing: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
-  campaign: process.env.CAMPAIGN_SERVICE_URL || 'http://localhost:3002',
-  websocket: process.env.WEBSOCKET_URL || 'http://localhost:3009',
-  ingestor: process.env.WEBHOOK_INGESTOR_URL || 'http://localhost:3013',
+  ...config.services,
 };
 
 // Standard Proxy Error Handler.
@@ -784,7 +735,7 @@ app.use('/socket.io', wsProxy);
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
-    service: 'connectsphere-api-gateway',
+    service: 'wapi-api-gateway',
     timestamp: new Date().toISOString()
   });
 });
@@ -793,7 +744,7 @@ app.get('/health', (req, res) => {
 app.get('/', (req, res) => {
   res.status(200).json({
     status: 'ok',
-    service: 'connectsphere-api-gateway',
+    service: 'wapi-api-gateway',
     uptime: process.uptime(),
     timestamp: new Date().toISOString()
   });

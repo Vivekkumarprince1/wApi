@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import type { DotenvConfigOptions } from 'dotenv';
 
-dotenv.config();
+dotenv.config({ quiet: true } as DotenvConfigOptions);
 
 // Source: wa_campaigns (where microservice was writing)
 const SOURCE_URI = 'mongodb+srv://whats-api-automation:Prince123@cluster0.dtvexe1.mongodb.net/wa_campaigns?retryWrites=true&w=majority&appName=Cluster0';

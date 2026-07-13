@@ -1,6 +1,6 @@
 FROM mirror.gcr.io/library/node:24-alpine AS builder
 WORKDIR /app
-ARG NEXT_PUBLIC_APP_NAME="ConnectSphere Super Admin"
+ARG NEXT_PUBLIC_APP_NAME="wApi Super Admin"
 ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
@@ -17,7 +17,7 @@ RUN cd apps/admin-portal && npm run build
 FROM mirror.gcr.io/library/node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-ARG NEXT_PUBLIC_APP_NAME="ConnectSphere Super Admin"
+ARG NEXT_PUBLIC_APP_NAME="wApi Super Admin"
 ARG NEXT_PUBLIC_APP_URL
 ENV NEXT_PUBLIC_APP_NAME=$NEXT_PUBLIC_APP_NAME
 ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL

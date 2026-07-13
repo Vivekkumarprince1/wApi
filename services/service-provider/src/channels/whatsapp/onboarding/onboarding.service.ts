@@ -284,7 +284,7 @@ export class OnboardingService {
     let userEmail = input.userEmail || input.email;
 
     try {
-      const db = this.appModel.db.useDb('connectsphere');
+      const db = this.appModel.db.useDb('wapi');
       if (businessId && Types.ObjectId.isValid(businessId)) {
         const businessDoc = await db.collection('businesses').findOne({ _id: new Types.ObjectId(businessId) });
         if (businessDoc) {
@@ -296,7 +296,7 @@ export class OnboardingService {
     }
 
     try {
-      const db = this.appModel.db.useDb('connectsphere');
+      const db = this.appModel.db.useDb('wapi');
       if (userId && Types.ObjectId.isValid(userId)) {
         const userDoc = await db.collection('users').findOne({ _id: new Types.ObjectId(userId) });
         if (userDoc) {
@@ -423,7 +423,7 @@ export class OnboardingService {
     if (!app) {
       // Self-healing: optimistically auto-heal/reclaim if recorded on the workspace document
       try {
-        const db = this.appModel.db.useDb('connectsphere');
+        const db = this.appModel.db.useDb('wapi');
         const workspaceDoc = await db.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
         const workspaceAppId = workspaceDoc?.gupshupAppId || workspaceDoc?.gupshupIdentity?.partnerAppId;
         if (workspaceAppId) {
@@ -541,9 +541,9 @@ export class OnboardingService {
       throw new Error('No BSP app found to sync');
     }
 
-    // Sync connection states back to main 'workspaces' collection in 'connectsphere' database
+    // Sync connection states back to main 'workspaces' collection in 'wapi' database
     try {
-      const mainDb = this.appModel.db.useDb('connectsphere');
+      const mainDb = this.appModel.db.useDb('wapi');
       const isMockApp = String(targetAppId).startsWith('mock_');
       const workspaceUpdates: Record<string, any> = {
         whatsappConnected: updates.whatsappConnected ?? false,
@@ -580,7 +580,7 @@ export class OnboardingService {
         { $set: workspaceUpdates }
       );
       
-      console.log(`[BSP Sync] Successfully synced workspace connection states to connectsphere db for workspace ${workspaceId}`);
+      console.log(`[BSP Sync] Successfully synced workspace connection states to wapi db for workspace ${workspaceId}`);
     } catch (err: any) {
       console.error('[BSP Sync] Failed to sync connection state back to main workspace collection:', err.message);
     }
@@ -781,7 +781,7 @@ export class OnboardingService {
     await this.appModel.deleteOne({ workspaceId, appId });
 
     try {
-      const mainDb = this.appModel.db.useDb('connectsphere');
+      const mainDb = this.appModel.db.useDb('wapi');
       await mainDb.collection('workspaces').updateOne(
         { _id: new Types.ObjectId(workspaceId) },
         {
@@ -796,7 +796,7 @@ export class OnboardingService {
           }
         }
       );
-      console.log(`[BSP Disconnect] Successfully cleared workspace connection states in connectsphere db for workspace ${workspaceId}`);
+      console.log(`[BSP Disconnect] Successfully cleared workspace connection states in wapi db for workspace ${workspaceId}`);
     } catch (err: any) {
       console.error('[BSP Disconnect] Failed to clear connection state in main workspace collection:', err.message);
     }

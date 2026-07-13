@@ -38,9 +38,9 @@ export async function emitDeveloperEvent(workspaceId: string, event: string, dat
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-connectsphere-event': event,
-          'x-connectsphere-timestamp': timestamp,
-          ...(signature ? { 'x-connectsphere-signature': `sha256=${signature}` } : {}),
+          'x-wapi-event': event,
+          'x-wapi-timestamp': timestamp,
+          ...(signature ? { 'x-wapi-signature': `sha256=${signature}` } : {}),
         },
         body,
       });

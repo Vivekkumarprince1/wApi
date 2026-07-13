@@ -294,7 +294,7 @@ export const developerController = {
     try {
       const { name } = req.body;
       const workspaceId = workspaceIdFrom(req);
-      const key = `connectsphere_${crypto.randomBytes(24).toString('hex')}`;
+      const key = `wapi_${crypto.randomBytes(24).toString('hex')}`;
       const keyId = new mongoose.Types.ObjectId();
       
       const workspace = await (Workspace as any).findByIdAndUpdate(

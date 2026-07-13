@@ -1,7 +1,7 @@
 {
   "name": "api-gateway",
   "version": "2.0.0",
-  "description": "Pure API Gateway for ConnectSphere microservices (http-proxy-middleware router)",
+  "description": "Pure API Gateway for wApi microservices (http-proxy-middleware router)",
   "main": "dist/index.js",
   "scripts": {
     "dev": "NODE_OPTIONS=--max-old-space-size=2048 node --import tsx src/index.ts",

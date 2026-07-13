@@ -1,33 +1,3 @@
-import 'dotenv/config';
-import { z } from 'zod';
-
-const envSchema = z.object({
-  JWT_SECRET: z.string({
-    required_error: 'JWT_SECRET is required'
-  }).min(1, 'JWT_SECRET cannot be empty'),
-  PORT: z.string().optional(),
-  MONGO_URI: z.string().optional(),
-  MONGODB_URI: z.string().optional(),
-  MONGO_SERVER_SELECTION_TIMEOUT_MS: z.string().optional(),
-  REDIS_URL: z.string().optional(),
-  ALLOWED_ORIGINS: z.string().optional(),
-  AUTH_SERVICE_URL: z.string().optional(),
-  AUTH_SERVICE_TIMEOUT_MS: z.string().optional(),
-});
-
-const envParseResult = envSchema.safeParse(process.env);
-if (!envParseResult.success) {
-  console.error('❌ Environment validation failed for websocket-gateway:');
-  console.error(JSON.stringify(envParseResult.error.format(), null, 2));
-  process.exit(1);
-}
-
-if (process.env.NODE_ENV === 'production') {
-  if (process.env.JWT_SECRET === 'your-secret-key-change-in-production' || process.env.JWT_SECRET === 'your-jwt-secret' || process.env.JWT_SECRET === 'your-default-secret') {
-    throw new Error('FATAL: A secure, non-default JWT_SECRET environment variable is required in production.');
-  }
-}
-
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
@@ -35,26 +5,17 @@ import jwt from 'jsonwebtoken';
 import mongoose, { Schema } from 'mongoose';
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
+import { config } from './config/env.js';
 
 const app = express();
 const httpServer = createServer(app);
-const PORT = parseInt(process.env.PORT || '3009', 10);
-const JWT_SECRET = process.env.JWT_SECRET!;
-const AUTH_SERVICE_URL =
-  process.env.AUTH_SERVICE_URL ||
-  (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3006');
-const AUTH_SERVICE_TIMEOUT_MS = parseInt(process.env.AUTH_SERVICE_TIMEOUT_MS || '2000', 10);
+const PORT = config.port;
+const JWT_SECRET = config.jwtSecret;
+const AUTH_SERVICE_URL = config.authServiceUrl;
+const AUTH_SERVICE_TIMEOUT_MS = config.authServiceTimeoutMs;
 
 
-const defaultAllowedOrigins = [
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "http://localhost:3100",
-  "http://127.0.0.1:3100"
-];
-const allowedOrigins = (process.env.ALLOWED_ORIGINS?.split(',') || defaultAllowedOrigins)
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const allowedOrigins = config.allowedOrigins;
 const allowAnyOrigin = allowedOrigins.includes('*');
 const allowedOriginSet = new Set(allowedOrigins);
 
@@ -90,14 +51,12 @@ const io = new SocketIOServer(httpServer, {
 // Database connection
 async function connectDb() {
   try {
-    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/connectsphere';
     mongoose.set('bufferCommands', false);
-    await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: parseInt(process.env.MONGO_SERVER_SELECTION_TIMEOUT_MS || '10000', 10),
-    });
+    await mongoose.connect(config.mongoUri);
     console.log(`[WebSocket Gateway] Connected to MongoDB`);
   } catch (err: any) {
     console.error(`[WebSocket Gateway] Database connection failed: ${err.message}`);
+    process.exit(1);
   }
 }
 
@@ -572,7 +531,7 @@ async function processPlatformEvent(topic: string, envelope: any) {
   }
 }
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = config.redisUrl;
 
 async function initEventBus() {
   try {
@@ -654,11 +613,7 @@ async function initEventBus() {
 }
 
 app.get('/health', (req, res) => {
-  res.json({
-    status: 'OK',
-    service: 'connectsphere-websocket-gateway',
-    mongoConnected: mongoose.connection.readyState === 1,
-  });
+  res.json({ status: 'OK', service: 'wapi-websocket-gateway' });
 });
 
 async function initRedisAdapter() {
@@ -677,13 +632,12 @@ async function initRedisAdapter() {
 }
 
 async function start() {
-  httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`[WebSocket Gateway] Running at http://localhost:${PORT}`);
-  });
-
   await connectDb();
   await initRedisAdapter();
   await initEventBus();
+  httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`[WebSocket Gateway] Running at http://localhost:${PORT}`);
+  });
 }
 
 start();

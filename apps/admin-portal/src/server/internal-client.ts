@@ -1,6 +1,7 @@
 import "server-only";
 import axios from "axios";
 import jwt from "jsonwebtoken";
+import { config } from "@/config/env";
 
 /**
  * Direct service-to-service client (NOT the gateway).
@@ -13,8 +14,8 @@ import jwt from "jsonwebtoken";
  * gateway.
  */
 
-const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:5001";
-const INTERNAL_POST_TIMEOUT_MS = Number(process.env.ADMIN_INTERNAL_POST_TIMEOUT_MS || 90000);
+const GATEWAY_URL = config.gatewayUrl;
+const INTERNAL_POST_TIMEOUT_MS = config.adminInternalPostTimeoutMs;
 
 // Using a type representing the original services for backward compatibility
 type ServiceId = "automation" | "campaign" | "billing" | "bsp" | "auth" | "contact" | "chat" | "websocket" | "ingestor";
@@ -32,11 +33,11 @@ const gatewayServiceSegment: Record<ServiceId, string> = {
 };
 
 const directServiceBase: Partial<Record<ServiceId, string>> = {
-  bsp: process.env.SERVICE_PROVIDER_URL || process.env.BSP_SERVICE_URL,
+  bsp: config.services.serviceProvider,
 };
 
 function internalHeaders(): Record<string, string> {
-  const secret = process.env.INTERNAL_SERVICE_SECRET;
+  const secret = config.internalServiceSecret;
   if (!secret) throw new Error("[admin-portal/internal] INTERNAL_SERVICE_SECRET is not set");
   return { "x-internal-service-secret": secret };
 }
@@ -180,9 +181,9 @@ export function signImpersonationToken(params: {
   adminId: string;
   workspaceId: string;
 }): string {
-  const secret = process.env.JWT_SECRET;
+  const secret = config.jwtSecret;
   if (!secret) throw new Error("[admin-portal/internal] JWT_SECRET is not set");
-  const ttl = (process.env.AUTH_TOKEN_TTL || "7d") as jwt.SignOptions["expiresIn"];
+  const ttl = config.authTokenTtl as jwt.SignOptions["expiresIn"];
   return jwt.sign(
     {
       id: params.targetUserId,

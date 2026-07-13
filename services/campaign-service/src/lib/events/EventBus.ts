@@ -106,6 +106,20 @@ const handleBudgetReserved = async (data: any) => {
         50
     );
 
+    campaign.contacts = normalizedContacts.map((contact: any) => contact._id);
+    campaign.totalContacts = normalizedContacts.length;
+    campaign.totals = {
+      ...(campaign.totals || {}),
+      totalRecipients: normalizedContacts.length,
+      queued: normalizedContacts.length,
+    } as any;
+    campaign.batching = {
+      ...(campaign.batching || {}),
+      totalBatches: batches.length,
+      batchSize: 50,
+      currentBatchIndex: 0,
+    } as any;
+
     const workspace = await Workspace.findById(workspaceId).lean() as any;
     const mps = workspace?.inboxSettings?.agentMessagesPerMinute ? workspace.inboxSettings.agentMessagesPerMinute / 60 : 10;
     const delayPerBatch = Math.ceil((50 / mps) * 1000);

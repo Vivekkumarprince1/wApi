@@ -183,8 +183,15 @@ export class WalletController {
   static async deductFunds(req: Request, res: Response) {
     try {
       const workspaceId = req.params.workspaceId as string;
-      const { amount, description, externalReferenceId } = req.body;
-      const wallet = await ledgerService.deduct(workspaceId, Number(amount), description as string, undefined, externalReferenceId as string);
+      const { amount, description, externalReferenceId, referenceType, referenceId } = req.body;
+      const wallet = await ledgerService.deduct(
+        workspaceId,
+        Number(amount),
+        description as string,
+        referenceType as string | undefined,
+        referenceId as string | undefined,
+        externalReferenceId as string | undefined
+      );
       res.json({ success: true, wallet });
     } catch (err: any) {
       res.status(400).json({ success: false, error: err.message });
@@ -429,8 +436,8 @@ export class WalletController {
             </div>
             <div class="header">
                 <div class="company-details">
-                    <h1>ConnectSphere Platform</h1>
-                    <p>Tech Corp Ltd.<br>123 Tech Park, Innovation Hub<br>support@connectsphere.example.com</p>
+                    <h1>wApi Platform</h1>
+                    <p>Tech Corp Ltd.<br>123 Tech Park, Innovation Hub<br>support@wapi.example.com</p>
                 </div>
                 <div class="invoice-details">
                     <h2>Invoice</h2>
