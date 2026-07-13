@@ -15,6 +15,8 @@ import { useAuthStore } from '@/store/auth-store';
 import RechargeModal from '@/components/billing/RechargeModal';
 import PlanSelectionModal from '@/components/billing/PlanSelectionModal';
 
+const BILLING_PAGE_LOADED_AT = Date.now();
+
 export default function BillingPage() {
   const router = useRouter();
   const { fetchSession } = useAuthStore();
@@ -43,7 +45,7 @@ export default function BillingPage() {
   const getDaysRemaining = () => {
     if (!subscription.billingPivotDate) return 30; // Default fallback
     const pivot = new Date(subscription.billingPivotDate);
-    const diff = pivot.getTime() - Date.now();
+    const diff = pivot.getTime() - BILLING_PAGE_LOADED_AT;
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
 

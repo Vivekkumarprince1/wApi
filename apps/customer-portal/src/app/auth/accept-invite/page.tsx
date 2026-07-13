@@ -51,7 +51,7 @@ function AcceptInviteContent() {
     }
   }, [token, email, searchParams]);
 
-  const checkAuth = async () => {
+  async function checkAuth() {
     try {
       const response = await getCurrentUser() as any;
       setCurrentUser(response?.success && response?.user ? response.user : (response?.user || response?.data || null));
@@ -60,11 +60,11 @@ function AcceptInviteContent() {
     } finally {
       setCheckingAuth(false);
     }
-  };
+  }
 
 
 
-  const verifyInvite = async () => {
+  async function verifyInvite() {
     console.log(`[Verify] Sending request for token: ${token}, email: ${email}`);
     try {
       const res = await getInvitation(token || '', email || '') as any;
@@ -89,7 +89,7 @@ function AcceptInviteContent() {
     } finally {
       setIsVerifying(false);
     }
-  };
+  }
 
 
   const handleLoginRedirect = () => {

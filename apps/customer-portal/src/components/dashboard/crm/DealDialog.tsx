@@ -117,7 +117,7 @@ export const DealDialog: React.FC<DealDialogProps> = ({
     return () => clearTimeout(delayDebounceFn);
   }, [contactSearch]);
 
-  const searchContacts = async () => {
+  async function searchContacts() {
     setIsSearchingContacts(true);
     try {
       const res = await fetchContacts(1, 10, { search: contactSearch });
@@ -127,7 +127,7 @@ export const DealDialog: React.FC<DealDialogProps> = ({
     } finally {
       setIsSearchingContacts(false);
     }
-  };
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

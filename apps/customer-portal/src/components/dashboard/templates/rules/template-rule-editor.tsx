@@ -58,7 +58,7 @@ export default function TemplateRuleEditor({ rule = null, templates = [], onSave
     }
   }, [templates]);
 
-  const loadTemplates = async () => {
+  async function loadTemplates() {
     try {
       setLoading(true);
       const response = await fetchTemplates({ limit: 100 });
@@ -68,7 +68,7 @@ export default function TemplateRuleEditor({ rule = null, templates = [], onSave
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const validateForm = () => {
     const newErrors: Partial<Record<'name' | 'template' | 'keywords', string>> = {};

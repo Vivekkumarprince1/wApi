@@ -34,7 +34,7 @@ export default function TemplateRulesPage() {
     loadRules();
   }, [pagination.page, triggerTypeFilter, searchTerm]);
 
-  const loadRules = async () => {
+  async function loadRules() {
     try {
       setLoading(true);
       const params: Record<string, string | number> = {
@@ -58,7 +58,7 @@ export default function TemplateRulesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleCreateNew = () => {
     setEditingRule(null);

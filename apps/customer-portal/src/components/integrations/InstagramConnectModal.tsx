@@ -84,7 +84,7 @@ export function InstagramConnectModal({ isOpen, onClose, onSuccess }: InstagramC
     checkStatus();
   }, [isOpen]);
 
-  const checkStatus = async () => {
+  async function checkStatus() {
     setChecking(true);
     try {
       const resp = await getInstagramStatus();
@@ -94,7 +94,7 @@ export function InstagramConnectModal({ isOpen, onClose, onSuccess }: InstagramC
     } finally {
       setChecking(false);
     }
-  };
+  }
 
   const handleAuthorize = async (force = false) => {
     if (!hasBillingAccess && !isConnected) {

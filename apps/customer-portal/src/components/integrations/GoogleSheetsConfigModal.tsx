@@ -44,7 +44,7 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
     }
   }, [isOpen]);
 
-  const checkAuthStatus = async () => {
+  async function checkAuthStatus() {
     try {
       const resp = await getGoogleSheetsStatus();
       if (resp.connected) {
@@ -68,7 +68,7 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
     } catch (err) {
       setStep('auth');
     }
-  };
+  }
 
   const fetchSpreadsheets = async () => {
     setLoading(true);

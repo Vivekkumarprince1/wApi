@@ -74,7 +74,7 @@ export default function SMSComposer({
     loadTemplates();
   }, [conversationId]);
 
-  const loadTemplates = async () => {
+  async function loadTemplates() {
     try {
       setLoadingTemplates(true);
       const data = await fetchTemplatesByChannel('sms', 10);
@@ -84,7 +84,7 @@ export default function SMSComposer({
     } finally {
       setLoadingTemplates(false);
     }
-  };
+  }
 
   const handleSend = () => {
     if ((!text.trim() && !selectedFile) || disabled || isSending || isOverLimit) return;

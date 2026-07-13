@@ -44,7 +44,7 @@ export function WorkspaceSwitcher() {
     fetchWorkspaces();
   }, []);
 
-  const fetchWorkspaces = async () => {
+  async function fetchWorkspaces() {
     try {
       const response = await getWorkspaces() as any;
       setWorkspaces(response.workspaces || []);
@@ -54,7 +54,7 @@ export function WorkspaceSwitcher() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   const handleSwitch = async (workspaceId: string) => {
     if (workspaceId === activeWorkspace?.id?.toString()) return;

@@ -48,7 +48,7 @@ export default function VerifyMobilePage() {
     }, 1000);
   };
 
-  const sendOTP = async (phoneNumber = phone) => {
+  async function sendOTP(phoneNumber = phone) {
     if (!phoneNumber) {
       setError('Phone number is required');
       return;
@@ -70,7 +70,7 @@ export default function VerifyMobilePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();

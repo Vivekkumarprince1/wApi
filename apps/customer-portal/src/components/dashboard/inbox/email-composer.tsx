@@ -87,7 +87,7 @@ export default function EmailComposer({
     loadTemplates();
   }, [conversationId]);
 
-  const loadTemplates = async () => {
+  async function loadTemplates() {
     try {
       setLoadingTemplates(true);
       const data = await fetchTemplatesByChannel('email', 10);
@@ -97,7 +97,7 @@ export default function EmailComposer({
     } finally {
       setLoadingTemplates(false);
     }
-  };
+  }
 
   const handleSend = () => {
     if (!subject.trim() || !(useHtml ? htmlBody.trim() : body.trim()) || disabled || isSending) {

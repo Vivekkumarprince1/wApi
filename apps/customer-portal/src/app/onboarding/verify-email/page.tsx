@@ -43,7 +43,7 @@ export default function VerifyEmailPage() {
     init();
   }, [router, user]);
 
-  const sendOTP = async () => {
+  async function sendOTP() {
     try {
       setLoading(true);
       setError('');
@@ -68,7 +68,7 @@ export default function VerifyEmailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -30,7 +30,7 @@ export default function TemplateAnalyticsPage() {
     loadAnalytics();
   }, [dateRange]);
 
-  const loadAnalytics = async () => {
+  async function loadAnalytics() {
     try {
       setLoading(true);
       const days = parseInt(dateRange);
@@ -54,7 +54,7 @@ export default function TemplateAnalyticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   const handleExport = async (format: string) => {
     try {
