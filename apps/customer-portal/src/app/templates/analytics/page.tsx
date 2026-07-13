@@ -26,10 +26,6 @@ export default function TemplateAnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30'); // 30 days
 
-  useEffect(() => {
-    loadAnalytics();
-  }, [dateRange]);
-
   async function loadAnalytics() {
     try {
       setLoading(true);
@@ -55,6 +51,10 @@ export default function TemplateAnalyticsPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    loadAnalytics();
+  }, [dateRange]);
 
   const handleExport = async (format: string) => {
     try {

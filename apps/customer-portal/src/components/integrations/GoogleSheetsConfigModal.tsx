@@ -37,12 +37,29 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
   const [selectedSheet, setSelectedSheet] = useState('');
   const [syncExisting, setSyncExisting] = useState(false);
 
-  // 1. Check if already authenticated when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      checkAuthStatus();
+  async function fetchSpreadsheets() {
+    setLoading(true);
+    try {
+      const resp = await getGoogleSheetsSpreadsheets();
+      setSpreadsheets(resp.files || []);
+    } catch (err) {
+      toast.error("Failed to fetch spreadsheets");
+    } finally {
+      setLoading(false);
     }
-  }, [isOpen]);
+  }
+
+  async function fetchSheets(spreadsheetId: string) {
+    setLoading(true);
+    try {
+      const resp = await getGoogleSheetsSheets(spreadsheetId);
+      setSheets(resp.sheets || []);
+    } catch (err) {
+      toast.error("Failed to fetch sheets");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function checkAuthStatus() {
     try {
@@ -70,29 +87,12 @@ export function GoogleSheetsConfigModal({ isOpen, onClose, onSuccess }: GoogleSh
     }
   }
 
-  const fetchSpreadsheets = async () => {
-    setLoading(true);
-    try {
-      const resp = await getGoogleSheetsSpreadsheets();
-      setSpreadsheets(resp.files || []);
-    } catch (err) {
-      toast.error("Failed to fetch spreadsheets");
-    } finally {
-      setLoading(false);
+  // 1. Check if already authenticated when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      checkAuthStatus();
     }
-  };
-
-  const fetchSheets = async (spreadsheetId: string) => {
-    setLoading(true);
-    try {
-      const resp = await getGoogleSheetsSheets(spreadsheetId);
-      setSheets(resp.sheets || []);
-    } catch (err) {
-      toast.error("Failed to fetch sheets");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isOpen]);
 
   const handleAuthorize = async () => {
     setLoading(true);

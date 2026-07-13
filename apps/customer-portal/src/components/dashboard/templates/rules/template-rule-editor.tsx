@@ -52,12 +52,6 @@ export default function TemplateRuleEditor({ rule = null, templates = [], onSave
     enabled: rule?.enabled ?? true,
   });
 
-  useEffect(() => {
-    if (templates.length === 0) {
-      loadTemplates();
-    }
-  }, [templates]);
-
   async function loadTemplates() {
     try {
       setLoading(true);
@@ -69,6 +63,12 @@ export default function TemplateRuleEditor({ rule = null, templates = [], onSave
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (templates.length === 0) {
+      loadTemplates();
+    }
+  }, [templates]);
 
   const validateForm = () => {
     const newErrors: Partial<Record<'name' | 'template' | 'keywords', string>> = {};

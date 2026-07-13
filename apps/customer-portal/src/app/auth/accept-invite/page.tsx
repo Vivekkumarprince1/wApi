@@ -38,6 +38,44 @@ function AcceptInviteContent() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
+  async function checkAuth() {
+    try {
+      const response = await getCurrentUser() as any;
+      setCurrentUser(response?.success && response?.user ? response.user : (response?.user || response?.data || null));
+    } catch (err) {
+      setCurrentUser(null);
+    } finally {
+      setCheckingAuth(false);
+    }
+  }
+
+  async function verifyInvite() {
+    console.log(`[Verify] Sending request for token: ${token}, email: ${email}`);
+    try {
+      const res = await getInvitation(token || '', email || '') as any;
+      const info = res.success && res.data ? res.data : res;
+      console.log(`[Verify] Success:`, info);
+      setInviteInfo(info);
+      setName(info.name || '');
+    } catch (err: any) {
+      const msg = err.response?.data?.error || err.message || "Invalid or expired invitation";
+      console.error(`[Verify] Error:`, msg, err);
+
+      const redirectToken = err.response?.data?.redirectToken;
+      const redirectEmail = err.response?.data?.redirectEmail;
+
+      if (redirectToken && redirectEmail) {
+        const newUrl = `/auth/accept-invite?token=${redirectToken}&email=${encodeURIComponent(redirectEmail)}`;
+        router.replace(newUrl);
+        return;
+      }
+
+      setError(msg);
+    } finally {
+      setIsVerifying(false);
+    }
+  }
+
   useEffect(() => {
     if (token && email) {
       setError(null);
@@ -50,46 +88,6 @@ function AcceptInviteContent() {
       setCheckingAuth(false);
     }
   }, [token, email, searchParams]);
-
-  async function checkAuth() {
-    try {
-      const response = await getCurrentUser() as any;
-      setCurrentUser(response?.success && response?.user ? response.user : (response?.user || response?.data || null));
-    } catch (err) {
-      setCurrentUser(null);
-    } finally {
-      setCheckingAuth(false);
-    }
-  }
-
-
-
-  async function verifyInvite() {
-    console.log(`[Verify] Sending request for token: ${token}, email: ${email}`);
-    try {
-      const res = await getInvitation(token || '', email || '') as any;
-      const info = res.success && res.data ? res.data : res; // handle both wrapped and unwrapped
-      console.log(`[Verify] Success:`, info);
-      setInviteInfo(info);
-      setName(info.name || '');
-    } catch (err: any) {
-      const msg = err.response?.data?.error || err.message || "Invalid or expired invitation";
-      console.error(`[Verify] Error:`, msg, err);
-
-      const redirectToken = err.response?.data?.redirectToken;
-      const redirectEmail = err.response?.data?.redirectEmail;
-      
-      if (redirectToken && redirectEmail) {
-        const newUrl = `/auth/accept-invite?token=${redirectToken}&email=${encodeURIComponent(redirectEmail)}`;
-        router.replace(newUrl);
-        return;
-      }
-
-      setError(msg);
-    } finally {
-      setIsVerifying(false);
-    }
-  }
 
 
   const handleLoginRedirect = () => {

@@ -70,6 +70,18 @@ export const DealDialog: React.FC<DealDialogProps> = ({
   const [isSearchingContacts, setIsSearchingContacts] = useState(false);
   const [selectedContact, setSelectedContact] = useState<any>(null);
 
+  async function searchContacts() {
+    setIsSearchingContacts(true);
+    try {
+      const res = await fetchContacts(1, 10, { search: contactSearch });
+      setContacts(res.data || []);
+    } catch (err) {
+      console.error("Contact search error", err);
+    } finally {
+      setIsSearchingContacts(false);
+    }
+  }
+
   useEffect(() => {
     if (deal) {
       setFormData({
@@ -116,18 +128,6 @@ export const DealDialog: React.FC<DealDialogProps> = ({
 
     return () => clearTimeout(delayDebounceFn);
   }, [contactSearch]);
-
-  async function searchContacts() {
-    setIsSearchingContacts(true);
-    try {
-      const res = await fetchContacts(1, 10, { search: contactSearch });
-      setContacts(res.data || []);
-    } catch (err) {
-      console.error("Contact search error", err);
-    } finally {
-      setIsSearchingContacts(false);
-    }
-  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

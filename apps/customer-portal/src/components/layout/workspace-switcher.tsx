@@ -40,10 +40,6 @@ export function WorkspaceSwitcher() {
 
   const activeWorkspace = workspaces?.find(w => w?.isActive);
 
-  useEffect(() => {
-    fetchWorkspaces();
-  }, []);
-
   async function fetchWorkspaces() {
     try {
       const response = await getWorkspaces() as any;
@@ -55,6 +51,10 @@ export function WorkspaceSwitcher() {
       setIsLoading(false);
     }
   }
+
+  useEffect(() => {
+    fetchWorkspaces();
+  }, []);
 
   const handleSwitch = async (workspaceId: string) => {
     if (workspaceId === activeWorkspace?.id?.toString()) return;

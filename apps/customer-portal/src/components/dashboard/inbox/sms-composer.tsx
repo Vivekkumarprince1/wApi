@@ -69,11 +69,6 @@ export default function SMSComposer({
   const remainingChars = (SMS_CHAR_LIMIT - (charCount % SMS_CHAR_LIMIT)) % SMS_CHAR_LIMIT || SMS_CHAR_LIMIT;
   const isOverLimit = charCount > SMS_LONG_CHAR_LIMIT;
 
-  // Load templates on component mount
-  useEffect(() => {
-    loadTemplates();
-  }, [conversationId]);
-
   async function loadTemplates() {
     try {
       setLoadingTemplates(true);
@@ -85,6 +80,11 @@ export default function SMSComposer({
       setLoadingTemplates(false);
     }
   }
+
+  // Load templates on component mount
+  useEffect(() => {
+    loadTemplates();
+  }, [conversationId]);
 
   const handleSend = () => {
     if ((!text.trim() && !selectedFile) || disabled || isSending || isOverLimit) return;

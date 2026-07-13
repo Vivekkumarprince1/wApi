@@ -82,11 +82,6 @@ export default function EmailComposer({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const subjectRef = useRef<HTMLInputElement>(null);
 
-  // Load templates on mount
-  useEffect(() => {
-    loadTemplates();
-  }, [conversationId]);
-
   async function loadTemplates() {
     try {
       setLoadingTemplates(true);
@@ -98,6 +93,11 @@ export default function EmailComposer({
       setLoadingTemplates(false);
     }
   }
+
+  // Load templates on mount
+  useEffect(() => {
+    loadTemplates();
+  }, [conversationId]);
 
   const handleSend = () => {
     if (!subject.trim() || !(useHtml ? htmlBody.trim() : body.trim()) || disabled || isSending) {
