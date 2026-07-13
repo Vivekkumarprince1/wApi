@@ -91,6 +91,9 @@ keyVaultSecrets:
       objectName: whatsapp-webhook-verify-token
 
 services:
+  api-gateway:
+    env:
+      ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
   auth-service:
     secretEnv:
       MONGO_URI: MONGO_URI_AUTH
@@ -118,6 +121,8 @@ services:
     secretEnv:
       MONGO_URI: MONGO_URI_WEBHOOK
   websocket-gateway:
+    env:
+      ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     secretEnv:
       MONGO_URI: MONGO_URI_WEBSOCKET
   admin-portal:

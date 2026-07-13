@@ -121,6 +121,7 @@ services:
     servicePort: 5001
     env:
       PORT: "5001"
+      ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     resources:
       requests:
         cpu: 100m
@@ -290,6 +291,7 @@ services:
     servicePort: 3009
     env:
       PORT: "3009"
+      ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     secretEnv:
       MONGO_URI: MONGO_URI_WEBSOCKET
     resources:
