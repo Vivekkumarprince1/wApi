@@ -9,8 +9,7 @@ export class ProviderEventProducerService implements OnModuleInit, OnModuleDestr
 
   async onModuleInit() {
     const redisUrl = process.env.REDIS_URL;
-    const backgroundWorkersEnabled =
-      process.env.ENABLE_BACKGROUND_WORKERS === 'true' || process.env.NODE_ENV === 'production';
+    const backgroundWorkersEnabled = process.env.ENABLE_BACKGROUND_WORKERS !== 'false';
 
     if (!backgroundWorkersEnabled) {
       this.simulatedMode = true;

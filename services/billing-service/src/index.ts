@@ -18,8 +18,7 @@ import workspaceBillingRoutes from './routes/workspaceBillingRoutes';
 // ... (omitted)
 
 const app = express();
-const backgroundWorkersEnabled =
-  process.env.ENABLE_BACKGROUND_WORKERS === 'true' || process.env.NODE_ENV === 'production';
+const backgroundWorkersEnabled = process.env.ENABLE_BACKGROUND_WORKERS !== 'false';
 app.use(helmet());
 app.use(cors());
 app.use(express.json({

@@ -12,6 +12,7 @@ import internalRouter from './routes/internalRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
+const backgroundWorkersEnabled = process.env.ENABLE_BACKGROUND_WORKERS !== 'false';
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
@@ -38,10 +39,12 @@ app.get('/', (req, res) => {
 
 async function start() {
   await connectDb();
-  await initEventBus();
-
-  // Start in-process background workers
-  startSnoozeWorker();
+  if (backgroundWorkersEnabled) {
+    await initEventBus();
+    startSnoozeWorker();
+  } else {
+    console.warn('[Chat Service] Background workers disabled; HTTP API remains available.');
+  }
 
   const server = app.listen(config.port, '0.0.0.0', () => {
     console.log(`[Chat Service] Running at http://localhost:${config.port}`);

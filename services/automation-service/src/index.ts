@@ -22,8 +22,7 @@ import { startIntegrationSyncScheduler, stopIntegrationSyncScheduler } from './s
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const backgroundWorkersEnabled =
-  process.env.ENABLE_BACKGROUND_WORKERS === 'true' || process.env.NODE_ENV === 'production';
+const backgroundWorkersEnabled = process.env.ENABLE_BACKGROUND_WORKERS !== 'false';
 
 // Middleware
 app.use(helmet());
