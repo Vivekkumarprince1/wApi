@@ -164,11 +164,11 @@ jobs:
             NEXT_PUBLIC_APP_NAME=${{ vars.NEXT_PUBLIC_APP_NAME || 'ConnectSphere' }}
             NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
             NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || '/api' }}
-            NEXT_PUBLIC_SOCKET_URL=${{ vars.NEXT_PUBLIC_SOCKET_URL }}
+            NEXT_PUBLIC_SOCKET_URL=${{ vars.NEXT_PUBLIC_SOCKET_URL || 'https://connectsphere-api-vivek.eastus.cloudapp.azure.com' }}
             NEXT_PUBLIC_GOOGLE_CLIENT_ID=${{ vars.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
             NEXT_PUBLIC_FACEBOOK_APP_ID=${{ vars.NEXT_PUBLIC_FACEBOOK_APP_ID }}
             NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY=${{ vars.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY || 'false' }}
-            BACKEND_API_URL=${{ vars.BACKEND_API_URL }}
+            BACKEND_API_URL=${{ vars.BACKEND_API_URL || 'http://connectsphere-api-gateway:5001' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

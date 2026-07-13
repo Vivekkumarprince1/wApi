@@ -16,7 +16,7 @@ config:
     NEXT_PUBLIC_APP_NAME: ConnectSphere
     NEXT_PUBLIC_APP_URL: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com
     NEXT_PUBLIC_API_URL: /api
-    NEXT_PUBLIC_SOCKET_URL: ""
+    NEXT_PUBLIC_SOCKET_URL: https://connectsphere-api-vivek.eastus.cloudapp.azure.com
     CUSTOMER_PORTAL_URL: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com
     CUSTOMER_PORTAL_HEALTH_URL: http://connectsphere-customer-portal:3000
     ADMIN_PORTAL_URL: http://connectsphere-admin-vivek.eastus.cloudapp.azure.com
@@ -37,6 +37,25 @@ secret:
   create: false
   name: connectsphere-secrets
   stringData: {}
+
+keyVaultSecrets:
+  enabled: false
+  name: connectsphere-keyvault-secrets
+  provider: azure
+  keyVaultName: ""
+  tenantId: ""
+  usePodIdentity: "false"
+  useVMManagedIdentity: "true"
+  userAssignedIdentityID: ""
+  cloudName: ""
+  syncSecret:
+    enabled: true
+    name: connectsphere-secrets
+    type: Opaque
+  syncPod:
+    enabled: true
+    image: registry.k8s.io/pause:3.10
+  objects: []
 
 imagePullSecrets: []
 

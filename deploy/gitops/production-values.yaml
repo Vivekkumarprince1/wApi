@@ -14,7 +14,7 @@ config:
     NEXT_PUBLIC_APP_NAME: ConnectSphere
     NEXT_PUBLIC_APP_URL: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com
     NEXT_PUBLIC_API_URL: /api
-    NEXT_PUBLIC_SOCKET_URL: ""
+    NEXT_PUBLIC_SOCKET_URL: https://connectsphere-api-vivek.eastus.cloudapp.azure.com
     CUSTOMER_PORTAL_URL: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com
     CUSTOMER_PORTAL_HEALTH_URL: http://connectsphere-customer-portal:3000
     ADMIN_PORTAL_URL: http://connectsphere-admin-vivek.eastus.cloudapp.azure.com
@@ -34,6 +34,61 @@ config:
 secret:
   create: false
   name: connectsphere-secrets
+
+keyVaultSecrets:
+  enabled: true
+  keyVaultName: connectsphere-prod-kv
+  tenantId: 21006d98-d493-4e9b-bdd6-6f128e1ee540
+  userAssignedIdentityID: 99cc93b9-291d-442a-936d-a637a84c8b8c
+  objects:
+    - key: GUPSHUP_PARTNER_CLIENT_SECRET
+      objectName: gupshup-partner-client-secret
+    - key: GUPSHUP_PARTNER_EMAIL
+      objectName: gupshup-partner-email
+    - key: GUPSHUP_PARTNER_PASSWORD
+      objectName: gupshup-partner-password
+    - key: INTEGRATION_ENCRYPTION_KEY
+      objectName: integration-encryption-key
+    - key: INTERNAL_SERVICE_SECRET
+      objectName: internal-service-secret
+    - key: JWT_SECRET
+      objectName: jwt-secret
+    - key: MONGODB_URI
+      objectName: mongodb-uri
+    - key: MONGODB_URI_AUTOMATION
+      objectName: mongodb-uri-automation
+    - key: MONGODB_URI_BILLING
+      objectName: mongodb-uri-billing
+    - key: MONGODB_URI_CAMPAIGN
+      objectName: mongodb-uri-campaign
+    - key: MONGO_URI_AUTH
+      objectName: mongo-uri-auth
+    - key: MONGO_URI_AUTOMATION
+      objectName: mongo-uri-automation
+    - key: MONGO_URI_BILLING
+      objectName: mongo-uri-billing
+    - key: MONGO_URI_BSP
+      objectName: mongo-uri-bsp
+    - key: MONGO_URI_CAMPAIGN
+      objectName: mongo-uri-campaign
+    - key: MONGO_URI_CHAT
+      objectName: mongo-uri-chat
+    - key: MONGO_URI_CONTACT
+      objectName: mongo-uri-contact
+    - key: MONGO_URI_WEBHOOK
+      objectName: mongo-uri-webhook
+    - key: MONGO_URI_WEBSOCKET
+      objectName: mongo-uri-websocket
+    - key: REDIS_URL
+      objectName: redis-url
+    - key: VERIFY_TOKEN
+      objectName: verify-token
+    - key: WEBHOOK_SECRET
+      objectName: webhook-secret
+    - key: WEBHOOK_VERIFY_TOKEN
+      objectName: webhook-verify-token
+    - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
+      objectName: whatsapp-webhook-verify-token
 
 services:
   auth-service:
