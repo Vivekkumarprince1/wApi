@@ -12,7 +12,7 @@ config:
   name: connectsphere-config
   data:
     NODE_ENV: production
-    ENABLE_BACKGROUND_WORKERS: "false"
+    ENABLE_BACKGROUND_WORKERS: "true"
     ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     NEXT_PUBLIC_APP_NAME: ConnectSphere
     NEXT_PUBLIC_APP_URL: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com
