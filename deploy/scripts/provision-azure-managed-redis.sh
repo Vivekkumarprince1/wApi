@@ -60,13 +60,10 @@ if ! az redisenterprise show \
     --location "$LOCATION" \
     --sku "$REDIS_SKU" \
     --high-availability Enabled \
-    --access-keys-authentication Enabled \
-    --client-protocol Encrypted \
     --minimum-tls-version 1.2 \
-    --clustering-policy EnterpriseCluster \
-    --eviction-policy AllKeysLRU \
     --public-network-access Enabled \
     --tags environment=production application=connectsphere managed-by=cli \
+    --no-database \
     --no-wait \
     -o none
 fi
@@ -78,6 +75,59 @@ az redisenterprise wait \
   --created \
   --interval 30 \
   --timeout 3600
+
+wait_for_database() {
+  local state=""
+  for _ in $(seq 1 120); do
+    state="$(az redisenterprise database show \
+      --resource-group "$RESOURCE_GROUP" \
+      --cluster-name "$REDIS_NAME" \
+      --query provisioningState -o tsv 2>/dev/null || true)"
+    case "$state" in
+      Succeeded)
+        return 0
+        ;;
+      Failed|Canceled|Cancelled)
+        echo "Managed Redis database entered terminal state: ${state}" >&2
+        return 1
+        ;;
+    esac
+    sleep 30
+  done
+  echo "Timed out waiting for the Managed Redis database." >&2
+  return 1
+}
+
+echo "Ensuring the Managed Redis database exists..."
+database_state="$(az redisenterprise database show \
+  --resource-group "$RESOURCE_GROUP" \
+  --cluster-name "$REDIS_NAME" \
+  --query provisioningState -o tsv 2>/dev/null || true)"
+if [ -z "$database_state" ]; then
+  az redisenterprise database create \
+    --resource-group "$RESOURCE_GROUP" \
+    --cluster-name "$REDIS_NAME" \
+    --access-keys-authentication Enabled \
+    --client-protocol Encrypted \
+    --clustering-policy EnterpriseCluster \
+    --eviction-policy AllKeysLRU \
+    --no-wait \
+    -o none
+fi
+
+echo "Waiting for the Managed Redis database..."
+wait_for_database
+
+echo "Ensuring TLS and access-key authentication are enabled..."
+az redisenterprise database update \
+  --resource-group "$RESOURCE_GROUP" \
+  --cluster-name "$REDIS_NAME" \
+  --access-keys-authentication Enabled \
+  --client-protocol Encrypted \
+  --eviction-policy AllKeysLRU \
+  --no-wait \
+  -o none
+wait_for_database
 
 redis_host="$(az redisenterprise show \
   --resource-group "$RESOURCE_GROUP" \
