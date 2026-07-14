@@ -224,15 +224,38 @@ jobs:
           set -euo pipefail
           mkdir -p "gitops/$GITOPS_ENV_DIR"
 
-          if [ ! -f "gitops/$GITOPS_ENV_DIR/production-values.yaml" ]; then
-            cp source/deploy/gitops/production-values.yaml "gitops/$GITOPS_ENV_DIR/production-values.yaml"
+          existing_values="gitops/$GITOPS_ENV_DIR/production-values.yaml"
+          existing_registry=""
+          existing_tag=""
+          if [ -f "$existing_values" ]; then
+            existing_registry="$(python3 - "$existing_values" <<'PY'
+import re
+import sys
+text = open(sys.argv[1], encoding='utf-8').read()
+match = re.search(r'^\s*registry:\s*([^\s#]+)', text, re.M)
+print(match.group(1) if match else '')
+PY
+)"
+            existing_tag="$(python3 - "$existing_values" <<'PY'
+import re
+import sys
+text = open(sys.argv[1], encoding='utf-8').read()
+match = re.search(r'^\s*tag:\s*([^\s#]+)', text, re.M)
+print(match.group(1) if match else '')
+PY
+)"
           fi
+
+          # Production configuration is source-controlled in this repository.
+          # Replacing the external values file prevents stale safety settings
+          # (origins, secret mappings, probes, flags) from surviving releases.
+          cp source/deploy/gitops/production-values.yaml "$existing_values"
 
           rsync -a --delete --exclude production-values.yaml source/deploy/helm/connectsphere/ "gitops/$GITOPS_ENV_DIR/"
 
           python3 source/deploy/scripts/update-values.py \
-            "gitops/$GITOPS_ENV_DIR/production-values.yaml" \
-            "$ACR_LOGIN_SERVER" \
+            "$existing_values" \
+            "${existing_registry:-$ACR_LOGIN_SERVER}" \
             "$IMAGE_TAG"
 
       - name: Commit GitOps update
