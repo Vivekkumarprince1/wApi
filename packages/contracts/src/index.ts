@@ -17,6 +17,8 @@ export * from './worker-bridge';
 export * from './automation-actions';
 export * from './billing-events';
 export * from './internal-identity';
+export * from './metrics';
+export * from './tracing';
 export * from './billing-internal';
 export * from './bsp';
 export * from './campaign-events';

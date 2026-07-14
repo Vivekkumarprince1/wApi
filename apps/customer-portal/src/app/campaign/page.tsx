@@ -67,7 +67,12 @@ const CampaignsPage = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['campaigns'],
     queryFn: () => fetchCampaigns(),
-    refetchInterval: 10000, // Poll every 10s for status updates
+    refetchInterval: (query) => {
+      const payload: any = query.state.data;
+      const campaigns = payload?.campaigns || payload?.data?.campaigns || payload?.data || [];
+      return Array.isArray(campaigns) && campaigns.some((campaign: any) => ['QUEUED', 'RUNNING', 'SCHEDULED', 'PROCESSING'].includes(String(campaign?.status || '').toUpperCase())) ? 10000 : false;
+    },
+    refetchIntervalInBackground: false,
   });
 
   const campaigns: Campaign[] = useMemo(() => data?.campaigns || [], [data?.campaigns]);

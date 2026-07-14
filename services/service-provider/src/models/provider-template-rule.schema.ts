@@ -52,3 +52,5 @@ export class ProviderTemplateRule extends WorkspaceScopedModel {
 
 export const ProviderTemplateRuleSchema = SchemaFactory.createForClass(ProviderTemplateRule);
 ProviderTemplateRuleSchema.index({ workspaceId: 1, enabled: 1, priority: -1 });
+ProviderTemplateRuleSchema.index({ workspaceId: 1, enabled: 1, priority: -1, createdAt: -1 });
+ProviderTemplateRuleSchema.index({ workspaceId: 1, enabled: 1, triggerType: 1, priority: -1, createdAt: -1 });

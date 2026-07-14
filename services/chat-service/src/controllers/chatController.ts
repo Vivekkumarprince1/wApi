@@ -63,12 +63,13 @@ export const getConversationsInternal = async (req: express.Request, res: expres
       return res.status(400).json({ success: false, message: 'Missing workspace context header' });
     }
 
-    const { status = 'open' } = req.query as any;
+    const { status = 'open', limit = 100 } = req.query as any;
+    const boundedLimit = Math.min(Math.max(parseInt(String(limit), 10) || 100, 1), 200);
 
     const list = await Conversation.find({
       workspace: new mongoose.Types.ObjectId(workspaceId as string),
       status,
-    }).sort({ lastActivityAt: -1 });
+    }).sort({ lastActivityAt: -1 }).limit(boundedLimit).lean();
 
     return res.status(200).json({ success: true, data: list });
   } catch (err: any) {
@@ -85,10 +86,11 @@ export const getTimelineMessagesInternal = async (req: express.Request, res: exp
       return res.status(400).json({ success: false, message: 'Missing workspace context header' });
     }
 
+    const boundedLimit = Math.min(Math.max(parseInt(String(req.query.limit || 100), 10) || 100, 1), 200);
     const list = await Message.find({
       workspace: new mongoose.Types.ObjectId(workspaceId as string),
       conversation: new mongoose.Types.ObjectId(id),
-    }).sort({ sentAt: 1 });
+    }).sort({ sentAt: -1 }).limit(boundedLimit).lean();
 
     return res.status(200).json({ success: true, data: serializeMessages(list) });
   } catch (err: any) {

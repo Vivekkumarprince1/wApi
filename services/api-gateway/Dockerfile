@@ -11,4 +11,5 @@ ENV NODE_ENV=production
 COPY --from=builder /app/services/api-gateway ./services/api-gateway
 WORKDIR /app/services/api-gateway
 EXPOSE 5001
+USER node
 CMD ["npm", "run", "start"]

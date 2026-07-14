@@ -61,6 +61,8 @@ const CampaignMessageSchema = new Schema<ICampaignMessageDocument, ICampaignMess
 CampaignMessageSchema.index({ campaign: 1, contact: 1 }, { unique: true });
 CampaignMessageSchema.index({ workspace: 1, internalMessageId: 1 }, { unique: true });
 CampaignMessageSchema.index({ campaign: 1, status: 1 });
+CampaignMessageSchema.index({ campaign: 1, createdAt: -1 });
+CampaignMessageSchema.index({ campaign: 1, status: 1, createdAt: -1 });
 CampaignMessageSchema.index({ whatsappMessageId: 1 }, { unique: true, sparse: true });
 CampaignMessageSchema.index({ workspace: 1, createdAt: -1 });
 

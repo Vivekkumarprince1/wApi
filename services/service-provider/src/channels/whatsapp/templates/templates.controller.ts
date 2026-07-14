@@ -294,7 +294,10 @@ export class TemplatesPublicController {
     const limit = Math.min(Math.max(parseInt(query.limit, 10) || 20, 1), 100);
     const filter: any = { workspaceId };
     if (query.triggerType) filter.triggerType = query.triggerType;
-    if (query.search) filter.name = { $regex: String(query.search), $options: 'i' };
+    if (query.search) {
+      const safeSearch = String(query.search).trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (safeSearch) filter.name = { $regex: safeSearch, $options: 'i' };
+    }
     if (query.enabled === 'true') filter.enabled = true;
     if (query.enabled === 'false') filter.enabled = false;
 

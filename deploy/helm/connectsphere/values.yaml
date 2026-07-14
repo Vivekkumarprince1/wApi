@@ -1,4 +1,5 @@
 global:
+  terminationGracePeriodSeconds: 60
   image:
     registry: changeme.azurecr.io
     repositoryPrefix: connectsphere
@@ -12,6 +13,8 @@ config:
   name: connectsphere-config
   data:
     NODE_ENV: production
+    APP_ENV: production
+    RELEASE_VERSION: v1.0.0
     ENABLE_BACKGROUND_WORKERS: "true"
     FEATURE_COMMERCE: "false"
     FEATURE_AI_FAQ: "false"
@@ -147,6 +150,7 @@ services:
     replicas: 2
     containerPort: 5001
     servicePort: 5001
+    readinessPath: /readiness
     env:
       PORT: "5001"
       ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
@@ -165,6 +169,7 @@ services:
     replicas: 2
     containerPort: 3006
     servicePort: 3006
+    readinessPath: /readiness
     env:
       PORT: "3006"
     secretEnv:
@@ -184,6 +189,7 @@ services:
     replicas: 1
     containerPort: 3002
     servicePort: 3002
+    readinessPath: /readiness
     env:
       PORT: "3002"
     secretEnv:
@@ -203,6 +209,7 @@ services:
     replicas: 1
     containerPort: 3003
     servicePort: 3003
+    readinessPath: /readiness
     env:
       PORT: "3003"
     secretEnv:
@@ -222,6 +229,7 @@ services:
     replicas: 1
     containerPort: 3004
     servicePort: 3004
+    readinessPath: /readiness
     env:
       PORT: "3004"
     secretEnv:
@@ -241,6 +249,7 @@ services:
     replicas: 1
     containerPort: 3001
     servicePort: 3001
+    readinessPath: /readiness
     env:
       PORT: "3001"
     secretEnv:
@@ -260,6 +269,7 @@ services:
     replicas: 2
     containerPort: 3008
     servicePort: 3008
+    readinessPath: /readiness
     env:
       PORT: "3008"
     secretEnv:
@@ -279,6 +289,7 @@ services:
     replicas: 1
     containerPort: 3007
     servicePort: 3007
+    readinessPath: /readiness
     env:
       PORT: "3007"
     secretEnv:
@@ -298,6 +309,7 @@ services:
     replicas: 2
     containerPort: 3013
     servicePort: 3013
+    readinessPath: /readiness
     env:
       PORT: "3013"
     secretEnv:
@@ -317,6 +329,7 @@ services:
     replicas: 2
     containerPort: 3009
     servicePort: 3009
+    readinessPath: /readiness
     env:
       PORT: "3009"
       ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com,http://connectsphere-career-vivek.eastus.cloudapp.azure.com,https://connectsphere-career-vivek.eastus.cloudapp.azure.com

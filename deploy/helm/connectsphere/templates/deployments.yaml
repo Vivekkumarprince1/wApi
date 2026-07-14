@@ -10,6 +10,14 @@ metadata:
     app.kubernetes.io/component: {{ $name }}
 spec:
   replicas: {{ $service.replicas }}
+  revisionHistoryLimit: 5
+  progressDeadlineSeconds: 600
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       {{- include "connectsphere.selectorLabels" $ | nindent 6 }}
@@ -25,6 +33,20 @@ spec:
       {{- end }}
     spec:
       serviceAccountName: {{ include "connectsphere.serviceAccountName" $ }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ default $.Values.global.terminationGracePeriodSeconds $service.terminationGracePeriodSeconds }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "connectsphere.selectorLabels" $ | nindent 14 }}
+              app.kubernetes.io/component: {{ $name }}
       {{- with $.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -33,6 +55,10 @@ spec:
         - name: {{ $name }}
           image: {{ include "connectsphere.image" (dict "root" $ "name" $name "service" $service) | quote }}
           imagePullPolicy: {{ default $.Values.global.image.pullPolicy $service.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
           ports:
             - name: http
               containerPort: {{ $service.containerPort }}
@@ -56,6 +82,13 @@ spec:
                   key: {{ $secretKey }}
             {{- end }}
           {{- if $.Values.probes.enabled }}
+          startupProbe:
+            httpGet:
+              path: {{ default (default $.Values.probes.path $service.healthPath) $service.livenessPath }}
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: {{ $.Values.probes.timeoutSeconds }}
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: {{ default (default $.Values.probes.path $service.healthPath) $service.readinessPath }}

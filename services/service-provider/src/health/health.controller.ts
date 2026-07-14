@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { config } from '../config';
@@ -22,5 +22,13 @@ export class HealthController {
       db: dbState === 1 ? 'connected' : dbState === 2 ? 'connecting' : 'disconnected',
       timestamp: new Date().toISOString(),
     };
+  }
+
+  @Get('/readiness')
+  readiness() {
+    if (this.connection.readyState !== 1) {
+      throw new ServiceUnavailableException({ status: 'not_ready', service: 'bsp-service', mongo: false });
+    }
+    return { status: 'ready', service: 'bsp-service', mongo: true };
   }
 }

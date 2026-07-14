@@ -53,6 +53,8 @@ WalletTransactionSchema.index(
   { externalReferenceId: 1 },
   { unique: true, partialFilterExpression: { externalReferenceId: { $type: 'string' } } },
 );
+WalletTransactionSchema.index({ workspaceId: 1, createdAt: -1 });
+WalletTransactionSchema.index({ status: 1, type: 1 });
 
 export const WalletTransactionModel = mongoose.model<IWalletTransactionDoc>('WalletTransaction', WalletTransactionSchema);
 

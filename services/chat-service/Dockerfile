@@ -17,4 +17,5 @@ COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/services/chat-service ./services/chat-service
 WORKDIR /app/services/chat-service
 EXPOSE 3008
+USER node
 CMD ["npm", "run", "start"]

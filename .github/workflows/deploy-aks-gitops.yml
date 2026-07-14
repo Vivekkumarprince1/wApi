@@ -32,7 +32,7 @@ jobs:
       matrix:
         service:
           - { name: 'contracts', dir: 'packages/contracts', needs_contracts: false }
-          - { name: 'api-gateway', dir: 'services/api-gateway', needs_contracts: false }
+          - { name: 'api-gateway', dir: 'services/api-gateway', needs_contracts: true }
           - { name: 'auth-service', dir: 'services/auth-service', needs_contracts: true }
           - { name: 'campaign-service', dir: 'services/campaign-service', needs_contracts: true }
           - { name: 'billing-service', dir: 'services/billing-service', needs_contracts: true }
@@ -40,8 +40,8 @@ jobs:
           - { name: 'automation-service', dir: 'services/automation-service', needs_contracts: true }
           - { name: 'chat-service', dir: 'services/chat-service', needs_contracts: true }
           - { name: 'contact-service', dir: 'services/contact-service', needs_contracts: true }
-          - { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', needs_contracts: false }
-          - { name: 'websocket-gateway', dir: 'services/websocket-gateway', needs_contracts: false }
+          - { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', needs_contracts: true }
+          - { name: 'websocket-gateway', dir: 'services/websocket-gateway', needs_contracts: true }
           - { name: 'admin-portal', dir: 'apps/admin-portal', needs_contracts: true }
           - { name: 'career-portal', dir: 'apps/career-portal', needs_contracts: false }
           - { name: 'customer-portal', dir: 'apps/customer-portal', needs_contracts: false }
@@ -170,7 +170,6 @@ jobs:
           push: true
           tags: |
             ${{ env.ACR_LOGIN_SERVER }}/connectsphere/${{ matrix.image }}:${{ env.IMAGE_TAG }}
-            ${{ env.ACR_LOGIN_SERVER }}/connectsphere/${{ matrix.image }}:latest
           build-args: |
             NEXT_PUBLIC_APP_NAME=${{ vars.NEXT_PUBLIC_APP_NAME || 'ConnectSphere' }}
             NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
@@ -185,6 +184,15 @@ jobs:
             NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${{ vars.CAREER_RECAPTCHA_SITE_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Scan image for critical vulnerabilities
+        uses: aquasecurity/trivy-action@0.32.0
+        with:
+          image-ref: ${{ env.ACR_LOGIN_SERVER }}/connectsphere/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+          format: table
+          exit-code: '1'
+          severity: CRITICAL
+          ignore-unfixed: true
 
   update-gitops:
     name: Update Helm values in GitOps repo

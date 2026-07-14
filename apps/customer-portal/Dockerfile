@@ -45,4 +45,5 @@ ENV BACKEND_API_URL=$BACKEND_API_URL
 COPY --from=builder /app/apps/customer-portal ./apps/customer-portal
 WORKDIR /app/apps/customer-portal
 EXPOSE 3000
+USER node
 CMD ["npm", "run", "start"]

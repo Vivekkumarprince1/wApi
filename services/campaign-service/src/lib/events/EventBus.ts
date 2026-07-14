@@ -6,6 +6,7 @@
  */
 
 import mongoose from 'mongoose';
+import { campaignMetrics } from '../metrics';
 import Redis from 'ioredis';
 import { Campaign, ICampaignModel, CampaignMessage } from '../../models';
 import { CampaignBatch, ICampaignBatchModel } from '../../models/CampaignBatch';
@@ -212,6 +213,7 @@ const handleMessageStatusUpdate = async (data: any) => {
     if (messageUpdate) {
       console.log(`[CampaignEventBus] ✓ Updated CampaignMessage for ${contactId || whatsappMessageId}`);
       await Campaign.incrementTotal(campaignId, field);
+      campaignMetrics.increment(`campaign_messages_${field}_total`, `Campaign messages transitioned to ${field}`);
       console.log(`[CampaignEventBus] ✓ Incremented ${field} for campaign ${campaignId}`);
     }
   } catch (err: any) {

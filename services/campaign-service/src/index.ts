@@ -14,16 +14,24 @@ import adsRoutes from './routes/adsRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { CampaignWorker } from './workers/CampaignWorker';
 import { startCampaignEventConsumer } from './lib/events/EventBus';
+import { metricsEndpoint, tracingMiddleware } from '@wapi/contracts';
+import { campaignMetrics as metrics } from './lib/metrics';
+import { campaignQueue, campaignDeadLetterQueue } from './lib/campaign-queue';
+import { getSharedRedis } from './lib/redis';
 
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+let ready = false;
+let campaignWorker: CampaignWorker | null = null;
 
 // Middleware
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(correlationIdMiddleware);
+app.use(tracingMiddleware());
+app.use(metrics.middleware());
 
 // Request Logger — structured, correlated, ships to Better Stack via shared logger
 app.use((req, res, next) => {
@@ -66,13 +74,14 @@ mongoose.connect(MONGODB_URI, {
         .then(() => console.log('✅ Campaign event consumer started'))
         .catch((err) => console.error('❌ Failed to start EventBus consumer:', err.message));
 
-      new CampaignWorker();
+      campaignWorker = new CampaignWorker(metrics);
     } else {
       console.log('Campaign background workers disabled for local development. Set ENABLE_BACKGROUND_WORKERS=true to enable them.');
     }
     
     // Start Server ONLY after DB connection
     server = app.listen(PORT, () => {
+      ready = true;
       console.log(`🚀 Campaign Service listening on port ${PORT}`);
     });
   })
@@ -98,6 +107,17 @@ app.get('/health', (req, res) => {
     timestamp: new Date()
   });
 });
+app.get('/readiness', async (_req, res) => {
+  let redisReady = false;
+  try { redisReady = (await getSharedRedis().ping()) === 'PONG'; } catch { redisReady = false; }
+  const isReady = ready && mongoose.connection.readyState === 1 && redisReady;
+  res.status(isReady ? 200 : 503).json({ status: isReady ? 'ready' : 'not_ready', mongo: mongoose.connection.readyState === 1, redis: redisReady });
+});
+app.get('/metrics', async (_req, res) => {
+  const counts = await (await import('./lib/campaign-queue')).CampaignQueueService.getOperationalCounts();
+  for (const [state, value] of Object.entries(counts)) metrics.gauge('queue_jobs', 'BullMQ jobs by state', Number(value), { queue_name: 'campaign-engine', state });
+  metricsEndpoint(metrics)(_req, res);
+});
 
 // Register Routes
 app.use('/api/campaign', campaignRoutes);
@@ -111,8 +131,13 @@ app.use(errorHandler);
 function gracefulShutdown(signal: string) {
   console.log(`[${signal}] Received. Shutting down gracefully...`);
   
+  ready = false;
   const closeDb = async () => {
     try {
+      await campaignWorker?.close();
+      await campaignQueue.close();
+      await campaignDeadLetterQueue.close();
+      try { await getSharedRedis().quit(); } catch { getSharedRedis().disconnect(); }
       await mongoose.connection.close(false);
       console.log('Database connection closed.');
       process.exit(0);

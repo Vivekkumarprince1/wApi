@@ -8,6 +8,7 @@ import { InvoiceService } from '../services/InvoiceService';
 import { PricingService } from '../services/PricingService';
 import { PlanModel, WorkspaceModel, WalletTransactionModel, OrderModel, RazorpayOrderModel } from '../models';
 import { AuthRequest } from '../middleware/auth';
+import { billingMetrics } from '../lib/metrics';
 
 const ledgerService = new LedgerService();
 const invoiceService = new InvoiceService();
@@ -62,6 +63,7 @@ export class WalletController {
       }
 
       const order = await RazorpayService.createRechargeOrder(finalPaise, workspaceId);
+      billingMetrics.increment('payment_orders_created_total', 'Razorpay payment orders created', { type: 'recharge' });
 
       // Persist order metadata locally so verifyRecharge can look up the amount
       // without calling the Razorpay API (avoids FAILED_TO_FETCH_RAZORPAY_PAYMENT).
@@ -239,6 +241,7 @@ export class WalletController {
         razorpay_signature as string
       );
       if (!isValid) {
+        billingMetrics.increment('payment_verification_failures_total', 'Payment verification failures', { type: 'recharge', reason: 'signature' });
         return res.status(400).json({ success: false, message: 'Payment signature verification failed' });
       }
 
@@ -248,6 +251,7 @@ export class WalletController {
         return res.status(400).json({ success: false, message: 'Order not found. Please contact support.' });
       }
       if (localOrder.workspaceId !== workspaceId || localOrder.type !== 'RECHARGE') {
+        billingMetrics.increment('billing_reconciliation_mismatches_total', 'Payment intent reconciliation mismatches', { type: 'recharge' });
         return res.status(403).json({ success: false, error: { code: 'PAYMENT_ORDER_MISMATCH', message: 'Payment order does not belong to this workspace or operation' } });
       }
       const amountPaise = localOrder.amountPaise;
@@ -649,6 +653,7 @@ export class WalletController {
           // 1. Check for Idempotency
           const existingTx = await WalletTransactionModel.findOne({ externalReferenceId: paymentId });
           if (existingTx) {
+            billingMetrics.increment('payment_webhook_duplicates_total', 'Duplicate payment webhooks', { event_type: event.event });
             console.log(`[Billing Webhook][${correlationId}] Transaction ${paymentId} already processed. Skipping.`);
             return res.status(200).json({ success: true, message: "Already processed" });
           }
@@ -731,6 +736,7 @@ export class WalletController {
       
       res.json({ success: true });
     } catch (err: any) {
+      billingMetrics.increment('wallet_credit_failures_total', 'Wallet credit or payment webhook processing failures', { operation: 'razorpay_webhook' });
       console.error(`[Billing Webhook][${correlationId}] Fatal Error:`, err.message);
       res.status(500).json({ success: false, error: err.message });
     }

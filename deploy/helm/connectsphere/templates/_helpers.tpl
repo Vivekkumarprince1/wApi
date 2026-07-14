@@ -41,6 +41,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- $prefix := $root.Values.global.image.repositoryPrefix | default "" | trimAll "/" -}}
 {{- $repository := default $name $service.image.repository -}}
 {{- $tag := default $root.Values.global.image.tag $service.image.tag | default $root.Chart.AppVersion -}}
+{{- if and (eq ($root.Values.config.data.NODE_ENV | default "development") "production") (or (contains "changeme" $registry) (eq $tag "latest")) -}}
+{{- fail "production images require a non-placeholder registry and immutable non-latest tag" -}}
+{{- end -}}
 {{- if $prefix -}}
 {{- printf "%s/%s/%s:%s" $registry $prefix $repository $tag -}}
 {{- else -}}

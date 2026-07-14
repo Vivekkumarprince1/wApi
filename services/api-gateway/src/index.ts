@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type RequestHandler } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import IORedis from 'ioredis';
 import { config } from './config/env';
 import { featureForApiPath } from './config/feature-flags';
-import { signInternalIdentity } from '@connectsphere/contracts';
+import { createServiceLogger, MetricsRegistry, metricsEndpoint, signInternalIdentity, tracingMiddleware } from '@connectsphere/contracts';
 // IMPORTANT: http-proxy-middleware v3's `createProxyMiddleware` strips the
 // Express mount prefix from `req.url` BEFORE `pathRewrite` runs. Every
 // pathRewrite in this gateway (and every downstream service, which mount their
@@ -20,8 +20,13 @@ import { authRateLimit, apiRateLimit, bulkRateLimit } from './middleware/rateLim
 const app = express();
 const port = config.port;
 const isProduction = config.isProduction;
+const observability = createServiceLogger({ service: 'api-gateway' });
+const metrics = new MetricsRegistry('api-gateway');
+let ready = true;
 
 app.set('trust proxy', 1);
+app.use(tracingMiddleware());
+app.use(metrics.middleware() as RequestHandler);
 
 const publicAuthPaths = new Set([
   '/api/v1/auth/login',
@@ -354,7 +359,8 @@ const SERVICES = {
 // to avoid "res.writeHead is not a function" crashing the gateway.
 const handleProxyError = (serviceName: string) => (err: any, req: any, res: any) => {
   const correlationId = req?.headers?.['x-correlation-id'] || 'unknown';
-  console.error(`[API Gateway Proxy Error] ${req?.method} ${req?.url} -> Failed to reach ${serviceName} service: ${err?.message} (Correlation ID: ${correlationId})`);
+  observability.logger.error('proxy.request.failed', { operation: 'proxy', downstreamService: serviceName, method: req?.method, path: req?.url, errorCode: err?.code || 'DOWNSTREAM_UNAVAILABLE', error: err?.message, correlationId });
+  metrics.increment('gateway_proxy_errors_total', 'API gateway downstream proxy errors', { downstream_service: serviceName });
   if (!res || typeof res.writeHead !== 'function') {
     // WebSocket upgrade error: res is a net.Socket — just tear it down.
     try { res?.destroy?.(); } catch { /* noop */ }
@@ -822,6 +828,12 @@ app.get('/health', (req, res) => {
   });
 });
 
+app.get('/readiness', (_req, res) => {
+  res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'draining', service: 'api-gateway' });
+});
+
+app.get('/metrics', metricsEndpoint(metrics));
+
 // Root endpoint
 app.get('/', (req, res) => {
   res.status(200).json({
@@ -846,3 +858,16 @@ const server = app.listen(port, '0.0.0.0', () => {
 
 // Proxy WebSocket upgrades for socket.io to the websocket-gateway.
 server.on('upgrade', (wsProxy as any).upgrade);
+
+const shutdown = (signal: string) => {
+  ready = false;
+  observability.logger.info('service.shutdown.started', { operation: 'shutdown', signal, result: 'draining' });
+  server.close(async () => {
+    try { await redisClient?.quit(); } catch { redisClient?.disconnect(); }
+    observability.logger.info('service.shutdown.completed', { operation: 'shutdown', signal, result: 'success' });
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 45_000).unref();
+};
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));

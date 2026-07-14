@@ -78,6 +78,8 @@ const ContactSchema = new Schema<IContactDocument>({
 });
 
 ContactSchema.index({ workspace: 1, phone: 1 }, { unique: true });
+ContactSchema.index({ workspace: 1, createdAt: -1 });
+ContactSchema.index({ workspace: 1, tags: 1, createdAt: -1 });
 
 ContactSchema.virtual('displayName').get(function(this: IContactDocument) {
   const isValid = (val?: string) => val && val.trim() && val.toLowerCase() !== 'unknown';

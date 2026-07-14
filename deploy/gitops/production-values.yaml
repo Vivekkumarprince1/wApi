@@ -1,15 +1,17 @@
 global:
   image:
-    registry: changeme.azurecr.io
+    registry: example.azurecr.io
     repositoryPrefix: connectsphere
-    tag: latest
-    pullPolicy: IfNotPresent
+    tag: v1.0.0
+    pullPolicy: Always
 
 config:
   create: true
   name: connectsphere-config
   data:
     NODE_ENV: production
+    APP_ENV: production
+    RELEASE_VERSION: v1.0.0
     ENABLE_BACKGROUND_WORKERS: "true"
     FEATURE_COMMERCE: "false"
     FEATURE_AI_FAQ: "false"

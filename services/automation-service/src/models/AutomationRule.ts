@@ -142,5 +142,9 @@ const AutomationRuleSchema: Schema = new Schema({
 
 // Optimized index for rule evaluation
 AutomationRuleSchema.index({ workspace: 1, enabled: 1, 'trigger.event': 1, deletedAt: 1 });
+AutomationRuleSchema.index({ workspace: 1, enabled: 1, 'trigger.event': 1, deletedAt: 1, priority: -1 });
+AutomationRuleSchema.index({ workspace: 1, category: 1, enabled: 1, deletedAt: 1, priority: -1, createdAt: -1 });
+AutomationRuleSchema.index({ workspace: 1, deletedAt: 1, priority: -1, createdAt: -1 });
+AutomationRuleSchema.index({ enabled: 1, 'trigger.event': 1, deletedAt: 1 });
 
 export const AutomationRule: Model<IAutomationRule> = mongoose.models.AutomationRule || mongoose.model<IAutomationRule>('AutomationRule', AutomationRuleSchema);

@@ -1,5 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
+
+const escapeSearch = (value: unknown) => String(value || '').trim().slice(0, 100).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 import { Contact, FormSubmission, normalizePhoneNumber } from '../models/index.js';
 import { publishContactEvent } from '../services/eventBus.js';
 import { logActivity } from '../services/activity-log.js';
@@ -75,13 +77,15 @@ export const getContactsInternal = async (req: express.Request, res: express.Res
     }
 
     const { page = 1, limit = 50, search, tags } = req.query as any;
+    const boundedLimit = Math.min(Math.max(parseInt(String(limit), 10) || 50, 1), 100);
+    const safeSearch = escapeSearch(search);
     const query: any = { workspace: new mongoose.Types.ObjectId(String(workspaceId)) };
 
-    if (search) {
+    if (safeSearch) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search } },
-        { 'metadata.email': { $regex: search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { phone: { $regex: safeSearch } },
+        { 'metadata.email': { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -90,11 +94,12 @@ export const getContactsInternal = async (req: express.Request, res: express.Res
       query.tags = { $in: tagList };
     }
 
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * boundedLimit;
     const items = await Contact.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit, 10));
+      .limit(boundedLimit)
+      .lean();
 
     const total = await Contact.countDocuments(query);
 
@@ -103,9 +108,9 @@ export const getContactsInternal = async (req: express.Request, res: express.Res
       data: items,
       meta: {
         page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
+        limit: boundedLimit,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / boundedLimit)
       }
     });
   } catch (err: any) {
@@ -263,13 +268,15 @@ export const getContactsPublic = async (req: any, res: express.Response) => {
     }
 
     const { page = 1, limit = 50, search, tags } = req.query as any;
+    const boundedLimit = Math.min(Math.max(parseInt(String(limit), 10) || 50, 1), 100);
+    const safeSearch = escapeSearch(search);
     const query: any = { workspace: workspaceId };
 
-    if (search) {
+    if (safeSearch) {
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { phone: { $regex: search } },
-        { 'metadata.email': { $regex: search, $options: 'i' } }
+        { name: { $regex: safeSearch, $options: 'i' } },
+        { phone: { $regex: safeSearch } },
+        { 'metadata.email': { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -278,11 +285,12 @@ export const getContactsPublic = async (req: any, res: express.Response) => {
       query.tags = { $in: tagList };
     }
 
-    const skip = (page - 1) * limit;
+    const skip = (Number(page) - 1) * boundedLimit;
     const items = await Contact.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(parseInt(limit, 10));
+      .limit(boundedLimit)
+      .lean();
 
     const total = await Contact.countDocuments(query);
 
@@ -291,9 +299,9 @@ export const getContactsPublic = async (req: any, res: express.Response) => {
       data: items,
       meta: {
         page: parseInt(page, 10),
-        limit: parseInt(limit, 10),
+        limit: boundedLimit,
         total,
-        pages: Math.ceil(total / limit)
+        pages: Math.ceil(total / boundedLimit)
       }
     });
   } catch (err: any) {

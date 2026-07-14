@@ -53,7 +53,12 @@ export default function CampaignDetailsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['campaign', campaignId],
     queryFn: () => fetchCampaignById(campaignId),
-    refetchInterval: 5000 // Poll every 5s for realtime stats
+    refetchInterval: (query) => {
+      const payload: any = query.state.data;
+      const current = payload?.data?.campaign || payload?.campaign || payload?.data || payload;
+      return ['COMPLETED', 'FAILED', 'CANCELLED', 'PAUSED'].includes(String(current?.status || '').toUpperCase()) ? false : 5000;
+    },
+    refetchIntervalInBackground: false,
   });
 
   const campaign = (data as any)?.data?.campaign || (data as any)?.campaign || (data as any)?.data || data;

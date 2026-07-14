@@ -253,6 +253,11 @@ CampaignSchema.index({ workspace: 1, status: 1 });
 CampaignSchema.index({ workspace: 1, createdAt: -1 });
 CampaignSchema.index({ workspace: 1, scheduledAt: 1, status: 1 });
 CampaignSchema.index({ status: 1, scheduledAt: 1 });
+CampaignSchema.index({ status: 1, updatedAt: 1 });
+CampaignSchema.index(
+  { workspace: 1, 'metadata.idempotencyKey': 1 },
+  { unique: true, partialFilterExpression: { 'metadata.idempotencyKey': { $type: 'string' } } },
+);
 
 CampaignSchema.pre<ICampaignDocument>('save', function() {
   this.updatedAt = new Date();

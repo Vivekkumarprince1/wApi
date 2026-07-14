@@ -8,8 +8,12 @@ import apiRouter from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { disconnectEventProducer, startAuditConsumer, stopAuditConsumer } from './services/eventService.js';
 import { startDeletionWorker, stopDeletionQueue } from './services/deletion-queue.js';
+import mongoose from 'mongoose';
+import { createServiceLogger, correlationIdMiddleware, MetricsRegistry, metricsEndpoint } from '@wapi/contracts';
 
 const app = express();
+const metrics = new MetricsRegistry('auth-service');
+const observability = createServiceLogger({ service: 'auth-service' });
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
   "http://localhost:3000",
@@ -30,7 +34,14 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(correlationIdMiddleware(observability.withCorrelationId, observability.als));
 app.use(morgan(config.env === 'production' ? 'combined' : 'dev'));
+app.use(metrics.middleware());
+app.use((req, res, next) => {
+  const started = Date.now();
+  res.on('finish', () => observability.logger.info('http.request', { operation: 'http.request', method: req.method, path: req.path, statusCode: res.statusCode, durationMs: Date.now() - started, result: res.statusCode < 400 ? 'success' : 'failure' }));
+  next();
+});
 
 // Mount API Router
 app.use('/', apiRouter);
@@ -42,6 +53,11 @@ app.use(errorHandler);
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'wapi-auth-service' });
 });
+app.get('/readiness', (_req, res) => {
+  const isReady = mongoose.connection.readyState === 1;
+  res.status(isReady ? 200 : 503).json({ status: isReady ? 'ready' : 'not_ready', mongo: isReady });
+});
+app.get('/metrics', metricsEndpoint(metrics));
 
 app.get('/', (req, res) => {
   res.json({ service: 'wapi-auth-service', healthy: true });

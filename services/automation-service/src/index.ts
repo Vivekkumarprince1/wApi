@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import { logger, correlationIdMiddleware, getCorrelationId } from './lib/logger';
 import { mountSwaggerUI } from '@wapi/contracts';
 import { openapiDocument } from './openapi';
+import { MetricsRegistry, metricsEndpoint } from '@wapi/contracts';
 
 // Route Imports
 import aiIntentRoutes from './routes/aiIntentRoutes';
@@ -21,6 +22,7 @@ import integrationRoutes from './routes/integrationRoutes';
 import { startIntegrationSyncScheduler, stopIntegrationSyncScheduler } from './services/integration-sync-scheduler';
 
 const app = express();
+const metrics = new MetricsRegistry('automation-service');
 const PORT = process.env.PORT || 3001;
 const backgroundWorkersEnabled = process.env.ENABLE_BACKGROUND_WORKERS !== 'false';
 
@@ -29,6 +31,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(correlationIdMiddleware);
+app.use(metrics.middleware());
 
 // Request Logger — structured, correlated, ships to Better Stack via shared logger
 app.use((req, res, next) => {
@@ -68,6 +71,11 @@ app.get('/health', (req, res) => {
     timestamp: new Date()
   });
 });
+app.get('/readiness', (_req, res) => {
+  const isReady = mongoose.connection.readyState === 1;
+  res.status(isReady ? 200 : 503).json({ status: isReady ? 'ready' : 'not_ready', mongo: isReady });
+});
+app.get('/metrics', metricsEndpoint(metrics));
 
 // Register Routes
 app.use('/api/automation/engine', aiIntentRoutes);

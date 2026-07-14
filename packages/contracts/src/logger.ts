@@ -26,6 +26,18 @@ import { createLogger, format, transports, type Logger } from 'winston';
 
 type Store = { correlationId?: string };
 
+const SENSITIVE_KEY = /authorization|cookie|password|secret|token|otp|api[-_]?key|signature|rawbody|payload/i;
+
+export function redactSensitive(value: unknown, depth = 0): unknown {
+  if (depth > 6) return '[TRUNCATED]';
+  if (Array.isArray(value)) return value.map((item) => redactSensitive(item, depth + 1));
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, item]) => [
+    key,
+    SENSITIVE_KEY.test(key) ? '[REDACTED]' : redactSensitive(item, depth + 1),
+  ]));
+}
+
 export interface LoggerOptions {
   /** Service name stamped on every log line (e.g. 'campaign-service'). */
   service: string;
@@ -87,6 +99,10 @@ export function createServiceLogger(opts: LoggerOptions): ServiceLogger {
         info.correlationId = store.correlationId;
       }
       info.service = opts.service;
+      for (const [key, value] of Object.entries(info)) {
+        if (SENSITIVE_KEY.test(key)) info[key] = '[REDACTED]';
+        else if (value && typeof value === 'object') info[key] = redactSensitive(value);
+      }
       return info;
     })(),
   );

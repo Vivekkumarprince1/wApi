@@ -61,6 +61,29 @@ for service in "${services[@]}"; do
   fi
 done
 
+contract_workflows=(
+  ".github/workflows/ci.yml"
+  ".github/workflows/deploy-aks-gitops.yml"
+)
+
+for service in "${services[@]}"; do
+  package_file="$service/package.json"
+  if [[ ! -f "$package_file" ]]; then
+    continue
+  fi
+  if ! grep -Eq '"@(connectsphere|wapi)/contracts"' "$package_file"; then
+    continue
+  fi
+
+  service_name="$(basename "$service")"
+  for workflow in "${contract_workflows[@]}"; do
+    if ! grep -Eq "name: '$service_name'.*needs_contracts: true" "$workflow"; then
+      echo "::error file=$workflow::${service_name} depends on shared contracts but is not marked needs_contracts: true"
+      missing=1
+    fi
+  done
+done
+
 if git ls-files -- "*.env" | grep -q .; then
   echo "::error::One or more .env files are tracked. Production secrets must use Kubernetes Secrets or Key Vault."
   missing=1
@@ -68,12 +91,18 @@ fi
 
 production_values="deploy/gitops/production-values.yaml"
 if [[ -f "$production_values" ]]; then
+  if grep -Eq '^[[:space:]]+(registry:[[:space:]]*changeme|tag:[[:space:]]*latest)' "$production_values"; then
+    echo "::error file=$production_values::Production images require a real registry and immutable non-latest tag"
+    missing=1
+  fi
   if grep -E '^[[:space:]]+(NEXT_PUBLIC_APP_URL|CUSTOMER_PORTAL_URL|ADMIN_PORTAL_URL|CAREER_PORTAL_URL|ALLOWED_ORIGINS):.*http://' "$production_values" >/dev/null; then
     echo "::error file=$production_values::Public production URLs and origins must use HTTPS"
     missing=1
   fi
 
   required_flags=(
+    'APP_ENV: production'
+    'RELEASE_VERSION: v1.0.0'
     'ALLOW_DEV_AUTH_MOCKS: "false"'
     'ALLOW_DEV_MEDIA_MOCKS: "false"'
     'ALLOW_UNSIGNED_DEV_WEBHOOKS: "false"'
@@ -102,6 +131,32 @@ if [[ -f "$production_values" ]]; then
       missing=1
     fi
   done
+fi
+
+if grep -RIE --exclude-dir=node_modules --exclude-dir=dist --exclude='*.test.*' --exclude='*.spec.*' \
+  '(dummy_key|dummy_secret|mock-fb-token|wamid\.mock|images\.unsplash\.com.*fallback)' services packages 2>/dev/null; then
+  echo "::error::Known production mock or dummy credential pattern found"
+  missing=1
+fi
+
+helm_template="deploy/helm/connectsphere/templates/deployments.yaml"
+for required in 'readinessProbe:' 'livenessProbe:' 'startupProbe:' 'terminationGracePeriodSeconds:' 'maxUnavailable: 0'; do
+  if ! grep -Fq "$required" "$helm_template"; then
+    echo "::error file=$helm_template::Missing Kubernetes launch hardening: $required"
+    missing=1
+  fi
+done
+
+if [[ ! -f deploy/helm/connectsphere/templates/pdb.yaml ]]; then
+  echo "::error::PodDisruptionBudget template is required"
+  missing=1
+fi
+
+if [[ -f "$production_values" ]] && command -v helm >/dev/null 2>&1; then
+  if ! helm template connectsphere deploy/helm/connectsphere -f "$production_values" >/dev/null; then
+    echo "::error file=$production_values::Production Helm values do not render"
+    missing=1
+  fi
 fi
 
 if [[ "$missing" -ne 0 ]]; then

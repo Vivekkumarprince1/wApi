@@ -6,6 +6,7 @@ import mongoose, { Schema } from 'mongoose';
 import { createAdapter } from '@socket.io/redis-adapter';
 import Redis from 'ioredis';
 import { config } from './config/env.js';
+import { MetricsRegistry } from '@connectsphere/contracts';
 
 const app = express();
 const httpServer = createServer(app);
@@ -13,6 +14,8 @@ const PORT = config.port;
 const JWT_SECRET = config.jwtSecret;
 const AUTH_SERVICE_URL = config.authServiceUrl;
 const AUTH_SERVICE_TIMEOUT_MS = config.authServiceTimeoutMs;
+const metrics = new MetricsRegistry('websocket-gateway');
+let ready = false;
 
 
 const allowedOrigins = config.allowedOrigins;
@@ -46,6 +49,12 @@ const io = new SocketIOServer(httpServer, {
     credentials: true,
   },
   transports: ['websocket', 'polling'],
+});
+
+io.on('connection', (socket) => {
+  metrics.increment('websocket_connections_total', 'Accepted WebSocket connections');
+  metrics.gauge('websocket_active_connections', 'Current active WebSocket connections', io.engine.clientsCount);
+  socket.on('disconnect', () => metrics.gauge('websocket_active_connections', 'Current active WebSocket connections', io.engine.clientsCount));
 });
 
 // Database connection
@@ -277,11 +286,13 @@ io.use(async (socket: any, next) => {
     }
 
     if (!token) {
+      metrics.increment('websocket_authentication_failures_total', 'WebSocket authentication failures', { reason: 'missing_token' });
       return next(new Error('Unauthorized: missing auth token'));
     }
 
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     if (!decoded || !decoded.id) {
+      metrics.increment('websocket_authentication_failures_total', 'WebSocket authentication failures', { reason: 'invalid_token' });
       return next(new Error('Unauthorized: invalid token'));
     }
 
@@ -294,6 +305,7 @@ io.use(async (socket: any, next) => {
     console.log(`[WebSocket Gateway] Authenticated user: ${socket.userId}${socket.workspaceId ? ` workspace:${socket.workspaceId}` : ''}`);
     next();
   } catch (err: any) {
+    metrics.increment('websocket_authentication_failures_total', 'WebSocket authentication failures', { reason: 'verification_failed' });
     next(new Error('Unauthorized: authentication failed'));
   }
 });
@@ -615,6 +627,17 @@ async function initEventBus() {
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', service: 'wapi-websocket-gateway' });
 });
+app.get('/readiness', (_req, res) => {
+  const mongoReady = mongoose.connection.readyState === 1;
+  const redisReady = !!redisProducer && redisProducer.status === 'ready';
+  const isReady = ready && mongoReady && redisReady;
+  res.status(isReady ? 200 : 503).json({ status: isReady ? 'ready' : 'not_ready', mongo: mongoReady, redis: redisReady });
+});
+app.get('/metrics', (_req, res) => {
+  metrics.gauge('websocket_active_connections', 'Current active WebSocket connections', io.engine.clientsCount);
+  res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+  res.send(metrics.render());
+});
 
 async function initRedisAdapter() {
   try {
@@ -636,8 +659,23 @@ async function start() {
   await initRedisAdapter();
   await initEventBus();
   httpServer.listen(PORT, '0.0.0.0', () => {
+    ready = true;
     console.log(`[WebSocket Gateway] Running at http://localhost:${PORT}`);
   });
 }
 
 start();
+
+const shutdown = (signal: string) => {
+  ready = false;
+  io.close();
+  httpServer.close(async () => {
+    try { redisProducer?.disconnect(); redisConsumer?.disconnect(); } catch { /* noop */ }
+    await mongoose.connection.close(false);
+    console.log(`[WebSocket Gateway] ${signal} shutdown complete`);
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 45_000).unref();
+};
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));

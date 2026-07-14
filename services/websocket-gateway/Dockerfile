@@ -11,4 +11,5 @@ ENV NODE_ENV=production
 COPY --from=builder /app/services/websocket-gateway ./services/websocket-gateway
 WORKDIR /app/services/websocket-gateway
 EXPOSE 3009
+USER node
 CMD ["npm", "run", "start"]

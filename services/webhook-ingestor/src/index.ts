@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 import { MongoClient } from 'mongodb';
 import { config } from './config/env.js';
 import { normalizeWebhookProvider, verifyProviderSignature } from './webhook-security.js';
+import { MetricsRegistry } from '@connectsphere/contracts';
 
 const server = fastify({
   logger: config.env !== 'production',
@@ -17,6 +18,7 @@ const REDIS_TOPIC = config.redisTopic;
 const INTERNAL_SECRET = config.internalServiceSecret;
 const MONGO_URI = config.mongoUri;
 const DEAD_LETTER_COLLECTION = config.deadLetterCollection;
+const metrics = new MetricsRegistry('webhook-ingestor');
 
 
 // --- REDIS SETUP ---
@@ -25,6 +27,7 @@ let simulatedMode = false;
 let mongoClient: MongoClient | null = null;
 let redisReconnectAfter = 0;
 let lastRedisErrorLogAt = 0;
+let ready = false;
 
 const REDIS_RECONNECT_COOLDOWN_MS = 30_000;
 const REDIS_ERROR_LOG_COOLDOWN_MS = 60_000;
@@ -249,6 +252,7 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
   const rawBodyString = rawBodyBuffer.toString('utf8');
 
   const provider = normalizeWebhookProvider(providerParam || 'gupshup');
+  metrics.increment('webhooks_received_total', 'Provider webhooks received', { provider: provider || 'unknown' });
   if (!provider) {
     return reply.status(400).send({ success: false, error: { code: 'UNSUPPORTED_WEBHOOK_PROVIDER', message: 'Unsupported webhook provider' } });
   }
@@ -260,9 +264,11 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
     secrets: config.webhookSecrets,
   });
   if (!signatureValid && !config.allowUnsignedDevWebhooks) {
+    metrics.increment('webhooks_rejected_total', 'Provider webhooks rejected', { provider, reason: 'signature' });
     server.log.warn({ event: 'security.webhook_rejected', provider, reason: 'invalid_signature' });
     return reply.status(401).send({ success: false, error: { code: 'INVALID_WEBHOOK_SIGNATURE', message: 'Webhook signature verification failed' } });
   }
+  metrics.increment('webhooks_verified_total', 'Provider webhooks cryptographically verified', { provider });
 
   let parsedPayload: any = {};
   try {
@@ -296,6 +302,7 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
     if (err?.code === 11000) {
       const existing = await receipts.findOne({ eventId });
       if (existing?.status === 'published') {
+        metrics.increment('webhooks_duplicates_total', 'Duplicate provider webhooks', { provider });
         return reply.status(200).send({ success: true, duplicate: true, eventId });
       }
     } else {
@@ -307,6 +314,8 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
     await publishRawWebhook(eventId, eventMessage);
     await receipts.updateOne({ eventId }, { $set: { status: 'published', publishedAt: new Date(), updatedAt: new Date() } });
   } catch (eventErr: any) {
+    metrics.increment('webhooks_processing_failed_total', 'Webhook processing failures', { provider });
+    metrics.increment('webhooks_dead_lettered_total', 'Webhook events persisted for replay', { provider });
     server.log.error({ event: 'webhook.publish_failed', eventId, provider, error: eventErr.message });
     await receipts.updateOne({ eventId }, { $set: { status: 'pending', error: eventErr.message, updatedAt: new Date() } });
     await persistDeadLetter(eventId, eventMessage, eventErr.message);
@@ -370,6 +379,16 @@ server.get('/health', async () => {
     mode: simulatedMode ? 'degraded' : 'live',
   };
 });
+server.get('/readiness', async (_req, reply) => {
+  const redisReady = !!redisProducer && redisProducer.status === 'ready' && !simulatedMode;
+  const mongoReady = !!mongoClient;
+  const isReady = ready && redisReady && mongoReady;
+  return reply.status(isReady ? 200 : 503).send({ status: isReady ? 'ready' : 'not_ready', redis: redisReady, mongo: mongoReady });
+});
+server.get('/metrics', async (_req, reply) => {
+  reply.header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+  return reply.send(metrics.render());
+});
 
 // Root path Tunnel check
 server.get('/', async () => {
@@ -382,6 +401,7 @@ async function start() {
     await deadLetterCollection();
     await receiptCollection();
     await server.listen({ port: PORT, host: '0.0.0.0' });
+    ready = true;
     console.log(`[Webhook Ingestor] Server running at http://localhost:${PORT}`);
   } catch (err) {
     console.error('[Webhook Ingestor] Fatal startup error:', err);
@@ -391,3 +411,14 @@ async function start() {
 }
 
 start();
+
+const shutdown = async (signal: string) => {
+  ready = false;
+  try { await server.close(); } catch { /* noop */ }
+  try { redisProducer?.disconnect(); } catch { /* noop */ }
+  try { await mongoClient?.close(); } catch { /* noop */ }
+  console.log(`[Webhook Ingestor] ${signal} shutdown complete`);
+  process.exit(0);
+};
+process.once('SIGTERM', () => void shutdown('SIGTERM'));
+process.once('SIGINT', () => void shutdown('SIGINT'));

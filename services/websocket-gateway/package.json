@@ -9,6 +9,7 @@
     "start": "node dist/index.js"
   },
   "dependencies": {
+    "@connectsphere/contracts": "file:../../packages/contracts",
     "@socket.io/redis-adapter": "^8.3.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",

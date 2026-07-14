@@ -13,12 +13,18 @@ import webhookRoutes from './routes/webhookRoutes';
 import commerceRoutes from './routes/commerceRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import workspaceBillingRoutes from './routes/workspaceBillingRoutes';
+import { createRedisConnection } from './lib/redis';
+import { metricsEndpoint } from '@wapi/contracts';
+import { billingMetrics } from './lib/metrics';
 
 // --- Startup Guards ---
 // ... (omitted)
 
 const app = express();
 const backgroundWorkersEnabled = process.env.ENABLE_BACKGROUND_WORKERS !== 'false';
+let ready = false;
+let server: ReturnType<typeof app.listen> | null = null;
+const readinessRedis = createRedisConnection('billing-readiness', { lazyConnect: true, maxRetriesPerRequest: 1 });
 app.use(helmet());
 app.use(cors());
 app.use(express.json({
@@ -30,6 +36,7 @@ app.use(express.json({
 }));
 
 app.use(correlationIdMiddleware);
+app.use(billingMetrics.middleware());
 
 // Request Logger — structured, correlated, ships to Better Stack via shared logger
 app.use((req, res, next) => {
@@ -71,6 +78,17 @@ app.get('/health', async (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+app.get('/readiness', async (_req, res) => {
+  const dbReady = mongoose.connection.readyState === 1;
+  let redisReady = false;
+  try {
+    if (readinessRedis.status === 'wait') await readinessRedis.connect();
+    redisReady = (await readinessRedis.ping()) === 'PONG';
+  } catch { redisReady = false; }
+  const isReady = ready && dbReady && (!backgroundWorkersEnabled || redisReady);
+  res.status(isReady ? 200 : 503).json({ status: isReady ? 'ready' : 'not_ready', mongo: dbReady, redis: redisReady });
+});
+app.get('/metrics', metricsEndpoint(billingMetrics));
 
 async function bootstrap() {
   try {
@@ -83,7 +101,8 @@ async function bootstrap() {
       console.log('[Billing Service] Background event consumer disabled for local development. Set ENABLE_BACKGROUND_WORKERS=true to enable it.');
     }
 
-    app.listen(config.port, () => {
+    server = app.listen(config.port, () => {
+      ready = true;
       console.log(`[Billing Service] Listening on port ${config.port}`);
     });
   } catch (err: any) {
@@ -93,3 +112,16 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+const shutdown = (signal: string) => {
+  ready = false;
+  server?.close(async () => {
+    try { readinessRedis.disconnect(); } catch { /* noop */ }
+    await mongoose.connection.close(false);
+    console.log(`[Billing Service] ${signal} shutdown complete`);
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 45_000).unref();
+};
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));

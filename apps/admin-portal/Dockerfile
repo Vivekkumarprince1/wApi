@@ -25,4 +25,5 @@ COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/apps/admin-portal ./apps/admin-portal
 WORKDIR /app/apps/admin-portal
 EXPOSE 3100
+USER node
 CMD ["npm", "run", "start"]

@@ -17,4 +17,5 @@ COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/services/campaign-service ./services/campaign-service
 WORKDIR /app/services/campaign-service
 EXPOSE 3002
+USER node
 CMD ["npm", "run", "start"]

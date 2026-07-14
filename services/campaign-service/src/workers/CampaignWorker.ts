@@ -7,6 +7,7 @@ import { getSharedRedis } from "../lib/redis";
 import { microserviceWorkerClient } from "../lib/microservice-worker-client";
 import { Types } from "mongoose";
 import { DistributedRateLimiter } from '../lib/distributed-rate-limiter';
+import type { MetricsRegistry } from '@wapi/contracts';
 
 /**
  * CAMPAIGN WORKER (Microservice)
@@ -19,17 +20,19 @@ export class CampaignWorker {
   private worker: Worker;
   private limiter = new DistributedRateLimiter(getSharedRedis() as any);
 
-  constructor() {
+  constructor(private readonly metrics?: MetricsRegistry) {
     this.worker = new Worker('campaign-engine', this.processJob.bind(this), {
       connection: getSharedRedis() as any,
       concurrency: 5,
     });
 
     this.worker.on('completed', (job) => {
+        this.metrics?.increment('queue_jobs_completed_total', 'Completed BullMQ jobs', { queue_name: 'campaign-engine', job_name: job.name });
       console.log(`[CampaignWorker] ✅ Job ${job.id} completed`);
     });
 
     this.worker.on('failed', (job, err) => {
+        this.metrics?.increment('queue_jobs_failed_total', 'Failed BullMQ jobs', { queue_name: 'campaign-engine', job_name: job?.name || 'unknown' });
       console.error(`[CampaignWorker] ❌ Job ${job?.id} failed:`, err.message);
       const exhausted = !!job && job.attemptsMade >= Number(job.opts.attempts || 1);
       if (exhausted) {
@@ -43,6 +46,10 @@ export class CampaignWorker {
         }).catch((dlqError) => console.error('[CampaignWorker] DLQ persistence failed:', dlqError.message));
       }
     });
+  }
+
+  async close() {
+    await this.worker.close(false);
   }
 
   private async processJob(job: Job) {
@@ -90,6 +97,7 @@ export class CampaignWorker {
 
   private async handleCampaignStart(job: Job) {
     const { campaignId, workspaceId } = job.data;
+    this.metrics?.increment('campaigns_started_total', 'Campaigns entering execution');
     const campaign = await Campaign.findById(campaignId);
     if (!campaign) throw new Error('Campaign not found');
 
@@ -247,6 +255,7 @@ export class CampaignWorker {
                 });
 
                 if (result.success) {
+                  this.metrics?.increment('campaign_messages_accepted_total', 'Campaign messages accepted by provider');
                     successCount++;
                     const messageId = result.message?.whatsappMessageId || (result.result as any)?.messageId;
                     await (batch as any).updateRecipientStatus(contact._id.toString(), 'sent', messageId);
@@ -274,6 +283,7 @@ export class CampaignWorker {
                       { upsert: true, new: true, setDefaultsOnInsert: true }
                     );
                 } else {
+                  this.metrics?.increment('campaign_messages_failed_total', 'Campaign message dispatch failures');
                     failCount++;
                     const error = result.result?.error || 'Unknown Error';
                     await (batch as any).updateRecipientStatus(contact._id.toString(), 'failed', null, error);
@@ -355,6 +365,7 @@ export class CampaignWorker {
     if (isLastBatch) {
         const finalized = await Campaign.findOneAndUpdate({ _id: campaignId, status: { $ne: 'COMPLETED' } }, { $set: { status: 'COMPLETED', completedAt: new Date() } }, { new: true });
         if (finalized) {
+          this.metrics?.increment('campaigns_completed_total', 'Campaigns completed');
             const { template } = await microserviceWorkerClient.getTemplate(workspaceId, finalized.template.toString());
             const { cost } = await microserviceWorkerClient.getPricing(workspaceId, template?.category || 'MARKETING');
             const reservedRecipientCount =

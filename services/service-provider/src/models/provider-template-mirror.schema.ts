@@ -50,3 +50,5 @@ export const ProviderTemplateMirrorSchema = SchemaFactory.createForClass(Provide
 ProviderTemplateMirrorSchema.index({ workspaceId: 1, appId: 1, name: 1, language: 1 }, { unique: true });
 ProviderTemplateMirrorSchema.index({ workspaceId: 1, providerTemplateId: 1 }, { unique: true, sparse: true });
 ProviderTemplateMirrorSchema.index({ workspaceId: 1, submissionKey: 1 }, { unique: true, sparse: true });
+ProviderTemplateMirrorSchema.index({ workspaceId: 1, appId: 1, createdAt: -1 });
+ProviderTemplateMirrorSchema.index({ workspaceId: 1, appId: 1, status: 1, createdAt: -1 });

@@ -11,4 +11,5 @@ ENV NODE_ENV=production
 COPY --from=builder /app/services/webhook-ingestor ./services/webhook-ingestor
 WORKDIR /app/services/webhook-ingestor
 EXPOSE 3013
+USER node
 CMD ["npm", "run", "start"]

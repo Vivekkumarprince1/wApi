@@ -169,6 +169,7 @@ ConversationSchema.index({ workspace: 1, assignedTo: 1, status: 1, lastActivityA
 ConversationSchema.index({ workspace: 1, priority: 1, lastActivityAt: -1 });
 ConversationSchema.index({ workspace: 1, lastActivityAt: -1 });
 ConversationSchema.index({ workspace: 1, conversationStartedAt: 1, isBillable: 1 });
+ConversationSchema.index({ status: 1, snoozedUntil: 1 });
 
 ConversationSchema.methods.assignTo = function(this: IConversationDocument, agentId: Types.ObjectId | string, assignedById: Types.ObjectId | string) {
   const previousAssignee = this.assignedTo;
@@ -332,6 +333,9 @@ const MessageSchema = new Schema({
 MessageSchema.index({ conversation: 1, sentAt: 1 });
 MessageSchema.index({ workspace: 1, 'campaign.id': 1 });
 MessageSchema.index({ workspace: 1, createdAt: -1 });
+MessageSchema.index({ workspace: 1, conversation: 1, isInternalNote: 1, createdAt: -1 });
+MessageSchema.index({ workspace: 1, contact: 1, isInternalNote: 1, createdAt: -1 });
+MessageSchema.index({ workspace: 1, conversation: 1, direction: 1, sentAt: -1, createdAt: -1 });
 
 MessageSchema.methods.updateStatus = async function (newStatus: string, timestamp?: number) {
   this.status = newStatus;

@@ -68,6 +68,7 @@ const CampaignBatchSchema = new Schema<ICampaignBatchDocument, ICampaignBatchMod
 
 CampaignBatchSchema.index({ campaign: 1, batchIndex: 1 }, { unique: true });
 CampaignBatchSchema.index({ campaign: 1, status: 1 });
+CampaignBatchSchema.index({ campaign: 1, status: 1, batchIndex: 1 });
 
 CampaignBatchSchema.pre<ICampaignBatchDocument>('save', function() {
   this.updatedAt = new Date();
