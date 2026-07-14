@@ -124,7 +124,13 @@ if [[ -f "$production_values" ]]; then
     fi
   done
 
-  required_secret_keys=(BETTER_AUTH_SECRET SMTP_HOST SMTP_USER SMTP_PASSWORD EMAIL_REPLY_TO CONTRACT_ENCRYPTION_KEY WEBHOOK_ENCRYPTION_KEY RECAPTCHA_SECRET_KEY OBSERVABILITY_HTTP_ENDPOINT OBSERVABILITY_HTTP_TOKEN METRICS_TOKEN MALWARE_SCAN_URL MALWARE_SCAN_TOKEN RATE_LIMIT_REST_URL RATE_LIMIT_REST_TOKEN CLOUDINARY_CLOUD_NAME CLOUDINARY_API_KEY CLOUDINARY_API_SECRET RAZORPAY_KEY_ID RAZORPAY_KEY_SECRET RAZORPAY_WEBHOOK_SECRET)
+  # Only enforce Key Vault objects that are required by enabled production
+  # capabilities. Optional integrations must remain disabled rather than making
+  # the CSI mount fail for every workload when their secrets are not provisioned.
+  required_secret_keys=(BETTER_AUTH_SECRET)
+  if grep -Fq 'RAZORPAY_ENABLED: "true"' "$production_values"; then
+    required_secret_keys+=(RAZORPAY_KEY_ID RAZORPAY_KEY_SECRET RAZORPAY_WEBHOOK_SECRET)
+  fi
   for key in "${required_secret_keys[@]}"; do
     if ! grep -Fq -- "- key: $key" "$production_values"; then
       echo "::error file=$production_values::Missing Key Vault mapping for $key"
