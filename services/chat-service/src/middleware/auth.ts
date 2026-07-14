@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import config from '../config/index.js';
+import { extractInternalIdentityToken, verifyInternalIdentity } from '@wapi/contracts';
 
 const JWT_SECRET = config.jwtSecret;
 
@@ -31,6 +32,20 @@ function parseGatewayPermissions(value: string | undefined): string[] {
  */
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
+    const internalToken = extractInternalIdentityToken(req.header('x-internal-auth'));
+    if (internalToken) {
+      try {
+        const claims = verifyInternalIdentity(internalToken, config.internalServiceSecret, 'chat');
+        req.user = { id: claims.sub, _id: new mongoose.Types.ObjectId(claims.sub), role: claims.systemRole };
+        req.workspace = { id: claims.workspaceId, _id: new mongoose.Types.ObjectId(claims.workspaceId) };
+        req.role = claims.workspaceRole;
+        req.permissions = claims.permissions;
+        req.isImpersonating = !!claims.impersonating;
+        return next();
+      } catch {
+        return res.status(401).json({ success: false, error: { code: 'INVALID_INTERNAL_IDENTITY', message: 'Gateway identity assertion is invalid' } });
+      }
+    }
     // 1. Gateway Headers (Priority - secured with internal secret signature verification)
     const gatewayUserId = req.header('x-user-id');
     const gatewayWorkspaceId = req.header('x-workspace-id');
@@ -60,7 +75,11 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
     }
 
 
-    // 2. Fallback to direct JWT cookie or Authorization header
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DIRECT_SERVICE_JWT !== 'true') {
+      return res.status(401).json({ success: false, error: { code: 'GATEWAY_IDENTITY_REQUIRED', message: 'Production requests must pass through the API gateway' } });
+    }
+
+    // 2. Development-only direct JWT fallback
     const authHeader = req.header('Authorization');
     const token = authHeader?.startsWith('Bearer ')
       ? authHeader.substring(7)

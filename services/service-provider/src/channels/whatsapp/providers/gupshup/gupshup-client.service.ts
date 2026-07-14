@@ -629,6 +629,41 @@ export class GupshupClientService {
     throw lastError;
   }
 
+  async submitTemplate(input: { appId: string; template: Record<string, unknown> }) {
+    const appToken = await this.resolveAppToken(input.appId);
+    const rawApp = this.normalizeToken(appToken);
+    const url = `/partner/app/${input.appId}/templates`;
+    const headerVariants = [
+      { token: rawApp, Accept: 'application/json' },
+      { Authorization: rawApp, Accept: 'application/json' },
+      { Authorization: `Bearer ${rawApp}`, Accept: 'application/json' },
+    ];
+
+    let lastError: any;
+    for (const headers of headerVariants) {
+      try {
+        const response = await this.partnerClient.post(url, input.template, {
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          timeout: 25000,
+        });
+        const data = response.data?.data || response.data;
+        const providerTemplateId = data?.id || data?.templateId || data?.externalId || data?.template?.id;
+        if (!providerTemplateId) throw new Error('Gupshup template submission did not return a template ID');
+        return { providerTemplateId: String(providerTemplateId), status: String(data?.status || 'PENDING'), data };
+      } catch (error: any) {
+        lastError = error;
+        const status = Number(error?.response?.status || 0);
+        if (status !== 401 && status !== 403) break;
+      }
+    }
+
+    const providerMessage = lastError?.response?.data?.message || lastError?.response?.data?.error || lastError?.message;
+    throw Object.assign(new Error(providerMessage || 'Template submission failed'), {
+      code: 'PROVIDER_TEMPLATE_SUBMISSION_FAILED',
+      status: lastError?.response?.status || 502,
+    });
+  }
+
   async getApp(appId: string) {
     throw new Error(`PROVIDER_OPERATION_NOT_IMPLEMENTED: getApp(${appId})`);
   }

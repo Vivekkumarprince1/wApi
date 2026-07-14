@@ -1,4 +1,4 @@
-import { Queue, QueueEvents } from 'bullmq';
+import { Queue } from 'bullmq';
 import { getSharedRedis } from './redis';
 
 const connection = getSharedRedis();
@@ -17,6 +17,11 @@ export const campaignQueue = new Queue('campaign-engine', {
   },
 });
 
+export const campaignDeadLetterQueue = new Queue('campaign-engine-dlq', {
+  connection: connection as any,
+  defaultJobOptions: { removeOnComplete: { age: 30 * 24 * 3600, count: 10000 } },
+});
+
 export const JOB_TYPES = {
   CAMPAIGN_START: 'campaign-start',
   BATCH_PROCESS: 'batch-process',
@@ -32,21 +37,22 @@ export class CampaignQueueService {
   static async enqueue(campaignId: string, workspaceId: string, options: { delay?: number; priority?: number } = {}) {
     const { delay = 0, priority = 1 } = options;
     
-    // Use timestamp in jobId to prevent deduplication blocks if a previous start job failed
-    const jobId = `campaign_${campaignId}_start_${Date.now()}`;
+    const jobId = `campaign:${campaignId}:start`;
 
     const job = await campaignQueue.add(
       JOB_TYPES.CAMPAIGN_START,
       {
         campaignId,
         workspaceId,
+        operationId: campaignId,
+        correlationId: `campaign:${campaignId}`,
         enqueuedAt: new Date().toISOString()
       },
       {
         jobId,
         priority,
         delay,
-        removeOnComplete: true
+        removeOnComplete: { age: 24 * 3600, count: 1000 }
       }
     );
 
@@ -71,9 +77,31 @@ export class CampaignQueueService {
 
   static async enqueueBatch(batchId: string | any, campaignId: string, workspaceId: string, batchIndex: number, delayMs: number) {
     return await campaignQueue.add(JOB_TYPES.BATCH_PROCESS, 
-      { batchId: batchId.toString(), campaignId, workspaceId, batchIndex },
-      { delay: delayMs }
+      { batchId: batchId.toString(), campaignId, workspaceId, operationId: campaignId, batchIndex, correlationId: `campaign:${campaignId}:batch:${batchIndex}` },
+      { delay: delayMs, jobId: `campaign:${campaignId}:batch:${batchIndex}` }
     );
+  }
+
+  static async deadLetter(job: any, error: Error) {
+    await campaignDeadLetterQueue.add('campaign-dead-letter', {
+      originalJobId: job?.id,
+      jobName: job?.name,
+      workspaceId: job?.data?.workspaceId,
+      operationId: job?.data?.operationId || job?.data?.campaignId,
+      correlationId: job?.data?.correlationId,
+      payload: job?.data,
+      failureReason: error.message,
+      attemptsMade: job?.attemptsMade,
+      failedAt: new Date().toISOString(),
+    }, { jobId: `dlq:${job?.id}` });
+  }
+
+  static async getOperationalCounts() {
+    const [main, deadLettered] = await Promise.all([
+      campaignQueue.getJobCounts('waiting', 'active', 'delayed', 'completed', 'failed'),
+      campaignDeadLetterQueue.getJobCounts('waiting', 'active', 'completed', 'failed'),
+    ]);
+    return { ...main, deadLettered: deadLettered.waiting + deadLettered.active + deadLettered.completed };
   }
 }
 

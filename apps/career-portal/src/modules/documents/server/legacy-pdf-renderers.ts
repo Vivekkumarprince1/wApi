@@ -349,7 +349,11 @@ export async function renderLegacyCertificatePdf(
     .stroke()
     .restore();
   doc.font("Helvetica").fontSize(10).fillColor(C.gray1);
-  certificateTextCenter(doc, "Presented by ConnectSphere · connectsphere.in", 170);
+  certificateTextCenter(
+    doc,
+    "Presented by ConnectSphere · connectsphere.in",
+    170,
+  );
   doc.font("Helvetica").fontSize(12);
   certificateTextCenter(doc, "This is to certify that", 196);
   doc.font("Helvetica-Bold").fontSize(40).fillColor(C.lime);
@@ -434,7 +438,13 @@ export async function renderLegacyCertificatePdf(
     "Founder & Director",
     "Vivek Kumar",
   );
-  certificateSignature(doc, W - 160, metaY + 4, "HR Manager", "ConnectSphere Team");
+  certificateSignature(
+    doc,
+    W - 160,
+    metaY + 4,
+    "HR Manager",
+    "ConnectSphere Team",
+  );
   doc
     .font("Helvetica")
     .fontSize(7)

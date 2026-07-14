@@ -11,7 +11,23 @@ config:
   data:
     NODE_ENV: production
     ENABLE_BACKGROUND_WORKERS: "true"
-    ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+    FEATURE_COMMERCE: "false"
+    FEATURE_AI_FAQ: "false"
+    FEATURE_META_ADS: "false"
+    FEATURE_INSTAGRAM: "false"
+    FEATURE_PETPOOJA: "false"
+    FEATURE_ADVANCED_ANSWERBOT: "false"
+    FEATURE_DEVELOPER_API: "false"
+    FEATURE_FORMS: "false"
+    NEXT_PUBLIC_FEATURE_COMMERCE: "false"
+    NEXT_PUBLIC_FEATURE_AI_FAQ: "false"
+    NEXT_PUBLIC_FEATURE_META_ADS: "false"
+    NEXT_PUBLIC_FEATURE_INSTAGRAM: "false"
+    NEXT_PUBLIC_FEATURE_PETPOOJA: "false"
+    NEXT_PUBLIC_FEATURE_ADVANCED_ANSWERBOT: "false"
+    NEXT_PUBLIC_FEATURE_DEVELOPER_API: "false"
+    NEXT_PUBLIC_FEATURE_FORMS: "false"
+    ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-career-vivek.eastus.cloudapp.azure.com
     NEXT_PUBLIC_APP_NAME: ConnectSphere
     NEXT_PUBLIC_APP_URL: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com
     NEXT_PUBLIC_API_URL: /api
@@ -19,6 +35,8 @@ config:
     CUSTOMER_PORTAL_URL: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com
     CUSTOMER_PORTAL_HEALTH_URL: http://connectsphere-customer-portal:3000
     ADMIN_PORTAL_URL: https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+    CAREER_PORTAL_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
+    CAREER_PORTAL_HEALTH_URL: http://connectsphere-career-portal:3001/api/health/live
     GOOGLE_AUTH_ENABLED: "false"
     NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "false"
     NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED: "false"
@@ -63,6 +81,36 @@ keyVaultSecrets:
       objectName: internal-service-secret
     - key: JWT_SECRET
       objectName: jwt-secret
+    - key: BETTER_AUTH_SECRET
+      objectName: better-auth-secret
+    - key: SMTP_HOST
+      objectName: career-smtp-host
+    - key: SMTP_USER
+      objectName: career-smtp-user
+    - key: SMTP_PASSWORD
+      objectName: career-smtp-password
+    - key: EMAIL_REPLY_TO
+      objectName: career-email-reply-to
+    - key: CONTRACT_ENCRYPTION_KEY
+      objectName: career-contract-encryption-key
+    - key: WEBHOOK_ENCRYPTION_KEY
+      objectName: career-webhook-encryption-key
+    - key: RECAPTCHA_SECRET_KEY
+      objectName: career-recaptcha-secret-key
+    - key: OBSERVABILITY_HTTP_ENDPOINT
+      objectName: career-observability-http-endpoint
+    - key: OBSERVABILITY_HTTP_TOKEN
+      objectName: career-observability-http-token
+    - key: METRICS_TOKEN
+      objectName: career-metrics-token
+    - key: MALWARE_SCAN_URL
+      objectName: career-malware-scan-url
+    - key: MALWARE_SCAN_TOKEN
+      objectName: career-malware-scan-token
+    - key: RATE_LIMIT_REST_URL
+      objectName: career-rate-limit-rest-url
+    - key: RATE_LIMIT_REST_TOKEN
+      objectName: career-rate-limit-rest-token
     - key: MONGODB_URI
       objectName: mongodb-uri
     - key: MONGODB_URI_AUTOMATION
@@ -115,7 +163,7 @@ keyVaultSecrets:
 services:
   api-gateway:
     env:
-      ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+      ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-career-vivek.eastus.cloudapp.azure.com
   auth-service:
     secretEnv:
       MONGO_URI: MONGO_URI_AUTH
@@ -144,7 +192,7 @@ services:
       MONGO_URI: MONGO_URI_WEBHOOK
   websocket-gateway:
     env:
-      ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+      ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-career-vivek.eastus.cloudapp.azure.com
     secretEnv:
       MONGO_URI: MONGO_URI_WEBSOCKET
   admin-portal:
@@ -153,6 +201,33 @@ services:
       MONGODB_URI_BILLING: MONGODB_URI_BILLING
       MONGODB_URI_CAMPAIGN: MONGODB_URI_CAMPAIGN
       MONGODB_URI_AUTOMATION: MONGODB_URI_AUTOMATION
+  career-portal:
+    env:
+      APP_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
+      BETTER_AUTH_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
+      REQUIRE_PRIVILEGED_MFA: "true"
+      SMTP_PORT: "587"
+      SMTP_SECURE: "false"
+    secretEnv:
+      MONGODB_URI: MONGODB_URI
+      BETTER_AUTH_SECRET: BETTER_AUTH_SECRET
+      SMTP_HOST: SMTP_HOST
+      SMTP_USER: SMTP_USER
+      SMTP_PASSWORD: SMTP_PASSWORD
+      EMAIL_REPLY_TO: EMAIL_REPLY_TO
+      CLOUDINARY_CLOUD_NAME: CLOUDINARY_CLOUD_NAME
+      CLOUDINARY_API_KEY: CLOUDINARY_API_KEY
+      CLOUDINARY_API_SECRET: CLOUDINARY_API_SECRET
+      CONTRACT_ENCRYPTION_KEY: CONTRACT_ENCRYPTION_KEY
+      WEBHOOK_ENCRYPTION_KEY: WEBHOOK_ENCRYPTION_KEY
+      RECAPTCHA_SECRET_KEY: RECAPTCHA_SECRET_KEY
+      OBSERVABILITY_HTTP_ENDPOINT: OBSERVABILITY_HTTP_ENDPOINT
+      OBSERVABILITY_HTTP_TOKEN: OBSERVABILITY_HTTP_TOKEN
+      METRICS_TOKEN: METRICS_TOKEN
+      MALWARE_SCAN_URL: MALWARE_SCAN_URL
+      MALWARE_SCAN_TOKEN: MALWARE_SCAN_TOKEN
+      RATE_LIMIT_REST_URL: RATE_LIMIT_REST_URL
+      RATE_LIMIT_REST_TOKEN: RATE_LIMIT_REST_TOKEN
 
 ingress:
   enabled: true
@@ -166,6 +241,7 @@ ingress:
       hosts:
         - connectsphere-customer-vivek.eastus.cloudapp.azure.com
         - connectsphere-admin-vivek.eastus.cloudapp.azure.com
+        - connectsphere-career-vivek.eastus.cloudapp.azure.com
   hosts:
     - host: connectsphere-customer-vivek.eastus.cloudapp.azure.com
       service: customer-portal
@@ -173,6 +249,10 @@ ingress:
       pathType: Prefix
     - host: connectsphere-admin-vivek.eastus.cloudapp.azure.com
       service: admin-portal
+      path: /
+      pathType: Prefix
+    - host: connectsphere-career-vivek.eastus.cloudapp.azure.com
+      service: career-portal
       path: /
       pathType: Prefix
 
@@ -191,6 +271,12 @@ publicServices:
       targetPort: 3100
       annotations:
         service.beta.kubernetes.io/azure-dns-label-name: connectsphere-admin-vivek
+    - name: career-portal-public
+      service: career-portal
+      port: 80
+      targetPort: 3001
+      annotations:
+        service.beta.kubernetes.io/azure-dns-label-name: connectsphere-career-vivek
 
 apiGatewayProxy:
   enabled: true

@@ -36,8 +36,33 @@ kubectl -n connectsphere create secret generic connectsphere-secrets \
   --from-literal=VERIFY_TOKEN='replace-me' \
   --from-literal=MONGO_URI='replace-me' \
   --from-literal=MONGODB_URI='replace-me' \
+  --from-literal=BETTER_AUTH_SECRET='replace-with-at-least-32-random-characters' \
   --from-literal=REDIS_URL='replace-me'
 ```
+
+### Career portal Key Vault values
+
+Before enabling the career portal, create these secrets in `connectsphere-prod-kv`:
+
+| Key Vault object | Career portal environment variable |
+|---|---|
+| `better-auth-secret` | `BETTER_AUTH_SECRET` |
+| `career-smtp-host` | `SMTP_HOST` |
+| `career-smtp-user` | `SMTP_USER` |
+| `career-smtp-password` | `SMTP_PASSWORD` |
+| `career-email-reply-to` | `EMAIL_REPLY_TO` |
+| `career-contract-encryption-key` | `CONTRACT_ENCRYPTION_KEY` |
+| `career-webhook-encryption-key` | `WEBHOOK_ENCRYPTION_KEY` |
+| `career-recaptcha-secret-key` | `RECAPTCHA_SECRET_KEY` |
+| `career-observability-http-endpoint` | `OBSERVABILITY_HTTP_ENDPOINT` |
+| `career-observability-http-token` | `OBSERVABILITY_HTTP_TOKEN` |
+| `career-metrics-token` | `METRICS_TOKEN` |
+| `career-malware-scan-url` | `MALWARE_SCAN_URL` |
+| `career-malware-scan-token` | `MALWARE_SCAN_TOKEN` |
+| `career-rate-limit-rest-url` | `RATE_LIMIT_REST_URL` |
+| `career-rate-limit-rest-token` | `RATE_LIMIT_REST_TOKEN` |
+
+The career portal reuses the existing `mongodb-uri` and Cloudinary Key Vault objects. The browser-visible reCAPTCHA site key must be configured as the GitHub repository variable `CAREER_RECAPTCHA_SITE_KEY`; it is compiled into the client bundle and is not a secret.
 
 Replace the placeholders in `deploy/argocd/connectsphere-production.yaml`, then apply it to the cluster where Argo CD is installed:
 

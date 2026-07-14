@@ -15,13 +15,14 @@ import {
   getMessagesByContactPublic
 } from '../controllers/chatController.js';
 import { authenticate } from '../middleware/auth.js';
+import { internalAuth } from './internalRoutes.js';
 
 const router = Router();
 
 // Internal Gateway endpoints
-router.get('/internal/v1/inbox/conversations', getConversationsInternal);
-router.get('/internal/v1/inbox/conversations/:id/messages', getTimelineMessagesInternal);
-router.patch('/internal/v1/inbox/conversations/:id/status', patchConversationStatusInternal);
+router.get('/internal/v1/inbox/conversations', internalAuth, getConversationsInternal);
+router.get('/internal/v1/inbox/conversations/:id/messages', internalAuth, getTimelineMessagesInternal);
+router.patch('/internal/v1/inbox/conversations/:id/status', internalAuth, patchConversationStatusInternal);
 
 // Authenticated Client-Gateway endpoints
 
@@ -63,7 +64,7 @@ router.patch('/inbox/conversations/:id/status', authenticate, patchConversationS
 router.patch('/conversations/:id/status', authenticate, patchConversationStatusPublic);
 
 // Outbound Message endpoints
-router.post('/internal/v1/inbox/conversations/:id/messages', sendMessageInternal);
+router.post('/internal/v1/inbox/conversations/:id/messages', internalAuth, sendMessageInternal);
 router.post('/api/v1/inbox/conversations/:id/messages', authenticate, sendMessagePublic);
 router.post('/inbox/conversations/:id/messages', authenticate, sendMessagePublic);
 router.post('/conversations/:id/messages', authenticate, sendMessagePublic);

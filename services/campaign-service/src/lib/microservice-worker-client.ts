@@ -8,6 +8,7 @@ export const microserviceWorkerClient = {
     languageCode?: string;
     components?: any[];
     options?: any;
+    internalMessageId?: string;
   }) {
     const response = await serviceRequest('chat', {
       method: 'POST',

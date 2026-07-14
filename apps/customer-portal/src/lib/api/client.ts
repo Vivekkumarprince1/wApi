@@ -38,6 +38,7 @@ const baseClient = axios.create({
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
+    'X-Requested-With': 'ConnectSpherePortal',
   },
 });
 

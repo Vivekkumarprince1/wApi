@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, NotImplementedException, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadGatewayException, BadRequestException, Body, ConflictException, Controller, Delete, Get, NotFoundException, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { InternalAuthGuard } from '../../../common/internal-auth.guard';
@@ -126,11 +126,11 @@ export class TemplatesPublicController {
       throw new Error('No connected WhatsApp/Gupshup app found for this workspace.');
     }
 
-    const providerTemplates = await this.gupshup.listTemplates({ appId, status: 'APPROVED' });
+    const providerTemplates = await this.gupshup.listTemplates({ appId });
     let created = 0;
     let updated = 0;
     let failed = 0;
-    const syncedNames: string[] = [];
+    const syncedKeys: string[] = [];
 
     for (const rawTemplate of providerTemplates) {
       try {
@@ -139,7 +139,7 @@ export class TemplatesPublicController {
           failed += 1;
           continue;
         }
-        syncedNames.push(mirror.name);
+        syncedKeys.push(`${mirror.name}:${mirror.language}`);
 
         const result = await this.templateModel.updateOne(
           {
@@ -163,24 +163,14 @@ export class TemplatesPublicController {
       }
     }
 
-    const staleFilter: any = {
-      workspaceId,
-      provider: 'gupshup',
-      $or: [
-        { appId: { $ne: appId } },
-        { appId, name: { $nin: syncedNames } },
-      ],
-    };
-    const stale = await this.templateModel.deleteMany(staleFilter);
-
     return ok({
       success: true,
-      message: `Templates synchronized successfully (${providerTemplates.length} approved from Meta)`,
+      message: `Templates synchronized successfully (${providerTemplates.length} from provider)`,
       synced: providerTemplates.length,
       created,
       updated,
       failed,
-      removedStale: stale.deletedCount || 0,
+      providerKeys: syncedKeys,
     });
   }
 
@@ -193,14 +183,16 @@ export class TemplatesPublicController {
     const bspApp = await this.getWorkspaceApp(workspaceId);
     const appId = this.resolveProviderAppId(bspApp) || 'default';
 
+    const providerData = this.normalizeDraftProviderData(body);
     const template = await this.templateModel.create({
       workspaceId: String(workspaceId),
       appId,
       name: body.name,
       language: body.language || 'en',
       category: body.category || 'MARKETING',
-      status: body.status || 'DRAFT',
-      providerData: body.providerData || { components: body.components || [] }
+      status: 'LOCAL_DRAFT',
+      providerStatus: 'LOCAL_DRAFT',
+      providerData,
     });
 
     return ok(template);
@@ -225,13 +217,38 @@ export class TemplatesPublicController {
    */
   @Post(':id/submit')
   async submitTemplate(@Req() req: any, @Param('id') id: string) {
-    throw new NotImplementedException({
-      success: false,
-      error: {
-        code: 'PROVIDER_OPERATION_NOT_IMPLEMENTED',
-        message: 'Template submission to the provider is not available',
-      },
-    });
+    const workspaceId = String(req.workspace?._id);
+    const template = await this.templateModel.findOne({ _id: id, workspaceId });
+    if (!template) throw new NotFoundException('Template not found');
+    if (template.providerTemplateId && ['PENDING', 'APPROVED', 'REJECTED', 'PAUSED', 'DISABLED'].includes(template.status)) {
+      return ok(this.toPublicTemplate(template.toObject()));
+    }
+    if (template.status === 'SUBMITTING') throw new ConflictException('Template submission is already in progress');
+
+    const appId = this.resolveProviderAppId(await this.getWorkspaceApp(workspaceId));
+    if (!appId || appId === 'default' || appId.startsWith('mock_')) throw new BadRequestException('Connected WhatsApp provider app is required');
+    const submissionKey = `${workspaceId}:${appId}:${template.name}:${template.language}`;
+    template.status = 'SUBMITTING';
+    template.submissionKey = submissionKey;
+    template.lastSyncError = undefined;
+    await template.save();
+
+    try {
+      const submitted = await this.gupshup.submitTemplate({ appId, template: this.toGupshupSubmission(template) });
+      template.providerTemplateId = submitted.providerTemplateId;
+      template.providerStatus = String(submitted.status || 'PENDING').toUpperCase();
+      template.status = this.normalizeProviderStatus(template.providerStatus);
+      template.lastSyncedAt = new Date();
+      template.providerData = { ...(template.providerData || {}), submissionResponse: submitted.data };
+      await template.save();
+      return ok(this.toPublicTemplate(template.toObject()));
+    } catch (error: any) {
+      template.status = 'SYNC_ERROR';
+      template.syncFailureCount = Number(template.syncFailureCount || 0) + 1;
+      template.lastSyncError = error.message;
+      await template.save();
+      throw new BadGatewayException({ success: false, error: { code: error.code || 'PROVIDER_TEMPLATE_SUBMISSION_FAILED', message: error.message } });
+    }
   }
 
   /**
@@ -504,6 +521,45 @@ export class TemplatesPublicController {
     return providerData?.bodyText || body?.text || providerData?.raw?.data || '';
   }
 
+  private normalizeDraftProviderData(body: any) {
+    if (body.providerData) return body.providerData;
+    const components = Array.isArray(body.components) ? body.components : [];
+    if (!components.length) {
+      if (body.header?.text || body.header?.format) components.push({ type: 'HEADER', format: body.header.format || 'TEXT', text: body.header.text || body.header.example });
+      if (body.body?.text || typeof body.body === 'string') components.push({ type: 'BODY', text: body.body?.text || body.body });
+      if (body.footer?.text || typeof body.footer === 'string') components.push({ type: 'FOOTER', text: body.footer?.text || body.footer });
+      const buttonItems = body.buttons?.items || body.buttons;
+      if (Array.isArray(buttonItems) && buttonItems.length) components.push({ type: 'BUTTONS', buttons: buttonItems });
+    }
+    return { components, header: body.header, footer: body.footer, buttons: body.buttons, bodyText: body.body?.text || body.body || '' };
+  }
+
+  private toGupshupSubmission(template: any) {
+    const providerData: any = template.providerData || {};
+    const components = Array.isArray(providerData.components) ? providerData.components : [];
+    const header = components.find((item: any) => String(item.type).toUpperCase() === 'HEADER');
+    const body = components.find((item: any) => String(item.type).toUpperCase() === 'BODY');
+    const footer = components.find((item: any) => String(item.type).toUpperCase() === 'FOOTER');
+    const buttons = components.find((item: any) => String(item.type).toUpperCase() === 'BUTTONS');
+    if (!body?.text) throw new BadRequestException('Template body is required');
+    return {
+      elementName: template.name,
+      languageCode: template.language,
+      category: template.category,
+      templateType: String(header?.format || 'TEXT').toUpperCase(),
+      body: body.text,
+      header: header?.text,
+      footer: footer?.text,
+      buttons: buttons?.buttons,
+    };
+  }
+
+  private normalizeProviderStatus(status: string) {
+    const value = String(status || '').toUpperCase();
+    if (['APPROVED', 'REJECTED', 'PAUSED', 'DISABLED', 'PENDING'].includes(value)) return value;
+    return value === 'DRAFT' ? 'LOCAL_DRAFT' : 'PENDING';
+  }
+
   private toPublicTemplate(template: any) {
     const providerData = template.providerData || {};
     const bodyText = this.extractBodyText(providerData);
@@ -550,6 +606,12 @@ export class TemplatesPublicController {
       name: raw.elementName || raw.name || raw.templateName,
       language: raw.languageCode || raw.language || 'en',
       status: String(raw.status || 'UNKNOWN').toUpperCase(),
+      providerTemplateId: String(raw.id || raw.externalId || meta.templateId || ''),
+      providerStatus: String(raw.status || 'UNKNOWN').toUpperCase(),
+      rejectionReason: raw.reason || meta.reason,
+      lastSyncedAt: new Date(),
+      syncFailureCount: 0,
+      lastSyncError: undefined,
       category: String(raw.category || 'UNKNOWN').toUpperCase(),
       providerData: {
         raw,

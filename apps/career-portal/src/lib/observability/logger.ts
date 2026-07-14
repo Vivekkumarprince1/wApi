@@ -40,7 +40,7 @@ export function log(
     timestamp: new Date().toISOString(),
     kind: "log",
     level,
-    service: "connectsphere-careers-next",
+    service: "connectsphere-career-portal",
     environment: process.env.NODE_ENV ?? "development",
     event,
     ...sanitize(context),
@@ -60,7 +60,7 @@ export function metric(
   exportEvent({
     timestamp: new Date().toISOString(),
     kind: "metric",
-    service: "connectsphere-careers-next",
+    service: "connectsphere-career-portal",
     environment: process.env.NODE_ENV ?? "development",
     name,
     value,
@@ -83,7 +83,7 @@ export function captureException(
   exportEvent({
     timestamp: new Date().toISOString(),
     kind: "exception",
-    service: "connectsphere-careers-next",
+    service: "connectsphere-career-portal",
     environment: process.env.NODE_ENV ?? "development",
     exception,
     ...sanitize(context),

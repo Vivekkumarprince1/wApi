@@ -6,6 +6,7 @@ import { SegmentService } from "../services/SegmentService";
 import { getSharedRedis } from "../lib/redis";
 import { microserviceWorkerClient } from "../lib/microservice-worker-client";
 import { Types } from "mongoose";
+import { DistributedRateLimiter } from '../lib/distributed-rate-limiter';
 
 /**
  * CAMPAIGN WORKER (Microservice)
@@ -16,6 +17,7 @@ import { Types } from "mongoose";
  */
 export class CampaignWorker {
   private worker: Worker;
+  private limiter = new DistributedRateLimiter(getSharedRedis() as any);
 
   constructor() {
     this.worker = new Worker('campaign-engine', this.processJob.bind(this), {
@@ -29,6 +31,17 @@ export class CampaignWorker {
 
     this.worker.on('failed', (job, err) => {
       console.error(`[CampaignWorker] ❌ Job ${job?.id} failed:`, err.message);
+      const exhausted = !!job && job.attemptsMade >= Number(job.opts.attempts || 1);
+      if (exhausted) {
+        void CampaignQueueService.deadLetter(job, err).then(async () => {
+          if (job.data?.campaignId) {
+            await (Campaign as any).findOneAndUpdate(
+              { _id: job.data.campaignId, status: { $nin: ['COMPLETED', 'CANCELLED'] } },
+              { $set: { status: 'FAILED', pausedReason: err.message, updatedAt: new Date() } },
+            );
+          }
+        }).catch((dlqError) => console.error('[CampaignWorker] DLQ persistence failed:', dlqError.message));
+      }
     });
   }
 
@@ -166,7 +179,8 @@ export class CampaignWorker {
     let failCount = 0;
 
     const workspace = await Workspace.findById(workspaceId).select('inboxSettings').lean() as any;
-    const mps = workspace?.inboxSettings?.agentMessagesPerMinute ? workspace.inboxSettings.agentMessagesPerMinute / 60 : 10;
+    const perSecondLimit = Math.max(1, Math.floor((workspace?.inboxSettings?.agentMessagesPerMinute || 600) / 60));
+    const providerAppId = String((workspace as any)?.gupshupAppId || workspaceId);
     
     const CONCURRENCY = 10;
     const activeRecipients = batch.recipients.filter((r: any) => !!r.contactId && (r.status === 'pending' || r.status === 'queued'));
@@ -175,6 +189,16 @@ export class CampaignWorker {
         const chunk = activeRecipients.slice(i, i + CONCURRENCY);
         await Promise.all(chunk.map(async (recipient: any) => {
             try {
+                const internalMessageId = `campaign:${campaignId}:contact:${recipient.contactId}`;
+                const existingMessage = await CampaignMessage.findOne({ internalMessageId });
+                if (existingMessage?.whatsappMessageId || ['accepted', 'sent', 'delivered', 'read'].includes(existingMessage?.status || '')) {
+                  successCount++;
+                  return;
+                }
+                if (existingMessage?.status === 'reconciliation_required') {
+                  failCount++;
+                  return;
+                }
                 const contactResponse = await microserviceWorkerClient.getContact(workspaceId, recipient.contactId);
                 const contact = contactResponse?.contact || contactResponse?.data || contactResponse;
                 if (!contact) throw new Error('CONTACT_NOT_FOUND');
@@ -191,7 +215,22 @@ export class CampaignWorker {
                     if (bodyParams.length > 0) components.push({ type: 'body', parameters: bodyParams });
                 }
 
-                // Dispatch via Bridge
+                await CampaignMessage.findOneAndUpdate(
+                  { internalMessageId },
+                  {
+                    $setOnInsert: {
+                      workspace: workspaceId, campaign: campaignId, contact: contact._id, phone: contact.phone,
+                      internalMessageId, provider: 'gupshup', status: 'queued', queuedAt: new Date(),
+                      batchId: batch._id, batchIndex: batch.batchIndex,
+                    },
+                    $set: { status: 'dispatching', lastAttemptAt: new Date() },
+                    $inc: { attempts: 1 },
+                  },
+                  { upsert: true, new: true, setDefaultsOnInsert: true }
+                );
+
+                await this.limiter.wait({ workspaceId, appId: providerAppId, limit: perSecondLimit });
+
                 const result = await microserviceWorkerClient.sendTemplate({
                   workspaceId,
                   to: contact.phone,
@@ -201,8 +240,10 @@ export class CampaignWorker {
                   options: {
                     contactId: (contact as any)._id,
                     campaignId: (campaign as any)._id,
-                    metadata: { batchId, batchIndex: batch.batchIndex }
-                  }
+                    metadata: { batchId, batchIndex: batch.batchIndex },
+                    idempotencyKey: internalMessageId,
+                  },
+                  internalMessageId,
                 });
 
                 if (result.success) {
@@ -217,7 +258,9 @@ export class CampaignWorker {
                           campaign: campaignId,
                           contact: contact._id,
                           phone: contact.phone,
-                          status: 'sent',
+                          internalMessageId,
+                          provider: 'gupshup',
+                          status: 'accepted',
                           whatsappMessageId: messageId,
                           sentAt: new Date(),
                           batchId: batch._id,
@@ -242,7 +285,9 @@ export class CampaignWorker {
                           campaign: campaignId,
                           contact: contact._id,
                           phone: contact.phone,
-                          status: 'failed',
+                          internalMessageId,
+                          provider: 'gupshup',
+                          status: result?.status === 'reconciliation_required' ? 'reconciliation_required' : 'failed',
                           failedAt: new Date(),
                           failureReason: error,
                           batchId: batch._id,
@@ -286,8 +331,7 @@ export class CampaignWorker {
             }
         }));
         
-        const chunkDelay = Math.max(50, (chunk.length / mps) * 1000);
-        if (i + CONCURRENCY < activeRecipients.length) await new Promise(r => setTimeout(r, chunkDelay));
+        if (i + CONCURRENCY < activeRecipients.length) await new Promise(r => setTimeout(r, 25));
     }
 
     await (batch as any).markCompleted();

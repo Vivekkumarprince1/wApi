@@ -64,6 +64,12 @@ async function deleteWorkspaceInternal(workspace: any) {
 }
 
 export class AccountDeletionService {
+  static async finalizeWorkspaceDeletion(workspaceId: string) {
+    const workspace = await Workspace.findById(workspaceId);
+    if (!workspace) return;
+    await cleanupBspApp(workspaceId, (workspace as any).gupshupAppId);
+    await deleteWorkspaceInternal(workspace);
+  }
   static async deleteAccount(userId: string) {
     const user = await User.findById(userId);
     if (!user) {

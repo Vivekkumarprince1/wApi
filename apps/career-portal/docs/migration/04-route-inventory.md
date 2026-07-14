@@ -51,7 +51,7 @@ Also: `/`, `/api`, and `/api/health` in the server entry. No backend `/api/conta
 - Current wildcard masks 404s by rendering Home.
 - IDs and slugs are accepted inconsistently across controllers.
 - Public sitemap advertises authenticated `/apply/:slug`.
-- Frontend/deployment canonical domains differ (`career-fmpg` vs `fmpg`).
+- Frontend/deployment canonical domains differ (`career-connectsphere` vs `connectsphere`).
 - Public offer URLs currently use weak identifiers while generated acceptance tokens are ignored.
 - Candidate and recruiter application detail paths are conflated.
 

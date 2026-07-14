@@ -5,6 +5,8 @@ import morgan from 'morgan';
 import crypto from 'crypto';
 import IORedis from 'ioredis';
 import { config } from './config/env';
+import { featureForApiPath } from './config/feature-flags';
+import { signInternalIdentity } from '@connectsphere/contracts';
 // IMPORTANT: http-proxy-middleware v3's `createProxyMiddleware` strips the
 // Express mount prefix from `req.url` BEFORE `pathRewrite` runs. Every
 // pathRewrite in this gateway (and every downstream service, which mount their
@@ -137,6 +139,32 @@ app.use(cors({
   credentials: true
 }));
 
+app.use((req, res, next) => {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+  if (isPublicWebhookPath(req.path) || req.path.startsWith('/api/internal')) return next();
+  const cookieAuthenticated = typeof req.headers.cookie === 'string' && req.headers.cookie
+    .split(';')
+    .some((value) => value.trim().startsWith('auth_token='));
+  if (!cookieAuthenticated) return next();
+
+  const origin = typeof req.headers.origin === 'string'
+    ? req.headers.origin
+    : typeof req.headers.referer === 'string'
+      ? new URL(req.headers.referer).origin
+      : '';
+  if (!origin || !config.allowedOrigins.includes(origin) || req.headers['x-requested-with'] !== 'ConnectSpherePortal') {
+    return res.status(403).json({
+      success: false,
+      error: {
+        code: 'CSRF_VALIDATION_FAILED',
+        message: 'Request origin validation failed',
+        requestId: req.headers['x-correlation-id'] || null,
+      },
+    });
+  }
+  next();
+});
+
 app.use('/api', (req, res, next) => {
   delete req.headers['if-none-match'];
   delete req.headers['if-modified-since'];
@@ -265,6 +293,20 @@ app.use(async (req, res, next) => {
   next();
 });
 
+app.use('/api/v1', (req, res, next) => {
+  const fullPath = `/api/v1${req.path}`;
+  const feature = featureForApiPath(fullPath);
+  if (!feature || config.featureFlags[feature]) return next();
+  return res.status(404).json({
+    success: false,
+    error: {
+      code: 'FEATURE_DISABLED',
+      message: `${feature.replaceAll('_', ' ').toLowerCase()} is disabled`,
+      requestId: req.headers['x-correlation-id'] || null,
+    },
+  });
+});
+
 app.use(async (req, res, next) => {
   if (req.path.startsWith('/api/internal') || isPublicWebhookPath(req.path) || isPublicWidgetPath(req.path) || req.path === '/health' || req.path === '/') {
     return next();
@@ -340,6 +382,24 @@ const proxyTo = (target: string, serviceName: string, stripPrefix?: string) => {
     changeOrigin: true,
     ...(stripPrefix ? { pathRewrite: { [`^${stripPrefix}`]: '' } } : {}),
     on: {
+      proxyReq: (proxyReq, req: any) => {
+        const userId = req.headers['x-user-id'];
+        const workspaceId = req.headers['x-workspace-id'];
+        if (!userId || !workspaceId) return;
+        let permissions: string[] = [];
+        try { permissions = JSON.parse(decodeURIComponent(String(req.headers['x-permissions'] || '[]'))); } catch { permissions = []; }
+        const token = signInternalIdentity({
+          typ: 'internal_identity',
+          sub: String(userId),
+          workspaceId: String(workspaceId),
+          workspaceRole: String(req.headers['x-user-role'] || 'agent'),
+          systemRole: String(req.headers['x-user-system-role'] || 'user'),
+          permissions,
+          requestId: String(req.headers['x-correlation-id'] || crypto.randomUUID()),
+          impersonating: req.headers['x-impersonating'] === 'true',
+        }, config.internalServiceSecret, serviceName);
+        proxyReq.setHeader('x-internal-auth', `Bearer ${token}`);
+      },
       error: handleProxyError(serviceName)
     }
   });
@@ -388,6 +448,18 @@ const proxyRewrite = (target: string, serviceName: string, rewrite: (path: strin
     changeOrigin: true,
     pathRewrite: rewrite,
     on: {
+      proxyReq: (proxyReq, req: any) => {
+        const userId = req.headers['x-user-id'];
+        const workspaceId = req.headers['x-workspace-id'];
+        if (!userId || !workspaceId) return;
+        let permissions: string[] = [];
+        try { permissions = JSON.parse(decodeURIComponent(String(req.headers['x-permissions'] || '[]'))); } catch { permissions = []; }
+        proxyReq.setHeader('x-internal-auth', `Bearer ${signInternalIdentity({
+          typ: 'internal_identity', sub: String(userId), workspaceId: String(workspaceId),
+          workspaceRole: String(req.headers['x-user-role'] || 'agent'), systemRole: String(req.headers['x-user-system-role'] || 'user'),
+          permissions, requestId: String(req.headers['x-correlation-id'] || crypto.randomUUID()), impersonating: req.headers['x-impersonating'] === 'true',
+        }, config.internalServiceSecret, serviceName)}`);
+      },
       error: handleProxyError(serviceName)
     }
   });
@@ -555,6 +627,16 @@ app.use('/api/v1/contacts/:contactId/send-template', proxyRewrite(
 ));
 app.use('/api/v1/contacts', proxyTo(SERVICES.contact, 'contact'));
 app.use('/api/v1/crm', proxyTo(SERVICES.contact, 'contact'));
+app.use('/api/v1/bulk/messages', proxyRewrite(
+  SERVICES.campaign,
+  'campaign',
+  (path) => path.replace('/api/v1/bulk/messages', '/api/campaign/bulk/messages')
+));
+app.use('/api/v1/bulk/status', proxyRewrite(
+  SERVICES.campaign,
+  'campaign',
+  (path) => path.replace('/api/v1/bulk/status', '/api/campaign/bulk/status')
+));
 app.use('/api/v1/bulk', bulkRateLimit, proxyTo(SERVICES.contact, 'contact'));
 
 // 7. Chat/Inbox Service

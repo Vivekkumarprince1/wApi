@@ -1,8 +1,23 @@
 import { Router } from 'express';
 import { WalletController } from '../controllers/WalletController';
 import { authenticate, authenticateOrInternal, internalAuth, authorize } from '../middleware/auth';
+import type { AuthRequest } from '../middleware/auth';
+import { canAccessWorkspace } from '../middleware/tenant-policy';
 
 const router = Router();
+
+const enforceWorkspaceParam = (req: AuthRequest, res: any, next: any) => {
+	const authenticatedWorkspace = String(req.workspace?.id || req.workspace?._id || '');
+	if (!canAccessWorkspace({
+		requestedWorkspaceId: String(req.params.workspaceId || ''),
+		authenticatedWorkspaceId: authenticatedWorkspace,
+		systemRole: req.user?.role,
+		workspaceRole: req.role,
+	})) {
+		return res.status(403).json({ success: false, error: { code: 'CROSS_TENANT_ACCESS_DENIED', message: 'Workspace does not match authenticated tenant' } });
+	}
+	next();
+};
 
 // ══════════════════════════════════════════════
 // STATIC ROUTES (must be defined BEFORE dynamic :workspaceId routes)
@@ -34,15 +49,15 @@ router.get('/invoices/:invoiceNumber/download', authenticate, WalletController.d
 // DYNAMIC ROUTES (parameterized with :workspaceId)
 // ══════════════════════════════════════════════
 
-router.get('/:workspaceId', authenticateOrInternal, WalletController.getWallet);
+router.get('/:workspaceId', authenticateOrInternal, enforceWorkspaceParam, WalletController.getWallet);
 router.post('/:workspaceId/sync', internalAuth, WalletController.syncWallet);
-router.get('/:workspaceId/details', authenticateOrInternal, WalletController.getWorkspace);
-router.get('/:workspaceId/transactions', authenticate, WalletController.getTransactions);
-router.get('/:workspaceId/pricing', authenticateOrInternal, WalletController.getPricing);
+router.get('/:workspaceId/details', authenticateOrInternal, enforceWorkspaceParam, WalletController.getWorkspace);
+router.get('/:workspaceId/transactions', authenticate, enforceWorkspaceParam, WalletController.getTransactions);
+router.get('/:workspaceId/pricing', authenticateOrInternal, enforceWorkspaceParam, WalletController.getPricing);
 
-router.post('/:workspaceId/recharge', authenticate, WalletController.createRechargeOrder);
-router.post('/:workspaceId/plan', authenticate, WalletController.createPlanOrder);
-router.post('/:workspaceId/verify-order', authenticate, WalletController.createVerificationOrder);
+router.post('/:workspaceId/recharge', authenticate, enforceWorkspaceParam, WalletController.createRechargeOrder);
+router.post('/:workspaceId/plan', authenticate, enforceWorkspaceParam, WalletController.createPlanOrder);
+router.post('/:workspaceId/verify-order', authenticate, enforceWorkspaceParam, WalletController.createVerificationOrder);
 
 // Financial Adjustments (Internal Only)
 router.post('/:workspaceId/add-funds', internalAuth, WalletController.addFunds);

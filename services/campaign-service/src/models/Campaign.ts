@@ -93,7 +93,7 @@ export interface ICampaign {
     customFilter?: any;
   };
   
-  status: 'DRAFT' | 'SCHEDULED' | 'QUEUED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'FAILED' | 'draft' | 'queued' | 'sending' | 'completed' | 'paused' | 'failed';
+  status: 'DRAFT' | 'SCHEDULED' | 'QUEUED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'PARTIALLY_COMPLETED' | 'FAILED' | 'CANCELLED' | 'draft' | 'queued' | 'sending' | 'completed' | 'paused' | 'failed';
   
   scheduledAt?: Date;
   startedAt?: Date;
@@ -118,6 +118,7 @@ export interface ICampaign {
   audit: ICampaignAudit;
   
   createdBy?: Types.ObjectId;
+  metadata?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -242,6 +243,7 @@ const CampaignSchema = new Schema<ICampaignDocument, ICampaignModel>({
   },
   
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    metadata: { type: Schema.Types.Mixed, default: {} },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

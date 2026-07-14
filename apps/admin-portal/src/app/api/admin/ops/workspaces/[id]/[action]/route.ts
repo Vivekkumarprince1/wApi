@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, AdminAuthError } from "@/server/auth";
+import { requireAdmin, AdminAuthError, type AdminTokenPayload } from "@/server/auth";
+import { gatewayCall } from "@/server/gateway-client";
 import { recordAudit, clientIp } from "@/server/audit";
 import {
   setWorkspaceBillingStatus,
   setWorkspacePlan,
-  deleteWorkspace,
   emergencyFreezeWorkspace,
 } from "@/server/workspace-ops";
 
@@ -48,9 +48,15 @@ const ACTIONS: Record<string, { capability: Parameters<typeof requireAdmin>[0]; 
   },
   delete: {
     capability: "system",
-    run: async (id) => {
-      await deleteWorkspace(id);
-      return { deleted: true };
+    run: async (id, payload) => {
+      const actor = payload.__actor as AdminTokenPayload;
+      const idempotencyKey = String(payload.idempotencyKey || `workspace-delete:${id}`);
+      const result = await gatewayCall<{ success: boolean; operationId: string; state: string }>(
+        `super-admin/deletion/workspaces/${id}`,
+        { method: "POST", actor, workspaceId: id, body: {}, headers: { "idempotency-key": idempotencyKey } } as any,
+      );
+      if (!result.ok || !result.data) throw new Error(result.error || "Failed to start deletion operation");
+      return result.data;
     },
   },
 };
@@ -69,7 +75,7 @@ export async function POST(
     const actor = await requireAdmin(config.capability);
     const payload = await req.json().catch(() => ({}));
 
-    const data = await config.run(id, payload);
+    const data = await config.run(id, { ...payload, __actor: actor });
 
     await recordAudit({
       actor,

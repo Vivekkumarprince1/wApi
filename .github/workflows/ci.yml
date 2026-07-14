@@ -61,6 +61,7 @@ jobs:
           - { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', needs_contracts: false }
           - { name: 'websocket-gateway', dir: 'services/websocket-gateway', needs_contracts: false }
           - { name: 'admin-portal', dir: 'apps/admin-portal', needs_contracts: true }
+          - { name: 'career-portal', dir: 'apps/career-portal', needs_contracts: false }
           - { name: 'customer-portal', dir: 'apps/customer-portal', needs_contracts: false }
 
     steps:
@@ -89,9 +90,21 @@ jobs:
       - name: Install Service Dependencies
         run: |
           cd ${{ matrix.service.dir }}
-          npm install
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          elif [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Compile and Build
+        env:
+          MONGODB_URI: mongodb://127.0.0.1:27017/connectsphere
+          BETTER_AUTH_SECRET: connectsphere-ci-career-secret-000000000000000
+          BETTER_AUTH_URL: http://localhost:3001
+          APP_URL: http://localhost:3001
         run: |
           cd ${{ matrix.service.dir }}
           npm run build

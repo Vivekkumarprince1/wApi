@@ -31,6 +31,8 @@ import {
   updateUserNotifications
 } from '../controllers/authController.js';
 import { businessAuthMiddleware } from '../middleware/businessAuth.js';
+import { isSuperAdmin } from '../middleware/businessAuth.js';
+import { getDeletionOperation, requestWorkspaceDeletion, retryDeletionOperation } from '../controllers/deletionOperationController.js';
 
 const router = Router();
 
@@ -102,6 +104,9 @@ router.get('/account', businessAuthMiddleware, getAccount);
 router.delete('/account', businessAuthMiddleware, deleteAccount);
 router.post('/account/delete-request', businessAuthMiddleware, requestDeleteAccount);
 router.post('/account/delete-confirm', businessAuthMiddleware, confirmDeleteAccount);
+router.post('/super-admin/deletion/workspaces/:workspaceId', businessAuthMiddleware, isSuperAdmin, requestWorkspaceDeletion);
+router.get('/super-admin/deletion/:operationId', businessAuthMiddleware, isSuperAdmin, getDeletionOperation);
+router.post('/super-admin/deletion/:operationId/retry', businessAuthMiddleware, isSuperAdmin, retryDeletionOperation);
 
 /* ------------------------ Internal (microservice-only) -------------------- */
 router.post('/internal/v1/auth/verify-session', verifySession);

@@ -29,7 +29,7 @@ describe("legacy offer email parity", () => {
     expect(html).toContain(input.acceptanceUrl);
     expect(html).toContain("20/08/2026");
     expect(html).toContain("The HR Team @ ConnectSphere");
-    expect(html).toContain("Human Resources Department • ConnectSphere Headquarters");
+    expect(html).toContain("People Operations • ConnectSphere");
   });
 
   it("matches the MERN extension subject and content", () => {

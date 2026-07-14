@@ -27,6 +27,12 @@ export class ProviderMessageDispatch extends WorkspaceScopedModel {
   @Prop()
   idempotencyKey?: string;
 
+  @Prop({ required: true, index: true })
+  internalMessageId!: string;
+
+  @Prop({ default: 1 })
+  attempt!: number;
+
   @Prop()
   providerMessageId?: string;
 
@@ -34,7 +40,7 @@ export class ProviderMessageDispatch extends WorkspaceScopedModel {
   providerEnvelopeId?: string;
 
   @Prop({ default: 'accepted', index: true })
-  status!: 'accepted' | 'sent' | 'delivered' | 'read' | 'failed';
+  status!: 'dispatching' | 'accepted' | 'sent' | 'delivered' | 'read' | 'failed' | 'rejected' | 'expired' | 'unknown' | 'reconciliation_required';
 
   @Prop()
   errorCode?: string;
@@ -50,4 +56,5 @@ export class ProviderMessageDispatch extends WorkspaceScopedModel {
 }
 
 export const ProviderMessageDispatchSchema = SchemaFactory.createForClass(ProviderMessageDispatch);
-ProviderMessageDispatchSchema.index({ workspaceId: 1, idempotencyKey: 1 }, { sparse: true });
+ProviderMessageDispatchSchema.index({ workspaceId: 1, internalMessageId: 1 }, { unique: true });
+ProviderMessageDispatchSchema.index({ workspaceId: 1, idempotencyKey: 1 }, { unique: true, sparse: true });

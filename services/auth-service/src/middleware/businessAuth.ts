@@ -2,6 +2,8 @@ import express from 'express';
 import { Workspace, Permission, SystemSettings } from '../models/index.js';
 import { extractToken, resolveUserFromToken } from '../utils/authHelper.js';
 import { shouldBypassWorkspaceAccessGuard, getWorkspaceAccessDecision } from '../services/workspace-access-service.js';
+import { extractInternalIdentityToken, verifyInternalIdentity } from '@wapi/contracts';
+import config from '../config/index.js';
 
 export interface AuthRequest extends express.Request {
   user?: any;
@@ -12,6 +14,16 @@ export interface AuthRequest extends express.Request {
 
 export const businessAuthMiddleware = async (req: AuthRequest, res: express.Response, next: express.NextFunction) => {
   try {
+    const internalToken = extractInternalIdentityToken(req.header('x-internal-auth'));
+    if (internalToken) {
+      const claims = verifyInternalIdentity(internalToken, config.internalServiceSecret, 'auth');
+      req.user = await (await import('../models/index.js')).User.findById(claims.sub);
+      if (!req.user) return res.status(401).json({ success: false, message: 'Internal identity user not found' });
+      req.workspace = await Workspace.findById(claims.workspaceId);
+      req.role = claims.workspaceRole;
+      req.permissions = claims.permissions;
+      return next();
+    }
     const token = extractToken(req);
     if (!token) return res.status(401).json({ success: false, message: 'Unauthorized: No token provided' });
 

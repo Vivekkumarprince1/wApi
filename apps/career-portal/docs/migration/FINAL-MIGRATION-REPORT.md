@@ -1,8 +1,8 @@
 # Final Migration Report
 
 **Date:** 2026-07-12  
-**Source:** `career.fmpg/mern` — unchanged, read-only reference  
-**Target:** `career.fmpg/career-portal`
+**Source:** `career.connectsphere/mern` — unchanged, read-only reference  
+**Target:** `career.connectsphere/career-portal`
 
 ## 1. Migration summary
 

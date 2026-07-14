@@ -12,34 +12,45 @@ export class MessagesService {
   ) {}
 
   async send(input: any) {
-    const providerResponse = await this.gupshup.sendMessage({
-      appId: input.appId,
-      payload: input.payload,
+    const internalMessageId = String(input.internalMessageId || input.idempotencyKey || '');
+    if (!internalMessageId) throw new Error('internalMessageId is required');
+    const existing = await this.dispatchModel.findOne({ workspaceId: input.workspaceId, internalMessageId });
+    if (existing && existing.providerMessageId) {
+      return { dispatchId: existing._id.toString(), success: true, duplicate: true, providerMessageId: existing.providerMessageId, status: existing.status };
+    }
+    if (existing && ['dispatching', 'unknown', 'reconciliation_required'].includes(existing.status)) {
+      return { dispatchId: existing._id.toString(), success: false, duplicate: true, status: 'reconciliation_required', error: 'Provider outcome is uncertain' };
+    }
+
+    const dispatch = existing || await this.dispatchModel.create({
+      workspaceId: input.workspaceId, provider: input.provider || 'gupshup', appId: input.appId,
+      to: input.to, type: input.type, conversationId: input.conversationId, contactId: input.contactId,
+      campaignId: input.campaignId, idempotencyKey: input.idempotencyKey || internalMessageId,
+      internalMessageId, attempt: 1, status: 'dispatching', payload: input.payload,
     });
 
-    const dispatch = await this.dispatchModel.create({
-      workspaceId: input.workspaceId,
-      provider: input.provider || 'gupshup',
-      appId: input.appId,
-      to: input.to,
-      type: input.type,
-      conversationId: input.conversationId,
-      contactId: input.contactId,
-      campaignId: input.campaignId,
-      idempotencyKey: input.idempotencyKey,
-      providerMessageId: providerResponse.messageId,
-      providerEnvelopeId: providerResponse.id,
-      status: 'sent',
-      payload: input.payload,
-      providerResponse,
-    });
+    let providerResponse: any;
+    try {
+      providerResponse = await this.gupshup.sendMessage({ appId: input.appId, payload: input.payload });
+      dispatch.providerMessageId = providerResponse.messageId;
+      dispatch.providerEnvelopeId = providerResponse.id;
+      dispatch.status = 'accepted';
+      dispatch.providerResponse = providerResponse;
+      await dispatch.save();
+    } catch (error: any) {
+      dispatch.status = error?.response ? 'failed' : 'reconciliation_required';
+      dispatch.errorCode = error.code || 'PROVIDER_DISPATCH_FAILED';
+      dispatch.errorMessage = error.message;
+      await dispatch.save();
+      throw error;
+    }
 
     return {
       dispatchId: (dispatch as any)._id.toString(),
       success: true,
       providerMessageId: dispatch.providerMessageId,
       providerEnvelopeId: dispatch.providerEnvelopeId,
-      status: 'sent',
+      status: 'accepted',
       providerResponse,
     };
   }

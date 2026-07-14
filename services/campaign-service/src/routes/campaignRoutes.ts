@@ -13,6 +13,8 @@ router.post('/campaigns/:id/lifecycle', authenticate, CampaignController.lifecyc
 router.get('/campaigns/:id/messages', authenticate, CampaignController.getMessages);
 router.get('/campaigns/:id/export', authenticate, CampaignController.exportCsv);
 router.post('/campaigns/:id/retarget', authenticate, CampaignController.retargetCampaign);
+router.post('/bulk/messages/send', authenticate, CampaignController.createBulkCampaign);
+router.get('/bulk/status/:id', authenticate, CampaignController.getBulkCampaignStatus);
 router.delete('/internal/purge/:workspaceId', internalAuth, CampaignController.purgeWorkspaceData);
 
 export default router;

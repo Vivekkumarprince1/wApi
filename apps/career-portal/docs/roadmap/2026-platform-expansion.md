@@ -1,4 +1,4 @@
-# FMPG Careers + HRMS Expansion Roadmap
+# ConnectSphere Careers + HRMS Expansion Roadmap
 
 ## Architecture decision
 

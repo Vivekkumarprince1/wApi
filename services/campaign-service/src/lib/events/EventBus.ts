@@ -187,29 +187,33 @@ const handleMessageStatusUpdate = async (data: any) => {
   console.log(`[CampaignEventBus] Processing ${field} for campaign ${campaignId} (Contact: ${contactId || 'unknown'})`);
 
   try {
-    let messageUpdate;
-    if (contactObjectId) {
-      messageUpdate = await CampaignMessage.findOneAndUpdate(
-        { campaign: campaignObjectId, contact: contactObjectId },
-        { $set: updateData },
-        { upsert: false, new: true }
-      );
-    } else if (whatsappMessageId) {
-      messageUpdate = await CampaignMessage.findOneAndUpdate(
-        { whatsappMessageId },
-        { $set: updateData },
-        { upsert: false, new: true }
-      );
+    const existing = contactObjectId
+      ? await CampaignMessage.findOne({ campaign: campaignObjectId, contact: contactObjectId })
+      : whatsappMessageId
+        ? await CampaignMessage.findOne({ whatsappMessageId })
+        : null;
+    if (!existing) {
+      console.warn(`[CampaignEventBus] ⚠ CampaignMessage not found for ${contactId || whatsappMessageId}`);
+      return;
     }
+
+    const { canTransitionMessageState } = await import('../../services/message-state');
+    if (!canTransitionMessageState(existing.status, status)) {
+      console.log(`[CampaignEventBus] Ignoring duplicate/backwards transition ${existing.status} -> ${status}`);
+      return;
+    }
+
+    const messageUpdate = await CampaignMessage.findOneAndUpdate(
+      { _id: existing._id, status: existing.status },
+      { $set: updateData },
+      { upsert: false, new: true }
+    );
 
     if (messageUpdate) {
       console.log(`[CampaignEventBus] ✓ Updated CampaignMessage for ${contactId || whatsappMessageId}`);
-    } else {
-      console.warn(`[CampaignEventBus] ⚠ CampaignMessage not found for ${contactId || whatsappMessageId}`);
+      await Campaign.incrementTotal(campaignId, field);
+      console.log(`[CampaignEventBus] ✓ Incremented ${field} for campaign ${campaignId}`);
     }
-
-    await Campaign.incrementTotal(campaignId, field);
-    console.log(`[CampaignEventBus] ✓ Incremented ${field} for campaign ${campaignId}`);
   } catch (err: any) {
     console.error(`[CampaignEventBus] ❌ Error updating metrics:`, err.message);
   }

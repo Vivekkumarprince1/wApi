@@ -39,6 +39,7 @@ interface GatewayCallOptions {
   actor: AdminTokenPayload;
   /** Optional workspace context (e.g. for impersonation / scoped ops). */
   workspaceId?: string;
+  headers?: Record<string, string>;
 }
 
 /**
@@ -58,6 +59,7 @@ export async function gatewayCall<T = unknown>(
     "x-user-id": actor.userId,
     "x-user-role": actor.role,
     "x-workspace-id": workspaceId || "",
+    ...(options.headers || {}),
   };
 
   try {

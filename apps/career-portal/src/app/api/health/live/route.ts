@@ -5,7 +5,7 @@ export function GET() {
   return NextResponse.json({
     status: "ok",
     probe: "liveness",
-    service: "connectsphere-careers-next",
+    service: "connectsphere-career-portal",
     timestamp: new Date().toISOString(),
   });
 }

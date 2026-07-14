@@ -6,10 +6,19 @@
   "engines": {
     "node": ">=22.0.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "prisma",
+      "sharp",
+      "unrs-resolver"
+    ]
+  },
   "scripts": {
     "dev": "next dev --turbopack -p 3001",
-    "build": "next build --webpack",
-    "start": "next start -p 3001",
+    "build": "prisma generate && next build --webpack",
+    "start": "next start -p ${PORT:-3001}",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

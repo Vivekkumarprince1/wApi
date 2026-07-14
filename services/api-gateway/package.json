@@ -8,9 +8,11 @@
     "build": "NODE_OPTIONS=--max-old-space-size=2048 tsc",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
-    "smoke:routes": "node --import tsx scripts/smoke-routes.ts"
+    "smoke:routes": "node --import tsx scripts/smoke-routes.ts",
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
+    "@connectsphere/contracts": "file:../../packages/contracts",
     "cors": "^2.8.6",
     "dotenv": "^16.3.1",
     "express": "^4.22.2",

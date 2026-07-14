@@ -36,7 +36,7 @@ export default defineConfig({
     ? {
         webServer: {
           command:
-            "MONGODB_URI='mongodb://127.0.0.1:27017/fmpg?replicaSet=rs0&serverSelectionTimeoutMS=500' corepack pnpm build && corepack pnpm start",
+            "MONGODB_URI='mongodb://127.0.0.1:27017/connectsphere?replicaSet=rs0&serverSelectionTimeoutMS=500' corepack pnpm build && corepack pnpm start",
           url: targetBaseURL,
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,

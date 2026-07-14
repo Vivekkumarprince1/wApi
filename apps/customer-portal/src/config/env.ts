@@ -11,6 +11,14 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED: z.string().optional(),
   NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY: z.string().optional(),
   NEXT_PUBLIC_APP_NAME: z.string().optional(),
+  NEXT_PUBLIC_FEATURE_COMMERCE: z.string().optional(),
+  NEXT_PUBLIC_FEATURE_AI_FAQ: z.string().optional(),
+  NEXT_PUBLIC_FEATURE_META_ADS: z.string().optional(),
+  NEXT_PUBLIC_FEATURE_INSTAGRAM: z.string().optional(),
+  NEXT_PUBLIC_FEATURE_PETPOOJA: z.string().optional(),
+  NEXT_PUBLIC_FEATURE_ADVANCED_ANSWERBOT: z.string().optional(),
+  NEXT_PUBLIC_FEATURE_DEVELOPER_API: z.string().optional(),
+  NEXT_PUBLIC_FEATURE_FORMS: z.string().optional(),
 });
 
 const rawEnv = {
@@ -24,6 +32,14 @@ const rawEnv = {
   NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED: process.env.NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED,
   NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY: process.env.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY,
   NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
+  NEXT_PUBLIC_FEATURE_COMMERCE: process.env.NEXT_PUBLIC_FEATURE_COMMERCE,
+  NEXT_PUBLIC_FEATURE_AI_FAQ: process.env.NEXT_PUBLIC_FEATURE_AI_FAQ,
+  NEXT_PUBLIC_FEATURE_META_ADS: process.env.NEXT_PUBLIC_FEATURE_META_ADS,
+  NEXT_PUBLIC_FEATURE_INSTAGRAM: process.env.NEXT_PUBLIC_FEATURE_INSTAGRAM,
+  NEXT_PUBLIC_FEATURE_PETPOOJA: process.env.NEXT_PUBLIC_FEATURE_PETPOOJA,
+  NEXT_PUBLIC_FEATURE_ADVANCED_ANSWERBOT: process.env.NEXT_PUBLIC_FEATURE_ADVANCED_ANSWERBOT,
+  NEXT_PUBLIC_FEATURE_DEVELOPER_API: process.env.NEXT_PUBLIC_FEATURE_DEVELOPER_API,
+  NEXT_PUBLIC_FEATURE_FORMS: process.env.NEXT_PUBLIC_FEATURE_FORMS,
 };
 
 const envParseResult = publicEnvSchema.safeParse(rawEnv);
@@ -46,6 +62,16 @@ export const config = {
   facebookAuthEnabled: rawEnv.NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED === 'true',
   businessVerificationMandatory: rawEnv.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY === 'true',
   appName: rawEnv.NEXT_PUBLIC_APP_NAME || 'ConnectSphare',
+  optionalFeatures: {
+    commerce: rawEnv.NEXT_PUBLIC_FEATURE_COMMERCE === 'true',
+    aiFaq: rawEnv.NEXT_PUBLIC_FEATURE_AI_FAQ === 'true',
+    metaAds: rawEnv.NEXT_PUBLIC_FEATURE_META_ADS === 'true',
+    instagram: rawEnv.NEXT_PUBLIC_FEATURE_INSTAGRAM === 'true',
+    petpooja: rawEnv.NEXT_PUBLIC_FEATURE_PETPOOJA === 'true',
+    advancedAnswerbot: rawEnv.NEXT_PUBLIC_FEATURE_ADVANCED_ANSWERBOT === 'true',
+    developerApi: rawEnv.NEXT_PUBLIC_FEATURE_DEVELOPER_API === 'true',
+    forms: rawEnv.NEXT_PUBLIC_FEATURE_FORMS === 'true',
+  },
 };
 
 export type PublicConfig = typeof config;

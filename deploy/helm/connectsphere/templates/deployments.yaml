@@ -58,7 +58,7 @@ spec:
           {{- if $.Values.probes.enabled }}
           readinessProbe:
             httpGet:
-              path: {{ default $.Values.probes.path $service.healthPath }}
+              path: {{ default (default $.Values.probes.path $service.healthPath) $service.readinessPath }}
               port: http
             initialDelaySeconds: {{ $.Values.probes.initialDelaySeconds }}
             periodSeconds: {{ $.Values.probes.periodSeconds }}
@@ -66,7 +66,7 @@ spec:
             failureThreshold: {{ $.Values.probes.failureThreshold }}
           livenessProbe:
             httpGet:
-              path: {{ default $.Values.probes.path $service.healthPath }}
+              path: {{ default (default $.Values.probes.path $service.healthPath) $service.livenessPath }}
               port: http
             initialDelaySeconds: {{ add $.Values.probes.initialDelaySeconds 20 }}
             periodSeconds: {{ $.Values.probes.periodSeconds }}

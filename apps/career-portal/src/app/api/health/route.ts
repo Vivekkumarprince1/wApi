@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const probe = new URL(request.url).searchParams.get("probe") ?? "readiness";
   const base = {
-    service: "connectsphere-careers-next",
+    service: "connectsphere-career-portal",
     timestamp: new Date().toISOString(),
   };
   if (probe === "liveness")

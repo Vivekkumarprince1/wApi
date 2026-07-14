@@ -16,6 +16,7 @@ import { getFeatureMetadata } from "@/config/feature-config";
 import FlashLoader from "@/components/ui/flash-loader";
 import { AccessRestrictedState } from "@/components/shared/access-restricted-state";
 import { isPublicCustomerRoute } from "@/lib/public-routes";
+import config from "@/config/env";
 
 
 export default function DashboardLayout({
@@ -47,6 +48,13 @@ export default function DashboardLayout({
   const isBillingPage = pathname.startsWith('/billing');
 
   const isPublicRoute = isPublicCustomerRoute(pathname);
+  const disabledOptionalFeature =
+    (!config.optionalFeatures.commerce && pathname.startsWith('/commerce')) ||
+    (!config.optionalFeatures.metaAds && pathname.startsWith('/ads')) ||
+    (!config.optionalFeatures.instagram && pathname.startsWith('/automation/instagram-quickflows')) ||
+    (!config.optionalFeatures.advancedAnswerbot && pathname.startsWith('/automation/answerbot')) ||
+    (!config.optionalFeatures.forms && pathname.startsWith('/automation/whatsapp-forms')) ||
+    (!config.optionalFeatures.developerApi && pathname.startsWith('/settings/developer'));
 
   React.useEffect(() => {
     if (isPublicRoute || loading || user || typeof window === "undefined") return;
@@ -61,6 +69,17 @@ export default function DashboardLayout({
 
   if (!user) {
     return <FlashLoader />;
+  }
+
+  if (disabledOptionalFeature) {
+    return (
+      <AccessRestrictedState
+        title="Feature unavailable"
+        description="This optional feature is disabled for the current production release."
+        actionLabel="Go to dashboard"
+        targetPath="/dashboard"
+      />
+    );
   }
 
   if (accessRestriction && !(accessRestriction.kind === 'billing' && isBillingPage)) {

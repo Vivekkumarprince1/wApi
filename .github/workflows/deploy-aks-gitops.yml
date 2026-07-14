@@ -43,6 +43,7 @@ jobs:
           - { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', needs_contracts: false }
           - { name: 'websocket-gateway', dir: 'services/websocket-gateway', needs_contracts: false }
           - { name: 'admin-portal', dir: 'apps/admin-portal', needs_contracts: true }
+          - { name: 'career-portal', dir: 'apps/career-portal', needs_contracts: false }
           - { name: 'customer-portal', dir: 'apps/customer-portal', needs_contracts: false }
     steps:
       - name: Checkout
@@ -67,13 +68,21 @@ jobs:
       - name: Install dependencies
         run: |
           cd ${{ matrix.service.dir }}
-          if [ -f package-lock.json ]; then
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          elif [ -f package-lock.json ]; then
             npm ci
           else
             npm install
           fi
 
       - name: Build
+        env:
+          MONGODB_URI: mongodb://127.0.0.1:27017/connectsphere
+          BETTER_AUTH_SECRET: connectsphere-ci-career-secret-000000000000000
+          BETTER_AUTH_URL: http://localhost:3001
+          APP_URL: http://localhost:3001
         run: |
           cd ${{ matrix.service.dir }}
           npm run build
@@ -125,6 +134,8 @@ jobs:
             dockerfile: services/websocket-gateway/Dockerfile
           - image: admin-portal
             dockerfile: apps/admin-portal/Dockerfile
+          - image: career-portal
+            dockerfile: apps/career-portal/Dockerfile
           - image: customer-portal
             dockerfile: apps/customer-portal/Dockerfile
     steps:
@@ -169,6 +180,9 @@ jobs:
             NEXT_PUBLIC_FACEBOOK_APP_ID=${{ vars.NEXT_PUBLIC_FACEBOOK_APP_ID }}
             NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY=${{ vars.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY || 'false' }}
             BACKEND_API_URL=${{ vars.BACKEND_API_URL || 'http://connectsphere-api-gateway:5001' }}
+            APP_URL=${{ vars.CAREER_PORTAL_URL || 'https://connectsphere-career-vivek.eastus.cloudapp.azure.com' }}
+            BETTER_AUTH_URL=${{ vars.CAREER_PORTAL_URL || 'https://connectsphere-career-vivek.eastus.cloudapp.azure.com' }}
+            NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${{ vars.CAREER_RECAPTCHA_SITE_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

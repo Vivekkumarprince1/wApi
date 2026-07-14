@@ -2,7 +2,8 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { Campaign, CampaignMessage, ICampaignModel, Template } from '../models';
 import { microserviceWorkerClient } from '../lib/microservice-worker-client';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
+import { CampaignQueueService } from '../lib/campaign-queue';
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -233,6 +234,78 @@ export const createCampaign = async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
+};
+
+export const createBulkCampaign = async (req: AuthRequest, res: Response) => {
+  try {
+    const workspaceId = String(req.workspace?.id || req.workspace?._id || '');
+    const userId = String(req.user?.id || req.user?._id || '');
+    const contactIds = Array.isArray(req.body?.contactIds)
+      ? [...new Set<string>(req.body.contactIds.map((value: unknown) => String(value)))]
+          .filter((value) => Types.ObjectId.isValid(value))
+          .map((value) => new Types.ObjectId(value))
+      : [];
+    const templateId = String(req.body?.templateId || req.body?.template?._id || req.body?.template || '');
+    const scheduledAt = req.body?.scheduledAt ? new Date(req.body.scheduledAt) : null;
+
+    if (!workspaceId || !userId) return res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authenticated workspace is required' } });
+    if (!contactIds.length || contactIds.length > 100000) return res.status(400).json({ success: false, error: { code: 'INVALID_AUDIENCE', message: 'contactIds must contain between 1 and 100000 contacts' } });
+    if (!templateId || !Types.ObjectId.isValid(templateId)) return res.status(400).json({ success: false, error: { code: 'INVALID_TEMPLATE', message: 'A valid approved template is required' } });
+    if (scheduledAt && Number.isNaN(scheduledAt.getTime())) return res.status(400).json({ success: false, error: { code: 'INVALID_SCHEDULE', message: 'scheduledAt must be a valid date-time' } });
+
+    const template = await loadTemplateForCampaign(workspaceId, templateId);
+    if (String(template?.status || '').toUpperCase() !== 'APPROVED') {
+      return res.status(409).json({ success: false, error: { code: 'TEMPLATE_NOT_APPROVED', message: 'Only provider-approved templates can be sent' } });
+    }
+
+    const idempotencyKey = String(req.header('idempotency-key') || req.header('x-idempotency-key') || '').trim();
+    if (idempotencyKey) {
+      const existing = await Campaign.findOne({ workspace: workspaceId, 'metadata.idempotencyKey': idempotencyKey });
+      if (existing) return res.status(202).json({ success: true, operationId: existing._id, campaignId: existing._id, status: existing.status });
+    }
+
+    const campaign: any = await Campaign.create({
+      workspace: workspaceId,
+      name: String(req.body?.name || `Bulk send ${new Date().toISOString()}`).slice(0, 120),
+      template: templateId,
+      templateSnapshot: buildTemplateSnapshot(template),
+      recipientFilter: { type: 'specific' },
+      contacts: contactIds,
+      variableMapping: req.body?.variableMapping || {},
+      campaignType: scheduledAt ? 'scheduled' : 'one-time',
+      status: scheduledAt ? 'SCHEDULED' : 'DRAFT',
+      scheduledAt: scheduledAt || undefined,
+      scheduleAt: scheduledAt || undefined,
+      createdBy: userId,
+      totalContacts: contactIds.length,
+      metadata: { idempotencyKey: idempotencyKey || undefined, source: 'bulk-api', correlationId: req.header('x-correlation-id') },
+    });
+
+    const delay = scheduledAt ? Math.max(0, scheduledAt.getTime() - Date.now()) : 0;
+    await CampaignQueueService.enqueue(String(campaign._id), workspaceId, { delay });
+    if (!scheduledAt) {
+      campaign.status = 'QUEUED';
+      await campaign.save();
+    }
+
+    return res.status(202).json({
+      success: true,
+      operationId: campaign._id,
+      campaignId: campaign._id,
+      status: campaign.status,
+      statusUrl: `/api/v1/bulk/status/${campaign._id}`,
+    });
+  } catch (error: any) {
+    return res.status(error?.response?.status || 500).json({ success: false, error: { code: error.code || 'BULK_CAMPAIGN_CREATE_FAILED', message: error.message } });
+  }
+};
+
+export const getBulkCampaignStatus = async (req: AuthRequest, res: Response) => {
+  const workspaceId = String(req.workspace?.id || req.workspace?._id || '');
+  const campaign = await Campaign.findOne({ _id: req.params.id, workspace: workspaceId }).lean();
+  if (!campaign) return res.status(404).json({ success: false, error: { code: 'OPERATION_NOT_FOUND', message: 'Bulk operation not found' } });
+  const messageCounts = await (CampaignMessage as any).getStatusCounts(campaign._id);
+  return res.json({ success: true, operationId: campaign._id, status: campaign.status, totals: campaign.totals, messageCounts, updatedAt: campaign.updatedAt });
 };
 
 /**

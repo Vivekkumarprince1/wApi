@@ -91,4 +91,4 @@ Existing passwords are bcrypt cost 10 in `users.password`; Better Auth defaults 
 
 ## Required read-only live-data checks
 
-Verify actual collections/indexes/counts; missing/null/BSON type distributions; all distinct enum-like values; legacy fields/roles/statuses; duplicate emails/IDs/slugs/tokens; dangling and disagreeing bidirectional references; embedded IDs; offer `userId` semantics; accepted offers without contracts; password prefixes; alternate database names (`fmpg` vs `careers_job_portal`). No schema is final until these checks pass.
+Verify actual collections/indexes/counts; missing/null/BSON type distributions; all distinct enum-like values; legacy fields/roles/statuses; duplicate emails/IDs/slugs/tokens; dangling and disagreeing bidirectional references; embedded IDs; offer `userId` semantics; accepted offers without contracts; password prefixes; alternate database names (`connectsphere` vs `careers_job_portal`). No schema is final until these checks pass.

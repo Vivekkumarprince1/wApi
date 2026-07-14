@@ -4,7 +4,7 @@ import { internalController } from '../controllers/internalController.js';
 const router = Router();
 
 // Internal service auth check middleware
-const internalAuth = (req: Request, res: Response, next: NextFunction) => {
+export const internalAuth = (req: Request, res: Response, next: NextFunction) => {
   const provided = req.header('x-internal-service-secret');
   const expected = process.env.INTERNAL_SERVICE_SECRET!;
 

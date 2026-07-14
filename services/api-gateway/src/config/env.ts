@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import type { DotenvConfigOptions } from 'dotenv';
 import { z } from 'zod';
+import { resolveFeatureFlags } from './feature-flags';
 
 dotenv.config({ quiet: true } as DotenvConfigOptions);
 
@@ -86,6 +87,7 @@ export const config = {
     websocket: process.env.WEBSOCKET_URL || 'http://localhost:3009',
     ingestor: process.env.WEBHOOK_INGESTOR_URL || 'http://localhost:3013',
   },
+  featureFlags: resolveFeatureFlags(process.env),
 };
 
 export type AppConfig = typeof config;

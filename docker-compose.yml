@@ -245,6 +245,28 @@ services:
     networks:
       - connectsphere-network
 
+  career-portal:
+    build:
+      context: .
+      dockerfile: apps/career-portal/Dockerfile
+      args:
+        APP_URL: http://localhost:3001
+        BETTER_AUTH_URL: http://localhost:3001
+    container_name: connectsphere-career-portal
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mongodb
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - MONGODB_URI=mongodb://mongodb:27017/connectsphere
+      - BETTER_AUTH_SECRET=${CAREER_BETTER_AUTH_SECRET:-connectsphere-local-career-secret-change-me-000000}
+      - BETTER_AUTH_URL=http://localhost:3001
+      - APP_URL=http://localhost:3001
+    networks:
+      - connectsphere-network
+
   customer-portal:
     build:
       context: .

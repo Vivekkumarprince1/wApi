@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const base = {
-    service: "connectsphere-careers-next",
+    service: "connectsphere-career-portal",
     probe: "readiness",
     timestamp: new Date().toISOString(),
   };

@@ -6,13 +6,16 @@ export interface ICampaignMessage {
   message?: Types.ObjectId;
   contact: Types.ObjectId;
   phone?: string;
-  status: 'pending' | 'queued' | 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
+  internalMessageId: string;
+  provider: string;
+  status: 'pending' | 'queued' | 'dispatching' | 'accepted' | 'sent' | 'delivered' | 'read' | 'failed' | 'rejected' | 'expired' | 'unknown' | 'reconciliation_required';
   attempts: number;
   maxAttempts: number;
   lastAttemptAt?: Date;
   lastError?: string;
   errorCode?: string;
   whatsappMessageId?: string;
+  lastProviderEvent?: string;
   queuedAt?: Date;
   sentAt?: Date;
   deliveredAt?: Date;
@@ -39,11 +42,14 @@ const CampaignMessageSchema = new Schema<ICampaignMessageDocument, ICampaignMess
   message: { type: Schema.Types.ObjectId, ref: 'Message' },
   contact: { type: Schema.Types.ObjectId, ref: 'Contact', required: true, index: true },
   phone: { type: String },
-  status: { type: String, enum: ['pending', 'queued', 'sending', 'sent', 'delivered', 'read', 'failed'], default: 'queued', index: true },
+  internalMessageId: { type: String, required: true, index: true },
+  provider: { type: String, default: 'gupshup' },
+  status: { type: String, enum: ['pending', 'queued', 'dispatching', 'accepted', 'sent', 'delivered', 'read', 'failed', 'rejected', 'expired', 'unknown', 'reconciliation_required'], default: 'queued', index: true },
   attempts: { type: Number, default: 0 },
   maxAttempts: { type: Number, default: 3 },
   lastAttemptAt: Date, lastError: String, errorCode: String,
   whatsappMessageId: { type: String },
+  lastProviderEvent: String,
   queuedAt: Date, sentAt: Date, deliveredAt: Date, readAt: Date, repliedAt: Date, failedAt: Date,
   failureReason: String,
   batchId: { type: Schema.Types.ObjectId, ref: 'CampaignBatch' },
@@ -53,8 +59,9 @@ const CampaignMessageSchema = new Schema<ICampaignMessageDocument, ICampaignMess
 });
 
 CampaignMessageSchema.index({ campaign: 1, contact: 1 }, { unique: true });
+CampaignMessageSchema.index({ workspace: 1, internalMessageId: 1 }, { unique: true });
 CampaignMessageSchema.index({ campaign: 1, status: 1 });
-CampaignMessageSchema.index({ whatsappMessageId: 1 }, { sparse: true });
+CampaignMessageSchema.index({ whatsappMessageId: 1 }, { unique: true, sparse: true });
 CampaignMessageSchema.index({ workspace: 1, createdAt: -1 });
 
 CampaignMessageSchema.pre<ICampaignMessageDocument>('save', function() { this.updatedAt = new Date(); });

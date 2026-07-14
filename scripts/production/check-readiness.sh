@@ -14,6 +14,7 @@ required_files=(
 
 services=(
   "apps/admin-portal"
+  "apps/career-portal"
   "apps/customer-portal"
   "services/api-gateway"
   "services/auth-service"
@@ -67,7 +68,7 @@ fi
 
 production_values="deploy/gitops/production-values.yaml"
 if [[ -f "$production_values" ]]; then
-  if grep -E '^[[:space:]]+(NEXT_PUBLIC_APP_URL|CUSTOMER_PORTAL_URL|ADMIN_PORTAL_URL|ALLOWED_ORIGINS):.*http://' "$production_values" >/dev/null; then
+  if grep -E '^[[:space:]]+(NEXT_PUBLIC_APP_URL|CUSTOMER_PORTAL_URL|ADMIN_PORTAL_URL|CAREER_PORTAL_URL|ALLOWED_ORIGINS):.*http://' "$production_values" >/dev/null; then
     echo "::error file=$production_values::Public production URLs and origins must use HTTPS"
     missing=1
   fi
@@ -78,6 +79,14 @@ if [[ -f "$production_values" ]]; then
     'ALLOW_UNSIGNED_DEV_WEBHOOKS: "false"'
     'ALLOW_UNSIGNED_DEV_PAYMENT_WEBHOOKS: "false"'
     'REQUIRE_WEBHOOK_SIGNATURE: "true"'
+    'FEATURE_COMMERCE: "false"'
+    'FEATURE_AI_FAQ: "false"'
+    'FEATURE_META_ADS: "false"'
+    'FEATURE_INSTAGRAM: "false"'
+    'FEATURE_PETPOOJA: "false"'
+    'FEATURE_ADVANCED_ANSWERBOT: "false"'
+    'FEATURE_DEVELOPER_API: "false"'
+    'FEATURE_FORMS: "false"'
   )
   for flag in "${required_flags[@]}"; do
     if ! grep -Fq "$flag" "$production_values"; then
@@ -86,7 +95,7 @@ if [[ -f "$production_values" ]]; then
     fi
   done
 
-  required_secret_keys=(CLOUDINARY_CLOUD_NAME CLOUDINARY_API_KEY CLOUDINARY_API_SECRET RAZORPAY_KEY_ID RAZORPAY_KEY_SECRET RAZORPAY_WEBHOOK_SECRET)
+  required_secret_keys=(BETTER_AUTH_SECRET SMTP_HOST SMTP_USER SMTP_PASSWORD EMAIL_REPLY_TO CONTRACT_ENCRYPTION_KEY WEBHOOK_ENCRYPTION_KEY RECAPTCHA_SECRET_KEY OBSERVABILITY_HTTP_ENDPOINT OBSERVABILITY_HTTP_TOKEN METRICS_TOKEN MALWARE_SCAN_URL MALWARE_SCAN_TOKEN RATE_LIMIT_REST_URL RATE_LIMIT_REST_TOKEN CLOUDINARY_CLOUD_NAME CLOUDINARY_API_KEY CLOUDINARY_API_SECRET RAZORPAY_KEY_ID RAZORPAY_KEY_SECRET RAZORPAY_WEBHOOK_SECRET)
   for key in "${required_secret_keys[@]}"; do
     if ! grep -Fq -- "- key: $key" "$production_values"; then
       echo "::error file=$production_values::Missing Key Vault mapping for $key"
