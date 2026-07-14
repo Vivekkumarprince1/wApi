@@ -78,7 +78,7 @@ mongoose.connect(MONGODB_URI, {
     } else {
       console.log('Campaign background workers disabled for local development. Set ENABLE_BACKGROUND_WORKERS=true to enable them.');
     }
-    
+
     // Start Server ONLY after DB connection
     server = app.listen(PORT, () => {
       ready = true;
@@ -130,7 +130,7 @@ app.use(errorHandler);
 // Graceful Shutdown
 function gracefulShutdown(signal: string) {
   console.log(`[${signal}] Received. Shutting down gracefully...`);
-  
+
   ready = false;
   const closeDb = async () => {
     try {

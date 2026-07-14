@@ -51,9 +51,9 @@ const CampaignBatchSchema = new Schema<ICampaignBatchDocument, ICampaignBatchMod
   batchIndex: { type: Number, required: true },
   totalBatches: { type: Number, required: true },
   jobId: { type: String },
-  recipients: [{ contactId: { type: Schema.Types.ObjectId, ref: 'Contact' }, phone: String, status: { type: String, enum: ['pending','queued','sent','delivered','read','failed'], default: 'pending' }, messageId: String, error: String, processedAt: Date }],
+  recipients: [{ contactId: { type: Schema.Types.ObjectId, ref: 'Contact' }, phone: String, status: { type: String, enum: ['pending', 'queued', 'sent', 'delivered', 'read', 'failed'], default: 'pending' }, messageId: String, error: String, processedAt: Date }],
   recipientCount: { type: Number, default: 0 },
-  status: { type: String, enum: ['PENDING','QUEUED','PROCESSING','COMPLETED','FAILED','PAUSED'], default: 'PENDING', index: true },
+  status: { type: String, enum: ['PENDING', 'QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED', 'PAUSED'], default: 'PENDING', index: true },
   stats: { sent: { type: Number, default: 0 }, delivered: { type: Number, default: 0 }, read: { type: Number, default: 0 }, failed: { type: Number, default: 0 } },
   attempts: { type: Number, default: 0 },
   maxAttempts: { type: Number, default: 3 },
@@ -70,12 +70,12 @@ CampaignBatchSchema.index({ campaign: 1, batchIndex: 1 }, { unique: true });
 CampaignBatchSchema.index({ campaign: 1, status: 1 });
 CampaignBatchSchema.index({ campaign: 1, status: 1, batchIndex: 1 });
 
-CampaignBatchSchema.pre<ICampaignBatchDocument>('save', function() {
+CampaignBatchSchema.pre<ICampaignBatchDocument>('save', function () {
   this.updatedAt = new Date();
   this.recipientCount = this.recipients?.length || 0;
 });
 
-CampaignBatchSchema.methods.markStarted = async function() {
+CampaignBatchSchema.methods.markStarted = async function () {
   this.status = 'PROCESSING';
   this.startedAt = new Date();
   this.attempts += 1;
@@ -83,31 +83,31 @@ CampaignBatchSchema.methods.markStarted = async function() {
   return this.save();
 };
 
-CampaignBatchSchema.methods.markCompleted = async function() {
+CampaignBatchSchema.methods.markCompleted = async function () {
   this.status = 'COMPLETED';
   this.completedAt = new Date();
   return this.save();
 };
 
-CampaignBatchSchema.methods.updateRecipientStatus = async function(contactId: string, status: string, messageId?: string, error?: string) {
+CampaignBatchSchema.methods.updateRecipientStatus = async function (contactId: string, status: string, messageId?: string, error?: string) {
   const recipient = this.recipients.find((r: any) => r.contactId?.toString() === contactId);
   if (recipient) {
     recipient.status = status;
     recipient.processedAt = new Date();
     if (messageId) recipient.messageId = messageId;
     if (error) recipient.error = error;
-    
+
     // Update batch stats
     if (status === 'sent') this.stats.sent += 1;
     if (status === 'failed') this.stats.failed += 1;
     if (status === 'delivered') this.stats.delivered += 1;
     if (status === 'read') this.stats.read += 1;
-    
+
     return this.save();
   }
 };
 
-CampaignBatchSchema.statics.createBatches = async function(campaignId, workspaceId, contacts, templateId, templateName, variableMapping, batchSize = 50) {
+CampaignBatchSchema.statics.createBatches = async function (campaignId, workspaceId, contacts, templateId, templateName, variableMapping, batchSize = 50) {
   const batches: any[] = [];
   const totalBatches = Math.ceil(contacts.length / batchSize);
   for (let i = 0; i < contacts.length; i += batchSize) {
@@ -117,11 +117,11 @@ CampaignBatchSchema.statics.createBatches = async function(campaignId, workspace
   return this.insertMany(batches);
 };
 
-CampaignBatchSchema.statics.getNextPendingBatch = function(campaignId) {
+CampaignBatchSchema.statics.getNextPendingBatch = function (campaignId) {
   return this.findOne({ campaign: campaignId, status: { $in: ['PENDING', 'QUEUED'] } }).sort({ batchIndex: 1 });
 };
 
-CampaignBatchSchema.statics.getCampaignBatchStats = async function(campaignId) {
+CampaignBatchSchema.statics.getCampaignBatchStats = async function (campaignId) {
   const stats = await this.aggregate([
     { $match: { campaign: new mongoose.Types.ObjectId(campaignId as string) } },
     { $group: { _id: null, totalBatches: { $sum: 1 }, completedBatches: { $sum: { $cond: [{ $eq: ['$status', 'COMPLETED'] }, 1, 0] } }, failedBatches: { $sum: { $cond: [{ $eq: ['$status', 'FAILED'] }, 1, 0] } }, totalSent: { $sum: '$stats.sent' }, totalDelivered: { $sum: '$stats.delivered' }, totalRead: { $sum: '$stats.read' }, totalFailed: { $sum: '$stats.failed' } } }

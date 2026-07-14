@@ -11,7 +11,7 @@ export class TemplateSeedingService {
     @InjectModel(ProviderTemplateMirror.name) private readonly templateModel: Model<ProviderTemplateMirror>,
     @InjectModel(ProviderApp.name) private readonly appModel: Model<ProviderApp>,
     private readonly gupshup: GupshupClientService,
-  ) {}
+  ) { }
 
   private mapCategoryToVertical(category: string = ''): string {
     const c = category.toLowerCase();
@@ -21,13 +21,13 @@ export class TemplateSeedingService {
     if (c.includes('health') || c.includes('hospital') || c.includes('doctor') || c.includes('clinic')) return 'HEALTHCARE';
     if (c.includes('finance') || c.includes('bank') || c.includes('insurance') || c.includes('loan')) return 'BFSI';
     if (c.includes('real') || c.includes('property') || c.includes('estate') || c.includes('builder')) return 'REAL_ESTATE';
-    
+
     return 'MARKETING'; // Default fallback
   }
 
   async seedBestPracticeTemplates(workspaceId: string) {
     const mainDb = this.appModel.db.useDb('wapi');
-    
+
     let workspace: any = null;
     try {
       workspace = await mainDb.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
@@ -35,7 +35,7 @@ export class TemplateSeedingService {
       console.warn(`[TemplateSeeding] Failed to fetch workspace details:`, err.message);
       return;
     }
-    
+
     const gupshupAppId = workspace?.gupshupAppId || workspace?.gupshupIdentity?.partnerAppId;
     if (!workspace || !gupshupAppId) {
       console.log(`[TemplateSeeding] Workspace ${workspaceId} not found or gupshupAppId missing.`);
@@ -56,15 +56,15 @@ export class TemplateSeedingService {
     } catch (err: any) {
       console.warn(`[TemplateSeeding] Failed to fetch business details:`, err.message);
     }
-    
+
     const vertical = this.mapCategoryToVertical(business?.category);
-    
+
     console.log(`[TemplateSeeding] Seeding templates for ${workspace.name || workspaceId} (Vertical: ${vertical})...`);
 
     if (!gupshupAppId.startsWith('mock_')) {
       try {
         const libraryTemplates = await this.gupshup.getMetaLibraryTemplates(gupshupAppId, vertical);
-        
+
         if (!libraryTemplates || libraryTemplates.length === 0) {
           console.warn(`[TemplateSeeding] No templates found in library for vertical: ${vertical}`);
         } else {
@@ -81,9 +81,9 @@ export class TemplateSeedingService {
               };
 
               const result = await this.gupshup.cloneMetaLibraryTemplate(gupshupAppId, payload);
-              
+
               if (result?.status === 'success' || result?.data?.id) {
-                 console.log(`[TemplateSeeding] Successfully cloned library template: ${libTemplate.elementName}`);
+                console.log(`[TemplateSeeding] Successfully cloned library template: ${libTemplate.elementName}`);
               }
             } catch (cloneErr: any) {
               console.error(`[TemplateSeeding] Failed to clone ${libTemplate.elementName}:`, cloneErr.message);
@@ -109,7 +109,7 @@ export class TemplateSeedingService {
           email: business?.email || ownerEmail,
           websites: workspace.website ? [workspace.website] : []
         };
-        
+
         await this.gupshup.updateBusinessProfile(gupshupAppId, profilePayload).catch(err => {
           console.warn(`[TemplateSeeding] Profile update failed: ${err.message}`);
         });

@@ -51,8 +51,8 @@ const ContactSchema = new Schema<IContactDocument>({
   tags: [String],
   customFields: { type: Map, of: Schema.Types.Mixed, default: {} },
   leadStatus: { type: String, default: 'new' },
-  metadata: { 
-    type: Object, 
+  metadata: {
+    type: Object,
     default: {},
     firstName: String,
     lastName: String,
@@ -81,7 +81,7 @@ ContactSchema.index({ workspace: 1, phone: 1 }, { unique: true });
 ContactSchema.index({ workspace: 1, createdAt: -1 });
 ContactSchema.index({ workspace: 1, tags: 1, createdAt: -1 });
 
-ContactSchema.virtual('displayName').get(function(this: IContactDocument) {
+ContactSchema.virtual('displayName').get(function (this: IContactDocument) {
   const isValid = (val?: string) => val && val.trim() && val.toLowerCase() !== 'unknown';
   if (isValid(this.name)) return this.name!.trim();
   if (isValid(this.metadata?.whatsappName)) return this.metadata!.whatsappName!.trim();
@@ -185,22 +185,22 @@ const DealSchema = new Schema({
   currency: { type: String, default: 'INR' },
   stage: { type: String, required: true },
   assignedAgent: { type: Schema.Types.ObjectId },
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: ['active', 'won', 'lost', 'archived'],
     default: 'active'
   },
   probability: { type: Number, min: 0, max: 100, default: 10 },
   expectedCloseDate: { type: Date },
-  priority: { 
-    type: String, 
+  priority: {
+    type: String,
     enum: ['low', 'medium', 'high', 'urgent'],
-    default: 'medium' 
+    default: 'medium'
   },
   winLossReason: { type: String },
-  source: { 
-    type: String, 
-    default: 'manual' 
+  source: {
+    type: String,
+    default: 'manual'
   },
   sourceId: { type: Schema.Types.ObjectId },
   notes: [
@@ -248,13 +248,13 @@ const TaskSchema = new Schema({
     default: 'Follow-up'
   },
   dueDate: { type: Date },
-  priority: { 
-    type: String, 
+  priority: {
+    type: String,
     enum: ['Low', 'Medium', 'High'],
     default: 'Medium'
   },
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: ['Pending', 'In Progress', 'Completed'],
     default: 'Pending'
   },
@@ -268,7 +268,7 @@ const TaskSchema = new Schema({
   completedAt: { type: Date }
 }, { timestamps: true });
 
-TaskSchema.pre('save', function() {
+TaskSchema.pre('save', function () {
   if (this.isModified('status') && this.status === 'Completed') {
     this.completedAt = new Date();
   }

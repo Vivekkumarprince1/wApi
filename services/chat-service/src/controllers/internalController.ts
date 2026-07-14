@@ -132,7 +132,7 @@ export const internalController = {
         case 'send-template': {
           const { to, templateName, languageCode, components, options = {} } = data;
           let templateCharge: Awaited<ReturnType<typeof chargeTemplateMessage>> | null = null;
-          
+
           let contact;
           try {
             const contactServiceUrl = process.env.CONTACT_SERVICE_URL || 'http://localhost:3007';
@@ -317,7 +317,7 @@ export const internalController = {
           const wallet = walletData.wallet || {};
 
           if (billingData.billingStatus === 'suspended' || billingData.billingStatus === 'canceled') {
-              return res.json({ valid: false, reason: 'BILLING_ACCOUNT_INACTIVE', details: `Account status is ${billingData.billingStatus}` });
+            return res.json({ valid: false, reason: 'BILLING_ACCOUNT_INACTIVE', details: `Account status is ${billingData.billingStatus}` });
           }
 
           const pricingRes = await fetch(`${billingServiceUrl}/api/billing/wallets/${workspaceId}/pricing?category=${template.category || 'MARKETING'}`, { headers: billingHeaders });
@@ -329,13 +329,13 @@ export const internalController = {
           const availableBalance = wallet.availableBalance || 0;
 
           if (availableBalance < estimatedCost) {
-            return res.json({ 
-              valid: false, 
-              reason: 'INSUFFICIENT_FUNDS', 
+            return res.json({
+              valid: false,
+              reason: 'INSUFFICIENT_FUNDS',
               details: {
                 required: estimatedCost / 100,
                 available: availableBalance / 100
-              } 
+              }
             });
           }
 
@@ -386,7 +386,7 @@ export const internalController = {
         case 'send_text':
         case 'send_message': {
           const text = payload.text ?? config.body;
-          
+
           let contact;
           try {
             const contactServiceUrl = process.env.CONTACT_SERVICE_URL || 'http://localhost:3007';
@@ -504,7 +504,7 @@ export const internalController = {
           const fakeReq = { body: { action: 'send-template', data: payloadTemplate } } as any;
           const results = [] as any[];
           const fakeRes = {
-            status: () => ({ json: () => {} }),
+            status: () => ({ json: () => { } }),
             json: (resData: any) => { results.push(resData); }
           } as any;
           await internalController.workerBridge(fakeReq, fakeRes);
@@ -563,8 +563,8 @@ export const internalController = {
             stageId: config.stageId,
           };
 
-          const pipeline = await Pipeline.findOne({ workspace: new Types.ObjectId(workspaceId), isDefault: true }) || 
-                           await Pipeline.findOne({ workspace: new Types.ObjectId(workspaceId) });
+          const pipeline = await Pipeline.findOne({ workspace: new Types.ObjectId(workspaceId), isDefault: true }) ||
+            await Pipeline.findOne({ workspace: new Types.ObjectId(workspaceId) });
           if (pipeline) {
             const stage = dealData.stageId || pipeline.stages[0]?.id;
             await Deal.create({
@@ -683,13 +683,13 @@ export const internalController = {
    */
   async updateConversationMetadata(req: Request, res: Response) {
     try {
-        const { conversationId, metadata } = req.body;
-        await Conversation.findByIdAndUpdate(conversationId, {
-            $set: { botMetadata: metadata }
-        });
-        res.json({ success: true });
+      const { conversationId, metadata } = req.body;
+      await Conversation.findByIdAndUpdate(conversationId, {
+        $set: { botMetadata: metadata }
+      });
+      res.json({ success: true });
     } catch (error: any) {
-        res.status(500).json({ success: false, error: error.message });
+      res.status(500).json({ success: false, error: error.message });
     }
   },
 
@@ -721,7 +721,7 @@ export const internalController = {
       if (!topic) {
         return res.status(400).json({ success: false, error: 'topic is required' });
       }
-      
+
       const { replayDlq: replayHelper } = await import('../services/eventBus.js');
       const result = await replayHelper(topic, limit ? parseInt(String(limit), 10) : 50);
       res.json(result);

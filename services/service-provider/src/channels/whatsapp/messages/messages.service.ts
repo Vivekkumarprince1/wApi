@@ -9,7 +9,7 @@ export class MessagesService {
   constructor(
     @InjectModel(ProviderMessageDispatch.name) private readonly dispatchModel: Model<ProviderMessageDispatch>,
     private readonly gupshup: GupshupClientService,
-  ) {}
+  ) { }
 
   async send(input: any) {
     const internalMessageId = String(input.internalMessageId || input.idempotencyKey || '');

@@ -32,7 +32,7 @@ export class OnboardingService {
     @InjectModel(ProviderSubscription.name) private readonly subscriptionModel: Model<ProviderSubscription>,
     private readonly gupshup: GupshupClientService,
     private readonly templateSeeding: TemplateSeedingService,
-  ) {}
+  ) { }
 
   async start(input: any) {
     const state = randomUUID();
@@ -123,7 +123,7 @@ export class OnboardingService {
       const phone = String(bspSession.phoneNumber || '').replace(/\D/g, '') || undefined;
 
       const contactFingerprint = Buffer.from(`${businessName}:${email}:${phone || ''}`).toString('base64');
-      
+
       const appRecord = await this.appModel.findOne({ workspaceId: input.workspaceId, appId });
       const oldFingerprint = (appRecord?.providerData as any)?.contactSyncFingerprint;
 
@@ -188,16 +188,16 @@ export class OnboardingService {
 
     const session = state
       ? await this.sessionModel.findOneAndUpdate(
-          { state },
-          {
-            $set: {
-              status: input.error ? 'failed' : 'started',
-              'metadata.fallbackPayload': fallbackPayload,
-              'metadata.fallbackReceivedAt': new Date(),
-            },
+        { state },
+        {
+          $set: {
+            status: input.error ? 'failed' : 'started',
+            'metadata.fallbackPayload': fallbackPayload,
+            'metadata.fallbackReceivedAt': new Date(),
           },
-          { new: true },
-        )
+        },
+        { new: true },
+      )
       : null;
 
     return {
@@ -325,7 +325,7 @@ export class OnboardingService {
     let providerResult: any;
     if (existingApp?.appId) {
       console.log(`[OnboardingService:bspStart] Reclaiming existing local sandbox app: ${existingApp.appId}`);
-      
+
       const pToken = await this.gupshup.getPartnerToken();
       const embed = await this.gupshup.partnerClient.get(
         `/partner/app/${existingApp.appId}/onboarding/embed/link?user=${encodeURIComponent(userEmail || 'system')}&lang=en`,
@@ -582,7 +582,7 @@ export class OnboardingService {
         { _id: new Types.ObjectId(workspaceId) },
         { $set: workspaceUpdates }
       );
-      
+
       console.log(`[BSP Sync] Successfully synced workspace connection states to wapi db for workspace ${workspaceId}`);
     } catch (err: any) {
       console.error('[BSP Sync] Failed to sync connection state back to main workspace collection:', err.message);
@@ -666,7 +666,7 @@ export class OnboardingService {
       const phone = String(bspSession.phoneNumber || '').replace(/\D/g, '') || undefined;
 
       const contactFingerprint = Buffer.from(`${businessName}:${email}:${phone || ''}`).toString('base64');
-      
+
       const appRecord = await this.appModel.findOne({ workspaceId, appId });
       const oldFingerprint = (appRecord?.providerData as any)?.contactSyncFingerprint;
 

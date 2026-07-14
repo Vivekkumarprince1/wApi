@@ -11,9 +11,9 @@ export class LedgerService {
   }
 
   async credit(
-    workspaceId: string, 
-    amount: number, 
-    description: string, 
+    workspaceId: string,
+    amount: number,
+    description: string,
     externalReferenceId?: string
   ) {
     if (!Number.isFinite(amount) || amount <= 0) throw new Error('INVALID_CREDIT_AMOUNT');
@@ -42,16 +42,18 @@ export class LedgerService {
 
     const newBalance = wallet.availableBalance + wallet.parkedBalance;
     const previousBalance = newBalance - amount;
-    await WalletTransactionModel.updateOne({ externalReferenceId }, { $setOnInsert: {
-      workspaceId,
-      amount,
-      type: 'RECHARGE',
-      previousBalance,
-      newBalance,
-      description,
-      externalReferenceId,
-      status: 'COMPLETED'
-    } }, { upsert: true });
+    await WalletTransactionModel.updateOne({ externalReferenceId }, {
+      $setOnInsert: {
+        workspaceId,
+        amount,
+        type: 'RECHARGE',
+        previousBalance,
+        newBalance,
+        description,
+        externalReferenceId,
+        status: 'COMPLETED'
+      }
+    }, { upsert: true });
 
     return wallet;
   }

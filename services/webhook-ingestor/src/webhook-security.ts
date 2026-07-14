@@ -3,35 +3,35 @@ import crypto from 'crypto';
 export type SupportedWebhookProvider = 'gupshup' | 'meta' | 'instagram';
 
 export type WebhookSecrets = {
-  gupshup: string;
-  meta: string;
-  instagram: string;
+    gupshup: string;
+    meta: string;
+    instagram: string;
 };
 
 export function normalizeWebhookProvider(value?: string): SupportedWebhookProvider | null {
-  const provider = String(value || 'gupshup').trim().toLowerCase();
-  if (provider === 'gupshup' || provider === 'whatsapp') return 'gupshup';
-  if (provider === 'meta' || provider === 'facebook') return 'meta';
-  if (provider === 'instagram') return 'instagram';
-  return null;
+    const provider = String(value || 'gupshup').trim().toLowerCase();
+    if (provider === 'gupshup' || provider === 'whatsapp') return 'gupshup';
+    if (provider === 'meta' || provider === 'facebook') return 'meta';
+    if (provider === 'instagram') return 'instagram';
+    return null;
 }
 
 export function verifyProviderSignature(input: {
-  provider: SupportedWebhookProvider;
-  rawBody: string | Buffer;
-  headers: Record<string, string | string[] | undefined>;
-  secrets: WebhookSecrets;
+    provider: SupportedWebhookProvider;
+    rawBody: string | Buffer;
+    headers: Record<string, string | string[] | undefined>;
+    secrets: WebhookSecrets;
 }): boolean {
-  const headerName = input.provider === 'gupshup' ? 'x-gupshup-signature' : 'x-hub-signature-256';
-  const rawHeader = input.headers[headerName];
-  const signature = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
-  const secret = input.secrets[input.provider];
-  if (!signature || !secret) return false;
+    const headerName = input.provider === 'gupshup' ? 'x-gupshup-signature' : 'x-hub-signature-256';
+    const rawHeader = input.headers[headerName];
+    const signature = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
+    const secret = input.secrets[input.provider];
+    if (!signature || !secret) return false;
 
-  const suppliedHex = signature.startsWith('sha256=') ? signature.slice(7) : signature;
-  if (!/^[a-fA-F0-9]{64}$/.test(suppliedHex)) return false;
+    const suppliedHex = signature.startsWith('sha256=') ? signature.slice(7) : signature;
+    if (!/^[a-fA-F0-9]{64}$/.test(suppliedHex)) return false;
 
-  const expected = crypto.createHmac('sha256', secret).update(input.rawBody).digest();
-  const supplied = Buffer.from(suppliedHex, 'hex');
-  return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
+    const expected = crypto.createHmac('sha256', secret).update(input.rawBody).digest();
+    const supplied = Buffer.from(suppliedHex, 'hex');
+    return supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected);
 }

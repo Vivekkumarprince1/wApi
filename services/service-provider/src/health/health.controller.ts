@@ -5,7 +5,7 @@ import { config } from '../config';
 
 @Controller()
 export class HealthController {
-  constructor(@InjectConnection() private readonly connection: Connection) {}
+  constructor(@InjectConnection() private readonly connection: Connection) { }
 
   @Get('/')
   root() {

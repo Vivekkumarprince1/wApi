@@ -21,7 +21,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
     if (get().socket?.connected) return;
 
     const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('socket_auth_token') : null;
-    
+
     const socketBase = appConfig.socketUrl;
 
     const socket = io(socketBase || undefined, {

@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { 
-  getConversationsInternal, 
-  getTimelineMessagesInternal, 
-  patchConversationStatusInternal, 
-  getConversationsPublic, 
-  getTimelineMessagesPublic, 
+import {
+  getConversationsInternal,
+  getTimelineMessagesInternal,
+  patchConversationStatusInternal,
+  getConversationsPublic,
+  getTimelineMessagesPublic,
   patchConversationStatusPublic,
   sendMessageInternal,
   sendMessagePublic,

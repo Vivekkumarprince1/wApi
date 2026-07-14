@@ -242,8 +242,8 @@ export const createBulkCampaign = async (req: AuthRequest, res: Response) => {
     const userId = String(req.user?.id || req.user?._id || '');
     const contactIds = Array.isArray(req.body?.contactIds)
       ? [...new Set<string>(req.body.contactIds.map((value: unknown) => String(value)))]
-          .filter((value) => Types.ObjectId.isValid(value))
-          .map((value) => new Types.ObjectId(value))
+        .filter((value) => Types.ObjectId.isValid(value))
+        .map((value) => new Types.ObjectId(value))
       : [];
     const templateId = String(req.body?.templateId || req.body?.template?._id || req.body?.template || '');
     const scheduledAt = req.body?.scheduledAt ? new Date(req.body.scheduledAt) : null;

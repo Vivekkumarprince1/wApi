@@ -29,7 +29,7 @@ export interface ICampaignMessage {
   updatedAt: Date;
 }
 
-export interface ICampaignMessageDocument extends ICampaignMessage, Document {}
+export interface ICampaignMessageDocument extends ICampaignMessage, Document { }
 
 export interface ICampaignMessageModel extends Model<ICampaignMessageDocument> {
   getStatusCounts(campaignId: string | Types.ObjectId): Promise<Record<string, number>>;
@@ -66,9 +66,9 @@ CampaignMessageSchema.index({ campaign: 1, status: 1, createdAt: -1 });
 CampaignMessageSchema.index({ whatsappMessageId: 1 }, { unique: true, sparse: true });
 CampaignMessageSchema.index({ workspace: 1, createdAt: -1 });
 
-CampaignMessageSchema.pre<ICampaignMessageDocument>('save', function() { this.updatedAt = new Date(); });
+CampaignMessageSchema.pre<ICampaignMessageDocument>('save', function () { this.updatedAt = new Date(); });
 
-CampaignMessageSchema.statics.getStatusCounts = async function(campaignId) {
+CampaignMessageSchema.statics.getStatusCounts = async function (campaignId) {
   const counts = await this.aggregate([
     { $match: { campaign: new mongoose.Types.ObjectId(campaignId as string) } },
     { $group: { _id: '$status', count: { $sum: 1 } } }
@@ -76,7 +76,7 @@ CampaignMessageSchema.statics.getStatusCounts = async function(campaignId) {
   return counts.reduce((acc: any, item: any) => { acc[item._id] = item.count; return acc; }, {});
 };
 
-CampaignMessageSchema.statics.findByWhatsAppId = function(whatsappMessageId: string) {
+CampaignMessageSchema.statics.findByWhatsAppId = function (whatsappMessageId: string) {
   return this.findOne({ whatsappMessageId });
 };
 

@@ -2,15 +2,15 @@
 
 import React, { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Play, 
-  Pause, 
-  Trash2, 
-  Eye, 
-  Search, 
-  SlidersHorizontal, 
-  User, 
-  Plus, 
+import {
+  Play,
+  Pause,
+  Trash2,
+  Eye,
+  Search,
+  SlidersHorizontal,
+  User,
+  Plus,
   Target,
   TrendingUp,
   MessageSquare,
@@ -47,11 +47,11 @@ const EmptyState = () => {
       <p className="text-sm text-muted-foreground mb-8 max-w-sm mx-auto font-medium">
         Broadcast your message to thousands of customers in just a few clicks.
       </p>
-      <Button 
+      <Button
         onClick={() => router.push('/campaign/new')}
         className="rounded-xl px-8 h-12 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-bold group"
       >
-        <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" /> 
+        <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" />
         Create First Campaign
       </Button>
     </div>
@@ -63,7 +63,7 @@ const CampaignsPage = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('one-time');
   const [search, setSearch] = useState('');
-  
+
   const { data, isLoading } = useQuery({
     queryKey: ['campaigns'],
     queryFn: () => fetchCampaigns(),
@@ -79,24 +79,24 @@ const CampaignsPage = () => {
 
   const filteredCampaigns = useMemo(() => {
     let filtered = campaigns || [];
-    
+
     // Tab filtering
     if (activeTab === 'one-time') {
       filtered = filtered.filter(c => c && (c.campaignType === 'one-time' || !c.campaignType));
     } else if (activeTab === 'ongoing') {
       filtered = filtered.filter(c => c && c.campaignType === 'scheduled');
     }
-    
+
     // Search filtering
     if (search) {
-      filtered = filtered.filter(c => 
+      filtered = filtered.filter(c =>
         c && (
           (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
           (c.template?.name || '').toLowerCase().includes(search.toLowerCase())
         )
       );
     }
-    
+
     return filtered;
   }, [campaigns, activeTab, search]);
 
@@ -175,7 +175,7 @@ const CampaignsPage = () => {
             <FileDown className="h-4 w-4 mr-2 text-muted-foreground group-hover:text-primary transition-colors" />
             Export
           </Button>
-          <Button 
+          <Button
             onClick={() => router.push('/campaign/new')}
             className="rounded-2xl px-6 h-12 shadow-premium hover:shadow-primary/20 transition-all font-bold bg-primary group"
           >
@@ -196,21 +196,20 @@ const CampaignsPage = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === tab.id 
-                  ? 'bg-background text-primary shadow-sm shadow-black/5 ring-1 ring-border/50' 
+              className={`flex-1 sm:flex-none px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === tab.id
+                  ? 'bg-background text-primary shadow-sm shadow-black/5 ring-1 ring-border/50'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/10'
-              }`}
+                }`}
             >
               {tab.label}
             </button>
           ))}
         </div>
-        
+
         <div className="relative flex-1 w-full group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-          <Input 
-            placeholder="Search by name or template..." 
+          <Input
+            placeholder="Search by name or template..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-11 h-11 bg-transparent border-none focus-visible:ring-0 shadow-none font-medium placeholder:font-normal"
@@ -247,7 +246,7 @@ const CampaignsPage = () => {
                     const statusKey = (c.status || '').toLowerCase();
                     const sentPercentage = c.totalContacts > 0 ? (c.sentCount / c.totalContacts) * 100 : 0;
                     return (
-                      <motion.tr 
+                      <motion.tr
                         key={c._id}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -256,7 +255,7 @@ const CampaignsPage = () => {
                       >
                         <td className="px-6 py-5">
                           <div className="flex flex-col gap-1">
-                            <span 
+                            <span
                               className="text-sm font-bold text-foreground group-hover:text-primary transition-colors cursor-pointer flex items-center gap-2"
                               onClick={() => router.push(`/campaign/${c._id}`)}
                             >
@@ -305,23 +304,23 @@ const CampaignsPage = () => {
 
                         <td className="px-6 py-5 text-right">
                           <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-	                            <Button 
-	                              variant="ghost" 
-	                              size="icon" 
-	                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
-	                              onClick={() => router.push(`/campaign/${c._id}`)}
-	                              aria-label={`View campaign ${c.name}`}
-	                            >
-	                              <Eye className="h-4 w-4" />
-	                            </Button>
-	                            
-	                            <DropdownMenu>
-	                              <DropdownMenuTrigger aria-label={`Open actions for campaign ${c.name}`} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors outline-none cursor-pointer">
-	                                <MoreVertical className="h-4 w-4 text-muted-foreground" />
-	                              </DropdownMenuTrigger>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary"
+                              onClick={() => router.push(`/campaign/${c._id}`)}
+                              aria-label={`View campaign ${c.name}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger aria-label={`Open actions for campaign ${c.name}`} className="h-8 w-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors outline-none cursor-pointer">
+                                <MoreVertical className="h-4 w-4 text-muted-foreground" />
+                              </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="w-48 rounded-2xl p-2 shadow-premium border-border/50">
                                 {statusKey === 'draft' && (
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="rounded-xl h-10 font-bold text-blue-600 focus:text-blue-600 focus:bg-blue-500/10 cursor-pointer"
                                     onClick={() => actionMutation.mutate({ id: c._id, action: 'start' })}
                                   >
@@ -329,7 +328,7 @@ const CampaignsPage = () => {
                                   </DropdownMenuItem>
                                 )}
                                 {['sending', 'queued', 'running'].includes(statusKey) && (
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="rounded-xl h-10 font-bold text-amber-600 focus:text-amber-600 focus:bg-amber-500/10 cursor-pointer"
                                     onClick={() => actionMutation.mutate({ id: c._id, action: 'pause' })}
                                   >
@@ -337,7 +336,7 @@ const CampaignsPage = () => {
                                   </DropdownMenuItem>
                                 )}
                                 {statusKey === 'paused' && (
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="rounded-xl h-10 font-bold text-emerald-600 focus:text-emerald-600 focus:bg-emerald-500/10 cursor-pointer"
                                     onClick={() => actionMutation.mutate({ id: c._id, action: 'resume' })}
                                   >
@@ -345,14 +344,14 @@ const CampaignsPage = () => {
                                   </DropdownMenuItem>
                                 )}
                                 {statusKey === 'completed' && (
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     className="rounded-xl h-10 font-bold text-primary focus:text-primary focus:bg-primary/10 cursor-pointer"
                                     onClick={() => router.push(`/campaign/${c._id}`)} // Or retarget trigger
                                   >
                                     <Target className="h-4 w-4 mr-3" /> Retarget
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem 
+                                <DropdownMenuItem
                                   className="rounded-xl h-10 font-bold text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer"
                                   onClick={() => {
                                     if (confirm('Delete this campaign forever?')) {
@@ -375,7 +374,7 @@ const CampaignsPage = () => {
           </div>
         )}
       </div>
-      
+
       {/* Quick Stats Banner */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-blue-500/5 border border-blue-500/10 p-6 rounded-3xl flex items-center justify-between group">

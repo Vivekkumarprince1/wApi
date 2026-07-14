@@ -166,8 +166,8 @@ async function verifyWithCleartax(input: BusinessVerificationInput): Promise<Ver
 async function verifyKarzaDocument(documentType: 'pan' | 'msme', documentNumber: string, businessName?: string): Promise<VerificationOutcome> {
   const karzaApiKey = process.env.KARZA_API_KEY;
   const baseUrl = (process.env.KARZA_BASE_URL || 'https://api.karza.in').replace(/\/$/, '');
-  const endpointPath = documentType === 'pan' 
-    ? (process.env.KARZA_PAN_VERIFY_PATH || '/v3/pan-profile') 
+  const endpointPath = documentType === 'pan'
+    ? (process.env.KARZA_PAN_VERIFY_PATH || '/v3/pan-profile')
     : (process.env.KARZA_MSME_VERIFY_PATH || '/v3/msme-verify');
   const endpointUrl = `${baseUrl}${endpointPath.startsWith('/') ? endpointPath : `/${endpointPath}`}`;
 

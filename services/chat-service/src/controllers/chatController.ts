@@ -317,13 +317,13 @@ export const getTimelineMessagesPublic = async (req: any, res: express.Response)
     const { id } = req.params;
     const limit = parseInt(req.query.limit as string || "50", 10);
     const before = req.query.before as string;
-    
+
     if (!workspaceId) {
       return res.status(400).json({ success: false, message: 'Workspace context missing' });
     }
 
     const query: any = { workspace: workspaceId, conversation: new mongoose.Types.ObjectId(id), isInternalNote: false };
-    
+
     if (before) {
       query.createdAt = { $lt: new Date(before) };
     }
@@ -403,7 +403,7 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
     const mimeType = req.body.mimeType || media?.mimeType || '';
     const filename = req.body.filename || media?.filename || '';
     const caption = req.body.caption || media?.caption || body || '';
-    
+
     if (!workspaceId) {
       return res.status(400).json({ success: false, message: 'Missing workspace context header' });
     }
@@ -522,9 +522,9 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
           idempotencyKey: req.header('x-idempotency-key') || req.header('idempotency-key') || undefined,
         });
       }
-      
+
       console.log(`[Chat Service] Dispatching outbound to bsp-service: ${bspUrl}/internal/v1/bsp/messages/send`);
-      
+
       const bspRes = await axios.post(
         `${bspUrl}/internal/v1/bsp/messages/send`,
         {
@@ -627,7 +627,7 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
     const mimeType = req.body.mimeType || media?.mimeType || '';
     const filename = req.body.filename || media?.filename || '';
     const caption = req.body.caption || media?.caption || body || '';
-    
+
     if (!workspaceId) {
       return res.status(400).json({ success: false, message: 'Workspace context missing' });
     }
@@ -755,9 +755,9 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
           idempotencyKey: req.header?.('x-idempotency-key') || req.header?.('idempotency-key') || undefined,
         });
       }
-      
+
       console.log(`[Chat Service] Dispatching outbound to bsp-service: ${bspUrl}/internal/v1/bsp/messages/send`);
-      
+
       const bspRes = await axios.post(
         `${bspUrl}/internal/v1/bsp/messages/send`,
         {
@@ -939,23 +939,23 @@ export const getBootstrapDataPublic = async (req: any, res: express.Response) =>
     const hasAllAccess = user.role === 'super_admin'
       || ['owner', 'admin', 'manager'].includes(workspaceRole)
       || (permission as any)?.permissions?.viewAllConversations;
-    
+
     const leadTeamIds = userTeams
       .filter((t: any) => t.members.some((m: any) => m.user.toString() === user._id.toString() && m.role === 'lead'))
       .map((t: any) => t._id);
 
-    const initialQuery: any = { 
+    const initialQuery: any = {
       workspace: workspaceId,
       status: { $in: ['open', 'pending'] }
     };
 
     if (hasAllAccess) {
-       initialQuery.assignedTo = user._id;
+      initialQuery.assignedTo = user._id;
     } else {
-       initialQuery.$or = [
-          { assignedTo: user._id },
-          { assignedTo: null, team: { $in: leadTeamIds } }
-       ];
+      initialQuery.$or = [
+        { assignedTo: user._id },
+        { assignedTo: null, team: { $in: leadTeamIds } }
+      ];
     }
 
     const initialConversations = await Conversation.find(initialQuery)
@@ -968,12 +968,12 @@ export const getBootstrapDataPublic = async (req: any, res: express.Response) =>
       .lean();
 
     const agentsMap = new Map();
-    
+
     // Collect from Permission collection
     const memberships = await Permission.find({ workspace: workspaceId, isActive: { $ne: false } })
       .populate('user', 'name email role status')
       .lean();
-      
+
     memberships.forEach((m: any) => {
       if (m.user) {
         agentsMap.set(m.user._id.toString(), {
@@ -1017,7 +1017,7 @@ export const getBootstrapDataPublic = async (req: any, res: express.Response) =>
         agents: Array.from(agentsMap.values()),
         teams: allTeams,
         pipelines,
-        metadata: { 
+        metadata: {
           hasAllAccess,
           userTeamIds: userTeams.map((t: any) => t._id),
           totalInitial: enrichedConversations.length
@@ -1213,9 +1213,9 @@ export const performConversationActionPublic = async (req: any, res: express.Res
           });
 
           if (currentChats >= maxChats) {
-            return res.status(400).json({ 
-              success: false, 
-              message: `Agent has reached maximum capacity (${maxChats} chats).` 
+            return res.status(400).json({
+              success: false,
+              message: `Agent has reached maximum capacity (${maxChats} chats).`
             });
           }
         }
@@ -1324,7 +1324,7 @@ export const getMessagesByContactPublic = async (req: any, res: express.Response
     }
 
     const query: any = { workspace: workspaceId, contact: contactId, isInternalNote: false };
-    
+
     if (before) {
       query.createdAt = { $lt: new Date(before) };
     }

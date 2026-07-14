@@ -276,7 +276,7 @@ async function verifySessionWithAuthService(token: string) {
 io.use(async (socket: any, next) => {
   try {
     let token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
-    
+
     if (!token && socket.handshake.headers?.cookie) {
       const parsed = socket.handshake.headers.cookie
         .split(';')
@@ -472,7 +472,7 @@ async function processRealtimeSyncEvent(envelope: any) {
       io.to(conversationRoom).emit('message:created', messagePayload);
     }
     console.log(`[WS Gateway EventBus] Broadcasted inbox:message_new for messageId: ${safeEnvelope.messageId}`);
-  } 
+  }
   else if (safeEnvelope.type === 'message_status_updated' || safeEnvelope.type === 'message_status_changed') {
     const statusPayload = {
       messageId: safeEnvelope.payload?.messageId || safeEnvelope.messageId,
@@ -485,7 +485,7 @@ async function processRealtimeSyncEvent(envelope: any) {
 
     emitToInboxRooms('inbox:message_status', statusPayload);
     console.log(`[WS Gateway EventBus] Broadcasted inbox:message_status status: ${statusPayload.status}`);
-  } 
+  }
   else if (safeEnvelope.type === 'conversation_status_changed') {
     const updatePayload = {
       conversationId: safeEnvelope.conversationId,
@@ -552,7 +552,7 @@ async function initEventBus() {
 
     redisConsumer = new Redis(REDIS_URL);
     const topics = ['chat-realtime-sync', 'contact-events', 'automation-events', 'billing-events', 'campaign-events'];
-    
+
     redisConsumer.subscribe(...topics, (err, count) => {
       if (err) {
         console.error('[WS Gateway EventBus] Failed to subscribe to topics:', err);
@@ -569,7 +569,7 @@ async function initEventBus() {
         console.error('[WS Gateway EventBus] Invalid JSON payload');
         return;
       }
-      
+
       const value = wrapper.value;
       if (!value) return;
 
@@ -643,10 +643,10 @@ async function initRedisAdapter() {
   try {
     const pubClient = new Redis(REDIS_URL, { maxRetriesPerRequest: null });
     const subClient = pubClient.duplicate();
-    
+
     pubClient.on('error', (err: Error) => console.error('[WebSocket Gateway Redis] Pub client error:', err));
     subClient.on('error', (err: Error) => console.error('[WebSocket Gateway Redis] Sub client error:', err));
-    
+
     io.adapter(createAdapter(pubClient, subClient));
     console.log('[WebSocket Gateway] Redis Adapter connected successfully');
   } catch (err: any) {

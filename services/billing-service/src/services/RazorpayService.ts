@@ -26,7 +26,7 @@ export class RazorpayService {
 
   static async createRechargeOrder(amountPaise: number, workspaceId: string) {
     const razorpay = this.getInstance();
-    
+
     const options = {
       amount: amountPaise,
       currency: "INR",
@@ -48,7 +48,7 @@ export class RazorpayService {
 
   static async createPlanOrder(amountPaise: number, workspaceId: string, planSlug: string) {
     const razorpay = this.getInstance();
-    
+
     const options = {
       amount: amountPaise,
       currency: "INR",
@@ -76,7 +76,7 @@ export class RazorpayService {
       .createHmac("sha256", RAZORPAY_KEY_SECRET)
       .update(body.toString())
       .digest("hex");
-      
+
     const expected = Buffer.from(expectedSignature, 'utf8');
     const supplied = Buffer.from(signature, 'utf8');
     return expected.length === supplied.length && crypto.timingSafeEqual(expected, supplied);

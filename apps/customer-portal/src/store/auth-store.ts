@@ -254,8 +254,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         try {
             // Lazy import to avoid pulling socket.io into the auth store
             // bundle on cold paths that never authenticate.
-            import('@/hooks/use-socket').then(mod => mod.disconnectGlobalSocket?.()).catch(() => {});
-        } catch {}
+            import('@/hooks/use-socket').then(mod => mod.disconnectGlobalSocket?.()).catch(() => { });
+        } catch { }
         set({
             user: null,
             workspace: null,
@@ -267,7 +267,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             lastSessionFetchedAt: 0
         });
         logoutUser()
-            .catch(() => {})
+            .catch(() => { })
             .finally(() => {
                 if (typeof window !== 'undefined') {
                     window.location.href = '/auth/login';
@@ -280,7 +280,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // operator an impersonated auth_token for the customer app. Terminating it
         // here just clears that session and returns the operator to the admin portal.
         try {
-            await logoutUser().catch(() => {});
+            await logoutUser().catch(() => { });
         } finally {
             clearAuthCookie();
             set({
@@ -396,8 +396,8 @@ export function useFeatureGate(feature: string) {
         },
         inbox: {
             allowed: store.stage1Complete && (hasPlanAccess || features.includes('INBOX')),
-            reason: !store.stage1Complete 
-                ? 'Connect your WhatsApp number to use the Shared Inbox' 
+            reason: !store.stage1Complete
+                ? 'Connect your WhatsApp number to use the Shared Inbox'
                 : !hasPlanAccess ? 'Upgrade your plan to unlock the Shared Inbox' : undefined
         },
         contacts: {

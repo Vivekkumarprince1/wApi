@@ -7,16 +7,16 @@ import { canAccessWorkspace } from '../middleware/tenant-policy';
 const router = Router();
 
 const enforceWorkspaceParam = (req: AuthRequest, res: any, next: any) => {
-	const authenticatedWorkspace = String(req.workspace?.id || req.workspace?._id || '');
-	if (!canAccessWorkspace({
-		requestedWorkspaceId: String(req.params.workspaceId || ''),
-		authenticatedWorkspaceId: authenticatedWorkspace,
-		systemRole: req.user?.role,
-		workspaceRole: req.role,
-	})) {
-		return res.status(403).json({ success: false, error: { code: 'CROSS_TENANT_ACCESS_DENIED', message: 'Workspace does not match authenticated tenant' } });
-	}
-	next();
+    const authenticatedWorkspace = String(req.workspace?.id || req.workspace?._id || '');
+    if (!canAccessWorkspace({
+        requestedWorkspaceId: String(req.params.workspaceId || ''),
+        authenticatedWorkspaceId: authenticatedWorkspace,
+        systemRole: req.user?.role,
+        workspaceRole: req.role,
+    })) {
+        return res.status(403).json({ success: false, error: { code: 'CROSS_TENANT_ACCESS_DENIED', message: 'Workspace does not match authenticated tenant' } });
+    }
+    next();
 };
 
 // ══════════════════════════════════════════════

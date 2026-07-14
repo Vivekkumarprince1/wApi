@@ -52,17 +52,17 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   const internalSecret = req.header('x-internal-service-secret');
 
   if (gatewayUserId && internalSecret === INTERNAL_SECRET) {
-    req.user = { 
-      id: gatewayUserId, 
+    req.user = {
+      id: gatewayUserId,
       _id: gatewayUserId,
-      role: gatewaySystemRole || gatewayRole || 'user' 
+      role: gatewaySystemRole || gatewayRole || 'user'
     };
     req.role = gatewayRole || 'agent';
     req.permissions = gatewayPermissions;
     req.isImpersonating = req.header('x-impersonating') === 'true';
-    
+
     if (gatewayWorkspaceId) {
-      req.workspace = { 
+      req.workspace = {
         id: gatewayWorkspaceId,
         _id: gatewayWorkspaceId
       };
@@ -85,16 +85,16 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET as string);
-    req.user = { 
-      id: decoded.id, 
+    req.user = {
+      id: decoded.id,
       _id: decoded.id,
-      role: decoded.role || 'agent' 
+      role: decoded.role || 'agent'
     };
     req.role = decoded.role || 'agent';
     req.permissions = [];
-    
+
     if (decoded.workspaceId) {
-      req.workspace = { 
+      req.workspace = {
         id: decoded.workspaceId,
         _id: decoded.workspaceId
       };
@@ -114,8 +114,8 @@ export const authorize = (roles: string[]) => {
       return next();
     }
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'Permission denied: You do not have the required role' 
+      return res.status(403).json({
+        message: 'Permission denied: You do not have the required role'
       });
     }
     next();

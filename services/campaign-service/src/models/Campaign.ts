@@ -70,7 +70,7 @@ export interface ICampaign {
   name: string;
   description?: string;
   campaignType: 'one-time' | 'scheduled';
-  
+
   template: Types.ObjectId;
   templateSnapshot?: {
     name?: string;
@@ -80,11 +80,11 @@ export interface ICampaign {
     headerType?: string;
     bodyText?: string;
   };
-  
+
   message?: string;
   messageTemplate?: string;
   variableMapping?: any;
-  
+
   contacts: Types.ObjectId[];
   recipientFilter?: {
     type: 'all' | 'tags' | 'custom' | 'segment' | 'specific';
@@ -92,14 +92,14 @@ export interface ICampaign {
     segmentId?: Types.ObjectId;
     customFilter?: any;
   };
-  
+
   status: 'DRAFT' | 'SCHEDULED' | 'QUEUED' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'PARTIALLY_COMPLETED' | 'FAILED' | 'CANCELLED' | 'draft' | 'queued' | 'sending' | 'completed' | 'paused' | 'failed';
-  
+
   scheduledAt?: Date;
   startedAt?: Date;
   completedAt?: Date;
   scheduleAt?: Date;
-  
+
   totals: ICampaignTotals;
   totalContacts: number;
   sentCount: number;
@@ -107,16 +107,16 @@ export interface ICampaign {
   failedCount: number;
   readCount: number;
   repliedCount: number;
-  
+
   batching: ICampaignBatching;
-  
+
   pausedReason?: 'USER_PAUSED' | 'LIMIT_REACHED' | 'TEMPLATE_REVOKED' | 'ACCOUNT_BLOCKED' | 'ACCOUNT_DISABLED' | 'TOKEN_EXPIRED' | 'CAPABILITY_REVOKED' | 'HIGH_FAILURE_RATE' | 'RATE_LIMITED' | 'PHONE_DISCONNECTED' | null;
   pausedAt?: Date | null;
-  
+
   failureTracking: ICampaignFailureTracking;
   execution: ICampaignExecution;
   audit: ICampaignAudit;
-  
+
   createdBy?: Types.ObjectId;
   metadata?: Record<string, unknown>;
   createdAt: Date;
@@ -147,7 +147,7 @@ const CampaignSchema = new Schema<ICampaignDocument, ICampaignModel>({
   name: { type: String, required: true },
   description: { type: String },
   campaignType: { type: String, enum: ['one-time', 'scheduled'], default: 'one-time' },
-  
+
   template: { type: Schema.Types.ObjectId, ref: 'Template', required: true },
   templateSnapshot: {
     name: { type: String },
@@ -157,11 +157,11 @@ const CampaignSchema = new Schema<ICampaignDocument, ICampaignModel>({
     headerType: { type: String },
     bodyText: { type: String }
   },
-  
+
   message: { type: String },
   messageTemplate: { type: String },
   variableMapping: { type: Schema.Types.Mixed, default: {} },
-  
+
   contacts: [{ type: Schema.Types.ObjectId, ref: 'Contact' }],
   recipientFilter: {
     type: { type: String, enum: ['all', 'tags', 'custom', 'segment', 'specific'] },
@@ -169,14 +169,14 @@ const CampaignSchema = new Schema<ICampaignDocument, ICampaignModel>({
     segmentId: { type: Schema.Types.ObjectId, ref: 'Segment' },
     customFilter: { type: Schema.Types.Mixed }
   },
-  
+
   status: { type: String, default: 'DRAFT', index: true },
-  
+
   scheduledAt: { type: Date },
   startedAt: { type: Date },
   completedAt: { type: Date },
   scheduleAt: { type: Date },
-  
+
   totals: {
     totalRecipients: { type: Number, default: 0 },
     queued: { type: Number, default: 0 },
@@ -186,14 +186,14 @@ const CampaignSchema = new Schema<ICampaignDocument, ICampaignModel>({
     failed: { type: Number, default: 0 },
     replied: { type: Number, default: 0 }
   },
-  
+
   totalContacts: { type: Number, default: 0 },
   sentCount: { type: Number, default: 0 },
   deliveredCount: { type: Number, default: 0 },
   failedCount: { type: Number, default: 0 },
   readCount: { type: Number, default: 0 },
   repliedCount: { type: Number, default: 0 },
-  
+
   batching: {
     totalBatches: { type: Number, default: 0 },
     completedBatches: { type: Number, default: 0 },
@@ -202,10 +202,10 @@ const CampaignSchema = new Schema<ICampaignDocument, ICampaignModel>({
     batchSize: { type: Number, default: 50 },
     lastBatchProcessedAt: { type: Date }
   },
-  
+
   pausedReason: { type: String, default: null },
   pausedAt: { type: Date, default: null },
-  
+
   failureTracking: {
     consecutiveFailures: { type: Number, default: 0 },
     failureRate: { type: Number, default: 0 },
@@ -213,7 +213,7 @@ const CampaignSchema = new Schema<ICampaignDocument, ICampaignModel>({
     lastFailureError: { type: String },
     metaErrorCodes: [String]
   },
-  
+
   execution: {
     startedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     pausedBy: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -221,7 +221,7 @@ const CampaignSchema = new Schema<ICampaignDocument, ICampaignModel>({
     lastResumedAt: { type: Date },
     resumeCount: { type: Number, default: 0 }
   },
-  
+
   audit: {
     startedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     startedAt: { type: Date },
@@ -241,9 +241,9 @@ const CampaignSchema = new Schema<ICampaignDocument, ICampaignModel>({
       meta: { type: Schema.Types.Mixed }
     }]
   },
-  
+
   createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
-    metadata: { type: Schema.Types.Mixed, default: {} },
+  metadata: { type: Schema.Types.Mixed, default: {} },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
@@ -259,9 +259,9 @@ CampaignSchema.index(
   { unique: true, partialFilterExpression: { 'metadata.idempotencyKey': { $type: 'string' } } },
 );
 
-CampaignSchema.pre<ICampaignDocument>('save', function() {
+CampaignSchema.pre<ICampaignDocument>('save', function () {
   this.updatedAt = new Date();
-  
+
   if (this.isModified('totals')) {
     this.totalContacts = this.totals.totalRecipients || this.totalContacts;
     this.sentCount = this.totals.sent || this.sentCount;
@@ -270,7 +270,7 @@ CampaignSchema.pre<ICampaignDocument>('save', function() {
     this.readCount = this.totals.read || this.readCount;
     this.repliedCount = this.totals.replied || this.repliedCount;
   }
-  
+
   if (this.status && this.status === this.status.toLowerCase()) {
     const statusMap: Record<string, any> = {
       'draft': 'DRAFT',
@@ -287,39 +287,39 @@ CampaignSchema.pre<ICampaignDocument>('save', function() {
 });
 
 // Instance Methods
-CampaignSchema.methods.canStart = function() {
+CampaignSchema.methods.canStart = function () {
   return ['DRAFT', 'SCHEDULED', 'PAUSED'].includes(this.status);
 };
 
-CampaignSchema.methods.canPause = function() {
+CampaignSchema.methods.canPause = function () {
   return ['RUNNING'].includes(this.status);
 };
 
-CampaignSchema.methods.canResume = function() {
+CampaignSchema.methods.canResume = function () {
   return ['PAUSED'].includes(this.status);
 };
 
-CampaignSchema.methods.getProgress = function() {
+CampaignSchema.methods.getProgress = function () {
   const total = this.totals?.totalRecipients || 0;
   if (total === 0) return 0;
   const processed = (this.totals?.sent || 0) + (this.totals?.failed || 0);
   return Math.round((processed / total) * 100);
 };
 
-CampaignSchema.methods.getDeliveryRate = function() {
+CampaignSchema.methods.getDeliveryRate = function () {
   const sent = this.totals?.sent || 0;
   if (sent === 0) return 0;
   return Math.round(((this.totals?.delivered || 0) / sent) * 100);
 };
 
-CampaignSchema.methods.getReadRate = function() {
+CampaignSchema.methods.getReadRate = function () {
   const delivered = this.totals?.delivered || 0;
   if (delivered === 0) return 0;
   return Math.round(((this.totals?.read || 0) / delivered) * 100);
 };
 
 // Statics
-CampaignSchema.statics.incrementTotal = async function(campaignId: Types.ObjectId | string, field: string, value: number = 1) {
+CampaignSchema.statics.incrementTotal = async function (campaignId: Types.ObjectId | string, field: string, value: number = 1) {
   const updateField = `totals.${field}`;
   const legacyFieldMap: Record<string, string> = {
     sent: 'sentCount',
@@ -345,13 +345,13 @@ CampaignSchema.statics.incrementTotal = async function(campaignId: Types.ObjectI
   );
 };
 
-CampaignSchema.statics.addAuditEntry = async function(campaignId: Types.ObjectId | string, action: string, options: any = {}) {
+CampaignSchema.statics.addAuditEntry = async function (campaignId: Types.ObjectId | string, action: string, options: any = {}) {
   const { userId, reason, systemInitiated = false, meta } = options;
   const entry = { action, by: userId, at: new Date(), reason, systemInitiated, meta };
-  
+
   return this.findByIdAndUpdate(
     campaignId,
-    { 
+    {
       $push: { 'audit.history': { $each: [entry], $slice: -50 } },
       $set: { updatedAt: new Date() }
     },
@@ -359,7 +359,7 @@ CampaignSchema.statics.addAuditEntry = async function(campaignId: Types.ObjectId
   );
 };
 
-CampaignSchema.statics.systemPause = async function(campaignId: Types.ObjectId | string, reason: string) {
+CampaignSchema.statics.systemPause = async function (campaignId: Types.ObjectId | string, reason: string) {
   return this.findByIdAndUpdate(
     campaignId,
     {

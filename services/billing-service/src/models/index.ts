@@ -209,12 +209,12 @@ export interface IRazorpayOrderDoc extends Document {
 }
 
 const RazorpayOrderSchema = new Schema<IRazorpayOrderDoc>({
-  orderId:     { type: String, required: true, unique: true, index: true },
+  orderId: { type: String, required: true, unique: true, index: true },
   workspaceId: { type: String, required: true, index: true },
   amountPaise: { type: Number, required: true },
-  currency:    { type: String, default: 'INR' },
-  type:        { type: String, enum: ['RECHARGE', 'PLAN_UPGRADE', 'VERIFICATION'], required: true },
-  planSlug:    { type: String },
+  currency: { type: String, default: 'INR' },
+  type: { type: String, enum: ['RECHARGE', 'PLAN_UPGRADE', 'VERIFICATION'], required: true },
+  planSlug: { type: String },
 }, { timestamps: { createdAt: true, updatedAt: false } });
 
 export const RazorpayOrderModel = mongoose.model<IRazorpayOrderDoc>('RazorpayOrder', RazorpayOrderSchema);

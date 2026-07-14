@@ -98,13 +98,13 @@ const handleBudgetReserved = async (data: any) => {
     }
 
     const batches = await (CampaignBatch as ICampaignBatchModel).createBatches(
-        campaignId,
-        workspaceId,
-        normalizedContacts,
-        templateId,
-        templateSnapshot?.name || 'template',
-        variableMapping,
-        50
+      campaignId,
+      workspaceId,
+      normalizedContacts,
+      templateId,
+      templateSnapshot?.name || 'template',
+      variableMapping,
+      50
     );
 
     campaign.contacts = normalizedContacts.map((contact: any) => contact._id);
@@ -126,13 +126,13 @@ const handleBudgetReserved = async (data: any) => {
     const delayPerBatch = Math.ceil((50 / mps) * 1000);
 
     for (let i = 0; i < batches.length; i++) {
-        await CampaignQueueService.enqueueBatch(
-            batches[i]._id,
-            campaignId,
-            workspaceId,
-            i,
-            i * delayPerBatch
-        );
+      await CampaignQueueService.enqueueBatch(
+        batches[i]._id,
+        campaignId,
+        workspaceId,
+        i,
+        i * delayPerBatch
+      );
     }
 
     campaign.status = 'RUNNING';
@@ -140,11 +140,11 @@ const handleBudgetReserved = async (data: any) => {
     await campaign.save();
 
     await microserviceWorkerClient.socketBroadcast(workspaceId, "campaign:status_update", {
-        campaignId,
-        status: 'RUNNING',
-        totalBatches: batches.length,
-        updatedAt: campaign.updatedAt,
-        startedAt: campaign.startedAt
+      campaignId,
+      status: 'RUNNING',
+      totalBatches: batches.length,
+      updatedAt: campaign.updatedAt,
+      startedAt: campaign.startedAt
     });
   } catch (error) {
     console.error(`[CampaignEventBus] Error creating batches:`, error);
@@ -229,8 +229,8 @@ const handleBudgetReservationFailed = async (data: any) => {
   if (campaign) {
     campaign.status = 'PAUSED';
     await (Campaign as ICampaignModel).addAuditEntry(campaignId, 'SYSTEM_PAUSED', {
-        reason: `Budget failed: ${reason}`,
-        systemInitiated: true
+      reason: `Budget failed: ${reason}`,
+      systemInitiated: true
     });
     await campaign.save();
 

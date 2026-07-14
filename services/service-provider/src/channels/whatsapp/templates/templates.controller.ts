@@ -12,7 +12,7 @@ import { GupshupClientService } from '../providers/gupshup/gupshup-client.servic
 @Controller('/internal/v1/bsp/templates')
 @UseGuards(InternalAuthGuard)
 export class TemplatesController {
-  constructor(@InjectModel(ProviderTemplateMirror.name) private readonly templateModel: Model<ProviderTemplateMirror>) {}
+  constructor(@InjectModel(ProviderTemplateMirror.name) private readonly templateModel: Model<ProviderTemplateMirror>) { }
 
   @Post('sync')
   async sync(@Body() body: any) {
@@ -61,7 +61,7 @@ export class TemplatesPublicController {
     @InjectModel(ProviderTemplateRule.name) private readonly ruleModel: Model<ProviderTemplateRule>,
     @InjectModel(ProviderApp.name) private readonly appModel: Model<ProviderApp>,
     private readonly gupshup: GupshupClientService,
-  ) {}
+  ) { }
 
   /**
    * List Templates

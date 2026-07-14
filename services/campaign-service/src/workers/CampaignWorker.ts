@@ -27,12 +27,12 @@ export class CampaignWorker {
     });
 
     this.worker.on('completed', (job) => {
-        this.metrics?.increment('queue_jobs_completed_total', 'Completed BullMQ jobs', { queue_name: 'campaign-engine', job_name: job.name });
+      this.metrics?.increment('queue_jobs_completed_total', 'Completed BullMQ jobs', { queue_name: 'campaign-engine', job_name: job.name });
       console.log(`[CampaignWorker] ✅ Job ${job.id} completed`);
     });
 
     this.worker.on('failed', (job, err) => {
-        this.metrics?.increment('queue_jobs_failed_total', 'Failed BullMQ jobs', { queue_name: 'campaign-engine', job_name: job?.name || 'unknown' });
+      this.metrics?.increment('queue_jobs_failed_total', 'Failed BullMQ jobs', { queue_name: 'campaign-engine', job_name: job?.name || 'unknown' });
       console.error(`[CampaignWorker] ❌ Job ${job?.id} failed:`, err.message);
       const exhausted = !!job && job.attemptsMade >= Number(job.opts.attempts || 1);
       if (exhausted) {
@@ -104,20 +104,20 @@ export class CampaignWorker {
     // 1. Pre-flight Validation
     const preflight = await microserviceWorkerClient.preflightValidate(workspaceId, campaign.template.toString(), campaign.contacts?.length || 0);
     if (!preflight.valid) {
-        campaign.status = 'PAUSED';
-        await (Campaign as ICampaignModel).addAuditEntry(campaignId, 'SYSTEM_PAUSED', { 
-            reason: `Preflight failed: ${preflight.reason}`,
-            systemInitiated: true
-        });
-        await campaign.save();
+      campaign.status = 'PAUSED';
+      await (Campaign as ICampaignModel).addAuditEntry(campaignId, 'SYSTEM_PAUSED', {
+        reason: `Preflight failed: ${preflight.reason}`,
+        systemInitiated: true
+      });
+      await campaign.save();
 
-        await microserviceWorkerClient.socketBroadcast(workspaceId, 'campaign:status_update', {
-          campaignId,
-          status: 'PAUSED',
-          reason: preflight.reason,
-          updatedAt: campaign.updatedAt,
-        });
-        throw new Error(`PREFLIGHT_FAILED: ${preflight.reason}`);
+      await microserviceWorkerClient.socketBroadcast(workspaceId, 'campaign:status_update', {
+        campaignId,
+        status: 'PAUSED',
+        reason: preflight.reason,
+        updatedAt: campaign.updatedAt,
+      });
+      throw new Error(`PREFLIGHT_FAILED: ${preflight.reason}`);
     }
 
     console.log(`[CampaignWorker] 📦 Initializing campaign ${campaignId}...`);
@@ -125,12 +125,12 @@ export class CampaignWorker {
     // 1. Resolve Contacts
     let contacts = campaign.contacts;
     if (campaign.recipientFilter?.type === 'segment' && campaign.recipientFilter.segmentId) {
-        contacts = await SegmentService.resolveSegmentContacts(workspaceId, campaign.recipientFilter.segmentId);
+      contacts = await SegmentService.resolveSegmentContacts(workspaceId, campaign.recipientFilter.segmentId);
     }
 
     // 2. Budget Parking (Bridged/Direct)
     const { template } = await microserviceWorkerClient.getTemplate(workspaceId, campaign.template.toString());
-    
+
     // Fetch pricing from Billing Service
     const { serviceRequest } = await import('../lib/service-client');
     const pricingResponse = await serviceRequest('billing', {
@@ -148,14 +148,14 @@ export class CampaignWorker {
     // 2.5 Snapshot
     if (!campaign.templateSnapshot || !campaign.templateSnapshot.name) {
 
-        campaign.templateSnapshot = {
-            name: template?.name,
-            category: template?.category,
-            language: template?.language,
-            headerType: template?.components?.find((c: any) => String(c?.type || '').toUpperCase() === 'HEADER')?.format || 'TEXT',
-            bodyText: template?.bodyText || template?.body?.text || template?.providerData?.bodyText || template?.components?.find((c: any) => String(c?.type || '').toUpperCase() === 'BODY')?.text,
-        };
-        await campaign.save();
+      campaign.templateSnapshot = {
+        name: template?.name,
+        category: template?.category,
+        language: template?.language,
+        headerType: template?.components?.find((c: any) => String(c?.type || '').toUpperCase() === 'HEADER')?.format || 'TEXT',
+        bodyText: template?.bodyText || template?.body?.text || template?.providerData?.bodyText || template?.components?.find((c: any) => String(c?.type || '').toUpperCase() === 'BODY')?.text,
+      };
+      await campaign.save();
     }
 
     // 3. Emit Saga Event to Billing Service
@@ -189,159 +189,159 @@ export class CampaignWorker {
     const workspace = await Workspace.findById(workspaceId).select('inboxSettings').lean() as any;
     const perSecondLimit = Math.max(1, Math.floor((workspace?.inboxSettings?.agentMessagesPerMinute || 600) / 60));
     const providerAppId = String((workspace as any)?.gupshupAppId || workspaceId);
-    
+
     const CONCURRENCY = 10;
     const activeRecipients = batch.recipients.filter((r: any) => !!r.contactId && (r.status === 'pending' || r.status === 'queued'));
 
     for (let i = 0; i < activeRecipients.length; i += CONCURRENCY) {
-        const chunk = activeRecipients.slice(i, i + CONCURRENCY);
-        await Promise.all(chunk.map(async (recipient: any) => {
-            try {
-                const internalMessageId = `campaign:${campaignId}:contact:${recipient.contactId}`;
-                const existingMessage = await CampaignMessage.findOne({ internalMessageId });
-                if (existingMessage?.whatsappMessageId || ['accepted', 'sent', 'delivered', 'read'].includes(existingMessage?.status || '')) {
-                  successCount++;
-                  return;
-                }
-                if (existingMessage?.status === 'reconciliation_required') {
-                  failCount++;
-                  return;
-                }
-                const contactResponse = await microserviceWorkerClient.getContact(workspaceId, recipient.contactId);
-                const contact = contactResponse?.contact || contactResponse?.data || contactResponse;
-                if (!contact) throw new Error('CONTACT_NOT_FOUND');
+      const chunk = activeRecipients.slice(i, i + CONCURRENCY);
+      await Promise.all(chunk.map(async (recipient: any) => {
+        try {
+          const internalMessageId = `campaign:${campaignId}:contact:${recipient.contactId}`;
+          const existingMessage = await CampaignMessage.findOne({ internalMessageId });
+          if (existingMessage?.whatsappMessageId || ['accepted', 'sent', 'delivered', 'read'].includes(existingMessage?.status || '')) {
+            successCount++;
+            return;
+          }
+          if (existingMessage?.status === 'reconciliation_required') {
+            failCount++;
+            return;
+          }
+          const contactResponse = await microserviceWorkerClient.getContact(workspaceId, recipient.contactId);
+          const contact = contactResponse?.contact || contactResponse?.data || contactResponse;
+          if (!contact) throw new Error('CONTACT_NOT_FOUND');
 
-                const components: any[] = [];
-                const mapping = batch.variableMapping || {};
-                
-                // Variable resolution (Body)
-                const bodyMapping = mapping.body || (typeof mapping === 'object' && !mapping.body && !mapping.header ? mapping : null);
-                if (bodyMapping) {
-                    const bodyParams = Object.keys(bodyMapping).sort((a,b) => Number(a)-Number(b)).map(k => ({
-                        type: 'text', text: String(this.resolveVar(contact, bodyMapping[k]) || '')
-                    }));
-                    if (bodyParams.length > 0) components.push({ type: 'body', parameters: bodyParams });
-                }
+          const components: any[] = [];
+          const mapping = batch.variableMapping || {};
 
-                await CampaignMessage.findOneAndUpdate(
-                  { internalMessageId },
-                  {
-                    $setOnInsert: {
-                      workspace: workspaceId, campaign: campaignId, contact: contact._id, phone: contact.phone,
-                      internalMessageId, provider: 'gupshup', status: 'queued', queuedAt: new Date(),
-                      batchId: batch._id, batchIndex: batch.batchIndex,
-                    },
-                    $set: { status: 'dispatching', lastAttemptAt: new Date() },
-                    $inc: { attempts: 1 },
-                  },
-                  { upsert: true, new: true, setDefaultsOnInsert: true }
-                );
+          // Variable resolution (Body)
+          const bodyMapping = mapping.body || (typeof mapping === 'object' && !mapping.body && !mapping.header ? mapping : null);
+          if (bodyMapping) {
+            const bodyParams = Object.keys(bodyMapping).sort((a, b) => Number(a) - Number(b)).map(k => ({
+              type: 'text', text: String(this.resolveVar(contact, bodyMapping[k]) || '')
+            }));
+            if (bodyParams.length > 0) components.push({ type: 'body', parameters: bodyParams });
+          }
 
-                await this.limiter.wait({ workspaceId, appId: providerAppId, limit: perSecondLimit });
+          await CampaignMessage.findOneAndUpdate(
+            { internalMessageId },
+            {
+              $setOnInsert: {
+                workspace: workspaceId, campaign: campaignId, contact: contact._id, phone: contact.phone,
+                internalMessageId, provider: 'gupshup', status: 'queued', queuedAt: new Date(),
+                batchId: batch._id, batchIndex: batch.batchIndex,
+              },
+              $set: { status: 'dispatching', lastAttemptAt: new Date() },
+              $inc: { attempts: 1 },
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          );
 
-                const result = await microserviceWorkerClient.sendTemplate({
-                  workspaceId,
-                  to: contact.phone,
-                  templateName: batch.templateName || 'template',
-                  languageCode: (campaign.templateSnapshot as any)?.language,
-                  components,
-                  options: {
-                    contactId: (contact as any)._id,
-                    campaignId: (campaign as any)._id,
-                    metadata: { batchId, batchIndex: batch.batchIndex },
-                    idempotencyKey: internalMessageId,
-                  },
+          await this.limiter.wait({ workspaceId, appId: providerAppId, limit: perSecondLimit });
+
+          const result = await microserviceWorkerClient.sendTemplate({
+            workspaceId,
+            to: contact.phone,
+            templateName: batch.templateName || 'template',
+            languageCode: (campaign.templateSnapshot as any)?.language,
+            components,
+            options: {
+              contactId: (contact as any)._id,
+              campaignId: (campaign as any)._id,
+              metadata: { batchId, batchIndex: batch.batchIndex },
+              idempotencyKey: internalMessageId,
+            },
+            internalMessageId,
+          });
+
+          if (result.success) {
+            this.metrics?.increment('campaign_messages_accepted_total', 'Campaign messages accepted by provider');
+            successCount++;
+            const messageId = result.message?.whatsappMessageId || (result.result as any)?.messageId;
+            await (batch as any).updateRecipientStatus(contact._id.toString(), 'sent', messageId);
+            await CampaignMessage.findOneAndUpdate(
+              { campaign: campaignId, contact: contact._id },
+              {
+                $set: {
+                  workspace: workspaceId,
+                  campaign: campaignId,
+                  contact: contact._id,
+                  phone: contact.phone,
                   internalMessageId,
-                });
+                  provider: 'gupshup',
+                  status: 'accepted',
+                  whatsappMessageId: messageId,
+                  sentAt: new Date(),
+                  batchId: batch._id,
+                  batchIndex: batch.batchIndex,
+                },
+                $setOnInsert: {
+                  queuedAt: new Date(),
+                  createdAt: new Date(),
+                },
+              },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+          } else {
+            this.metrics?.increment('campaign_messages_failed_total', 'Campaign message dispatch failures');
+            failCount++;
+            const error = result.result?.error || 'Unknown Error';
+            await (batch as any).updateRecipientStatus(contact._id.toString(), 'failed', null, error);
+            await CampaignMessage.findOneAndUpdate(
+              { campaign: campaignId, contact: contact._id },
+              {
+                $set: {
+                  workspace: workspaceId,
+                  campaign: campaignId,
+                  contact: contact._id,
+                  phone: contact.phone,
+                  internalMessageId,
+                  provider: 'gupshup',
+                  status: result?.status === 'reconciliation_required' ? 'reconciliation_required' : 'failed',
+                  failedAt: new Date(),
+                  failureReason: error,
+                  batchId: batch._id,
+                  batchIndex: batch.batchIndex,
+                },
+                $setOnInsert: {
+                  queuedAt: new Date(),
+                  createdAt: new Date(),
+                },
+              },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+          }
+        } catch (err: any) {
+          failCount++;
+          await (batch as any).updateRecipientStatus(recipient.contactId, 'failed', null, err.message);
+          if (recipient.contactId) {
+            await CampaignMessage.findOneAndUpdate(
+              { campaign: campaignId, contact: recipient.contactId },
+              {
+                $set: {
+                  workspace: workspaceId,
+                  campaign: campaignId,
+                  contact: recipient.contactId,
+                  phone: recipient.phone,
+                  status: 'failed',
+                  failedAt: new Date(),
+                  failureReason: err.message,
+                  lastError: err.message,
+                  batchId: batch._id,
+                  batchIndex: batch.batchIndex,
+                },
+                $setOnInsert: {
+                  queuedAt: new Date(),
+                  createdAt: new Date(),
+                },
+              },
+              { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+          }
+        }
+      }));
 
-                if (result.success) {
-                  this.metrics?.increment('campaign_messages_accepted_total', 'Campaign messages accepted by provider');
-                    successCount++;
-                    const messageId = result.message?.whatsappMessageId || (result.result as any)?.messageId;
-                    await (batch as any).updateRecipientStatus(contact._id.toString(), 'sent', messageId);
-                    await CampaignMessage.findOneAndUpdate(
-                      { campaign: campaignId, contact: contact._id },
-                      {
-                        $set: {
-                          workspace: workspaceId,
-                          campaign: campaignId,
-                          contact: contact._id,
-                          phone: contact.phone,
-                          internalMessageId,
-                          provider: 'gupshup',
-                          status: 'accepted',
-                          whatsappMessageId: messageId,
-                          sentAt: new Date(),
-                          batchId: batch._id,
-                          batchIndex: batch.batchIndex,
-                        },
-                        $setOnInsert: {
-                          queuedAt: new Date(),
-                          createdAt: new Date(),
-                        },
-                      },
-                      { upsert: true, new: true, setDefaultsOnInsert: true }
-                    );
-                } else {
-                  this.metrics?.increment('campaign_messages_failed_total', 'Campaign message dispatch failures');
-                    failCount++;
-                    const error = result.result?.error || 'Unknown Error';
-                    await (batch as any).updateRecipientStatus(contact._id.toString(), 'failed', null, error);
-                    await CampaignMessage.findOneAndUpdate(
-                      { campaign: campaignId, contact: contact._id },
-                      {
-                        $set: {
-                          workspace: workspaceId,
-                          campaign: campaignId,
-                          contact: contact._id,
-                          phone: contact.phone,
-                          internalMessageId,
-                          provider: 'gupshup',
-                          status: result?.status === 'reconciliation_required' ? 'reconciliation_required' : 'failed',
-                          failedAt: new Date(),
-                          failureReason: error,
-                          batchId: batch._id,
-                          batchIndex: batch.batchIndex,
-                        },
-                        $setOnInsert: {
-                          queuedAt: new Date(),
-                          createdAt: new Date(),
-                        },
-                      },
-                      { upsert: true, new: true, setDefaultsOnInsert: true }
-                    );
-                }
-            } catch (err: any) {
-                failCount++;
-                await (batch as any).updateRecipientStatus(recipient.contactId, 'failed', null, err.message);
-                if (recipient.contactId) {
-                  await CampaignMessage.findOneAndUpdate(
-                    { campaign: campaignId, contact: recipient.contactId },
-                    {
-                      $set: {
-                        workspace: workspaceId,
-                        campaign: campaignId,
-                        contact: recipient.contactId,
-                        phone: recipient.phone,
-                        status: 'failed',
-                        failedAt: new Date(),
-                        failureReason: err.message,
-                        lastError: err.message,
-                        batchId: batch._id,
-                        batchIndex: batch.batchIndex,
-                      },
-                      $setOnInsert: {
-                        queuedAt: new Date(),
-                        createdAt: new Date(),
-                      },
-                    },
-                    { upsert: true, new: true, setDefaultsOnInsert: true }
-                  );
-                }
-            }
-        }));
-        
-        if (i + CONCURRENCY < activeRecipients.length) await new Promise(r => setTimeout(r, 25));
+      if (i + CONCURRENCY < activeRecipients.length) await new Promise(r => setTimeout(r, 25));
     }
 
     await (batch as any).markCompleted();
@@ -356,37 +356,37 @@ export class CampaignWorker {
 
     const batchStats = await (CampaignBatch as any).getCampaignBatchStats(campaignId);
     const isLastBatch = batchStats.completedBatches + batchStats.failedBatches >= batchStats.totalBatches;
-    
-    await microserviceWorkerClient.socketBroadcast(workspaceId, "campaign:batch_completed", { 
-        campaignId, batchIndex: batch.batchIndex, successCount, failCount, isLastBatch,
-        totals: afterAudit?.totals || campaign.totals
+
+    await microserviceWorkerClient.socketBroadcast(workspaceId, "campaign:batch_completed", {
+      campaignId, batchIndex: batch.batchIndex, successCount, failCount, isLastBatch,
+      totals: afterAudit?.totals || campaign.totals
     });
 
     if (isLastBatch) {
-        const finalized = await Campaign.findOneAndUpdate({ _id: campaignId, status: { $ne: 'COMPLETED' } }, { $set: { status: 'COMPLETED', completedAt: new Date() } }, { new: true });
-        if (finalized) {
-          this.metrics?.increment('campaigns_completed_total', 'Campaigns completed');
-            const { template } = await microserviceWorkerClient.getTemplate(workspaceId, finalized.template.toString());
-            const { cost } = await microserviceWorkerClient.getPricing(workspaceId, template?.category || 'MARKETING');
-            const reservedRecipientCount =
-              finalized.totals?.totalRecipients ||
-              finalized.totalContacts ||
-              await this.countReservedRecipients(campaignId);
-            
-            const successAmount = (finalized.totals?.sent || 0) * cost;
-            
-            const { billingEventsQueue } = await import('../lib/events/EventBus');
-            await billingEventsQueue.add('CampaignCompletedEvent', {
-              campaignId: campaignId.toString(),
-              workspaceId,
-              reservedAmount: reservedRecipientCount * cost,
-              actualSpend: successAmount // We only deduct actual successes
-            });
-            
-            await microserviceWorkerClient.socketBroadcast(workspaceId, "campaign:status_update", { 
-                campaignId, status: 'COMPLETED', updatedAt: finalized.updatedAt, totals: finalized.totals
-            });
-        }
+      const finalized = await Campaign.findOneAndUpdate({ _id: campaignId, status: { $ne: 'COMPLETED' } }, { $set: { status: 'COMPLETED', completedAt: new Date() } }, { new: true });
+      if (finalized) {
+        this.metrics?.increment('campaigns_completed_total', 'Campaigns completed');
+        const { template } = await microserviceWorkerClient.getTemplate(workspaceId, finalized.template.toString());
+        const { cost } = await microserviceWorkerClient.getPricing(workspaceId, template?.category || 'MARKETING');
+        const reservedRecipientCount =
+          finalized.totals?.totalRecipients ||
+          finalized.totalContacts ||
+          await this.countReservedRecipients(campaignId);
+
+        const successAmount = (finalized.totals?.sent || 0) * cost;
+
+        const { billingEventsQueue } = await import('../lib/events/EventBus');
+        await billingEventsQueue.add('CampaignCompletedEvent', {
+          campaignId: campaignId.toString(),
+          workspaceId,
+          reservedAmount: reservedRecipientCount * cost,
+          actualSpend: successAmount // We only deduct actual successes
+        });
+
+        await microserviceWorkerClient.socketBroadcast(workspaceId, "campaign:status_update", {
+          campaignId, status: 'COMPLETED', updatedAt: finalized.updatedAt, totals: finalized.totals
+        });
+      }
     }
 
     return { successCount, failCount };
@@ -409,8 +409,8 @@ export class CampaignWorker {
   }
 
   private async handleMaintenance(job: Job) {
-      console.log('[CampaignWorker] 🛠️ Running periodic maintenance...');
-      const { CampaignScheduler } = await import("../services/CampaignScheduler");
-      return await CampaignScheduler.processScheduledCampaigns();
+    console.log('[CampaignWorker] 🛠️ Running periodic maintenance...');
+    const { CampaignScheduler } = await import("../services/CampaignScheduler");
+    return await CampaignScheduler.processScheduledCampaigns();
   }
 }

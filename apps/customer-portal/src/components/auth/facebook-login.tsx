@@ -53,9 +53,9 @@ export default function FacebookLogin({ onError, onSuccess, autoRedirect = true,
     }
 
     if (typeof window !== 'undefined' &&
-        window.location.protocol !== 'https:' &&
-        window.location.hostname !== 'localhost' &&
-        !window.location.hostname.includes('127.0.0.1')) {
+      window.location.protocol !== 'https:' &&
+      window.location.hostname !== 'localhost' &&
+      !window.location.hostname.includes('127.0.0.1')) {
       onError?.('Facebook login requires HTTPS in production. For development, ensure your Facebook app allows localhost.');
       return;
     }
@@ -101,11 +101,10 @@ export default function FacebookLogin({ onError, onSuccess, autoRedirect = true,
       type="button"
       onClick={handleLogin}
       disabled={!appId}
-      className={`w-full rounded-xl border-2 h-12 px-6 flex items-center justify-center gap-3 transition-all shadow-sm ${
-        !appId
+      className={`w-full rounded-xl border-2 h-12 px-6 flex items-center justify-center gap-3 transition-all shadow-sm ${!appId
           ? 'border-gray-200 bg-white text-gray-500 cursor-not-allowed opacity-60'
           : 'border-gray-200 bg-white text-gray-700 hover:bg-muted hover:border-gray-300 hover:shadow-md active:scale-[0.98]'
-      }`}
+        }`}
     >
       <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#1877f2] text-white">
         <FaFacebookF size={14} />

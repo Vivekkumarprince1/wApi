@@ -192,7 +192,7 @@ app.use(async (req, res, next) => {
   const callerSecret = req.headers['x-internal-service-secret'];
   const expectedSecret = config.internalServiceSecret;
   if (typeof callerSecret === 'string' && callerSecret.length === expectedSecret.length &&
-      crypto.timingSafeEqual(Buffer.from(callerSecret), Buffer.from(expectedSecret))) {
+    crypto.timingSafeEqual(Buffer.from(callerSecret), Buffer.from(expectedSecret))) {
     // service-provider's guards additionally require an x-internal-service name.
     if (!req.headers['x-internal-service']) {
       req.headers['x-internal-service'] = 'api-gateway';

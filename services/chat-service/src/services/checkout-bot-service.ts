@@ -26,10 +26,10 @@ export class CheckoutBotService {
       if (!settings.checkoutBotEnabled) return null; // Commerce/Bot disabled
 
       // 2. Find or Initialize Cart
-      let cart = await CheckoutCart.findOne({ 
-        workspaceId: new mongoose.Types.ObjectId(wsId), 
-        contactId: new mongoose.Types.ObjectId(contactId.toString()), 
-        state: { $ne: 'order_completed' } 
+      let cart = await CheckoutCart.findOne({
+        workspaceId: new mongoose.Types.ObjectId(wsId),
+        contactId: new mongoose.Types.ObjectId(contactId.toString()),
+        state: { $ne: 'order_completed' }
       });
 
       if (!cart) {
@@ -81,13 +81,13 @@ export class CheckoutBotService {
   }
 
   private static async handleProductSelection(cart: any, text: string) {
-    const products = await Product.find({ 
-      workspace: cart.workspaceId, 
-      isActive: true, 
+    const products = await Product.find({
+      workspace: cart.workspaceId,
+      isActive: true,
       isDeleted: false,
       stock: { $gt: 0 }
     }).limit(10).lean();
-    
+
     if (!products.length) {
       await this.reply(cart, "🛍️ Our catalog is currently being updated. Please check back later!");
       return { handled: true };
@@ -104,7 +104,7 @@ export class CheckoutBotService {
 
     if (selected) {
       cart.state = 'quantity_selection';
-      cart.currentContext = { 
+      cart.currentContext = {
         selectedProductId: selected._id as Types.ObjectId,
         selectedProductName: selected.name,
         selectedProductPrice: selected.price
@@ -117,7 +117,7 @@ export class CheckoutBotService {
     // Show catalog if no valid selection
     const catalog = products.map((p, i) => `*${i + 1}*. ${p.name} - ₹${p.price}`).join('\n');
     const message = `👋 Welcome to our Store!\n\nHere are our available items:\n\n${catalog}\n\n*Reply with a number or name to select.*`;
-    
+
     await this.reply(cart, message);
     cart.state = 'product_selection';
     await cart.save();
@@ -134,19 +134,19 @@ export class CheckoutBotService {
 
     const productId = cart.currentContext?.selectedProductId;
     const product = await Product.findById(productId);
-    
+
     if (!product || product.stock < qty) {
-       await this.reply(cart, `⚠️ Sorry, we only have ${product?.stock || 0} in stock. Please enter a lower quantity.`);
-       return { handled: true };
+      await this.reply(cart, `⚠️ Sorry, we only have ${product?.stock || 0} in stock. Please enter a lower quantity.`);
+      return { handled: true };
     }
 
     cart.addItem(product, qty);
-    
+
     // Apply Global Settings
-    const shippingCost = settings.shipping?.enabled && settings.shipping?.flatRate?.enabled 
-      ? settings.shipping.flatRate.amount 
+    const shippingCost = settings.shipping?.enabled && settings.shipping?.flatRate?.enabled
+      ? settings.shipping.flatRate.amount
       : 0;
-    
+
     // Check for free shipping threshold
     const finalShipping = settings.shipping?.freeShippingAbove?.enabled && cart.subtotal >= settings.shipping.freeShippingAbove.amount
       ? 0
@@ -157,14 +157,14 @@ export class CheckoutBotService {
     await cart.save();
 
     const summary = `🛒 *Cart Updated*\nItems: ${qty} x ${product.name}\nSubtotal: ₹${cart.subtotal}\nTax: ₹${cart.tax}\nShipping: ₹${cart.shipping}\n*Total: ₹${cart.total}*\n\n📍 Please share your *Delivery Address*:\nFormat: *Name, Phone, Street, City, Pincode*`;
-    
+
     await this.reply(cart, summary);
     return { handled: true, state: cart.state };
   }
 
   private static async handleAddressCapture(cart: any, text: string) {
     const parts = text.split(/,|\n/).map(p => p.trim()).filter(Boolean);
-    
+
     if (parts.length < 4) {
       await this.reply(cart, "📝 *Address Required*\nWe need your details to deliver. Please reply in this format:\n\n*Name, Phone, Street, City, Pincode*");
       return { handled: true };
@@ -179,7 +179,7 @@ export class CheckoutBotService {
       country: 'India',
       isComplete: true
     };
-    
+
     cart.state = 'payment_pending';
     await cart.save();
 
@@ -196,12 +196,12 @@ export class CheckoutBotService {
 
       // Finalize Order (COD)
       const orderResult = await this.finalizeOrder(cart, 'cod');
-      
+
       const instructions = settings.paymentMethods?.cashOnDelivery?.instructions || "Please keep exact change ready.";
       await this.reply(cart, `📦 *Order Confirmed!*\n\nOrder No: *${orderResult.orderNumber}*\nTotal: *₹${cart.total}*\n\nYour order has been placed successfully. We'll notify you when it's out for delivery.\n\n*Instructions:* ${instructions}`);
       return { handled: true, state: cart.state };
     }
-    
+
     if (text.includes('2') || text.toLowerCase().includes('online')) {
       const activeGateways: string[] = [];
       if (settings.paymentMethods?.razorpay?.enabled !== false) activeGateways.push('Razorpay'); // Razorpay active default
@@ -239,7 +239,7 @@ export class CheckoutBotService {
       await this.reply(cart, `🔗 *Payment Link Generated*\n\nPlease click the link below to pay ₹${cart.total} via ${activeGateways[0]}:\n\n${finalLink}`);
       return { handled: true };
     }
-    
+
     await this.reply(cart, "❓ Please choose *1* for COD or *2* for Online Payment.");
     return { handled: true };
   }
@@ -322,9 +322,9 @@ export class CheckoutBotService {
 
     // 4. Create CRM Deal (Parity with Intrakt Sales Pipeline)
     try {
-      const pipeline = await Pipeline.findOne({ workspace: cart.workspaceId, isDefault: true }) || 
-                       await Pipeline.findOne({ workspace: cart.workspaceId });
-      
+      const pipeline = await Pipeline.findOne({ workspace: cart.workspaceId, isDefault: true }) ||
+        await Pipeline.findOne({ workspace: cart.workspaceId });
+
       if (pipeline && pipeline.stages.length > 0) {
         const firstStage = pipeline.stages[0].id;
         await Deal.create({
@@ -372,7 +372,7 @@ export class CheckoutBotService {
         headers: {
           'Content-Type': 'application/json',
           'x-internal-secret': process.env.INTERNAL_SERVICE_SECRET!,
-              'x-internal-service': 'chat-service'
+          'x-internal-service': 'chat-service'
         },
         body: JSON.stringify({
           workspaceId: cart.workspaceId.toString(),

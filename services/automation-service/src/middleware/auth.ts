@@ -51,17 +51,17 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   const internalSecret = req.header('x-internal-service-secret');
 
   if (gatewayUserId && internalSecret === INTERNAL_SECRET) {
-    req.user = { 
-      id: gatewayUserId, 
+    req.user = {
+      id: gatewayUserId,
       _id: gatewayUserId, // Compatibility with ObjectId checks
-      role: gatewaySystemRole || gatewayRole || 'user' 
+      role: gatewaySystemRole || gatewayRole || 'user'
     };
     req.role = gatewayRole || 'agent';
     req.permissions = gatewayPermissions;
     req.isImpersonating = req.header('x-impersonating') === 'true';
-    
+
     if (gatewayWorkspaceId) {
-      req.workspace = { 
+      req.workspace = {
         id: gatewayWorkspaceId,
         _id: gatewayWorkspaceId
       };
@@ -76,38 +76,38 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
 
   // 2. Development-only fallback to JWT
   const authHeader = req.header('Authorization');
-  const token = authHeader?.startsWith('Bearer ') 
-    ? authHeader.substring(7) 
+  const token = authHeader?.startsWith('Bearer ')
+    ? authHeader.substring(7)
     : (req as any).cookies?.auth_token;
 
   if (!token) {
-    return res.status(401).json({ 
-      success: false, 
-      message: 'Authorization denied: No token or gateway headers provided' 
+    return res.status(401).json({
+      success: false,
+      message: 'Authorization denied: No token or gateway headers provided'
     });
   }
 
   try {
     const decoded: any = jwt.verify(token, JWT_SECRET);
-    req.user = { 
-      id: decoded.id, 
+    req.user = {
+      id: decoded.id,
       _id: decoded.id,
-      role: decoded.role || 'agent' 
+      role: decoded.role || 'agent'
     };
     req.role = decoded.role || 'agent';
     req.permissions = [];
-    
+
     if (decoded.workspaceId) {
-      req.workspace = { 
+      req.workspace = {
         id: decoded.workspaceId,
         _id: decoded.workspaceId
       };
     }
     next();
   } catch (err) {
-    res.status(401).json({ 
-      success: false, 
-      message: 'Token is not valid' 
+    res.status(401).json({
+      success: false,
+      message: 'Token is not valid'
     });
   }
 };
@@ -121,9 +121,9 @@ export const authorize = (roles: string[]) => {
       return next();
     }
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: 'Permission denied: You do not have the required role' 
+        message: 'Permission denied: You do not have the required role'
       });
     }
     next();
@@ -151,9 +151,9 @@ export const internalAuth = (req: Request, res: Response, next: NextFunction) =>
 
   if (!secret || secret !== INTERNAL_SECRET) {
     console.warn(`[Automation InternalAuth] Unauthorized access from ${req.ip} to ${req.method} ${req.originalUrl}`);
-    return res.status(401).json({ 
+    return res.status(401).json({
       success: false,
-      message: 'Unauthorized: Internal service secret missing or invalid' 
+      message: 'Unauthorized: Internal service secret missing or invalid'
     });
   }
 

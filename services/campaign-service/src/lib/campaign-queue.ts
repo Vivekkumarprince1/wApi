@@ -36,7 +36,7 @@ export class CampaignQueueService {
    */
   static async enqueue(campaignId: string, workspaceId: string, options: { delay?: number; priority?: number } = {}) {
     const { delay = 0, priority = 1 } = options;
-    
+
     const jobId = `campaign:${campaignId}:start`;
 
     const job = await campaignQueue.add(
@@ -63,7 +63,7 @@ export class CampaignQueueService {
   static async cancelJobs(campaignId: string) {
     const jobs = await campaignQueue.getJobs(['waiting', 'delayed']);
     let count = 0;
-    
+
     for (const job of jobs) {
       if (job.data.campaignId === campaignId) {
         await job.remove();
@@ -76,7 +76,7 @@ export class CampaignQueueService {
   }
 
   static async enqueueBatch(batchId: string | any, campaignId: string, workspaceId: string, batchIndex: number, delayMs: number) {
-    return await campaignQueue.add(JOB_TYPES.BATCH_PROCESS, 
+    return await campaignQueue.add(JOB_TYPES.BATCH_PROCESS,
       { batchId: batchId.toString(), campaignId, workspaceId, operationId: campaignId, batchIndex, correlationId: `campaign:${campaignId}:batch:${batchIndex}` },
       { delay: delayMs, jobId: `campaign:${campaignId}:batch:${batchIndex}` }
     );

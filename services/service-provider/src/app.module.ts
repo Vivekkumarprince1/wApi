@@ -125,4 +125,4 @@ import { RedisService } from './common/redis.service';
     ProviderEventProducerService,
   ],
 })
-export class AppModule {}
+export class AppModule { }

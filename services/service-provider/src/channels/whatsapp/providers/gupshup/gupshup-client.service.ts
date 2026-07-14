@@ -44,7 +44,7 @@ export class GupshupClientService {
 
     // 2. Check Redis Cache
     const cached = await this.redis.getJson<{ token: string; expiresAt: string; refreshedAt: string }>(PARTNER_TOKEN_CACHE_KEY);
-    
+
     // Prevent hammering forced refresh if it happened in last 30s
     const lastRefreshed = cached?.refreshedAt ? new Date(cached.refreshedAt).getTime() : 0;
     const isTooSoonForForce = Date.now() - lastRefreshed < 30000;
@@ -125,7 +125,7 @@ export class GupshupClientService {
             refreshedAt: new Date().toISOString(),
           };
           await this.redis.setJson(PARTNER_TOKEN_CACHE_KEY, record, DEFAULT_PARTNER_TOKEN_TTL_SECONDS);
-          
+
           this.cachedPartnerToken = freshToken;
           this.cachedPartnerTokenExpiresAt = Date.now() + MEMORY_CACHE_TTL_MS;
           return freshToken;
@@ -526,14 +526,14 @@ export class GupshupClientService {
             timeout: 25000,
           }
         );
-      
+
         const resData = response.data;
         const messageId = resData?.messages?.[0]?.id || resData?.message?.id || resData?.messageId || resData?.id || undefined;
-      
+
         if (!messageId) {
           throw new Error('Gupshup did not return a message ID: ' + JSON.stringify(resData));
         }
-      
+
         return {
           id: resData?.id || resData?.messageId || messageId,
           messageId,
@@ -923,7 +923,7 @@ export class GupshupClientService {
         params.append('url', secureUrl);
         params.append('version', '3');
         params.append('tag', tag);
-        
+
         const uniqueModes = new Set<string>();
         normalizedEvents.forEach((e: any) => {
           const upper = String(e).toUpperCase().replace(/-EVENT/i, '').replace(/_/g, '_');

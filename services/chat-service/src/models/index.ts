@@ -171,7 +171,7 @@ ConversationSchema.index({ workspace: 1, lastActivityAt: -1 });
 ConversationSchema.index({ workspace: 1, conversationStartedAt: 1, isBillable: 1 });
 ConversationSchema.index({ status: 1, snoozedUntil: 1 });
 
-ConversationSchema.methods.assignTo = function(this: IConversationDocument, agentId: Types.ObjectId | string, assignedById: Types.ObjectId | string) {
+ConversationSchema.methods.assignTo = function (this: IConversationDocument, agentId: Types.ObjectId | string, assignedById: Types.ObjectId | string) {
   const previousAssignee = this.assignedTo;
   this.assignedTo = agentId as Types.ObjectId;
   this.assignedBy = assignedById as Types.ObjectId;
@@ -188,7 +188,7 @@ ConversationSchema.methods.assignTo = function(this: IConversationDocument, agen
   return this;
 };
 
-ConversationSchema.methods.unassign = function(this: IConversationDocument, unassignedById: Types.ObjectId | string) {
+ConversationSchema.methods.unassign = function (this: IConversationDocument, unassignedById: Types.ObjectId | string) {
   const previousAssignee = this.assignedTo;
   if (previousAssignee) {
     this.assignmentHistory.push({
@@ -204,9 +204,9 @@ ConversationSchema.methods.unassign = function(this: IConversationDocument, unas
   return this;
 };
 
-ConversationSchema.methods.markReadForAgent = function(this: IConversationDocument, agentId: Types.ObjectId | string) {
+ConversationSchema.methods.markReadForAgent = function (this: IConversationDocument, agentId: Types.ObjectId | string) {
   this.agentUnreadCounts.set(agentId.toString(), 0);
-  this.unreadCount = 0; 
+  this.unreadCount = 0;
   const existingView = this.viewedBy.find(v => v.user.toString() === agentId.toString());
   if (existingView) {
     existingView.viewedAt = new Date();
@@ -216,7 +216,7 @@ ConversationSchema.methods.markReadForAgent = function(this: IConversationDocume
   return this;
 };
 
-ConversationSchema.methods.incrementUnreadForAllAgents = function(this: IConversationDocument) {
+ConversationSchema.methods.incrementUnreadForAllAgents = function (this: IConversationDocument) {
   this.unreadCount += 1;
   for (const [agentId, count] of Array.from(this.agentUnreadCounts.entries())) {
     this.agentUnreadCounts.set(agentId, count + 1);
@@ -230,11 +230,11 @@ ConversationSchema.methods.incrementUnreadForAllAgents = function(this: IConvers
   return this;
 };
 
-ConversationSchema.methods.getUnreadForAgent = function(this: IConversationDocument, agentId: Types.ObjectId | string) {
+ConversationSchema.methods.getUnreadForAgent = function (this: IConversationDocument, agentId: Types.ObjectId | string) {
   return this.agentUnreadCounts.get(agentId.toString()) || 0;
 };
 
-ConversationSchema.methods.updateStatus = function(this: IConversationDocument, newStatus: string, changedById?: Types.ObjectId | string) {
+ConversationSchema.methods.updateStatus = function (this: IConversationDocument, newStatus: string, changedById?: Types.ObjectId | string) {
   this.status = newStatus as any;
   this.statusChangedAt = new Date();
   if (changedById) this.statusChangedBy = changedById as Types.ObjectId;
@@ -242,7 +242,7 @@ ConversationSchema.methods.updateStatus = function(this: IConversationDocument, 
 };
 
 // @ts-ignore
-ConversationSchema.statics.getAgentInbox = async function(workspaceId, agentId, options: any = {}) {
+ConversationSchema.statics.getAgentInbox = async function (workspaceId, agentId, options: any = {}) {
   const { page = 1, limit = 20, status, sort = '-lastActivityAt' } = options;
   const query: any = { workspace: workspaceId, assignedTo: agentId };
   if (status) query.status = status;
@@ -253,7 +253,7 @@ ConversationSchema.statics.getAgentInbox = async function(workspaceId, agentId, 
 };
 
 // @ts-ignore
-ConversationSchema.statics.getAllInbox = async function(workspaceId, options: any = {}) {
+ConversationSchema.statics.getAllInbox = async function (workspaceId, options: any = {}) {
   const { page = 1, limit = 20, status, assignedTo, sort = '-lastActivityAt' } = options;
   const query: any = { workspace: workspaceId };
   if (status) query.status = status;
@@ -266,7 +266,7 @@ ConversationSchema.statics.getAllInbox = async function(workspaceId, options: an
 };
 
 // @ts-ignore
-ConversationSchema.statics.getUnassigned = async function(workspaceId, options: any = {}) {
+ConversationSchema.statics.getUnassigned = async function (workspaceId, options: any = {}) {
   const { page = 1, limit = 20, sort = '-lastActivityAt' } = options;
   return this.find({
     workspace: workspaceId,
@@ -506,7 +506,7 @@ export interface IQuickReply {
   updatedAt: Date;
 }
 
-export interface IQuickReplyDocument extends IQuickReply, Document {}
+export interface IQuickReplyDocument extends IQuickReply, Document { }
 
 const QuickReplySchema = new Schema<IQuickReplyDocument>({
   workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
@@ -531,7 +531,7 @@ QuickReplySchema.index({ workspace: 1, scope: 1, owner: 1 });
 QuickReplySchema.index({ workspace: 1, name: 1, scope: 1, owner: 1 }, { unique: true });
 QuickReplySchema.index({ workspace: 1, shortcut: 1 });
 
-QuickReplySchema.pre<IQuickReplyDocument>('save', function() {
+QuickReplySchema.pre<IQuickReplyDocument>('save', function () {
   this.updatedAt = new Date();
 });
 
@@ -548,7 +548,7 @@ export interface IContactEvent {
   createdAt: Date;
 }
 
-export interface IContactEventDocument extends IContactEvent, Document {}
+export interface IContactEventDocument extends IContactEvent, Document { }
 
 const ContactEventSchema = new Schema<IContactEventDocument>({
   workspace: { type: Schema.Types.ObjectId, ref: 'Workspace', required: true },
@@ -659,7 +659,7 @@ ConversationLedgerSchema.index({ workspace: 1, startedAt: 1, category: 1 });
 ConversationLedgerSchema.index({ workspace: 1, campaign: 1, billable: 1 });
 ConversationLedgerSchema.index({ workspace: 1, source: 1, startedAt: 1 });
 
-ConversationLedgerSchema.statics.findActiveWindow = async function(workspaceId, contactId) {
+ConversationLedgerSchema.statics.findActiveWindow = async function (workspaceId, contactId) {
   return this.findOne({
     workspace: workspaceId,
     contact: contactId,
@@ -668,7 +668,7 @@ ConversationLedgerSchema.statics.findActiveWindow = async function(workspaceId, 
   }).sort({ startedAt: -1 });
 };
 
-ConversationLedgerSchema.statics.getBillingSummary = async function(workspaceId, startDate, endDate) {
+ConversationLedgerSchema.statics.getBillingSummary = async function (workspaceId, startDate, endDate) {
   return this.aggregate([
     { $match: { workspace: new mongoose.Types.ObjectId(workspaceId as string), startedAt: { $gte: new Date(startDate), $lte: new Date(endDate) }, billable: true } },
     { $group: { _id: '$category', count: { $sum: 1 }, totalMessages: { $sum: '$messageCount' } } },
@@ -676,7 +676,7 @@ ConversationLedgerSchema.statics.getBillingSummary = async function(workspaceId,
   ]);
 };
 
-ConversationLedgerSchema.statics.getMonthlyUsage = async function(workspaceId, year, month) {
+ConversationLedgerSchema.statics.getMonthlyUsage = async function (workspaceId, year, month) {
   const billingPeriod = `${year}-${String(month).padStart(2, '0')}`;
   return this.aggregate([
     { $match: { workspace: new mongoose.Types.ObjectId(workspaceId as string), billingPeriod, billable: true } },
@@ -685,11 +685,11 @@ ConversationLedgerSchema.statics.getMonthlyUsage = async function(workspaceId, y
   ]);
 };
 
-ConversationLedgerSchema.methods.isWindowActive = function(this: IConversationLedgerDocument) {
+ConversationLedgerSchema.methods.isWindowActive = function (this: IConversationLedgerDocument) {
   return this.isActive && this.expiresAt > new Date();
 };
 
-ConversationLedgerSchema.methods.recordMessage = function(this: IConversationLedgerDocument, direction: 'inbound' | 'outbound') {
+ConversationLedgerSchema.methods.recordMessage = function (this: IConversationLedgerDocument, direction: 'inbound' | 'outbound') {
   this.messageCount += 1;
   this.lastMessageAt = new Date();
   if (direction === 'outbound') this.businessMessageCount += 1;
@@ -697,13 +697,13 @@ ConversationLedgerSchema.methods.recordMessage = function(this: IConversationLed
   return this.save();
 };
 
-ConversationLedgerSchema.methods.closeWindow = function(this: IConversationLedgerDocument) {
+ConversationLedgerSchema.methods.closeWindow = function (this: IConversationLedgerDocument) {
   this.isActive = false;
   this.closedAt = new Date();
   return this.save();
 };
 
-ConversationLedgerSchema.pre<IConversationLedgerDocument>('save', function() {
+ConversationLedgerSchema.pre<IConversationLedgerDocument>('save', function () {
   if (this.startedAt && !this.expiresAt) {
     this.expiresAt = new Date(this.startedAt.getTime() + 24 * 60 * 60 * 1000);
   }
@@ -757,7 +757,7 @@ TeamSchema.index({ workspace: 1, name: 1 }, { unique: true });
 TeamSchema.index({ workspace: 1, 'members.user': 1 });
 
 // @ts-ignore
-TeamSchema.statics.findByUser = function(workspaceId: any, userId: any) {
+TeamSchema.statics.findByUser = function (workspaceId: any, userId: any) {
   return this.find({
     workspace: new mongoose.Types.ObjectId(workspaceId),
     'members.user': new mongoose.Types.ObjectId(userId),
@@ -789,7 +789,7 @@ const NotificationSchema = new Schema({
   type: {
     type: String,
     enum: ['invitation_accepted', 'invitation_declined', 'system_alert', 'billing_alert',
-           'info', 'success', 'warning', 'error', 'assignment', 'campaign', 'billing', 'system'],
+      'info', 'success', 'warning', 'error', 'assignment', 'campaign', 'billing', 'system'],
     required: true
   },
   title: { type: String, required: true },
@@ -878,22 +878,22 @@ const DealSchema = new Schema({
   currency: { type: String, default: 'INR' },
   stage: { type: String, required: true },
   assignedAgent: { type: Schema.Types.ObjectId },
-  status: { 
-    type: String, 
+  status: {
+    type: String,
     enum: ['active', 'won', 'lost', 'archived'],
     default: 'active'
   },
   probability: { type: Number, min: 0, max: 100, default: 10 },
   expectedCloseDate: { type: Date },
-  priority: { 
-    type: String, 
+  priority: {
+    type: String,
     enum: ['low', 'medium', 'high', 'urgent'],
-    default: 'medium' 
+    default: 'medium'
   },
   winLossReason: { type: String },
-  source: { 
-    type: String, 
-    default: 'manual' 
+  source: {
+    type: String,
+    default: 'manual'
   },
   sourceId: { type: Schema.Types.ObjectId },
   notes: [

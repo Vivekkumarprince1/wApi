@@ -14,8 +14,8 @@ export const microserviceWorkerClient = {
       method: 'POST',
       url: '/api/internal/worker-bridge',
       data: {
-      action: 'send-template',
-      data,
+        action: 'send-template',
+        data,
       },
     });
     return response.data;
@@ -50,8 +50,8 @@ export const microserviceWorkerClient = {
       method: 'POST',
       url: '/api/internal/worker-bridge',
       data: {
-      action: 'preflight-validate',
-      data: { workspaceId, templateId, contactsCount },
+        action: 'preflight-validate',
+        data: { workspaceId, templateId, contactsCount },
       },
     });
     return response.data;
@@ -62,8 +62,8 @@ export const microserviceWorkerClient = {
       method: 'POST',
       url: '/api/internal/worker-bridge',
       data: {
-      action: 'socket-broadcast',
-      data: { workspaceId, event, payload },
+        action: 'socket-broadcast',
+        data: { workspaceId, event, payload },
       },
     });
   },

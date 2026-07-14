@@ -25,7 +25,7 @@ async function bootstrap() {
     .setTitle('wApi — BSP Service')
     .setDescription(
       'Gupshup Business Service Provider integration: apps, onboarding, ' +
-        'tokens, phones, templates, media, profiles, webhooks, and ESB flows.',
+      'tokens, phones, templates, media, profiles, webhooks, and ESB flows.',
     )
     .setVersion('1.0.0')
     .addServer(`http://localhost:${config.port}`, 'Local dev')

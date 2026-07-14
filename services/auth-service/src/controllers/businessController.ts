@@ -70,11 +70,11 @@ export const saveBusinessInfo = async (req: AuthRequest, res: express.Response) 
       await axios.post(
         `${bspUrl.replace(/\/$/, '')}/internal/v1/bsp/onboarding/sync-state`,
         { workspaceId: workspace._id.toString(), step: 'BUSINESS_INFO' },
-        { 
-          headers: { 
+        {
+          headers: {
             'x-internal-service-secret': secret,
             'x-internal-service': 'auth-service'
-          } 
+          }
         }
       );
     } catch (bspErr: any) {
@@ -164,11 +164,11 @@ export const verifyBusiness = async (req: AuthRequest, res: express.Response) =>
         await axios.post(
           `${bspUrl.replace(/\/$/, '')}/internal/v1/bsp/onboarding/sync-state`,
           { workspaceId: workspace._id.toString(), step: 'BUSINESS_VERIFICATION' },
-          { 
-            headers: { 
+          {
+            headers: {
               'x-internal-service-secret': secret,
               'x-internal-service': 'auth-service'
-            } 
+            }
           }
         );
       } catch (bspErr: any) {

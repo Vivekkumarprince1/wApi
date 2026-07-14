@@ -81,7 +81,7 @@ function buildLogtailTransport(service: string): any | null {
     // eslint-disable-next-line no-console
     console.warn(
       `[logger] Better Stack disabled for ${service}: ${(err as Error).message}. ` +
-        `Install @logtail/winston @logtail/node and set LOGTAIL_SOURCE_TOKEN/LOGTAIL_INGESTING_HOST to enable.`,
+      `Install @logtail/winston @logtail/node and set LOGTAIL_SOURCE_TOKEN/LOGTAIL_INGESTING_HOST to enable.`,
     );
     return null;
   }
@@ -111,14 +111,14 @@ export function createServiceLogger(opts: LoggerOptions): ServiceLogger {
     format: isProd
       ? format.combine(baseFormat, format.json())
       : format.combine(
-          baseFormat,
-          format.colorize(),
-          format.printf(({ timestamp, level, message, correlationId, service, ...rest }) => {
-            const ctx = correlationId ? ` [${correlationId}]` : '';
-            const extras = Object.keys(rest).length ? ` ${JSON.stringify(rest)}` : '';
-            return `${timestamp} ${level} (${service})${ctx} ${message}${extras}`;
-          }),
-        ),
+        baseFormat,
+        format.colorize(),
+        format.printf(({ timestamp, level, message, correlationId, service, ...rest }) => {
+          const ctx = correlationId ? ` [${correlationId}]` : '';
+          const extras = Object.keys(rest).length ? ` ${JSON.stringify(rest)}` : '';
+          return `${timestamp} ${level} (${service})${ctx} ${message}${extras}`;
+        }),
+      ),
   });
 
   const allTransports: any[] = [consoleTransport];
