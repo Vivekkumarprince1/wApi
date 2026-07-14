@@ -118,6 +118,9 @@ export class TemplateSeedingService {
         console.error(`[TemplateSeeding] Meta library seeding failed for ${workspaceId}:`, err.message);
       }
     } else {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('PROVIDER_APP_NOT_CONFIGURED');
+      }
       console.log(`[TemplateSeeding] Skipping Gupshup calls for ${gupshupAppId} (Mock App)`);
       // For mock/sandbox mode, we can seed a few mock templates locally in the bsp_template_mirrors collection
       // to make testing easier. Let's seed 5 mock templates:

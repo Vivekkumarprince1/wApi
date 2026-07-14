@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import Redis from 'ioredis';
 import { MongoClient } from 'mongodb';
 import { config } from './config/env.js';
+import { normalizeWebhookProvider, verifyProviderSignature } from './webhook-security.js';
 
 const server = fastify({
   logger: config.env !== 'production',
@@ -11,9 +12,6 @@ const server = fastify({
 });
 
 const PORT = config.port;
-const IS_PRODUCTION = config.isProduction;
-const WEBHOOK_SECRET = config.webhookSecret;
-const REQUIRE_WEBHOOK_SIGNATURE = config.requireWebhookSignature;
 const REDIS_URL = config.redisUrl;
 const REDIS_TOPIC = config.redisTopic;
 const INTERNAL_SECRET = config.internalServiceSecret;
@@ -39,6 +37,14 @@ async function deadLetterCollection() {
     await mongoClient.db().collection(DEAD_LETTER_COLLECTION).createIndex({ status: 1, createdAt: 1 });
   }
   return mongoClient.db().collection(DEAD_LETTER_COLLECTION);
+}
+
+async function receiptCollection() {
+  if (!mongoClient) await deadLetterCollection();
+  const collection = mongoClient!.db().collection('webhook_ingress_receipts');
+  await collection.createIndex({ eventId: 1 }, { unique: true });
+  await collection.createIndex({ status: 1, updatedAt: 1 });
+  return collection;
 }
 
 function logRedisWarning(message: string) {
@@ -96,13 +102,16 @@ async function publishRawWebhook(eventId: string, eventMessage: any) {
     throw new Error('Redis producer is not connected');
   }
 
-  await redisProducer.publish(
+  const subscribers = await redisProducer.publish(
     REDIS_TOPIC,
     JSON.stringify({
       key: eventId,
       value: JSON.stringify(eventMessage),
     })
   );
+  if (subscribers < 1) {
+    throw new Error('No webhook event consumer is currently available');
+  }
 }
 
 async function persistDeadLetter(eventId: string, eventMessage: any, reason: string) {
@@ -205,45 +214,6 @@ server.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, bod
 });
 
 // --- HELPER: Signature Validator ---
-function isSignatureValid(rawBody: string, headers: Record<string, string | string[] | undefined>) {
-  if (!IS_PRODUCTION && !WEBHOOK_SECRET) {
-    return true; // Bypass signature verification in dev modes if secret isn't loaded
-  }
-  const getHeader = (name: string): string => {
-    const val = headers[name];
-    return Array.isArray(val) ? val[0] : val || '';
-  };
-
-  const signature = getHeader('x-gupshup-signature') || getHeader('x-hub-signature-256');
-  if (!signature) {
-    // Gupshup subscription setup sends a live POST to the callback URL and may
-    // omit HMAC headers unless webhook signing is configured on their side.
-    // Validate signatures when present; allow unsigned callbacks by default so
-    // the public provider webhook endpoint can be registered and receive events.
-    if (!REQUIRE_WEBHOOK_SIGNATURE) {
-      console.warn('[Webhook Ingestor] Unsigned provider webhook accepted. Set REQUIRE_WEBHOOK_SIGNATURE=true to enforce HMAC.');
-      return true;
-    }
-    return false;
-  }
-
-  if (!WEBHOOK_SECRET) {
-    return false;
-  }
-
-  const digest = crypto.createHmac('sha256', WEBHOOK_SECRET).update(rawBody).digest('hex');
-  const cleanSignature = signature.startsWith('sha256=') ? signature.slice(7) : signature;
-
-  const cleanSigBuffer = Buffer.from(cleanSignature, 'hex');
-  const digestBuffer = Buffer.from(digest, 'hex');
-
-  if (cleanSigBuffer.length !== digestBuffer.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(cleanSigBuffer, digestBuffer);
-}
-
 // --- ENDPOINTS ---
 
 // Webhook subscription validation endpoint (for Meta/Gupshup subscription setup)
@@ -273,12 +243,25 @@ server.get('/webhooks/:provider', async (req, reply) => {
 async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
   const headers = req.headers;
   const rawBodyBuffer = req.body as Buffer;
+  if (!Buffer.isBuffer(rawBodyBuffer)) {
+    return reply.status(400).send({ success: false, error: { code: 'INVALID_WEBHOOK_BODY', message: 'Webhook body must be JSON' } });
+  }
   const rawBodyString = rawBodyBuffer.toString('utf8');
 
-  // 1. Cryptographic Signature check (Microseconds overhead)
-  if (!isSignatureValid(rawBodyString, headers)) {
-    console.warn('[Webhook Ingestor] Signature validation failed.');
-    return reply.status(401).send({ error: 'INVALID_SIGNATURE' });
+  const provider = normalizeWebhookProvider(providerParam || 'gupshup');
+  if (!provider) {
+    return reply.status(400).send({ success: false, error: { code: 'UNSUPPORTED_WEBHOOK_PROVIDER', message: 'Unsupported webhook provider' } });
+  }
+
+  const signatureValid = verifyProviderSignature({
+    provider,
+    rawBody: rawBodyBuffer,
+    headers,
+    secrets: config.webhookSecrets,
+  });
+  if (!signatureValid && !config.allowUnsignedDevWebhooks) {
+    server.log.warn({ event: 'security.webhook_rejected', provider, reason: 'invalid_signature' });
+    return reply.status(401).send({ success: false, error: { code: 'INVALID_WEBHOOK_SIGNATURE', message: 'Webhook signature verification failed' } });
   }
 
   let parsedPayload: any = {};
@@ -299,18 +282,35 @@ async function handleWebhookPost(req: any, reply: any, providerParam?: string) {
   const eventMessage = {
     eventId,
     eventType,
-    provider: providerParam || parsedPayload?.provider || 'gupshup',
+    provider,
     timestamp: new Date().toISOString(),
     rawBody: rawBodyString,
     headers: providerHeaders(headers),
     rawPayload: parsedPayload,
   };
 
+  const receipts = await receiptCollection();
+  try {
+    await receipts.insertOne({ eventId, provider, status: 'received', eventMessage, createdAt: new Date(), updatedAt: new Date() });
+  } catch (err: any) {
+    if (err?.code === 11000) {
+      const existing = await receipts.findOne({ eventId });
+      if (existing?.status === 'published') {
+        return reply.status(200).send({ success: true, duplicate: true, eventId });
+      }
+    } else {
+      throw err;
+    }
+  }
+
   try {
     await publishRawWebhook(eventId, eventMessage);
+    await receipts.updateOne({ eventId }, { $set: { status: 'published', publishedAt: new Date(), updatedAt: new Date() } });
   } catch (eventErr: any) {
-    server.log.error(`[Webhook Ingestor] EventBus dispatch failed: ${eventErr.message}`);
+    server.log.error({ event: 'webhook.publish_failed', eventId, provider, error: eventErr.message });
+    await receipts.updateOne({ eventId }, { $set: { status: 'pending', error: eventErr.message, updatedAt: new Date() } });
     await persistDeadLetter(eventId, eventMessage, eventErr.message);
+    return reply.status(503).send({ success: false, error: { code: 'WEBHOOK_PROCESSING_UNAVAILABLE', message: 'Webhook processing is temporarily unavailable' }, eventId });
   }
 
   // 4. Instantly reply with 200 OK (Prevents timeouts & carrier duplicate retries)
@@ -341,6 +341,10 @@ server.post('/internal/v1/webhooks/replay', async (req, reply) => {
   for (const item of pending) {
     try {
       await publishRawWebhook(item.eventId, item.eventMessage);
+      await (await receiptCollection()).updateOne(
+        { eventId: item.eventId },
+        { $set: { status: 'published', publishedAt: new Date(), updatedAt: new Date() } }
+      );
       await collection.updateOne(
         { _id: item._id },
         { $set: { status: 'replayed', replayedAt: new Date(), updatedAt: new Date() }, $inc: { attempts: 1 } }
@@ -376,6 +380,7 @@ async function start() {
   try {
     await initRedis();
     await deadLetterCollection();
+    await receiptCollection();
     await server.listen({ port: PORT, host: '0.0.0.0' });
     console.log(`[Webhook Ingestor] Server running at http://localhost:${PORT}`);
   } catch (err) {

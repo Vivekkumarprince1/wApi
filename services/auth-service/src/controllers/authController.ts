@@ -248,7 +248,14 @@ export const googleUrl = async (req: express.Request, res: express.Response) => 
     const url = getGoogleAuthUrl(type, redirectUri);
     return res.status(200).json({ success: true, url, authUrl: url });
   } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message || 'Failed to build Google auth URL' });
+    return res.status(error.status || 500).json({
+      success: false,
+      error: {
+        code: error.code || 'GOOGLE_AUTH_URL_FAILED',
+        message: error.message || 'Failed to build Google auth URL',
+        requestId: req.headers['x-correlation-id'] || null,
+      },
+    });
   }
 };
 
@@ -296,16 +303,25 @@ export const googleCallback = async (req: express.Request, res: express.Response
     const sessionPayload = await buildSessionPayload(user);
     return res.status(200).json({ success: true, token, ...sessionPayload });
   } catch (error: any) {
-    return res.status(500).json({ success: false, message: error.message || 'Google callback failed' });
+    return res.status(error.status || 500).json({
+      success: false,
+      error: {
+        code: error.code || 'GOOGLE_AUTH_FAILED',
+        message: error.message || 'Google callback failed',
+        requestId: req.headers['x-correlation-id'] || null,
+      },
+    });
   }
 };
 
-export const facebookLogin = async (_req: express.Request, res: express.Response) => {
-  return res.status(200).json({
-    success: true,
-    message: 'Facebook login mock callback successful',
-    token: 'mock-fb-token',
-    user: { name: 'Facebook User', email: 'fb.user@local.wapi', role: 'owner' }
+export const facebookLogin = async (req: express.Request, res: express.Response) => {
+  return res.status(503).json({
+    success: false,
+    error: {
+      code: 'FEATURE_DISABLED',
+      message: 'Facebook authentication is not available',
+      requestId: req.headers['x-correlation-id'] || null,
+    },
   });
 };
 

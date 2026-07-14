@@ -358,24 +358,16 @@ export class CheckoutBotService {
 
     // Send a message internally by calling the chat service controller sendMessageInternal directly or sending text
     try {
-      // Create outbound message directly inside the DB
-      const chatMessage = await Message.create({
-        workspace: cart.workspaceId,
-        conversation: cart.conversationId,
-        direction: 'outbound',
-        type: 'text',
-        text: text,
-        messageId: `bot_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-        status: 'sent',
-      });
-
       // Call BSP service to send WhatsApp message via HTTP
       const db = mongoose.connection.db;
       const workspaceDoc = await db?.collection('workspaces').findOne({ _id: cart.workspaceId });
-      const appId = workspaceDoc?.gupshupAppId || `mock_${cart.workspaceId}`;
+      const appId = workspaceDoc?.gupshupAppId;
+      if (!appId || String(appId).startsWith('mock_')) {
+        throw new Error('PROVIDER_NOT_CONFIGURED');
+      }
 
       const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
-      await fetch(`${bspUrl}/internal/v1/bsp/messages/send`, {
+      const response = await fetch(`${bspUrl}/internal/v1/bsp/messages/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -395,6 +387,24 @@ export class CheckoutBotService {
             text: { body: text }
           }
         })
+      });
+      if (!response.ok) {
+        throw new Error(`BSP_MESSAGE_DISPATCH_FAILED:${response.status}`);
+      }
+      const payload = await response.json() as any;
+      const providerMessageId = payload?.data?.providerMessageId || payload?.providerMessageId;
+      if (!providerMessageId) {
+        throw new Error('INVALID_PROVIDER_RESPONSE');
+      }
+
+      await Message.create({
+        workspace: cart.workspaceId,
+        conversation: cart.conversationId,
+        direction: 'outbound',
+        type: 'text',
+        text,
+        messageId: providerMessageId,
+        status: 'sent',
       });
     } catch (err: any) {
       console.error('[CheckoutBot Outbound Reply Error]:', err.message);

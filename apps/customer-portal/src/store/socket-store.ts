@@ -20,7 +20,7 @@ export const useSocketStore = create<SocketState>((set, get) => ({
   initialize: () => {
     if (get().socket?.connected) return;
 
-    const token = typeof document !== 'undefined' ? document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1] : null;
+    const token = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('socket_auth_token') : null;
     
     const socketBase = appConfig.socketUrl;
 

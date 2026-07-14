@@ -503,12 +503,7 @@ export class GupshupClientService {
   async sendMessage(input: { appId: string; payload: Record<string, unknown> }) {
     const isMock = String(input.appId).startsWith('mock_');
     if (isMock) {
-      return {
-        id: `mock_dispatch_${Date.now()}`,
-        messageId: `wamid.mock.${Date.now()}`,
-        appId: input.appId,
-        payload: input.payload,
-      };
+      throw new Error('PROVIDER_APP_NOT_CONFIGURED');
     }
 
     const appToken = await this.resolveAppToken(input.appId);
@@ -635,19 +630,11 @@ export class GupshupClientService {
   }
 
   async getApp(appId: string) {
-    return { appId, provider: 'gupshup', mode: 'stubbed' };
+    throw new Error(`PROVIDER_OPERATION_NOT_IMPLEMENTED: getApp(${appId})`);
   }
 
   async providerAction(input: { appId?: string; action: string; payload: Record<string, unknown> }) {
-    // Provider integration placeholder. This keeps provider-specific calls out of main-service
-    // while the exact Gupshup endpoint mapping is migrated into this service.
-    return {
-      provider: 'gupshup',
-      appId: input.appId,
-      action: input.action,
-      status: 'pending_provider_integration',
-      payload: input.payload,
-    };
+    throw new Error(`PROVIDER_OPERATION_NOT_IMPLEMENTED: ${input.action}`);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════════

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotImplementedException, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { InternalAuthGuard } from '../../../common/internal-auth.guard';
@@ -225,13 +225,13 @@ export class TemplatesPublicController {
    */
   @Post(':id/submit')
   async submitTemplate(@Req() req: any, @Param('id') id: string) {
-    const workspaceId = req.workspace?._id;
-    const template = await this.templateModel.findOneAndUpdate(
-      { _id: id, workspaceId: String(workspaceId) },
-      { $set: { status: 'APPROVED' } }, // Instantly approve in mock/sandbox environment
-      { new: true }
-    );
-    return ok({ success: true, data: template, message: 'Template submitted and approved' });
+    throw new NotImplementedException({
+      success: false,
+      error: {
+        code: 'PROVIDER_OPERATION_NOT_IMPLEMENTED',
+        message: 'Template submission to the provider is not available',
+      },
+    });
   }
 
   /**
@@ -250,16 +250,22 @@ export class TemplatesPublicController {
 
   /* ---------------------------- Template Rules ---------------------------- */
 
-  // Monolith parity: library stats were a hardcoded mock there too.
   @Get('library/stats')
-  async getLibraryStats() {
+  async getLibraryStats(@Req() req: any) {
+    const workspaceId = String(req.workspace?._id);
+    const rows = await this.templateModel.aggregate([
+      { $match: { workspaceId } },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]);
+    const counts = new Map(rows.map((row: any) => [String(row._id || '').toUpperCase(), row.count]));
+    const total = rows.reduce((sum: number, row: any) => sum + Number(row.count || 0), 0);
     return {
       success: true,
       data: {
-        total: 120,
-        approved: 95,
-        rejected: 5,
-        pending: 20,
+        total,
+        approved: counts.get('APPROVED') || 0,
+        rejected: counts.get('REJECTED') || 0,
+        pending: counts.get('PENDING') || 0,
       },
     };
   }

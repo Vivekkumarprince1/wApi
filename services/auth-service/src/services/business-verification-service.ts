@@ -270,6 +270,12 @@ export async function verifyBusinessDocument(input: BusinessVerificationInput): 
   }
 
   if (getVerificationMode() === 'mock') {
+    if (process.env.NODE_ENV === 'production') {
+      throw Object.assign(new Error('Mock business verification is disabled in production'), {
+        status: 503,
+        code: 'PROVIDER_NOT_CONFIGURED',
+      });
+    }
     const primaryDocumentType: VerificationDocumentType = gstNumber ? 'gst' : panNumber ? 'pan' : 'msme';
     return buildMockVerificationOutcome({ ...input, gstNumber, panNumber, msmeNumber }, primaryDocumentType);
   }

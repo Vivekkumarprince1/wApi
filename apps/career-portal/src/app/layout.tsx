@@ -1,40 +1,52 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import Script from "next/script";
+
+import { QueryProvider } from "@/components/providers/query-provider";
+
 import "./globals.css";
-import { AuthProvider } from "@/components/auth-provider";
-import { SiteFooter, SiteHeader } from "@/components/site-shell";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3001"),
   title: {
     default: "ConnectSphere Careers",
-    template: "%s | ConnectSphere Careers"
+    template: "%s | ConnectSphere Careers",
   },
   description:
-    "Career discovery, open roles, and candidate applications for ConnectSphere.",
-  robots: {
-    index: true,
-    follow: true
-  }
+    "Build the communication platform businesses use to connect with their customers.",
+  applicationName: "ConnectSphere Careers",
+  category: "careers",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "ConnectSphere Careers",
+    title: "ConnectSphere Careers",
+    description:
+      "Build the communication platform businesses use to connect with their customers.",
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ConnectSphere Careers",
+    description:
+      "Build the communication platform businesses use to connect with their customers.",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-scroll-behavior="smooth">
       <body>
-        <AuthProvider>
-          <a
-            href="#main"
-            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg"
-          >
-            Skip to content
-          </a>
-          <SiteHeader />
-          <main id="main">{children}</main>
-          <SiteFooter />
-        </AuthProvider>
+        <QueryProvider>{children}</QueryProvider>
+        {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ? (
+          <Script
+            src={`https://www.google.com/recaptcha/api.js?render=${encodeURIComponent(process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY)}`}
+            strategy="afterInteractive"
+          />
+        ) : null}
       </body>
     </html>
   );

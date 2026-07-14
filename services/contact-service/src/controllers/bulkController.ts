@@ -193,13 +193,13 @@ export const bulkController = {
         return res.status(400).json({ success: false, error: 'message or template required' });
       }
 
-      // Since queue architecture is fully decoupled, return completed mock task response
-      res.status(202).json({
-        success: true,
-        jobId: 'bulk_msg_mock_' + Date.now(),
-        queue: 'bulk-messages',
-        message: 'Bulk message sending started in background',
-        status: 'completed'
+      return res.status(501).json({
+        success: false,
+        error: {
+          code: 'FEATURE_NOT_IMPLEMENTED',
+          message: 'Bulk message dispatch is not available',
+          requestId: req.headers['x-correlation-id'] || null,
+        },
       });
     } catch (err: any) {
       next(err);

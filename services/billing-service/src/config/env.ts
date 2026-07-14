@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import type { DotenvConfigOptions } from 'dotenv';
 import { z } from 'zod';
+import { validatePaymentPolicy } from './payment-policy';
 
 dotenv.config({ quiet: true } as DotenvConfigOptions);
 
@@ -12,6 +13,8 @@ const envSchema = z.object({
     required_error: 'INTERNAL_SERVICE_SECRET is required',
   }).min(1, 'INTERNAL_SERVICE_SECRET cannot be empty'),
   NODE_ENV: z.string().optional().default('development'),
+  RAZORPAY_ENABLED: z.enum(['true', 'false']).optional().default('false'),
+  ALLOW_UNSIGNED_DEV_PAYMENT_WEBHOOKS: z.enum(['true', 'false']).optional().default('false'),
 });
 
 const envParseResult = envSchema.safeParse(process.env);
@@ -23,6 +26,14 @@ if (!envParseResult.success) {
 
 const jwtSecret = process.env.JWT_SECRET!;
 const internalServiceSecret = process.env.INTERNAL_SERVICE_SECRET!;
+const paymentPolicy = validatePaymentPolicy({
+  nodeEnv: process.env.NODE_ENV,
+  razorpayEnabled: process.env.RAZORPAY_ENABLED,
+  keyId: process.env.RAZORPAY_KEY_ID,
+  keySecret: process.env.RAZORPAY_KEY_SECRET,
+  webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET,
+  allowUnsignedDevWebhooks: process.env.ALLOW_UNSIGNED_DEV_PAYMENT_WEBHOOKS,
+});
 
 if (process.env.NODE_ENV === 'production') {
   if (jwtSecret === 'your-secret-key-change-in-production' || jwtSecret === 'your-jwt-secret') {
@@ -40,6 +51,8 @@ export const config = {
   razorpayKeyId: process.env.RAZORPAY_KEY_ID || '',
   razorpayKeySecret: process.env.RAZORPAY_KEY_SECRET || '',
   razorpayWebhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET || '',
+  razorpayEnabled: paymentPolicy.enabled,
+  allowUnsignedDevPaymentWebhooks: paymentPolicy.allowUnsignedDevWebhooks,
   bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
   jwtSecret,
   internalServiceSecret,

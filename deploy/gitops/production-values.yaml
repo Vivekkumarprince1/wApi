@@ -11,14 +11,23 @@ config:
   data:
     NODE_ENV: production
     ENABLE_BACKGROUND_WORKERS: "true"
-    ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+    ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     NEXT_PUBLIC_APP_NAME: ConnectSphere
-    NEXT_PUBLIC_APP_URL: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com
+    NEXT_PUBLIC_APP_URL: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com
     NEXT_PUBLIC_API_URL: /api
     NEXT_PUBLIC_SOCKET_URL: https://connectsphere-api-vivek.eastus.cloudapp.azure.com
-    CUSTOMER_PORTAL_URL: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com
+    CUSTOMER_PORTAL_URL: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com
     CUSTOMER_PORTAL_HEALTH_URL: http://connectsphere-customer-portal:3000
-    ADMIN_PORTAL_URL: http://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+    ADMIN_PORTAL_URL: https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+    GOOGLE_AUTH_ENABLED: "false"
+    NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "false"
+    NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED: "false"
+    ALLOW_DEV_AUTH_MOCKS: "false"
+    ALLOW_DEV_MEDIA_MOCKS: "false"
+    ALLOW_UNSIGNED_DEV_WEBHOOKS: "false"
+    ALLOW_UNSIGNED_DEV_PAYMENT_WEBHOOKS: "false"
+    REQUIRE_WEBHOOK_SIGNATURE: "true"
+    RAZORPAY_ENABLED: "true"
     GATEWAY_URL: http://connectsphere-api-gateway:5001
     API_GATEWAY_URL: http://connectsphere-api-gateway:5001
     AUTH_SERVICE_URL: http://connectsphere-auth-service:3006
@@ -88,13 +97,25 @@ keyVaultSecrets:
       objectName: webhook-secret
     - key: WEBHOOK_VERIFY_TOKEN
       objectName: webhook-verify-token
+    - key: CLOUDINARY_CLOUD_NAME
+      objectName: cloudinary-cloud-name
+    - key: CLOUDINARY_API_KEY
+      objectName: cloudinary-api-key
+    - key: CLOUDINARY_API_SECRET
+      objectName: cloudinary-api-secret
+    - key: RAZORPAY_KEY_ID
+      objectName: razorpay-key-id
+    - key: RAZORPAY_KEY_SECRET
+      objectName: razorpay-key-secret
+    - key: RAZORPAY_WEBHOOK_SECRET
+      objectName: razorpay-webhook-secret
     - key: WHATSAPP_WEBHOOK_VERIFY_TOKEN
       objectName: whatsapp-webhook-verify-token
 
 services:
   api-gateway:
     env:
-      ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+      ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
   auth-service:
     secretEnv:
       MONGO_URI: MONGO_URI_AUTH
@@ -123,7 +144,7 @@ services:
       MONGO_URI: MONGO_URI_WEBHOOK
   websocket-gateway:
     env:
-      ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+      ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     secretEnv:
       MONGO_URI: MONGO_URI_WEBSOCKET
   admin-portal:
@@ -134,24 +155,29 @@ services:
       MONGODB_URI_AUTOMATION: MONGODB_URI_AUTOMATION
 
 ingress:
-  enabled: false
+  enabled: true
   className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+  tls:
+    - secretName: connectsphere-public-tls
+      hosts:
+        - connectsphere-customer-vivek.eastus.cloudapp.azure.com
+        - connectsphere-admin-vivek.eastus.cloudapp.azure.com
   hosts:
-    - host: app.example.com
+    - host: connectsphere-customer-vivek.eastus.cloudapp.azure.com
       service: customer-portal
       path: /
       pathType: Prefix
-    - host: admin.example.com
+    - host: connectsphere-admin-vivek.eastus.cloudapp.azure.com
       service: admin-portal
-      path: /
-      pathType: Prefix
-    - host: api.example.com
-      service: api-gateway
       path: /
       pathType: Prefix
 
 publicServices:
-  enabled: true
+  enabled: false
   items:
     - name: customer-portal-public
       service: customer-portal

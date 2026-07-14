@@ -4,13 +4,14 @@ import { useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FaFacebookF } from 'react-icons/fa';
 import { facebookLogin } from '@/lib/api/auth';
+import config from '@/config/env';
 
 export default function FacebookLogin({ onError, onSuccess, autoRedirect = true, formType }: any) {
   const router = useRouter();
   const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
 
   useEffect(() => {
-    if (!appId || typeof window === 'undefined') {
+    if (!config.facebookAuthEnabled || !appId || typeof window === 'undefined') {
       return;
     }
 
@@ -92,6 +93,8 @@ export default function FacebookLogin({ onError, onSuccess, autoRedirect = true,
       onError?.('Failed to initialize Facebook login. Please check your internet connection and try again.');
     }
   }, [appId, onError, onSuccess, autoRedirect, router]);
+
+  if (!config.facebookAuthEnabled) return null;
 
   return (
     <button

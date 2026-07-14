@@ -15,8 +15,6 @@ import {
   Loader2,
   Box,
   Gift,
-  MapPin,
-  User,
   Mic
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -96,50 +94,6 @@ export default function ChatInput({
         return file.type.startsWith(`${baseType}/`);
       }
       return file.type === type;
-    });
-  };
-
-  const handleSendLocationMock = () => {
-    onSendMessage('📍 Shared Location', false, {
-       type: 'location',
-       location: {
-         latitude: 28.6139,
-         longitude: 77.2090,
-         name: "Connaught Place",
-         address: "New Delhi, Delhi 110001"
-       }
-    });
-  };
-
-  const handleSendContactMock = () => {
-    onSendMessage('👤 Shared Contact', false, {
-       type: 'contacts',
-       contacts: [{
-          name: { first_name: "Vivek", last_name: "Admin", formatted_name: "Vivek Admin" },
-          phones: [{ phone: "+919999999999", type: "WORK" }]
-       }]
-    });
-  };
-
-  const handleSendPixMock = () => {
-    onSendMessage('💳 PIX Payment', false, {
-       type: 'pix',
-       pix: {
-         amount: "150.00",
-         currency: "BRL",
-         transaction_id: `PIX-${Math.random().toString(36).substring(7).toUpperCase()}`
-       }
-    });
-  };
-
-  const handleSendBoletoMock = () => {
-    onSendMessage('📄 Boleto Payment', false, {
-       type: 'boleto',
-       boleto: {
-         amount: "250.00",
-         currency: "BRL",
-         transaction_id: `BOL-${Math.random().toString(36).substring(7).toUpperCase()}`
-       }
     });
   };
 
@@ -252,18 +206,6 @@ export default function ChatInput({
                    </DropdownMenuItem>
                    <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11 cursor-pointer" onClick={() => handleOpenPicker('audio')}>
                      <Mic className="h-4 w-4 text-sky-500" /> Audio
-                   </DropdownMenuItem>
-                   <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11 cursor-pointer" onClick={handleSendLocationMock}>
-                     <MapPin className="h-4 w-4 text-rose-500" /> Location
-                   </DropdownMenuItem>
-                   <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11 cursor-pointer" onClick={handleSendContactMock}>
-                     <User className="h-4 w-4 text-violet-500" /> Contact (vCard)
-                   </DropdownMenuItem>
-                   <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11 cursor-pointer" onClick={handleSendPixMock}>
-                     <Zap className="h-4 w-4 text-emerald-600" /> PIX Session
-                   </DropdownMenuItem>
-                   <DropdownMenuItem className="rounded-xl font-bold gap-3 h-11 cursor-pointer" onClick={handleSendBoletoMock}>
-                     <FileText className="h-4 w-4 text-blue-600" /> Boleto Message
                    </DropdownMenuItem>
                    <DropdownMenuItem onClick={() => setText(prev => prev || '/')} className="rounded-xl font-bold gap-3 h-11 cursor-pointer">
                      <Box className="h-4 w-4 text-amber-500" /> Quick Replies

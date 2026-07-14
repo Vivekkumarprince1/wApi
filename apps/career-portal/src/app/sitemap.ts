@@ -1,21 +1,29 @@
 import type { MetadataRoute } from "next";
-import { listJobs } from "@/lib/career-store";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3200").replace(/\/+$/, "");
-  const now = new Date();
-  const staticRoutes = ["/", "/jobs", "/contact", "/verify", "/verify-offer"];
+import { env } from "@/config/env";
+import { getPublicJobs } from "@/modules/jobs/server/public-jobs";
 
+export const dynamic = "force-dynamic";
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const jobs = await getPublicJobs();
+  const staticRoutes = [
+    "",
+    "/jobs",
+    "/company",
+    "/contact",
+    "/verify",
+    "/verify-offer",
+  ];
   return [
-    ...staticRoutes.map((route) => ({
-      url: `${baseUrl}${route}`,
-      lastModified: now,
-      changeFrequency: route === "/" ? ("daily" as const) : ("weekly" as const),
-      priority: route === "/" ? 1 : 0.7,
+    ...staticRoutes.map((path) => ({
+      url: new URL(path || "/", env.APP_URL).toString(),
+      changeFrequency: path === "" ? ("weekly" as const) : ("monthly" as const),
+      priority: path === "" ? 1 : 0.7,
     })),
-    ...listJobs().map((job) => ({
-      url: `${baseUrl}/jobs/${job.slug}`,
-      lastModified: new Date(job.createdAt),
+    ...jobs.map((job) => ({
+      url: new URL(`/jobs/${job.slug ?? job.id}`, env.APP_URL).toString(),
+      lastModified: job.createdAt,
       changeFrequency: "weekly" as const,
       priority: 0.8,
     })),

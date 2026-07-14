@@ -16,34 +16,42 @@ export class LedgerService {
     description: string, 
     externalReferenceId?: string
   ) {
-    // Idempotency check — if a transaction with this reference already exists, return current wallet
-    if (externalReferenceId) {
-      const existingTx = await WalletTransactionModel.findOne({ externalReferenceId });
-      if (existingTx) {
-        const wallet = await WalletModel.findOne({ workspaceId });
-        return wallet!;
-      }
-    }
+    if (!Number.isFinite(amount) || amount <= 0) throw new Error('INVALID_CREDIT_AMOUNT');
+    if (!externalReferenceId) throw new Error('EXTERNAL_REFERENCE_REQUIRED');
 
-    let wallet = await WalletModel.findOne({ workspaceId });
+    await WalletModel.updateOne(
+      { workspaceId },
+      { $setOnInsert: { availableBalance: 0, parkedBalance: 0, currency: 'INR' } },
+      { upsert: true },
+    );
+
+    const wallet = await WalletModel.findOneAndUpdate(
+      { workspaceId, processedExternalReferences: { $ne: externalReferenceId } },
+      {
+        $inc: { availableBalance: amount },
+        $addToSet: { processedExternalReferences: externalReferenceId },
+      },
+      { new: true },
+    );
+
     if (!wallet) {
-      wallet = await WalletModel.create({ workspaceId, availableBalance: 0, parkedBalance: 0 });
+      const existingWallet = await WalletModel.findOne({ workspaceId });
+      if (!existingWallet) throw new Error('WALLET_NOT_FOUND');
+      return existingWallet;
     }
 
-    const previousBalance = wallet.availableBalance + wallet.parkedBalance;
-    wallet.availableBalance += amount;
-    await wallet.save();
-
-    await WalletTransactionModel.create({
+    const newBalance = wallet.availableBalance + wallet.parkedBalance;
+    const previousBalance = newBalance - amount;
+    await WalletTransactionModel.updateOne({ externalReferenceId }, { $setOnInsert: {
       workspaceId,
       amount,
       type: 'RECHARGE',
       previousBalance,
-      newBalance: wallet.availableBalance + wallet.parkedBalance,
+      newBalance,
       description,
       externalReferenceId,
       status: 'COMPLETED'
-    });
+    } }, { upsert: true });
 
     return wallet;
   }

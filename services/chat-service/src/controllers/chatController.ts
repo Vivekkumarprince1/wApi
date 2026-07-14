@@ -500,7 +500,10 @@ export const sendMessageInternal = async (req: express.Request, res: express.Res
         });
       }
 
-      const appId = workspaceDoc?.gupshupAppId || `mock_${workspaceId}`;
+      const appId = workspaceDoc?.gupshupAppId;
+      if (!appId || String(appId).startsWith('mock_')) {
+        return res.status(503).json({ success: false, error: { code: 'PROVIDER_NOT_CONFIGURED', message: 'WhatsApp provider is not configured' } });
+      }
 
       const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
 
@@ -729,7 +732,10 @@ export const sendMessagePublic = async (req: any, res: express.Response) => {
         });
       }
 
-      const appId = workspaceDoc?.gupshupAppId || `mock_${workspaceId}`;
+      const appId = workspaceDoc?.gupshupAppId;
+      if (!appId || String(appId).startsWith('mock_')) {
+        return res.status(503).json({ success: false, error: { code: 'PROVIDER_NOT_CONFIGURED', message: 'WhatsApp provider is not configured' } });
+      }
 
       const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
 

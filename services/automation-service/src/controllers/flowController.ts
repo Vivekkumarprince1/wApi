@@ -42,13 +42,24 @@ export const flowController = {
         action: 'create_flow',
         payload: { name, categories }
       });
+      const providerFlowId = gsResult.flowId || gsResult.id;
+      if (!providerFlowId) {
+        return res.status(502).json({
+          success: false,
+          error: {
+            code: 'INVALID_PROVIDER_RESPONSE',
+            message: 'The WhatsApp provider did not create a flow',
+            requestId: req.headers['x-correlation-id'] || null,
+          },
+        });
+      }
       
       // 2. Save locally
       const flow = await (WhatsAppFlow as any).create({
         workspace: workspace._id,
         name,
         categories,
-        gupshupFlowId: gsResult.flowId || gsResult.id || 'mock_flow_' + Date.now(),
+        gupshupFlowId: providerFlowId,
         status: 'DRAFT'
       });
 

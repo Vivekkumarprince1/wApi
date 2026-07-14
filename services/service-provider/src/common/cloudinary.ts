@@ -13,7 +13,17 @@ if (name && key && secret) {
   });
   console.log('[Cloudinary] Successfully configured connection credentials.');
 } else {
-  console.warn('[Cloudinary] WARNING: Credentials missing. Media uploads will fall back to mock placeholders.');
+  console.warn('[Cloudinary] Credentials missing. Media uploads are disabled.');
+}
+
+export class MediaStorageError extends Error {
+  constructor(
+    public readonly code: 'MEDIA_STORAGE_NOT_CONFIGURED' | 'MEDIA_STORAGE_UNAVAILABLE',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'MediaStorageError';
+  }
 }
 
 /**
@@ -33,11 +43,10 @@ export const uploadBufferToCloudinary = (
 ): Promise<any> => {
   return new Promise((resolve, reject) => {
     if (!name || !key || !secret) {
-      console.warn('[Cloudinary] Credentials not set. Gracefully resolving with mock URL.');
-      return resolve({
-        secure_url: `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60`,
-        mock: true
-      });
+      return reject(new MediaStorageError(
+        'MEDIA_STORAGE_NOT_CONFIGURED',
+        'Media storage is not configured',
+      ));
     }
 
     const rawFilename = (options.originalFilename || '');
@@ -62,7 +71,16 @@ export const uploadBufferToCloudinary = (
       (error: any, result: any) => {
         if (error) {
           console.error('[Cloudinary] Upload stream error:', error);
-          return reject(error);
+          return reject(new MediaStorageError(
+            'MEDIA_STORAGE_UNAVAILABLE',
+            'Media storage is temporarily unavailable',
+          ));
+        }
+        if (!result?.secure_url || !result?.public_id) {
+          return reject(new MediaStorageError(
+            'MEDIA_STORAGE_UNAVAILABLE',
+            'Media storage returned an invalid response',
+          ));
         }
         resolve(result);
       }

@@ -6,6 +6,7 @@ export interface IWalletDoc extends Document {
   parkedBalance: number;
   currency: string;
   isLegacySynced: boolean;
+  processedExternalReferences: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -15,7 +16,8 @@ const WalletSchema = new Schema<IWalletDoc>({
   availableBalance: { type: Number, default: 0 },
   parkedBalance: { type: Number, default: 0 },
   currency: { type: String, default: 'INR' },
-  isLegacySynced: { type: Boolean, default: false }
+  isLegacySynced: { type: Boolean, default: false },
+  processedExternalReferences: { type: [String], default: [], select: false }
 }, { timestamps: true });
 
 export const WalletModel = mongoose.model<IWalletDoc>('Wallet', WalletSchema);
@@ -43,9 +45,14 @@ const WalletTransactionSchema = new Schema<IWalletTransactionDoc>({
   description: { type: String, required: true },
   referenceType: { type: String },
   referenceId: { type: String },
-  externalReferenceId: { type: String, index: true, sparse: true },
+  externalReferenceId: { type: String },
   status: { type: String, required: true, default: 'COMPLETED' },
 }, { timestamps: { createdAt: true, updatedAt: false } });
+
+WalletTransactionSchema.index(
+  { externalReferenceId: 1 },
+  { unique: true, partialFilterExpression: { externalReferenceId: { $type: 'string' } } },
+);
 
 export const WalletTransactionModel = mongoose.model<IWalletTransactionDoc>('WalletTransaction', WalletTransactionSchema);
 
@@ -105,7 +112,7 @@ const InvoiceSchema = new Schema<IInvoiceDoc>({
   dueAt: { type: Date },
   paidAt: { type: Date },
   invoiceNumber: { type: String, unique: true, sparse: true },
-  providerInvoiceId: { type: String },
+  providerInvoiceId: { type: String, unique: true, sparse: true },
   providerAmountCents: { type: Number },
   customerDetails: {
     workspaceName: { type: String, default: '' },

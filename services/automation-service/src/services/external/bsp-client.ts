@@ -29,17 +29,6 @@ export class BspServiceClient {
       return response.data?.data ?? response.data;
     } catch (err: any) {
       console.error("[BSP Client Error]:", err.response?.data || err.message);
-      // Mock fallback for local/testing environments when BSP service isn't active
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn("[BSP Client Warning]: BSP service error, returning mock fallback");
-        if (input.action === 'create_flow') {
-          return { flowId: 'mock_flow_' + Date.now(), status: 'DRAFT' } as any;
-        }
-        if (input.action === 'get_flow_preview_url') {
-          return { preview_url: 'https://example.com/mock-flow-preview' } as any;
-        }
-        return { success: true, mock: true } as any;
-      }
       throw err;
     }
   }

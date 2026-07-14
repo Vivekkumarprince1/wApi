@@ -1,5 +1,4 @@
 import api from './client';
-import { storeBrowserAuthToken } from '@/lib/auth-utils';
 
 /**
  * AUTH API HELPERS
@@ -13,7 +12,6 @@ function storeAuthToken(token: string) {
   if (typeof window !== 'undefined' && token) {
     try {
       sessionStorage.setItem('socket_auth_token', token);
-      storeBrowserAuthToken(token);
       console.log('[Auth] ✓ Token stored in sessionStorage for Socket.io');
     } catch (err) {
       console.warn('[Auth] Could not store token in sessionStorage:', err);

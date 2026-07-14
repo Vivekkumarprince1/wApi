@@ -15,6 +15,7 @@ const envSchema = z.object({
     required_error: 'INTEGRATION_ENCRYPTION_KEY is required',
   }).min(1, 'INTEGRATION_ENCRYPTION_KEY cannot be empty'),
   NODE_ENV: z.string().optional().default('development'),
+  ALLOW_DEV_MEDIA_MOCKS: z.enum(['true', 'false']).optional().default('false'),
 });
 
 const envParseResult = envSchema.safeParse(process.env);
@@ -27,8 +28,12 @@ if (!envParseResult.success) {
 const internalServiceSecret = process.env.INTERNAL_SERVICE_SECRET!;
 const jwtSecret = process.env.JWT_SECRET!;
 const integrationEncryptionKey = process.env.INTEGRATION_ENCRYPTION_KEY!;
+const allowDevMediaMocks = process.env.ALLOW_DEV_MEDIA_MOCKS === 'true';
 
 if (process.env.NODE_ENV === 'production') {
+  if (allowDevMediaMocks) {
+    throw new Error('FATAL: ALLOW_DEV_MEDIA_MOCKS cannot be enabled in production.');
+  }
   if (internalServiceSecret === 'dev-internal-service-secret-change-me') {
     throw new Error('FATAL: A secure, non-default INTERNAL_SERVICE_SECRET environment variable is required in production.');
   }
@@ -82,10 +87,11 @@ export const config = {
       .filter(Boolean),
   },
   cloudinary: {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_URL || '',
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
     apiKey: process.env.CLOUDINARY_API_KEY || '',
     apiSecret: process.env.CLOUDINARY_API_SECRET || '',
   },
+  allowDevMediaMocks: allowDevMediaMocks && process.env.NODE_ENV !== 'production',
 };
 
 export type AppConfig = typeof config;

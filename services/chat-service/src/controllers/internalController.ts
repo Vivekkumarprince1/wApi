@@ -63,7 +63,10 @@ async function dispatchBotOutbound(opts: {
 
   const db = mongoose.connection.db;
   const workspaceDoc = await db?.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
-  const appId = workspaceDoc?.gupshupAppId || `mock_${workspaceId}`;
+  const appId = workspaceDoc?.gupshupAppId;
+  if (!appId || String(appId).startsWith('mock_')) {
+    throw new Error('PROVIDER_NOT_CONFIGURED');
+  }
 
   const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
   const bspRes = await fetch(`${bspUrl}/internal/v1/bsp/messages/send`, {
@@ -183,7 +186,10 @@ export const internalController = {
 
           const db = mongoose.connection.db;
           const workspaceDoc = await db?.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
-          const appId = workspaceDoc?.gupshupAppId || `mock_${workspaceId}`;
+          const appId = workspaceDoc?.gupshupAppId;
+          if (!appId || String(appId).startsWith('mock_')) {
+            throw new Error('PROVIDER_NOT_CONFIGURED');
+          }
 
           if (!options.campaignId) {
             templateCharge = await chargeTemplateMessage({
@@ -425,7 +431,10 @@ export const internalController = {
 
           const db = mongoose.connection.db;
           const workspaceDoc = await db?.collection('workspaces').findOne({ _id: new Types.ObjectId(workspaceId) });
-          const appId = workspaceDoc?.gupshupAppId || `mock_${workspaceId}`;
+          const appId = workspaceDoc?.gupshupAppId;
+          if (!appId || String(appId).startsWith('mock_')) {
+            throw new Error('PROVIDER_NOT_CONFIGURED');
+          }
 
           const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
           await fetch(`${bspUrl}/internal/v1/bsp/messages/send`, {

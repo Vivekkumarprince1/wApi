@@ -119,35 +119,14 @@ export const verifyBusiness = async (req: AuthRequest, res: express.Response) =>
     const isMandatory = (process.env.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY || 'false') === 'true';
 
     if (!isMandatory) {
-      // Direct mock verify when policy doesn't require document validation
-      business.verificationStatus = 'verified';
-      await business.save();
-
-      await Workspace.findByIdAndUpdate(workspace._id, {
-        $set: {
-          'businessVerification.status': 'verified',
-          'businessVerification.verifiedAt': new Date(),
-          'businessVerification.lastCheckedAt': new Date()
-        }
+      return res.status(409).json({
+        success: false,
+        error: {
+          code: 'FEATURE_DISABLED',
+          message: 'Business verification is not enabled for this deployment',
+          requestId: req.headers['x-correlation-id'] || null,
+        },
       });
-
-      // Notify BSP service of onboarding step progression
-      try {
-        const bspUrl = process.env.BSP_SERVICE_URL || 'http://localhost:3004';
-        const secret = process.env.INTERNAL_SERVICE_SECRET!;
-        await axios.post(
-          `${bspUrl.replace(/\/$/, '')}/internal/v1/bsp/onboarding/sync-state`,
-          { workspaceId: workspace._id.toString(), step: 'BUSINESS_VERIFICATION' },
-          { 
-            headers: { 
-              'x-internal-service-secret': secret,
-              'x-internal-service': 'auth-service'
-            } 
-          }
-        );
-      } catch (bspErr: any) {
-        console.warn('[Business Verify] Failed to sync onboarding step with BSP provider service:', bspErr.message);
-      }
 
       return res.status(200).json({
         success: true,

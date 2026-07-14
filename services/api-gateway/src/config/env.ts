@@ -60,6 +60,11 @@ if (isProduction) {
   if (!rawAllowedOrigins || rawAllowedOrigins.includes('localhost') || rawAllowedOrigins.includes('127.0.0.1')) {
     throw new Error('FATAL: Production ALLOWED_ORIGINS must be explicit public HTTPS origins, not localhost defaults.');
   }
+  if (allowedOrigins.some((origin) => {
+    try { return new URL(origin).protocol !== 'https:'; } catch { return true; }
+  })) {
+    throw new Error('FATAL: Every production ALLOWED_ORIGINS entry must be a valid HTTPS origin.');
+  }
 }
 
 export const config = {

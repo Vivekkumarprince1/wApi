@@ -6,7 +6,9 @@ const publicEnvSchema = z.object({
   NEXT_PUBLIC_API_URL: z.string().optional(),
   NEXT_PUBLIC_SOCKET_URL: z.string().optional(),
   NEXT_PUBLIC_GOOGLE_CLIENT_ID: z.string().optional(),
+  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: z.string().optional(),
   NEXT_PUBLIC_FACEBOOK_APP_ID: z.string().optional(),
+  NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED: z.string().optional(),
   NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY: z.string().optional(),
   NEXT_PUBLIC_APP_NAME: z.string().optional(),
 });
@@ -17,7 +19,9 @@ const rawEnv = {
   NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   NEXT_PUBLIC_SOCKET_URL: process.env.NEXT_PUBLIC_SOCKET_URL,
   NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
   NEXT_PUBLIC_FACEBOOK_APP_ID: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID,
+  NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED: process.env.NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED,
   NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY: process.env.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY,
   NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME,
 };
@@ -37,7 +41,9 @@ export const config = {
   // bake a developer localhost into the browser bundle.
   socketUrl: rawEnv.NEXT_PUBLIC_SOCKET_URL || '',
   googleClientId: rawEnv.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+  googleAuthEnabled: rawEnv.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true',
   facebookAppId: rawEnv.NEXT_PUBLIC_FACEBOOK_APP_ID || '',
+  facebookAuthEnabled: rawEnv.NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED === 'true',
   businessVerificationMandatory: rawEnv.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY === 'true',
   appName: rawEnv.NEXT_PUBLIC_APP_NAME || 'ConnectSphare',
 };

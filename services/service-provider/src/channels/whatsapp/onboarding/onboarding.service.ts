@@ -448,6 +448,9 @@ export class OnboardingService {
     }
 
     const isMock = String(targetAppId).startsWith('mock_');
+    if (isMock && process.env.NODE_ENV === 'production') {
+      throw new Error('PROVIDER_APP_NOT_CONFIGURED');
+    }
     let updates: Record<string, any> = {
       updatedAt: new Date(),
     };

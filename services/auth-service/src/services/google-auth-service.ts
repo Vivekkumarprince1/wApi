@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import axios from 'axios';
+import config from '../config/index.js';
 
 const APP_URL = () => (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
@@ -22,9 +23,23 @@ export const getGoogleAuthUrl = (type: string = 'login', redirectUri?: string) =
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const resolvedRedirectUri = resolveGoogleRedirectUri(redirectUri);
 
-  if (!clientId) {
+  if (!config.googleAuthEnabled) {
+    throw Object.assign(new Error('Google authentication is disabled'), {
+      status: 503,
+      code: 'FEATURE_DISABLED',
+    });
+  }
+
+  if (!clientId && config.allowDevAuthMocks) {
     const devCode = `dev-google-${Date.now()}`;
     return `${resolvedRedirectUri}?code=${encodeURIComponent(devCode)}&state=${encodeURIComponent(type)}`;
+  }
+
+  if (!clientId) {
+    throw Object.assign(new Error('Google authentication provider is not configured'), {
+      status: 503,
+      code: 'PROVIDER_NOT_CONFIGURED',
+    });
   }
 
   const params = new URLSearchParams({
@@ -41,7 +56,16 @@ export const getGoogleAuthUrl = (type: string = 'login', redirectUri?: string) =
 };
 
 export const getGoogleUser = async (code: string, redirectUri?: string) => {
-  const isDev = String(code).startsWith('dev-google-') || !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET;
+  if (!config.googleAuthEnabled) {
+    throw Object.assign(new Error('Google authentication is disabled'), {
+      status: 503,
+      code: 'FEATURE_DISABLED',
+    });
+  }
+
+  const isDevCode = String(code).startsWith('dev-google-');
+  const credentialsMissing = !process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET;
+  const isDev = config.allowDevAuthMocks && (isDevCode || credentialsMissing);
 
   if (isDev) {
     const digest = crypto.createHash('sha1').update(String(code)).digest('hex').slice(0, 12);
@@ -51,6 +75,20 @@ export const getGoogleUser = async (code: string, redirectUri?: string) => {
       name: `Google User ${digest.slice(0, 4)}`,
       picture: `https://avatar.vercel.sh/google-${digest}`
     };
+  }
+
+  if (isDevCode) {
+    throw Object.assign(new Error('Development Google authorization codes are not accepted'), {
+      status: 401,
+      code: 'INVALID_OAUTH_CODE',
+    });
+  }
+
+  if (credentialsMissing) {
+    throw Object.assign(new Error('Google authentication provider is not configured'), {
+      status: 503,
+      code: 'PROVIDER_NOT_CONFIGURED',
+    });
   }
 
   const resolvedRedirectUri = resolveGoogleRedirectUri(redirectUri);

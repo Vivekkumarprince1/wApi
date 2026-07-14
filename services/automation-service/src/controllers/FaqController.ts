@@ -84,14 +84,12 @@ export const approveFaqs = async (req: AuthRequest, res: Response) => {
 };
 
 export const generateFaqs = async (req: AuthRequest, res: Response) => {
-  try {
-    // Placeholder for AI generation logic
-    // In a real scenario, this would trigger a background job to scrape sources and generate FAQs
-    res.json({ 
-      success: true, 
-      message: 'FAQ generation started in background' 
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+  return res.status(501).json({
+    success: false,
+    error: {
+      code: 'FEATURE_NOT_IMPLEMENTED',
+      message: 'Automatic FAQ generation is not available',
+      requestId: req.headers['x-correlation-id'] || null,
+    },
+  });
 };

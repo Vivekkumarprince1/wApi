@@ -2,9 +2,12 @@
 
 import { useState } from 'react';
 import { getGoogleAuthUrl } from '@/lib/api/auth';
+import config from '@/config/env';
 
 export default function GoogleLogin({ formType = 'signup', onError, onSuccess }: any) {
   const [isLoading, setIsLoading] = useState(false);
+
+  if (!config.googleAuthEnabled) return null;
 
   const handleLogin = async () => {
     if (isLoading) return;

@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { getSessionData, logoutUser } from '@/lib/api/auth';
-import { storeBrowserAuthToken } from '@/lib/auth-utils';
 
 const clearAuthCookie = () => {
     if (typeof document !== 'undefined') {
@@ -169,7 +168,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 if (sessionData.token && typeof sessionStorage !== 'undefined') {
                     try {
                         sessionStorage.setItem('socket_auth_token', sessionData.token);
-                        storeBrowserAuthToken(sessionData.token);
                         console.log('[AuthStore] ✓ Token stored in sessionStorage');
                     } catch (err) {
                         console.warn('[AuthStore] Could not store token in sessionStorage:', err);

@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import type { DotenvConfigOptions } from 'dotenv';
 import { z } from 'zod';
+import { resolveWebhookSignaturePolicy } from './webhook-policy.js';
 
 dotenv.config({ quiet: true } as DotenvConfigOptions);
 
@@ -20,6 +21,10 @@ const envSchema = z.object({
   REDIS_URL: z.string().optional(),
   REQUIRE_WEBHOOK_SIGNATURE: z.string().optional(),
   GUPSHUP_REQUIRE_WEBHOOK_SIGNATURE: z.string().optional(),
+  ALLOW_UNSIGNED_DEV_WEBHOOKS: z.string().optional(),
+  GUPSHUP_WEBHOOK_SECRET: z.string().optional(),
+  META_WEBHOOK_SECRET: z.string().optional(),
+  INSTAGRAM_WEBHOOK_SECRET: z.string().optional(),
 }).refine((data) => data.WEBHOOK_VERIFY_TOKEN || data.VERIFY_TOKEN, {
   message: 'Either WEBHOOK_VERIFY_TOKEN or VERIFY_TOKEN must be provided',
   path: ['WEBHOOK_VERIFY_TOKEN'],
@@ -33,6 +38,11 @@ if (!envParseResult.success) {
 }
 
 const internalServiceSecret = process.env.INTERNAL_SERVICE_SECRET!;
+const signaturePolicy = resolveWebhookSignaturePolicy({
+  nodeEnv: process.env.NODE_ENV,
+  requireSignature: process.env.REQUIRE_WEBHOOK_SIGNATURE || process.env.GUPSHUP_REQUIRE_WEBHOOK_SIGNATURE,
+  allowUnsignedDevWebhooks: process.env.ALLOW_UNSIGNED_DEV_WEBHOOKS,
+});
 
 if (process.env.NODE_ENV === 'production') {
   if (internalServiceSecret === 'dev-internal-service-secret-change-me') {
@@ -45,9 +55,13 @@ export const config = {
   isProduction: process.env.NODE_ENV === 'production',
   port: parseInt(process.env.PORT || '3013', 10),
   webhookSecret: process.env.WEBHOOK_SECRET!,
-  requireWebhookSignature:
-    process.env.REQUIRE_WEBHOOK_SIGNATURE === 'true' ||
-    process.env.GUPSHUP_REQUIRE_WEBHOOK_SIGNATURE === 'true',
+  webhookSecrets: {
+    gupshup: process.env.GUPSHUP_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET!,
+    meta: process.env.META_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET!,
+    instagram: process.env.INSTAGRAM_WEBHOOK_SECRET || process.env.META_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET!,
+  },
+  requireWebhookSignature: signaturePolicy.requireSignature,
+  allowUnsignedDevWebhooks: signaturePolicy.allowUnsignedDevWebhooks,
   redisUrl: process.env.REDIS_URL || '',
   redisTopic: 'raw-webhook-events',
   internalServiceSecret,

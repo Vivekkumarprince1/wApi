@@ -1,65 +1,52 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
-const sessionCookie = "career_session";
+import { isAllowedRequestOrigin } from "@/lib/http/origin-policy";
 
-const publicPages = new Set([
-  "/",
-  "/jobs",
-  "/contact",
-  "/login",
-  "/register",
-  "/verify",
-  "/verify-offer",
-]);
-
-const publicPagePrefixes = ["/jobs/", "/verify/", "/verify-offer/", "/offer/accept/"];
-const publicApiPrefixes = [
-  "/api/v1/jobs",
-  "/api/v1/auth",
-  "/api/v1/contact",
-  "/api/v1/verify",
-  "/api/v1/offers",
-  "/api/v1/reviews/approved",
-  "/api/v1/contracts/offer",
-  "/api/v1/contracts/upload-document",
-];
-
-function isPublicRoute(pathname: string) {
-  return (
-    publicPages.has(pathname) ||
-    publicPagePrefixes.some((prefix) => pathname.startsWith(prefix)) ||
-    publicApiPrefixes.some((prefix) => pathname.startsWith(prefix))
-  );
+function allowedOrigin(request: NextRequest): string | null {
+  const origin = request.headers.get("origin");
+  if (!origin) return null;
+  return isAllowedRequestOrigin({
+    origin,
+    requestOrigin: request.nextUrl.origin,
+    ...(process.env.APP_URL ? { configuredOrigin: process.env.APP_URL } : {}),
+    development: process.env.NODE_ENV !== "production",
+  })
+    ? origin
+    : null;
 }
 
 export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  if (isPublicRoute(pathname)) {
-    return NextResponse.next();
-  }
-
-  if (request.cookies.has(sessionCookie)) {
-    return NextResponse.next();
-  }
-
-  if (pathname.startsWith("/api/")) {
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  if (
+    request.nextUrl.pathname.startsWith("/api/") &&
+    request.headers.has("origin") &&
+    !allowedOrigin(request)
+  ) {
     return NextResponse.json(
       {
         error: {
-          code: "UNAUTHORIZED",
-          message: "Sign in to access this resource.",
+          code: "CORS_REJECTED",
+          message: "Origin is not allowed",
+          requestId,
         },
+        message: "Origin is not allowed",
       },
-      { status: 401 },
+      { status: 403, headers: { "x-request-id": requestId } },
     );
   }
-
-  const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("from", `${pathname}${request.nextUrl.search}`);
-  return NextResponse.redirect(loginUrl);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-request-id", requestId);
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("x-request-id", requestId);
+  const origin = allowedOrigin(request);
+  if (origin && request.nextUrl.pathname.startsWith("/api/")) {
+    response.headers.set("access-control-allow-origin", origin);
+    response.headers.set("access-control-allow-credentials", "true");
+    response.headers.set("vary", "Origin");
+  }
+  return response;
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

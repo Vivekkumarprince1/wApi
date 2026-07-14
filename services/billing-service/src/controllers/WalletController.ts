@@ -247,6 +247,9 @@ export class WalletController {
       if (!localOrder) {
         return res.status(400).json({ success: false, message: 'Order not found. Please contact support.' });
       }
+      if (localOrder.workspaceId !== workspaceId || localOrder.type !== 'RECHARGE') {
+        return res.status(403).json({ success: false, error: { code: 'PAYMENT_ORDER_MISMATCH', message: 'Payment order does not belong to this workspace or operation' } });
+      }
       const amountPaise = localOrder.amountPaise;
 
       // 3. Credit the wallet (idempotent via externalReferenceId)
@@ -596,15 +599,11 @@ export class WalletController {
       const signature = req.headers["x-razorpay-signature"] as string;
       const secret = config.razorpayWebhookSecret;
       
+      if (!config.razorpayEnabled) {
+        return res.status(503).json({ success: false, error: { code: 'FEATURE_DISABLED', message: 'Razorpay payments are disabled', requestId: correlationId } });
+      }
       if (!secret) {
-        // Refuse unsigned payloads in production. Only allow the dev-only
-        // pass-through if NODE_ENV is not production, and log loudly so it
-        // can be spotted in CI/test envs.
-        if (process.env.NODE_ENV === 'production') {
-          console.error(`[Billing Webhook][${correlationId}] RAZORPAY_WEBHOOK_SECRET is not configured. Rejecting request in production.`);
-          return res.status(500).json({ success: false, message: "Webhook secret not configured" });
-        }
-        console.warn(`[Billing Webhook][${correlationId}] WARNING: Razorpay Webhook Secret not configured. Skipping verification (development only).`);
+        return res.status(503).json({ success: false, error: { code: 'PAYMENT_PROVIDER_NOT_CONFIGURED', message: 'Razorpay webhook verification is not configured', requestId: correlationId } });
       } else {
         const rawBody = (req as any).rawBody;
         if (!rawBody) {
@@ -633,15 +632,18 @@ export class WalletController {
       const event = req.body;
       console.log(`[Billing Webhook][${correlationId}] Received Razorpay event: ${event.event}`);
 
-      if (event.event === 'payment.captured' || event.event === 'order.paid') {
-          const payment = event.payload.payment?.entity || event.payload.order?.entity;
+      if (event.event === 'payment.captured') {
+          const payment = event.payload?.payment?.entity;
+          if (!payment?.id || !Number.isFinite(Number(payment.amount))) {
+            return res.status(400).json({ success: false, error: { code: 'INVALID_PAYMENT_WEBHOOK', message: 'Payment webhook payload is invalid', requestId: correlationId } });
+          }
           const paymentId = payment.id;
           const amount = payment.amount;
-          const workspaceId = payment.notes?.workspaceId;
+          const workspaceId = payment.notes?.workspaceId || payment.notes?.workspace_id;
 
           if (!workspaceId) {
             console.warn(`[Billing Webhook][${correlationId}] No workspaceId in payment notes. Event: ${event.event}`);
-            return res.status(200).json({ success: true, message: "No workspace context" });
+            return res.status(400).json({ success: false, error: { code: 'INVALID_PAYMENT_WEBHOOK', message: 'Payment workspace context is missing', requestId: correlationId } });
           }
 
           // 1. Check for Idempotency
@@ -692,8 +694,8 @@ export class WalletController {
                   amount: amount / 100,
                   paymentId
               });
-          } else if (payment.notes?.type === 'commerce_order') {
-              const orderId = payment.notes?.order_id;
+            } else if (payment.notes?.type === 'commerce_order') {
+              const orderId = payment.notes?.orderId || payment.notes?.order_id;
               if (orderId) {
                   const order = await OrderModel.findById(orderId);
                   if (order) {

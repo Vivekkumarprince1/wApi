@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { HttpModule } from '@nestjs/axios';
 import { config } from './config';
 import { InternalAuthGuard } from './common/internal-auth.guard';
+import { WorkspaceAuthGuard } from './common/workspace-auth.guard';
 import { GupshupClientService } from './channels/whatsapp/providers/gupshup/gupshup-client.service';
 import { AppsController } from './channels/whatsapp/apps/apps.controller';
 import { AppsService } from './channels/whatsapp/apps/apps.service';
@@ -101,6 +102,7 @@ import { RedisService } from './common/redis.service';
 
   providers: [
     InternalAuthGuard,
+    WorkspaceAuthGuard,
     RedisService,
     GupshupClientService,
     AppsService,

@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import type { DotenvConfigOptions } from 'dotenv';
 import { z } from 'zod';
+import { validateSocialAuthPolicy } from './social-auth-policy.js';
 
 dotenv.config({ quiet: true } as DotenvConfigOptions);
 
@@ -12,6 +13,10 @@ const envSchema = z.object({
     required_error: 'INTERNAL_SERVICE_SECRET is required',
   }).min(1, 'INTERNAL_SERVICE_SECRET cannot be empty'),
   NODE_ENV: z.string().optional().default('development'),
+  GOOGLE_AUTH_ENABLED: z.enum(['true', 'false']).optional().default('false'),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  ALLOW_DEV_AUTH_MOCKS: z.enum(['true', 'false']).optional().default('false'),
 });
 
 const envParseResult = envSchema.safeParse(process.env);
@@ -23,8 +28,19 @@ if (!envParseResult.success) {
 
 const jwtSecret = process.env.JWT_SECRET!;
 const internalServiceSecret = process.env.INTERNAL_SERVICE_SECRET!;
+const socialAuthPolicy = validateSocialAuthPolicy({
+  nodeEnv: process.env.NODE_ENV,
+  googleAuthEnabled: process.env.GOOGLE_AUTH_ENABLED,
+  googleClientId: process.env.GOOGLE_CLIENT_ID,
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  allowDevAuthMocks: process.env.ALLOW_DEV_AUTH_MOCKS,
+});
+const businessVerificationProvider = String(process.env.BUSINESS_VERIFICATION_PROVIDER || 'hybrid').toLowerCase();
 
 if (process.env.NODE_ENV === 'production') {
+  if (businessVerificationProvider === 'mock') {
+    throw new Error('FATAL: BUSINESS_VERIFICATION_PROVIDER=mock cannot be used in production.');
+  }
   if (jwtSecret === 'your-secret-key-change-in-production') {
     throw new Error('FATAL: A secure, non-default JWT_SECRET environment variable is required in production.');
   }
@@ -42,6 +58,9 @@ export const config = {
   bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',
   billingServiceUrl: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
   internalServiceSecret,
+  googleAuthEnabled: socialAuthPolicy.googleEnabled,
+  allowDevAuthMocks: socialAuthPolicy.allowDevMocks,
+  businessVerificationProvider,
   otpPepper: process.env.OTP_PEPPER || 'wapi-default-otp-pepper-key',
   smtpService: process.env.EMAIL_SERVICE || process.env.SMTP_SERVICE || '',
   smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
