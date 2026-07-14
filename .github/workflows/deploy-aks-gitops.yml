@@ -226,24 +226,8 @@ jobs:
 
           existing_values="gitops/$GITOPS_ENV_DIR/production-values.yaml"
           existing_registry=""
-          existing_tag=""
           if [ -f "$existing_values" ]; then
-            existing_registry="$(python3 - "$existing_values" <<'PY'
-import re
-import sys
-text = open(sys.argv[1], encoding='utf-8').read()
-match = re.search(r'^\s*registry:\s*([^\s#]+)', text, re.M)
-print(match.group(1) if match else '')
-PY
-)"
-            existing_tag="$(python3 - "$existing_values" <<'PY'
-import re
-import sys
-text = open(sys.argv[1], encoding='utf-8').read()
-match = re.search(r'^\s*tag:\s*([^\s#]+)', text, re.M)
-print(match.group(1) if match else '')
-PY
-)"
+            existing_registry="$(sed -nE 's/^[[:space:]]*registry:[[:space:]]*([^[:space:]#]+).*/\1/p' "$existing_values" | head -1)"
           fi
 
           # Production configuration is source-controlled in this repository.
