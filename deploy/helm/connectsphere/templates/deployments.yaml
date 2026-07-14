@@ -37,6 +37,9 @@ spec:
       terminationGracePeriodSeconds: {{ default $.Values.global.terminationGracePeriodSeconds $service.terminationGracePeriodSeconds }}
       securityContext:
         runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
       topologySpreadConstraints:
@@ -56,6 +59,9 @@ spec:
           image: {{ include "connectsphere.image" (dict "root" $ "name" $name "service" $service) | quote }}
           imagePullPolicy: {{ default $.Values.global.image.pullPolicy $service.image.pullPolicy }}
           securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             capabilities:
               drop: ["ALL"]

@@ -67,6 +67,9 @@ secret:
 
 keyVaultSecrets:
   enabled: true
+  syncPod:
+    enabled: true
+    image: registry.k8s.io/pause:3.10
   keyVaultName: connectsphere-prod-kv
   tenantId: 21006d98-d493-4e9b-bdd6-6f128e1ee540
   userAssignedIdentityID: 99cc93b9-291d-442a-936d-a637a84c8b8c
