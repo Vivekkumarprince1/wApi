@@ -10,6 +10,15 @@ const nextConfig: NextConfig = {
   experimental: {
     typedEnv: true,
   },
+  async redirects() {
+    return [
+      {
+        source: "/favicon.ico",
+        destination: "/icon.png",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     const scriptSource =
       process.env.NODE_ENV === "production"
