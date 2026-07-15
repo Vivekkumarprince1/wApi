@@ -1664,16 +1664,18 @@ model OnboardingTask {
 }
 
 enum UserRole {
-  USER          @map("user")
-  ADMIN         @map("admin")
-  EMPLOYEE      @map("employee")
-  SUPER_ADMIN   @map("super-admin")
-  RECRUITER     @map("recruiter")
-  MANAGER       @map("manager")
-  FINANCE       @map("finance")
-  HR            @map("hr")
-  VERIFIER      @map("verifier")
-  PAYROLL_ADMIN @map("payroll-admin")
+  USER                 @map("user")
+  ADMIN                @map("admin")
+  EMPLOYEE             @map("employee")
+  SUPER_ADMIN          @map("super-admin")
+  RECRUITER            @map("recruiter")
+  MANAGER              @map("manager")
+  FINANCE              @map("finance")
+  HR                   @map("hr")
+  VERIFIER             @map("verifier")
+  PAYROLL_ADMIN        @map("payroll-admin")
+  PLATFORM_OWNER       @map("owner")
+  PLATFORM_SUPER_ADMIN @map("super_admin")
 }
 
 enum RoleKey {

@@ -1,14 +1,4 @@
-export type PromotableRole =
-  | "USER"
-  | "ADMIN"
-  | "EMPLOYEE"
-  | "SUPER_ADMIN"
-  | "RECRUITER"
-  | "MANAGER"
-  | "FINANCE"
-  | "HR"
-  | "VERIFIER"
-  | "PAYROLL_ADMIN";
+import type { UserRole } from "@prisma/client";
 
 type EmploymentSource = {
   position?: string | null;
@@ -16,7 +6,7 @@ type EmploymentSource = {
   reportingManager?: string | null;
 };
 
-export function employeeRoleAfterHire(role: PromotableRole): PromotableRole {
+export function employeeRoleAfterHire(role: UserRole): UserRole {
   return role === "USER" ? "EMPLOYEE" : role;
 }
 
