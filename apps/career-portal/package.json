@@ -31,6 +31,8 @@
     "env:from-mern": "node scripts/map-legacy-env.mjs",
     "auth:migrate": "dotenv -e .env.local -- node scripts/migrate-legacy-auth.mjs",
     "auth:migrate:apply": "dotenv -e .env.local -- node scripts/migrate-legacy-auth.mjs --apply",
+    "auth:normalize-enums": "dotenv -e .env.local -- node scripts/normalize-auth-enums.mjs",
+    "auth:normalize-enums:apply": "dotenv -e .env.local -- node scripts/normalize-auth-enums.mjs --apply",
     "prisma:generate": "dotenv -e .env.local -- prisma generate",
     "prisma:validate": "dotenv -e .env.local -- prisma validate",
     "prisma:format": "dotenv -e .env.local -- prisma format",
