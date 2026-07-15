@@ -45,6 +45,10 @@ metadata:
     app.kubernetes.io/component: career-portal-proxy
 spec:
   replicas: 1
+  # The certificate store is a ReadWriteOnce PVC. Recreate prevents a rolling
+  # update from starting a second pod that cannot attach the same volume.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "connectsphere.selectorLabels" . | nindent 6 }}
