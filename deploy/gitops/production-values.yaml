@@ -90,6 +90,14 @@ keyVaultSecrets:
       objectName: jwt-secret
     - key: BETTER_AUTH_SECRET
       objectName: better-auth-secret
+    - key: SMTP_HOST
+      objectName: career-smtp-host
+    - key: SMTP_USER
+      objectName: career-smtp-user
+    - key: SMTP_PASSWORD
+      objectName: career-smtp-password
+    - key: EMAIL_REPLY_TO
+      objectName: career-email-reply-to
     - key: MONGODB_URI
       objectName: mongodb-uri
     - key: MONGODB_URI_AUTOMATION
@@ -178,6 +186,10 @@ services:
     secretEnv:
       MONGODB_URI: MONGODB_URI
       BETTER_AUTH_SECRET: BETTER_AUTH_SECRET
+      SMTP_HOST: SMTP_HOST
+      SMTP_USER: SMTP_USER
+      SMTP_PASSWORD: SMTP_PASSWORD
+      EMAIL_REPLY_TO: EMAIL_REPLY_TO
 
 ingress:
   enabled: true
