@@ -142,6 +142,19 @@ apiGatewayProxy:
   service:
     annotations: {}
 
+careerPortalProxy:
+  enabled: false
+  host: ""
+  email: ""
+  image: caddy:2.9-alpine
+  upstream: connectsphere-career-portal:3001
+  storage:
+    enabled: true
+    size: 1Gi
+    storageClassName: ""
+  service:
+    annotations: {}
+
 services:
   api-gateway:
     enabled: true

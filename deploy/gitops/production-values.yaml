@@ -207,7 +207,7 @@ ingress:
       pathType: Prefix
 
 publicServices:
-  enabled: true
+  enabled: false
   items:
     - name: career-portal-public
       service: career-portal
@@ -215,6 +215,19 @@ publicServices:
       targetPort: 3001
       annotations:
         service.beta.kubernetes.io/azure-dns-label-name: connectsphere-career-vivek
+
+careerPortalProxy:
+  enabled: true
+  host: connectsphere-career-vivek.eastus.cloudapp.azure.com
+  email: vivekkumarprince1@gmail.com
+  image: caddy:2.9-alpine
+  upstream: connectsphere-career-portal:3001
+  storage:
+    enabled: true
+    size: 1Gi
+  service:
+    annotations:
+      service.beta.kubernetes.io/azure-dns-label-name: connectsphere-career-vivek
 
 apiGatewayProxy:
   enabled: true
