@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
-import { coreModels } from "@/server/models";
+import { getConnection } from "@/server/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,10 +8,8 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 20;
 
 /**
- * WhatsApp / BSP onboarding requests — direct read (Rule #4). Mirrors
- * core-server adminController.listWhatsAppRequests: every workspace that has
- * begun the embedded-signup (ESB) flow, newest first. ?status= filters on the
- * esbFlow.status. The schema is strict:false so esbFlow is read through.
+ * WhatsApp / BSP onboarding requests — direct read from BSP-owned workspace
+ * projections in `wapi_bsp`, newest first.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -24,31 +22,34 @@ export async function GET(req: NextRequest) {
     const filter: Record<string, unknown> = { "esbFlow.status": { $ne: "not_started" } };
     if (status) filter["esbFlow.status"] = status;
 
-    const { Workspace } = await coreModels();
+    const conn = await getConnection("bsp");
+    const db = conn.db;
+    if (!db) throw new Error("BSP database handle unavailable");
+    const workspaces = db.collection("workspaces");
 
     const [rows, total] = await Promise.all([
-      Workspace.find(filter)
-        .select("name owner esbFlow bspWabaId whatsappPhoneNumber onboardingStatus createdAt updatedAt")
-        .populate("owner", "name email")
+      workspaces.find(filter)
+        .project({ name: 1, owner: 1, esbFlow: 1, bspWabaId: 1, whatsappPhoneNumber: 1, onboardingStatus: 1, createdAt: 1, updatedAt: 1 })
         .sort({ "esbFlow.startedAt": -1, updatedAt: -1 })
         .skip((page - 1) * PAGE_SIZE)
         .limit(PAGE_SIZE)
-        .lean(),
-      Workspace.countDocuments(filter),
+        .toArray(),
+      workspaces.countDocuments(filter),
     ]);
 
-    const items = (rows as Array<Record<string, unknown>>).map((w) => {
-      const esb = (w.esbFlow || {}) as Record<string, unknown>;
+    const items = rows.map((w) => {
+      const record = w as Record<string, unknown>;
+      const esb = (record.esbFlow || {}) as Record<string, unknown>;
       return {
-        _id: w._id,
-        workspaceName: w.name,
-        owner: w.owner,
-        businessId: w.bspWabaId || "Pending",
-        phoneNumber: w.whatsappPhoneNumber || "Pending",
+        _id: record._id,
+        workspaceName: record.name,
+        owner: record.owner,
+        businessId: record.bspWabaId || "Pending",
+        phoneNumber: record.whatsappPhoneNumber || "Pending",
         status: esb.status,
-        onboardingStatus: w.onboardingStatus,
+        onboardingStatus: record.onboardingStatus,
         accountBlocked: esb.accountBlocked || false,
-        startedAt: esb.startedAt || w.createdAt,
+        startedAt: esb.startedAt || record.createdAt,
         completedAt: esb.completedAt || null,
         failureReason: esb.failureReason || esb.accountBlockedReason || null,
       };

@@ -163,8 +163,8 @@ export async function processParsedMessage(parsed: any) {
       return;
     }
 
-    const chatMessage = await Message.findOne({ 
-      workspace: new mongoose.Types.ObjectId(parsed.workspaceId), 
+    const chatMessage = await Message.findOne({
+      workspace: new mongoose.Types.ObjectId(parsed.workspaceId),
       $or: [
         { messageId: { $in: statusMessageIds } },
         { whatsappMessageId: { $in: statusMessageIds } },
@@ -248,7 +248,7 @@ export async function processParsedMessage(parsed: any) {
   })();
 
   let contactObjectId: mongoose.Types.ObjectId | null = null;
-  
+
   if (parsed.contactId && mongoose.Types.ObjectId.isValid(parsed.contactId)) {
     contactObjectId = new mongoose.Types.ObjectId(parsed.contactId);
   } else {
@@ -362,7 +362,7 @@ export async function processParsedMessage(parsed: any) {
       if (!conversation.assignedTo && workspaceDoc?.inboxSettings?.autoAssignmentEnabled) {
         try {
           const { AutoAssignService } = await import('./auto-assign-service.js');
-          await AutoAssignService.assign(conversation.workspace, conversation._id).catch(() => {});
+          await AutoAssignService.assign(conversation.workspace, conversation._id).catch(() => { });
         } catch (assignErr: any) {
           console.error('[Chat Service EventBus] Auto-assign failed:', assignErr?.message || assignErr);
         }

@@ -1,6 +1,7 @@
 import "server-only";
 import { Types } from "mongoose";
 import { coreModels } from "./models";
+import { getConnection } from "./db";
 
 /**
  * Self-contained config/plan/settings writes — direct Mongo, no gateway.
@@ -67,6 +68,41 @@ export async function deletePlan(planId: string) {
   const { Plan } = await coreModels();
   const res = await Plan.findByIdAndDelete(planId).lean();
   if (!res) throw new Error("Plan not found");
+}
+
+export async function seedDefaultPlans() {
+  const conn = await getConnection("billing");
+  const db = conn.db;
+  if (!db) throw new Error("billing DB unavailable");
+  const plans = db.collection("plans");
+  const defaults = [
+    { name: "Free Tier", slug: "free", monthlyBaseFeeCents: 0, yearlyBaseFeeCents: 0, currency: "INR", isActive: true, isDefault: true },
+    { name: "Growth", slug: "growth", monthlyBaseFeeCents: 499900, yearlyBaseFeeCents: 4999000, currency: "INR", isActive: true, isDefault: false },
+    { name: "Enterprise", slug: "enterprise", monthlyBaseFeeCents: 1499900, yearlyBaseFeeCents: 14999000, currency: "INR", isActive: true, isDefault: false },
+  ];
+  const now = new Date();
+  const items = [];
+  for (const plan of defaults) {
+    items.push(await plans.findOneAndUpdate(
+      { slug: plan.slug },
+      { $set: { ...plan, updatedAt: now }, $setOnInsert: { createdAt: now } },
+      { upsert: true, returnDocument: "after" },
+    ));
+  }
+  return { initialized: items.length, plans: items };
+}
+
+export async function reconcileBilling() {
+  const conn = await getConnection("billing");
+  const db = conn.db;
+  if (!db) throw new Error("billing DB unavailable");
+  const [wallets, subscriptions, invoices, pendingTransactions] = await Promise.all([
+    db.collection("wallets").estimatedDocumentCount(),
+    db.collection("subscriptions").estimatedDocumentCount(),
+    db.collection("invoices").estimatedDocumentCount(),
+    db.collection("wallettransactions").countDocuments({ status: { $in: ["pending", "processing"] } }),
+  ]);
+  return { reconciled: true, wallets, subscriptions, invoices, pendingTransactions, checkedAt: new Date() };
 }
 
 /* ── User invite ──────────────────────────────────────────────────────── */

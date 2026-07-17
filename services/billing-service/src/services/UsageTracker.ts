@@ -8,8 +8,8 @@ export class UsageTracker {
    * Reuses the existing mongoose connection, dynamically switching to the 'wapi' database context.
    */
   static async increment(
-    workspaceId: string | Types.ObjectId, 
-    resource: UsageResource, 
+    workspaceId: string | Types.ObjectId,
+    resource: UsageResource,
     amount: number = 1
   ) {
     // Map resource to schema fields
@@ -30,15 +30,15 @@ export class UsageTracker {
       const db = mongoose.connection.useDb('wapi');
       const result = await db.collection('workspaces').findOneAndUpdate(
         { _id: new mongoose.Types.ObjectId(String(workspaceId)) },
-        { 
-          $inc: { 
+        {
+          $inc: {
             [field]: amount,
             [`usage.${resource}Daily`]: amount
-          } 
+          }
         },
         { returnDocument: 'after' }
       );
-      
+
       return result?.usage;
     } catch (error: any) {
       console.error(`[UsageTracker] Increment failed: ${resource}`, error.message);

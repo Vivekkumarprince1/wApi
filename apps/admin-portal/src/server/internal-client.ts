@@ -18,22 +18,17 @@ const GATEWAY_URL = config.gatewayUrl;
 const INTERNAL_POST_TIMEOUT_MS = config.adminInternalPostTimeoutMs;
 
 // Using a type representing the original services for backward compatibility
-type ServiceId = "automation" | "campaign" | "billing" | "bsp" | "auth" | "contact" | "chat" | "websocket" | "ingestor";
+type ServiceId = "automation" | "campaign" | "billing" | "auth" | "contact" | "chat" | "websocket" | "ingestor";
 
 const gatewayServiceSegment: Record<ServiceId, string> = {
   automation: "automation",
   campaign: "campaign",
   billing: "billing",
-  bsp: "provider",
   auth: "auth",
   contact: "contacts",
   chat: "chat",
   websocket: "websocket",
   ingestor: "ingestor",
-};
-
-const directServiceBase: Partial<Record<ServiceId, string>> = {
-  bsp: config.services.serviceProvider,
 };
 
 function internalHeaders(): Record<string, string> {
@@ -43,12 +38,6 @@ function internalHeaders(): Record<string, string> {
 }
 
 function internalUrl(service: ServiceId, path: string): string {
-  const directBase = directServiceBase[service]?.replace(/\/+$/, "");
-  if (directBase) {
-    if (service === "bsp") return `${directBase}/internal/v1/bsp${path}`;
-    return `${directBase}${path}`;
-  }
-
   return `${GATEWAY_URL}/api/internal/${gatewayServiceSegment[service]}${path}`;
 }
 
@@ -83,52 +72,6 @@ export async function internalPost(
     const res = await axios.post(internalUrl(service, path), body, {
       headers: { ...internalHeaders(), "x-internal-service": "admin-portal", "Content-Type": "application/json" },
       timeout: INTERNAL_POST_TIMEOUT_MS,
-      validateStatus: () => true,
-    });
-    return {
-      ok: res.status < 400,
-      status: res.status,
-      data: res.data,
-      error: res.status >= 400 ? responseMessage(res.data) || `Internal service returned ${res.status}` : undefined,
-    };
-  } catch (err) {
-    console.error(`[admin-portal/internal] ${service} ${path} unreachable:`, (err as Error).message);
-    return { ok: false, status: 502, data: null, error: (err as Error).message };
-  }
-}
-
-/** GET a service-internal path. Returns { ok, status, data }. */
-export async function internalGet(
-  service: ServiceId,
-  path: string
-): Promise<{ ok: boolean; status: number; data: unknown; error?: string }> {
-  try {
-    const res = await axios.get(internalUrl(service, path), {
-      headers: { ...internalHeaders(), "x-internal-service": "admin-portal" },
-      timeout: 15000,
-      validateStatus: () => true,
-    });
-    return {
-      ok: res.status < 400,
-      status: res.status,
-      data: res.data,
-      error: res.status >= 400 ? responseMessage(res.data) || `Internal service returned ${res.status}` : undefined,
-    };
-  } catch (err) {
-    console.error(`[admin-portal/internal] ${service} ${path} unreachable:`, (err as Error).message);
-    return { ok: false, status: 502, data: null, error: (err as Error).message };
-  }
-}
-
-/** DELETE a service-internal path. Returns { ok, status, data }. */
-export async function internalDeleteJson(
-  service: ServiceId,
-  path: string
-): Promise<{ ok: boolean; status: number; data: unknown; error?: string }> {
-  try {
-    const res = await axios.delete(internalUrl(service, path), {
-      headers: { ...internalHeaders(), "x-internal-service": "admin-portal" },
-      timeout: 15000,
       validateStatus: () => true,
     });
     return {

@@ -1,0 +1,350 @@
+import "server-only";
+import axios, { type AxiosInstance } from "axios";
+import crypto from "node:crypto";
+import mongoose from "mongoose";
+import { config } from "@/config/env";
+import { getConnection } from "@/server/db";
+
+const DEFAULT_EVENTS = [
+  "MESSAGE", "SENT", "DELIVERED", "READ", "FAILED", "TEMPLATE",
+  "ACCOUNT", "BILLING", "PAYMENTS", "FLOWS_MESSAGE",
+];
+
+let cachedPartnerToken = "";
+let cachedPartnerTokenUntil = 0;
+
+function providerClient(): AxiosInstance {
+  return axios.create({
+    baseURL: config.gupshup.partnerBaseUrl,
+    timeout: 25_000,
+    headers: { Accept: "application/json" },
+  });
+}
+
+async function partnerToken(forceRefresh = false): Promise<string> {
+  if (!forceRefresh && cachedPartnerToken && cachedPartnerTokenUntil > Date.now()) {
+    return cachedPartnerToken;
+  }
+
+  if (config.gupshup.partnerToken && !forceRefresh) {
+    return normalizeToken(config.gupshup.partnerToken);
+  }
+
+  if (!config.gupshup.partnerEmail || !config.gupshup.partnerPassword) {
+    throw new Error("Gupshup partner credentials are not configured in admin-portal");
+  }
+
+  const form = new URLSearchParams({
+    email: config.gupshup.partnerEmail,
+    password: config.gupshup.partnerPassword,
+  });
+  const response = await providerClient().post("/partner/account/login", form.toString(), {
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    timeout: 15_000,
+  });
+  const candidate = response.data?.token || response.data?.accessToken || response.data?.jwt;
+  const token = normalizeToken(candidate);
+  if (!token) throw new Error(response.data?.message || "Gupshup login returned no token");
+
+  cachedPartnerToken = token;
+  cachedPartnerTokenUntil = Date.now() + 30_000;
+  return token;
+}
+
+async function withPartnerAuth<T>(operation: (headers: Record<string, string>) => Promise<T>): Promise<T> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const token = await partnerToken(attempt === 1);
+    try {
+      return await operation({ Authorization: `Bearer ${token}`, Accept: "application/json" });
+    } catch (error) {
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      if (attempt === 0 && (status === 401 || status === 403)) continue;
+      throw providerError(error);
+    }
+  }
+  throw new Error("Gupshup authorization failed");
+}
+
+export async function listBspApps(workspaceId?: string) {
+  const db = await bspDb();
+  return db.collection("bsp_apps")
+    .find(workspaceId ? { workspaceId } : {})
+    .project({ whatsappAccessToken: 0, whatsappVerifyToken: 0, accessToken: 0, "gupshupIdentity.appApiKey": 0 })
+    .sort({ updatedAt: -1 })
+    .limit(200)
+    .toArray();
+}
+
+export async function reconcileBspApps(workspaceId?: string) {
+  const apps = await listBspApps(workspaceId);
+  const result = { total: apps.length, processed: 0, failed: 0, skipped: 0, details: [] as Record<string, unknown>[] };
+
+  for (const app of apps) {
+    const appId = providerAppId(app);
+    if (isPlaceholderAppId(appId)) {
+      result.skipped += 1;
+      result.details.push({ workspaceId: app.workspaceId, appId, status: "skipped" });
+      continue;
+    }
+    try {
+      const subscriptions = await listProviderSubscriptions(appId);
+      result.processed += 1;
+      result.details.push({ workspaceId: app.workspaceId, appId, status: "reconciled", subscriptions: subscriptions.length });
+    } catch (error) {
+      result.failed += 1;
+      result.details.push({ workspaceId: app.workspaceId, appId, status: "failed", error: errorMessage(error) });
+    }
+  }
+  return result;
+}
+
+export async function syncAppSubscriptions(appId: string, workspaceId?: string) {
+  const db = await bspDb();
+  const app = await db.collection("bsp_apps").findOne({
+    $or: [{ appId }, { gupshupAppId: appId }, { "gupshupIdentity.partnerAppId": appId }],
+  });
+  const resolvedWorkspaceId = String(app?.workspaceId || workspaceId || "");
+  if (!resolvedWorkspaceId) throw new Error(`No workspace mapping found for Gupshup app ${appId}`);
+
+  const providerId = app ? providerAppId(app) : appId;
+  const subscriptions = await listProviderSubscriptions(providerId);
+  const syncedAt = new Date();
+  const returnedUrls = new Set<string>();
+
+  for (const subscription of subscriptions) {
+    const callbackUrl = subscriptionUrl(subscription);
+    if (!callbackUrl) continue;
+    returnedUrls.add(callbackUrl);
+    await db.collection("bsp_subscriptions").updateOne(
+      { workspaceId: resolvedWorkspaceId, provider: "gupshup", appId: providerId, callbackUrl },
+      { $set: subscriptionDocument(subscription, resolvedWorkspaceId, providerId, callbackUrl, syncedAt, "admin_subscription_sync") },
+      { upsert: true },
+    );
+  }
+
+  const stale = await db.collection("bsp_subscriptions").updateMany(
+    {
+      workspaceId: resolvedWorkspaceId,
+      provider: "gupshup",
+      appId: providerId,
+      status: { $ne: "deleted" },
+      ...(returnedUrls.size ? { callbackUrl: { $nin: [...returnedUrls] } } : {}),
+    },
+    { $set: { status: "disabled", "providerData.syncedAt": syncedAt, "providerData.staleReason": "missing_from_provider" } },
+  );
+
+  return { appId: providerId, workspaceId: resolvedWorkspaceId, synced: subscriptions.length, disabled: stale.modifiedCount, subscriptions };
+}
+
+export async function syncWebhook(appId: string, input: Record<string, unknown>) {
+  const db = await bspDb();
+  const app = await db.collection("bsp_apps").findOne({
+    $or: [{ appId }, { gupshupAppId: appId }, { "gupshupIdentity.partnerAppId": appId }],
+  });
+  const workspaceId = String(app?.workspaceId || input.workspaceId || "");
+  if (!workspaceId) throw new Error(`No workspace mapping found for Gupshup app ${appId}`);
+
+  const providerId = app ? providerAppId(app) : appId;
+  const callbackUrl = secureWebhookUrl(String(input.url || config.gupshup.webhookUrl || ""));
+  const events = normalizeEvents(input.modes);
+  const strategy = normalizeStrategy(input.strategy);
+  const existing = await listProviderSubscriptions(providerId);
+
+  if (strategy === "replace") {
+    for (const subscription of existing) {
+      const id = subscriptionId(subscription);
+      if (id) await deleteProviderSubscription(providerId, id);
+    }
+  }
+
+  const sameUrl = existing.find((subscription) => normalizeUrl(subscriptionUrl(subscription)) === normalizeUrl(callbackUrl));
+  const sameUrlId = subscriptionId(sameUrl);
+  const response = sameUrlId && strategy === "update"
+    ? await updateProviderSubscription(providerId, sameUrlId, callbackUrl, events)
+    : await createProviderSubscription(providerId, callbackUrl, events);
+
+  await db.collection("bsp_subscriptions").updateOne(
+    { workspaceId, provider: "gupshup", appId: providerId, callbackUrl },
+    { $set: subscriptionDocument(response, workspaceId, providerId, callbackUrl, new Date(), "admin_webhook_sync", events) },
+    { upsert: true },
+  );
+  return { synced: true, appId: providerId, workspaceId, callbackUrl, response };
+}
+
+export async function syncAllWebhooks(input: Record<string, unknown>) {
+  const apps = await listBspApps();
+  const result = { total: apps.length, synced: 0, failed: 0, skipped: 0, details: [] as Record<string, unknown>[] };
+  for (const app of apps) {
+    const appId = providerAppId(app);
+    if (isPlaceholderAppId(appId)) {
+      result.skipped += 1;
+      continue;
+    }
+    try {
+      await syncWebhook(appId, { ...input, workspaceId: app.workspaceId });
+      result.synced += 1;
+      result.details.push({ workspaceId: app.workspaceId, appId, status: "synced" });
+    } catch (error) {
+      result.failed += 1;
+      result.details.push({ workspaceId: app.workspaceId, appId, status: "failed", error: errorMessage(error) });
+    }
+  }
+  return result;
+}
+
+export async function deleteBspSubscription(appId: string, subscriptionIdValue: string) {
+  const db = await bspDb();
+  const subscription = await db.collection("bsp_subscriptions").findOne({ _id: toObjectId(subscriptionIdValue) });
+  const providerSubscriptionId = String(subscription?.providerData?.providerSubscriptionId || subscriptionIdValue);
+  await deleteProviderSubscription(appId, providerSubscriptionId);
+  await db.collection("bsp_subscriptions").updateOne(
+    { _id: subscription?._id || toObjectId(subscriptionIdValue) },
+    { $set: { status: "deleted", updatedAt: new Date(), "providerData.deletedAt": new Date(), "providerData.source": "admin_portal" } },
+  );
+  return { deleted: true, appId, subscriptionId: subscriptionIdValue };
+}
+
+export async function resolveBspAppIdDirect(explicitAppId: unknown, workspaceIdValue: unknown): Promise<string> {
+  const explicit = normalizeId(explicitAppId);
+  if (explicit && !isPlaceholderAppId(explicit)) return explicit;
+  const workspaceId = normalizeId(workspaceIdValue);
+  if (!workspaceId) return "";
+  const apps = await listBspApps(workspaceId);
+  return apps.map(providerAppId).find((id) => !isPlaceholderAppId(id)) || "";
+}
+
+async function listProviderSubscriptions(appId: string): Promise<Record<string, unknown>[]> {
+  return withPartnerAuth(async (headers) => {
+    const response = await providerClient().get(`/partner/app/${encodeURIComponent(appId)}/subscription`, { headers });
+    const subscriptions = response.data?.subscriptions || response.data?.data || [];
+    return Array.isArray(subscriptions) ? subscriptions : [];
+  });
+}
+
+async function createProviderSubscription(appId: string, url: string, events: string[]) {
+  return withPartnerAuth(async (headers) => {
+    const form = subscriptionForm(appId, url, events);
+    const response = await providerClient().post(`/partner/app/${encodeURIComponent(appId)}/subscription?v=v3`, form.toString(), {
+      headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    return { ...response.data, registeredUrl: url };
+  });
+}
+
+async function updateProviderSubscription(appId: string, subscriptionIdValue: string, url: string, events: string[]) {
+  return withPartnerAuth(async (headers) => {
+    const form = subscriptionForm(appId, url, events);
+    const response = await providerClient().put(
+      `/partner/app/${encodeURIComponent(appId)}/subscription/${encodeURIComponent(subscriptionIdValue)}?v=v3`,
+      form.toString(),
+      { headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" } },
+    );
+    return { ...response.data, registeredUrl: url, id: subscriptionIdValue };
+  });
+}
+
+async function deleteProviderSubscription(appId: string, subscriptionIdValue: string) {
+  return withPartnerAuth(async (headers) => {
+    const response = await providerClient().delete(
+      `/partner/app/${encodeURIComponent(appId)}/subscription/${encodeURIComponent(subscriptionIdValue)}`,
+      { headers },
+    );
+    return response.data;
+  });
+}
+
+function subscriptionForm(appId: string, url: string, events: string[]) {
+  return new URLSearchParams({
+    url,
+    version: "3",
+    tag: `connectsphere-${crypto.createHash("sha256").update(`${appId}:${url}`).digest("hex").slice(0, 16)}`,
+    modes: events.join(","),
+    showOnUI: "true",
+  });
+}
+
+function subscriptionDocument(
+  subscription: Record<string, unknown>, workspaceId: string, appId: string, callbackUrl: string,
+  syncedAt: Date, source: string, eventOverride?: string[],
+) {
+  const events = eventOverride || (Array.isArray(subscription.modes) ? subscription.modes : Array.isArray(subscription.events) ? subscription.events : []);
+  return {
+    workspaceId,
+    provider: "gupshup",
+    appId,
+    callbackUrl,
+    events,
+    status: subscription.active === false ? "disabled" : "active",
+    providerData: { gupshupResponse: subscription, providerSubscriptionId: subscriptionId(subscription) || undefined, source, syncedAt },
+    updatedAt: syncedAt,
+  };
+}
+
+async function bspDb() {
+  const connection = await getConnection("bsp");
+  if (!connection.db) throw new Error("BSP database handle unavailable");
+  return connection.db;
+}
+
+function providerAppId(record: Record<string, unknown>): string {
+  const identity = record.gupshupIdentity as Record<string, unknown> | undefined;
+  return normalizeId(record.gupshupAppId) || normalizeId(identity?.partnerAppId) || normalizeId(record.appId);
+}
+
+function subscriptionId(value?: Record<string, unknown>) {
+  return normalizeId(value?.id) || normalizeId(value?.subscriptionId) || normalizeId((value?.providerData as Record<string, unknown> | undefined)?.providerSubscriptionId);
+}
+
+function subscriptionUrl(value?: Record<string, unknown>) {
+  return normalizeId(value?.url) || normalizeId(value?.callbackUrl);
+}
+
+function normalizeToken(value: unknown) {
+  return String(value || "").replace(/^Bearer\s+/i, "").trim();
+}
+
+function normalizeId(value: unknown) {
+  return typeof value === "string" ? value.trim() : value == null ? "" : String(value).trim();
+}
+
+function isPlaceholderAppId(value: string) {
+  return !value || value.startsWith("mock_") || value.startsWith("pending_");
+}
+
+function secureWebhookUrl(value: string) {
+  if (!value) throw new Error("Webhook URL is required");
+  let url = value.trim().replace(/\/+$/, "");
+  if (!url.includes("/api/webhooks/")) url += "/api/webhooks/whatsapp";
+  if (!url.startsWith("https://")) throw new Error("Gupshup webhook URL must use HTTPS");
+  return url;
+}
+
+function normalizeEvents(value: unknown): string[] {
+  const events = Array.isArray(value) && value.length ? value : DEFAULT_EVENTS;
+  return [...new Set(events.map((event) => String(event).toUpperCase()))];
+}
+
+function normalizeStrategy(value: unknown): "update" | "add" | "replace" {
+  return value === "add" || value === "replace" ? value : "update";
+}
+
+function normalizeUrl(value: string) {
+  return value.trim().replace(/\/+$/, "").toLowerCase();
+}
+
+function toObjectId(value: string) {
+  // Mongoose's connection driver accepts string IDs only for string fields;
+  // use its BSON ObjectId constructor for `_id` lookups.
+  return new mongoose.Types.ObjectId(value);
+}
+
+function providerError(error: unknown): Error {
+  if (!axios.isAxiosError(error)) return error instanceof Error ? error : new Error("Provider operation failed");
+  const data = error.response?.data;
+  const message = data?.message || data?.error || error.message;
+  return new Error(error.response?.status ? `Gupshup returned ${error.response.status}: ${message}` : String(message));
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Provider operation failed";
+}

@@ -16,9 +16,13 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: connectsphere
+  revisionHistoryLimit: 10
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ApplyOutOfSyncOnly=true

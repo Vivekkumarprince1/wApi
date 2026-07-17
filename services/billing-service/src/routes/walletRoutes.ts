@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { WalletController } from '../controllers/WalletController';
-import { authenticate, authenticateOrInternal, internalAuth, authorize } from '../middleware/auth';
+import { authenticate, authenticateOrInternal, internalAuth } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
 import { canAccessWorkspace } from '../middleware/tenant-policy';
 
@@ -23,19 +23,9 @@ const enforceWorkspaceParam = (req: AuthRequest, res: any, next: any) => {
 // STATIC ROUTES (must be defined BEFORE dynamic :workspaceId routes)
 // ══════════════════════════════════════════════
 
-// Admin routes
-router.get('/admin/all-invoices', authenticate, authorize(['super_admin']), WalletController.getAllInvoices);
-router.get('/admin/stats', authenticate, authorize(['super_admin']), WalletController.getBillingStats);
-
 // Plan routes
 router.get('/plans', authenticate, WalletController.listPlans);
 router.get('/plans/:id', authenticate, WalletController.getPlan);
-
-// Admin Plan routes
-router.post('/admin/plans', authenticate, authorize(['super_admin']), WalletController.createPlan);
-router.put('/admin/plans/:id', authenticate, authorize(['super_admin']), WalletController.updatePlan);
-router.delete('/admin/plans/:id', authenticate, authorize(['super_admin']), WalletController.deletePlan);
-router.post('/admin/plans/seed', authenticate, authorize(['super_admin']), WalletController.seedPlans);
 
 // Verification routes (no workspaceId param in path)
 router.post('/recharge/verify', authenticate, WalletController.verifyRecharge);

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
-import { gatewayCall } from "@/server/gateway-client";
 import { recordAudit, clientIp } from "@/server/audit";
-import { createPlan, updatePlan, deletePlan } from "@/server/config-ops";
+import { createPlan, updatePlan, deletePlan, reconcileBilling, seedDefaultPlans } from "@/server/config-ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,16 +9,15 @@ export const dynamic = "force-dynamic";
 /**
  * Billing operations.
  *  - Plan CRUD: SELF-CONTAINED direct Mongo writes (plain docs, no side-effects).
- *  - reconcile / seed-plans: these are billing-service JOBS (recompute/seed), so
- *    they stay on the gateway → billing-service to preserve that service logic.
+ * All operations are owned by the admin control plane; no gateway call.
  */
 
-type Mode = "direct" | "gateway";
+type Mode = "direct";
 
 async function run(
   action: string,
   payload: Record<string, unknown>
-): Promise<{ mode: Mode; data?: unknown; gatewayPath?: string; method?: string }> {
+): Promise<{ mode: Mode; data?: unknown }> {
   switch (action) {
     case "create-plan":
       return { mode: "direct", data: await createPlan(payload) };
@@ -29,9 +27,9 @@ async function run(
       await deletePlan(String(payload.planId));
       return { mode: "direct", data: { deleted: true } };
     case "reconcile":
-      return { mode: "gateway", gatewayPath: "super-admin/billing/reconcile", method: "POST" };
+      return { mode: "direct", data: await reconcileBilling() };
     case "seed-plans":
-      return { mode: "gateway", gatewayPath: "super-admin/plans/seed", method: "POST" };
+      return { mode: "direct", data: await seedDefaultPlans() };
     default:
       throw new Error(`Unknown action "${action}"`);
   }
@@ -49,18 +47,7 @@ export async function POST(
 
     const outcome = await run(action, payload);
 
-    let data = outcome.data;
-    if (outcome.mode === "gateway" && outcome.gatewayPath) {
-      const result = await gatewayCall(outcome.gatewayPath, {
-        method: (outcome.method as "POST") || "POST",
-        body: payload,
-        actor,
-      });
-      if (!result.ok) {
-        return NextResponse.json({ message: result.error || "Operation failed" }, { status: result.status });
-      }
-      data = result.data;
-    }
+    const data = outcome.data;
 
     await recordAudit({
       actor,

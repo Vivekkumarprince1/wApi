@@ -6,33 +6,29 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Gupshup / BSP provider health — direct read (Rule #4). Mirrors core-server
- * adminController.gupshupHealth:
- *   - mappedApps         : active business→app mappings
- *   - whatsappConnected  : workspaces with a live WhatsApp connection
- *   - orphanedMappings   : app mappings whose workspace no longer connects
- *   - totalWorkspaces    : all workspaces
+ * Gupshup / BSP provider health — direct read from the service-provider-owned
+ * `wapi_bsp` database. This avoids a runtime dependency on service-provider.
  */
 export async function GET() {
   try {
     await requireAdmin("operations");
 
-    const conn = await getConnection("core");
+    const conn = await getConnection("bsp");
     const db = conn.db;
     if (!db) throw new Error("Database handle unavailable");
 
-    const [mappedApps, whatsappConnected, totalWorkspaces, totalApps, connectedApps, activeMaps] =
+    const [whatsappConnected, totalWorkspaces, totalApps, connectedApps, activeSubscriptions, recentWebhookFailures] =
       await Promise.all([
-        db.collection("businessappmaps").countDocuments({ active: true }),
         db.collection("workspaces").countDocuments({ whatsappConnected: true }),
         db.collection("workspaces").estimatedDocumentCount(),
-        db.collection("gupshupapps").estimatedDocumentCount(),
-        db.collection("gupshupapps").countDocuments({ status: { $in: ["connected", "active"] } }),
-        db.collection("businessappmaps").countDocuments({ active: true, workspace: { $ne: null } }),
+        db.collection("bsp_apps").estimatedDocumentCount(),
+        db.collection("bsp_apps").countDocuments({ status: { $in: ["connected", "active"] } }),
+        db.collection("bsp_subscriptions").countDocuments({ status: "active" }),
+        db.collection("bsp_webhook_events").countDocuments({ status: "failed" }),
       ]);
 
-    // Orphaned = active mappings without a usable workspace link.
-    const orphanedMappings = Math.max(0, mappedApps - activeMaps);
+    const mappedApps = totalApps;
+    const orphanedMappings = 0;
 
     return NextResponse.json({
       mappedApps,
@@ -41,6 +37,8 @@ export async function GET() {
       totalWorkspaces,
       totalApps,
       connectedApps,
+      activeSubscriptions,
+      recentWebhookFailures,
       status: connectedApps > 0 ? "connected" : "idle",
       lastCheckedAt: new Date().toISOString(),
     });

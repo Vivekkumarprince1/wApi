@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin, AdminAuthError, type AdminTokenPayload } from "@/server/auth";
-import { gatewayCall } from "@/server/gateway-client";
+import { requireAdmin, AdminAuthError } from "@/server/auth";
 import { recordAudit, clientIp } from "@/server/audit";
 import {
   setWorkspaceBillingStatus,
   setWorkspacePlan,
   emergencyFreezeWorkspace,
+  deleteWorkspace,
 } from "@/server/workspace-ops";
 
 export const runtime = "nodejs";
@@ -48,15 +48,9 @@ const ACTIONS: Record<string, { capability: Parameters<typeof requireAdmin>[0]; 
   },
   delete: {
     capability: "system",
-    run: async (id, payload) => {
-      const actor = payload.__actor as AdminTokenPayload;
-      const idempotencyKey = String(payload.idempotencyKey || `workspace-delete:${id}`);
-      const result = await gatewayCall<{ success: boolean; operationId: string; state: string }>(
-        `super-admin/deletion/workspaces/${id}`,
-        { method: "POST", actor, workspaceId: id, body: {}, headers: { "idempotency-key": idempotencyKey } } as any,
-      );
-      if (!result.ok || !result.data) throw new Error(result.error || "Failed to start deletion operation");
-      return result.data;
+    run: async (id) => {
+      await deleteWorkspace(id);
+      return { deleted: true, workspaceId: id };
     },
   },
 };

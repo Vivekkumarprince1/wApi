@@ -1,5 +1,28 @@
 global:
   terminationGracePeriodSeconds: 60
+  topologySpread:
+    zones:
+      enabled: false
+      maxSkew: 1
+      whenUnsatisfiable: DoNotSchedule
+    hosts:
+      enabled: true
+      whenUnsatisfiable: ScheduleAnyway
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 75
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      maxChangePercent: 100
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      maxChangePercent: 25
+  pdb:
+    enabled: false
+    minAvailable: 1
   image:
     registry: changeme.azurecr.io
     repositoryPrefix: connectsphere
@@ -129,6 +152,14 @@ publicServices:
       targetPort: 3001
       annotations: {}
 
+# Ingress isolation is enabled only after the ingress-controller namespace
+# label has been verified in the target cluster. Egress remains unrestricted:
+# workloads require private data-plane and third-party provider access.
+networkPolicy:
+  enabled: false
+  ingressControllerNamespaceLabel: kubernetes.io/metadata.name
+  ingressControllerNamespace: ingress-nginx
+
 apiGatewayProxy:
   enabled: false
   host: ""
@@ -167,6 +198,10 @@ services:
     env:
       PORT: "5001"
       ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+      SERVICE_NAME: api-gateway
+    secretEnv:
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
     resources:
       requests:
         cpu: 100m
@@ -174,6 +209,21 @@ services:
       limits:
         cpu: 500m
         memory: 768Mi
+    autoscaling:
+      enabled: false
+      minReplicas: 2
+      maxReplicas: 10
+      targetCPUUtilizationPercentage: 70
+      targetMemoryUtilizationPercentage: 75
+      scaleUp:
+        stabilizationWindowSeconds: 0
+        maxChangePercent: 100
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        maxChangePercent: 25
+    pdb:
+      enabled: true
+      minAvailable: 1
 
   auth-service:
     enabled: true
@@ -185,8 +235,12 @@ services:
     readinessPath: /readiness
     env:
       PORT: "3006"
+      SERVICE_NAME: auth-service
     secretEnv:
       MONGO_URI: MONGO_URI_AUTH
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
     resources:
       requests:
         cpu: 100m
@@ -205,8 +259,12 @@ services:
     readinessPath: /readiness
     env:
       PORT: "3002"
+      SERVICE_NAME: campaign-service
     secretEnv:
       MONGO_URI: MONGO_URI_CAMPAIGN
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
     resources:
       requests:
         cpu: 100m
@@ -225,8 +283,12 @@ services:
     readinessPath: /readiness
     env:
       PORT: "3003"
+      SERVICE_NAME: billing-service
     secretEnv:
       MONGO_URI: MONGO_URI_BILLING
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
     resources:
       requests:
         cpu: 100m
@@ -245,8 +307,18 @@ services:
     readinessPath: /readiness
     env:
       PORT: "3004"
+      SERVICE_NAME: service-provider
     secretEnv:
       MONGO_URI: MONGO_URI_BSP
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      INTEGRATION_ENCRYPTION_KEY: INTEGRATION_ENCRYPTION_KEY
+      REDIS_URL: REDIS_URL
+      GUPSHUP_PARTNER_CLIENT_SECRET: GUPSHUP_PARTNER_CLIENT_SECRET
+      GUPSHUP_PARTNER_EMAIL: GUPSHUP_PARTNER_EMAIL
+      GUPSHUP_PARTNER_PASSWORD: GUPSHUP_PARTNER_PASSWORD
+      WEBHOOK_SECRET: WEBHOOK_SECRET
+      WHATSAPP_WEBHOOK_VERIFY_TOKEN: WHATSAPP_WEBHOOK_VERIFY_TOKEN
     resources:
       requests:
         cpu: 150m
@@ -265,8 +337,13 @@ services:
     readinessPath: /readiness
     env:
       PORT: "3001"
+      SERVICE_NAME: automation-service
     secretEnv:
       MONGO_URI: MONGO_URI_AUTOMATION
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      INTEGRATION_ENCRYPTION_KEY: INTEGRATION_ENCRYPTION_KEY
+      REDIS_URL: REDIS_URL
     resources:
       requests:
         cpu: 150m
@@ -285,8 +362,12 @@ services:
     readinessPath: /readiness
     env:
       PORT: "3008"
+      SERVICE_NAME: chat-service
     secretEnv:
       MONGO_URI: MONGO_URI_CHAT
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
     resources:
       requests:
         cpu: 100m
@@ -305,8 +386,12 @@ services:
     readinessPath: /readiness
     env:
       PORT: "3007"
+      SERVICE_NAME: contact-service
     secretEnv:
       MONGO_URI: MONGO_URI_CONTACT
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
     resources:
       requests:
         cpu: 100m
@@ -325,8 +410,13 @@ services:
     readinessPath: /readiness
     env:
       PORT: "3013"
+      SERVICE_NAME: webhook-ingestor
     secretEnv:
       MONGO_URI: MONGO_URI_WEBHOOK
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
+      WEBHOOK_SECRET: WEBHOOK_SECRET
+      VERIFY_TOKEN: VERIFY_TOKEN
     resources:
       requests:
         cpu: 100m
@@ -346,8 +436,11 @@ services:
     env:
       PORT: "3009"
       ALLOWED_ORIGINS: http://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,http://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com,http://connectsphere-career-vivek.eastus.cloudapp.azure.com,https://connectsphere-career-vivek.eastus.cloudapp.azure.com
+      SERVICE_NAME: websocket-gateway
     secretEnv:
       MONGO_URI: MONGO_URI_WEBSOCKET
+      JWT_SECRET: JWT_SECRET
+      REDIS_URL: REDIS_URL
     resources:
       requests:
         cpu: 100m
@@ -366,11 +459,18 @@ services:
     env:
       PORT: "3100"
       BACKEND_API_URL: http://connectsphere-api-gateway:5001
+      SERVICE_NAME: admin-portal
     secretEnv:
       MONGODB_URI: MONGODB_URI
       MONGODB_URI_BILLING: MONGODB_URI_BILLING
       MONGODB_URI_CAMPAIGN: MONGODB_URI_CAMPAIGN
       MONGODB_URI_AUTOMATION: MONGODB_URI_AUTOMATION
+      MONGODB_URI_BSP: MONGO_URI_BSP
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      GUPSHUP_PARTNER_CLIENT_SECRET: GUPSHUP_PARTNER_CLIENT_SECRET
+      GUPSHUP_PARTNER_EMAIL: GUPSHUP_PARTNER_EMAIL
+      GUPSHUP_PARTNER_PASSWORD: GUPSHUP_PARTNER_PASSWORD
     resources:
       requests:
         cpu: 100m
@@ -394,6 +494,7 @@ services:
       APP_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
       BETTER_AUTH_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
       REQUIRE_PRIVILEGED_MFA: "true"
+      SERVICE_NAME: career-portal
     secretEnv:
       MONGODB_URI: MONGODB_URI
       BETTER_AUTH_SECRET: BETTER_AUTH_SECRET
@@ -422,12 +523,6 @@ services:
       limits:
         cpu: 750m
         memory: 1Gi
-
-autoscaling:
-  enabled: false
-  minReplicas: 2
-  maxReplicas: 10
-  targetCPUUtilizationPercentage: 70
 
 probes:
   enabled: true

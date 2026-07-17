@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
 import { recordAudit, clientIp } from "@/server/audit";
 import { saveWebhookPolicy } from "@/server/config-ops";
-import { internalDeleteJson, internalGet, internalPost } from "@/server/internal-client";
+import {
+  deleteBspSubscription,
+  reconcileBspApps,
+  resolveBspAppIdDirect,
+  syncAllWebhooks,
+  syncAppSubscriptions,
+  syncWebhook,
+} from "@/server/bsp-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,12 +21,8 @@ export const dynamic = "force-dynamic";
  *   webhook-policy     -> upsert a WebhookPolicy doc directly
  *   developer-config   -> env-managed guidance, persists nothing
  *
- * Service-provider internal admin operations:
- *   reconcile / dashboards-reconcile  -> /internal/v1/bsp/admin/reconcile
- *   sync-webhook                      -> /internal/v1/bsp/admin/sync-webhook/:appId
- *   sync-app-subscriptions            -> /internal/v1/bsp/admin/sync-app-subscriptions/:appId
- *   sync-all-webhooks                 -> /internal/v1/bsp/admin/sync-webhooks
- *   delete-subscription               -> /internal/v1/bsp/admin/subscription/:appId/:subscriptionId
+ * Provider operations are executed by the admin portal server using Gupshup's
+ * API and the `wapi_bsp` database. Browser code never receives credentials.
  */
 export async function POST(
   req: NextRequest,
@@ -32,7 +35,7 @@ export async function POST(
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
 
     let data: unknown;
-    let mode: "direct" | "service-provider" = "direct";
+    const mode = "admin-control-plane";
 
     switch (action) {
       case "webhook-policy":
@@ -48,54 +51,32 @@ export async function POST(
 
       case "reconcile":
       case "dashboards-reconcile": {
-        mode = "service-provider";
-        const res = await internalPost("bsp", "/admin/reconcile", {});
-        if (!res.ok) return serviceError(res);
-        data = res.data;
+        data = await reconcileBspApps(normalizeId(body.workspaceId) || undefined);
         break;
       }
 
       case "sync-webhook": {
-        mode = "service-provider";
-        const resolved = await resolveBspAppId(body);
-        if (!resolved.ok) return serviceError(resolved.res);
-        const { appId } = resolved;
+        const appId = await resolveBspAppIdDirect(body.appId, body.workspaceId);
         if (!appId) {
           data = { skipped: true, message: "No live Gupshup app is linked to this workspace yet." };
           break;
         }
-        const res = await internalPost("bsp", `/admin/sync-webhook/${encodeURIComponent(appId)}`, {
-          ...body,
-          appId,
-        });
-        if (!res.ok) return serviceError(res);
-        data = res.data;
+        data = await syncWebhook(appId, body);
         break;
       }
 
       case "sync-app-subscriptions": {
-        mode = "service-provider";
-        const resolved = await resolveBspAppId(body);
-        if (!resolved.ok) return serviceError(resolved.res);
-        const { appId } = resolved;
+        const appId = await resolveBspAppIdDirect(body.appId, body.workspaceId);
         if (!appId) {
           data = { skipped: true, message: "No live Gupshup app is linked to this workspace yet." };
           break;
         }
-        const res = await internalPost("bsp", `/admin/sync-app-subscriptions/${encodeURIComponent(appId)}`, {
-          ...body,
-          appId,
-        });
-        if (!res.ok) return serviceError(res);
-        data = res.data;
+        data = await syncAppSubscriptions(appId, normalizeId(body.workspaceId) || undefined);
         break;
       }
 
       case "sync-all-webhooks": {
-        mode = "service-provider";
-        const res = await internalPost("bsp", "/admin/sync-webhooks", body);
-        if (!res.ok) return serviceError(res);
-        data = res.data;
+        data = await syncAllWebhooks(body);
         break;
       }
 
@@ -104,10 +85,7 @@ export async function POST(
         const subscriptionId = String(body.subscriptionId || "");
         if (!appId || !subscriptionId)
           return NextResponse.json({ message: "appId and subscriptionId are required" }, { status: 400 });
-        mode = "service-provider";
-        const res = await internalDeleteJson("bsp", `/admin/subscription/${appId}/${subscriptionId}`);
-        if (!res.ok) return serviceError(res);
-        data = res.data;
+        data = await deleteBspSubscription(appId, subscriptionId);
         break;
       }
 
@@ -135,54 +113,6 @@ export async function POST(
   }
 }
 
-function serviceError(res: { status: number; error?: string }) {
-  const message =
-    res.status === 502
-      ? `Gupshup operations are handled by service-provider, which is not reachable from admin-portal. Check SERVICE_PROVIDER_URL/GATEWAY_URL, service ingress, and service-provider health.${res.error ? ` Upstream error: ${res.error}` : ""}`
-      : res.error || "Operation failed";
-  return NextResponse.json({ message }, { status: res.status });
-}
-
-async function resolveBspAppId(
-  body: Record<string, unknown>
-): Promise<{ ok: true; appId: string } | { ok: false; res: { status: number; error?: string } }> {
-  const explicitAppId = normalizeId(body.appId);
-  const workspaceId = normalizeId(body.workspaceId);
-  if (explicitAppId && !isPlaceholderAppId(explicitAppId)) return { ok: true, appId: explicitAppId };
-  if (!workspaceId) return { ok: true, appId: "" };
-
-  const res = await internalGet("bsp", `/admin/apps?workspaceId=${encodeURIComponent(workspaceId)}`);
-  if (!res.ok) return { ok: false, res };
-
-  const apps = extractDataArray(res.data);
-  const app = apps.find((candidate) => {
-    if (!candidate || typeof candidate !== "object") return false;
-    return !isPlaceholderAppId(providerAppId(candidate as Record<string, unknown>));
-  });
-  if (!app || typeof app !== "object") return { ok: true, appId: "" };
-
-  return { ok: true, appId: providerAppId(app as Record<string, unknown>) };
-}
-
 function normalizeId(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function providerAppId(record: Record<string, unknown>): string {
-  return (
-    normalizeId(record.gupshupAppId) ||
-    normalizeId((record.gupshupIdentity as Record<string, unknown> | undefined)?.partnerAppId) ||
-    normalizeId(record.appId)
-  );
-}
-
-function isPlaceholderAppId(appId: string): boolean {
-  return !appId || appId.startsWith("mock_") || appId.startsWith("pending_");
-}
-
-function extractDataArray(data: unknown): unknown[] {
-  if (Array.isArray(data)) return data;
-  if (!data || typeof data !== "object") return [];
-  const record = data as Record<string, unknown>;
-  return Array.isArray(record.data) ? record.data : [];
 }

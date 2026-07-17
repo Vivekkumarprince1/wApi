@@ -52,7 +52,7 @@ if (process.env.NODE_ENV === 'production') {
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '3006', 10),
-  mongoUri: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/wapi',
+  mongoUri: process.env.MONGO_URI || process.env.AUTH_MONGO_URI || 'mongodb://127.0.0.1:27017/wapi',
   jwtSecret,
   redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
   bspServiceUrl: process.env.BSP_SERVICE_URL || 'http://localhost:3004',

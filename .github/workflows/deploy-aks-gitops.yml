@@ -219,6 +219,9 @@ jobs:
           ref: ${{ env.GITOPS_BRANCH }}
           path: gitops
 
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
       - name: Copy Helm chart and update production values
         run: |
           set -euo pipefail
@@ -241,6 +244,14 @@ jobs:
             "$existing_values" \
             "${existing_registry:-$ACR_LOGIN_SERVER}" \
             "$IMAGE_TAG"
+
+      - name: Validate rendered production manifests
+        run: |
+          set -euo pipefail
+          helm lint "gitops/$GITOPS_ENV_DIR" -f "gitops/$GITOPS_ENV_DIR/production-values.yaml"
+          helm template connectsphere "gitops/$GITOPS_ENV_DIR" \
+            -f "gitops/$GITOPS_ENV_DIR/production-values.yaml" \
+            --namespace connectsphere >/dev/null
 
       - name: Commit GitOps update
         working-directory: gitops

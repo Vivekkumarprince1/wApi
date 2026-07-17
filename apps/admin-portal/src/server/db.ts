@@ -12,13 +12,14 @@ import { config } from "@/config/env";
  * opening a new pool on every request.
  */
 
-type DbName = "core" | "billing" | "campaign" | "automation";
+type DbName = "core" | "billing" | "campaign" | "automation" | "bsp";
 
 const URIS: Record<DbName, string | undefined> = {
   core: config.mongodb.core,
   billing: config.mongodb.billing,
   campaign: config.mongodb.campaign,
   automation: config.mongodb.automation,
+  bsp: config.mongodb.bsp,
 };
 
 interface ConnCacheEntry {
@@ -36,6 +37,7 @@ function emptyCache(): ConnCache {
     billing: { conn: null, promise: null },
     campaign: { conn: null, promise: null },
     automation: { conn: null, promise: null },
+    bsp: { conn: null, promise: null },
   };
 }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
 import { internalPost } from "@/server/internal-client";
 import { recordAudit, clientIp } from "@/server/audit";
+import { reconcileBspApps, syncAllWebhooks } from "@/server/bsp-admin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,18 +10,20 @@ export const dynamic = "force-dynamic";
 /**
  * Operations actions — WRITE path (Rule #5).
  *
- * Direct internal (service-internal endpoints, internal-secret guarded):
- *   gupshup-reconcile       POST service-provider /internal/v1/bsp/admin/reconcile
- *   sync-all-webhooks       POST service-provider /internal/v1/bsp/admin/sync-webhooks
+ * Admin control-plane:
+ *   gupshup-reconcile       direct provider API + wapi_bsp
+ *   sync-all-webhooks       direct provider API + wapi_bsp
+ * Runtime service operation:
  *   replay-dead-webhooks    POST webhook-ingestor /internal/v1/webhooks/replay
  */
 
 type ActionConfig =
-  | { mode: "internal"; service: "bsp" | "ingestor"; path: string; body?: unknown };
+  | { mode: "admin-bsp"; operation: "reconcile" | "sync-all-webhooks" }
+  | { mode: "internal"; service: "ingestor"; path: string; body?: unknown };
 
 const ACTIONS: Record<string, ActionConfig> = {
-  "gupshup-reconcile": { mode: "internal", service: "bsp", path: "/admin/reconcile" },
-  "sync-all-webhooks": { mode: "internal", service: "bsp", path: "/admin/sync-webhooks" },
+  "gupshup-reconcile": { mode: "admin-bsp", operation: "reconcile" },
+  "sync-all-webhooks": { mode: "admin-bsp", operation: "sync-all-webhooks" },
   "replay-dead-webhooks": { mode: "internal", service: "ingestor", path: "/internal/v1/webhooks/replay", body: { limit: 100 } },
 };
 
@@ -36,7 +39,15 @@ export async function POST(
 
   try {
     const actor = await requireAdmin("operations");
-    const result = await internalPost(config.service, config.path, config.body ?? {});
+    const result = config.mode === "admin-bsp"
+      ? {
+          ok: true,
+          status: 200,
+          data: config.operation === "reconcile"
+            ? await reconcileBspApps()
+            : await syncAllWebhooks({}),
+        }
+      : await internalPost(config.service, config.path, config.body ?? {});
 
     await recordAudit({
       actor,

@@ -27,10 +27,11 @@ spec:
       labels:
         {{- include "connectsphere.selectorLabels" $ | nindent 8 }}
         app.kubernetes.io/component: {{ $name }}
-      {{- with $.Values.global.podAnnotations }}
       annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+        {{- with $.Values.global.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
     spec:
       serviceAccountName: {{ include "connectsphere.serviceAccountName" $ }}
       automountServiceAccountToken: false
@@ -43,13 +44,24 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       topologySpreadConstraints:
-        - maxSkew: 1
-          topologyKey: kubernetes.io/hostname
-          whenUnsatisfiable: ScheduleAnyway
+        {{- if $.Values.global.topologySpread.zones.enabled }}
+        - maxSkew: {{ $.Values.global.topologySpread.zones.maxSkew }}
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: {{ $.Values.global.topologySpread.zones.whenUnsatisfiable }}
           labelSelector:
             matchLabels:
               {{- include "connectsphere.selectorLabels" $ | nindent 14 }}
               app.kubernetes.io/component: {{ $name }}
+        {{- end }}
+        {{- if $.Values.global.topologySpread.hosts.enabled }}
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: {{ $.Values.global.topologySpread.hosts.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "connectsphere.selectorLabels" $ | nindent 14 }}
+              app.kubernetes.io/component: {{ $name }}
+        {{- end }}
       {{- with $.Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -73,8 +85,6 @@ spec:
             - configMapRef:
                 name: {{ $.Values.config.name }}
             {{- end }}
-            - secretRef:
-                name: {{ $.Values.secret.name }}
           env:
             {{- range $key, $value := $service.env }}
             - name: {{ $key }}

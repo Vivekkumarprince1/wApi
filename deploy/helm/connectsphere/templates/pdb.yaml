@@ -1,5 +1,6 @@
 {{- range $name, $service := .Values.services }}
-{{- if and $service.enabled (gt (int $service.replicas) 1) }}
+{{- $pdb := mergeOverwrite (deepCopy $.Values.global.pdb) (default dict $service.pdb) }}
+{{- if and $service.enabled $pdb.enabled }}
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
@@ -9,7 +10,11 @@ metadata:
     {{- include "connectsphere.labels" $ | nindent 4 }}
     app.kubernetes.io/component: {{ $name }}
 spec:
-  minAvailable: 1
+  {{- if $pdb.minAvailable }}
+  minAvailable: {{ $pdb.minAvailable }}
+  {{- else }}
+  maxUnavailable: {{ $pdb.maxUnavailable | default 1 }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "connectsphere.selectorLabels" $ | nindent 6 }}

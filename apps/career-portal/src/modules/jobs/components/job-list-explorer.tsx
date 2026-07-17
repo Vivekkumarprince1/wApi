@@ -127,6 +127,7 @@ export function JobListExplorer({
             />
             <input
               type="search"
+              aria-label="Search job titles, companies, or locations"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search job titles, companies, or locations..."

@@ -31,8 +31,6 @@ import { EsbFlowController } from './channels/whatsapp/esb-flow/esb-flow.control
 import { EsbFlowService } from './channels/whatsapp/esb-flow/esb-flow.service';
 import { WorkspaceController, WorkspaceInternalController } from './workspace/workspace.controller';
 import { WorkspaceService } from './workspace/workspace.service';
-import { AdminController } from './admin/admin.controller';
-import { AdminService } from './admin/admin.service';
 import { ChannelController } from './channels/channel.controller';
 import { ChannelService } from './channels/channel.service';
 import { InstagramWebhooksService } from './channels/instagram/instagram-webhooks.service';
@@ -96,7 +94,6 @@ import { RedisService } from './common/redis.service';
     EsbFlowController,
     WorkspaceController,
     WorkspaceInternalController,
-    AdminController,
     ChannelController,
   ],
 
@@ -113,7 +110,6 @@ import { RedisService } from './common/redis.service';
     WebhooksService,
     EsbFlowService,
     WorkspaceService,
-    AdminService,
     ChannelService,
     InstagramWebhooksService,
     ProviderActionsService,

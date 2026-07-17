@@ -76,18 +76,25 @@ keyVaultSecrets:
   tenantId: 21006d98-d493-4e9b-bdd6-6f128e1ee540
   userAssignedIdentityID: 99cc93b9-291d-442a-936d-a637a84c8b8c
   objects:
+    # Shared platform secrets. They have one value per environment and are
+    # injected only into the workloads listed in services.*.secretEnv.
+    - key: JWT_SECRET
+      objectName: jwt-secret
+    - key: INTERNAL_SERVICE_SECRET
+      objectName: internal-service-secret
+    - key: INTEGRATION_ENCRYPTION_KEY
+      objectName: integration-encryption-key
+    - key: REDIS_URL
+      objectName: redis-url
+
+    # Service-owned secrets. Use a distinct Key Vault secret for each service
+    # database and external provider integration.
     - key: GUPSHUP_PARTNER_CLIENT_SECRET
       objectName: gupshup-partner-client-secret
     - key: GUPSHUP_PARTNER_EMAIL
       objectName: gupshup-partner-email
     - key: GUPSHUP_PARTNER_PASSWORD
       objectName: gupshup-partner-password
-    - key: INTEGRATION_ENCRYPTION_KEY
-      objectName: integration-encryption-key
-    - key: INTERNAL_SERVICE_SECRET
-      objectName: internal-service-secret
-    - key: JWT_SECRET
-      objectName: jwt-secret
     - key: BETTER_AUTH_SECRET
       objectName: better-auth-secret
     - key: SMTP_HOST
@@ -124,8 +131,6 @@ keyVaultSecrets:
       objectName: mongo-uri-webhook
     - key: MONGO_URI_WEBSOCKET
       objectName: mongo-uri-websocket
-    - key: REDIS_URL
-      objectName: redis-url
     - key: VERIFY_TOKEN
       objectName: verify-token
     - key: WEBHOOK_SECRET
@@ -139,43 +144,118 @@ services:
   api-gateway:
     env:
       ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-career-vivek.eastus.cloudapp.azure.com
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+    pdb:
+      enabled: true
+      minAvailable: 1
   auth-service:
     secretEnv:
       MONGO_URI: MONGO_URI_AUTH
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 6
+    pdb:
+      enabled: true
+      minAvailable: 1
   campaign-service:
     secretEnv:
       MONGO_URI: MONGO_URI_CAMPAIGN
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
   billing-service:
     secretEnv:
       MONGO_URI: MONGO_URI_BILLING
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
   service-provider:
     env:
       WHATSAPP_WEBHOOK_URL: https://connectsphere-api-vivek.eastus.cloudapp.azure.com/api/webhooks/whatsapp
     secretEnv:
       MONGO_URI: MONGO_URI_BSP
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      INTEGRATION_ENCRYPTION_KEY: INTEGRATION_ENCRYPTION_KEY
+      REDIS_URL: REDIS_URL
+      GUPSHUP_PARTNER_CLIENT_SECRET: GUPSHUP_PARTNER_CLIENT_SECRET
+      GUPSHUP_PARTNER_EMAIL: GUPSHUP_PARTNER_EMAIL
+      GUPSHUP_PARTNER_PASSWORD: GUPSHUP_PARTNER_PASSWORD
+      WEBHOOK_SECRET: WEBHOOK_SECRET
+      WHATSAPP_WEBHOOK_VERIFY_TOKEN: WHATSAPP_WEBHOOK_VERIFY_TOKEN
   automation-service:
     secretEnv:
       MONGO_URI: MONGO_URI_AUTOMATION
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      INTEGRATION_ENCRYPTION_KEY: INTEGRATION_ENCRYPTION_KEY
+      REDIS_URL: REDIS_URL
   chat-service:
     secretEnv:
       MONGO_URI: MONGO_URI_CHAT
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+    pdb:
+      enabled: true
+      minAvailable: 1
   contact-service:
     secretEnv:
       MONGO_URI: MONGO_URI_CONTACT
+      JWT_SECRET: JWT_SECRET
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
   webhook-ingestor:
     secretEnv:
       MONGO_URI: MONGO_URI_WEBHOOK
+      INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      REDIS_URL: REDIS_URL
+      WEBHOOK_SECRET: WEBHOOK_SECRET
+      VERIFY_TOKEN: VERIFY_TOKEN
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+    pdb:
+      enabled: true
+      minAvailable: 1
   websocket-gateway:
     env:
       ALLOWED_ORIGINS: https://connectsphere-customer-vivek.eastus.cloudapp.azure.com,https://connectsphere-admin-vivek.eastus.cloudapp.azure.com,https://connectsphere-career-vivek.eastus.cloudapp.azure.com
     secretEnv:
       MONGO_URI: MONGO_URI_WEBSOCKET
+      JWT_SECRET: JWT_SECRET
+      REDIS_URL: REDIS_URL
+    autoscaling:
+      enabled: true
+      minReplicas: 2
+      maxReplicas: 10
+    pdb:
+      enabled: true
+      minAvailable: 1
   admin-portal:
+    env:
+      WHATSAPP_WEBHOOK_URL: https://connectsphere-api-vivek.eastus.cloudapp.azure.com/api/webhooks/whatsapp
     secretEnv:
       MONGODB_URI: MONGODB_URI
       MONGODB_URI_BILLING: MONGODB_URI_BILLING
       MONGODB_URI_CAMPAIGN: MONGODB_URI_CAMPAIGN
       MONGODB_URI_AUTOMATION: MONGODB_URI_AUTOMATION
+      MONGODB_URI_BSP: MONGO_URI_BSP
+      GUPSHUP_PARTNER_CLIENT_SECRET: GUPSHUP_PARTNER_CLIENT_SECRET
+      GUPSHUP_PARTNER_EMAIL: GUPSHUP_PARTNER_EMAIL
+      GUPSHUP_PARTNER_PASSWORD: GUPSHUP_PARTNER_PASSWORD
   career-portal:
     env:
       APP_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
@@ -198,6 +278,12 @@ ingress:
     cert-manager.io/cluster-issuer: letsencrypt-production
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/limit-rps: "30"
+    nginx.ingress.kubernetes.io/limit-burst-multiplier: "3"
   tls:
     - secretName: connectsphere-public-tls
       hosts:
@@ -217,6 +303,13 @@ ingress:
       service: career-portal
       path: /
       pathType: Prefix
+
+networkPolicy:
+  # Enable only after confirming this namespace label exists on the cluster's
+  # ingress controller namespace. This avoids locking out public traffic.
+  enabled: false
+  ingressControllerNamespaceLabel: kubernetes.io/metadata.name
+  ingressControllerNamespace: ingress-nginx
 
 publicServices:
   enabled: false

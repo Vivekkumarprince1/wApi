@@ -506,29 +506,9 @@ const authWriteRateLimit = (req: express.Request, res: express.Response, next: e
 // Read endpoints such as /session, /workspaces, and /invitations/pending should
 // use the general API limiter so normal app navigation cannot exhaust auth quota.
 app.use('/api/v1/auth', authWriteRateLimit, proxyTo(SERVICES.auth, 'auth', '/api/v1/auth'));
-// Super-admin operations are owned by different services:
-//  - gupshup/* → service-provider admin controller (/internal/v1/bsp/admin/*)
-//    NOTE: admin-portal calls "sync-all-webhooks"; the controller route is "sync-webhooks".
-app.use('/api/v1/super-admin/gupshup', proxyRewrite(
-  SERVICES.serviceProvider,
-  'service-provider',
-  (path) => path
-    .replace('/api/v1/super-admin/gupshup', '/internal/v1/bsp/admin')
-    .replace('/admin/sync-all-webhooks', '/admin/sync-webhooks')
-));
-//  - plans/* and billing admin ops → billing-service wallet admin routes
-app.use('/api/v1/super-admin/plans', proxyRewrite(
-  SERVICES.billing,
-  'billing',
-  (path) => path.replace('/api/v1/super-admin/plans', '/api/billing/wallets/admin/plans')
-));
-app.use('/api/v1/super-admin/billing', proxyRewrite(
-  SERVICES.billing,
-  'billing',
-  (path) => path.replace('/api/v1/super-admin/billing', '/api/billing/wallets/admin')
-));
-//  - everything else → auth-service
-app.use('/api/v1/super-admin', proxyRewrite(SERVICES.auth, 'auth', (path) => path.replace('/api/v1/super-admin', '/super-admin')));
+// No super-admin APIs are exposed through the customer gateway. The standalone
+// admin portal owns the complete control plane and connects to its data stores
+// and external provider APIs server-side.
 
 // 2. Billing Service
 // NOTE: /api/v1/workspace/billing MUST come before /api/v1/workspace so that
