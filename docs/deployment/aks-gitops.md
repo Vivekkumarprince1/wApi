@@ -72,4 +72,6 @@ Replace the placeholders in `deploy/argocd/connectsphere-production.yaml`, then 
 kubectl apply -f deploy/argocd/connectsphere-production.yaml
 ```
 
-The GitHub workflow copies `deploy/helm/connectsphere` into the GitOps environment directory and updates `global.image.registry` plus `global.image.tag` in `production-values.yaml`. Argo CD then syncs the new image tag into AKS.
+The workflows detect changed components before creating their build matrices. A change under one service or portal builds, tests, scans, and pushes only that component. Shared contract changes rebuild only contract consumers; shared package, root Docker-context, workflow, or manual-dispatch changes rebuild all components. Helm-only changes update GitOps without rebuilding images.
+
+The deployment workflow copies `deploy/helm/connectsphere` into the GitOps environment directory and records immutable tags at `services.<name>.image.tag`. Only changed services receive the new commit SHA; unchanged services retain their previous tags. Argo CD therefore rolls only deployments whose rendered image or configuration changed.

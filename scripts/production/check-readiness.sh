@@ -90,6 +90,13 @@ contract_workflows=(
   ".github/workflows/deploy-aks-gitops.yml"
 )
 
+for workflow in "${contract_workflows[@]}"; do
+  if ! grep -Fq 'scripts/ci/changed-services.mjs' "$workflow"; then
+    echo "::error file=$workflow::Workflow must use the shared changed-service matrix"
+    missing=1
+  fi
+done
+
 for service in "${services[@]}"; do
   package_file="$service/package.json"
   if [[ ! -f "$package_file" ]]; then
@@ -100,12 +107,10 @@ for service in "${services[@]}"; do
   fi
 
   service_name="$(basename "$service")"
-  for workflow in "${contract_workflows[@]}"; do
-    if ! grep -Eq "name: '$service_name'.*needs_contracts: true" "$workflow"; then
-      echo "::error file=$workflow::${service_name} depends on shared contracts but is not marked needs_contracts: true"
-      missing=1
-    fi
-  done
+  if ! grep -Eq "name: \"$service_name\".*needs_contracts: true" scripts/ci/changed-services.mjs; then
+    echo "::error file=scripts/ci/changed-services.mjs::${service_name} depends on shared contracts but is not marked needs_contracts: true"
+    missing=1
+  fi
 done
 
 if git ls-files -- "*.env" | grep -q .; then
