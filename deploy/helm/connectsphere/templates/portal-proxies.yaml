@@ -50,7 +50,9 @@ metadata:
     {{- include "connectsphere.labels" $ | nindent 4 }}
     app.kubernetes.io/component: {{ $component }}
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    # The default Azure storage class uses WaitForFirstConsumer, so the PVC
+    # and its consuming Deployment must be applied in the same sync wave.
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   replicas: 1
   strategy:
@@ -126,7 +128,7 @@ metadata:
     {{- include "connectsphere.labels" $ | nindent 4 }}
     app.kubernetes.io/component: {{ $proxy.publicServiceName }}
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "1"
     {{- with $proxy.serviceAnnotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
