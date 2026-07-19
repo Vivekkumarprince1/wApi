@@ -306,7 +306,6 @@ function SidebarNavItem({
                 key={subItem.title} 
                 subItem={subItem} 
                 pathname={pathname}
-                router={router}
              />
           ))}
         </SidebarMenuSub>
@@ -317,12 +316,10 @@ function SidebarNavItem({
 
 function SidebarNavSubItem({ 
     subItem, 
-    pathname, 
-    router 
+    pathname,
 }: { 
     subItem: SidebarChildItem; 
-    pathname: string; 
-    router: any; 
+    pathname: string;
 }) {
     const subFeatureGate = useFeatureGate(subItem.feature || "");
     const isSubLocked = subItem.feature ? !subFeatureGate.gate.allowed : false;

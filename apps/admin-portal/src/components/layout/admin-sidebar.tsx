@@ -17,6 +17,7 @@ import {
   MessageSquare,
   Smartphone,
   GitCompareArrows,
+  ShieldCheck,
 } from "lucide-react";
 import type { AdminCapability } from "@wapi/contracts";
 import { cn } from "@/lib/utils";
