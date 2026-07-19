@@ -46,6 +46,10 @@ metadata:
     app.kubernetes.io/component: api-gateway-proxy
 spec:
   replicas: 1
+  # The certificate store is a ReadWriteOnce PVC. Recreate avoids a rolling
+  # update deadlock where old and new pods both try to attach the same volume.
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "connectsphere.selectorLabels" $ | nindent 6 }}
