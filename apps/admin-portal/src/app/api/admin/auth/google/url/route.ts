@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   const redirectUri = `${config.publicAppUrl.replace(/\/$/, "")}/auth/google/callback`;
-  const url = new URL(`${config.services.auth}/auth/google/url`);
+  const url = new URL(`${config.services.auth}/google/url`);
   url.searchParams.set("type", "admin");
   url.searchParams.set("redirectUri", redirectUri);
 

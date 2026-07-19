@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   const redirectUri = `${config.publicAppUrl.replace(/\/$/, "")}/auth/google/callback`;
   try {
-    const upstream = await fetch(`${config.services.auth}/auth/google/admin/callback`, {
+    const upstream = await fetch(`${config.services.auth}/google/admin/callback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code: body.code, redirectUri }),
