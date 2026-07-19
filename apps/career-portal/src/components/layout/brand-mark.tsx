@@ -1,4 +1,4 @@
-import { Orbit } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -15,11 +15,11 @@ export function BrandMark({
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <span
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white",
-          inverse && "bg-white text-blue-700",
+          "flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-sm shadow-primary/20",
+          inverse && "bg-white text-primary",
         )}
       >
-        <Orbit className="size-5" aria-hidden="true" />
+        <MessageSquare className="size-5" aria-hidden="true" />
       </span>
       <span className="min-w-0">
         <span
@@ -33,8 +33,8 @@ export function BrandMark({
         {!compact ? (
           <span
             className={cn(
-              "mt-1 block text-[9px] leading-none font-bold tracking-[0.18em] text-blue-600 uppercase",
-              inverse && "text-blue-200",
+              "mt-1 block text-[10px] leading-none font-bold tracking-[0.14em] text-primary uppercase",
+              inverse && "text-emerald-200",
             )}
           >
             Careers

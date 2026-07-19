@@ -24,7 +24,7 @@ const inter = { variable: "font-inter" };
 const manrope = { variable: "font-manrope" };
 
 export const metadata: Metadata = {
-  title: "ConnectSphare - WhatsApp CRM & Engagement Platform",
+  title: "ConnectSphere Customer Portal",
   description: "High-performance WhatsApp Business API platform for CRM, Marketing, and Automation.",
 };
 
@@ -58,5 +58,4 @@ export default function RootLayout({
     </html>
   );
 }
-
 

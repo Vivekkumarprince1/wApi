@@ -10,7 +10,6 @@ import {
   CreditCard,
   Settings2,
   BarChart3,
-  ShieldCheck,
   LogOut,
   ScrollText,
   Sliders,
@@ -22,6 +21,7 @@ import {
 import type { AdminCapability } from "@wapi/contracts";
 import { cn } from "@/lib/utils";
 import { useAdminAuth } from "@/store/admin-auth-store";
+import { BrandMark } from "@/components/layout/brand-mark";
 
 interface NavItem {
   href: string;
@@ -91,16 +91,8 @@ export function AdminSidebar() {
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-sidebar-border/70 bg-sidebar/95 shadow-[1px_0_0_rgba(255,255,255,0.35)_inset] backdrop-blur-xl">
       <div className="border-b border-sidebar-border/70 p-4">
-        <Link href="/" className="group flex items-center gap-2.5">
-          <div className="flex aspect-square size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition-transform duration-300 group-hover:scale-105">
-            <ShieldCheck className="size-5" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-lg font-bold leading-tight tracking-tight">ConnectSphere</p>
-            <p className="truncate text-[10px] font-black uppercase leading-tight tracking-widest text-primary">
-              Super Admin
-            </p>
-          </div>
+        <Link href="/" className="group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <BrandMark />
         </Link>
         <div className="mt-4 rounded-xl border border-sidebar-border/70 bg-background/60 p-3 shadow-sm">
           <div className="flex items-center justify-between gap-3">

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -12,7 +12,6 @@ import {
   ShoppingBag,
   BarChart3,
   Puzzle,
-  MessageSquare,
   UserPlus,
   CreditCard,
   Lock,
@@ -38,7 +37,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { useAuthStore, useFeatureGate } from "@/store/auth-store";
+import { useFeatureGate } from "@/store/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { getWABASettings } from "@/lib/api/settings";
 
@@ -62,11 +61,10 @@ type SidebarGroupDef = {
 };
 
 import { WorkspaceSwitcher } from "@/components/layout/workspace-switcher";
+import { BrandMark } from "@/components/layout/brand-mark";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar>) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, workspace } = useAuthStore();
   const [openSections, setOpenSections] = React.useState<Record<string, boolean>>({});
 
   const { data: wabaSettings } = useQuery({
@@ -204,21 +202,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
     <ShadSidebar collapsible="icon" className="border-border/50 bg-background/95 backdrop-blur-sm" {...props}>
       <SidebarHeader className="flex flex-col gap-4 p-4 border-b border-border/50">
         <div className="flex flex-col gap-4 group-data-[collapsible=icon]:items-center">
-            <Link href="/" className="flex items-center gap-2 group cursor-pointer">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg shadow-lg transition-all duration-500 group-hover:scale-105 bg-primary text-primary-foreground shadow-primary/20">
-                    <MessageSquare className="size-5" />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                    <div className="flex items-center gap-2">
-                        <span className="font-bold text-lg tracking-tight truncate max-w-[150px]">
-                          {workspace?.name || 'ConnectSphare'}
-                        </span>
-                        <div title={isWabaConnected ? "WABA Connected" : "WABA Disconnected"} className={`h-2 w-2 rounded-full ${isWabaConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`} />
-                    </div>
-                    <span className="text-[10px] uppercase tracking-widest font-black text-primary">
-                        {user?.role === 'owner' ? 'Enterprise' : 'Workspace'}
-                    </span>
-                </div>
+            <Link href="/" className="group flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <BrandMark className="group-data-[collapsible=icon]:[&>span:last-child]:hidden" />
+                <div
+                  title={isWabaConnected ? "WhatsApp Business Account connected" : "WhatsApp Business Account disconnected"}
+                  aria-label={isWabaConnected ? "WhatsApp Business Account connected" : "WhatsApp Business Account disconnected"}
+                  className={`h-2 w-2 shrink-0 rounded-full ${isWabaConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`}
+                />
             </Link>
 
             <div className="group-data-[collapsible=icon]:hidden">
@@ -264,7 +254,6 @@ function SidebarNavItem({
   openSections: Record<string, boolean>;
   toggleSection: (title: string) => void;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   
   // Call hook at top level of component

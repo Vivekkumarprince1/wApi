@@ -1,3 +1,5 @@
+import "server-only";
+
 import { z } from "zod";
 
 const optionalString = z.preprocess(
@@ -43,14 +45,6 @@ const serverSchema = z.object({
   RATE_LIMIT_REST_TOKEN: optionalString,
 });
 
-const clientSchema = z.object({
-  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: z
-    .enum(["true", "false"])
-    .default("true")
-    .transform((value) => value === "true"),
-  NEXT_PUBLIC_RECAPTCHA_SITE_KEY: optionalString,
-});
-
 const developmentFallbacks = {
   MONGODB_URI: "mongodb://localhost:27017/connectsphere?replicaSet=rs0",
   BETTER_AUTH_SECRET: "development-only-secret-change-before-deploying",
@@ -64,8 +58,3 @@ const source =
     : { ...developmentFallbacks, ...process.env };
 
 export const env = serverSchema.parse(source);
-export const clientEnv = clientSchema.parse({
-  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED:
-    process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
-  NEXT_PUBLIC_RECAPTCHA_SITE_KEY: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
-});

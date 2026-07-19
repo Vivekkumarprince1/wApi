@@ -41,8 +41,8 @@ export function DesktopManagementNavigation({
         className={cn(
           "flex cursor-pointer list-none items-center gap-1 rounded-lg px-3 py-2 text-sm font-semibold transition-colors marker:hidden",
           active
-            ? "bg-blue-50 text-blue-700"
-            : "text-slate-600 hover:bg-blue-50/70 hover:text-blue-700",
+            ? "bg-primary/10 text-primary"
+            : "text-slate-600 hover:bg-primary/10 hover:text-primary",
         )}
       >
         <ShieldCheck className="size-4" aria-hidden="true" />
@@ -58,8 +58,8 @@ export function DesktopManagementNavigation({
             key={item.href}
             href={item.href}
             className={cn(
-              "flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700",
-              pathname === item.href && "bg-blue-50 text-blue-700",
+              "flex items-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold text-slate-700 hover:bg-primary/10 hover:text-primary",
+              pathname === item.href && "bg-primary/10 text-primary",
             )}
           >
             <item.icon className="size-4 shrink-0" aria-hidden="true" />
@@ -84,7 +84,7 @@ export function MobileManagementNavigation({
 
   return (
     <div className="mt-2 border-t border-slate-100 pt-2">
-      <p className="px-3 py-2 text-xs font-bold tracking-wider text-blue-700 uppercase">
+      <p className="px-3 py-2 text-xs font-bold tracking-wider text-primary uppercase">
         Super-admin management
       </p>
       <div className="grid gap-1 sm:grid-cols-2">
@@ -94,8 +94,8 @@ export function MobileManagementNavigation({
             href={item.href}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-3 rounded-xl px-3 py-3 font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700",
-              pathname === item.href && "bg-blue-50 text-blue-700",
+              "flex items-center gap-3 rounded-xl px-3 py-3 font-semibold text-slate-700 hover:bg-primary/10 hover:text-primary",
+              pathname === item.href && "bg-primary/10 text-primary",
             )}
           >
             <item.icon className="size-5" aria-hidden="true" />

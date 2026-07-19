@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { clientEnv } from "@/config/env";
 import { authClient } from "@/lib/auth/auth-client";
 
 function safeRedirect(value: string | null) {
@@ -42,10 +41,6 @@ export function GoogleSignInButton({
 }) {
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  if (!clientEnv.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED) {
-    return null;
-  }
 
   return (
     <>

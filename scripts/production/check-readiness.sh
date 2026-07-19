@@ -54,6 +54,13 @@ if ! grep -Fq "vars.GOOGLE_AUTH_ENABLED || 'true'" .github/workflows/deploy-aks-
   missing=1
 fi
 
+while IFS= read -r client_file; do
+  if grep -Fq '@/config/env' "$client_file"; then
+    echo "::error file=$client_file::Client component imports the career portal server-only environment module"
+    missing=1
+  fi
+done < <(rg -l '^"use client";' apps/career-portal/src -g '*.ts' -g '*.tsx')
+
 for service in "${services[@]}"; do
   if [[ ! -f "$service/package.json" ]]; then
     echo "::error file=$service/package.json::Missing package manifest"

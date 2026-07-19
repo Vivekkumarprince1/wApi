@@ -53,8 +53,8 @@ export function SiteHeader({
                   className={cn(
                     "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
                     active
-                      ? "bg-blue-50 text-blue-700"
-                      : "text-slate-600 hover:bg-blue-50 hover:text-blue-700",
+                      ? "bg-primary/10 text-primary"
+                      : "text-slate-600 hover:bg-primary/10 hover:text-primary",
                   )}
                 >
                   {item.label}
@@ -67,8 +67,8 @@ export function SiteHeader({
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
                   pathname.startsWith("/employee/")
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-slate-600 hover:bg-blue-50 hover:text-blue-700",
+                    ? "bg-primary/10 text-primary"
+                    : "text-slate-600 hover:bg-primary/10 hover:text-primary",
                 )}
               >
                 Employee portal
@@ -80,8 +80,8 @@ export function SiteHeader({
                 className={cn(
                   "rounded-lg px-3 py-2 text-sm font-semibold transition-colors",
                   pathname.startsWith("/recruitment")
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-slate-600 hover:bg-blue-50 hover:text-blue-700",
+                    ? "bg-primary/10 text-primary"
+                    : "text-slate-600 hover:bg-primary/10 hover:text-primary",
                 )}
               >
                 HR workspace
@@ -120,7 +120,7 @@ export function SiteHeader({
                   key={item.href}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 rounded-lg px-3 py-3 font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                  className="flex items-center gap-3 rounded-lg px-3 py-3 font-semibold text-slate-700 hover:bg-primary/10 hover:text-primary"
                 >
                   <item.icon className="size-5" aria-hidden="true" />
                   {item.label}
@@ -130,7 +130,7 @@ export function SiteHeader({
               <Link
                 href="/employee/profile"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-3 font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                className="flex items-center gap-3 rounded-lg px-3 py-3 font-semibold text-slate-700 hover:bg-primary/10 hover:text-primary"
               >
                 <IdCard className="size-5" aria-hidden="true" />
                 Employee portal
@@ -140,7 +140,7 @@ export function SiteHeader({
               <Link
                 href={hrWorkspaceHref}
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center gap-3 rounded-lg px-3 py-3 font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                className="flex items-center gap-3 rounded-lg px-3 py-3 font-semibold text-slate-700 hover:bg-primary/10 hover:text-primary"
               >
                 <ShieldCheck className="size-5" aria-hidden="true" />
                 HR workspace
@@ -174,7 +174,7 @@ export function SiteHeader({
                   href={item.href}
                   className={cn(
                     "flex min-w-16 flex-col items-center justify-center rounded-xl px-2 py-2 text-xs font-medium",
-                    active ? "bg-blue-50 text-blue-700" : "text-slate-500",
+                    active ? "bg-primary/10 text-primary" : "text-slate-500",
                   )}
                 >
                   <item.icon className="size-5" aria-hidden="true" />
@@ -190,7 +190,7 @@ export function SiteHeader({
               className={cn(
                 "flex min-w-16 flex-col items-center justify-center rounded-xl px-2 py-2 text-xs font-medium",
                 pathname.startsWith("/employee/")
-                  ? "bg-blue-50 text-blue-700"
+                  ? "bg-primary/10 text-primary"
                   : "text-slate-500",
               )}
             >
@@ -204,7 +204,7 @@ export function SiteHeader({
               className={cn(
                 "flex min-w-16 flex-col items-center justify-center rounded-xl px-2 py-2 text-xs font-medium",
                 pathname.startsWith("/recruitment")
-                  ? "bg-blue-50 text-blue-700"
+                  ? "bg-primary/10 text-primary"
                   : "text-slate-500",
               )}
             >
