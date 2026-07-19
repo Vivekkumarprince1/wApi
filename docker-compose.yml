@@ -55,6 +55,8 @@ services:
       context: .
       dockerfile: services/auth-service/Dockerfile
     container_name: connectsphere-auth-service
+    env_file:
+      - ./services/auth-service/.env
     ports:
       - "3006:3006"
     depends_on:

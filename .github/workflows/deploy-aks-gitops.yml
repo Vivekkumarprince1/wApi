@@ -181,6 +181,7 @@ jobs:
             BACKEND_API_URL=${{ vars.BACKEND_API_URL || 'http://connectsphere-api-gateway:5001' }}
             APP_URL=${{ vars.CAREER_PORTAL_URL || 'https://connectsphere-career-vivek.eastus.cloudapp.azure.com' }}
             BETTER_AUTH_URL=${{ vars.CAREER_PORTAL_URL || 'https://connectsphere-career-vivek.eastus.cloudapp.azure.com' }}
+            NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=${{ vars.GOOGLE_AUTH_ENABLED || 'true' }}
             NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${{ vars.CAREER_RECAPTCHA_SITE_KEY }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

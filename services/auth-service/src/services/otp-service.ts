@@ -240,12 +240,16 @@ export async function createAndSendOtp(input: {
       ? await sendPhoneOtp(identifier, otp, input.purpose)
       : await sendEmailOtp(identifier, otp, input.purpose).then(() => 'email');
   } catch (err: any) {
-    if (config.env !== 'production') {
-      sentVia = 'console';
-      console.warn(`[OTP] Delivery failed, falling back to console: ${err.message}`);
-    } else {
-      throw err;
-    }
+    console.error(`[OTP] Delivery failed for ${input.purpose} to ${identifier}: ${err.message}`);
+    await challenge.deleteOne();
+    throw Object.assign(
+      new Error(
+        challenge.channel === 'email'
+          ? 'We could not send the verification email. Please try again or contact support.'
+          : 'We could not send the verification code. Please try again or contact support.'
+      ),
+      { status: 503, code: 'OTP_DELIVERY_FAILED', originalError: err.message }
+    );
   }
 
   return {

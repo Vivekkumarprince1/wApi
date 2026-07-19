@@ -41,12 +41,12 @@ export class MailService {
 
     if (config.smtpHost && config.smtpUser && config.smtpPass) {
       this.transporter = nodemailer.createTransport({
-        host: config.smtpHost,
-        port: config.smtpPort || 587,
+        host: config.smtpHost.trim(),
+        port: config.smtpPort,
         secure: config.smtpPort === 465,
         auth: {
-          user: config.smtpUser,
-          pass: config.smtpPass,
+          user: config.smtpUser.trim(),
+          pass: config.smtpPass.trim().replace(/\s/g, ''),
         },
       });
 
@@ -61,24 +61,17 @@ export class MailService {
   static async sendMail(options: IMailOptions) {
     console.log(`[MailService] Preparing to send email to: ${options.to} (Subject: ${options.subject})`);
     const transporter = await this.getTransporter();
-    
-    const fromName = config.appName || 'wApi';
-    const fromEmail = config.smtpFrom || 'noreply@wapi.com';
-    
+
     const mailOptions = {
-      from: `"${fromName}" <${fromEmail}>`,
+      from: config.smtpFrom,
       ...options,
     };
 
     console.log(`[MailService] Using From address: ${mailOptions.from}`);
 
     if (!transporter) {
-      console.log('-----------------------------------------');
-      console.log(`[MailService:Fallback] 📧 Sending to: ${options.to}`);
-      console.log(`[MailService:Fallback] 📝 Subject: ${options.subject}`);
-      console.log(`[MailService:Fallback] 📄 Body: ${options.text || options.html}`);
-      console.log('-----------------------------------------');
-      return { success: true, method: 'console', warning: 'SMTP not configured. Email logged to console.' };
+      console.error(`[MailService:ERROR] SMTP is not configured. Email to ${options.to} was not sent.`);
+      return { success: false, method: 'none', error: 'Email delivery is not configured' };
     }
 
     let lastError: any = null;
@@ -89,8 +82,8 @@ export class MailService {
         return { success: true, method: 'smtp', messageId: info.messageId, attempt };
       } catch (error: any) {
         lastError = error;
-        console.error(`[MailService] Error sending email to ${options.to} (attempt ${attempt}/${this.MAX_RETRIES}):`, error.message);
-        
+        console.error(`[MailService] Error sending email to ${options.to} (attempt ${attempt}/${this.MAX_RETRIES}):`, error.code, error.message);
+
         if (attempt < this.MAX_RETRIES) {
           const delayMs = this.RETRY_DELAY_MS * Math.pow(2, attempt - 1);
           console.log(`[MailService] Retrying in ${delayMs}ms...`);
@@ -99,7 +92,7 @@ export class MailService {
       }
     }
 
-    console.error(`[MailService] All ${this.MAX_RETRIES} attempts failed for ${options.to}`);
+    console.error(`[MailService] All ${this.MAX_RETRIES} attempts failed for ${options.to}: ${lastError?.message}`);
     return { success: false, method: 'smtp', error: lastError?.message, attempts: this.MAX_RETRIES };
   }
 
@@ -114,7 +107,7 @@ export class MailService {
     invitationUrl: string;
   }) {
     const { to, inviterName, workspaceName, role, invitationUrl } = data;
-    
+
     return this.sendMail({
       to,
       subject: `You've been invited to join ${workspaceName} on ${config.appName}`,

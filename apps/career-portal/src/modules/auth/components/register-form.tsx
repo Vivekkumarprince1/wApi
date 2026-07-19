@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/auth-client";
+import { GoogleSignInButton } from "@/modules/auth/components/google-sign-in-button";
 import { registrationSchema } from "@/modules/auth/schemas";
 
 const fields = [
@@ -159,6 +160,9 @@ export function RegisterForm() {
           </Button>
         )}
       </form.Subscribe>
+      <GoogleSignInButton
+        onError={(message) => setServerError(message || null)}
+      />
       <p className="text-center text-xs leading-5 text-slate-500">
         By registering, you agree to ConnectSphere&apos;s{" "}
         <a

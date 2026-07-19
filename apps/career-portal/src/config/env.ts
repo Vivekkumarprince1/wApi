@@ -13,6 +13,8 @@ const serverSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
   BETTER_AUTH_URL: z.string().url(),
   APP_URL: z.string().url(),
+  GOOGLE_CLIENT_ID: optionalString,
+  GOOGLE_CLIENT_SECRET: optionalString,
   SMTP_HOST: optionalString,
   SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
   SMTP_SECURE: z
@@ -42,6 +44,10 @@ const serverSchema = z.object({
 });
 
 const clientSchema = z.object({
+  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
   NEXT_PUBLIC_RECAPTCHA_SITE_KEY: optionalString,
 });
 
@@ -59,5 +65,7 @@ const source =
 
 export const env = serverSchema.parse(source);
 export const clientEnv = clientSchema.parse({
+  NEXT_PUBLIC_GOOGLE_AUTH_ENABLED:
+    process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED,
   NEXT_PUBLIC_RECAPTCHA_SITE_KEY: process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY,
 });

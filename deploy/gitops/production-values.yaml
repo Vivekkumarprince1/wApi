@@ -39,8 +39,8 @@ config:
     ADMIN_PORTAL_URL: https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     CAREER_PORTAL_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
     CAREER_PORTAL_HEALTH_URL: http://connectsphere-career-portal:3001/api/health/live
-    GOOGLE_AUTH_ENABLED: "false"
-    NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "false"
+    GOOGLE_AUTH_ENABLED: "true"
+    NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "true"
     NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED: "false"
     ALLOW_DEV_AUTH_MOCKS: "false"
     ALLOW_DEV_MEDIA_MOCKS: "false"
@@ -97,14 +97,20 @@ keyVaultSecrets:
       objectName: gupshup-partner-password
     - key: BETTER_AUTH_SECRET
       objectName: better-auth-secret
+    - key: GOOGLE_CLIENT_ID
+      objectName: google-client-id
+    - key: GOOGLE_CLIENT_SECRET
+      objectName: google-client-secret
     - key: SMTP_HOST
-      objectName: career-smtp-host
+      objectName: smtp-host
     - key: SMTP_USER
-      objectName: career-smtp-user
+      objectName: smtp-user
     - key: SMTP_PASSWORD
-      objectName: career-smtp-password
+      objectName: smtp-password
+    - key: SMTP_FROM
+      objectName: auth-smtp-from
     - key: EMAIL_REPLY_TO
-      objectName: career-email-reply-to
+      objectName: email-reply-to
     - key: MONGODB_URI
       objectName: mongodb-uri
     - key: MONGODB_URI_AUTOMATION
@@ -157,6 +163,12 @@ services:
       JWT_SECRET: JWT_SECRET
       INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
       REDIS_URL: REDIS_URL
+      SMTP_HOST: SMTP_HOST
+      SMTP_USER: SMTP_USER
+      SMTP_PASS: SMTP_PASSWORD
+      SMTP_FROM: SMTP_FROM
+      GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID
+      GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET
     autoscaling:
       enabled: true
       minReplicas: 2
@@ -247,6 +259,9 @@ services:
   admin-portal:
     env:
       WHATSAPP_WEBHOOK_URL: https://connectsphere-api-vivek.eastus.cloudapp.azure.com/api/webhooks/whatsapp
+      ADMIN_PORTAL_URL: https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+      NEXT_PUBLIC_APP_URL: https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+      NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "true"
     secretEnv:
       MONGODB_URI: MONGODB_URI
       MONGODB_URI_BILLING: MONGODB_URI_BILLING
@@ -260,12 +275,15 @@ services:
     env:
       APP_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
       BETTER_AUTH_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
+      NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "true"
       REQUIRE_PRIVILEGED_MFA: "true"
       SMTP_PORT: "587"
       SMTP_SECURE: "false"
     secretEnv:
       MONGODB_URI: MONGODB_URI
       BETTER_AUTH_SECRET: BETTER_AUTH_SECRET
+      GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID
+      GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET
       SMTP_HOST: SMTP_HOST
       SMTP_USER: SMTP_USER
       SMTP_PASSWORD: SMTP_PASSWORD

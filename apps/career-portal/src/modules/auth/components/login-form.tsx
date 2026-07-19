@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/auth-client";
+import { GoogleSignInButton } from "@/modules/auth/components/google-sign-in-button";
 import { loginSchema } from "@/modules/auth/schemas";
 
 function safeRedirect(value: string | null) {
@@ -183,6 +184,9 @@ export function LoginForm() {
           </Button>
         )}
       </form.Subscribe>
+      <GoogleSignInButton
+        onError={(message) => setServerError(message || null)}
+      />
     </form>
   );
 }

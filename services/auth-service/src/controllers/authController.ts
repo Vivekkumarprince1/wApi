@@ -34,6 +34,7 @@ import {
 } from '../utils/authHelper.js';
 import { AuthRequest } from '../middleware/businessAuth.js';
 import config from '../config/index.js';
+import { isAdminRole } from '@wapi/contracts';
 
 async function getUserFromCookie(req: express.Request) {
   const token = extractToken(req);
@@ -310,6 +311,39 @@ export const googleCallback = async (req: express.Request, res: express.Response
         message: error.message || 'Google callback failed',
         requestId: req.headers['x-correlation-id'] || null,
       },
+    });
+  }
+};
+
+/** Google OAuth for existing platform administrators; this never creates users. */
+export const googleAdminCallback = async (req: express.Request, res: express.Response) => {
+  try {
+    const code = (req.body?.code || (req.query as any)?.code) as string | undefined;
+    const redirectUri = (req.body?.redirectUri || (req.query as any)?.redirectUri) as string | undefined;
+    if (!code) return res.status(400).json({ success: false, message: 'Missing Google authorization code' });
+
+    const googleUser = await getGoogleUser(code, redirectUri);
+    const email = googleUser?.email ? normalizeEmail(googleUser.email) : '';
+    if (!email) return res.status(400).json({ success: false, message: 'Failed to retrieve email from Google' });
+
+    const user: any = await User.findOne({ $or: [{ googleId: googleUser.id }, { email }] });
+    if (!user || !isAdminRole(user.role)) {
+      return res.status(403).json({ success: false, message: 'This Google account is not authorized for the admin portal' });
+    }
+
+    let needsSave = false;
+    if (!user.googleId) { user.googleId = googleUser.id; needsSave = true; }
+    if (user.authProvider !== 'google') { user.authProvider = 'google'; needsSave = true; }
+    if (!user.emailVerified) { user.emailVerified = true; needsSave = true; }
+    if (!user.profilePicture && googleUser.picture) { user.profilePicture = googleUser.picture; needsSave = true; }
+    if (needsSave) await user.save();
+
+    return res.status(200).json({ success: true, user: { email: user.email } });
+  } catch (error: any) {
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Google callback failed',
+      code: error.code || 'GOOGLE_ADMIN_AUTH_FAILED',
     });
   }
 };

@@ -60,8 +60,9 @@ export async function sendAuthOtp(input: {
   }
 
   if (purpose === 'email_verification') {
-    if (!input.currentUser?.email) throw Object.assign(new Error('Authenticated email is required'), { status: 401 });
-    identifier = input.currentUser.email;
+    const email = normalizeEmail(identifier || input.currentUser?.email);
+    if (!email) throw Object.assign(new Error('Email is required for verification'), { status: 400 });
+    identifier = email;
   }
 
   if (purpose === 'phone_verification') {

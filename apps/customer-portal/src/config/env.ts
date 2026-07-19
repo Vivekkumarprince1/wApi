@@ -57,7 +57,7 @@ export const config = {
   // bake a developer localhost into the browser bundle.
   socketUrl: rawEnv.NEXT_PUBLIC_SOCKET_URL || '',
   googleClientId: rawEnv.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
-  googleAuthEnabled: rawEnv.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED === 'true',
+  googleAuthEnabled: rawEnv.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED !== 'false',
   facebookAppId: rawEnv.NEXT_PUBLIC_FACEBOOK_APP_ID || '',
   facebookAuthEnabled: rawEnv.NEXT_PUBLIC_FACEBOOK_AUTH_ENABLED === 'true',
   businessVerificationMandatory: rawEnv.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY === 'true',

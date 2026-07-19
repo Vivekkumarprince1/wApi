@@ -154,23 +154,6 @@ export default function LoginPage() {
                 <p className="text-sm text-muted-foreground">Sign in to your account to continue</p>
               </div>
 
-              <div className="space-y-3 mb-6">
-                <GoogleLogin
-                  onError={(msg: string) => setSocialError(msg)}
-                  onSuccess={handleLoginSuccess}
-                />
-                <FacebookLogin
-                  onError={(msg: string) => setSocialError(msg)}
-                  onSuccess={handleLoginSuccess}
-                />
-              </div>
-
-              <div className="flex items-center gap-4 my-6">
-                <span className="flex-1 h-px bg-border" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">or</span>
-                <span className="flex-1 h-px bg-border" />
-              </div>
-
               {socialError && (
                 <div className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive text-left">
                   {socialError}
@@ -226,6 +209,22 @@ export default function LoginPage() {
                   )}
                 </button>
               </form>
+
+              <div className="my-6 flex items-center gap-4">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">or</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <div className="flex justify-center gap-3">
+                <GoogleLogin
+                  formType="login"
+                  onError={(msg: string) => setSocialError(msg)}
+                />
+                <FacebookLogin
+                  onError={(msg: string) => setSocialError(msg)}
+                  onSuccess={handleLoginSuccess}
+                />
+              </div>
 
               <div className="mt-6 space-y-2">
                 <div className="text-sm text-muted-foreground">

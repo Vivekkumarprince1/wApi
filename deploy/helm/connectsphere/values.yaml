@@ -65,6 +65,7 @@ config:
     ADMIN_PORTAL_URL: https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
     CAREER_PORTAL_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
     CAREER_PORTAL_HEALTH_URL: http://connectsphere-career-portal:3001/api/health/live
+    NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "true"
     GATEWAY_URL: http://connectsphere-api-gateway:5001
     API_GATEWAY_URL: http://connectsphere-api-gateway:5001
     AUTH_SERVICE_URL: http://connectsphere-auth-service:3006
@@ -236,11 +237,20 @@ services:
     env:
       PORT: "3006"
       SERVICE_NAME: auth-service
+      SMTP_PORT: "587"
+      SMTP_SECURE: "false"
+      SIGNUP_OTP_TTL_MINUTES: "10"
     secretEnv:
       MONGO_URI: MONGO_URI_AUTH
       JWT_SECRET: JWT_SECRET
       INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
       REDIS_URL: REDIS_URL
+      SMTP_HOST: SMTP_HOST
+      SMTP_USER: SMTP_USER
+      SMTP_PASS: SMTP_PASSWORD
+      SMTP_FROM: SMTP_FROM
+      GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID
+      GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET
     resources:
       requests:
         cpu: 100m
@@ -459,6 +469,8 @@ services:
     env:
       PORT: "3100"
       BACKEND_API_URL: http://connectsphere-api-gateway:5001
+      ADMIN_PORTAL_URL: https://connectsphere-admin-vivek.eastus.cloudapp.azure.com
+      NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "true"
       SERVICE_NAME: admin-portal
     secretEnv:
       MONGODB_URI: MONGODB_URI
@@ -468,6 +480,8 @@ services:
       MONGODB_URI_BSP: MONGO_URI_BSP
       JWT_SECRET: JWT_SECRET
       INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
+      GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID
+      GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET
       GUPSHUP_PARTNER_CLIENT_SECRET: GUPSHUP_PARTNER_CLIENT_SECRET
       GUPSHUP_PARTNER_EMAIL: GUPSHUP_PARTNER_EMAIL
       GUPSHUP_PARTNER_PASSWORD: GUPSHUP_PARTNER_PASSWORD
@@ -493,11 +507,14 @@ services:
       PORT: "3001"
       APP_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
       BETTER_AUTH_URL: https://connectsphere-career-vivek.eastus.cloudapp.azure.com
+      NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "true"
       REQUIRE_PRIVILEGED_MFA: "true"
       SERVICE_NAME: career-portal
     secretEnv:
       MONGODB_URI: MONGODB_URI
       BETTER_AUTH_SECRET: BETTER_AUTH_SECRET
+      GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID
+      GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET
     resources:
       requests:
         cpu: 100m

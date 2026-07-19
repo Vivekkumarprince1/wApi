@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { getCurrentUser, sendEmailVerificationOTP, verifyEmailOTP } from '@/lib/api/auth';
@@ -13,41 +13,17 @@ export default function VerifyEmailPage() {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [emailSent, setEmailSent] = useState(false);
   const hasFetched = useRef(false);
   const { user } = useAuthStore();
 
-  useEffect(() => {
-    if (hasFetched.current) return;
-    hasFetched.current = true;
-
-    const init = async () => {
-      try {
-        const session = user ? { user } : await getCurrentUser();
-        const currentUser = session?.user || session;
-        if (currentUser) {
-          setEmail(currentUser.email || '');
-          if (currentUser.emailVerified) {
-            router.push(session?.nextStep || '/onboarding/verify-mobile');
-            return;
-          }
-          sendOTP();
-        } else {
-          router.push('/auth/login');
-        }
-      } catch (err) {
-        console.error('Error getting user:', err);
-        router.push('/auth/login');
-      }
-    };
-
-    init();
-  }, [router, user]);
-
-  async function sendOTP() {
+  const sendOTP = useCallback(async (targetEmail = email) => {
     try {
       setLoading(true);
       setError('');
-      await sendEmailVerificationOTP(email);
+      setEmailSent(false);
+      await sendEmailVerificationOTP(targetEmail);
+      setEmailSent(true);
       setCountdown(60);
 
       const timer = setInterval(() => {
@@ -60,15 +36,49 @@ export default function VerifyEmailPage() {
         });
       }, 1000);
     } catch (err: any) {
-      if (err.message && err.message.includes('60 seconds')) {
+      const message = err?.response?.data?.message || err?.message || 'Failed to send OTP';
+      if (message.includes('60 seconds')) {
         setCountdown(60);
       } else {
-        setError(err.message || 'Failed to send OTP');
+        setCountdown(0);
+        setError(message);
       }
     } finally {
       setLoading(false);
     }
-  }
+  }, [email]);
+
+  useEffect(() => {
+    if (hasFetched.current) return;
+    hasFetched.current = true;
+
+    const init = async () => {
+      try {
+        const session = user ? { user } : await getCurrentUser();
+        const currentUser = session?.user || session;
+        if (currentUser) {
+          const resolvedEmail = currentUser.email || '';
+          setEmail(resolvedEmail);
+          if (currentUser.emailVerified) {
+            router.push(session?.nextStep || '/onboarding/verify-mobile');
+            return;
+          }
+          if (!resolvedEmail) {
+            setError('No email address is associated with this account.');
+            return;
+          }
+          await sendOTP(resolvedEmail);
+        } else {
+          router.push('/auth/login');
+        }
+      } catch (err) {
+        console.error('Error getting user:', err);
+        router.push('/auth/login');
+      }
+    };
+
+    init();
+  }, [router, sendOTP, user]);
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,10 +90,10 @@ export default function VerifyEmailPage() {
     try {
       setLoading(true);
       setError('');
-      const result = await verifyEmailOTP(otp);
+      const result = await verifyEmailOTP(otp, email);
       router.push(result?.nextStep || '/onboarding/verify-mobile');
     } catch (err: any) {
-      setError(err.message || 'Invalid OTP');
+      setError(err?.response?.data?.message || err?.message || 'Invalid OTP');
     } finally {
       setLoading(false);
     }
@@ -110,7 +120,9 @@ export default function VerifyEmailPage() {
             Verify Your Email
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            We've sent a 6-character verification code to
+            {emailSent
+              ? "We've sent a 6-digit verification code to"
+              : 'Send a 6-digit verification code to'}
           </p>
           {email && (
             <p className="text-sm text-foreground mt-1 font-semibold">
@@ -135,8 +147,10 @@ export default function VerifyEmailPage() {
             </label>
             <input
               type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
               value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 6))}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="••••••"
               required
               maxLength={6}
@@ -182,7 +196,7 @@ export default function VerifyEmailPage() {
 
         <div className="mt-8 p-4 bg-accent/50 border border-accent rounded-lg">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            <span className="text-primary font-bold mr-1">Tip:</span> 
+            <span className="text-primary font-bold mr-1">Tip:</span>
             Verifying your email helps secure your account and ensures you receive important notifications about your WhatsApp Business account.
           </p>
         </div>

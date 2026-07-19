@@ -8,6 +8,7 @@ import {
   verifyOtpEndpoint,
   googleUrl,
   googleCallback,
+  googleAdminCallback,
   facebookLogin,
   session,
   me,
@@ -72,6 +73,7 @@ router.get('/google/auth-url', googleUrl);
 router.post('/google/login', googleCallback);
 // Frontend google callback page posts /auth/google/callback
 router.post('/google/callback', googleCallback);
+router.post('/google/admin/callback', googleAdminCallback);
 
 /* -------------------------------- Facebook -------------------------------- */
 router.post('/facebook/login', facebookLogin);

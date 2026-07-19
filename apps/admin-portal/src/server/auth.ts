@@ -99,6 +99,26 @@ export async function authenticateAdmin(
     return { ok: false, status: 403, message: "This account is not authorized for the admin portal" };
   }
 
+  return issueAdminSession(user);
+}
+
+/** Issues an admin session for an existing, authorized account after Google OAuth. */
+export async function authenticateAdminGoogle(email: string): Promise<LoginResult> {
+  const normalizedEmail = email.toLowerCase().trim();
+  if (!normalizedEmail) return { ok: false, status: 400, message: "Email is required" };
+
+  const { User } = await coreModels();
+  const user = (await User.findOne({ email: normalizedEmail })
+    .select("name email role status")
+    .lean()) as AdminUserLean | null;
+  if (!user || (user.status && user.status === "removed") || !isAdminRole(user.role)) {
+    return { ok: false, status: 403, message: "This account is not authorized for the admin portal" };
+  }
+
+  return issueAdminSession(user);
+}
+
+function issueAdminSession(user: AdminUserLean): LoginResult {
   const role = normalizeAdminRole(user.role) as AdminRole;
   const sid = randomId();
   const session: AdminSession = {

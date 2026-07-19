@@ -37,6 +37,23 @@ for file in "${required_files[@]}"; do
   fi
 done
 
+google_login_dockerfiles=(
+  "apps/admin-portal/Dockerfile"
+  "apps/career-portal/Dockerfile"
+  "apps/customer-portal/Dockerfile"
+)
+for dockerfile in "${google_login_dockerfiles[@]}"; do
+  if ! grep -Fq 'ARG NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=true' "$dockerfile"; then
+    echo "::error file=$dockerfile::Google login must default to visible in portal builds"
+    missing=1
+  fi
+done
+
+if ! grep -Fq "vars.GOOGLE_AUTH_ENABLED || 'true'" .github/workflows/deploy-aks-gitops.yml; then
+  echo "::error file=.github/workflows/deploy-aks-gitops.yml::Google login build flag must default to true"
+  missing=1
+fi
+
 for service in "${services[@]}"; do
   if [[ ! -f "$service/package.json" ]]; then
     echo "::error file=$service/package.json::Missing package manifest"
@@ -128,6 +145,9 @@ if [[ -f "$production_values" ]]; then
   # capabilities. Optional integrations must remain disabled rather than making
   # the CSI mount fail for every workload when their secrets are not provisioned.
   required_secret_keys=(BETTER_AUTH_SECRET)
+  if grep -Fq 'NEXT_PUBLIC_GOOGLE_AUTH_ENABLED: "true"' "$production_values"; then
+    required_secret_keys+=(GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET)
+  fi
   if grep -Fq 'RAZORPAY_ENABLED: "true"' "$production_values"; then
     required_secret_keys+=(RAZORPAY_KEY_ID RAZORPAY_KEY_SECRET RAZORPAY_WEBHOOK_SECRET)
   fi

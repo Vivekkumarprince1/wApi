@@ -157,23 +157,6 @@ export default function RegisterPage() {
                 <p className="text-sm text-muted-foreground">Get started with your free trial today</p>
               </div>
 
-              <div className="space-y-3 mb-6">
-                <GoogleLogin
-                  onError={(msg: string) => setSocialError(msg)}
-                  onSuccess={handleRegisterSuccess}
-                />
-                <FacebookLogin
-                  onError={(msg: string) => setSocialError(msg)}
-                  onSuccess={handleRegisterSuccess}
-                />
-              </div>
-
-              <div className="flex items-center gap-4 my-6">
-                <span className="flex-1 h-px bg-border" />
-                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">or</span>
-                <span className="flex-1 h-px bg-border" />
-              </div>
-
               {socialError && (
                 <div className="mb-4 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive text-left">
                   {socialError}
@@ -243,6 +226,22 @@ export default function RegisterPage() {
                   )}
                 </button>
               </form>
+
+              <div className="my-6 flex items-center gap-4">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">or</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+              <div className="flex justify-center gap-3">
+                <GoogleLogin
+                  formType="signup"
+                  onError={(msg: string) => setSocialError(msg)}
+                />
+                <FacebookLogin
+                  onError={(msg: string) => setSocialError(msg)}
+                  onSuccess={handleRegisterSuccess}
+                />
+              </div>
 
               <p className="mt-5 text-xs text-muted-foreground text-center">
                 By continuing you agree to our{' '}
