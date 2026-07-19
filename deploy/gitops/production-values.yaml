@@ -341,6 +341,29 @@ publicServices:
       annotations:
         service.beta.kubernetes.io/azure-dns-label-name: connectsphere-career-vivek
 
+portalProxies:
+  enabled: true
+  email: vivekkumarprince1@gmail.com
+  image: caddy:2.9-alpine
+  storage:
+    enabled: true
+    size: 1Gi
+  items:
+    - name: customer
+      service: customer-portal
+      publicServiceName: customer-portal-public
+      host: connectsphere-customer-vivek.eastus.cloudapp.azure.com
+      upstream: connectsphere-customer-portal:3000
+      serviceAnnotations:
+        service.beta.kubernetes.io/azure-dns-label-name: connectsphere-customer-vivek
+    - name: admin
+      service: admin-portal
+      publicServiceName: admin-portal-public
+      host: connectsphere-admin-vivek.eastus.cloudapp.azure.com
+      upstream: connectsphere-admin-portal:3100
+      serviceAnnotations:
+        service.beta.kubernetes.io/azure-dns-label-name: connectsphere-admin-vivek
+
 careerPortalProxy:
   enabled: true
   host: connectsphere-career-vivek.eastus.cloudapp.azure.com

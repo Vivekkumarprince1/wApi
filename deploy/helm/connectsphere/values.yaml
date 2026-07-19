@@ -153,6 +153,28 @@ publicServices:
       targetPort: 3001
       annotations: {}
 
+portalProxies:
+  enabled: false
+  email: ""
+  image: caddy:2.9-alpine
+  storage:
+    enabled: true
+    size: 1Gi
+    storageClassName: ""
+  items:
+    - name: customer
+      service: customer-portal
+      publicServiceName: customer-portal-public
+      host: ""
+      upstream: connectsphere-customer-portal:3000
+      serviceAnnotations: {}
+    - name: admin
+      service: admin-portal
+      publicServiceName: admin-portal-public
+      host: ""
+      upstream: connectsphere-admin-portal:3100
+      serviceAnnotations: {}
+
 # Ingress isolation is enabled only after the ingress-controller namespace
 # label has been verified in the target cluster. Egress remains unrestricted:
 # workloads require private data-plane and third-party provider access.
