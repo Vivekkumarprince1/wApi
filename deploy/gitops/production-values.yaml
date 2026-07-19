@@ -290,7 +290,9 @@ services:
       EMAIL_REPLY_TO: EMAIL_REPLY_TO
 
 ingress:
-  enabled: true
+  # Public DNS points directly to Azure LoadBalancer services and the Caddy
+  # proxies. Do not render an nginx Ingress when no nginx controller exists.
+  enabled: false
   className: nginx
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production

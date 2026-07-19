@@ -17,6 +17,34 @@ spec:
     server: https://kubernetes.default.svc
     namespace: connectsphere
   revisionHistoryLimit: 10
+  # HPA owns replicas for autoscaled workloads. Ignoring only those fields
+  # prevents normal scaling from leaving the application permanently OutOfSync.
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      name: connectsphere-api-gateway
+      jsonPointers:
+        - /spec/replicas
+    - group: apps
+      kind: Deployment
+      name: connectsphere-auth-service
+      jsonPointers:
+        - /spec/replicas
+    - group: apps
+      kind: Deployment
+      name: connectsphere-chat-service
+      jsonPointers:
+        - /spec/replicas
+    - group: apps
+      kind: Deployment
+      name: connectsphere-webhook-ingestor
+      jsonPointers:
+        - /spec/replicas
+    - group: apps
+      kind: Deployment
+      name: connectsphere-websocket-gateway
+      jsonPointers:
+        - /spec/replicas
   syncPolicy:
     automated:
       prune: true
