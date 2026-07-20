@@ -18,7 +18,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Check, Zap, Shield, Rocket, ArrowRight, Loader2, Lock } from 'lucide-react';
+import { Check, Zap, Shield, Rocket, ArrowRight, Loader2, Lock, X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchBillingPlan, selectBillingPlan, verifyBillingPlanPayment } from '@/lib/api/billing';
 import { toast } from 'sonner';
@@ -127,9 +127,23 @@ export default function PlanSelectionModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[95vw] lg:max-w-[90vw] xl:max-w-[1200px] 2xl:max-w-[1400px] h-[92vh] p-0 overflow-hidden border-none shadow-2xl rounded-[40px] bg-background">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="sm:max-w-[95vw] lg:max-w-[90vw] xl:max-w-[1200px] 2xl:max-w-[1400px] h-[92vh] p-0 overflow-hidden border-none shadow-2xl rounded-[40px] bg-background"
+      >
         <div className="flex flex-col h-full overflow-hidden relative">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Close plan selection"
+            onClick={onClose}
+            className="absolute right-5 top-5 z-50 h-9 w-9 rounded-full bg-background/90 text-muted-foreground shadow-sm ring-1 ring-border/70 backdrop-blur hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+
           {/* Decorative background elements */}
           <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none" />
           <div className="absolute top-20 right-20 w-96 h-96 bg-primary/5 blur-[120px] rounded-full pointer-events-none" />
