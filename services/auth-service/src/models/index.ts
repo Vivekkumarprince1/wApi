@@ -31,6 +31,8 @@ export const User = mongoose.models.User || mongoose.model('User', UserSchema);
 const PlanSchema = new Schema({
   name: { type: String, required: true },
   code: { type: String, required: true },
+  slug: String,
+  features: [String],
   limits: Schema.Types.Mixed,
 });
 
@@ -55,6 +57,7 @@ const WorkspaceSchema = new Schema({
   businessVerification: Schema.Types.Mixed,
   wallet: Schema.Types.Mixed,
   limits: Schema.Types.Mixed,
+  planLimits: Schema.Types.Mixed,
   inboxSettings: Schema.Types.Mixed,
 }, { timestamps: true });
 

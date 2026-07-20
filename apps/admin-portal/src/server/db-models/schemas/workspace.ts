@@ -19,7 +19,7 @@ export interface IWorkspace {
     currency?: string;
   };
   usage?: Record<string, number>;
-  planLimits?: Record<string, number>;
+  planLimits?: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
 }

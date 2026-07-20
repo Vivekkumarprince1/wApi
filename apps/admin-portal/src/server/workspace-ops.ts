@@ -135,7 +135,12 @@ export async function setWorkspacePlan(workspaceId: string, planId?: string, pla
 
   const ws = await Workspace.findByIdAndUpdate(
     workspaceId,
-    { $set: { plan: new Types.ObjectId(String((plan as { _id: unknown })._id)) } },
+    {
+      $set: { plan: new Types.ObjectId(String((plan as { _id: unknown })._id)) },
+      // A plan change should start from that plan's entitlements. An admin can
+      // subsequently apply a new workspace-specific service override.
+      $unset: { "planLimits.features": 1 },
+    },
     { new: true }
   )
     .populate("plan")
@@ -144,6 +149,31 @@ export async function setWorkspacePlan(workspaceId: string, planId?: string, pla
 
   await invalidateWorkspaceCache(workspaceId);
   await publish("workspace:plan-changed", { workspaceId, planId: String((plan as { _id: unknown })._id) });
+  return ws;
+}
+
+export async function setWorkspaceServiceAccess(workspaceId: string, features?: unknown, reset = false) {
+  const { Workspace } = await coreModels();
+  if (!reset && !Array.isArray(features)) throw new Error("features must be an array");
+  const requestedFeatures = Array.isArray(features) ? features : [];
+
+  const validFeatures = reset
+    ? []
+    : [...new Set(requestedFeatures)].filter(
+        (feature): feature is string => typeof feature === "string" && /^[A-Z][A-Z0-9_]{1,63}$/.test(feature)
+      );
+  if (!reset && validFeatures.length !== requestedFeatures.length) {
+    throw new Error("One or more requested services are invalid");
+  }
+
+  const update = reset
+    ? { $unset: { "planLimits.features": 1 } }
+    : { $set: { "planLimits.features": validFeatures } };
+  const ws = await Workspace.findByIdAndUpdate(workspaceId, update, { new: true }).lean();
+  if (!ws) throw new Error("Workspace not found");
+
+  await invalidateWorkspaceCache(workspaceId);
+  await publish("workspace:service-access-changed", { workspaceId, features: reset ? null : validFeatures });
   return ws;
 }
 

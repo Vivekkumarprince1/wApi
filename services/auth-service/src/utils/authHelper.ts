@@ -190,6 +190,21 @@ export async function buildSessionPayload(user: any) {
 
 
   const nextStep = deriveNextStep(user, workspace);
+  // A workspace-level feature list is an explicit Super Admin override. When
+  // it is absent, the workspace inherits the selected plan's feature list.
+  // Always return the complete plan to the customer portal so its feature
+  // gates can evaluate the effective entitlement rather than falling back to
+  // the generic starter plan.
+  const planData = workspace?.plan?.toObject?.() || workspace?.plan;
+  const planLimits = workspace?.planLimits || workspace?.limits || {};
+  const overriddenFeatures = Array.isArray(planLimits?.features) ? planLimits.features : null;
+  const effectivePlan = planData && typeof planData === 'object'
+    ? {
+        ...planData,
+        slug: planData.slug || planData.code || String(planData.name || 'free').toLowerCase(),
+        features: overriddenFeatures || (Array.isArray(planData.features) ? planData.features : []),
+      }
+    : planData || 'free';
 
   return {
     authenticated: true,

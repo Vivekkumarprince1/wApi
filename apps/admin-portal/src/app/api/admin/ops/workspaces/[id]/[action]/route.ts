@@ -4,6 +4,7 @@ import { recordAudit, clientIp } from "@/server/audit";
 import {
   setWorkspaceBillingStatus,
   setWorkspacePlan,
+  setWorkspaceServiceAccess,
   emergencyFreezeWorkspace,
   deleteWorkspace,
 } from "@/server/workspace-ops";
@@ -19,6 +20,7 @@ export const dynamic = "force-dynamic";
  *
  *   suspend / activate  -> billingStatus + cache bust + pub-sub
  *   plan                -> set plan + cache bust + pub-sub   (body: { planId | planSlug })
+ *   service-access       -> workspace feature override         (body: { features[] | reset: true })
  *   freeze / unfreeze   -> emergency billingStatus=frozen    (capability: system)
  *   delete              -> full cross-DB + service cascade   (capability: system)
  */
@@ -37,6 +39,10 @@ const ACTIONS: Record<string, { capability: Parameters<typeof requireAdmin>[0]; 
   plan: {
     capability: "billing",
     run: (id, p) => setWorkspacePlan(id, p.planId as string | undefined, p.planSlug as string | undefined),
+  },
+  "service-access": {
+    capability: "workspaces",
+    run: (id, p) => setWorkspaceServiceAccess(id, p.features, p.reset === true),
   },
   freeze: {
     capability: "system",
