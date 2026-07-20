@@ -81,7 +81,7 @@ export async function syncPlanCatalogToBilling() {
       return {
         updateOne: {
           filter: { _id: document._id },
-          update: { $set: { ...document, updatedAt: now }, $setOnInsert: { createdAt: document.createdAt || now } },
+          update: { $set: { ...document, updatedAt: now } },
           upsert: true,
         },
       };
@@ -98,7 +98,7 @@ export async function createPlan(data: Record<string, unknown>) {
   const billingPlans = await billingPlansCollection();
   await billingPlans.updateOne(
     { _id: document._id },
-    { $set: document, $setOnInsert: { createdAt: document.createdAt || new Date() } },
+    { $set: document },
     { upsert: true },
   );
   return document;
@@ -115,7 +115,7 @@ export async function updatePlan(planId: string, data: Record<string, unknown>) 
   const billingPlans = await billingPlansCollection();
   await billingPlans.updateOne(
     { _id: document._id },
-    { $set: document, $setOnInsert: { createdAt: document.createdAt || new Date() } },
+    { $set: document },
     { upsert: true },
   );
   return document;
