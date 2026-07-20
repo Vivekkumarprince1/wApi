@@ -6,7 +6,8 @@
     "dev": "next dev -p 3100 --webpack",
     "build": "cd ../../packages/contracts && npm install --include=dev && npm run build && cd ../../apps/admin-portal && NODE_ENV=production next build --webpack",
     "start": "next start -p ${PORT:-3100}",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --experimental-strip-types --test test/*.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+import { isPublicAdminPath } from "@/lib/auth/admin-public-path";
+
 /**
  * Request proxy for the admin portal (Next.js 16 `proxy.ts` convention).
  *
@@ -15,14 +17,11 @@ const COOKIE_NAME = process.env.ADMIN_COOKIE_NAME || "admin_token";
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isLogin = pathname === "/login";
-  const isApi = pathname.startsWith("/api/");
-  const isHealth = pathname === "/health";
-  const isStaticAsset = /\.(?:ico|png|jpg|jpeg|svg|webp|gif|css|js|txt|xml|json|map)$/.test(pathname);
-
   // API routes self-guard via requireAdmin() and return JSON 401/403 — never
   // redirect them (a redirect would hand an HTML page to a fetch() caller).
-  if (isApi || isLogin || isHealth || isStaticAsset) return NextResponse.next();
+  // The Google callback must also load before the admin cookie exists so it
+  // can exchange the authorization code and establish the session.
+  if (isPublicAdminPath(pathname)) return NextResponse.next();
 
   const token = request.cookies.get(COOKIE_NAME)?.value;
 
