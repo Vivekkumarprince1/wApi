@@ -1,6 +1,7 @@
 import "server-only";
 import { Types } from "mongoose";
 import { coreModels } from "./models";
+import { getConnection } from "./db";
 import { invalidateWorkspaceCache, publish } from "./events";
 import { deleteWorkspaceCascade, deleteAccountCascade } from "./account-deletion";
 import { signImpersonationToken } from "./internal-client";
@@ -147,9 +148,43 @@ export async function setWorkspacePlan(workspaceId: string, planId?: string, pla
     .lean();
   if (!ws) throw new Error("Workspace not found");
 
+  await syncBillingWorkspacePlan(workspaceId, String((plan as { _id: unknown })._id));
+
   await invalidateWorkspaceCache(workspaceId);
   await publish("workspace:plan-changed", { workspaceId, planId: String((plan as { _id: unknown })._id) });
   return ws;
+}
+
+/**
+ * Billing keeps a minimal workspace and subscription projection in its own
+ * database. Keep that projection aligned with the core workspace plan so the
+ * billing dashboard never falls back to the default Free Tier.
+ */
+export async function syncBillingWorkspacePlan(workspaceId: string, planId: string) {
+  if (!Types.ObjectId.isValid(workspaceId) || !Types.ObjectId.isValid(planId)) {
+    throw new Error("Workspace and plan ids must be valid ObjectIds");
+  }
+
+  const billing = await getConnection("billing");
+  if (!billing.db) throw new Error("billing DB unavailable");
+  const workspaceObjectId = new Types.ObjectId(workspaceId);
+  const planObjectId = new Types.ObjectId(planId);
+  const now = new Date();
+  const nextPeriod = new Date(now);
+  nextPeriod.setMonth(nextPeriod.getMonth() + 1);
+
+  await Promise.all([
+    billing.db.collection("workspaces").updateOne(
+      { _id: workspaceObjectId },
+      { $set: { planId: planObjectId, billingStatus: "active", updatedAt: now }, $setOnInsert: { createdAt: now, autoPay: false, taxId: "" } },
+      { upsert: true },
+    ),
+    billing.db.collection("subscriptions").updateOne(
+      { workspaceId: workspaceObjectId, status: { $in: ["trialing", "active", "past_due"] } },
+      { $set: { planId: planObjectId, status: "active", currentPeriodStart: now, currentPeriodEnd: nextPeriod, updatedAt: now }, $setOnInsert: { workspaceId: workspaceObjectId, cancelAtPeriodEnd: false, createdAt: now } },
+      { upsert: true },
+    ),
+  ]);
 }
 
 export async function setWorkspaceServiceAccess(workspaceId: string, features?: unknown, reset = false) {
