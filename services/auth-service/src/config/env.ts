@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import type { DotenvConfigOptions } from 'dotenv';
 import { z } from 'zod';
 import { validateSocialAuthPolicy } from './social-auth-policy.js';
+import { parseAdminGoogleSignupEmails } from './admin-google-signup-policy.js';
 
 dotenv.config({ quiet: true } as DotenvConfigOptions);
 
@@ -16,6 +17,7 @@ const envSchema = z.object({
   GOOGLE_AUTH_ENABLED: z.enum(['true', 'false']).optional().default('true'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  ADMIN_GOOGLE_SIGNUP_EMAILS: z.string().optional(),
   ALLOW_DEV_AUTH_MOCKS: z.enum(['true', 'false']).optional().default('false'),
 });
 
@@ -59,6 +61,7 @@ export const config = {
   billingServiceUrl: process.env.BILLING_SERVICE_URL || 'http://localhost:3003',
   internalServiceSecret,
   googleAuthEnabled: socialAuthPolicy.googleEnabled,
+  adminGoogleSignupEmails: parseAdminGoogleSignupEmails(process.env.ADMIN_GOOGLE_SIGNUP_EMAILS),
   allowDevAuthMocks: socialAuthPolicy.allowDevMocks,
   businessVerificationProvider,
   otpPepper: process.env.OTP_PEPPER || 'wapi-default-otp-pepper-key',

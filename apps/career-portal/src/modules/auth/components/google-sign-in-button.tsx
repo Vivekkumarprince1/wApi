@@ -6,10 +6,10 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
-
-function safeRedirect(value: string | null) {
-  return value?.startsWith("/") && !value.startsWith("//") ? value : "/";
-}
+import {
+  googleOAuthCallbackURL,
+  googleOAuthNewUserCallbackURL,
+} from "@/lib/auth/google-oauth-redirect";
 
 function GoogleMark() {
   return (
@@ -63,7 +63,11 @@ export function GoogleSignInButton({
             setIsSubmitting(true);
             const result = await authClient.signIn.social({
               provider: "google",
-              callbackURL: safeRedirect(searchParams.get("redirect")),
+              callbackURL: googleOAuthCallbackURL(
+                searchParams.get("redirect"),
+              ),
+              newUserCallbackURL: googleOAuthNewUserCallbackURL(),
+              requestSignUp: true,
             });
             if (result?.error) {
               setIsSubmitting(false);

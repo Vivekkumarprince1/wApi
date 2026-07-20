@@ -1,7 +1,17 @@
 import type { Schema as SchemaType, Types } from "mongoose";
 import type { SchemaCtor } from "../types";
 
-export type UserRole = "super_admin" | "owner" | "admin" | "manager" | "agent" | "member" | "viewer";
+export type UserRole =
+  | "super_admin"
+  | "super_admin_support"
+  | "super_admin_finance"
+  | "super_admin_readonly"
+  | "owner"
+  | "admin"
+  | "manager"
+  | "agent"
+  | "member"
+  | "viewer";
 export type AccountStatus =
   | "AWAITING_EMAIL_VERIFICATION"
   | "AWAITING_MOBILE_VERIFICATION"
@@ -57,7 +67,18 @@ export function buildUserSchema(Schema: SchemaCtor): SchemaType<IUser> {
     emailVerified: { type: Boolean, default: false },
     role: {
       type: String,
-      enum: ["super_admin", "owner", "admin", "manager", "agent", "member", "viewer"],
+      enum: [
+        "super_admin",
+        "super_admin_support",
+        "super_admin_finance",
+        "super_admin_readonly",
+        "owner",
+        "admin",
+        "manager",
+        "agent",
+        "member",
+        "viewer",
+      ],
       default: "member",
     },
     workspace: { type: Schema.Types.ObjectId, ref: "Workspace" },

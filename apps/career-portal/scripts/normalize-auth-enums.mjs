@@ -32,6 +32,8 @@ const normalizations = [
       INACTIVE: "inactive",
       FORMER: "former",
       SUSPENDED: "suspended",
+      deleted: "former",
+      removed: "former",
     },
   },
   {

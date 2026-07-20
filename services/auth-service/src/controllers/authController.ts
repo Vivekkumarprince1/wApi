@@ -35,6 +35,7 @@ import {
 import { AuthRequest } from '../middleware/businessAuth.js';
 import config from '../config/index.js';
 import { isAdminRole } from '@wapi/contracts';
+import { adminGoogleSignupAllowed } from '../config/admin-google-signup-policy.js';
 
 async function getUserFromCookie(req: express.Request) {
   const token = extractToken(req);
@@ -315,7 +316,7 @@ export const googleCallback = async (req: express.Request, res: express.Response
   }
 };
 
-/** Google OAuth for existing platform administrators; this never creates users. */
+/** Google OAuth for platform administrators with allowlisted, read-only signup. */
 export const googleAdminCallback = async (req: express.Request, res: express.Response) => {
   try {
     const code = (req.body?.code || (req.query as any)?.code) as string | undefined;
@@ -326,8 +327,27 @@ export const googleAdminCallback = async (req: express.Request, res: express.Res
     const email = googleUser?.email ? normalizeEmail(googleUser.email) : '';
     if (!email) return res.status(400).json({ success: false, message: 'Failed to retrieve email from Google' });
 
-    const user: any = await User.findOne({ $or: [{ googleId: googleUser.id }, { email }] });
-    if (!user || !isAdminRole(user.role)) {
+    let user: any = await User.findOne({ $or: [{ googleId: googleUser.id }, { email }] });
+    if (!user) {
+      if (!adminGoogleSignupAllowed(email, config.adminGoogleSignupEmails)) {
+        return res.status(403).json({
+          success: false,
+          message: 'This Google account is not authorized for admin signup',
+        });
+      }
+
+      user = await User.create({
+        name: googleUser.name || email.split('@')[0],
+        email,
+        googleId: googleUser.id,
+        authProvider: 'google',
+        emailVerified: true,
+        profilePicture: googleUser.picture,
+        role: 'super_admin_readonly',
+        status: 'active',
+        accountStatus: 'SIGNUP_COMPLETED',
+      });
+    } else if (!isAdminRole(user.role)) {
       return res.status(403).json({ success: false, message: 'This Google account is not authorized for the admin portal' });
     }
 

@@ -101,6 +101,8 @@ keyVaultSecrets:
       objectName: google-client-id
     - key: GOOGLE_CLIENT_SECRET
       objectName: google-client-secret
+    - key: ADMIN_GOOGLE_SIGNUP_EMAILS
+      objectName: admin-google-signup-emails
     - key: SMTP_HOST
       objectName: smtp-host
     - key: SMTP_USER
