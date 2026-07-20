@@ -6,7 +6,7 @@ import { LedgerService } from '../services/LedgerService';
 import { RazorpayService } from '../services/RazorpayService';
 import { InvoiceService } from '../services/InvoiceService';
 import { PricingService } from '../services/PricingService';
-import { PlanModel, WorkspaceModel, WalletTransactionModel, OrderModel, RazorpayOrderModel } from '../models';
+import { PlanModel, SubscriptionModel, WorkspaceModel, WalletTransactionModel, OrderModel, RazorpayOrderModel } from '../models';
 import { AuthRequest } from '../middleware/auth';
 import { billingMetrics } from '../lib/metrics';
 import { classifyPaymentError } from './payment-error';
@@ -870,16 +870,24 @@ export class WalletController {
       }
 
       // Fetch wallet, workspace (with plan populated), and recent transactions in parallel
-      const [wallet, workspace, rawTxs] = await Promise.all([
+      const [wallet, workspace, activeSubscription, rawTxs] = await Promise.all([
         ledgerService.getWallet(workspaceId),
         WorkspaceModel.findById(workspaceId).populate('planId'),
+        SubscriptionModel.findOne({
+          workspaceId,
+          status: { $in: ['trialing', 'active', 'past_due'] },
+        })
+          .sort({ updatedAt: -1 })
+          .populate('planId'),
         WalletTransactionModel.find({ workspaceId })
           .sort({ createdAt: -1 })
           .limit(20)
           .lean(),
       ]);
 
-      const plan = (workspace?.planId as any) || null;
+      const workspacePlan = (workspace?.planId as any) || null;
+      const subscriptionPlan = (activeSubscription?.planId as any) || null;
+      const plan = subscriptionPlan || workspacePlan;
 
       // Attach invoice numbers to transactions
       const txIds = rawTxs.map((tx) => tx._id.toString());
@@ -914,6 +922,8 @@ export class WalletController {
         subscription: {
           autoPay: workspace?.autoPay ?? false,
           taxId: workspace?.taxId ?? '',
+          billingPivotDate: activeSubscription?.currentPeriodEnd || null,
+          status: activeSubscription?.status || workspace?.billingStatus || 'active',
         },
         payment: {
           enabled: config.razorpayEnabled,

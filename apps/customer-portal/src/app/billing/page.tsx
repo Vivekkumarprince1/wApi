@@ -19,7 +19,7 @@ const BILLING_PAGE_LOADED_AT = Date.now();
 
 export default function BillingPage() {
     const router = useRouter();
-    const { fetchSession } = useAuthStore();
+    const { fetchSession, user, workspace } = useAuthStore();
     const { data: billing, isLoading, refetch } = useQuery({
         queryKey: ['billing'],
         queryFn: fetchBillingInfo
@@ -37,7 +37,16 @@ export default function BillingPage() {
     };
 
     const wallet = billing?.wallet || { balance: 0, currency: 'INR', status: 'active' };
-    const plan = billing?.plan || { name: 'Free', limits: {}, usage: {}, slug: 'free' };
+    const billingPlan = billing?.plan || { name: 'Free', limits: {}, usage: {}, slug: 'free' };
+    const sessionPlan = workspace?.plan || user?.plan;
+    const plan = sessionPlan && sessionPlan.slug !== 'free'
+        ? {
+            ...billingPlan,
+            ...sessionPlan,
+            limits: { ...(billingPlan.limits || {}), ...(sessionPlan.limits || {}) },
+            usage: billingPlan.usage || {},
+        }
+        : billingPlan;
     const subscription = billing?.subscription || { autoPay: true, taxId: '' };
     const transactions = billing?.transactions || [];
 
