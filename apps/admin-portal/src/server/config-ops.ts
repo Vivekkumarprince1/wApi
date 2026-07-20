@@ -61,7 +61,8 @@ async function billingPlansCollection() {
 }
 
 function planDocument(plan: Record<string, unknown>): Record<string, any> {
-  const { __v, ...document } = plan;
+  const document = { ...plan };
+  delete document.__v;
   return document;
 }
 

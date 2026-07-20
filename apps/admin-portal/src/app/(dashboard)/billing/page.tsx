@@ -12,7 +12,6 @@ import {
   Pencil,
   Power,
   FileText,
-  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/page-header";

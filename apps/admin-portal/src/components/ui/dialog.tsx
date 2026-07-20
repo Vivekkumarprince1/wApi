@@ -16,6 +16,7 @@ function DialogTrigger({ asChild, className, ...props }: DialogPrimitive.Trigger
   if (asChild) {
     const slotClassName = typeof className === "string" ? className : undefined
     const { style, ...slotProps } = props
+    void style
     return <DialogPrimitive.Trigger data-slot="dialog-trigger" render={<Slot className={slotClassName} {...slotProps} />} />
   }
   return <DialogPrimitive.Trigger data-slot="dialog-trigger" className={className} {...props} />

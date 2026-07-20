@@ -33,7 +33,6 @@ export function DropdownMenu({ children }: { children: React.ReactNode }) {
 }
 
 export function DropdownMenuTrigger({
-  asChild,
   children,
 }: {
   asChild?: boolean;

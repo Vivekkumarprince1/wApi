@@ -106,11 +106,10 @@ export default function WorkspaceDetailPage({ params }: { params: Promise<{ id: 
   });
 
   const ws = data?.workspace;
-  const inheritedFeatures = ws?.plan?.features || [];
   const hasServiceOverride = Array.isArray(ws?.planLimits?.features);
   useEffect(() => {
-    setServiceFeatures(ws?.planLimits?.features || inheritedFeatures);
-  }, [ws?.planLimits?.features, ws?.plan?._id]);
+    setServiceFeatures(ws?.planLimits?.features || ws?.plan?.features || []);
+  }, [ws?.planLimits?.features, ws?.plan?.features]);
   const frozen = ws?.billingStatus === "frozen";
   const suspended = ws?.billingStatus === "suspended";
   const setPlan = useMutation({
