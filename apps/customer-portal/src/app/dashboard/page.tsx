@@ -30,7 +30,6 @@ import FeatureShowcase from '@/components/dashboard/feature-showcase';
 
 // Modals
 import ConnectNumberModal from '@/components/modals/connect-number-modal';
-import ConnectInstagramModal from '@/components/modals/connect-instagram-modal';
 import CreateContactPanel from '@/components/modals/create-contact-panel';
 
 const DashboardPageClient = () => {
@@ -39,7 +38,6 @@ const DashboardPageClient = () => {
   const { user, workspace } = useAuthStore();
 
   const [connectNumberModalOpen, setConnectNumberModalOpen] = useState(false);
-  const [connectInstagramModalOpen, setConnectInstagramModalOpen] = useState(false);
   const [createContactPanelOpen, setCreateContactPanelOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -248,7 +246,6 @@ const DashboardPageClient = () => {
           isWhatsAppConnected={isWhatsAppConnected}
           workspace={{ ...workspace, phoneNumber: workspace?.phoneNumber }}
           onConnectWhatsApp={() => setConnectNumberModalOpen(true)}
-          onConnectInstagram={() => setConnectInstagramModalOpen(true)}
         />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -342,7 +339,6 @@ const DashboardPageClient = () => {
 
       {/* Modals */}
       <ConnectNumberModal isOpen={connectNumberModalOpen} onClose={handleCloseConnectModal} callbackPayload={callbackPayload} />
-      <ConnectInstagramModal isOpen={connectInstagramModalOpen} onClose={() => setConnectInstagramModalOpen(false)} />
       <CreateContactPanel isOpen={createContactPanelOpen} onClose={() => setCreateContactPanelOpen(false)} />
     </div>
   );

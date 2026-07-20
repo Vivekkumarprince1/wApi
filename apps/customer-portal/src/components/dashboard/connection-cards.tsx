@@ -1,18 +1,17 @@
 "use client";
 
 import React from 'react';
-import { MessageCircle, Camera } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 
 interface ConnectionCardsProps {
   isWhatsAppConnected: boolean;
   workspace: any;
   onConnectWhatsApp: () => void;
-  onConnectInstagram: () => void;
 }
 
-const ConnectionCards = ({ isWhatsAppConnected, workspace, onConnectWhatsApp, onConnectInstagram }: ConnectionCardsProps) => {
+const ConnectionCards = ({ isWhatsAppConnected, workspace, onConnectWhatsApp }: ConnectionCardsProps) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4">
       <div className="group bg-card rounded-2xl p-5 border border-border/50 hover:shadow-premium transition-all duration-300 hover:border-emerald-500/30">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
@@ -39,21 +38,6 @@ const ConnectionCards = ({ isWhatsAppConnected, workspace, onConnectWhatsApp, on
         </div>
       </div>
 
-      <div className="group bg-card rounded-2xl p-5 border border-border/50 hover:shadow-premium transition-all duration-300 hover:border-pink-500/30">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-            <Camera className="text-white h-6 w-6" />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-bold text-foreground mb-1">Instagram Business</h3>
-            <p className="text-xs text-muted-foreground mb-3">Expand your reach</p>
-            <button onClick={onConnectInstagram}
-              className="w-full px-4 py-2.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 hover:from-purple-600 hover:via-pink-600 hover:to-orange-500 text-white rounded-xl text-sm font-semibold transition-all shadow-md hover:shadow-lg">
-              Connect Now
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

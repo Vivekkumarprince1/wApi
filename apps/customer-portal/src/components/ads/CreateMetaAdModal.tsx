@@ -83,7 +83,6 @@ export function CreateMetaAdModal({ open, onOpenChange, onCreated, metaSelection
   const [interestIds, setInterestIds] = useState("");
   const [behaviorIds, setBehaviorIds] = useState("");
   const [facebookPlacement, setFacebookPlacement] = useState(true);
-  const [instagramPlacement, setInstagramPlacement] = useState(true);
   const [mobilePlacement, setMobilePlacement] = useState(true);
   const [scheduleStart, setScheduleStart] = useState(defaultStart());
   const [scheduleEnd, setScheduleEnd] = useState("");
@@ -166,7 +165,6 @@ export function CreateMetaAdModal({ open, onOpenChange, onCreated, metaSelection
           excludedAudiences: [],
           publisherPlatforms: [
             ...(facebookPlacement ? ["facebook"] : []),
-            ...(instagramPlacement ? ["instagram"] : []),
           ],
           devicePlatforms: mobilePlacement ? ["mobile"] : [],
         },
@@ -307,10 +305,6 @@ export function CreateMetaAdModal({ open, onOpenChange, onCreated, metaSelection
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox checked={facebookPlacement} onCheckedChange={(checked) => setFacebookPlacement(Boolean(checked))} />
                 Facebook
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={instagramPlacement} onCheckedChange={(checked) => setInstagramPlacement(Boolean(checked))} />
-                Instagram
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox checked={mobilePlacement} onCheckedChange={(checked) => setMobilePlacement(Boolean(checked))} />

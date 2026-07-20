@@ -97,7 +97,6 @@ const FEATURE_SECTIONS = [
       { id: "FLOW_HUB", label: "Flow Hub", desc: "Visual builder for customer journeys" },
       { id: "WORKFLOWS", label: "Workflows", desc: "Advanced logic and trigger sequences" },
       { id: "AUTO_REPLIES", label: "Auto Replies", desc: "Keyword and intent based response" },
-      { id: "INSTAGRAM_QUICKFLOWS", label: "Instagram QuickFlows", desc: "Rapid DM automation for IG" },
       { id: "WA_FORMS", label: "WhatsApp Forms", desc: "Structured data collection in chat" },
       { id: "ANSWERBOT", label: "AnswerBot Training", desc: "AI agent knowledge base & training" },
       { id: "AI_INTENT", label: "AI Intent Match", desc: "Natural language intent classification" },

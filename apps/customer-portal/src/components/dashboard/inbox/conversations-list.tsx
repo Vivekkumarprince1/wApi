@@ -12,10 +12,8 @@ import {
   ChevronDown,
   Inbox as InboxIcon,
   MessageCircle,
-  Camera,
   Share2,
   Mail,
-  Smartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Conversation } from '@/lib/api/inbox';
@@ -23,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { isChannelVisible } from '@/config/ui-availability';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -56,12 +55,11 @@ export default function ConversationsList({
   onChannelChange
 }: ConversationsListProps) {
   const [search, setSearch] = useState('');
+  const visibleConversations = conversations.filter((conversation) => isChannelVisible(conversation.channel));
 
   const getChannelIcon = (channel: string) => {
     switch (channel) {
       case 'messenger': return <MessageSquare className="h-3 w-3 text-blue-600" />;
-      case 'instagram': return <Camera className="h-3.5 w-3.5 text-pink-600" />;
-      case 'sms': return <Smartphone className="h-3 w-3 text-amber-600" />;
       case 'email': return <Mail className="h-3 w-3 text-purple-600" />;
       default: return <MessageCircle className="h-3 w-3 text-emerald-600" />;
     }
@@ -85,7 +83,7 @@ export default function ConversationsList({
           <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
             Inbox
             <Badge variant="secondary" className="rounded-full px-2 py-0 h-5 text-[10px] font-bold bg-primary/10 text-primary border-primary/10">
-              {conversations.length}
+              {visibleConversations.length}
             </Badge>
           </h2>
           <DropdownMenu>
@@ -126,9 +124,7 @@ export default function ConversationsList({
           {[
             { id: 'all', icon: InboxIcon, label: 'All' },
             { id: 'whatsapp', icon: MessageCircle, label: 'WA' },
-            { id: 'sms', icon: Smartphone, label: 'SMS' },
             { id: 'email', icon: Mail, label: 'Mail' },
-            { id: 'instagram', icon: Camera, label: 'IG' }
           ].map((ch) => (
             <button
               key={ch.id}
@@ -171,7 +167,7 @@ export default function ConversationsList({
               </div>
             ))}
           </div>
-        ) : conversations.length === 0 ? (
+        ) : visibleConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
              <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground opacity-30">
                 <InboxIcon className="h-6 w-6" />
@@ -181,7 +177,7 @@ export default function ConversationsList({
         ) : (
           <div className="flex flex-col px-2 pb-4">
             <AnimatePresence mode="popLayout" initial={false}>
-              {conversations.map((conv) => (
+              {visibleConversations.map((conv) => (
                 <motion.div
                   key={conv._id}
                   layout

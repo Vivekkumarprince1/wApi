@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin, AdminAuthError } from "@/server/auth";
 import { recordAudit, clientIp } from "@/server/audit";
-import { createPlan, updatePlan, deletePlan, reconcileBilling, seedDefaultPlans } from "@/server/config-ops";
+import { createPlan, updatePlan, deletePlan, reconcileBilling, seedDefaultPlans, syncPlanCatalogToBilling } from "@/server/config-ops";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,6 +30,8 @@ async function run(
       return { mode: "direct", data: await reconcileBilling() };
     case "seed-plans":
       return { mode: "direct", data: await seedDefaultPlans() };
+    case "sync-plans":
+      return { mode: "direct", data: await syncPlanCatalogToBilling() };
     default:
       throw new Error(`Unknown action "${action}"`);
   }

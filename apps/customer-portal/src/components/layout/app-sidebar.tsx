@@ -40,6 +40,7 @@ import {
 import { useFeatureGate } from "@/store/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { getWABASettings } from "@/lib/api/settings";
+import { isChannelVisible } from "@/config/ui-availability";
 
 type SidebarChildItem = {
   title: string;
@@ -120,7 +121,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
               { title: "Flow Hub", url: "/automation", feature: "FLOW_HUB" },
               { title: "Workflows", url: "/automation/workflows", feature: "WORKFLOWS" },
               { title: "Auto Replies", url: "/automation/auto-replies", feature: "AUTO_REPLIES" },
-              { title: "Instagram QuickFlows", url: "/automation/instagram-quickflows", feature: "INSTAGRAM_QUICKFLOWS" },
+              ...(isChannelVisible("instagram")
+                ? [{ title: "Instagram QuickFlows", url: "/automation/instagram-quickflows", feature: "INSTAGRAM_QUICKFLOWS" }]
+                : []),
               { title: "WhatsApp Forms", url: "/automation/whatsapp-forms", feature: "WA_FORMS" },
               { title: "AnswerBot Training", url: "/automation/answerbot", feature: "ANSWERBOT" },
               { title: "AI Intent Match", url: "/automation/ai-intent-matching", feature: "AI_INTENT" },

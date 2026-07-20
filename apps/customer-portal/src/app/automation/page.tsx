@@ -12,7 +12,6 @@ import {
   TrendingUp,
   Workflow,
   Zap,
-  AtSign,
   ListChecks,
   Activity,
   Plus,
@@ -23,7 +22,6 @@ import { motion } from 'framer-motion';
 import {
   fetchAutomationHubSummary,
   fetchAiIntents,
-  fetchInstagramQuickflows,
   fetchInteraktiveLists,
   fetchRules,
   fetchWhatsAppForms,
@@ -110,7 +108,7 @@ export default function AutomationHubPage() {
     summary.aiIntentsCount +
     summary.formsCount +
     summary.interaktiveListsCount +
-    summary.quickflowsCount;
+    0;
 
   const moduleCards: ModuleCard[] = [
     {
@@ -175,16 +173,6 @@ export default function AutomationHubPage() {
       gradient: 'from-emerald-600 to-lime-600',
       badge: 'WhatsApp List',
     },
-    {
-      title: 'Instagram QuickFlows',
-      description: 'Instagram-native automation flows for quick responses and trigger actions.',
-      href: '/automation/instagram-quickflows',
-      countLabel: 'Enabled',
-      countValue: `${summary.enabledQuickflowsCount}/${summary.quickflowsCount}`,
-      icon: AtSign,
-      gradient: 'from-pink-500 to-rose-600',
-      badge: 'Omnichannel',
-    },
   ];
 
   return (
@@ -200,7 +188,7 @@ export default function AutomationHubPage() {
               </Badge>
             </h1>
             <p className="text-muted-foreground text-sm font-medium mt-1">
-              Unified command center for all automation-related systems across WhatsApp and Instagram.
+              Unified command center for all WhatsApp automation systems.
             </p>
           </div>
 

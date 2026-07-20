@@ -226,9 +226,6 @@ export default function TemplateRulesPage() {
             <option value="user_action">User Action</option>
             <option value="time_trigger">Time-based</option>
             <option value="custom">Custom</option>
-            <option value="instagram_comment">Instagram Comment</option>
-            <option value="instagram_dm">Instagram DM</option>
-            <option value="instagram_story_reply">Instagram Story Reply</option>
           </select>
         </div>
       </div>

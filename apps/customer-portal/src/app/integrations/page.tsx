@@ -15,8 +15,7 @@ import {
   Code,
   Search,
   Loader2,
-  ExternalLink,
-  Camera
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,7 +23,6 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { PetpoojaConnectModal } from "@/components/integrations/PetpoojaConnectModal";
 import { GoogleSheetsConfigModal } from "@/components/integrations/GoogleSheetsConfigModal";
-import { InstagramConnectModal } from "@/components/integrations/InstagramConnectModal";
 import { MetaAdsConnectModal } from "@/components/integrations/MetaAdsConnectModal";
 import { UtensilsCrossed } from "lucide-react";
 import { getIntegrations, syncIntegration } from '@/lib/api/integrations';
@@ -67,16 +65,6 @@ const INTEGRATIONS_METADATA = [
     icon: MessageSquare, 
     color: "text-blue-600", 
     bgColor: "bg-blue-500/10",
-    category: "Marketing",
-    supportsSync: false
-  },
-  {
-    id: "instagram",
-    name: "Instagram Business",
-    description: "Paid customer onboarding for Instagram DMs, comments, and automation.",
-    icon: Camera,
-    color: "text-pink-600",
-    bgColor: "bg-pink-500/10",
     category: "Marketing",
     supportsSync: false
   },
@@ -168,11 +156,6 @@ export default function IntegrationsPage() {
       />
       <GoogleSheetsConfigModal 
         isOpen={activeModal === 'google_sheets'} 
-        onClose={() => setActiveModal(null)}
-        onSuccess={fetchIntegrations}
-      />
-      <InstagramConnectModal
-        isOpen={activeModal === 'instagram'}
         onClose={() => setActiveModal(null)}
         onSuccess={fetchIntegrations}
       />

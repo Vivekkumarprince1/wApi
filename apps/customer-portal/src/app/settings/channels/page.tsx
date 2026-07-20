@@ -1,78 +1,24 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, CheckCircle2, Globe, Camera, MessageSquare, Plus, Smartphone, AlertCircle, Loader2 } from "lucide-react";
+import React from "react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, CheckCircle2, Globe, MessageSquare, Plus, Smartphone, AlertCircle } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { InstagramConnectModal } from "@/components/integrations/InstagramConnectModal";
-import { getIntegrations } from "@/lib/api/integrations";
 
 const CHANNELS = [
   { id: "whatsapp", name: "WhatsApp", description: "Primary support and broadcast channel.", icon: Smartphone, status: "connected", color: "text-emerald-600", managePath: "/settings/whatsapp-profile", connectPath: "/onboarding" },
-  { id: "instagram", name: "Instagram DM", description: "Route social leads into the same inbox.", icon: Camera, status: "not_connected", color: "text-pink-600", managePath: "/automation/instagram-quickflows", connectPath: "/integrations" },
   { id: "website", name: "Website Chat", description: "Embed a lightweight website entry point.", icon: Globe, status: "coming_soon", color: "text-sky-600", managePath: "/widget", connectPath: "/widget" },
   { id: "manual", name: "Manual Inbox", description: "Create contacts and follow up by hand.", icon: MessageSquare, status: "connected", color: "text-violet-600", managePath: "/inbox", connectPath: "/inbox" },
 ];
 
 export default function ChannelsSettingsPage() {
-  const [integrations, setIntegrations] = useState<any[]>([]);
-  const [loadingIntegrations, setLoadingIntegrations] = useState(true);
-  const [instagramModalOpen, setInstagramModalOpen] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const fetchIntegrations = async () => {
-    setLoadingIntegrations(true);
-    try {
-      const resp = await getIntegrations();
-      setIntegrations(resp.integrations || []);
-    } catch {
-      setIntegrations([]);
-    } finally {
-      setLoadingIntegrations(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchIntegrations();
-  }, []);
-
-  useEffect(() => {
-    if (searchParams.get("connect") === "instagram") {
-      setInstagramModalOpen(true);
-    }
-  }, [searchParams]);
-
-  const channels = useMemo(() => {
-    const instagram = integrations.find((integration) => integration.type === "instagram");
-    return CHANNELS.map((channel) => {
-      if (channel.id !== "instagram") return channel;
-      if (!instagram) return channel;
-      return {
-        ...channel,
-        status: instagram.status === "connected" ? "connected" : "pending",
-        description: instagram.configMetadata?.username
-          ? `Connected to @${instagram.configMetadata.username}.`
-          : instagram.status === "connected"
-            ? "Instagram is connected and ready for inbox routing."
-            : "Instagram authorization is saved, but webhook setup still needs attention.",
-      };
-    });
-  }, [integrations]);
+  const channels = CHANNELS;
 
   const handleChannelAction = (channel: (typeof CHANNELS)[number]) => {
-    if (channel.id === "instagram") {
-      if (channel.status === "connected") {
-        router.push(channel.managePath);
-      } else {
-        setInstagramModalOpen(true);
-      }
-      return;
-    }
-
     router.push(channel.status === "connected" ? channel.managePath : channel.connectPath);
   };
 
@@ -117,7 +63,7 @@ export default function ChannelsSettingsPage() {
                   <div className="flex items-center justify-between gap-4">
                     <h3 className="text-xl font-black tracking-tight">{channel.name}</h3>
                     <Badge className={`rounded-full px-3 py-1 font-black text-[10px] uppercase tracking-widest border-none ${channel.status === "connected" ? "bg-emerald-500/10 text-emerald-600" : channel.status === "not_connected" || channel.status === "pending" ? "bg-amber-500/10 text-amber-600" : "bg-slate-500/10 text-slate-600"}`}>
-                      {channel.id === "instagram" && loadingIntegrations ? "checking" : channel.status.replace(/_/g, " ")}
+                      {channel.status.replace(/_/g, " ")}
                     </Badge>
                   </div>
                   <p className="text-sm font-medium text-muted-foreground leading-relaxed">{channel.description}</p>
@@ -126,9 +72,6 @@ export default function ChannelsSettingsPage() {
                   disabled={channel.status === "coming_soon"}
                   onClick={() => handleChannelAction(channel)}
                   className="h-11 rounded-2xl bg-primary text-primary-foreground font-black shadow-lg shadow-primary/20">
-                  {channel.id === "instagram" && loadingIntegrations ? (
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  ) : null}
                   {channel.status === "connected" ? "Manage Channel" : channel.status === "coming_soon" ? "Coming Soon" : channel.status === "pending" ? "Review Setup" : "Connect Channel"}
                   <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
@@ -149,11 +92,6 @@ export default function ChannelsSettingsPage() {
           </CardContent>
         </Card>
 
-        <InstagramConnectModal
-          isOpen={instagramModalOpen}
-          onClose={() => setInstagramModalOpen(false)}
-          onSuccess={fetchIntegrations}
-        />
       </div>
   );
 }

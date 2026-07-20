@@ -48,10 +48,60 @@ export async function updateServiceControl(serviceId: string, patch: Record<stri
 
 /* ── Plans CRUD ───────────────────────────────────────────────────────── */
 
+/**
+ * The core database retains plan ids used by existing workspace documents,
+ * while billing-service serves its catalogue from the billing database. Keep
+ * the plan document in both places until workspace plan references are fully
+ * owned by billing.
+ */
+async function billingPlansCollection() {
+  const conn = await getConnection("billing");
+  if (!conn.db) throw new Error("billing DB unavailable");
+  return conn.db.collection("plans");
+}
+
+function planDocument(plan: Record<string, unknown>): Record<string, any> {
+  const { __v, ...document } = plan;
+  return document;
+}
+
+export async function syncPlanCatalogToBilling() {
+  const { Plan } = await coreModels();
+  const [corePlans, billingPlans] = await Promise.all([
+    Plan.find({}).lean(),
+    billingPlansCollection(),
+  ]);
+
+  if (!corePlans.length) return { synchronized: 0 };
+
+  const now = new Date();
+  await billingPlans.bulkWrite(
+    corePlans.map((plan) => {
+      const document = planDocument(plan as unknown as Record<string, unknown>);
+      return {
+        updateOne: {
+          filter: { _id: document._id },
+          update: { $set: { ...document, updatedAt: now }, $setOnInsert: { createdAt: document.createdAt || now } },
+          upsert: true,
+        },
+      };
+    }),
+  );
+
+  return { synchronized: corePlans.length };
+}
+
 export async function createPlan(data: Record<string, unknown>) {
   const { Plan } = await coreModels();
   const plan = await Plan.create(data);
-  return plan.toObject();
+  const document = planDocument(plan.toObject() as unknown as Record<string, unknown>);
+  const billingPlans = await billingPlansCollection();
+  await billingPlans.updateOne(
+    { _id: document._id },
+    { $set: document, $setOnInsert: { createdAt: document.createdAt || new Date() } },
+    { upsert: true },
+  );
+  return document;
 }
 
 export async function updatePlan(planId: string, data: Record<string, unknown>) {
@@ -61,13 +111,22 @@ export async function updatePlan(planId: string, data: Record<string, unknown>) 
   delete clean._id;
   const plan = await Plan.findByIdAndUpdate(planId, { $set: clean }, { new: true }).lean();
   if (!plan) throw new Error("Plan not found");
-  return plan;
+  const document = planDocument(plan as unknown as Record<string, unknown>);
+  const billingPlans = await billingPlansCollection();
+  await billingPlans.updateOne(
+    { _id: document._id },
+    { $set: document, $setOnInsert: { createdAt: document.createdAt || new Date() } },
+    { upsert: true },
+  );
+  return document;
 }
 
 export async function deletePlan(planId: string) {
   const { Plan } = await coreModels();
   const res = await Plan.findByIdAndDelete(planId).lean();
   if (!res) throw new Error("Plan not found");
+  const billingPlans = await billingPlansCollection();
+  await billingPlans.deleteOne({ _id: res._id });
 }
 
 export async function seedDefaultPlans() {

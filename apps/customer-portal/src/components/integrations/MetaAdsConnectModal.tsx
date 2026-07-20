@@ -40,7 +40,6 @@ export function MetaAdsConnectModal({ isOpen, onClose, onSuccess }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedAdAccount, setSelectedAdAccount] = useState("");
   const [selectedPage, setSelectedPage] = useState("");
-  const [selectedInstagramActor, setSelectedInstagramActor] = useState("");
   const [selectedPhoneId, setSelectedPhoneId] = useState("");
   const [selectedCatalogId, setSelectedCatalogId] = useState("");
   const [selectedProductSetId, setSelectedProductSetId] = useState("");
@@ -53,8 +52,6 @@ export function MetaAdsConnectModal({ isOpen, onClose, onSuccess }: Props) {
   const productCatalogs = useMemo(() => Array.isArray(assets.productCatalogs) ? assets.productCatalogs : [], [assets.productCatalogs]);
   const productSets = useMemo(() => Array.isArray(assets.productSets) ? assets.productSets : [], [assets.productSets]);
   const selectedAccount = adAccounts.find((account: any) => normalizeAccountId(account) === selectedAdAccount);
-  const selectedPageRecord = pages.find((page: any) => page.id === selectedPage);
-  const pageInstagramActor = selectedPageRecord?.instagram_business_account?.id || "";
   const selectedPhone = phoneNumbers.find((phone: any) => phone.id === selectedPhoneId);
   const catalogProductSets = selectedCatalogId
     ? productSets.filter((productSet: any) => productSet.productCatalogId === selectedCatalogId)
@@ -68,7 +65,6 @@ export function MetaAdsConnectModal({ isOpen, onClose, onSuccess }: Props) {
       const selected = data.integration?.configMetadata?.selected || {};
       if (selected.adAccountId) setSelectedAdAccount(selected.adAccountId);
       if (selected.pageId) setSelectedPage(selected.pageId);
-      if (selected.instagramActorId) setSelectedInstagramActor(selected.instagramActorId);
       if (selected.whatsappPhoneNumberId) setSelectedPhoneId(selected.whatsappPhoneNumberId);
       if (selected.whatsappPhoneNumber) setManualPhone(selected.whatsappPhoneNumber);
       if (selected.productCatalogId) setSelectedCatalogId(selected.productCatalogId);
@@ -83,12 +79,6 @@ export function MetaAdsConnectModal({ isOpen, onClose, onSuccess }: Props) {
   useEffect(() => {
     if (isOpen) loadStatus();
   }, [isOpen]);
-
-  useEffect(() => {
-    if (pageInstagramActor && !selectedInstagramActor) {
-      setSelectedInstagramActor(pageInstagramActor);
-    }
-  }, [pageInstagramActor, selectedInstagramActor]);
 
   useEffect(() => {
     if (!selectedProductSetId) return;
@@ -130,7 +120,6 @@ export function MetaAdsConnectModal({ isOpen, onClose, onSuccess }: Props) {
       await saveMetaAdsConfig({
         adAccountId: selectedAdAccount,
         pageId: selectedPage,
-        instagramActorId: selectedInstagramActor || undefined,
         whatsappPhoneNumberId: selectedPhoneId || undefined,
         whatsappPhoneNumber: manualPhone || selectedPhone?.display_phone_number || undefined,
         productCatalogId: selectedCatalogId || undefined,
@@ -245,15 +234,6 @@ export function MetaAdsConnectModal({ isOpen, onClose, onSuccess }: Props) {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Instagram actor</Label>
-                <Input
-                  value={selectedInstagramActor}
-                  onChange={(event) => setSelectedInstagramActor(event.target.value)}
-                  placeholder={pageInstagramActor || "Optional Instagram business ID"}
-                />
               </div>
 
               <div className="grid gap-2">
