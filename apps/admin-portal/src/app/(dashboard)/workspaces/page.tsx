@@ -388,9 +388,11 @@ export default function WorkspacesPage() {
 	                            <Button size="sm" variant="ghost" aria-label={`Open actions for ${ws.name || ws._id}`}><MoreVertical className="h-4 w-4" /></Button>
 	                          </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setSelectedId(ws._id)}>
-                              <Settings className="h-4 w-4" /> Configure
-                            </DropdownMenuItem>
+                            <Link href={`/workspaces/${ws._id}`}>
+                              <DropdownMenuItem>
+                                <Settings className="h-4 w-4" /> Workspace controls
+                              </DropdownMenuItem>
+                            </Link>
                             <Link href={`/users?workspace=${ws._id}`}>
                               <DropdownMenuItem><UsersIcon className="h-4 w-4" /> Team Directory</DropdownMenuItem>
                             </Link>
@@ -479,6 +481,13 @@ export default function WorkspacesPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2">
+                    {can("workspaces") && (
+                      <Link href={`/workspaces/${selected._id}`}>
+                        <Button size="sm" variant="outline">
+                          <Settings className="h-4 w-4" /> Manage plan & access
+                        </Button>
+                      </Link>
+                    )}
                     {can("workspaces") && (
                       <Button size="sm" onClick={() => impersonate.mutate(selected._id)} disabled={impersonate.isPending}>
                         Bypass Access <ArrowRight className="h-4 w-4" />
