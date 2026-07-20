@@ -19,6 +19,10 @@ export interface BillingData {
     taxId: string;
     billingPivotDate?: string;
   };
+  payment?: {
+    enabled: boolean;
+    provider: 'razorpay' | null;
+  };
   transactions: any[];
 }
 

@@ -27,11 +27,12 @@ interface RechargeModalProps {
   isOpen: boolean;
   onClose: () => void;
   currency?: string;
+  paymentEnabled?: boolean;
 }
 
 const PRESET_AMOUNTS = [500, 1000, 2000, 5000];
 
-export default function RechargeModal({ isOpen, onClose, currency = 'INR' }: RechargeModalProps) {
+export default function RechargeModal({ isOpen, onClose, currency = 'INR', paymentEnabled = true }: RechargeModalProps) {
   const [amount, setAmount] = useState<string>('500');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -49,6 +50,11 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR' }: Rec
   }, []);
 
   const handleRecharge = async () => {
+    if (!paymentEnabled) {
+      toast.error('Online payments are temporarily unavailable. Please contact support.');
+      return;
+    }
+
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum < 100) {
       toast.error('Minimum recharge amount is 100 INR');
@@ -151,7 +157,9 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR' }: Rec
           </div>
           <DialogTitle className="text-2xl font-black text-foreground">Recharge Wallet</DialogTitle>
           <DialogDescription className="font-medium">
-            Add credits to your workspace to keep your automations running smoothly.
+            {paymentEnabled
+              ? 'Add credits to your workspace to keep your automations running smoothly.'
+              : 'Online payments are temporarily unavailable. Please contact support.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -191,7 +199,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR' }: Rec
         <DialogFooter>
           <Button 
             className="w-full rounded-2xl h-14 font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20"
-            disabled={isProcessing}
+            disabled={isProcessing || !paymentEnabled}
             onClick={handleRecharge}
           >
             {isProcessing ? (

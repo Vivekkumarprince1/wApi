@@ -9,9 +9,15 @@ import { PricingService } from '../services/PricingService';
 import { PlanModel, WorkspaceModel, WalletTransactionModel, OrderModel, RazorpayOrderModel } from '../models';
 import { AuthRequest } from '../middleware/auth';
 import { billingMetrics } from '../lib/metrics';
+import { classifyPaymentError } from './payment-error';
 
 const ledgerService = new LedgerService();
 const invoiceService = new InvoiceService();
+
+function sendPaymentError(res: Response, err: any) {
+  const response = classifyPaymentError(err);
+  return res.status(response.status).json(response.body);
+}
 
 export class WalletController {
   static async getWorkspace(req: Request, res: Response) {
@@ -83,7 +89,7 @@ export class WalletController {
         keyId: config.razorpayKeyId
       });
     } catch (err: any) {
-      res.status(500).json({ success: false, message: err.message });
+      return sendPaymentError(res, err);
     }
   }
 
@@ -138,7 +144,7 @@ export class WalletController {
       });
     } catch (err: any) {
       console.error(`[WalletController.createPlanOrder] Error:`, err);
-      res.status(500).json({ success: false, message: err.message });
+      return sendPaymentError(res, err);
     }
   }
 
@@ -748,7 +754,11 @@ export class WalletController {
       const activeOnly = req.query.activeOnly !== 'false';
       const query = activeOnly ? { isActive: true } : {};
       const plans = await PlanModel.find(query).sort({ monthlyBaseFeeCents: 1 });
-      res.json({ success: true, data: plans });
+      res.json({
+        success: true,
+        data: plans,
+        paymentEnabled: config.razorpayEnabled,
+      });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
@@ -905,6 +915,10 @@ export class WalletController {
           autoPay: workspace?.autoPay ?? false,
           taxId: workspace?.taxId ?? '',
         },
+        payment: {
+          enabled: config.razorpayEnabled,
+          provider: config.razorpayEnabled ? 'razorpay' : null,
+        },
         transactions,
       });
     } catch (err: any) {
@@ -974,7 +988,7 @@ export class WalletController {
         planSlug,
       });
     } catch (err: any) {
-      res.status(500).json({ success: false, message: err.message });
+      return sendPaymentError(res, err);
     }
   }
 

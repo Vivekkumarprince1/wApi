@@ -111,6 +111,12 @@ keyVaultSecrets:
       objectName: auth-smtp-from
     - key: EMAIL_REPLY_TO
       objectName: email-reply-to
+    - key: RAZORPAY_KEY_ID
+      objectName: razorpay-key-id
+    - key: RAZORPAY_KEY_SECRET
+      objectName: razorpay-key-secret
+    - key: RAZORPAY_WEBHOOK_SECRET
+      objectName: razorpay-webhook-secret
     - key: MONGODB_URI
       objectName: mongodb-uri
     - key: MONGODB_URI_AUTOMATION
@@ -188,6 +194,9 @@ services:
       JWT_SECRET: JWT_SECRET
       INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
       REDIS_URL: REDIS_URL
+      RAZORPAY_KEY_ID: RAZORPAY_KEY_ID
+      RAZORPAY_KEY_SECRET: RAZORPAY_KEY_SECRET
+      RAZORPAY_WEBHOOK_SECRET: RAZORPAY_WEBHOOK_SECRET
   service-provider:
     env:
       WHATSAPP_WEBHOOK_URL: https://connectsphere-api-vivek.eastus.cloudapp.azure.com/api/webhooks/whatsapp

@@ -171,12 +171,16 @@ export const SubscriptionModel = mongoose.model<ISubscriptionDoc>('Subscription'
 export interface IPlanDoc extends Document {
   name: string;
   slug: string;
+  description?: string;
   currency: string;
   monthlyBaseFeeCents: number;
   yearlyBaseFeeCents: number;
   billingIntervalMonths: number;
   isActive: boolean;
   isDefault: boolean;
+  features: string[];
+  limits: Record<string, number>;
+  conversationPricing: Record<string, number>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -184,12 +188,16 @@ export interface IPlanDoc extends Document {
 const PlanSchema = new Schema<IPlanDoc>({
   name: { type: String, required: true },
   slug: { type: String, unique: true, required: true },
+  description: { type: String },
   currency: { type: String, default: 'INR' },
   monthlyBaseFeeCents: { type: Number, default: 0 },
   yearlyBaseFeeCents: { type: Number, default: 0 },
   billingIntervalMonths: { type: Number, default: 1 },
   isActive: { type: Boolean, default: true },
-  isDefault: { type: Boolean, default: false }
+  isDefault: { type: Boolean, default: false },
+  features: [{ type: String }],
+  limits: { type: Schema.Types.Mixed, default: {} },
+  conversationPricing: { type: Schema.Types.Mixed, default: {} }
 }, { timestamps: true });
 
 export const PlanModel = mongoose.model<IPlanDoc>('Plan', PlanSchema);

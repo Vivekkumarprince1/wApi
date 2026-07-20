@@ -61,9 +61,14 @@ export default function PlanSelectionModal({
   });
 
   const availablePlans = Array.isArray(plans?.data) ? plans.data : [];
+  const paymentEnabled = plans?.paymentEnabled === true;
 
   const handleSwitchPlan = async (plan: any) => {
     if (plan.slug === currentPlanSlug) return;
+    if (Number(plan.monthlyBaseFeeCents || 0) > 0 && !paymentEnabled) {
+      toast.error('Online payments are temporarily unavailable. Please contact support.');
+      return;
+    }
     
     setIsSubmitting(plan.slug);
     try {
@@ -244,7 +249,7 @@ export default function PlanSelectionModal({
 
                       <Button 
                         onClick={() => handleSwitchPlan(plan)}
-                        disabled={isCurrent || isSubmitting === plan.slug}
+                        disabled={isCurrent || isSubmitting === plan.slug || (Number(plan.monthlyBaseFeeCents || 0) > 0 && !paymentEnabled)}
                         className={`w-full h-14 rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-300 ${
                           isCurrent
                             ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-80'
@@ -255,6 +260,8 @@ export default function PlanSelectionModal({
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : isCurrent ? (
                           'Active Tier'
+                        ) : Number(plan.monthlyBaseFeeCents || 0) > 0 && !paymentEnabled ? (
+                          'Payments Unavailable'
                         ) : (
                           <>Deploy Strategy <ArrowRight className="ml-2 h-4 w-4" /></>
                         )}
@@ -277,7 +284,11 @@ export default function PlanSelectionModal({
                     </div>
                     <div>
                         <p className="text-xs font-black uppercase tracking-widest text-foreground">Secure Billing Gateway</p>
-                        <p className="text-[10px] text-muted-foreground font-medium">All transactions are encrypted and processed via Razorpay. Converstation costs are extra.</p>
+                        <p className="text-[10px] text-muted-foreground font-medium">
+                          {paymentEnabled
+                            ? 'All transactions are encrypted and processed via Razorpay. Conversation costs are extra.'
+                            : 'Online checkout is temporarily unavailable. Contact support to change to a paid plan.'}
+                        </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">

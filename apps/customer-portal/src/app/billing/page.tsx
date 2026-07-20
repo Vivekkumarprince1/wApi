@@ -395,6 +395,7 @@ export default function BillingPage() {
         isOpen={isRechargeOpen} 
         onClose={() => setIsRechargeOpen(false)} 
         currency={wallet.currency}
+        paymentEnabled={billing?.payment?.enabled === true}
       />
 
       <PlanSelectionModal 

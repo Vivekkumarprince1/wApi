@@ -42,7 +42,7 @@ export class RazorpayService {
       return order;
     } catch (error) {
       console.error('[RazorpayService] Order Creation Failed:', error);
-      throw new Error('FAILED_TO_CREATE_RAZORPAY_ORDER');
+      throw Object.assign(new Error('FAILED_TO_CREATE_RAZORPAY_ORDER'), { code: 'PAYMENT_PROVIDER_ERROR' });
     }
   }
 
@@ -65,7 +65,7 @@ export class RazorpayService {
       return order;
     } catch (error) {
       console.error('[RazorpayService] Plan Order Creation Failed:', error);
-      throw new Error('FAILED_TO_CREATE_PLAN_ORDER');
+      throw Object.assign(new Error('FAILED_TO_CREATE_PLAN_ORDER'), { code: 'PAYMENT_PROVIDER_ERROR' });
     }
   }
 
