@@ -7,11 +7,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
@@ -89,7 +89,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR', payme
               setIsSuccess(true);
               toast.success('Wallet recharged successfully!');
               queryClient.invalidateQueries({ queryKey: ['billing'] });
-              
+
               // Refresh global auth store so the header updates
               const { useAuthStore } = await import('@/store/auth-store');
               useAuthStore.getState().fetchSession(true);
@@ -100,9 +100,9 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR', payme
               }, 2000);
             }
           } catch (err: any) {
-             toast.error(err.response?.data?.message || 'Payment verification failed');
+            toast.error(err.response?.data?.message || 'Payment verification failed');
           } finally {
-             setIsProcessing(false);
+            setIsProcessing(false);
           }
         },
         prefill: {
@@ -114,7 +114,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR', payme
           color: "#0f172a"
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             setIsProcessing(false);
           }
         }
@@ -166,7 +166,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR', payme
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             {PRESET_AMOUNTS.map((amt) => (
-              <Button 
+              <Button
                 key={amt}
                 variant={amount === amt.toString() ? 'default' : 'outline'}
                 className="rounded-xl h-14 font-bold text-lg"
@@ -179,7 +179,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR', payme
 
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-muted-foreground">{currency}</span>
-            <Input 
+            <Input
               type="number"
               placeholder="Enter custom amount"
               className="pl-12 h-14 rounded-xl border-border/50 text-lg font-bold bg-muted/20"
@@ -197,7 +197,7 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR', payme
         </div>
 
         <DialogFooter>
-          <Button 
+          <Button
             className="w-full rounded-2xl h-14 font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20"
             disabled={isProcessing || !paymentEnabled}
             onClick={handleRecharge}

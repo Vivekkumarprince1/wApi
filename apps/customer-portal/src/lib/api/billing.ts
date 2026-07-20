@@ -28,7 +28,7 @@ export interface BillingData {
 
 export const fetchBillingInfo = async (): Promise<BillingData> => {
   // Proxied through main-server workspace controller
-  return await api.get('/workspace/billing/info'); 
+  return await api.get('/workspace/billing/info');
 };
 
 export const rechargeWallet = async (amount: number | { amountPaise: number }) => {
