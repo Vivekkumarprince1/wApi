@@ -50,6 +50,11 @@ export default function BillingPage() {
     };
 
     const handleAddPaymentMethod = async () => {
+        if (billing?.payment?.enabled !== true) {
+            toast.error('Online payments are temporarily unavailable. Please contact support.');
+            return;
+        }
+
         setIsAddingPaymentMethod(true);
         try {
             // 1. Create Verification Order (₹1)
@@ -124,7 +129,7 @@ export default function BillingPage() {
                     <Button
                         className="rounded-full px-6 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 font-bold"
                         onClick={handleAddPaymentMethod}
-                        disabled={isAddingPaymentMethod}
+                        disabled={isAddingPaymentMethod || billing?.payment?.enabled !== true}
                     >
                         {isAddingPaymentMethod ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="mr-2 h-4 w-4" />}
                         Add Payment Method
@@ -147,6 +152,7 @@ export default function BillingPage() {
                         <Button
                             className="w-full bg-white text-slate-900 hover:bg-slate-100 font-black rounded-2xl h-12 text-xs uppercase tracking-widest"
                             onClick={() => setIsRechargeOpen(true)}
+                            disabled={billing?.payment?.enabled !== true}
                         >
                             Add Credits <ArrowUpRight className="ml-2 h-4 w-4" />
                         </Button>

@@ -38,16 +38,15 @@ export default function RechargeModal({ isOpen, onClose, currency = 'INR', payme
   const [isSuccess, setIsSuccess] = useState(false);
   const queryClient = useQueryClient();
 
-  // Load Razorpay Script
   useEffect(() => {
+    if (!isOpen || !paymentEnabled || document.querySelector('script[data-razorpay-checkout]')) return;
+
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.async = true;
+    script.dataset.razorpayCheckout = 'true';
     document.body.appendChild(script);
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
+  }, [isOpen, paymentEnabled]);
 
   const handleRecharge = async () => {
     if (!paymentEnabled) {

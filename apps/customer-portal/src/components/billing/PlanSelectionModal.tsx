@@ -39,19 +39,6 @@ export default function PlanSelectionModal({
 }: PlanSelectionModalProps) {
   const [isSubmitting, setIsSubmitting] = React.useState<string | null>(null);
 
-  // Load Razorpay Script
-  React.useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.async = true;
-    document.body.appendChild(script);
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }, []);
-
   // Fetch available plans
   const { data: plans, isLoading } = useQuery({
     queryKey: ['available-plans'],
@@ -62,6 +49,16 @@ export default function PlanSelectionModal({
 
   const availablePlans = Array.isArray(plans?.data) ? plans.data : [];
   const paymentEnabled = plans?.paymentEnabled === true;
+
+  React.useEffect(() => {
+    if (!isOpen || !paymentEnabled || document.querySelector('script[data-razorpay-checkout]')) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.dataset.razorpayCheckout = 'true';
+    document.body.appendChild(script);
+  }, [isOpen, paymentEnabled]);
 
   const handleSwitchPlan = async (plan: any) => {
     if (plan.slug === currentPlanSlug) return;
