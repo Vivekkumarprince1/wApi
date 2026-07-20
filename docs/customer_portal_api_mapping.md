@@ -244,10 +244,6 @@ When requests hit the API Gateway, they go through several operations before pro
 | `createAiIntent(data)` | POST | `/automation/engine/ai-intent` | `/api/automation/engine/ai-intent` |
 | `getAutomationStats(params)` | GET | `/automation/engine/stats` | `/api/automation/engine/stats` |
 | `getAutomationLogs(params)` | GET | `/automation/engine/logs` | `/api/automation/engine/logs` |
-| `fetchInstagramQuickflows(p)`| GET | `/automation/engine/instagram-quickflows` | `/api/automation/engine/instagram-quickflows` |
-| `createInstagramQuickflow(d)`| POST | `/automation/engine/instagram-quickflows` | `/api/automation/engine/instagram-quickflows` |
-| `toggleInstagramQuickflow(id)`| PATCH | `/automation/engine/instagram-quickflows/:id/toggle` | `/api/automation/engine/instagram-quickflows/:id/toggle` |
-| `deleteInstagramQuickflow(id)`| DELETE | `/automation/engine/instagram-quickflows/:id` | `/api/automation/engine/instagram-quickflows/:id` |
 | `fetchInteraktiveLists(params)`| GET | `/automation/engine/interaktive-list` | `/api/automation/engine/interaktive-list` |
 | `createInteraktiveList(data)` | POST | `/automation/engine/interaktive-list` | `/api/automation/engine/interaktive-list` |
 | `updateInteraktiveList(id, d)`| PUT | `/automation/engine/interaktive-list/:id` | `/api/automation/engine/interaktive-list/:id` |
@@ -505,7 +501,6 @@ When requests hit the API Gateway, they go through several operations before pro
 | `getGoogleSheetsColumns(id,s)` | GET | `/integrations/google/spreadsheets/:id/columns` | Passes through without edits | `/api/v1/integrations/google/spreadsheets/:id/columns` | `automation-service` (3001) |
 | `getIntegrations()` | GET | `/integrations` | Passes through without edits | `/api/v1/integrations` | `automation-service` (3001) |
 | `syncIntegration(type)` | POST | `/integrations/:type/sync` | Passes through without edits | `/api/v1/integrations/:type/sync` | `automation-service` (3001) |
-| `getInstagramStatus()` | GET | `/integrations/instagram/status` | Passes through without edits | `/api/v1/integrations/instagram/status` | `automation-service` (3001) |
 | `getInstagramAuthUrl(force)` | GET | `/integrations/instagram/auth-url` | Passes through without edits | `/api/v1/integrations/instagram/auth-url` | `automation-service` (3001) |
 | `refreshInstagramToken()` | POST | `/integrations/instagram/refresh-token` | Passes through without edits | `/api/v1/integrations/instagram/refresh-token` | `automation-service` (3001) |
 | `getMetaAdsStatus()` | GET | `/integrations/meta-ads/status` | Passes through without edits | `/api/v1/integrations/meta-ads/status` | `automation-service` (3001) |
@@ -532,8 +527,6 @@ In addition to the centralized API directory, several UI pages, components, and 
 | [accept-invite/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/auth/accept-invite/page.tsx) | GET | `/api/auth/invitation/:token?email=` | Strips `/api/v1/auth` | `/invitation/:token?email=` | `auth-service` (3006) |
 | *(accept-invite)* | POST | `/api/auth/accept-invite` | Strips `/api/v1/auth` | `/accept-invite` | `auth-service` (3006) |
 | [google/callback/page.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/app/auth/google/callback/page.tsx) | POST | `/api/auth/google/callback` | Strips `/api/v1/auth` | `/google/callback` | `auth-service` (3006) |
-| [sms-composer.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/inbox/sms-composer.tsx) | GET | `/api/templates?channel=sms&limit=10` | Passes through without edits | `/api/v1/templates?channel=sms&limit=10` | `service-provider` (3004) |
-| [email-composer.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/inbox/email-composer.tsx) | GET | `/api/templates?channel=email&limit=10` | Passes through without edits | `/api/v1/templates?channel=email&limit=10` | `service-provider` (3004) |
 | [DirectTemplateModal.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/contacts/DirectTemplateModal.tsx) | GET | `/api/workspace/pricing` | `/api/v1/workspace/pricing` → `/pricing` | `/pricing` | `billing-service` (3003) |
 | [member-panel.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/settings/member-panel.tsx) | GET | `/api/workspace/team/search` | `/api/v1/workspace` → `/workspace` | `/workspace/team/search` | `auth-service` (3006) |
 | [snippet-generator.tsx](file:///Users/vivekkumar/devlopment/connectsphere/apps/customer-portal/src/components/dashboard/settings/developer/snippet-generator.tsx) | GET | `/api/developer/keys` | Passes through without edits | `/api/v1/developer/keys` | `automation-service` (3001) |

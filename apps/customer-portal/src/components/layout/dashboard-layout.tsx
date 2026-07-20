@@ -17,7 +17,6 @@ import FlashLoader from "@/components/ui/flash-loader";
 import { AccessRestrictedState } from "@/components/shared/access-restricted-state";
 import { isPublicCustomerRoute } from "@/lib/public-routes";
 import config from "@/config/env";
-import { isFrozenUiRoute } from "@/config/ui-availability";
 
 
 export default function DashboardLayout({
@@ -50,10 +49,8 @@ export default function DashboardLayout({
 
   const isPublicRoute = isPublicCustomerRoute(pathname);
   const disabledOptionalFeature =
-    isFrozenUiRoute(pathname) ||
     (!config.optionalFeatures.commerce && pathname.startsWith('/commerce')) ||
     (!config.optionalFeatures.metaAds && pathname.startsWith('/ads')) ||
-    (!config.optionalFeatures.instagram && pathname.startsWith('/automation/instagram-quickflows')) ||
     (!config.optionalFeatures.advancedAnswerbot && pathname.startsWith('/automation/answerbot')) ||
     (!config.optionalFeatures.forms && pathname.startsWith('/automation/whatsapp-forms')) ||
     (!config.optionalFeatures.developerApi && pathname.startsWith('/settings/developer'));

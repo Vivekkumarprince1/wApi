@@ -259,7 +259,7 @@ Browser ──(auth_token cookie / Bearer)──▶ api-gateway
 4. **Stateful in-process workers.** Campaign pacing and the answerbot crawl queue live inside service processes; restart loses in-flight pacing (`CampaignWorker.ts`, `automation-service/src/services/answerbot-crawl-queue.ts`).
 5. **Kafka optional locally** → event backbone can silently degrade; no schema registry; topic names are string literals partly outside `@connectsphere/contracts`.
 6. **No observability stack.** Logging is `morgan`/`console.log`/`winston` to stdout; correlation IDs are generated (`index.ts:42`) but there is no tracing, metrics, or centralized log sink committed (`@logtail` is an *optional* peer).
-7. **Multichannel is scaffolding only.** `service-provider/src/channels/insta` and `/rcs` directories are **empty** — Instagram and RCS (named platform requirements) are not implemented; only WhatsApp/Gupshup exists.
+7. **WhatsApp is the supported messaging channel.** Removed channel implementations are not part of the active product.
 
 ---
 
@@ -278,4 +278,3 @@ Browser ──(auth_token cookie / Bearer)──▶ api-gateway
 | Realtime fan-out | `websocket-gateway/src/index.ts` |
 | No Docker/k8s/CI | `find` sweep (negative result) |
 | Divergent DB defaults | grep of `MONGO_URI` defaults across services |
-| Empty insta/rcs channels | directory listing of `service-provider/src/channels/{insta,rcs}` |

@@ -1,7 +1,5 @@
 import "server-only";
 
-import { randomBytes } from "node:crypto";
-
 import type { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db/prisma";
@@ -9,8 +7,6 @@ import { ApiError } from "@/lib/http/api-error";
 import {
   analyticsEventSchema,
   applicationDraftSchema,
-  jobAlertSchema,
-  talentCommunitySchema,
 } from "@/modules/engagement/schema";
 import { publicJobBaseWhere } from "@/modules/jobs/server/public-jobs";
 
@@ -150,64 +146,6 @@ export async function deleteApplicationDraft(userId: string, jobId: string) {
   if (!profile) return;
   await prisma.applicationDraft.deleteMany({
     where: { candidateProfileId: profile.id, jobId },
-  });
-}
-
-export async function listJobAlerts(userId: string) {
-  const profile = await prisma.candidateProfile.findUnique({
-    where: { userId },
-    select: { id: true },
-  });
-  return profile
-    ? prisma.jobAlert.findMany({
-        where: { candidateProfileId: profile.id },
-        orderBy: { createdAt: "desc" },
-      })
-    : [];
-}
-
-export async function createJobAlert(userId: string, raw: unknown) {
-  const input = jobAlertSchema.parse(raw);
-  const profile = await candidateProfileFor(userId);
-  return prisma.jobAlert.create({
-    data: {
-      candidateProfileId: profile.id,
-      jobId: input.jobId ?? null,
-      query: input.query ?? null,
-      locations: input.locations,
-      departments: input.departments,
-      employmentTypes: input.employmentTypes,
-      frequency: input.frequency,
-      unsubscribeToken: randomBytes(24).toString("hex"),
-    },
-  });
-}
-
-export async function joinTalentCommunity(raw: unknown) {
-  const input = talentCommunitySchema.parse(raw);
-  return prisma.talentCommunityMember.upsert({
-    where: { normalizedEmail: input.email },
-    create: {
-      normalizedEmail: input.email,
-      name: input.name,
-      email: input.email,
-      phone: input.phone ?? null,
-      interests: input.interests,
-      locations: input.locations,
-      consentVersion: input.consentVersion,
-      consentedAt: new Date(),
-      unsubscribeToken: randomBytes(24).toString("hex"),
-    },
-    update: {
-      name: input.name,
-      phone: input.phone ?? null,
-      interests: input.interests,
-      locations: input.locations,
-      consentVersion: input.consentVersion,
-      consentedAt: new Date(),
-      status: "SUBSCRIBED",
-    },
-    select: { id: true, status: true },
   });
 }
 

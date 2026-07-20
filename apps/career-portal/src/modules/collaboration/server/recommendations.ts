@@ -5,10 +5,7 @@ import type { RecommendationStatus } from "@prisma/client";
 import { recordAudit } from "@/lib/audit/audit";
 import type { CollaborationActor } from "@/lib/auth/authorization";
 import { prisma } from "@/lib/db/prisma";
-import { deliverEmail } from "@/lib/email/delivery";
-import { sendAccountEmail } from "@/lib/email/mailer";
 import { ApiError } from "@/lib/http/api-error";
-import { env } from "@/config/env";
 import { canAccessAssignedJob } from "@/lib/auth/policy";
 import {
   isRecommendableApplication,
@@ -315,28 +312,6 @@ async function createCandidateReferral(
     return referral;
   });
 
-  if (!application) {
-    const applyUrl = `${env.APP_URL}/apply/${job.slug ?? job.id}?referral=${created.id}`;
-    const delivery = await deliverEmail({
-      idempotencyKey: `referral:${created.id}:invite`,
-      template: "referral-invitation",
-      recipient: input.candidateEmail,
-      send: () =>
-        sendAccountEmail({
-          to: input.candidateEmail,
-          subject: `${actor.name} referred you for ${job.title} at ${job.company}`,
-          heading: `You've been referred for ${job.title}`,
-          message: `${actor.name} believes you may be a strong fit for this role. Review the opening and apply using the secure link. Your referral invitation expires in 30 days.`,
-          actionLabel: "Review job and apply",
-          actionUrl: applyUrl,
-        }),
-    });
-    if (delivery.delivered)
-      await prisma.recommendation.update({
-        where: { id: created.id },
-        data: { invitationSentAt: new Date() },
-      });
-  }
   return created;
 }
 

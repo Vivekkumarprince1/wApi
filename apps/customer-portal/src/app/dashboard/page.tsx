@@ -2,16 +2,16 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Rocket, 
-  Zap, 
-  User, 
-  MessageSquare, 
-  Settings, 
-  Plus, 
-  Trash, 
-  Send, 
-  FileUp, 
+import {
+  Rocket,
+  Zap,
+  User,
+  MessageSquare,
+  Settings,
+  Plus,
+  Trash,
+  Send,
+  FileUp,
   FileDown,
   Activity,
   AlertCircle
@@ -258,14 +258,14 @@ const DashboardPageClient = () => {
             <div className="space-y-4 flex-1">
               {recentActivity.slice(0, 5).map((activity: any, idx: number) => {
                 const getIcon = () => {
-                  switch(activity.type) {
+                  switch (activity.type) {
                     case 'contact': return <User className="h-5 w-5" />;
                     case 'message': return <MessageSquare className="h-5 w-5" />;
                     case 'conversation': return <MessageSquare className="h-5 w-5" />;
                     case 'campaign': return <Rocket className="h-5 w-5" />;
                     case 'automation': return <Zap className="h-5 w-5" />;
                     case 'settings': return <Settings className="h-5 w-5" />;
-                    default: 
+                    default:
                       if (activity.action === 'create') return <Plus className="h-5 w-5" />;
                       if (activity.action === 'delete') return <Trash className="h-5 w-5" />;
                       if (activity.action === 'send') return <Send className="h-5 w-5" />;
@@ -277,7 +277,7 @@ const DashboardPageClient = () => {
 
                 const getIconColor = () => {
                   if (activity.status === 'failed') return 'bg-red-500/10 text-red-500';
-                  switch(activity.type) {
+                  switch (activity.type) {
                     case 'contact': return 'bg-blue-500/10 text-blue-500';
                     case 'message': return 'bg-green-500/10 text-green-500';
                     case 'campaign': return 'bg-purple-500/10 text-purple-500';

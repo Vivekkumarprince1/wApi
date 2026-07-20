@@ -32,7 +32,7 @@
 ## 1. API Gateway 🟢
 
 - **Responsibility:** single ingress; routing; edge auth (stateless JWT/JWKS verify + Redis denylist); edge rate-limiting; correlation-id; header sanitization.
-- **APIs:** proxy table in `api-gateway/src/index.ts` (kept). Adds `/api/v1/instagram`, `/api/v1/rcs`, `/api/v1/files`, `/api/v1/analytics` (to Analytics, not chat).
+- **APIs:** proxy table in `api-gateway/src/index.ts` remains the source of truth for supported service routes.
 - **Events:** none (stateless).
 - **DB ownership:** none.
 - **Dependencies:** Auth (JWKS, cached), Redis (denylist + shared rate-limit).
@@ -94,7 +94,7 @@
 
 ## 8. Automation Service 🟢
 
-- **Responsibility:** workflow engine, auto-replies, answerbot (web-crawl KB), AI-intent matching, FAQ, WhatsApp forms/flows, Instagram quickflows, interactive lists, integrations (Google Sheets/Petpooja), widget, API keys. (Today `automation-service`.)
+- **Responsibility:** workflow engine, auto-replies, answerbot (web-crawl KB), AI-intent matching, FAQ, WhatsApp forms/flows, interactive lists, integrations (Google Sheets/Petpooja), widget, API keys. (Today `automation-service`.)
 - **APIs:** `/api/v1/automation/*`, `/flows`, `/widget`, `/developer`, `/integrations`, `/settings/api-keys`; `POST /api/automation/engine/trigger-inbound` (from Core).
 - **Events:** consumes `automation-events`; produces outbound auto-replies via `outbound-requested`.
 - **DB ownership:** all `automation*`, `autoreply*`, `answerbot*`, `whatsappform*`, `instagram*`, `integrations`, `widgetconfigs`, `aiintentmatchlogs`.
@@ -103,7 +103,7 @@
 
 ## 9. Channel / BSP Service 🟢→🟡 (`service-provider`)
 
-- **Responsibility:** channel adapters (WhatsApp/Gupshup today; Instagram + RCS new), app onboarding lifecycle, token/credential vault (AES-GCM `secret-box.ts`), template mirror+rules, message dispatch record, webhook normalization, provider health. (Today `service-provider`.)
+- **Responsibility:** WhatsApp/Gupshup adapters, app onboarding lifecycle, token/credential vault (AES-GCM `secret-box.ts`), template mirror+rules, message dispatch record, webhook normalization, provider health. (Today `service-provider`.)
 - **APIs:** `/provider/v1/workspace/*` (waba/profile/webhooks/phones), `/provider/v1/onboarding/*`, `/api/v1/templates`, `POST /internal/v1/bsp/messages/send`.
 - **Events:** consumes `raw-channel-events`; produces `parsed-message-events`. (Remove direct-controller produce to end double ingress — message-flow §2b.)
 - **DB ownership:** all `bsp_*` collections.
@@ -148,7 +148,7 @@
 
 ## 14. Notification Service 🟡
 
-- **Responsibility:** in-app notifications, email/SMS dispatch (OTP, invites, alerts). (Today scattered: `auth-service` Notification + MailService + Twilio.)
+- **Responsibility:** in-app notifications and transactional authentication email. (Today `auth-service` Notification + MailService.)
 - **APIs:** `/api/v1/notifications/*`, `/internal/v1/notify`.
 - **Events:** consumes `user.*`, `billing-events`, `campaign-events` to generate notifications.
 - **DB ownership:** `notifications`.

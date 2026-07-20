@@ -1,19 +1,18 @@
 "use client";
 
 import React, { useState } from 'react';
-import { 
-  Search, 
-  Filter, 
-  User, 
-  MessageSquare, 
-  CheckCircle2, 
+import {
+  Search,
+  Filter,
+  User,
+  MessageSquare,
+  CheckCircle2,
   Clock,
   MoreVertical,
   ChevronDown,
   Inbox as InboxIcon,
   MessageCircle,
   Share2,
-  Mail,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Conversation } from '@/lib/api/inbox';
@@ -22,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { isChannelVisible } from '@/config/ui-availability';
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -42,10 +41,10 @@ interface ConversationsListProps {
   onChannelChange: (channel: string) => void;
 }
 
-export default function ConversationsList({ 
-  conversations, 
-  selectedId, 
-  onSelect, 
+export default function ConversationsList({
+  conversations,
+  selectedId,
+  onSelect,
   isLoading,
   activeStatus,
   onFilterChange,
@@ -60,7 +59,6 @@ export default function ConversationsList({
   const getChannelIcon = (channel: string) => {
     switch (channel) {
       case 'messenger': return <MessageSquare className="h-3 w-3 text-blue-600" />;
-      case 'email': return <Mail className="h-3 w-3 text-purple-600" />;
       default: return <MessageCircle className="h-3 w-3 text-emerald-600" />;
     }
   };
@@ -90,23 +88,23 @@ export default function ConversationsList({
             <DropdownMenuTrigger className="p-2 hover:bg-muted rounded-xl transition-colors outline-none cursor-pointer flex items-center gap-2 border border-border/50 bg-background/50">
               <Filter className="h-3.5 w-3.5 text-muted-foreground" />
               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                {activeAssignment === 'me' ? 'Mine' : 
-                 activeAssignment === 'unassigned' ? 'Unassigned' : 
-                 activeAssignment === 'team' ? 'My Team' : 'All'}
+                {activeAssignment === 'me' ? 'Mine' :
+                  activeAssignment === 'unassigned' ? 'Unassigned' :
+                    activeAssignment === 'team' ? 'My Team' : 'All'}
               </span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="rounded-2xl p-2 shadow-premium border-border/50 min-w-[160px]">
-               <DropdownMenuItem onClick={() => onAssignmentChange('me')} className={`rounded-xl font-bold cursor-pointer ${activeAssignment === 'me' ? 'bg-primary/10 text-primary' : ''}`}>Assigned to me</DropdownMenuItem>
-               <DropdownMenuItem onClick={() => onAssignmentChange('team')} className={`rounded-xl font-bold cursor-pointer ${activeAssignment === 'team' ? 'bg-primary/10 text-primary' : ''}`}>My Team</DropdownMenuItem>
-               <DropdownMenuItem onClick={() => onAssignmentChange('unassigned')} className={`rounded-xl font-bold cursor-pointer ${activeAssignment === 'unassigned' ? 'bg-primary/10 text-primary' : ''}`}>Unassigned</DropdownMenuItem>
-               <DropdownMenuItem onClick={() => onAssignmentChange('all')} className={`rounded-xl font-bold cursor-pointer ${activeAssignment === 'all' ? 'bg-primary/10 text-primary' : ''}`}>All Conversations</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onAssignmentChange('me')} className={`rounded-xl font-bold cursor-pointer ${activeAssignment === 'me' ? 'bg-primary/10 text-primary' : ''}`}>Assigned to me</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onAssignmentChange('team')} className={`rounded-xl font-bold cursor-pointer ${activeAssignment === 'team' ? 'bg-primary/10 text-primary' : ''}`}>My Team</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onAssignmentChange('unassigned')} className={`rounded-xl font-bold cursor-pointer ${activeAssignment === 'unassigned' ? 'bg-primary/10 text-primary' : ''}`}>Unassigned</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onAssignmentChange('all')} className={`rounded-xl font-bold cursor-pointer ${activeAssignment === 'all' ? 'bg-primary/10 text-primary' : ''}`}>All Conversations</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
         <div className="flex bg-muted/30 p-1 rounded-2xl overflow-x-auto no-scrollbar">
           {['all', 'open', 'snoozed', 'resolved', 'spam'].map((f) => (
-            <button 
+            <button
               key={f}
               onClick={() => onFilterChange(f)}
               className={`
@@ -124,15 +122,14 @@ export default function ConversationsList({
           {[
             { id: 'all', icon: InboxIcon, label: 'All' },
             { id: 'whatsapp', icon: MessageCircle, label: 'WA' },
-            { id: 'email', icon: Mail, label: 'Mail' },
           ].map((ch) => (
             <button
               key={ch.id}
               onClick={() => onChannelChange(ch.id)}
               className={`
                 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border
-                ${activeChannel === ch.id 
-                  ? 'bg-primary/10 border-primary/20 text-primary' 
+                ${activeChannel === ch.id
+                  ? 'bg-primary/10 border-primary/20 text-primary'
                   : 'bg-background border-border/50 text-muted-foreground hover:border-primary/20 hover:text-foreground'}
               `}
             >
@@ -144,8 +141,8 @@ export default function ConversationsList({
 
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search chats..." 
+          <Input
+            placeholder="Search chats..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10 rounded-xl bg-muted/20 border-none focus-visible:ring-primary/20"
@@ -169,10 +166,10 @@ export default function ConversationsList({
           </div>
         ) : visibleConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-             <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground opacity-30">
-                <InboxIcon className="h-6 w-6" />
-             </div>
-             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-10">No {activeStatus} conversations found</p>
+            <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground opacity-30">
+              <InboxIcon className="h-6 w-6" />
+            </div>
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-10">No {activeStatus} conversations found</p>
           </div>
         ) : (
           <div className="flex flex-col px-2 pb-4">
@@ -199,22 +196,22 @@ export default function ConversationsList({
                       </AvatarFallback>
                       {/* Channel Icon Overlay */}
                       <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-background border border-border/50 flex items-center justify-center shadow-sm">
-                         {getChannelIcon(conv.channel)}
+                        {getChannelIcon(conv.channel)}
                       </div>
                     </Avatar>
-                    
+
                     {/* Priority Indicator */}
                     {conv.priority !== 'normal' && (
                       <div className={`absolute top-0 -left-1 w-2 h-2 rounded-full border-2 border-background shadow-sm ${getPriorityColor(conv.priority)}`} />
                     )}
-  
+
                     {(conv.myUnreadCount > 0 || conv.unreadCount > 0) && (
                       <div className={`absolute -top-1 -right-1 h-5 w-5 ${conv.myUnreadCount > 0 ? 'bg-primary' : 'bg-muted-foreground/40'} text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-background shadow-lg ${conv.myUnreadCount > 0 ? 'animate-bounce' : ''} z-10`}>
                         {conv.myUnreadCount || conv.unreadCount}
                       </div>
                     )}
                   </div>
-  
+
                   <div className="flex-1 min-w-0 space-y-0.5">
                     <div className="flex items-center justify-between gap-1">
                       <div className="flex items-center gap-2 min-w-0">
@@ -239,14 +236,14 @@ export default function ConversationsList({
                       {conv.lastMessage?.body || 'New conversation'}
                     </p>
                     <div className="flex items-center gap-1.5 pt-1">
-                       {conv.contact?.tags?.slice(0, 2).map(tag => (
-                         <Badge key={tag} variant="outline" className="text-[8px] font-black h-4 px-1.5 opacity-60 uppercase tracking-tighter">
-                           {tag}
-                         </Badge>
-                       ))}
+                      {conv.contact?.tags?.slice(0, 2).map(tag => (
+                        <Badge key={tag} variant="outline" className="text-[8px] font-black h-4 px-1.5 opacity-60 uppercase tracking-tighter">
+                          {tag}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
-  
+
                   {selectedId === conv._id && (
                     <div className="absolute right-3 bottom-3 text-primary animate-in zoom-in-50">
                       <CheckCircle2 className="h-3 w-3" />

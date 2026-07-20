@@ -93,11 +93,6 @@ function deriveNextStep(user: any, workspace: any) {
   if (user.email && user.authProvider !== 'google' && !user.emailVerified) {
     return '/onboarding/verify-email';
   }
-  // Only require phone verification if the user actually has a phone number on file
-  if (user.phone && !user.phoneVerified) {
-    return '/onboarding/verify-mobile';
-  }
-
   const hasBusinessInfo = !!(
     workspace?.business?.name ||
     workspace?.businessDocuments?.submittedAt ||
@@ -200,10 +195,10 @@ export async function buildSessionPayload(user: any) {
   const overriddenFeatures = Array.isArray(planLimits?.features) ? planLimits.features : null;
   const effectivePlan = planData && typeof planData === 'object'
     ? {
-        ...planData,
-        slug: planData.slug || planData.code || String(planData.name || 'free').toLowerCase(),
-        features: overriddenFeatures || (Array.isArray(planData.features) ? planData.features : []),
-      }
+      ...planData,
+      slug: planData.slug || planData.code || String(planData.name || 'free').toLowerCase(),
+      features: overriddenFeatures || (Array.isArray(planData.features) ? planData.features : []),
+    }
     : planData || 'free';
 
   return {
@@ -225,7 +220,7 @@ export async function buildSessionPayload(user: any) {
       id: workspace._id,
       _id: workspace._id,
       name: workspace.name,
-      plan: workspace.plan?.code || workspace.plan?.name || 'free',
+      plan: effectivePlan,
       billingStatus: workspace.billingStatus || 'trialing',
       whatsappConnected: workspace.whatsappConnected || stage1Complete,
       stage1: {

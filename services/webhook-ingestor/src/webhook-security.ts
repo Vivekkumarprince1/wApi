@@ -1,18 +1,16 @@
 import crypto from 'crypto';
 
-export type SupportedWebhookProvider = 'gupshup' | 'meta' | 'instagram';
+export type SupportedWebhookProvider = 'gupshup' | 'meta';
 
 export type WebhookSecrets = {
     gupshup: string;
     meta: string;
-    instagram: string;
 };
 
 export function normalizeWebhookProvider(value?: string): SupportedWebhookProvider | null {
     const provider = String(value || 'gupshup').trim().toLowerCase();
     if (provider === 'gupshup' || provider === 'whatsapp') return 'gupshup';
     if (provider === 'meta' || provider === 'facebook') return 'meta';
-    if (provider === 'instagram') return 'instagram';
     return null;
 }
 

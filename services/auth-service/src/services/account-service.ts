@@ -27,10 +27,6 @@ export function getAccountStatusForUser(user: any) {
   if (user.email && user.authProvider !== 'google' && !user.emailVerified) {
     return 'AWAITING_EMAIL_VERIFICATION';
   }
-  // Only require phone verification if the user has a phone number on file
-  if (user.phone && !user.phoneVerified) {
-    return 'AWAITING_MOBILE_VERIFICATION';
-  }
   // If already marked SIGNUP_COMPLETED, keep it
   if (user.accountStatus === 'SIGNUP_COMPLETED') {
     return 'SIGNUP_COMPLETED';

@@ -49,15 +49,15 @@ function normalizeAdInput(input: any = {}) {
     displayFormat: String(input.displayFormat || 'TEXT').toUpperCase() === 'CAROUSEL' ? 'CAROUSEL' : 'TEXT',
     carouselCards: Array.isArray(input.carouselCards)
       ? input.carouselCards
-          .slice(0, 10)
-          .map((card: any) => ({
-            headline: String(card?.headline || '').trim(),
-            description: String(card?.description || '').trim(),
-            imageHash: String(card?.imageHash || '').trim(),
-            imageUrl: String(card?.imageUrl || '').trim(),
-            link: String(card?.link || '').trim(),
-          }))
-          .filter((card: any) => card.headline || card.imageHash || card.imageUrl)
+        .slice(0, 10)
+        .map((card: any) => ({
+          headline: String(card?.headline || '').trim(),
+          description: String(card?.description || '').trim(),
+          imageHash: String(card?.imageHash || '').trim(),
+          imageUrl: String(card?.imageUrl || '').trim(),
+          link: String(card?.link || '').trim(),
+        }))
+        .filter((card: any) => card.headline || card.imageHash || card.imageUrl)
       : [],
     isScheduled: Boolean(input.scheduleStart),
     targeting: {
@@ -73,7 +73,6 @@ function normalizeAdInput(input: any = {}) {
       excludedAudiences: input.targeting?.excludedAudiences || [],
       publisherPlatforms: input.targeting?.publisherPlatforms || [],
       facebookPositions: input.targeting?.facebookPositions || [],
-      instagramPositions: input.targeting?.instagramPositions || [],
       devicePlatforms: input.targeting?.devicePlatforms || [],
     },
     scheduleStart: input.scheduleStart ? new Date(input.scheduleStart) : undefined,
@@ -331,7 +330,6 @@ export const adsController = {
         selected: {
           adAccountId: config.selected?.adAccountId,
           pageId: config.selected?.pageId,
-          instagramActorId: config.selected?.instagramActorId,
           whatsappPhoneNumberId: config.selected?.whatsappPhoneNumberId,
           whatsappPhoneNumber: config.selected?.whatsappPhoneNumber ? `***${String(config.selected.whatsappPhoneNumber).slice(-4)}` : undefined,
           productCatalogId: config.selected?.productCatalogId,

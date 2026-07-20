@@ -12,7 +12,6 @@ import aiIntentRoutes from './routes/aiIntentRoutes';
 import answerBotRoutes from './routes/answerBotRoutes';
 import engineRoutes from './routes/engineRoutes';
 import interaktiveListRoutes from './routes/interaktiveListRoutes';
-import instagramQuickflowRoutes from './routes/instagramQuickflowRoutes';
 import whatsappFormRoutes from './routes/whatsappFormRoutes';
 import flowRoutes from './routes/flowRoutes';
 import widgetRoutes from './routes/widgetRoutes';
@@ -82,7 +81,6 @@ app.use('/api/automation/engine', aiIntentRoutes);
 app.use('/api/automation/engine', answerBotRoutes);
 app.use('/api/automation/engine', engineRoutes);
 app.use('/api/automation/engine', interaktiveListRoutes);
-app.use('/api/automation/engine', instagramQuickflowRoutes);
 app.use('/api/automation/engine', whatsappFormRoutes);
 
 // Decoupled Monolith Restored Routes (mounting at root as paths handle aliases natively)

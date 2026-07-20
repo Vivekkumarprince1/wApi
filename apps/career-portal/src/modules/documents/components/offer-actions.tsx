@@ -15,10 +15,10 @@ export function OfferActions({ id, status }: { id: string; status: string }) {
     setMessage(null);
     const options: RequestInit = body
       ? {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(body),
-        }
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }
       : { method: "POST" };
     const response = await fetch(
       `/api/recruitment/offers/${encodeURIComponent(id)}/${path}`,
@@ -52,14 +52,6 @@ export function OfferActions({ id, status }: { id: string; status: string }) {
 
   return (
     <div className="flex min-w-60 flex-wrap gap-2">
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={busy}
-        onClick={() => action("email")}
-      >
-        Email PDF
-      </Button>
       {status === "PENDING" ? (
         <>
           <Button

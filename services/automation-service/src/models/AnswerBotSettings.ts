@@ -15,7 +15,7 @@ export interface IAnswerBotSettings {
   updatedAt: Date;
 }
 
-export interface IAnswerBotSettingsDocument extends IAnswerBotSettings, Document {}
+export interface IAnswerBotSettingsDocument extends IAnswerBotSettings, Document { }
 
 const AnswerBotSettingsSchema = new Schema<IAnswerBotSettingsDocument>({
   workspace: {
@@ -63,7 +63,7 @@ const AnswerBotSettingsSchema = new Schema<IAnswerBotSettingsDocument>({
   },
   allowedChannels: {
     type: [String],
-    default: ['whatsapp', 'instagram']
+    default: ['whatsapp']
   }
 }, {
   timestamps: true

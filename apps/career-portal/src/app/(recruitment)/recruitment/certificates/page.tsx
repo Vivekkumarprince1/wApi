@@ -2,7 +2,6 @@ import { Download } from "lucide-react";
 
 import { requireRecruitment } from "@/lib/auth/authorization";
 import { CertificateGenerationModal } from "@/modules/documents/components/certificate-generation-modal";
-import { CertificateEmailAction } from "@/modules/documents/components/certificate-email-action";
 import { listCertificates } from "@/modules/documents/server/documents";
 import { listScopedJobs } from "@/modules/jobs/server/recruitment-jobs";
 
@@ -34,7 +33,6 @@ export default async function CertificatesPage() {
               <th className="p-4">Job / role</th>
               <th className="p-4">Issued</th>
               <th className="p-4">PDF</th>
-              <th className="p-4">Delivery</th>
             </tr>
           </thead>
           <tbody>
@@ -60,12 +58,6 @@ export default async function CertificatesPage() {
                     <Download className="size-4" />
                     Download
                   </a>
-                </td>
-                <td className="p-4">
-                  <CertificateEmailAction
-                    id={item.id}
-                    enabled={Boolean(item.recipientEmail)}
-                  />
                 </td>
               </tr>
             ))}

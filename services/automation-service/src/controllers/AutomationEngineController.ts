@@ -1,20 +1,18 @@
 import { Request, Response } from 'express';
 import { Model } from 'mongoose';
 import { AuthRequest } from '../middleware/auth';
-import { 
-  AutomationRule, 
-  AutomationExecution, 
-  AutoReply, 
-  AutoReplyLog, 
-  AutomationAuditLog, 
-  AnswerBotSource, 
-  AnswerBotSettings, 
-  WorkflowExecution, 
-  AiIntentMatchLog, 
+import {
+  AutomationRule,
+  AutomationExecution,
+  AutoReply,
+  AutoReplyLog,
+  AutomationAuditLog,
+  AnswerBotSource,
+  AnswerBotSettings,
+  WorkflowExecution,
+  AiIntentMatchLog,
   InteraktiveList,
-  FAQ,
-  InstagramQuickflow,
-  InstagramQuickflowLog
+  FAQ
 } from '../models';
 import { sendInternalAction } from '../lib/internal-client';
 import { FlowExecutorService } from '../services/flow-executor';
@@ -28,8 +26,8 @@ export const getRules = async (req: AuthRequest, res: Response) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
 
     const category = req.query.category;
-    const rulesQuery: any = { 
-      workspace: workspaceId, 
+    const rulesQuery: any = {
+      workspace: workspaceId,
       $or: [
         { deletedAt: null },
         { deletedAt: { $exists: false } }
@@ -39,14 +37,14 @@ export const getRules = async (req: AuthRequest, res: Response) => {
     if (category) {
       rulesQuery.category = category;
     }
-    
+
     let rules = await AutomationRule.find(rulesQuery).sort({ priority: -1, createdAt: -1 }).lean();
-    
+
     // Fallback: If 0 rules, try converting to ObjectId just in case Mongoose didn't auto-cast
     if (rules.length === 0 && workspaceId.length === 24) {
       const { Types } = await import('mongoose');
       const workspaceFilter = { $in: [workspaceId, new Types.ObjectId(workspaceId)] };
-      const fallbackQuery: any = { 
+      const fallbackQuery: any = {
         workspace: workspaceFilter,
         $or: [
           { deletedAt: null },
@@ -75,7 +73,7 @@ export const getRuleById = async (req: AuthRequest, res: Response) => {
 
     const rule = await AutomationRule.findOne({ _id: id, workspace: workspaceId }).lean();
     if (!rule) return res.status(404).json({ success: false, error: 'Rule not found' });
-    
+
     res.json({ success: true, data: rule });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -151,13 +149,13 @@ export const getStats = async (req: AuthRequest, res: Response) => {
       AutomationExecution.countDocuments({ workspace: workspaceId, createdAt: { $gte: startDate } }),
       AutomationExecution.countDocuments({ workspace: workspaceId, status: 'SUCCESS', createdAt: { $gte: startDate } }),
       AutomationExecution.countDocuments({ workspace: workspaceId, status: 'FAILED', createdAt: { $gte: startDate } }),
-      AutomationRule.countDocuments({ 
-        workspace: workspaceId, 
-        enabled: true, 
+      AutomationRule.countDocuments({
+        workspace: workspaceId,
+        enabled: true,
         $or: [
           { deletedAt: null },
           { deletedAt: { $exists: false } }
-        ] 
+        ]
       })
     ]);
 
@@ -218,7 +216,7 @@ export const handleEventTrigger = async (req: Request, res: Response) => {
     const { workspaceId, event, data } = req.body;
     const rules = await AutomationRule.find({ workspace: workspaceId, enabled: true, 'trigger.event': event }).lean();
     for (const rule of rules) {
-      FlowExecutorService.execute(rule._id.toString(), { ...data, eventType: event, workspaceId }).catch(() => {});
+      FlowExecutorService.execute(rule._id.toString(), { ...data, eventType: event, workspaceId }).catch(() => { });
     }
     res.json({ success: true, rulesCount: rules.length });
   } catch (error: any) {
@@ -241,7 +239,7 @@ export const getAutomationHubSummary = async (req: AuthRequest, res: Response) =
     startDate.setDate(startDate.getDate() - days);
 
     const { Types } = await import('mongoose');
-    const workspaceFilter = workspaceId.length === 24 
+    const workspaceFilter = workspaceId.length === 24
       ? { $in: [workspaceId, new Types.ObjectId(workspaceId)] }
       : workspaceId;
 
@@ -262,7 +260,6 @@ export const getAutomationHubSummary = async (req: AuthRequest, res: Response) =
       answerBotSourcesCount,
       answerBotDraftFaqsCount,
       interaktiveLists,
-      quickflows,
       totalExecutions,
       successCount,
       failedCount
@@ -272,7 +269,6 @@ export const getAutomationHubSummary = async (req: AuthRequest, res: Response) =
       AnswerBotSource.countDocuments({ workspace: workspaceFilter }),
       FAQ.countDocuments({ ...baseQuery, status: 'draft' }),
       InteraktiveList.find(baseQuery).lean(),
-      InstagramQuickflow.find({ workspace: workspaceFilter }).lean(), // No deletedAt for IG
       AutomationExecution.countDocuments({ workspace: workspaceFilter, createdAt: { $gte: startDate } }),
       AutomationExecution.countDocuments({ workspace: workspaceFilter, status: 'SUCCESS', createdAt: { $gte: startDate } }),
       AutomationExecution.countDocuments({ workspace: workspaceFilter, status: 'FAILED', createdAt: { $gte: startDate } }),
@@ -281,7 +277,6 @@ export const getAutomationHubSummary = async (req: AuthRequest, res: Response) =
     console.log(`[Debug] getAutomationHubSummary - Results:`, {
       rulesCount: rules.length,
       listsCount: interaktiveLists.length,
-      quickflowsCount: quickflows.length,
       faqsCount: answerBotDraftFaqsCount
     });
 
@@ -293,7 +288,6 @@ export const getAutomationHubSummary = async (req: AuthRequest, res: Response) =
     const aiIntentsCount = rules.filter(r => r.trigger?.type === 'ai_intent').length;
 
     const enabledInteraktiveCount = interaktiveLists.filter((l: any) => l.enabled).length;
-    const enabledQuickflowsCount = quickflows.filter((f: any) => f.enabled).length;
 
     res.json({
       success: true,
@@ -310,10 +304,6 @@ export const getAutomationHubSummary = async (req: AuthRequest, res: Response) =
         interaktive: {
           total: interaktiveLists.length,
           enabled: enabledInteraktiveCount
-        },
-        quickflows: {
-          total: quickflows.length,
-          enabled: enabledQuickflowsCount
         },
         executionOverview: {
           total: totalExecutions,
@@ -335,9 +325,9 @@ export const purgeWorkspaceData = async (req: Request, res: Response) => {
     const { workspaceId } = req.params;
     if (!workspaceId) return res.status(400).json({ success: false, error: 'Workspace ID required' });
     const models: Model<any>[] = [
-      AutomationRule, AutomationExecution, AutoReply, AutoReplyLog, AutomationAuditLog, 
-      AnswerBotSource, AnswerBotSettings, WorkflowExecution, AiIntentMatchLog, 
-      InteraktiveList, FAQ, InstagramQuickflow, InstagramQuickflowLog
+      AutomationRule, AutomationExecution, AutoReply, AutoReplyLog, AutomationAuditLog,
+      AnswerBotSource, AnswerBotSettings, WorkflowExecution, AiIntentMatchLog,
+      InteraktiveList, FAQ
     ];
     await Promise.all(models.map(model => model.deleteMany({ workspace: workspaceId })));
     res.json({ success: true, message: 'Purge complete' });

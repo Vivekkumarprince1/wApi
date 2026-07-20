@@ -74,8 +74,6 @@ export default function AutomationHubPage() {
         publishedFormsCount: publishedForms,
         interaktiveListsCount: summaryPayload?.interaktive?.total || 0,
         enabledInteraktiveCount: summaryPayload?.interaktive?.enabled || 0,
-        quickflowsCount: summaryPayload?.quickflows?.total || 0,
-        enabledQuickflowsCount: summaryPayload?.quickflows?.enabled || 0,
         executionOverview: summaryPayload?.executionOverview || { total: 0, success: 0, failed: 0, skipped: 0 },
         successRate: summaryPayload?.successRate || 0,
       };
@@ -96,8 +94,6 @@ export default function AutomationHubPage() {
     publishedFormsCount: 0,
     interaktiveListsCount: 0,
     enabledInteraktiveCount: 0,
-    quickflowsCount: 0,
-    enabledQuickflowsCount: 0,
     executionOverview: { total: 0, success: 0, failed: 0, skipped: 0 },
     successRate: 0,
   };
@@ -262,7 +258,7 @@ export default function AutomationHubPage() {
               className="group h-full bg-card border border-border/60 rounded-[28px] p-5 hover:border-primary/30 hover:shadow-md transition-all"
             >
               <div className="flex items-start justify-between gap-3">
-                <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${module.gradient} text-white flex items-center justify-center shadow`}> 
+                <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${module.gradient} text-white flex items-center justify-center shadow`}>
                   <module.icon className="h-5 w-5" />
                 </div>
                 {module.badge ? (

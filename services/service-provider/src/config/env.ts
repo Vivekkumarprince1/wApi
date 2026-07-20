@@ -73,19 +73,6 @@ export const config = {
     webhookSecret: process.env.GUPSHUP_WEBHOOK_SECRET || '',
     verifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || '',
   },
-  instagram: {
-    clientId: process.env.INSTAGRAM_CLIENT_ID || '',
-    clientSecret: process.env.INSTAGRAM_CLIENT_SECRET || '',
-    apiVersion: process.env.INSTAGRAM_API_VERSION || 'v25.0',
-    scopes: (process.env.INSTAGRAM_SCOPES || 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments')
-      .split(',')
-      .map((scope) => scope.trim())
-      .filter(Boolean),
-    subscribedFields: (process.env.INSTAGRAM_SUBSCRIBED_FIELDS || 'messages,message_reactions,message_echoes,comments')
-      .split(',')
-      .map((field) => field.trim())
-      .filter(Boolean),
-  },
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
     apiKey: process.env.CLOUDINARY_API_KEY || '',

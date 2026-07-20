@@ -6,7 +6,6 @@ import {
   createOwnerAccount,
   getAccountStatusForUser,
   normalizeEmail,
-  normalizePhone,
   touchLogin
 } from './account-service.js';
 
@@ -65,15 +64,6 @@ export async function sendAuthOtp(input: {
     identifier = email;
   }
 
-  if (purpose === 'phone_verification') {
-    identifier = normalizePhone(identifier || input.currentUser?.phone);
-    if (!input.currentUser?._id) throw Object.assign(new Error('Authentication required'), { status: 401 });
-  }
-
-  if (purpose === 'phone_login') {
-    identifier = normalizePhone(identifier);
-  }
-
   if (input.requestIp) {
     metadata.requestIp = input.requestIp;
   }
@@ -117,10 +107,6 @@ export async function verifyAuthOtp(input: {
   if (purpose === 'email_verification') {
     identifier = input.currentUser?.email || identifier;
   }
-  if (purpose === 'phone_verification') {
-    identifier = normalizePhone(identifier || input.currentUser?.phone);
-  }
-
   const challenge = await verifyOtp({ identifier, purpose, otp: input.otp });
   let user: any = input.currentUser || null;
   let workspace: any = null;
@@ -148,40 +134,9 @@ export async function verifyAuthOtp(input: {
     workspace = await Workspace.findById(user.activeWorkspace || user.workspace);
   }
 
-  if (purpose === 'phone_login') {
-    const phone = normalizePhone(challenge.identifier);
-    user = await User.findOne({ phone });
-    if (!user) {
-      const created = await createOwnerAccount({
-        phone,
-        authProvider: 'phone',
-        phoneVerified: true,
-        emailVerified: false
-      });
-      user = created.user;
-      workspace = created.workspace;
-    } else {
-      user.phone = phone;
-      user.phoneVerified = true;
-      if (!user.authProvider) user.authProvider = user.email ? 'mixed' : 'phone';
-      user.accountStatus = getAccountStatusForUser(user);
-      await touchLogin(user);
-      workspace = await Workspace.findById(user.activeWorkspace || user.workspace);
-    }
-  }
-
   if (purpose === 'email_verification') {
     if (!user) throw Object.assign(new Error('Authentication required'), { status: 401 });
     user.emailVerified = true;
-    user.accountStatus = getAccountStatusForUser(user);
-    await user.save();
-    workspace = await Workspace.findById(user.activeWorkspace || user.workspace);
-  }
-
-  if (purpose === 'phone_verification') {
-    if (!user) throw Object.assign(new Error('Authentication required'), { status: 401 });
-    user.phone = normalizePhone(challenge.identifier);
-    user.phoneVerified = true;
     user.accountStatus = getAccountStatusForUser(user);
     await user.save();
     workspace = await Workspace.findById(user.activeWorkspace || user.workspace);

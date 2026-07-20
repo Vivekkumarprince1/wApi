@@ -33,7 +33,6 @@ import { WorkspaceController, WorkspaceInternalController } from './workspace/wo
 import { WorkspaceService } from './workspace/workspace.service';
 import { ChannelController } from './channels/channel.controller';
 import { ChannelService } from './channels/channel.service';
-import { InstagramWebhooksService } from './channels/instagram/instagram-webhooks.service';
 import { ProviderApp, ProviderAppSchema } from './models/provider-app.schema';
 import { ProviderCredential, ProviderCredentialSchema } from './models/provider-credential.schema';
 import { ProviderHealthSnapshot, ProviderHealthSnapshotSchema } from './models/provider-health-snapshot.schema';
@@ -111,7 +110,6 @@ import { RedisService } from './common/redis.service';
     EsbFlowService,
     WorkspaceService,
     ChannelService,
-    InstagramWebhooksService,
     ProviderActionsService,
     ProviderEventConsumerService,
     ProviderEventProducerService,

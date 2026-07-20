@@ -104,19 +104,6 @@ export const verifyEmailOTP = (otp: string, email?: string) =>
     otp,
   });
 
-export const sendMobileVerificationOTP = (phone?: string) =>
-  api.post<any>('/auth/otp/send', {
-    purpose: 'phone_verification',
-    identifier: phone || '',
-  });
-
-export const verifyMobileVerificationOTP = (phone: string, otp: string) =>
-  api.post<any>('/auth/otp/verify', {
-    purpose: 'phone_verification',
-    identifier: phone,
-    otp,
-  });
-
 export const requestPasswordReset = (data: any) =>
   api.post<any>('/auth/request-password-reset', data);
 

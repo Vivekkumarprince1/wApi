@@ -52,15 +52,6 @@ export const bulkPeopleActionSchema = z.discriminatedUnion("operation", [
       .max(100),
     status: z.enum(UserStatus),
   }),
-  z.object({
-    operation: z.literal("email"),
-    userIds: z
-      .array(z.string().regex(/^[a-f\d]{24}$/i))
-      .min(1)
-      .max(100),
-    subject: z.string().trim().min(3).max(160),
-    message: z.string().trim().min(3).max(5_000),
-  }),
 ]);
 
 export const permissionKeys = capabilityKeys;

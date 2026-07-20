@@ -10,8 +10,6 @@ import {
 } from "@/lib/auth/authorization";
 import { csvRecords, parseCsv, stringifyCsv } from "@/lib/csv";
 import { prisma } from "@/lib/db/prisma";
-import { sendDocumentEmail } from "@/lib/email/mailer";
-import { deliverEmail } from "@/lib/email/delivery";
 import { ApiError } from "@/lib/http/api-error";
 import { env } from "@/config/env";
 import {
@@ -26,10 +24,6 @@ import {
   renderLegacyCertificatePdf,
   renderLegacyOfferPdf,
 } from "@/modules/documents/server/legacy-pdf-renderers";
-import {
-  offerEmailSubject,
-  renderLegacyOfferEmail,
-} from "@/modules/documents/server/offer-email-template";
 import {
   createOfferResponseToken,
   parseOfferResponseToken,
@@ -269,9 +263,9 @@ export async function issueOffer(input: unknown, actor: RecruitmentActor) {
   const application = await resolveApplication(parsed.applicationId, actor);
   const existing = application
     ? await prisma.offerLetter.findFirst({
-        where: { applicationId: application.id },
-        select: { id: true },
-      })
+      where: { applicationId: application.id },
+      select: { id: true },
+    })
     : null;
   if (existing)
     throw new ApiError("An offer already exists for this application", 409);
@@ -398,25 +392,6 @@ export async function getOfferForActor(id: string, actor: RecruitmentActor) {
   return offer;
 }
 
-async function getCertificateForActor(id: string, actor: RecruitmentActor) {
-  if (!objectIdPattern.test(id))
-    throw new ApiError("Certificate not found", 404);
-  const certificate = await prisma.certificate.findUnique({
-    where: { id },
-    select: { id: true, recipientEmail: true, name: true, jobId: true },
-  });
-  if (!certificate) throw new ApiError("Certificate not found", 404);
-  if (
-    !canManageJobDocument({
-      isAdministrator: actor.isAdministrator,
-      assignedJobs: actor.assignedJobs,
-      jobId: certificate.jobId,
-    })
-  )
-    throw new ApiError("Certificate is outside your assigned job scope", 403);
-  return certificate;
-}
-
 export async function offerPdf(
   id: string,
   actor: RecruitmentActor,
@@ -451,41 +426,41 @@ export async function getPublicOfferByToken(token: string) {
   const signed = parseOfferResponseToken(token, env.BETTER_AUTH_SECRET);
   const offer = signed
     ? await prisma.offerLetter.findUnique({
-        where: { id: signed.offerId },
-        select: {
-          id: true,
-          shortId: true,
-          candidateName: true,
-          position: true,
-          department: true,
-          companyName: true,
-          offerType: true,
-          workType: true,
-          startDate: true,
-          validUntil: true,
-          status: true,
-          acceptanceToken: true,
-          contractId: true,
-        },
-      })
+      where: { id: signed.offerId },
+      select: {
+        id: true,
+        shortId: true,
+        candidateName: true,
+        position: true,
+        department: true,
+        companyName: true,
+        offerType: true,
+        workType: true,
+        startDate: true,
+        validUntil: true,
+        status: true,
+        acceptanceToken: true,
+        contractId: true,
+      },
+    })
     : await prisma.offerLetter.findUnique({
-        where: { acceptanceToken: tokenDigest(token) },
-        select: {
-          id: true,
-          shortId: true,
-          candidateName: true,
-          position: true,
-          department: true,
-          companyName: true,
-          offerType: true,
-          workType: true,
-          startDate: true,
-          validUntil: true,
-          status: true,
-          acceptanceToken: true,
-          contractId: true,
-        },
-      });
+      where: { acceptanceToken: tokenDigest(token) },
+      select: {
+        id: true,
+        shortId: true,
+        candidateName: true,
+        position: true,
+        department: true,
+        companyName: true,
+        offerType: true,
+        workType: true,
+        startDate: true,
+        validUntil: true,
+        status: true,
+        acceptanceToken: true,
+        contractId: true,
+      },
+    });
   if (!offer) throw new ApiError("Offer link is invalid", 404);
   if (signed && signed.expiresAt.getTime() !== offer.validUntil.getTime())
     throw new ApiError("Offer link is invalid", 404);
@@ -853,99 +828,3 @@ export async function regenerateOfferToken(
   return token;
 }
 
-export async function emailOffer(id: string, actor: RecruitmentActor) {
-  const offer = await getOfferForActor(id, actor);
-  const responseToken =
-    offer.status === OfferStatus.PENDING
-      ? createOfferResponseToken(
-          offer.id,
-          offer.validUntil,
-          env.BETTER_AUTH_SECRET,
-        )
-      : null;
-  const acceptanceUrl = responseToken
-    ? `${env.APP_URL}/offer/respond/${responseToken}`
-    : `${env.APP_URL}/verify-offer/${offer.id}`;
-  const extended = offer.extensionHistory.length > 0;
-  const internship =
-    offer.offerType.toLowerCase() === "internship" ||
-    offer.position.toLowerCase().includes("intern") ||
-    offer.salary === "0";
-  const templateInput = {
-    candidateName: offer.candidateName,
-    position: offer.position,
-    companyName: offer.companyName,
-    acceptanceUrl,
-    validUntil: offer.validUntil,
-    hrContact: {
-      name: offer.hrContactName || "HR Team",
-      email: offer.hrContactEmail,
-      phone: offer.hrContactPhone,
-    },
-    extended,
-    internship,
-  };
-  const delivery = await deliverEmail({
-    idempotencyKey: `offer:${id}:signed-v1:${offer.updatedAt.getTime()}`,
-    template: extended ? "offer-extension" : "offer-letter",
-    recipient: offer.email,
-    send: async () =>
-      sendDocumentEmail({
-        to: offer.email,
-        subject: offerEmailSubject(templateInput),
-        heading: extended
-          ? "Offer Validity Extended"
-          : `Congratulations, ${offer.candidateName}!`,
-        message: extended
-          ? `The validity of your offer for ${offer.position} has been extended.`
-          : `We are pleased to offer you the position of ${offer.position} at ConnectSphere.`,
-        html: renderLegacyOfferEmail(templateInput),
-        filename: `offer-letter-${offer.id}.pdf`,
-        content: await offerPdf(id, actor),
-      }),
-  });
-  if (delivery.delivered)
-    await prisma.auditLog.create({
-      data: {
-        actor: actor.id,
-        actorRole: actor.role,
-        action: "EMAIL",
-        resourceEntity: "OfferLetter",
-        resourceId: id,
-        changes: { attachment: true, attempts: delivery.attempts },
-      },
-    });
-  return delivery;
-}
-
-export async function emailCertificate(id: string, actor: RecruitmentActor) {
-  const certificate = await getCertificateForActor(id, actor);
-  if (!certificate.recipientEmail)
-    throw new ApiError("Certificate has no recipient email", 409);
-  const delivery = await deliverEmail({
-    idempotencyKey: `certificate:${id}:pdf-email`,
-    template: "certificate-pdf",
-    recipient: certificate.recipientEmail,
-    send: async () =>
-      sendDocumentEmail({
-        to: certificate.recipientEmail!,
-        subject: "Your ConnectSphere certificate",
-        heading: `Certificate for ${certificate.name}`,
-        message: "Your certificate is attached.",
-        filename: `certificate-${id}.pdf`,
-        content: await certificatePdf(id),
-      }),
-  });
-  if (delivery.delivered)
-    await prisma.auditLog.create({
-      data: {
-        actor: actor.id,
-        actorRole: actor.role,
-        action: "EMAIL",
-        resourceEntity: "Certificate",
-        resourceId: id,
-        changes: { attachment: true, attempts: delivery.attempts },
-      },
-    });
-  return delivery;
-}

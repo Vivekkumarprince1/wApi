@@ -8,8 +8,6 @@ export * from './AutomationAuditLog';
 export * from './AutomationExecution';
 export * from './InteraktiveList';
 export * from './WorkflowExecution';
-export * from './InstagramQuickflow';
-export * from './InstagramQuickflowLog';
 export * from './FAQ';
 export * from './WhatsAppForm';
 export * from './WhatsAppFormResponse';

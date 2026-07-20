@@ -113,13 +113,6 @@ export const createAiIntent = (data: any) => api.post('/automation/engine/ai-int
 export const getAutomationStats = (params?: { ruleId?: string; days?: number }) => api.get('/automation/engine/stats', { params }).then(unwrapData);
 export const getAutomationLogs = (params?: { ruleId?: string; status?: string; page?: number; limit?: number }) => api.get('/automation/engine/logs', { params }).then(unwrapData);
 
-export const fetchInstagramQuickflows = (params?: any) => api.get('/automation/engine/instagram-quickflows', { params }).then(unwrapData);
-export const getInstagramQuickflow = (id: string) => api.get(`/automation/engine/instagram-quickflows/${id}`).then(unwrapData);
-export const createInstagramQuickflow = (data: any) => api.post('/automation/engine/instagram-quickflows', data).then(unwrapData);
-export const updateInstagramQuickflow = (id: string, data: any) => api.patch(`/automation/engine/instagram-quickflows/${id}`, data).then(unwrapData);
-export const toggleInstagramQuickflow = (id: string) => api.patch(`/automation/engine/instagram-quickflows/${id}/toggle`).then(unwrapData);
-export const deleteInstagramQuickflow = (id: string) => api.delete(`/automation/engine/instagram-quickflows/${id}`).then(unwrapData);
-
 export const fetchInteraktiveLists = (params?: any) => api.get('/automation/engine/interaktive-list', { params }).then(unwrapData);
 export const createInteraktiveList = (data: any) => api.post('/automation/engine/interaktive-list', data).then(unwrapData);
 export const updateInteraktiveList = (id: string, data: any) => api.put(`/automation/engine/interaktive-list/${id}`, data).then(unwrapData);

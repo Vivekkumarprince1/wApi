@@ -140,7 +140,6 @@ if [[ -f "$production_values" ]]; then
     'FEATURE_COMMERCE: "false"'
     'FEATURE_AI_FAQ: "false"'
     'FEATURE_META_ADS: "false"'
-    'FEATURE_INSTAGRAM: "false"'
     'FEATURE_PETPOOJA: "false"'
     'FEATURE_ADVANCED_ANSWERBOT: "false"'
     'FEATURE_DEVELOPER_API: "false"'

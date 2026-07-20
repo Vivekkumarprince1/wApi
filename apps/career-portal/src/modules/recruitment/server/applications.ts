@@ -8,12 +8,7 @@ import {
 } from "@/lib/auth/authorization";
 import { prisma } from "@/lib/db/prisma";
 import { ApiError } from "@/lib/http/api-error";
-import { sendApplicationEmail } from "@/lib/email/mailer";
-import { deliverEmail } from "@/lib/email/delivery";
-import {
-  applicationEmailActionSchema,
-  applicationStatusInputSchema,
-} from "@/modules/recruitment/applications/schema";
+import { applicationStatusInputSchema } from "@/modules/recruitment/applications/schema";
 import {
   employeeIdForUser,
   employeeRoleAfterHire,
@@ -206,47 +201,47 @@ export async function getScopedApplication(
     offer: application.offers[0] ?? null,
     contract: contract
       ? {
-          id: contract.id,
-          email: contract.email,
-          phone: contract.phone,
-          status: contract.status,
-          workflowStatus: contract.workflowStatus,
-          acceptedAt: contract.acceptedAt,
-          acceptanceComments: contract.acceptanceComments,
-          adminComments: contract.adminComments,
-          createdAt: contract.createdAt,
-          employmentDetails: contract.employmentDetails,
-          personalInfo: contract.personalInfo
-            ? {
-                dateOfBirth: contract.personalInfo.dateOfBirth,
-                nationality: contract.personalInfo.nationality,
-                address: contract.personalInfo.address,
-                emergencyContact: contract.personalInfo.emergencyContact,
-                identification: contract.personalInfo.identificationDocuments
-                  ? {
-                      idType:
-                        contract.personalInfo.identificationDocuments.idType,
-                      idNumber: maskSensitiveValue(
-                        contract.personalInfo.identificationDocuments.idNumber,
-                      ),
-                    }
-                  : null,
-              }
-            : null,
-          bankingInfo: contract.bankingInfo
-            ? {
-                accountHolderName: contract.bankingInfo.accountHolderName,
-                accountNumber: maskSensitiveValue(
-                  contract.bankingInfo.accountNumber,
+        id: contract.id,
+        email: contract.email,
+        phone: contract.phone,
+        status: contract.status,
+        workflowStatus: contract.workflowStatus,
+        acceptedAt: contract.acceptedAt,
+        acceptanceComments: contract.acceptanceComments,
+        adminComments: contract.adminComments,
+        createdAt: contract.createdAt,
+        employmentDetails: contract.employmentDetails,
+        personalInfo: contract.personalInfo
+          ? {
+            dateOfBirth: contract.personalInfo.dateOfBirth,
+            nationality: contract.personalInfo.nationality,
+            address: contract.personalInfo.address,
+            emergencyContact: contract.personalInfo.emergencyContact,
+            identification: contract.personalInfo.identificationDocuments
+              ? {
+                idType:
+                  contract.personalInfo.identificationDocuments.idType,
+                idNumber: maskSensitiveValue(
+                  contract.personalInfo.identificationDocuments.idNumber,
                 ),
-                bankName: contract.bankingInfo.bankName,
-                ifscCode: maskSensitiveValue(contract.bankingInfo.ifscCode),
-                accountType: contract.bankingInfo.accountType,
-                branch: contract.bankingInfo.branch,
               }
-            : null,
-          documents: contract.documents,
-        }
+              : null,
+          }
+          : null,
+        bankingInfo: contract.bankingInfo
+          ? {
+            accountHolderName: contract.bankingInfo.accountHolderName,
+            accountNumber: maskSensitiveValue(
+              contract.bankingInfo.accountNumber,
+            ),
+            bankName: contract.bankingInfo.bankName,
+            ifscCode: maskSensitiveValue(contract.bankingInfo.ifscCode),
+            accountType: contract.bankingInfo.accountType,
+            branch: contract.bankingInfo.branch,
+          }
+          : null,
+        documents: contract.documents,
+      }
       : null,
   };
 }
@@ -408,66 +403,3 @@ export async function applicationAnswerFileUrl(
   return privateDocumentDownloadUrl(answer.cloudinaryPublicId);
 }
 
-export async function sendApplicationActionEmail(
-  identifier: string,
-  input: unknown,
-  actor: RecruitmentActor,
-) {
-  const application = await getScopedApplication(identifier, actor);
-  const action = applicationEmailActionSchema.parse(input);
-  if (
-    action.action === "rejection" &&
-    application.status !== ApplicationStatus.REJECTED
-  )
-    throw new ApiError(
-      "Reject the application before sending a rejection email",
-      409,
-    );
-  if (
-    action.action === "welcome" &&
-    application.status !== ApplicationStatus.OFFERED &&
-    application.status !== ApplicationStatus.HIRED
-  )
-    throw new ApiError(
-      "Welcome email requires an offered or hired application",
-      409,
-    );
-  const marker = `${action.action}_email_sent`;
-  const isRejection = action.action === "rejection";
-  const delivery = await deliverEmail({
-    idempotencyKey: `application:${application.id}:${marker}`,
-    template: marker,
-    recipient: application.email,
-    send: () =>
-      sendApplicationEmail({
-        to: application.email,
-        subject: isRejection
-          ? `Update on your ${application.job.title} application`
-          : `Welcome to ConnectSphere — ${application.job.title}`,
-        heading: isRejection
-          ? "Application update"
-          : `Welcome, ${application.fullName}`,
-        message:
-          action.message ??
-          (isRejection
-            ? `Thank you for your interest in ${application.job.title}. We will not be progressing your application at this time.`
-            : `Congratulations on progressing for ${application.job.title}. The ConnectSphere team will share your next onboarding steps shortly.`),
-      }),
-  });
-  if (delivery.delivered)
-    await prisma.auditLog.create({
-      data: {
-        actor: actor.id,
-        actorRole: actor.role,
-        action: "EMAIL",
-        resourceEntity: "Application",
-        resourceId: application.id,
-        changes: {
-          action: marker,
-          delivered: true,
-          attempts: delivery.attempts,
-        },
-      },
-    });
-  return delivery;
-}

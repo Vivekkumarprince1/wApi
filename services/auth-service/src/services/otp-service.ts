@@ -1,11 +1,11 @@
 import crypto from 'crypto';
-import axios from 'axios';
 import { OtpChallenge } from '../models/index.js';
 import { config } from '../config/index.js';
-import { BspServiceClient } from './bsp-service-client';
 import { MailService } from './mail-service';
 
-export type OtpPurpose = 'phone_login' | 'email_login' | 'email_verification' | 'phone_verification' | 'signup_email';
+export type OtpPurpose = 'email_login' | 'email_verification' | 'signup_email';
+
+const EMAIL_OTP_PURPOSES = new Set<OtpPurpose>(['email_login', 'email_verification', 'signup_email']);
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 60 * 1000;
@@ -17,28 +17,19 @@ export function normalizeEmail(email?: string) {
   return String(email || '').trim().toLowerCase();
 }
 
-export function normalizePhone(phone?: string) {
-  const digits = String(phone || '').replace(/\D/g, '');
-  if (!digits) return '';
-  if (digits.length === 10) return `91${digits}`;
-  return digits;
-}
-
 export function maskIdentifier(identifier: string) {
-  if (identifier.includes('@')) {
-    const [name, domain] = identifier.split('@');
-    return `${name.slice(0, 2)}***@${domain}`;
-  }
-  return identifier.length <= 4 ? identifier : `${identifier.slice(0, 3)}******${identifier.slice(-2)}`;
-}
-
-export function getOtpChannel(purpose: OtpPurpose): 'phone' | 'email' {
-  return purpose.startsWith('phone') ? 'phone' : 'email';
+  const [name, domain] = identifier.split('@');
+  return `${name.slice(0, 2)}***@${domain}`;
 }
 
 export function normalizeOtpIdentifier(identifier: string, purpose: OtpPurpose): string {
-  const channel = getOtpChannel(purpose);
-  return channel === 'phone' ? normalizePhone(identifier) : normalizeEmail(identifier);
+  if (!EMAIL_OTP_PURPOSES.has(purpose)) {
+    throw Object.assign(new Error('Only email OTP purposes are supported'), {
+      status: 400,
+      code: 'OTP_PURPOSE_UNSUPPORTED'
+    });
+  }
+  return normalizeEmail(identifier);
 }
 
 export function hashOtp(otp: string, identifier: string, purpose: OtpPurpose): string {
@@ -62,97 +53,6 @@ async function sendEmailOtp(identifier: string, otp: string, purpose: OtpPurpose
   });
   if (!result.success) {
     throw Object.assign(new Error(result.error || 'Email OTP delivery failed'), { status: 503, code: 'EMAIL_DELIVERY_FAILED' });
-  }
-}
-
-async function sendPhoneOtpViaGupshup(identifier: string, otp: string) {
-  if (!config.bspOtpAppId || !config.bspOtpTemplateName) {
-    throw new Error('BSP OTP template is not configured');
-  }
-
-  const result = await BspServiceClient.sendMessage({
-    workspaceId: 'system',
-    appId: config.bspOtpAppId,
-    to: identifier,
-    type: 'template',
-    payload: {
-      type: 'template',
-      template: {
-        name: config.bspOtpTemplateName,
-        language: { code: 'en' },
-        components: [{
-          type: 'body',
-          parameters: [{ type: 'text', text: otp }]
-        }]
-      }
-    }
-  });
-
-  if (!result.success) {
-    throw new Error(result.errorMessage || 'BSP OTP failed');
-  }
-}
-
-async function sendPhoneOtpViaMsg91(identifier: string, otp: string) {
-  if (!config.msg91AuthKey || !config.msg91OtpTemplateId) {
-    throw new Error('MSG91 OTP fallback is not configured');
-  }
-
-  await axios.get('https://control.msg91.com/api/v5/otp', {
-    params: {
-      authkey: config.msg91AuthKey,
-      template_id: config.msg91OtpTemplateId,
-      mobile: identifier,
-      otp,
-      sender: config.msg91SenderId || undefined
-    },
-    timeout: 10000
-  });
-}
-
-async function sendPhoneOtpViaTwilio(identifier: string, otp: string) {
-  if (!config.twilioAccountSid || !config.twilioAuthToken || !config.twilioSenderPhone) {
-    throw new Error('Twilio SMS is not configured');
-  }
-
-  const twilio = await import('twilio');
-  const client = twilio.default(config.twilioAccountSid, config.twilioAuthToken);
-
-  await client.messages.create({
-    body: `Your verification code is ${otp}. It expires in 5 minutes.`,
-    from: config.twilioSenderPhone,
-    to: identifier.startsWith('+') ? identifier : `+${identifier}`
-  });
-}
-
-async function sendPhoneOtp(identifier: string, otp: string, purpose: OtpPurpose): Promise<string> {
-  try {
-    // 1. Try Twilio SMS
-    await sendPhoneOtpViaTwilio(identifier, otp);
-    return 'twilio_sms';
-  } catch (twilioError: any) {
-    try {
-      // 2. Fallback to Gupshup WhatsApp
-      await sendPhoneOtpViaGupshup(identifier, otp);
-      return 'gupshup_whatsapp';
-    } catch (gupshupError: any) {
-      try {
-        // 3. Final fallback to MSG91 SMS
-        await sendPhoneOtpViaMsg91(identifier, otp);
-        return 'msg91_sms';
-      } catch (fallbackError: any) {
-        if (config.env !== 'production') {
-          console.log(`[OTP][phone][${purpose}] ${identifier}: ${otp}`);
-          console.error('[OTP][TWILIO_FAIL]', twilioError.message);
-          console.error('[OTP][GUPSHUP_FAIL]', gupshupError.message);
-          return 'console';
-        }
-        throw Object.assign(new Error(fallbackError.message || 'Phone OTP delivery failed'), {
-          status: 503,
-          code: 'PHONE_DELIVERY_FAILED'
-        });
-      }
-    }
   }
 }
 
@@ -211,7 +111,7 @@ export async function createAndSendOtp(input: {
   const otp = generateOtp();
 
   // Dev-bypass: surface the OTP in the server console outside production so local
-  // signup/login works even when email/SMS delivery is unavailable. Never in prod.
+  // signup/login works even when email delivery is unavailable. Never in prod.
   if (config.env !== 'production') {
     console.log(`[OTP][dev][${input.purpose}] ${identifier}: ${otp}`);
   }
@@ -223,7 +123,7 @@ export async function createAndSendOtp(input: {
 
   const challenge = await OtpChallenge.create({
     identifier,
-    channel: getOtpChannel(input.purpose),
+    channel: 'email',
     purpose: input.purpose,
     otpHash: hashOtp(otp, identifier, input.purpose),
     expiresAt: new Date(Date.now() + OTP_TTL_MS),
@@ -234,20 +134,13 @@ export async function createAndSendOtp(input: {
     metadata: input.metadata
   });
 
-  let sentVia;
   try {
-    sentVia = challenge.channel === 'phone'
-      ? await sendPhoneOtp(identifier, otp, input.purpose)
-      : await sendEmailOtp(identifier, otp, input.purpose).then(() => 'email');
+    await sendEmailOtp(identifier, otp, input.purpose);
   } catch (err: any) {
     console.error(`[OTP] Delivery failed for ${input.purpose} to ${identifier}: ${err.message}`);
     await challenge.deleteOne();
     throw Object.assign(
-      new Error(
-        challenge.channel === 'email'
-          ? 'We could not send the verification email. Please try again or contact support.'
-          : 'We could not send the verification code. Please try again or contact support.'
-      ),
+      new Error('We could not send the verification email. Please try again or contact support.'),
       { status: 503, code: 'OTP_DELIVERY_FAILED', originalError: err.message }
     );
   }
@@ -258,7 +151,7 @@ export async function createAndSendOtp(input: {
     maskedIdentifier: maskIdentifier(identifier),
     purpose: input.purpose,
     expiresIn: Math.floor(OTP_TTL_MS / 1000),
-    sentVia,
+    sentVia: 'email',
     ...(config.env !== 'production' ? { devOtp: otp } : {})
   };
 }

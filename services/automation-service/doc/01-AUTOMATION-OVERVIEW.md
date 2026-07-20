@@ -4,7 +4,7 @@ This document set describes the `automation-service` (workflow / automation engi
 It covers architecture, runtime components, public and internal APIs, data models, controllers, services and deployment/run instructions.
 
 Purpose
-- Provide automation and workflow capabilities for workspaces: AI intent detection, answer-bot rules, interactive lists, Instagram quick-flows, and WhatsApp form handling.
+- Provide automation and workflow capabilities for workspaces: AI intent detection, answer-bot rules, interactive lists, and WhatsApp form handling.
 - Act as both a management API (dashboard CRUD) and an execution engine (internal triggers, scheduled rules).
 
 Key Characteristics

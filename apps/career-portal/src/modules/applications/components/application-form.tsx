@@ -107,9 +107,9 @@ export function ApplicationForm({
       );
       const message =
         typeof result === "object" &&
-        result !== null &&
-        "message" in result &&
-        typeof result.message === "string"
+          result !== null &&
+          "message" in result &&
+          typeof result.message === "string"
           ? result.message
           : null;
       if (!response.ok)
@@ -465,7 +465,7 @@ export function ApplicationForm({
                     candidate privacy notice
                   </a>{" "}
                   and consent to ConnectSphere processing my application, profile,
-                  resume, and recruitment communications.
+                  and resume.
                 </span>
               </label>
             )}

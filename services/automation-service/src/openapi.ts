@@ -19,7 +19,7 @@ export const openapiDocument = buildOpenApiDocument({
     version: '1.0.0',
     description:
       'Workflow / automation engine: AI intents, answer-bot rules, interactive ' +
-      'lists, Instagram quick flows, and WhatsApp form handling.',
+      'lists and WhatsApp form handling.',
     servers: [{ url: 'http://localhost:3001', description: 'Local dev' }],
   },
   generated,
@@ -29,7 +29,6 @@ export const openapiDocument = buildOpenApiDocument({
       { name: 'Answer Bot', description: 'Rule-based answer bot routes' },
       { name: 'Engine', description: 'Core workflow engine routes' },
       { name: 'Interactive List', description: 'WhatsApp interactive list handlers' },
-      { name: 'Instagram Quickflow', description: 'Instagram quick-flow handlers' },
       { name: 'WhatsApp Form', description: 'WhatsApp form-message handlers' },
       { name: 'Health', description: 'Liveness / readiness probes' },
     ],

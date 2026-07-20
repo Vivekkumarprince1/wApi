@@ -322,7 +322,6 @@ export function useFeatureGate(feature: string) {
             'flow-hub': 'FLOW_HUB',
             'workflows': 'WORKFLOWS',
             'auto-replies': 'AUTO_REPLIES',
-            'instagram-quickflows': 'INSTAGRAM_QUICKFLOWS',
             'ai-intent-matching': 'AI_INTENT',
             'interaktive-list': 'INTERAKTIVE_LIST',
             'pipeline': 'PIPELINE',

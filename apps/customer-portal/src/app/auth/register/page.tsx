@@ -71,7 +71,7 @@ export default function RegisterPage() {
   const handleRegisterSuccess = async () => {
     const session = await fetchSession(true);
     const callbackUrl = getAuthCallbackUrl();
-    router.replace(callbackUrl || session?.accessRestriction?.targetPath || session?.nextStep || '/onboarding/verify-mobile');
+    router.replace(callbackUrl || session?.accessRestriction?.targetPath || session?.nextStep || '/dashboard');
   };
 
   const onSubmit = async (values: RegisterFormValues) => {
@@ -94,7 +94,7 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-gradient-to-br from-teal-600 via-emerald-600 to-green-700" />
         <div className="absolute top-32 right-16 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute bottom-16 left-16 w-72 h-72 bg-emerald-400/10 rounded-full blur-3xl" />
-        
+
         <div className="relative z-10 flex flex-col justify-center px-16 text-white">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
@@ -134,8 +134,8 @@ export default function RegisterPage() {
       <div className="flex-1 flex flex-col">
         <header className="w-full border-b border-border/50 bg-background/80 backdrop-blur-sm">
           <div className="flex items-center justify-between max-w-lg mx-auto px-6 py-4 w-full">
-             <Link href="/" className="font-bold text-base tracking-tight text-foreground lg:hidden">
-               {process.env.NEXT_PUBLIC_APP_NAME || 'wApi'}
+            <Link href="/" className="font-bold text-base tracking-tight text-foreground lg:hidden">
+              {process.env.NEXT_PUBLIC_APP_NAME || 'wApi'}
             </Link>
             <div className="text-sm text-muted-foreground ml-auto">
               <span className="hidden sm:inline">Already on {process.env.NEXT_PUBLIC_APP_NAME || 'wApi'}?</span>

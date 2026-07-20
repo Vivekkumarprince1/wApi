@@ -4,10 +4,8 @@ import type { ApplicationStatus } from "@prisma/client";
 import {
   Download,
   LoaderCircle,
-  Mail,
   RefreshCw,
   UserCheck,
-  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -44,8 +42,6 @@ export function ApplicationActions({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [rejecting, setRejecting] = useState(false);
-  const [reason, setReason] = useState("");
 
   async function request(
     path: string,
@@ -66,9 +62,9 @@ export function ApplicationActions({
     const payload: unknown = await response.json().catch(() => null);
     const detail =
       typeof payload === "object" &&
-      payload !== null &&
-      "message" in payload &&
-      typeof payload.message === "string"
+        payload !== null &&
+        "message" in payload &&
+        typeof payload.message === "string"
         ? payload.message
         : null;
     setBusy(false);
@@ -82,32 +78,10 @@ export function ApplicationActions({
   }
 
   async function updateStatus(status: ApplicationStatus) {
-    if (status === "REJECTED") {
-      setRejecting(true);
-      return;
-    }
     await request("status", "PATCH", { status });
   }
 
-  async function reject() {
-    const rejectionReason = reason.trim();
-    if (!rejectionReason) {
-      setError("A rejection reason is required");
-      return;
-    }
-    if (!(await request("status", "PATCH", { status: "REJECTED" }))) return;
-    if (
-      !(await request("email", "POST", {
-        action: "rejection",
-        message: rejectionReason,
-      }))
-    )
-      return;
-    setReason("");
-    setRejecting(false);
-  }
-
-  async function hireAndWelcome() {
+  async function hire() {
     if (!hasContract || offerStatus !== "ACCEPTED") {
       setError(
         "Candidate must accept the offer and submit onboarding before hiring",
@@ -119,7 +93,6 @@ export function ApplicationActions({
       !(await request("status", "PATCH", { status: "HIRED" }))
     )
       return;
-    await request("email", "POST", { action: "welcome" });
   }
 
   function exportCsv() {
@@ -155,13 +128,13 @@ export function ApplicationActions({
           <strong>2.</strong> Move to reviewing, then shortlist
         </li>
         <li>
-          <strong>3.</strong> Generate and send offer
+          <strong>3.</strong> Generate an offer
         </li>
         <li>
           <strong>4.</strong> Candidate accepts and submits onboarding
         </li>
         <li>
-          <strong>5.</strong> Hire and send welcome
+          <strong>5.</strong> Mark the candidate hired
         </li>
       </ol>
       <div className="grid gap-2">
@@ -191,27 +164,17 @@ export function ApplicationActions({
           <Button
             type="button"
             disabled={busy || !hasContract || offerStatus !== "ACCEPTED"}
-            onClick={() => void hireAndWelcome()}
+            onClick={() => void hire()}
           >
             <UserCheck className="size-4" />
-            Hire & send welcome
+            Mark hired
           </Button>
         ) : null}
         {currentStatus === "OFFERED" &&
-        (!hasContract || offerStatus !== "ACCEPTED") ? (
+          (!hasContract || offerStatus !== "ACCEPTED") ? (
           <p className="rounded-xl bg-amber-50 p-3 text-xs font-semibold text-amber-900">
             Waiting for accepted offer and completed onboarding.
           </p>
-        ) : null}
-        {currentStatus === "HIRED" ? (
-          <Button
-            type="button"
-            disabled={busy}
-            onClick={() => void hireAndWelcome()}
-          >
-            <UserCheck className="size-4" />
-            Send welcome email
-          </Button>
         ) : null}
         <Button type="button" variant="secondary" onClick={exportCsv}>
           <Download className="size-4" />
@@ -231,60 +194,6 @@ export function ApplicationActions({
         <p className="text-sm font-semibold text-rose-700" role="alert">
           {error}
         </p>
-      ) : null}
-      {rejecting ? (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4"
-          role="presentation"
-        >
-          <div
-            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="reject-title"
-          >
-            <div className="flex items-center justify-between">
-              <h2 id="reject-title" className="text-2xl font-extrabold">
-                Reject application
-              </h2>
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Close rejection dialog"
-                onClick={() => setRejecting(false)}
-              >
-                <X />
-              </Button>
-            </div>
-            <label
-              className="mt-5 block text-sm font-bold"
-              htmlFor="rejection-reason"
-            >
-              Reason sent to applicant
-            </label>
-            <textarea
-              id="rejection-reason"
-              className="mt-2 min-h-36 w-full rounded-xl border border-slate-300 p-3 outline-none focus:ring-4 focus:ring-rose-100"
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              maxLength={2000}
-              required
-            />
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setRejecting(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                disabled={busy || !reason.trim()}
-                onClick={() => void reject()}
-              >
-                <Mail className="size-4" />
-                Reject & send
-              </Button>
-            </div>
-          </div>
-        </div>
       ) : null}
     </div>
   );

@@ -11,16 +11,16 @@ export class CommercePaymentService {
     try {
       const settings = await CommerceSettingsModel.findOne({ workspaceId }).lean();
       const order = await OrderModel.findById(orderId);
-      
+
       if (!order || !settings?.paymentMethods?.razorpay?.enabled) {
-          console.warn(`[CommercePaymentService] Skipping Razorpay: Order found? ${!!order}, Razorpay enabled? ${!!settings?.paymentMethods?.razorpay?.enabled}`);
-          return null;
+        console.warn(`[CommercePaymentService] Skipping Razorpay: Order found? ${!!order}, Razorpay enabled? ${!!settings?.paymentMethods?.razorpay?.enabled}`);
+        return null;
       }
 
       const { keyId, keySecret } = settings.paymentMethods.razorpay;
       if (!keyId || !keySecret) {
-          console.warn(`[CommercePaymentService] Razorpay keys missing for workspace ${workspaceId}`);
-          return null;
+        console.warn(`[CommercePaymentService] Razorpay keys missing for workspace ${workspaceId}`);
+        return null;
       }
 
       const razorpay = new Razorpay({
@@ -30,7 +30,7 @@ export class CommercePaymentService {
 
       // Create Payment Link
       const amountInPaise = Math.round(order.total * 100);
-      
+
       const link = await razorpay.paymentLink.create({
         amount: amountInPaise,
         currency: (order as any).currency || 'INR',
@@ -42,8 +42,6 @@ export class CommercePaymentService {
           contact: (order as any).address?.phone
         },
         notify: {
-          sms: true,
-          email: true,
           whatsapp: true
         },
         reminder_enable: true,

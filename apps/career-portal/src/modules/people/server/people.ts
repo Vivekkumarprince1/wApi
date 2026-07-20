@@ -8,8 +8,6 @@ import { auth } from "@/lib/auth/auth";
 import { csvRecords, parseCsv, stringifyCsv } from "@/lib/csv";
 import { prisma } from "@/lib/db/prisma";
 import { ApiError } from "@/lib/http/api-error";
-import { deliverEmail } from "@/lib/email/delivery";
-import { sendApplicationEmail } from "@/lib/email/mailer";
 import {
   bulkPeopleActionSchema,
   employeeImportRowSchema,
@@ -23,29 +21,29 @@ function peopleWhere(query: PeopleQuery): Prisma.UserWhereInput {
     query.view === "users"
       ? { equals: "USER" }
       : {
-          in: [
-            "EMPLOYEE",
-            "ADMIN",
-            "SUPER_ADMIN",
-            "RECRUITER",
-            "MANAGER",
-            "FINANCE",
-            "HR",
-            "VERIFIER",
-            "PAYROLL_ADMIN",
-          ],
-        };
+        in: [
+          "EMPLOYEE",
+          "ADMIN",
+          "SUPER_ADMIN",
+          "RECRUITER",
+          "MANAGER",
+          "FINANCE",
+          "HR",
+          "VERIFIER",
+          "PAYROLL_ADMIN",
+        ],
+      };
   return {
     role: query.role ? { equals: query.role } : viewRole,
     ...(query.status ? { status: query.status } : {}),
     ...(query.search
       ? {
-          OR: ["name", "email", "employeeId", "department", "position"].map(
-            (field) => ({
-              [field]: { contains: query.search, mode: "insensitive" },
-            }),
-          ),
-        }
+        OR: ["name", "email", "employeeId", "department", "position"].map(
+          (field) => ({
+            [field]: { contains: query.search, mode: "insensitive" },
+          }),
+        ),
+      }
       : {}),
   };
 }
@@ -121,20 +119,20 @@ export async function updatePerson(
   const data: Prisma.UserUpdateInput =
     input.operation === "profile"
       ? {
-          status: input.status,
-          department: input.department,
-          position: input.position,
-          positionLevel: input.positionLevel,
-          ...(input.status !== "FORMER"
-            ? { terminatedAt: null, terminationReason: null }
-            : {}),
-        }
+        status: input.status,
+        department: input.department,
+        position: input.position,
+        positionLevel: input.positionLevel,
+        ...(input.status !== "FORMER"
+          ? { terminatedAt: null, terminationReason: null }
+          : {}),
+      }
       : input.operation === "terminate"
         ? {
-            status: "FORMER",
-            terminatedAt: new Date(),
-            terminationReason: input.reason,
-          }
+          status: "FORMER",
+          terminatedAt: new Date(),
+          terminationReason: input.reason,
+        }
         : { role: input.role };
   const person = await prisma.user.update({
     where: { id: userId },
@@ -242,80 +240,37 @@ export async function bulkPeopleAction(
   if (lastActiveSuperAdmin)
     throw new ApiError("The last active super-admin cannot be changed", 409);
 
-  if (input.operation === "status") {
-    const now = new Date();
-    await prisma.$transaction(async (transaction) => {
-      await transaction.user.updateMany({
-        where: { id: { in: input.userIds } },
+  const now = new Date();
+  await prisma.$transaction(async (transaction) => {
+    await transaction.user.updateMany({
+      where: { id: { in: input.userIds } },
+      data: {
+        status: input.status,
+        ...(input.status === "FORMER"
+          ? { terminatedAt: now, terminationReason: "Bulk status action" }
+          : { terminatedAt: null, terminationReason: null }),
+      },
+    });
+    await transaction.session.deleteMany({
+      where: { userId: { in: input.userIds } },
+    });
+    for (const person of people)
+      await transaction.auditLog.create({
         data: {
-          status: input.status,
-          ...(input.status === "FORMER"
-            ? { terminatedAt: now, terminationReason: "Bulk status action" }
-            : { terminatedAt: null, terminationReason: null }),
+          actor: actor.id,
+          actorRole: actor.role,
+          action: "STATUS_CHANGE",
+          resourceEntity: "User",
+          resourceId: person.id,
+          changes: {
+            operation: "bulk",
+            oldStatus: person.status,
+            newStatus: input.status,
+          },
         },
       });
-      await transaction.session.deleteMany({
-        where: { userId: { in: input.userIds } },
-      });
-      for (const person of people)
-        await transaction.auditLog.create({
-          data: {
-            actor: actor.id,
-            actorRole: actor.role,
-            action: "STATUS_CHANGE",
-            resourceEntity: "User",
-            resourceId: person.id,
-            changes: {
-              operation: "bulk",
-              oldStatus: person.status,
-              newStatus: input.status,
-            },
-          },
-        });
-    });
-    return { total: people.length, succeeded: people.length, failed: 0 };
-  }
-
-  const results = await Promise.all(
-    people.map(async (person) => {
-      try {
-        const delivery = await deliverEmail({
-          idempotencyKey: `people:${person.id}:bulk:${Buffer.from(`${input.subject}\0${input.message}`).toString("base64url").slice(0, 100)}`,
-          template: "bulk-employee-message",
-          recipient: person.email,
-          send: () =>
-            sendApplicationEmail({
-              to: person.email,
-              subject: input.subject,
-              heading: input.subject,
-              message: input.message,
-            }),
-        });
-        if (delivery.delivered)
-          await recordAudit({
-            actor,
-            action: "EMAIL",
-            resourceEntity: "User",
-            resourceId: person.id,
-            changes: { operation: "bulk", attempts: delivery.attempts },
-          });
-        return { id: person.id, success: true, duplicate: delivery.duplicate };
-      } catch (error) {
-        return {
-          id: person.id,
-          success: false,
-          error: error instanceof Error ? error.message : "Delivery failed",
-        };
-      }
-    }),
-  );
-  const succeeded = results.filter((result) => result.success).length;
-  return {
-    total: results.length,
-    succeeded,
-    failed: results.length - succeeded,
-    results,
-  };
+  });
+  return { total: people.length, succeeded: people.length, failed: 0 };
 }
 
 export const employeeCsvHeaders = [

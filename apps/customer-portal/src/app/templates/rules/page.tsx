@@ -232,11 +232,10 @@ export default function TemplateRulesPage() {
 
       {/* Test Result Alert */}
       {testResult && (
-        <div className={`mb-6 p-4 rounded-lg border ${
-          testResult.success
+        <div className={`mb-6 p-4 rounded-lg border ${testResult.success
             ? 'bg-green-50 border-green-200'
             : 'bg-red-50 border-red-200'
-        }`}>
+          }`}>
           <p className={testResult.success ? 'text-green-700' : 'text-red-700'}>
             {testResult.message || (testResult.success ? 'Rule test passed' : 'Rule test failed')}
           </p>

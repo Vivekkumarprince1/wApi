@@ -136,11 +136,11 @@ export const logout = async (req: express.Request, res: express.Response) => {
 
 export const sendOtp = async (req: express.Request, res: express.Response) => {
   try {
-    const { email, name, password, phone, purpose, identifier } = req.body || {};
+    const { email, name, password, purpose, identifier } = req.body || {};
     const currentUser = await getUserFromCookie(req);
     const result = await sendAuthOtp({
       purpose: purpose || 'signup_email',
-      identifier: identifier || email || phone,
+      identifier: identifier || email,
       name,
       password,
       requestIp: req.ip,
@@ -155,11 +155,11 @@ export const sendOtp = async (req: express.Request, res: express.Response) => {
 
 export const verifyOtpEndpoint = async (req: express.Request, res: express.Response) => {
   try {
-    const { otp, email, phone, purpose, identifier } = req.body || {};
+    const { otp, email, purpose, identifier } = req.body || {};
     const currentUser = await getUserFromCookie(req);
     const result = await verifyAuthOtp({
       purpose: purpose || 'signup_email',
-      identifier: identifier || email || phone,
+      identifier: identifier || email,
       otp,
       currentUser
     });

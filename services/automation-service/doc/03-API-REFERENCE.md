@@ -59,13 +59,6 @@ Important endpoints
   - POST `/api/automation/engine/whatsapp-forms/:id/sync`
   - GET `/api/automation/engine/whatsapp-forms/:id/responses`
 
-- Instagram Quickflows
-  - GET `/api/automation/engine/instagram-quickflows`
-  - GET `/api/automation/engine/instagram-quickflows/:id`
-  - POST `/api/automation/engine/instagram-quickflows`
-  - PATCH/PUT `/api/automation/engine/instagram-quickflows/:id`
-  - DELETE `/api/automation/engine/instagram-quickflows/:id`
-
 - Interactive Lists
   - GET `/api/automation/engine/interaktive-list`
   - GET `/api/automation/engine/interaktive-list/:id`

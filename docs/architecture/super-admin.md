@@ -93,7 +93,7 @@ graph TB
 
 ### 4.4 WABA / Channel Management 🟢→🟡
 - Gupshup app health, mapped/orphaned apps, reassign WABA, phone numbers, webhook status. Today: `read/gupshup`, `read/gupshup-health`, `ops/gupshup/[action]`, `read/webhook-status`, `whatsapp-requests`.
-- **Add:** Instagram & RCS channel management (matching the omnichannel target); per-app circuit-breaker/health from Channel Svc; token-expiry alerts (BspHealth already modeled).
+- **Add:** per-app circuit-breaker/health from Channel Svc and token-expiry alerts (BspHealth already modeled).
 
 ### 4.5 User Management 🟢
 - List/search platform-wide users, role/status change, invite admins, force-logout, delete. Today: `read/users`, `ops/users/[id]/[action]`, `ops/users/invite`.

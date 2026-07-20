@@ -23,7 +23,7 @@ Key collections and purpose
   - `AnswerBotSettings`, `AnswerBotSource`, `FAQ` — settings and FAQ content used by rule actions
 
 - Interactive & Forms:
-  - `InteraktiveList`, `InstagramQuickflow`, `WhatsAppForm`, `WhatsAppFormResponse` — store interactive list templates, IG quickflows and form responses
+  - `InteraktiveList`, `WhatsAppForm`, `WhatsAppFormResponse` — store interactive list templates and form responses
 
 - `AutoReply`, `AutoReplyLog` — auto-reply templates and logs
 

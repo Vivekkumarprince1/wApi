@@ -1,9 +1,5 @@
-const FROZEN_CHANNELS = new Set(['instagram', 'sms', 'rcs']);
+const REMOVED_CHANNELS = new Set(['instagram', 'sms', 'rcs', 'email']);
 
 export function isChannelVisible(channel?: string | null) {
-  return !channel || !FROZEN_CHANNELS.has(channel.toLowerCase());
-}
-
-export function isFrozenUiRoute(pathname: string) {
-  return pathname.startsWith('/automation/instagram-quickflows');
+    return !channel || !REMOVED_CHANNELS.has(channel.toLowerCase());
 }

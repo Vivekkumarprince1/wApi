@@ -35,7 +35,7 @@ interface ChatInputProps {
   isSending: boolean;
   disabled: boolean;
   onTyping: () => void;
-  channel?: 'whatsapp' | 'sms' | 'email' | 'messenger' | 'instagram';
+  channel?: string;
 }
 
 export default function ChatInput({
@@ -47,7 +47,6 @@ export default function ChatInput({
   channel = 'whatsapp'
 }: ChatInputProps) {
   const [text, setText] = useState('');
-  const [emailSubject, setEmailSubject] = useState('');
   const [isNote, setIsNote] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -68,14 +67,9 @@ export default function ChatInput({
       setSelectedFile(null);
       setPreview(null);
     } else {
-      const extraData: any = {};
-      if (channel === 'email' && !isNote) {
-        extraData.subject = emailSubject;
-      }
-      onSendMessage(text, isNote, extraData);
+      onSendMessage(text, isNote);
     }
     setText('');
-    setEmailSubject('');
     setIsNote(false);
     setShowEmojiPicker(false);
     setShowMediaPicker(false);
@@ -325,17 +319,6 @@ export default function ChatInput({
           </div>
 
           <div className="flex-1 relative group">
-            {channel === 'email' && !isNote && (
-              <div className="mb-2">
-                <input
-                  type="text"
-                  placeholder="Subject..."
-                  className="w-full bg-muted/30 border border-border/50 rounded-xl px-4 py-2 text-xs font-bold focus:bg-background outline-none transition-all"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                />
-              </div>
-            )}
             {isNote && (
               <div className="absolute top-2 right-4 z-10">
                 <Badge className="bg-amber-500 text-white border-none rounded-full px-2 h-4 text-[8px] font-black uppercase tracking-tighter">Internal Note</Badge>

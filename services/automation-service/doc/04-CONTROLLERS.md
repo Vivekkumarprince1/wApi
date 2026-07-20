@@ -22,9 +22,6 @@ This file lists controllers present in `src/controllers/` and summarizes their r
   - Responsibilities: Create/publish/sync WhatsApp forms and collect responses
   - Called by: `/api/automation/engine/whatsapp-forms/*` endpoints
 
-- `InstagramQuickflowController` — `src/controllers/InstagramQuickflowController.ts`
-  - Responsibilities: CRUD for Instagram quickflows used to respond to Instagram events
-
 - `InteraktiveListController` — `src/controllers/InteraktiveListController.ts`
   - Responsibilities: CRUD for interactive WhatsApp lists
 

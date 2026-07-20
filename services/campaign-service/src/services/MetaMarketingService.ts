@@ -9,7 +9,6 @@ type MetaAdsIntegrationConfig = {
   selected: {
     adAccountId: string;
     pageId: string;
-    instagramActorId?: string;
     whatsappPhoneNumberId?: string;
     whatsappPhoneNumber?: string;
     productCatalogId?: string;
@@ -119,9 +118,9 @@ function buildTargeting(targeting: any = {}) {
     : ['IN'];
   const genderValues = Array.isArray(targeting.genders)
     ? targeting.genders
-        .filter((gender: string) => gender !== 'ALL')
-        .map((gender: string) => gender === 'MALE' ? 1 : gender === 'FEMALE' ? 2 : undefined)
-        .filter(Boolean)
+      .filter((gender: string) => gender !== 'ALL')
+      .map((gender: string) => gender === 'MALE' ? 1 : gender === 'FEMALE' ? 2 : undefined)
+      .filter(Boolean)
     : [];
 
   const payload: any = {
@@ -150,12 +149,10 @@ function buildTargeting(targeting: any = {}) {
   }
   const publisherPlatforms = mapStringArray(targeting.publisherPlatforms);
   const facebookPositions = mapStringArray(targeting.facebookPositions);
-  const instagramPositions = mapStringArray(targeting.instagramPositions);
   const devicePlatforms = mapStringArray(targeting.devicePlatforms);
 
   if (publisherPlatforms.length) payload.publisher_platforms = publisherPlatforms;
   if (facebookPositions.length) payload.facebook_positions = facebookPositions;
-  if (instagramPositions.length) payload.instagram_positions = instagramPositions;
   if (devicePlatforms.length) payload.device_platforms = devicePlatforms;
 
   return payload;
@@ -336,7 +333,6 @@ export class MetaMarketingService {
         call_to_action: callToAction,
       },
     };
-    if (selected.instagramActorId) creativeStorySpec.instagram_actor_id = selected.instagramActorId;
     const carouselCards = String(ad.displayFormat || '').toUpperCase() === 'CAROUSEL'
       ? buildCarouselCards(ad, waLink)
       : [];

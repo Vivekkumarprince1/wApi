@@ -32,7 +32,7 @@ function RegisterVerifyInner() {
       await verifySignupOtp(email, otp);
       const session = await fetchSession(true);
       router.push(
-        session?.accessRestriction?.targetPath || session?.nextStep || '/onboarding/verify-mobile'
+        session?.accessRestriction?.targetPath || session?.nextStep || '/dashboard'
       );
     } catch (err: any) {
       setError(err?.message || 'Verification failed');

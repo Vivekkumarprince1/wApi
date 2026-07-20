@@ -19,14 +19,12 @@ export async function GET(request: Request) {
     outboxPending,
     outboxFailed,
     webhookDeadLetters,
-    emailFailed,
     pendingPrivacy,
     upcomingInterviews,
   ] = await Promise.all([
     prisma.outboxEvent.count({ where: { status: "PENDING" } }),
     prisma.outboxEvent.count({ where: { status: "FAILED" } }),
     prisma.webhookDelivery.count({ where: { status: "DEAD_LETTER" } }),
-    prisma.emailDelivery.count({ where: { status: "FAILED" } }),
     prisma.dataSubjectRequest.count({
       where: { status: { in: ["REQUESTED", "VERIFYING", "IN_PROGRESS"] } },
     }),
@@ -44,7 +42,6 @@ export async function GET(request: Request) {
     `connectsphere_outbox_pending ${outboxPending}`,
     `connectsphere_outbox_failed ${outboxFailed}`,
     `connectsphere_webhook_dead_letters ${webhookDeadLetters}`,
-    `connectsphere_email_failed ${emailFailed}`,
     `connectsphere_privacy_requests_open ${pendingPrivacy}`,
     `connectsphere_interviews_upcoming ${upcomingInterviews}`,
   ];

@@ -60,7 +60,7 @@ export default function VerifyEmailPage() {
           const resolvedEmail = currentUser.email || '';
           setEmail(resolvedEmail);
           if (currentUser.emailVerified) {
-            router.push(session?.nextStep || '/onboarding/verify-mobile');
+            router.push(session?.nextStep || '/dashboard');
             return;
           }
           if (!resolvedEmail) {
@@ -91,7 +91,7 @@ export default function VerifyEmailPage() {
       setLoading(true);
       setError('');
       const result = await verifyEmailOTP(otp, email);
-      router.push(result?.nextStep || '/onboarding/verify-mobile');
+      router.push(result?.nextStep || '/dashboard');
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'Invalid OTP');
     } finally {

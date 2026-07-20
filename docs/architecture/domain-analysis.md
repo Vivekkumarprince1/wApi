@@ -17,7 +17,7 @@ The platform decomposes into these contexts. "Owner service" = the service that 
 | BC5 | **BSP / Channel Provider** | service-provider (NestJS) | ProviderApp, ProviderMessageDispatch, ProviderWebhookEvent, ProviderTemplateMirror, ProviderToken, ProviderCredential, ProviderOnboardingSession, ProviderProfile, ProviderSubscription, ProviderHealthSnapshot, ProviderMediaAsset, ProviderTemplateRule | `service-provider/src/models/*.schema.ts` (collections `bsp_*`) |
 | BC6 | **Templates** | service-provider (mirror) + campaign (snapshot) | ProviderTemplateMirror, Template, ProviderTemplateRule | `service-provider/.../provider-template-mirror.schema.ts`, `campaign-service/src/models/Template.ts` |
 | BC7 | **Campaigns / Broadcast** | campaign-service | Campaign, CampaignBatch, CampaignMessage, CampaignSummary, Segment, WhatsAppAd | `campaign-service/src/models/*` |
-| BC8 | **Automation / Workflow** | automation-service | AutomationRule, WorkflowExecution, AutomationExecution, AutoReply, AnswerBotSettings/Source, AiIntentMatchLog, FAQ, InstagramQuickflow, InteraktiveList, WhatsAppForm/Flow/FormResponse, Integration, WidgetConfig | `automation-service/src/models/*` |
+| BC8 | **Automation / Workflow** | automation-service | AutomationRule, WorkflowExecution, AutomationExecution, AutoReply, AnswerBotSettings/Source, AiIntentMatchLog, FAQ, InteraktiveList, WhatsAppForm/Flow/FormResponse, Integration, WidgetConfig | `automation-service/src/models/*` |
 | BC9 | **Billing & Wallet** | billing-service | Wallet, WalletTransaction, Invoice, InvoiceSequence, Subscription, Plan, RazorpayOrder | `billing-service/src/models/*` |
 | BC10 | **Commerce / Catalog** | billing-service + chat-service (split) | Product, Order, CommerceSettings, CheckoutCart | `billing-service/src/models/{Product,Order,CommerceSettings}.ts`, `chat-service/src/models/{Product,CommerceSettings,CheckoutCart}.ts` |
 | BC11 | **Webhook Ingestion** | webhook-ingestor + service-provider | (stateless edge) webhook_dead_letters, bsp_webhook_events | `webhook-ingestor/src/index.ts`, `service-provider/.../provider-webhook-event.schema.ts` |
@@ -186,4 +186,4 @@ From `packages/contracts/src/kafka-events.ts`, `billing-events.ts`, `campaign-ev
 3. **Commerce is split** between billing and chat — needs one owner.
 4. **Plan is double-modeled** — pick billing-service as owner (it prices) and have auth reference by id only.
 5. **The cleanest contexts** are BSP (BC5), Campaign (BC7), and Realtime (BC12) — well-bounded, event-driven, single-writer. These are the model to replicate.
-6. **Instagram & RCS contexts do not exist yet** — empty `channels/insta`, `channels/rcs`. The `ParsedMessageEvent`/`ProviderApp` abstractions are *channel-agnostic enough* to extend, which is a good foundation for the omnichannel target.
+6. **Channel scope is intentionally WhatsApp-only.** `ParsedMessageEvent` and `ProviderApp` remain provider abstractions, not commitments to additional messaging channels.

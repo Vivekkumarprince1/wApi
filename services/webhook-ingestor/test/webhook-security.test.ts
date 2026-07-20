@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { resolveWebhookSignaturePolicy } from '../src/config/webhook-policy';
-import { verifyProviderSignature } from '../src/webhook-security';
+import { normalizeWebhookProvider, verifyProviderSignature } from '../src/webhook-security';
 
 const body = Buffer.from('{"event":"message"}');
-const secrets = { gupshup: 'gupshup-secret', meta: 'meta-secret', instagram: 'instagram-secret' };
+const secrets = { gupshup: 'gupshup-secret', meta: 'meta-secret' };
 
 test('production requires signed webhooks and rejects unsigned override', () => {
     assert.equal(resolveWebhookSignaturePolicy({ nodeEnv: 'production' }).requireSignature, true);
@@ -20,9 +20,11 @@ test('accepts a valid provider signature over the exact raw body', () => {
     assert.equal(verifyProviderSignature({ provider: 'gupshup', rawBody: body, headers: { 'x-gupshup-signature': signature }, secrets }), true);
 });
 
-test('rejects missing, invalid, and cross-provider signatures', () => {
-    const metaSignature = `sha256=${crypto.createHmac('sha256', secrets.meta).update(body).digest('hex')}`;
+test('rejects missing and invalid signatures', () => {
     assert.equal(verifyProviderSignature({ provider: 'meta', rawBody: body, headers: {}, secrets }), false);
     assert.equal(verifyProviderSignature({ provider: 'meta', rawBody: body, headers: { 'x-hub-signature-256': 'invalid' }, secrets }), false);
-    assert.equal(verifyProviderSignature({ provider: 'instagram', rawBody: body, headers: { 'x-hub-signature-256': metaSignature }, secrets }), false);
+});
+
+test('rejects unsupported providers during normalization', () => {
+    assert.equal(normalizeWebhookProvider('instagram'), null);
 });

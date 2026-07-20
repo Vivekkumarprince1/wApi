@@ -40,7 +40,6 @@ import {
 import { useFeatureGate } from "@/store/auth-store";
 import { useQuery } from "@tanstack/react-query";
 import { getWABASettings } from "@/lib/api/settings";
-import { isChannelVisible } from "@/config/ui-availability";
 
 type SidebarChildItem = {
   title: string;
@@ -121,9 +120,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
               { title: "Flow Hub", url: "/automation", feature: "FLOW_HUB" },
               { title: "Workflows", url: "/automation/workflows", feature: "WORKFLOWS" },
               { title: "Auto Replies", url: "/automation/auto-replies", feature: "AUTO_REPLIES" },
-              ...(isChannelVisible("instagram")
-                ? [{ title: "Instagram QuickFlows", url: "/automation/instagram-quickflows", feature: "INSTAGRAM_QUICKFLOWS" }]
-                : []),
               { title: "WhatsApp Forms", url: "/automation/whatsapp-forms", feature: "WA_FORMS" },
               { title: "AnswerBot Training", url: "/automation/answerbot", feature: "ANSWERBOT" },
               { title: "AI Intent Match", url: "/automation/ai-intent-matching", feature: "AI_INTENT" },
@@ -205,39 +201,39 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof ShadSidebar
     <ShadSidebar collapsible="icon" className="border-border/50 bg-background/95 backdrop-blur-sm" {...props}>
       <SidebarHeader className="flex flex-col gap-4 p-4 border-b border-border/50">
         <div className="flex flex-col gap-4 group-data-[collapsible=icon]:items-center">
-            <Link href="/" className="group flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                <BrandMark className="group-data-[collapsible=icon]:[&>span:last-child]:hidden" />
-                <div
-                  title={isWabaConnected ? "WhatsApp Business Account connected" : "WhatsApp Business Account disconnected"}
-                  aria-label={isWabaConnected ? "WhatsApp Business Account connected" : "WhatsApp Business Account disconnected"}
-                  className={`h-2 w-2 shrink-0 rounded-full ${isWabaConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`}
-                />
-            </Link>
+          <Link href="/" className="group flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <BrandMark className="group-data-[collapsible=icon]:[&>span:last-child]:hidden" />
+            <div
+              title={isWabaConnected ? "WhatsApp Business Account connected" : "WhatsApp Business Account disconnected"}
+              aria-label={isWabaConnected ? "WhatsApp Business Account connected" : "WhatsApp Business Account disconnected"}
+              className={`h-2 w-2 shrink-0 rounded-full ${isWabaConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`}
+            />
+          </Link>
 
-            <div className="group-data-[collapsible=icon]:hidden">
-                <WorkspaceSwitcher />
-            </div>
+          <div className="group-data-[collapsible=icon]:hidden">
+            <WorkspaceSwitcher />
+          </div>
         </div>
       </SidebarHeader>
 
       <SidebarContent className="px-2 scrollbar-hide">
         {navGroups.map((group) => (
-            <SidebarGroup key={group.label} className="animate-in fade-in slide-in-from-right-4 duration-500">
-                <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
-                    {group.label}
-                </SidebarGroupLabel>
-                <SidebarMenu>
-                    {group.items.map((item) => (
-                        <SidebarNavItem
-                            key={item.title}
-                            item={item}
-                            isActive={isActive}
-                            openSections={openSections}
-                            toggleSection={toggleSection}
-                        />
-                    ))}
-                </SidebarMenu>
-            </SidebarGroup>
+          <SidebarGroup key={group.label} className="animate-in fade-in slide-in-from-right-4 duration-500">
+            <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarMenu>
+              {group.items.map((item) => (
+                <SidebarNavItem
+                  key={item.title}
+                  item={item}
+                  isActive={isActive}
+                  openSections={openSections}
+                  toggleSection={toggleSection}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
         ))}
       </SidebarContent>
 
@@ -258,11 +254,11 @@ function SidebarNavItem({
   toggleSection: (title: string) => void;
 }) {
   const pathname = usePathname();
-  
+
   // Call hook at top level of component
   const featureGate = useFeatureGate(item.feature || "");
   const isLocked = item.feature ? !featureGate.gate.allowed : false;
-  
+
   const hasChildren = Boolean(item.children?.length);
   const isItemActive = hasChildren
     ? isActive(item.url) || item.children!.some((child: any) => isActive(child.url))
@@ -304,12 +300,12 @@ function SidebarNavItem({
 
       {hasChildren && isExpanded ? (
         <SidebarMenuSub className="group-data-[collapsible=icon]:hidden border-l border-primary/10 ml-4 pl-2 opacity-80">
-            {item.children!.map((subItem: SidebarChildItem) => (
-             <SidebarNavSubItem 
-                key={subItem.title} 
-                subItem={subItem} 
-                pathname={pathname}
-             />
+          {item.children!.map((subItem: SidebarChildItem) => (
+            <SidebarNavSubItem
+              key={subItem.title}
+              subItem={subItem}
+              pathname={pathname}
+            />
           ))}
         </SidebarMenuSub>
       ) : null}
@@ -317,28 +313,28 @@ function SidebarNavItem({
   );
 }
 
-function SidebarNavSubItem({ 
-    subItem, 
-    pathname,
-}: { 
-    subItem: SidebarChildItem; 
-    pathname: string;
+function SidebarNavSubItem({
+  subItem,
+  pathname,
+}: {
+  subItem: SidebarChildItem;
+  pathname: string;
 }) {
-    const subFeatureGate = useFeatureGate(subItem.feature || "");
-    const isSubLocked = subItem.feature ? !subFeatureGate.gate.allowed : false;
+  const subFeatureGate = useFeatureGate(subItem.feature || "");
+  const isSubLocked = subItem.feature ? !subFeatureGate.gate.allowed : false;
 
-    return (
-        <SidebarMenuSubItem key={subItem.title}>
-            <SidebarMenuSubButton
-                render={<Link href={isSubLocked ? '#' : subItem.url} />}
-                isActive={pathname === subItem.url}
-                className={`h-8 hover:text-primary transition-colors text-xs ${isSubLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
-            >
-                <div className="flex items-center gap-2">
-                    <span>{subItem.title}</span>
-                    {isSubLocked && <Lock className="h-2.5 w-2.5 text-primary" />}
-                </div>
-            </SidebarMenuSubButton>
-        </SidebarMenuSubItem>
-    );
+  return (
+    <SidebarMenuSubItem key={subItem.title}>
+      <SidebarMenuSubButton
+        render={<Link href={isSubLocked ? '#' : subItem.url} />}
+        isActive={pathname === subItem.url}
+        className={`h-8 hover:text-primary transition-colors text-xs ${isSubLocked ? 'opacity-50 grayscale pointer-events-none' : ''}`}
+      >
+        <div className="flex items-center gap-2">
+          <span>{subItem.title}</span>
+          {isSubLocked && <Lock className="h-2.5 w-2.5 text-primary" />}
+        </div>
+      </SidebarMenuSubButton>
+    </SidebarMenuSubItem>
+  );
 }

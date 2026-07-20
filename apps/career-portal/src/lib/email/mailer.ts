@@ -86,7 +86,6 @@ export async function verifyEmailTransport(): Promise<void> {
     throw new Error("Email delivery is unavailable");
   }
 }
-
 export async function sendAccountEmail({
   to,
   subject,
@@ -124,59 +123,3 @@ export async function sendAccountEmail({
   }
 }
 
-export async function sendApplicationEmail({
-  to,
-  subject,
-  heading,
-  message,
-}: {
-  to: string;
-  subject: string;
-  heading: string;
-  message: string;
-}) {
-  return getTransporter().sendMail({
-    from: `ConnectSphere Careers <${env.SMTP_USER}>`,
-    replyTo: env.EMAIL_REPLY_TO,
-    to,
-    subject,
-    text: `${heading}\n\n${message}`,
-    html: `<div style="background:#f8fafc;padding:32px;font-family:Arial,sans-serif;color:#0f172a"><div style="max-width:560px;margin:auto;background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:32px"><p style="color:#047857;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">ConnectSphere Careers</p><h1 style="font-size:28px;margin:12px 0">${escapeHtml(heading)}</h1><p style="white-space:pre-line;line-height:1.7;color:#475569">${escapeHtml(message)}</p></div></div>`,
-  });
-}
-
-export async function sendDocumentEmail({
-  to,
-  subject,
-  heading,
-  message,
-  filename,
-  content,
-  html,
-}: {
-  to: string;
-  subject: string;
-  heading: string;
-  message: string;
-  filename: string;
-  content: Uint8Array;
-  html?: string;
-}) {
-  return getTransporter().sendMail({
-    from: `ConnectSphere Careers <${env.SMTP_USER}>`,
-    replyTo: env.EMAIL_REPLY_TO,
-    to,
-    subject,
-    text: `${heading}\n\n${message}`,
-    html:
-      html ??
-      `<div style="font-family:Arial,sans-serif"><h1>${escapeHtml(heading)}</h1><p>${escapeHtml(message)}</p></div>`,
-    attachments: [
-      {
-        filename,
-        content: Buffer.from(content),
-        contentType: "application/pdf",
-      },
-    ],
-  });
-}

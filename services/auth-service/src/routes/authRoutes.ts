@@ -56,10 +56,6 @@ router.post('/verify-otp', verifyOtpEndpoint);
 // Frontend (lib/api/auth.ts) calls /auth/otp/send and /auth/otp/verify
 router.post('/otp/send', sendOtp);
 router.post('/otp/verify', verifyOtpEndpoint);
-// Monolith aliases
-router.post('/mobile/send-otp', sendOtp);
-router.post('/mobile/verify-otp', verifyOtpEndpoint);
-
 /* ------------------------------ Password reset ---------------------------- */
 router.post('/request-password-reset', requestPasswordReset);
 router.post('/reset-password', resetPassword);

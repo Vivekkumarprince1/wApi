@@ -24,7 +24,6 @@ const envSchema = z.object({
   ALLOW_UNSIGNED_DEV_WEBHOOKS: z.string().optional(),
   GUPSHUP_WEBHOOK_SECRET: z.string().optional(),
   META_WEBHOOK_SECRET: z.string().optional(),
-  INSTAGRAM_WEBHOOK_SECRET: z.string().optional(),
 }).refine((data) => data.WEBHOOK_VERIFY_TOKEN || data.VERIFY_TOKEN, {
   message: 'Either WEBHOOK_VERIFY_TOKEN or VERIFY_TOKEN must be provided',
   path: ['WEBHOOK_VERIFY_TOKEN'],
@@ -58,7 +57,6 @@ export const config = {
   webhookSecrets: {
     gupshup: process.env.GUPSHUP_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET!,
     meta: process.env.META_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET!,
-    instagram: process.env.INSTAGRAM_WEBHOOK_SECRET || process.env.META_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET!,
   },
   requireWebhookSignature: signaturePolicy.requireSignature,
   allowUnsignedDevWebhooks: signaturePolicy.allowUnsignedDevWebhooks,

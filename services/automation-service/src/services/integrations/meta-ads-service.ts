@@ -159,7 +159,7 @@ function normalizeCatalogProduct(product: any = {}) {
 
 export class MetaAdsService {
   static getApiVersion() {
-    return process.env.META_ADS_API_VERSION || process.env.INSTAGRAM_API_VERSION || DEFAULT_API_VERSION;
+    return process.env.META_ADS_API_VERSION || DEFAULT_API_VERSION;
   }
 
   static getScopes() {
@@ -283,7 +283,6 @@ export class MetaAdsService {
           'id',
           'name',
           'access_token',
-          'instagram_business_account{id,username}',
           'picture{url}',
         ].join(','),
         limit: 100,
@@ -492,7 +491,6 @@ export class MetaAdsService {
     return {
       adAccountId: normalizeAdAccountId(config?.adAccountId || config?.accountId),
       pageId: String(config?.pageId || '').trim(),
-      instagramActorId: String(config?.instagramActorId || '').trim() || undefined,
       whatsappPhoneNumberId: String(config?.whatsappPhoneNumberId || '').trim(),
       whatsappPhoneNumber: String(config?.whatsappPhoneNumber || '').replace(/[^\d]/g, ''),
       productCatalogId: String(config?.productCatalogId || '').trim() || undefined,

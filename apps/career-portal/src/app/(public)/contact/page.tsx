@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Mail, MapPin, Phone } from "lucide-react";
 
-import { ContactForm } from "@/modules/contact/components/contact-form";
-
 export const metadata: Metadata = {
   title: "Contact",
   description: "Contact the ConnectSphere careers team.",
@@ -71,13 +69,6 @@ export default function ContactPage() {
             );
           })}
         </div>
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
-          <h2 className="text-2xl font-bold text-slate-900">Send a message</h2>
-          <p className="mt-2 mb-8 text-slate-600">
-            Required fields are marked with an asterisk.
-          </p>
-          <ContactForm />
-        </section>
       </div>
     </div>
   );

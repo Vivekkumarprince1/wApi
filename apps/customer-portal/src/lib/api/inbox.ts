@@ -32,7 +32,7 @@ export interface Conversation {
     avatar?: string;
     tags?: string[];
   };
-  channel: 'whatsapp' | 'messenger' | 'instagram' | 'sms' | 'email';
+  channel: string;
   lastMessage?: Message;
   lastMessageAt: string;
   unreadCount: number;
