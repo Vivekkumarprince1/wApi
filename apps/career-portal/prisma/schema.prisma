@@ -2111,11 +2111,16 @@ enum DataSubjectRequestStatus {
 }
 
 enum PositionLevel {
-  JUNIOR   @map("Junior")
-  SENIOR   @map("Senior")
-  LEAD     @map("Lead")
-  MANAGER  @map("Manager")
-  DIRECTOR @map("Director")
+  JUNIOR          @map("Junior")
+  SENIOR          @map("Senior")
+  LEAD            @map("Lead")
+  MANAGER         @map("Manager")
+  DIRECTOR        @map("Director")
+  LEGACY_JUNIOR   @map("JUNIOR")
+  LEGACY_SENIOR   @map("SENIOR")
+  LEGACY_LEAD     @map("LEAD")
+  LEGACY_MANAGER  @map("MANAGER")
+  LEGACY_DIRECTOR @map("DIRECTOR")
 }
 
 enum EmploymentType {

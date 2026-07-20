@@ -1,4 +1,4 @@
-import { PositionLevel, UserRole, UserStatus } from "@prisma/client";
+import { UserRole, UserStatus } from "@prisma/client";
 import { z } from "zod";
 
 import { capabilityKeys } from "@/lib/auth/policy";
@@ -34,7 +34,7 @@ export const lifecycleSchema = z.discriminatedUnion("operation", [
     status: z.enum(UserStatus),
     department: z.string().trim().max(100).nullable(),
     position: z.string().trim().max(100).nullable(),
-    positionLevel: z.enum(PositionLevel),
+    positionLevel: z.enum(["JUNIOR", "SENIOR", "LEAD", "MANAGER", "DIRECTOR"]),
   }),
   z.object({
     operation: z.literal("terminate"),

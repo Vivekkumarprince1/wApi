@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { PositionLevel } from "@prisma/client";
 
 import {
   isOAuthCallbackPath,
@@ -6,6 +7,11 @@ import {
 } from "@/lib/auth/legacy-auth-enum-normalization";
 
 describe("legacy auth enum normalization", () => {
+  it("keeps legacy uppercase position levels readable during OAuth", () => {
+    expect(PositionLevel.LEGACY_JUNIOR).toBe("LEGACY_JUNIOR");
+    expect(PositionLevel.JUNIOR).toBe("JUNIOR");
+  });
+
   it("runs on social OAuth callbacks", () => {
     expect(isOAuthCallbackPath("/api/auth/callback/google")).toBe(true);
     expect(isOAuthCallbackPath("/api/auth/sign-in/social")).toBe(false);
