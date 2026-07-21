@@ -48,6 +48,7 @@ ENV NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY=$NEXT_PUBLIC_BUSINESS_VERIFICATI
 ENV BACKEND_API_URL=$BACKEND_API_URL
 COPY --from=builder /app/apps/customer-portal ./apps/customer-portal
 WORKDIR /app/apps/customer-portal
+RUN npm prune --omit=dev && rm -rf /usr/local/lib/node_modules/npm
 EXPOSE 3000
 USER node
-CMD ["npm", "run", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start", "-p", "3000"]

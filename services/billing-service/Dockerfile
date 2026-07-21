@@ -16,6 +16,7 @@ ENV NODE_ENV=production
 COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/services/billing-service ./services/billing-service
 WORKDIR /app/services/billing-service
+RUN npm prune --omit=dev && rm -rf /usr/local/lib/node_modules/npm
 EXPOSE 3003
 USER node
-CMD ["npm", "run", "start"]
+CMD ["node", "dist/index.js"]
