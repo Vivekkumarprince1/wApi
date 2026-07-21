@@ -36,6 +36,7 @@ COPY --from=builder /app/apps/career-portal/node_modules ./node_modules
 COPY --from=builder /app/apps/career-portal/.next ./.next
 COPY --from=builder /app/apps/career-portal/prisma ./prisma
 COPY --from=builder /app/apps/career-portal/next.config.ts ./next.config.ts
+RUN rm -rf /usr/local/lib/node_modules/npm
 
 EXPOSE 3001
-CMD ["npm", "run", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start", "-p", "3001"]

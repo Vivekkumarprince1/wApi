@@ -70,6 +70,15 @@ for service in "${services[@]}"; do
   if [[ ! -f "$service/Dockerfile" ]]; then
     echo "::error file=$service/Dockerfile::Missing Dockerfile"
     missing=1
+  else
+    if ! grep -Fq '/usr/local/lib/node_modules/npm' "$service/Dockerfile"; then
+      echo "::error file=$service/Dockerfile::Runtime image must remove bundled npm before vulnerability scanning"
+      missing=1
+    fi
+    if grep -Eq '^CMD \["npm"' "$service/Dockerfile"; then
+      echo "::error file=$service/Dockerfile::Runtime image must launch the application directly after npm is removed"
+      missing=1
+    fi
   fi
 
   if [[ -f "$service/package.json" ]]; then

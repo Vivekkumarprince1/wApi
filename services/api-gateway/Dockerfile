@@ -16,6 +16,7 @@ ENV NODE_ENV=production
 COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/services/api-gateway ./services/api-gateway
 WORKDIR /app/services/api-gateway
+RUN npm prune --omit=dev && rm -rf /usr/local/lib/node_modules/npm
 EXPOSE 5001
 USER node
-CMD ["npm", "run", "start"]
+CMD ["node", "dist/index.js"]
