@@ -24,46 +24,27 @@ env:
   GITOPS_ENV_DIR: ${{ vars.GITOPS_ENV_DIR || 'environments/production/connectsphere' }}
 
 jobs:
-  detect-changes:
-    name: Detect changed components
-    runs-on: ubuntu-latest
-    outputs:
-      services: ${{ steps.changes.outputs.services }}
-      images: ${{ steps.changes.outputs.images }}
-      service_names: ${{ steps.changes.outputs.service_names }}
-      has_services: ${{ steps.changes.outputs.has_services }}
-      should_update_gitops: ${{ steps.changes.outputs.should_update_gitops }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-      - id: changes
-        name: Build deployment matrix
-        env:
-          BASE_SHA: ${{ github.event.before }}
-          HEAD_SHA: ${{ github.sha }}
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            node scripts/ci/changed-services.mjs "$BASE_SHA" "$HEAD_SHA" --all > /tmp/changes.json
-          else
-            node scripts/ci/changed-services.mjs "$BASE_SHA" "$HEAD_SHA" > /tmp/changes.json
-          fi
-          cat /tmp/changes.json
-          echo "services=$(jq -c '.services' /tmp/changes.json)" >> "$GITHUB_OUTPUT"
-          echo "images=$(jq -c '.images' /tmp/changes.json)" >> "$GITHUB_OUTPUT"
-          echo "service_names=$(jq -c '.serviceNames' /tmp/changes.json)" >> "$GITHUB_OUTPUT"
-          echo "has_services=$(jq -r '.hasServices' /tmp/changes.json)" >> "$GITHUB_OUTPUT"
-          echo "should_update_gitops=$(jq -r '.shouldUpdateGitOps' /tmp/changes.json)" >> "$GITHUB_OUTPUT"
-
   quality-gate:
     name: Build and test ${{ matrix.service.name }}
-    needs: detect-changes
-    if: ${{ needs.detect-changes.outputs.has_services == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJSON(needs.detect-changes.outputs.services) }}
+        service:
+          - { name: 'contracts', dir: 'packages/contracts', needs_contracts: false }
+          - { name: 'api-gateway', dir: 'services/api-gateway', needs_contracts: true }
+          - { name: 'auth-service', dir: 'services/auth-service', needs_contracts: true }
+          - { name: 'campaign-service', dir: 'services/campaign-service', needs_contracts: true }
+          - { name: 'billing-service', dir: 'services/billing-service', needs_contracts: true }
+          - { name: 'service-provider', dir: 'services/service-provider', needs_contracts: true }
+          - { name: 'automation-service', dir: 'services/automation-service', needs_contracts: true }
+          - { name: 'chat-service', dir: 'services/chat-service', needs_contracts: true }
+          - { name: 'contact-service', dir: 'services/contact-service', needs_contracts: true }
+          - { name: 'webhook-ingestor', dir: 'services/webhook-ingestor', needs_contracts: true }
+          - { name: 'websocket-gateway', dir: 'services/websocket-gateway', needs_contracts: true }
+          - { name: 'admin-portal', dir: 'apps/admin-portal', needs_contracts: true }
+          - { name: 'career-portal', dir: 'apps/career-portal', needs_contracts: false }
+          - { name: 'customer-portal', dir: 'apps/customer-portal', needs_contracts: false }
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -126,12 +107,37 @@ jobs:
   docker-build:
     name: Build and push ${{ matrix.image }}
     runs-on: ubuntu-latest
-    needs: [detect-changes, quality-gate]
-    if: ${{ always() && needs.detect-changes.outputs.has_services == 'true' && needs.quality-gate.result == 'success' }}
+    needs: quality-gate
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.detect-changes.outputs.images) }}
+        include:
+          - image: api-gateway
+            dockerfile: services/api-gateway/Dockerfile
+          - image: auth-service
+            dockerfile: services/auth-service/Dockerfile
+          - image: campaign-service
+            dockerfile: services/campaign-service/Dockerfile
+          - image: billing-service
+            dockerfile: services/billing-service/Dockerfile
+          - image: service-provider
+            dockerfile: services/service-provider/Dockerfile
+          - image: automation-service
+            dockerfile: services/automation-service/Dockerfile
+          - image: chat-service
+            dockerfile: services/chat-service/Dockerfile
+          - image: contact-service
+            dockerfile: services/contact-service/Dockerfile
+          - image: webhook-ingestor
+            dockerfile: services/webhook-ingestor/Dockerfile
+          - image: websocket-gateway
+            dockerfile: services/websocket-gateway/Dockerfile
+          - image: admin-portal
+            dockerfile: apps/admin-portal/Dockerfile
+          - image: career-portal
+            dockerfile: apps/career-portal/Dockerfile
+          - image: customer-portal
+            dockerfile: apps/customer-portal/Dockerfile
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -192,8 +198,7 @@ jobs:
   update-gitops:
     name: Update Helm values in GitOps repo
     runs-on: ubuntu-latest
-    needs: [detect-changes, docker-build]
-    if: ${{ always() && needs.detect-changes.outputs.should_update_gitops == 'true' && (needs.docker-build.result == 'success' || needs.docker-build.result == 'skipped') }}
+    needs: docker-build
     permissions:
       contents: read
     steps:
@@ -244,7 +249,7 @@ jobs:
             "$existing_values" \
             "${existing_registry:-$ACR_LOGIN_SERVER}" \
             "$IMAGE_TAG" \
-            '${{ needs.detect-changes.outputs.service_names }}' \
+            '["api-gateway","auth-service","campaign-service","billing-service","service-provider","automation-service","chat-service","contact-service","webhook-ingestor","websocket-gateway","admin-portal","career-portal","customer-portal"]' \
             "$previous_values"
 
       - name: Validate rendered production manifests
@@ -268,5 +273,5 @@ jobs:
           fi
 
           git add "$GITOPS_ENV_DIR"
-          git commit -m "Deploy ConnectSphere components ${{ needs.detect-changes.outputs.service_names }}"
+          git commit -m "Deploy ConnectSphere $IMAGE_TAG"
           git push origin "HEAD:$GITOPS_BRANCH"
