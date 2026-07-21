@@ -45,9 +45,9 @@ config:
     ALLOW_UNSIGNED_DEV_WEBHOOKS: "false"
     ALLOW_UNSIGNED_DEV_PAYMENT_WEBHOOKS: "false"
     REQUIRE_WEBHOOK_SIGNATURE: "true"
-    # Keep payment operations fail-closed until all three Key Vault secrets are
-    # present: razorpay-key-id, razorpay-key-secret, and razorpay-webhook-secret.
-    RAZORPAY_ENABLED: "false"
+    # Razorpay test mode is controlled by the rzp_test_* key stored in Key Vault.
+    # Never place payment credentials directly in this values file.
+    RAZORPAY_ENABLED: "true"
     GATEWAY_URL: http://connectsphere-api-gateway:5001
     API_GATEWAY_URL: http://connectsphere-api-gateway:5001
     AUTH_SERVICE_URL: http://connectsphere-auth-service:3006
@@ -111,6 +111,12 @@ keyVaultSecrets:
       objectName: auth-smtp-from
     - key: EMAIL_REPLY_TO
       objectName: email-reply-to
+    - key: RAZORPAY_KEY_ID
+      objectName: razorpay-key-id
+    - key: RAZORPAY_KEY_SECRET
+      objectName: razorpay-key-secret
+    - key: RAZORPAY_WEBHOOK_SECRET
+      objectName: razorpay-webhook-secret
     - key: MONGODB_URI
       objectName: mongodb-uri
     - key: MONGODB_URI_AUTOMATION
@@ -188,6 +194,9 @@ services:
       JWT_SECRET: JWT_SECRET
       INTERNAL_SERVICE_SECRET: INTERNAL_SERVICE_SECRET
       REDIS_URL: REDIS_URL
+      RAZORPAY_KEY_ID: RAZORPAY_KEY_ID
+      RAZORPAY_KEY_SECRET: RAZORPAY_KEY_SECRET
+      RAZORPAY_WEBHOOK_SECRET: RAZORPAY_WEBHOOK_SECRET
   service-provider:
     env:
       WHATSAPP_WEBHOOK_URL: https://connectsphere-api-vivek.eastus.cloudapp.azure.com/api/webhooks/whatsapp
