@@ -180,8 +180,8 @@ export default function PlanSelectionModal({
                         <div
                           key={plan.slug}
                           className={`relative p-8 rounded-[40px] border-2 transition-all duration-500 flex flex-col group h-full ${isCurrent
-                              ? 'border-primary bg-primary/[0.02] shadow-2xl shadow-primary/5 ring-1 ring-primary/20'
-                              : 'border-border/40 bg-card/50 hover:border-primary/30 hover:bg-card hover:shadow-2xl hover:-translate-y-1'
+                            ? 'border-primary bg-primary/[0.02] shadow-2xl shadow-primary/5 ring-1 ring-primary/20'
+                            : 'border-border/40 bg-card/50 hover:border-primary/30 hover:bg-card hover:shadow-2xl hover:-translate-y-1'
                             }`}
                         >
                           {isPro && !isCurrent && (
@@ -261,8 +261,8 @@ export default function PlanSelectionModal({
                             onClick={() => handleSwitchPlan(plan)}
                             disabled={isCurrent || isSubmitting === plan.slug || (Number(plan.monthlyBaseFeeCents || 0) > 0 && !paymentEnabled)}
                             className={`w-full h-14 rounded-2xl font-black uppercase tracking-[0.15em] text-[10px] transition-all duration-300 ${isCurrent
-                                ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-80'
-                                : 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95'
+                              ? 'bg-muted text-muted-foreground cursor-not-allowed opacity-80'
+                              : 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95'
                               }`}
                           >
                             {isSubmitting === plan.slug ? (

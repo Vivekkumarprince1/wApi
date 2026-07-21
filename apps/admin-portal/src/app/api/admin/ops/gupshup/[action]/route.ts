@@ -4,6 +4,9 @@ import { recordAudit, clientIp } from "@/server/audit";
 import { saveWebhookPolicy } from "@/server/config-ops";
 import {
   deleteBspSubscription,
+  deleteSandboxPartnerApp,
+  linkPartnerApp,
+  listPartnerApps,
   reconcileBspApps,
   resolveBspAppIdDirect,
   syncAllWebhooks,
@@ -89,6 +92,24 @@ export async function POST(
         break;
       }
 
+      case "partner-apps": {
+        data = await listPartnerApps();
+        break;
+      }
+
+      case "link-app": {
+        data = await linkPartnerApp({ apiKey: body.apiKey, appName: body.appName });
+        break;
+      }
+
+      case "delete-sandbox-app": {
+        if (!String(body.appId || "").trim()) {
+          return NextResponse.json({ message: "appId is required" }, { status: 400 });
+        }
+        data = await deleteSandboxPartnerApp(body.appId, body.comment);
+        break;
+      }
+
       default:
         return NextResponse.json({ message: `Unknown action "${action}"` }, { status: 400 });
     }
@@ -97,7 +118,7 @@ export async function POST(
       actor,
       action: `gupshup.${action}`,
       target: "gupshup",
-      metadata: { payload: body, mode },
+      metadata: { payload: auditPayload(body), mode },
       ip: clientIp(req),
       outcome: "success",
     });
@@ -115,4 +136,9 @@ export async function POST(
 
 function normalizeId(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function auditPayload(payload: Record<string, unknown>) {
+  const { apiKey: _apiKey, ...safePayload } = payload;
+  return _apiKey ? { ...safePayload, apiKey: "[REDACTED]" } : safePayload;
 }

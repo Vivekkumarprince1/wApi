@@ -239,10 +239,10 @@ export default function WorkspaceDetailPage({ params }: { params: Promise<{ id: 
                   <div className="flex flex-wrap gap-1">
                     {ws?.plan?.features?.length
                       ? ws.plan.features.map((f) => (
-                          <Badge key={f} variant="secondary">
-                            {f}
-                          </Badge>
-                        ))
+                        <Badge key={f} variant="secondary">
+                          {f}
+                        </Badge>
+                      ))
                       : <span className="text-sm text-muted-foreground">No features listed.</span>}
                   </div>
                 </CardContent>

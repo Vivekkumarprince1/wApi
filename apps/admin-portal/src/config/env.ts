@@ -107,7 +107,9 @@ export const config = {
     partnerBaseUrl: process.env.GUPSHUP_PARTNER_BASE_URL || 'https://partner.gupshup.io',
     apiBaseUrl: process.env.GUPSHUP_API_BASE_URL || 'https://api.gupshup.io',
     partnerEmail: process.env.GUPSHUP_PARTNER_EMAIL || '',
-    partnerPassword: process.env.GUPSHUP_PARTNER_CLIENT_SECRET || process.env.GUPSHUP_PARTNER_PASSWORD || '',
+    // Gupshup Partner login accepts `email` + `secret`. Keep the password
+    // variable as a backwards-compatible source only; it is sent as `secret`.
+    partnerSecret: process.env.GUPSHUP_PARTNER_CLIENT_SECRET || process.env.GUPSHUP_PARTNER_PASSWORD || '',
     partnerToken: process.env.GUPSHUP_PARTNER_TOKEN || '',
     webhookUrl: process.env.WHATSAPP_WEBHOOK_URL || '',
   },

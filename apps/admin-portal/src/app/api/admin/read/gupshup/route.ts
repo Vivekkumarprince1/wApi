@@ -16,7 +16,10 @@ export async function GET() {
     const policies = await WebhookPolicy.find({}).sort({ createdAt: -1 }).limit(100).lean();
 
     const developerConfig = {
-      partnerConfigured: Boolean(process.env.GUPSHUP_PARTNER_EMAIL && process.env.GUPSHUP_PARTNER_PASSWORD),
+      partnerConfigured: Boolean(
+        process.env.GUPSHUP_PARTNER_EMAIL &&
+        (process.env.GUPSHUP_PARTNER_CLIENT_SECRET || process.env.GUPSHUP_PARTNER_PASSWORD)
+      ),
       partnerBaseUrl: process.env.GUPSHUP_PARTNER_BASE_URL || "https://partner.gupshup.io",
       note: "Partner API credentials are managed via GUPSHUP_PARTNER_* environment variables.",
     };

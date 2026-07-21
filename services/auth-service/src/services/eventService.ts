@@ -147,12 +147,12 @@ export async function startAuditConsumer(): Promise<void> {
 
     consumerClient.on('message', async (channel, messageStr) => {
       if (channel !== EventTopics.AUDIT_EVENTS) return;
-      
+
       try {
         const message = JSON.parse(messageStr);
         const raw = message.value;
         if (!raw) return;
-        
+
         const payload: AuditEventPayload = JSON.parse(raw);
         const db = mongoose.connection.db;
         if (!db) return;

@@ -30,13 +30,13 @@ async function partnerToken(forceRefresh = false): Promise<string> {
     return normalizeToken(config.gupshup.partnerToken);
   }
 
-  if (!config.gupshup.partnerEmail || !config.gupshup.partnerPassword) {
+  if (!config.gupshup.partnerEmail || !config.gupshup.partnerSecret) {
     throw new Error("Gupshup partner credentials are not configured in admin-portal");
   }
 
   const form = new URLSearchParams({
     email: config.gupshup.partnerEmail,
-    password: config.gupshup.partnerPassword,
+    secret: config.gupshup.partnerSecret,
   });
   const response = await providerClient().post("/partner/account/login", form.toString(), {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -55,7 +55,9 @@ async function withPartnerAuth<T>(operation: (headers: Record<string, string>) =
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const token = await partnerToken(attempt === 1);
     try {
-      return await operation({ Authorization: `Bearer ${token}`, Accept: "application/json" });
+      // Partner API documentation specifies the token itself in Authorization;
+      // it does not use the Bearer scheme.
+      return await operation({ Authorization: token, Accept: "application/json" });
     } catch (error) {
       const status = axios.isAxiosError(error) ? error.response?.status : undefined;
       if (attempt === 0 && (status === 401 || status === 403)) continue;
@@ -73,6 +75,63 @@ export async function listBspApps(workspaceId?: string) {
     .sort({ updatedAt: -1 })
     .limit(200)
     .toArray();
+}
+
+/**
+ * Partner-account inventory. This deliberately reads from Gupshup rather than
+ * our local mapping collection so super admins can see unassigned apps too.
+ */
+export async function listPartnerApps(): Promise<Record<string, unknown>[]> {
+  return withPartnerAuth(async (headers) => {
+    const response = await providerClient().get("/partner/account/api/partnerApps", { headers });
+    const payload = response.data;
+    // The current Partner API returns `partnerAppsList`; retain the older
+    // aliases because Gupshup has used those shapes in prior API revisions.
+    const apps = payload?.partnerAppsList || payload?.partnerApps || payload?.apps || payload?.data || payload;
+    if (!Array.isArray(apps)) throw new Error("Gupshup returned an invalid partner app inventory");
+    return apps;
+  });
+}
+
+/** Link an existing Gupshup app to this partner account. The API key is never persisted. */
+export async function linkPartnerApp(input: { apiKey: unknown; appName: unknown }) {
+  const apiKey = normalizeId(input.apiKey);
+  const appName = normalizeId(input.appName);
+  if (!apiKey || !appName) throw new Error("apiKey and appName are required");
+
+  return withPartnerAuth(async (headers) => {
+    const form = new URLSearchParams({ apiKey, appName });
+    const response = await providerClient().post("/partner/account/api/appLink", form.toString(), {
+      headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
+    });
+    return response.data;
+  });
+}
+
+/**
+ * Gupshup exposes deletion only for sandbox apps. Re-fetching the provider
+ * inventory before the destructive call prevents a stale UI from deleting a
+ * live application if its mode changes after the page was loaded.
+ */
+export async function deleteSandboxPartnerApp(appIdValue: unknown, commentValue: unknown) {
+  const appId = normalizeId(appIdValue);
+  const comment = normalizeId(commentValue) || "Deleted from ConnectSphere super admin";
+  if (!appId) throw new Error("appId is required");
+
+  const apps = await listPartnerApps();
+  const app = apps.find((candidate) => providerAppId(candidate) === appId);
+  if (!app) throw new Error("Gupshup app was not found in this partner account");
+  if (!isSandboxPartnerApp(app)) {
+    throw new Error("Only Gupshup sandbox apps can be deleted from this console");
+  }
+
+  return withPartnerAuth(async (headers) => {
+    const response = await providerClient().delete(`/partner/app/${encodeURIComponent(appId)}`, {
+      headers,
+      params: { comment },
+    });
+    return response.data;
+  });
 }
 
 export async function reconcileBspApps(workspaceId?: string) {
@@ -309,6 +368,12 @@ function normalizeId(value: unknown) {
 
 function isPlaceholderAppId(value: string) {
   return !value || value.startsWith("mock_") || value.startsWith("pending_");
+}
+
+function isSandboxPartnerApp(app: Record<string, unknown>) {
+  const fields = [app.status, app.mode, app.environment, app.appMode, app.type, app.category]
+    .map((value) => normalizeId(value).toLowerCase());
+  return fields.some((value) => value === "sandbox" || value.includes("sandbox"));
 }
 
 function secureWebhookUrl(value: string) {
