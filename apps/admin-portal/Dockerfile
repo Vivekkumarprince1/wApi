@@ -28,6 +28,7 @@ ENV NEXT_PUBLIC_GOOGLE_AUTH_ENABLED=$NEXT_PUBLIC_GOOGLE_AUTH_ENABLED
 COPY --from=builder /app/packages/contracts ./packages/contracts
 COPY --from=builder /app/apps/admin-portal ./apps/admin-portal
 WORKDIR /app/apps/admin-portal
+RUN npm prune --omit=dev && rm -rf /usr/local/lib/node_modules/npm
 EXPOSE 3100
 USER node
-CMD ["npm", "run", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start", "-p", "3100"]
