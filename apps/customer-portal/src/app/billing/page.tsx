@@ -31,22 +31,14 @@ export default function BillingPage() {
 
     if (isLoading) return <FlashLoader />;
 
-    const handlePlanChanged = () => {
-        refetch();
-        fetchSession(true);
+    const handlePlanChanged = async () => {
+        await refetch();
+        await fetchSession(true);
     };
 
     const wallet = billing?.wallet || { balance: 0, currency: 'INR', status: 'active' };
     const billingPlan = billing?.plan || { name: 'Free', limits: {}, usage: {}, slug: 'free' };
-    const sessionPlan = workspace?.plan || user?.plan;
-    const plan = sessionPlan && sessionPlan.slug !== 'free'
-        ? {
-            ...billingPlan,
-            ...sessionPlan,
-            limits: { ...(billingPlan.limits || {}), ...(sessionPlan.limits || {}) },
-            usage: billingPlan.usage || {},
-        }
-        : billingPlan;
+    const plan = billingPlan;
     const subscription = billing?.subscription || { autoPay: true, taxId: '' };
     const transactions = billing?.transactions || [];
 

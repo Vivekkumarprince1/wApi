@@ -10,6 +10,7 @@ import { PlanModel, SubscriptionModel, WorkspaceModel, WalletTransactionModel, O
 import { AuthRequest } from '../middleware/auth';
 import { billingMetrics } from '../lib/metrics';
 import { classifyPaymentError } from './payment-error';
+import { buildSubscriptionActivation, resolveBillingPlan } from '../services/plan-activation-service';
 
 const ledgerService = new LedgerService();
 const invoiceService = new InvoiceService();
@@ -339,12 +340,31 @@ export class WalletController {
 
       // 4. Activate the plan on the workspace
       const plan = await PlanModel.findOne({ slug: planSlug });
-      if (plan) {
-        await WorkspaceModel.findByIdAndUpdate(workspaceId, {
+      if (!plan) {
+        return res.status(400).json({ success: false, message: `Plan "${planSlug}" no longer exists` });
+      }
+
+      await Promise.all([
+        WorkspaceModel.findByIdAndUpdate(workspaceId, {
           planId: plan._id,
           billingStatus: 'active'
-        });
-      }
+        }, { upsert: true }),
+        SubscriptionModel.findOneAndUpdate(
+          { workspaceId },
+          { $set: buildSubscriptionActivation(plan._id, plan.billingIntervalMonths) },
+          { upsert: true, new: true }
+        ),
+      ]);
+
+      const { publishBillingEvent } = await import('../lib/event-bus');
+      await publishBillingEvent('plan_purchased', workspaceId, {
+        planSlug: plan.slug,
+        planName: plan.name,
+        features: plan.features || [],
+        limits: plan.limits || {},
+        amount: amountPaise / 100,
+        paymentId: razorpay_payment_id,
+      });
 
       // 5. Generate invoice (best-effort)
       try {
@@ -353,7 +373,12 @@ export class WalletController {
         console.warn('[verifyPlanUpgrade] Invoice generation failed (non-fatal):', invoiceErr.message);
       }
 
-      res.json({ success: true, wallet, planSlug });
+      res.json({
+        success: true,
+        wallet,
+        planSlug,
+        plan: { name: plan.name, slug: plan.slug, features: plan.features || [], limits: plan.limits || {} },
+      });
     } catch (err: any) {
       console.error('[verifyPlanUpgrade] Error:', err.message);
       res.status(400).json({ success: false, message: err.message });
@@ -688,10 +713,17 @@ export class WalletController {
 
           const plan = await PlanModel.findOne({ slug: planSlug });
           if (plan) {
-            await WorkspaceModel.findByIdAndUpdate(workspaceId, {
-              planId: plan._id,
-              billingStatus: 'active'
-            });
+            await Promise.all([
+              WorkspaceModel.findByIdAndUpdate(workspaceId, {
+                planId: plan._id,
+                billingStatus: 'active'
+              }, { upsert: true }),
+              SubscriptionModel.findOneAndUpdate(
+                { workspaceId },
+                { $set: buildSubscriptionActivation(plan._id, plan.billingIntervalMonths) },
+                { upsert: true, new: true }
+              ),
+            ]);
           }
 
           await invoiceService.generateForTransaction(tx._id.toString(), {
@@ -702,6 +734,9 @@ export class WalletController {
 
           await publishBillingEvent('plan_purchased', workspaceId, {
             planSlug,
+            planName: plan?.name,
+            features: plan?.features || [],
+            limits: plan?.limits || {},
             amount: amount / 100,
             paymentId
           });
@@ -887,7 +922,7 @@ export class WalletController {
 
       const workspacePlan = (workspace?.planId as any) || null;
       const subscriptionPlan = (activeSubscription?.planId as any) || null;
-      const plan = subscriptionPlan || workspacePlan;
+      const plan = resolveBillingPlan(workspacePlan, subscriptionPlan);
 
       // Attach invoice numbers to transactions
       const txIds = rawTxs.map((tx) => tx._id.toString());

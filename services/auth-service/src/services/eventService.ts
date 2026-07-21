@@ -13,6 +13,7 @@ import Redis from 'ioredis';
 import mongoose from 'mongoose';
 import type { AuditEventPayload } from '@wapi/contracts';
 import { EventTopics } from '@wapi/contracts';
+import { Plan, Workspace } from '../models/index.js';
 
 // ─── Producer ────────────────────────────────────────────────────────────────
 
@@ -72,6 +73,59 @@ export async function disconnectEventProducer(): Promise<void> {
 // ─── Consumer ─────────────────────────────────────────────────────────────────
 
 let consumerClient: Redis | null = null;
+let billingConsumerClient: Redis | null = null;
+
+export async function applyPurchasedPlan(workspaceId: string, payload: any): Promise<void> {
+  const slug = String(payload?.planSlug || '').trim();
+  if (!workspaceId || !slug) throw new Error('plan_purchased event requires workspaceId and planSlug');
+
+  const plan = await Plan.findOneAndUpdate(
+    { $or: [{ slug }, { code: slug }] },
+    {
+      $set: {
+        name: payload?.planName || slug,
+        code: slug,
+        slug,
+        features: Array.isArray(payload?.features) ? payload.features : [],
+        limits: payload?.limits || {},
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true },
+  );
+
+  await Workspace.findByIdAndUpdate(workspaceId, {
+    $set: {
+      plan: plan._id,
+      planLimits: payload?.limits || {},
+    },
+  });
+}
+
+export async function startBillingPlanConsumer(): Promise<void> {
+  const url = process.env.REDIS_URL;
+  if (!url) return;
+
+  billingConsumerClient = new Redis(url);
+  await billingConsumerClient.subscribe('billing-events');
+  billingConsumerClient.on('message', async (channel, messageStr) => {
+    if (channel !== 'billing-events') return;
+    try {
+      const message = JSON.parse(messageStr);
+      const envelope = JSON.parse(message.value || '{}');
+      if (envelope.event !== 'plan_purchased') return;
+      await applyPurchasedPlan(String(envelope.workspaceId || ''), envelope.payload || {});
+    } catch (err: any) {
+      console.error('[EventService] Billing plan consumer error:', err.message);
+    }
+  });
+  console.log('[EventService] Billing plan consumer running.');
+}
+
+export async function stopBillingPlanConsumer(): Promise<void> {
+  if (!billingConsumerClient) return;
+  billingConsumerClient.disconnect();
+  billingConsumerClient = null;
+}
 
 /**
  * Start consuming the `audit-events` channel.

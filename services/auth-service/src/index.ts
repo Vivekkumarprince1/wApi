@@ -6,7 +6,7 @@ import morgan from 'morgan';
 import { connectDb } from './config/db.js';
 import apiRouter from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
-import { disconnectEventProducer, startAuditConsumer, stopAuditConsumer } from './services/eventService.js';
+import { disconnectEventProducer, startAuditConsumer, startBillingPlanConsumer, stopAuditConsumer, stopBillingPlanConsumer } from './services/eventService.js';
 import { startDeletionWorker, stopDeletionQueue } from './services/deletion-queue.js';
 import mongoose from 'mongoose';
 import { createServiceLogger, correlationIdMiddleware, MetricsRegistry, metricsEndpoint } from '@wapi/contracts';
@@ -68,6 +68,7 @@ async function start() {
 
   // Start EventBus audit consumer (persists audit events → auditlogs collection)
   await startAuditConsumer();
+  await startBillingPlanConsumer();
   await startDeletionWorker();
 
   const server = app.listen(config.port, '0.0.0.0', () => {
@@ -79,6 +80,7 @@ async function start() {
     console.log('[Auth Service] SIGTERM received — shutting down gracefully...');
     await disconnectEventProducer();
     await stopAuditConsumer();
+    await stopBillingPlanConsumer();
     await stopDeletionQueue();
     server.close(() => process.exit(0));
   };
