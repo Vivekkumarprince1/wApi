@@ -104,10 +104,14 @@ export function RegisterForm() {
       }
 
       const redirect = searchParams.get("redirect");
+      const verificationParams = new URLSearchParams({
+        email: parsed.data.email,
+      });
+      if (redirect?.startsWith("/") && !redirect.startsWith("//")) {
+        verificationParams.set("redirect", redirect);
+      }
       router.replace(
-        redirect?.startsWith("/") && !redirect.startsWith("//")
-          ? `/login?registered=1&redirect=${encodeURIComponent(redirect)}`
-          : "/?registered=1",
+        `/verify-email?${verificationParams.toString()}`,
       );
       router.refresh();
     },

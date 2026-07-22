@@ -67,3 +67,13 @@ test("registration shows a useful Google account-linking error", async ({ page }
     }),
   ).toBeVisible();
 });
+
+test("email verification page accepts an OTP and offers resend", async ({ page }) => {
+  await page.goto("/verify-email?email=vivek%40example.com");
+
+  await expect(page.getByRole("heading", { name: "Verify your email" })).toBeVisible();
+  await expect(page.getByText("vivek@example.com", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("6-digit verification code")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Verify email" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Resend code/ })).toBeVisible();
+});

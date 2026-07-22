@@ -4,11 +4,11 @@ import { compare, hash } from "bcryptjs";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
-import { twoFactor } from "better-auth/plugins";
+import { emailOTP, twoFactor } from "better-auth/plugins";
 
 import { env } from "@/config/env";
 import { prisma } from "@/lib/db/prisma";
-import { sendAccountEmail } from "@/lib/email/mailer";
+import { sendAccountEmail, sendAccountOTP } from "@/lib/email/mailer";
 import { developmentTrustedOrigins } from "@/lib/http/origin-policy";
 
 export const auth = betterAuth({
@@ -131,6 +131,20 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    emailOTP({
+      sendVerificationOTP: async ({ email, otp, type }) => {
+        if (type === "email-verification") {
+          await sendAccountOTP({ to: email, otp });
+        }
+      },
+      sendVerificationOnSignUp: true,
+      overrideDefaultEmailVerification: true,
+      otpLength: 6,
+      expiresIn: 10 * 60,
+      allowedAttempts: 5,
+      storeOTP: "hashed",
+      rateLimit: { window: 60, max: 3 },
+    }),
     twoFactor({
       issuer: "ConnectSphere Careers",
       accountLockout: {

@@ -123,3 +123,32 @@ export async function sendAccountEmail({
   }
 }
 
+export async function sendAccountOTP({
+  to,
+  otp,
+}: {
+  to: string;
+  otp: string;
+}): Promise<void> {
+  try {
+    await getTransporter().sendMail({
+      from: `ConnectSphere Careers <${env.SMTP_USER}>`,
+      replyTo: env.EMAIL_REPLY_TO,
+      to,
+      subject: `${otp} is your ConnectSphere Careers verification code`,
+      text: `Verify your email\n\nYour verification code is ${otp}. It expires in 10 minutes.\n\nIf you did not request this, no action is required.`,
+      html: `<div style="background:#f8fafc;padding:32px;font-family:Arial,sans-serif;color:#0f172a"><div style="max-width:560px;margin:auto;background:#fff;border:1px solid #e2e8f0;border-radius:20px;padding:32px"><p style="color:#047857;font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase">ConnectSphere Careers</p><h1 style="font-size:28px;margin:12px 0">Verify your email</h1><p style="line-height:1.7;color:#475569">Enter this code to finish creating your account:</p><p style="font-size:36px;font-weight:800;letter-spacing:.18em;margin:24px 0;color:#0f172a">${escapeHtml(otp)}</p><p style="font-size:14px;color:#64748b">This code expires in 10 minutes. If you did not request this, no action is required.</p></div></div>`,
+    });
+  } catch (error) {
+    if (!isDevelopmentMailboxEnabled()) throw error;
+    storeDevelopmentEmail({
+      recipient: to,
+      subject: `${otp} is your ConnectSphere Careers verification code`,
+      heading: "Verify your email",
+      message: `Your verification code is ${otp}. It expires in 10 minutes.`,
+      actionLabel: "Verification code",
+      actionUrl: otp,
+    });
+  }
+}
+
