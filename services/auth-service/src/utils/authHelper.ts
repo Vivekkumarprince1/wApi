@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import http from 'http';
 import config from '../config/index.js';
 import { User, Workspace, Permission, SystemSettings } from '../models/index.js';
+import { deriveNextStep } from '../services/auth-next-step.js';
 
 export const sanitizeUser = (user: any) => {
   const obj = user?.toObject ? user.toObject() : user;
@@ -84,33 +85,6 @@ export async function ensureWorkspaceMembership(user: any) {
   await user.save();
 
   return workspace._id;
-}
-
-export function deriveNextStep(user: any, workspace: any) {
-  if (user.email && user.authProvider !== 'google' && !user.emailVerified) {
-    return '/onboarding/verify-email';
-  }
-  const hasBusinessInfo = !!(
-    workspace?.business?.name ||
-    workspace?.businessDocuments?.submittedAt ||
-    workspace?.businessDocuments?.gstNumber ||
-    workspace?.industry ||
-    workspace?.address
-  );
-  if (!hasBusinessInfo) {
-    return '/onboarding/business-info';
-  }
-
-  // Only enforce business verification when explicitly configured as mandatory
-  const isVerificationMandatory = (process.env.NEXT_PUBLIC_BUSINESS_VERIFICATION_MANDATORY || 'false') === 'true';
-  if (isVerificationMandatory) {
-    const verificationStatus = workspace?.businessVerification?.status;
-    if (verificationStatus !== 'verified') {
-      return '/onboarding/business-verification';
-    }
-  }
-
-  return null;
 }
 
 export async function buildSessionPayload(user: any) {

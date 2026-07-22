@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deriveNextStep } from '../src/utils/authHelper';
+import { deriveNextStep } from '../src/services/auth-next-step';
 
 const newWorkspace = {};
 
