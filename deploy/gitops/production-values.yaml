@@ -99,6 +99,16 @@ keyVaultSecrets:
       objectName: google-client-id
     - key: GOOGLE_CLIENT_SECRET
       objectName: google-client-secret
+    # Career identity is isolated from the platform auth service. Keep distinct
+    # Key Vault objects even when an OAuth client is initially copied during migration.
+    - key: CAREER_MONGODB_URI
+      objectName: career-mongodb-uri
+    - key: CAREER_BETTER_AUTH_SECRET
+      objectName: career-better-auth-secret
+    - key: CAREER_GOOGLE_CLIENT_ID
+      objectName: career-google-client-id
+    - key: CAREER_GOOGLE_CLIENT_SECRET
+      objectName: career-google-client-secret
     - key: ADMIN_GOOGLE_SIGNUP_EMAILS
       objectName: admin-google-signup-emails
     - key: SMTP_HOST
@@ -289,10 +299,10 @@ services:
       SMTP_PORT: "587"
       SMTP_SECURE: "false"
     secretEnv:
-      MONGODB_URI: MONGODB_URI
-      BETTER_AUTH_SECRET: BETTER_AUTH_SECRET
-      GOOGLE_CLIENT_ID: GOOGLE_CLIENT_ID
-      GOOGLE_CLIENT_SECRET: GOOGLE_CLIENT_SECRET
+      MONGODB_URI: CAREER_MONGODB_URI
+      BETTER_AUTH_SECRET: CAREER_BETTER_AUTH_SECRET
+      GOOGLE_CLIENT_ID: CAREER_GOOGLE_CLIENT_ID
+      GOOGLE_CLIENT_SECRET: CAREER_GOOGLE_CLIENT_SECRET
       SMTP_HOST: SMTP_HOST
       SMTP_USER: SMTP_USER
       SMTP_PASSWORD: SMTP_PASSWORD
