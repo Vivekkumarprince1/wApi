@@ -86,10 +86,7 @@ export async function ensureWorkspaceMembership(user: any) {
   return workspace._id;
 }
 
-function deriveNextStep(user: any, workspace: any) {
-  if (user.authProvider === 'google') {
-    return null;
-  }
+export function deriveNextStep(user: any, workspace: any) {
   if (user.email && user.authProvider !== 'google' && !user.emailVerified) {
     return '/onboarding/verify-email';
   }
