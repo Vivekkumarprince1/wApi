@@ -22,13 +22,13 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, { provider: "mongodb" }),
   ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
     ? {
-        socialProviders: {
-          google: {
-            clientId: env.GOOGLE_CLIENT_ID,
-            clientSecret: env.GOOGLE_CLIENT_SECRET,
-          },
+      socialProviders: {
+        google: {
+          clientId: env.GOOGLE_CLIENT_ID,
+          clientSecret: env.GOOGLE_CLIENT_SECRET,
         },
-      }
+      },
+    }
     : {}),
   emailAndPassword: {
     enabled: true,
@@ -65,6 +65,13 @@ export const auth = betterAuth({
         actionLabel: "Verify email",
         actionUrl: url,
       });
+    },
+  },
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google"],
+      requireLocalEmailVerified: true,
     },
   },
   user: {

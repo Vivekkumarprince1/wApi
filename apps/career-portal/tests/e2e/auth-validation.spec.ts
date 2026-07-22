@@ -44,3 +44,26 @@ test("registration reports mismatched passwords without creating an account", as
   expect(signUpRequests).toBe(0);
   await expectResponsiveDocument(page);
 });
+
+test("login shows a useful Google account-linking error", async ({ page }) => {
+  await page.goto("/login?error=account_not_linked");
+
+  await expect(
+    page.getByRole("alert").filter({
+      hasText: "An account already exists with this email",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "create a new account" }),
+  ).toBeVisible();
+});
+
+test("registration shows a useful Google account-linking error", async ({ page }) => {
+  await page.goto("/register?error=account_not_linked");
+
+  await expect(
+    page.getByRole("alert").filter({
+      hasText: "An account already exists with this email",
+    }),
+  ).toBeVisible();
+});

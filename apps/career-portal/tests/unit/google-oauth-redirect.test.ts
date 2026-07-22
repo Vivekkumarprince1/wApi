@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CAREER_ACCOUNT_HOME,
   googleOAuthCallbackURL,
+  googleOAuthErrorCallbackURL,
   googleOAuthNewUserCallbackURL,
 } from "@/lib/auth/google-oauth-redirect";
 
@@ -22,5 +23,12 @@ describe("career Google OAuth redirects", () => {
     expect(googleOAuthCallbackURL("/apply/platform-engineer")).toBe(
       "/apply/platform-engineer",
     );
+  });
+
+  it("returns OAuth failures to the page that started authentication", () => {
+    expect(googleOAuthErrorCallbackURL("login", "/apply/platform-engineer")).toBe(
+      "/login?redirect=%2Fapply%2Fplatform-engineer",
+    );
+    expect(googleOAuthErrorCallbackURL("register", null)).toBe("/register");
   });
 });

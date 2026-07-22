@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/auth-client";
+import { authErrorMessage } from "@/lib/auth/auth-error-message";
 import { GoogleSignInButton } from "@/modules/auth/components/google-sign-in-button";
 import { loginSchema } from "@/modules/auth/schemas";
 
@@ -21,7 +22,9 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(
-    searchParams.get("message"),
+    searchParams.get("error")
+      ? authErrorMessage(searchParams.get("error"))
+      : searchParams.get("message"),
   );
   const [verificationEmail, setVerificationEmail] = useState<string | null>(
     null,
@@ -52,7 +55,9 @@ export function LoginForm() {
           setServerError("Verify your email address before signing in.");
           return;
         }
-        setServerError(result.error.message ?? "Invalid email or password");
+        setServerError(
+          authErrorMessage(result.error.code ?? "INVALID_EMAIL_OR_PASSWORD"),
+        );
         return;
       }
 
@@ -95,13 +100,13 @@ export function LoginForm() {
                 const readinessBody = (await readiness
                   .json()
                   .catch(() => null)) as {
-                  ready?: boolean;
-                  message?: string;
-                } | null;
+                    ready?: boolean;
+                    message?: string;
+                  } | null;
                 if (!readiness.ok || readinessBody?.ready !== true) {
                   setServerError(
                     readinessBody?.message ??
-                      "Email delivery is temporarily unavailable. Please contact support.",
+                    "Email delivery is temporarily unavailable. Please contact support.",
                   );
                   return;
                 }
@@ -112,7 +117,7 @@ export function LoginForm() {
                 if (response.error) {
                   setServerError(
                     response.error.message ??
-                      "Unable to send verification email",
+                    "Unable to send verification email",
                   );
                   return;
                 }
@@ -185,6 +190,7 @@ export function LoginForm() {
         )}
       </form.Subscribe>
       <GoogleSignInButton
+        source="login"
         onError={(message) => setServerError(message || null)}
       />
     </form>

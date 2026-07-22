@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/auth-client";
+import { authErrorMessage } from "@/lib/auth/auth-error-message";
 import { GoogleSignInButton } from "@/modules/auth/components/google-sign-in-button";
 import { registrationSchema } from "@/modules/auth/schemas";
 
@@ -53,7 +54,11 @@ const fields = [
 export function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [serverError, setServerError] = useState<string | null>(
+    searchParams.get("error")
+      ? authErrorMessage(searchParams.get("error"))
+      : null,
+  );
   const form = useForm({
     defaultValues: {
       name: "",
@@ -82,7 +87,7 @@ export function RegisterForm() {
       if (!readiness.ok || readinessBody?.ready !== true) {
         setServerError(
           readinessBody?.message ??
-            "Account registration is temporarily unavailable because verification email cannot be delivered.",
+          "Account registration is temporarily unavailable because verification email cannot be delivered.",
         );
         return;
       }
@@ -161,6 +166,7 @@ export function RegisterForm() {
         )}
       </form.Subscribe>
       <GoogleSignInButton
+        source="register"
         onError={(message) => setServerError(message || null)}
       />
       <p className="text-center text-xs leading-5 text-slate-500">

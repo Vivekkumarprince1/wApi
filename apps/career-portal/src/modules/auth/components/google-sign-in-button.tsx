@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
 import {
   googleOAuthCallbackURL,
+  googleOAuthErrorCallbackURL,
   googleOAuthNewUserCallbackURL,
 } from "@/lib/auth/google-oauth-redirect";
 
@@ -36,8 +37,10 @@ function GoogleMark() {
 
 export function GoogleSignInButton({
   onError,
+  source,
 }: {
   onError: (message: string) => void;
+  source: "login" | "register";
 }) {
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,6 +67,10 @@ export function GoogleSignInButton({
             const result = await authClient.signIn.social({
               provider: "google",
               callbackURL: googleOAuthCallbackURL(
+                searchParams.get("redirect"),
+              ),
+              errorCallbackURL: googleOAuthErrorCallbackURL(
+                source,
                 searchParams.get("redirect"),
               ),
               newUserCallbackURL: googleOAuthNewUserCallbackURL(),
